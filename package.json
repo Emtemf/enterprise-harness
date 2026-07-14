@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Portable runtime and repo contract for the Enterprise Harness Claude Code plugin skeleton.",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "enterprise-harness": "bin/enterprise-harness.mjs"

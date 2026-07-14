@@ -41,7 +41,7 @@
 ### 方式 A：clone 仓库（当前推荐）
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Emtemf/enterprise-harness.git
 cd enterprise-harness
 ```
 
