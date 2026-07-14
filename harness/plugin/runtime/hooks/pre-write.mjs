@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
+import { loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
 
 const root = projectRoot();
 const payload = process.stdin.read ? process.stdin.read() : '';
@@ -26,29 +27,14 @@ if (target.startsWith(archiveRoot + path.sep) || target === archiveRoot) {
   console.error('BLOCK: harness/archive/ 视为冻结历史，不允许直接编辑。');
   process.exit(2);
 }
-const governedRoots = [
-  path.resolve(path.join(root, 'reference-service', 'src', 'main')),
-  path.resolve(path.join(root, 'reference-service', 'src', 'test')),
-  path.resolve(path.join(root, 'reference-service', 'openapi')),
-];
-const isGoverned = governedRoots.some((dir) => target === dir || target.startsWith(dir + path.sep));
-if (isGoverned) {
-  const activeFile = path.join(root, 'harness', 'ACTIVE_CHANGE');
-  if (!fs.existsSync(activeFile)) {
-    console.error('BLOCK: 修改 reference-service 受治理路径前，必须先设置 harness/ACTIVE_CHANGE。');
+const governedRoot = isGovernedTarget(root, target);
+if (governedRoot) {
+  const active = loadActiveChange(root);
+  if (!active.ok) {
+    console.error('BLOCK: 修改 reference-service 受治理路径前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
     process.exit(2);
   }
-  const changeId = fs.readFileSync(activeFile, 'utf-8').trim();
-  if (!changeId) {
-    console.error('BLOCK: harness/ACTIVE_CHANGE 为空。');
-    process.exit(2);
-  }
-  const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
-  if (!fs.existsSync(statePath)) {
-    console.error(`BLOCK: active change 缺少 state.json：${statePath}`);
-    process.exit(2);
-  }
-  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  const state = active.data;
   const current = state.state;
   if (current === 'DRAFT') {
     console.error('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改 reference-service。');
@@ -56,6 +42,17 @@ if (isGoverned) {
   }
   if (current === 'ARCHIVED' || current === 'REJECTED') {
     console.error(`BLOCK: 当前 active change 处于 ${current}，不能继续修改 reference-service。`);
+    process.exit(2);
+  }
+
+  const gate = requiredGateForTarget(root, target);
+  const gates = state.gates || {};
+  if (gate?.needsDesignApproved && !gates.designApproved) {
+    console.error('BLOCK: 当前目标路径需要 designApproved=true。请先完成设计并标记 design gate 通过。');
+    process.exit(2);
+  }
+  if (gate?.needsRedVerified && !gates.redVerified) {
+    console.error('BLOCK: 当前目标路径需要 redVerified=true。请先记录 RED 证据再修改生产源码或 OpenAPI。');
     process.exit(2);
   }
 }

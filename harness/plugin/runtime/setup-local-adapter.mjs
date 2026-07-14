@@ -17,5 +17,15 @@ if (!process.argv.includes('--write')) {
 fs.mkdirSync(path.dirname(target), { recursive: true });
 if (!fs.existsSync(target)) {
   fs.writeFileSync(target, content, 'utf-8');
+} else {
+  const existing = JSON.parse(fs.readFileSync(target, 'utf-8'));
+  const template = JSON.parse(content);
+  const merged = {
+    ...template,
+    ...existing,
+    context7: { ...template.context7, ...(existing.context7 || {}) },
+    mcp: { ...template.mcp, ...(existing.mcp || {}) },
+  };
+  fs.writeFileSync(target, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
 }
 console.log(`Local adapter ready at: ${target}`);

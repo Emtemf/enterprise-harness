@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "changeId": "intake-smoke-demo",
-  "tier": "L1",
-  "state": "VALIDATED",
+  "changeId": "gate-tightening-skeleton",
+  "tier": "L2",
+  "state": "DISCOVERED",
   "owner": "harness-governance",
   "impact": {
-    "api": "no",
-    "data": "no",
-    "architecture": "yes",
-    "rule": "yes"
+    "api": "unknown",
+    "data": "unknown",
+    "architecture": "unknown",
+    "rule": "unknown"
   },
   "tooling": {
     "codegraph": {
@@ -26,8 +26,13 @@
   "approvals": {},
   "currentTask": null,
   "validation": {
-    "status": "fresh",
-    "digest": "intake-smoke-demo-validated",
-    "validatedAt": "2026-07-14"
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true,
+    "redEvidenceRef": "gate-tightening-red-proof"
   }
 }

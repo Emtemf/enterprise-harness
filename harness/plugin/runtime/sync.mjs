@@ -36,10 +36,10 @@ steps.push({
 
 steps.push({
   id: 'local-adapter',
-  ok: localAdapter.exists,
-  severity: localAdapter.exists ? 'info' : 'warn',
+  ok: localAdapter.exists && localAdapter.errors.length === 0,
+  severity: localAdapter.exists ? (localAdapter.errors.length === 0 ? 'info' : 'warn') : 'warn',
   message: localAdapter.exists
-    ? `已检测到本机 adapter：${localAdapter.path}`
+    ? `已检测到本机 adapter：${localAdapter.path}${localAdapter.errors.length ? ` | ${localAdapter.errors.join('; ')}` : ''}`
     : `未检测到本机 adapter；建议运行 node harness/plugin/runtime/setup-local-adapter.mjs --write，默认路径：${resolveLocalAdapterPath()}`,
 });
 

@@ -21,7 +21,9 @@
     "bootstrap": "node harness/plugin/runtime/bootstrap.mjs",
     "sync": "node harness/plugin/runtime/sync.mjs",
     "setupLocalAdapter": "node harness/plugin/runtime/setup-local-adapter.mjs --write",
-    "install": "node harness/plugin/runtime/install.mjs"
+    "install": "node harness/plugin/runtime/install.mjs",
+    "upgrade": "node harness/plugin/runtime/upgrade.mjs",
+    "migrate": "node harness/plugin/runtime/migrate.mjs"
   },
   "requiredEnvVars": [],
   "notes": [

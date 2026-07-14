@@ -52,6 +52,8 @@ local runtime adapter 负责：
   - 若设置 `HARNESS_LOCAL_ADAPTER`，优先使用该路径
   - Windows：`%APPDATA%/enterprise-harness/local-adapter.json`
   - Linux / macOS：`${XDG_CONFIG_HOME:-~/.config}/enterprise-harness/local-adapter.json`
-- 用 `setup-local-adapter.mjs` 负责 dry-run / 写入本机 adapter
-- 用 `doctor.mjs` 暴露当前机器缺口
-- 用 `sync.mjs` 给出本机接入与同步建议
+- `local-adapter.schema.json` 是当前正式 schema
+- `setup-local-adapter.mjs` 会在 `--write` 时把 example 合并进现有 adapter，自动补齐缺失字段
+- `doctor.mjs` 暴露当前机器缺口
+- `sync.mjs` 给出本机接入与同步建议
+- `upgrade.mjs` / `migrate.mjs` 提供后续产品化升级与迁移骨架；`migrate.mjs --write` 会调用 setup 路径补齐旧 adapter 缺失字段

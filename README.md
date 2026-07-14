@@ -73,6 +73,9 @@
 - 通过 `harness/ACTIVE_CHANGE` 管控受治理路径写入
 - 对 `reference-service/src/main` / `src/test` / `openapi` 的修改，必须有 active change
 - 若 active change 仍是 `DRAFT`，Node runtime pre-write gate 会阻断写入
+- 若未标记 `designApproved=true`，测试路径写入会被阻断
+- 若未标记 `redVerified=true`，生产源码与 OpenAPI 路径写入会被阻断
+- 若某个 change 已 `VALIDATED` 但 `validation.status=stale`，stop gate 会阻断结束
 
 ### 2.5 本地验证
 当前最小验证面已经真实可运行：
@@ -278,8 +281,8 @@ bash hooks/full-verify.sh
 
 ## 尚未完成（还不是 MVP 已交付）
 
-- design gate / plan gate / stale validation hard block
-- `RED_VERIFIED` 级别的生产源码写入门禁
+- plan gate 与更完整的 design gate / task gate 语义
+- 更细粒度的 `RED_VERIFIED` 消费逻辑
 - ArchUnit 真接入
 - JaCoCo 85% 真接入
 - 真实 HTTP API E2E

@@ -46,6 +46,9 @@
 - `validate-change-evidence.sh`
 - `full-verify.sh`
 - active change 驱动的 pre-write gate
+- `designApproved` gate（测试路径）
+- `redVerified` gate（生产源码 / OpenAPI 路径）
+- stale validation stop gate
 
 ### 5. Portable Runtime Skeleton
 已具备：
@@ -63,8 +66,8 @@
 
 以下内容尚未视为 MVP 已交付：
 
-- 真正的 design gate / plan gate / stale validation hard block
-- `RED_VERIFIED` 级别的生产源码写入门禁
+- plan gate 与更完整的 design gate 语义
+- 更细粒度的 task 级 `RED_VERIFIED` 消费逻辑
 - ArchUnit 真接入
 - JaCoCo 85% 真接入
 - 真实 HTTP API E2E

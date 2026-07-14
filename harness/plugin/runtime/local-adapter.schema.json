@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enterprise Harness Local Adapter",
+  "type": "object",
+  "required": ["schemaVersion", "runtimeVersion", "nodeCommand", "codegraphCommand", "context7", "mcp"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "runtimeVersion": { "type": "string" },
+    "nodeCommand": { "type": "string", "minLength": 1 },
+    "codegraphCommand": { "type": "string", "minLength": 1 },
+    "context7": {
+      "type": "object",
+      "required": ["mode", "apiKeyEnvVar"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["cli", "mcp"] },
+        "apiKeyEnvVar": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "mcp": {
+      "type": "object",
+      "required": ["projectConfig", "requiresLocalApproval"],
+      "properties": {
+        "projectConfig": { "type": "string", "minLength": 1 },
+        "requiresLocalApproval": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

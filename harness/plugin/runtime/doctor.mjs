@@ -73,9 +73,11 @@ const localAdapter = readLocalAdapter();
 checks.push({
   kind: 'local-adapter',
   name: 'local-adapter',
-  ok: localAdapter.exists,
-  severity: localAdapter.exists ? 'info' : 'warn',
-  detail: localAdapter.exists ? localAdapter.path : `未找到本机 adapter，建议位置：${resolveLocalAdapterPath()}`,
+  ok: localAdapter.exists && localAdapter.errors.length === 0,
+  severity: localAdapter.exists ? (localAdapter.errors.length === 0 ? 'info' : 'warn') : 'warn',
+  detail: localAdapter.exists
+    ? `${localAdapter.path}${localAdapter.errors.length ? ` | ${localAdapter.errors.join('; ')}` : ''}`
+    : `未找到本机 adapter，建议位置：${resolveLocalAdapterPath()}`,
 });
 
 const activeChangePath = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');
