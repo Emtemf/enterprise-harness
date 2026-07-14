@@ -263,6 +263,14 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 准备一个 exploration evidence 骨架
 - 设置 `harness/ACTIVE_CHANGE`
 
+我们已经做过一次真实 smoke 示例，结果是：
+
+- `changeId=entry-smoke-demo owner=harness-smoke tier=L1`
+- 成功创建 `harness/changes/entry-smoke-demo/`
+- 成功创建 `evidence/entry-flow-exploration.md`
+- 成功设置 `harness/ACTIVE_CHANGE=entry-smoke-demo`
+- 后续 `verify` 仍返回 `OK contract and runtime checks passed.`
+
 如果你更想手动拆开执行，仍可继续使用：
 
 ```bash
