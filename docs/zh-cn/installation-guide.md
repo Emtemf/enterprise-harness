@@ -49,7 +49,20 @@ cd enterprise-harness
 
 ---
 
-## 3. 认识统一命令入口
+## 3. 先理解入口分工
+
+当前仓库不是只有命令入口，而是三层模型：
+
+1. **Skill 入口**：Claude Code 会话中优先从 `/harness` 开始
+2. **Command 入口**：本机/runtime 场景中使用 `node harness/plugin/runtime/cli.mjs ...`
+3. **Hooks 自动门禁**：自动做 SessionStart / 写前 / 写后 / Stop 检查
+
+也就是说：
+- skill 负责流程编排
+- command 负责确定性动作
+- hooks 负责自动校验与阻断
+
+## 4. 认识统一命令入口
 
 当前统一入口有两种写法：
 
@@ -84,7 +97,7 @@ npm run verify
 
 ---
 
-## 4. 首次接入推荐顺序
+## 5. 首次接入推荐顺序
 
 在仓库根目录依次执行：
 
@@ -188,7 +201,7 @@ node harness/plugin/runtime/cli.mjs upstream-check
 
 ---
 
-## 5. 一条最短安装路径
+## 6. 一条最短安装路径
 
 如果你只想快速接入并确认本机能跑，最短命令集是：
 
@@ -203,7 +216,7 @@ node harness/plugin/runtime/cli.mjs upstream-check
 
 ---
 
-## 6. 常见 warning 怎么看
+## 7. 常见 warning 怎么看
 
 ### `context7-env`
 表示没有设置 `CONTEXT7_API_KEY`。
@@ -236,9 +249,21 @@ node harness/plugin/runtime/cli.mjs doctor
 
 ---
 
-## 7. 如果你要开始推动一个 change
+## 8. 如果你要开始推动一个 change
 
-当前推荐先建立最小 change 资产：
+当前推荐优先使用新的确定性入口命令：
+
+```bash
+node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
+```
+
+它会：
+
+- scaffold 最小 change 资产
+- 准备一个 exploration evidence 骨架
+- 设置 `harness/ACTIVE_CHANGE`
+
+如果你更想手动拆开执行，仍可继续使用：
 
 ```bash
 node harness/plugin/runtime/cli.mjs lifecycle scaffold <change-id> <owner> <tier>
