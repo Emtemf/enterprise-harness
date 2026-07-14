@@ -41,6 +41,7 @@ for (const relPath of optionalProjectFiles) {
     kind: 'optional-file',
     path: relPath,
     ok: exists(relPath),
+    severity: 'warn',
   });
 }
 
