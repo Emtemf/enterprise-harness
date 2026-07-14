@@ -108,6 +108,10 @@
 - `node harness/plugin/runtime/cli.mjs lifecycle <action> ...`
 - `node harness/plugin/runtime/cli.mjs context7 <library|docs> ...`
 
+第一次接入建议直接看：
+
+- `harness/plugin/runtime/ONBOARDING.md`
+
 其中：
 - `doctor` 支持人类可读输出和 `--json`
 - `sync` 支持人类可读输出和 `--json`
@@ -371,7 +375,8 @@ bash hooks/full-verify.sh
 2. `CLAUDE.md`
 3. `harness/specs/mvp-roadmap.md`
 4. `harness/specs/upstream-governance.md`
-5. `CONTRIBUTING.md`
+5. `harness/specs/platform-compatibility.md`
+6. `CONTRIBUTING.md`
 
 ---
 

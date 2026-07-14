@@ -176,3 +176,28 @@ export function activeChangeInfo(root) {
   const changeId = fs.readFileSync(file, 'utf-8').trim();
   return { ok: changeId.length > 0, message: changeId || 'ACTIVE_CHANGE 为空。' };
 }
+
+export function validateOpenApiLight(root) {
+  const file = path.join(root, 'reference-service', 'openapi', 'order-service.yaml');
+  if (!fs.existsSync(file)) return [];
+  const text = fs.readFileSync(file, 'utf-8');
+  const errors = [];
+  for (const pattern of [/^openapi:/m, /^paths:/m, /^components:/m]) {
+    if (!pattern.test(text)) errors.push(`openapi:${pattern.toString()}`);
+  }
+  return errors;
+}
+
+export function validateControllerConsistency(root) {
+  const yamlFile = path.join(root, 'reference-service', 'openapi', 'order-service.yaml');
+  const controllerFile = path.join(root, 'reference-service', 'src', 'main', 'java', 'com', 'example', 'orders', 'interfaces', 'api', 'OrderCancellationController.java');
+  if (!fs.existsSync(yamlFile) || !fs.existsSync(controllerFile)) return [];
+  const yaml = fs.readFileSync(yamlFile, 'utf-8');
+  const controller = fs.readFileSync(controllerFile, 'utf-8');
+  const errors = [];
+  if (!yaml.includes('/api/orders/{orderId}/cancel:')) errors.push('controller:path-missing-in-yaml');
+  if (!/^\s+post:/m.test(yaml)) errors.push('controller:post-missing-in-yaml');
+  if (!controller.includes('@RequestMapping("/api/orders")')) errors.push('controller:base-mapping-missing');
+  if (!controller.includes('@PostMapping("/{orderId}/cancel")')) errors.push('controller:post-mapping-missing');
+  return errors;
+}

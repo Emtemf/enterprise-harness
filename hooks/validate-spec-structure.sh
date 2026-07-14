@@ -88,6 +88,7 @@ required_files=(
   "$ROOT/harness/plugin/runtime/local-adapter.example.json"
   "$ROOT/harness/plugin/runtime/local-adapter.schema.json"
   "$ROOT/harness/plugin/runtime/README.md"
+  "$ROOT/harness/plugin/runtime/ONBOARDING.md"
   "$ROOT/harness/plugin/runtime/lib/checks.mjs"
   "$ROOT/harness/plugin/runtime/lib/local-adapter.mjs"
   "$ROOT/harness/plugin/runtime/lib/gates.mjs"
