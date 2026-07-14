@@ -97,9 +97,9 @@ mvn -f reference-service/pom.xml test
 如果改动了 portable runtime，建议额外执行：
 
 ```bash
-node harness/plugin/runtime/bootstrap.mjs
-node harness/plugin/runtime/doctor.mjs
-node harness/plugin/runtime/sync.mjs
+node harness/plugin/runtime/cli.mjs bootstrap
+node harness/plugin/runtime/cli.mjs doctor
+node harness/plugin/runtime/cli.mjs sync
 ```
 
 ---

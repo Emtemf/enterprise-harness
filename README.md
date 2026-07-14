@@ -28,11 +28,15 @@
 每台机器自己适配：
 
 - `harness/plugin/manifest.json`
+- `harness/plugin/runtime/cli.mjs`（统一入口）
 - `harness/plugin/runtime/bootstrap.mjs`
 - `harness/plugin/runtime/doctor.mjs`
 - `harness/plugin/runtime/sync.mjs`
 - `harness/plugin/runtime/install.mjs`
 - `harness/plugin/runtime/setup-local-adapter.mjs`
+- `harness/plugin/runtime/upgrade.mjs`
+- `harness/plugin/runtime/migrate.mjs`
+- `harness/plugin/runtime/local-adapter.schema.json`
 - `harness/plugin/runtime/local-adapter.example.json`
 - `harness/plugin/runtime/hooks/*.mjs`
 
@@ -86,14 +90,20 @@
 - `bash hooks/full-verify.sh`
 
 ### 2.6 跨平台 runtime 自检与同步
-- `node harness/plugin/runtime/bootstrap.mjs`
-- `node harness/plugin/runtime/doctor.mjs`
-- `node harness/plugin/runtime/sync.mjs`
-- `node harness/plugin/runtime/install.mjs`
+当前推荐统一入口：
+
+- `node harness/plugin/runtime/cli.mjs bootstrap`
+- `node harness/plugin/runtime/cli.mjs doctor`
+- `node harness/plugin/runtime/cli.mjs sync`
+- `node harness/plugin/runtime/cli.mjs install --write-local-adapter`
+- `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
+- `node harness/plugin/runtime/cli.mjs upgrade`
+- `node harness/plugin/runtime/cli.mjs migrate`
 
 其中：
-- `doctor.mjs` 支持人类可读输出和 `--json`
-- `sync.mjs` 支持人类可读输出和 `--json`
+- `doctor` 支持人类可读输出和 `--json`
+- `sync` 支持人类可读输出和 `--json`
+- install / setup / migrate / upgrade 已有可执行 skeleton
 - 当前都已真实跑通过
 
 ---
@@ -227,16 +237,18 @@ Claude Code 自动加载的项目规则源。当前已包括：
 - `harness/specs/plugin-runtime.md`
 
 ## 4.2 检查本机运行层
+当前推荐统一入口：
+
 ```bash
-node harness/plugin/runtime/bootstrap.mjs
-node harness/plugin/runtime/doctor.mjs
-node harness/plugin/runtime/sync.mjs
+node harness/plugin/runtime/cli.mjs bootstrap
+node harness/plugin/runtime/cli.mjs doctor
+node harness/plugin/runtime/cli.mjs sync
 ```
 
 如果你希望在本机生成一个 local adapter 示例文件：
 
 ```bash
-node harness/plugin/runtime/setup-local-adapter.mjs --write
+node harness/plugin/runtime/cli.mjs setup-local-adapter --write
 ```
 
 默认本机 adapter 路径约定：

@@ -44,6 +44,23 @@
 
 ## 插件最小能力
 
+### CLI façade
+对安装者暴露单一命令面，例如：
+
+```bash
+node harness/plugin/runtime/cli.mjs <command>
+```
+
+当前应至少收拢：
+
+- `bootstrap`
+- `doctor`
+- `sync`
+- `install`
+- `setup-local-adapter`
+- `upgrade`
+- `migrate`
+
 ### bootstrap
 负责一台新电脑的接入检查：
 

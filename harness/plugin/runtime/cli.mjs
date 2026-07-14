@@ -1,0 +1,37 @@
+import { spawnSync } from 'node:child_process';
+import process from 'node:process';
+
+const [, , subcommand, ...rest] = process.argv;
+
+const commands = {
+  bootstrap: ['harness/plugin/runtime/bootstrap.mjs'],
+  doctor: ['harness/plugin/runtime/doctor.mjs'],
+  sync: ['harness/plugin/runtime/sync.mjs'],
+  install: ['harness/plugin/runtime/install.mjs'],
+  'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
+  upgrade: ['harness/plugin/runtime/upgrade.mjs'],
+  migrate: ['harness/plugin/runtime/migrate.mjs'],
+};
+
+if (!subcommand || subcommand === '--help' || subcommand === '-h') {
+  console.log('Enterprise Harness Runtime CLI');
+  console.log('Usage: node harness/plugin/runtime/cli.mjs <command> [args]');
+  console.log('Commands:');
+  for (const key of Object.keys(commands)) {
+    console.log(`- ${key}`);
+  }
+  process.exit(0);
+}
+
+if (!commands[subcommand]) {
+  console.error(`Unknown command: ${subcommand}`);
+  process.exit(1);
+}
+
+const child = spawnSync('node', [...commands[subcommand], ...rest], {
+  cwd: process.cwd(),
+  encoding: 'utf-8',
+});
+process.stdout.write(child.stdout || '');
+process.stderr.write(child.stderr || '');
+process.exit(child.status ?? 1);

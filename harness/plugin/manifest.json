@@ -17,13 +17,14 @@
     "harness/ACTIVE_CHANGE"
   ],
   "commands": {
-    "doctor": "node harness/plugin/runtime/doctor.mjs",
-    "bootstrap": "node harness/plugin/runtime/bootstrap.mjs",
-    "sync": "node harness/plugin/runtime/sync.mjs",
-    "setupLocalAdapter": "node harness/plugin/runtime/setup-local-adapter.mjs --write",
-    "install": "node harness/plugin/runtime/install.mjs",
-    "upgrade": "node harness/plugin/runtime/upgrade.mjs",
-    "migrate": "node harness/plugin/runtime/migrate.mjs"
+    "cli": "node harness/plugin/runtime/cli.mjs",
+    "doctor": "node harness/plugin/runtime/cli.mjs doctor",
+    "bootstrap": "node harness/plugin/runtime/cli.mjs bootstrap",
+    "sync": "node harness/plugin/runtime/cli.mjs sync",
+    "setupLocalAdapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
+    "install": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
+    "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
+    "migrate": "node harness/plugin/runtime/cli.mjs migrate"
   },
   "requiredEnvVars": [],
   "notes": [

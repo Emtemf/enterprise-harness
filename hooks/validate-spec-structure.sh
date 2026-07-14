@@ -77,6 +77,7 @@ required_files=(
   "$ROOT/harness/bin/context7-library.sh"
   "$ROOT/harness/bin/context7-docs.sh"
   "$ROOT/harness/plugin/manifest.json"
+  "$ROOT/harness/plugin/runtime/cli.mjs"
   "$ROOT/harness/plugin/runtime/doctor.mjs"
   "$ROOT/harness/plugin/runtime/bootstrap.mjs"
   "$ROOT/harness/plugin/runtime/sync.mjs"
