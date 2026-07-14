@@ -10,6 +10,7 @@
 - `bin/enterprise-harness.mjs`
 - runtime `cli.mjs`
 - `doctor` / `sync` / `verify` / `install` / `upgrade` / `migrate`
+- `release-local` source-external 本地 smoke 路径
 - local adapter schema 与 setup
 - 上游升级治理
 - README / CONTRIBUTING / issue templates
@@ -27,6 +28,7 @@
 - package metadata 完整性
 - runtime CLI 自检
 - doctor / sync / verify / upstream-check 通过
+- source-external `release-local` smoke 通过
 - 平台矩阵状态说明
 
 ### 3. 安装体验
@@ -35,11 +37,12 @@
 
 ## 当前建议的发布顺序
 
-1. 完善 prepublish skeleton
-2. 保持 Linux / macOS / Windows CI smoke 持续稳定
-3. 补更广泛的本地开发机 / 真机 smoke test 结果
-4. 确认 package 命名与发布策略
-5. 再做正式对外发布
+1. 保持 `doctor` / `sync` / `verify` / `upstream-check` 稳定
+2. 运行 source-external `release-local` smoke
+3. 保持 Linux / macOS / Windows CI smoke 持续稳定
+4. 补更广泛的本地开发机 / 真机 smoke test 结果
+5. 确认 package 命名与发布策略
+6. 再做正式对外发布
 
 ## 不应提前宣称的内容
 

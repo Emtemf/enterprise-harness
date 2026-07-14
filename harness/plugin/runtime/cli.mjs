@@ -11,6 +11,7 @@ const commands = {
   verify: ['harness/plugin/runtime/verify.mjs'],
   'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
   'start-change': ['harness/plugin/runtime/start-change.mjs'],
+  'release-local': ['harness/plugin/runtime/release-local.mjs'],
   update: ['harness/plugin/runtime/update.mjs'],
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],
