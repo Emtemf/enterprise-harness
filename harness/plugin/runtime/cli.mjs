@@ -11,6 +11,7 @@ const commands = {
   'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],
+  'upstream-check': ['harness/plugin/runtime/upstream-check.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {

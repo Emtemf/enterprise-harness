@@ -1,0 +1,53 @@
+{
+  "referenceUpstreams": [
+    {
+      "name": "Superpowers",
+      "source": "https://github.com/obra/superpowers",
+      "status": "reference-only",
+      "notes": [
+        "Methods only: brainstorming, planning, TDD, verification.",
+        "Do not auto-sync runtime behavior from the upstream plugin."
+      ],
+      "lastReviewed": "2026-07-13",
+      "observedVersions": ["6.1.1"]
+    },
+    {
+      "name": "OpenSpec",
+      "source": "https://github.com/Fission-AI/OpenSpec",
+      "status": "reference-only",
+      "notes": [
+        "Asset model only: change/spec/archive and related workflow concepts.",
+        "Do not auto-sync OPSX command surface into this project."
+      ],
+      "lastReviewed": "2026-07-14",
+      "observedVersions": ["repo-main"]
+    }
+  ],
+  "runtimeUpstreams": [
+    {
+      "name": "CodeGraph",
+      "source": "https://github.com/colbymchenry/codegraph",
+      "status": "runtime",
+      "currentValidatedVersion": "0.9.9",
+      "lastReviewed": "2026-07-14",
+      "requiredChecks": [
+        "codegraph --version",
+        "codegraph status",
+        "doctor.mjs"
+      ]
+    },
+    {
+      "name": "Context7",
+      "source": "https://github.com/upstash/context7",
+      "status": "runtime",
+      "currentValidatedVersion": "0.5.4",
+      "lastReviewed": "2026-07-14",
+      "requiredChecks": [
+        "ctx7 --version",
+        "context7 CLI wrapper query",
+        "doctor.mjs",
+        "sync.mjs"
+      ]
+    }
+  ]
+}

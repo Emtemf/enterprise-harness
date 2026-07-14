@@ -96,6 +96,9 @@ required_files=(
   "$ROOT/harness/plugin/runtime/hooks/post-write.mjs"
   "$ROOT/harness/plugin/runtime/hooks/stop.mjs"
   "$ROOT/harness/specs/local-runtime-adapter.md"
+  "$ROOT/harness/specs/upstream-governance.md"
+  "$ROOT/harness/upstream/registry.json"
+  "$ROOT/harness/plugin/runtime/upstream-check.mjs"
 )
 
 missing=0

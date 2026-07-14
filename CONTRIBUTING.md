@@ -44,6 +44,7 @@
 - machine-local adapter 正式 schema
 - 更完整 installer
 - upgrade / migration 机制
+- 上游升级治理与版本盘点
 - Windows / macOS 真机验证
 
 ### D. 文档与协作

@@ -99,11 +99,13 @@
 - `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
 - `node harness/plugin/runtime/cli.mjs upgrade`
 - `node harness/plugin/runtime/cli.mjs migrate`
+- `node harness/plugin/runtime/upstream-check.mjs`
 
 其中：
 - `doctor` 支持人类可读输出和 `--json`
 - `sync` 支持人类可读输出和 `--json`
 - install / setup / migrate / upgrade 已有可执行 skeleton
+- upstream-check 已可运行，用于盘点 CodeGraph / Context7 / 参考型上游关系
 - 当前都已真实跑通过
 
 ---
@@ -334,6 +336,7 @@ bash hooks/full-verify.sh
 - machine-local adapter 正式 schema
 - 更完整 installer
 - upgrade / migration 机制
+- 上游升级治理与版本盘点
 - Windows / macOS 真机验证
 
 ---
@@ -360,7 +363,8 @@ bash hooks/full-verify.sh
 1. `README.md`
 2. `CLAUDE.md`
 3. `harness/specs/mvp-roadmap.md`
-4. `CONTRIBUTING.md`
+4. `harness/specs/upstream-governance.md`
+5. `CONTRIBUTING.md`
 
 ---
 
