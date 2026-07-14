@@ -25,7 +25,9 @@
     "install": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",
-    "upstreamCheck": "node harness/plugin/runtime/upstream-check.mjs"
+    "upstreamCheck": "node harness/plugin/runtime/upstream-check.mjs",
+    "lifecycle": "node harness/plugin/runtime/cli.mjs lifecycle",
+    "context7": "node harness/plugin/runtime/cli.mjs context7"
   },
   "requiredEnvVars": [],
   "notes": [

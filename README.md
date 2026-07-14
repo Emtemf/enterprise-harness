@@ -59,8 +59,9 @@
 - 当前阶段不依赖待审批的 project MCP 作为主路径
 
 ### 2.3 变更生命周期命令
-已具备一组通用命令：
+当前同时保留：
 
+#### legacy shell commands
 - `create-change-scaffold.sh`
 - `create-exploration-artifact.sh`
 - `update-change-state.sh`
@@ -71,7 +72,11 @@
 - `mark-change-reviewed.sh`
 - `mark-change-validated.sh`
 
-它们已经实际 smoke test 通过。
+#### unified runtime entry
+- `node harness/plugin/runtime/cli.mjs lifecycle ...`
+- `node harness/plugin/runtime/cli.mjs context7 ...`
+
+这两条入口都已经实际 smoke test 通过；长期方向是把安装者更多地引导到统一 runtime CLI。
 
 ### 2.4 写入门禁
 - 通过 `harness/ACTIVE_CHANGE` 管控受治理路径写入
@@ -99,7 +104,9 @@
 - `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
 - `node harness/plugin/runtime/cli.mjs upgrade`
 - `node harness/plugin/runtime/cli.mjs migrate`
-- `node harness/plugin/runtime/upstream-check.mjs`
+- `node harness/plugin/runtime/cli.mjs upstream-check`
+- `node harness/plugin/runtime/cli.mjs lifecycle <action> ...`
+- `node harness/plugin/runtime/cli.mjs context7 <library|docs> ...`
 
 其中：
 - `doctor` 支持人类可读输出和 `--json`

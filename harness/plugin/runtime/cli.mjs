@@ -12,6 +12,8 @@ const commands = {
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],
   'upstream-check': ['harness/plugin/runtime/upstream-check.mjs'],
+  lifecycle: ['harness/plugin/runtime/lifecycle.mjs'],
+  context7: ['harness/plugin/runtime/context7.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {

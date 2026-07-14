@@ -99,6 +99,8 @@ required_files=(
   "$ROOT/harness/specs/upstream-governance.md"
   "$ROOT/harness/upstream/registry.json"
   "$ROOT/harness/plugin/runtime/upstream-check.mjs"
+  "$ROOT/harness/plugin/runtime/lifecycle.mjs"
+  "$ROOT/harness/plugin/runtime/context7.mjs"
 )
 
 missing=0
