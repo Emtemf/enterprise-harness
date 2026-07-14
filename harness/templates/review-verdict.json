@@ -1,0 +1,9 @@
+{
+  "changeId": "<change-id>",
+  "reviewerId": "<reviewer-id>",
+  "verdict": "advisory",
+  "findings": [],
+  "evidence": [],
+  "digest": null,
+  "reviewedAt": null
+}

@@ -1,0 +1,23 @@
+# Local runtime / session state
+.omc/
+agents/.omc/
+harness/ACTIVE_CHANGE
+harness/plugin/runtime/.bootstrap-ran
+
+# Claude Code local-only config
+.claude/settings.local.json
+
+# CodeGraph local index
+.codegraph/
+
+# Build outputs
+reference-service/target/
+
+# Local validation logs
+*.log
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

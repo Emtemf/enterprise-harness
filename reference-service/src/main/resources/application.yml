@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: reference-service
+  datasource:
+    url: jdbc:h2:mem:orders;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true

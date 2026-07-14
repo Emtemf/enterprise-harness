@@ -1,0 +1,85 @@
+schema: enterprise-harness-mvp
+version: 1
+
+context: |
+  Workspace type: local MVP for an enterprise Java microservice harness.
+  Artifact root: harness/
+  Reference service: reference-service/
+  Java version: 21
+  Build tool: Maven 3.8.7
+  Documentation language: Chinese for workflow assets, English for code identifiers.
+
+tooling:
+  codegraph:
+    strategy: codegraph-first
+    requiredFor:
+      - java-impact-analysis
+      - l3-change-review
+    fallback:
+      - grep
+      - Read
+  context7:
+    strategy: context7-first
+    preferredTransport: cli
+    cliFallback: ctx7
+    wrappers:
+      - harness/bin/context7-library.sh
+      - harness/bin/context7-docs.sh
+    requiredFor:
+      - library-docs
+      - framework-behavior
+      - sdk-version-questions
+    fallback:
+      - vendor-docs
+      - official-source
+      - broader-web
+
+fallbackPolicy:
+  codegraph:
+    blockOnL3WhenUnavailable: true
+    mustRecordReason: true
+  context7:
+    mustRecordLibraryId: true
+    mustRecordVersion: true
+    doNotTreatAsFinalAuthority: true
+
+java:
+  root: reference-service/
+  openApiPath: reference-service/openapi/order-service.yaml
+  controllerPackage: com.example.orders.interfaces.api
+  architectureLayers:
+    - interfaces
+    - application
+    - domain
+    - infrastructure
+  mapperPolicy: mapstruct
+
+quality:
+  coverageThreshold: 0.85
+  apiE2EMode: backend-only
+  uiClickTesting: disabled
+
+reviewers:
+  blocking:
+    - requirement-reviewer
+    - design-reviewer
+    - plan-critic
+    - api-consistency-reviewer
+    - verification-reviewer
+  advisory: []
+
+rules:
+  workflow:
+    - Use `.claude/rules/` as the runtime governance source.
+    - Keep `CLAUDE.md` compact and route details into rules and specs.
+    - Persist active changes under `harness/changes/`.
+    - Treat `harness/archive/` as immutable history.
+  analysis:
+    - Use codegraph-first analysis when available.
+    - Record fallback reasons whenever grep or Read is used instead.
+  documentation:
+    - Use Context7-first for library and framework documentation.
+    - Fall back to vendor docs and official source when Context7 is unavailable or insufficient.
+  testing:
+    - Use TDD and record RED evidence before production changes.
+    - Treat API E2E as backend HTTP orchestration, not UI clicking.

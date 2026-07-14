@@ -1,0 +1,16 @@
+{
+  "nodeCommand": "node",
+  "codegraphCommand": "codegraph",
+  "context7": {
+    "mode": "cli",
+    "apiKeyEnvVar": "CONTEXT7_API_KEY"
+  },
+  "mcp": {
+    "projectConfig": ".mcp.json",
+    "requiresLocalApproval": true
+  },
+  "notes": [
+    "This file is an example only. Do not commit real secrets.",
+    "Copy to a machine-local location and adjust commands for the current OS."
+  ]
+}

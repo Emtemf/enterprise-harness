@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "changeId": "plugin-runtime-skeleton",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "ready",
+      "queries": [
+        "codegraph status"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "usable-via-cli",
+      "libraries": [
+        "/react/react"
+      ]
+    }
+  },
+  "decisions": [
+    "portable runtime 当前选 Node.js 作为跨平台执行层",
+    "Context7 在当前阶段采用 CLI runtime path，project MCP 不作为主入口",
+    "repo contract 与 machine-local adapter 明确分层"
+  ],
+  "blockers": [],
+  "approvals": {},
+  "currentTask": null,
+  "validation": {
+    "status": "fresh",
+    "digest": "plugin-runtime-skeleton-2026-07-13",
+    "validatedAt": "2026-07-13"
+  }
+}

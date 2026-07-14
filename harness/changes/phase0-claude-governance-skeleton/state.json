@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "changeId": "phase0-claude-governance-skeleton",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "ready",
+      "queries": [
+        "How does the current harness reference service expose the cancel order API flow from controller to application to domain to persistence?"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "usable-via-cli",
+      "libraries": [
+        "CodeGraph README",
+        "Context7 README",
+        "Superpowers SKILL.md",
+        "OpenSpec docs",
+        "Gump harness engineering blog"
+      ]
+    }
+  },
+  "decisions": [
+    "仓库治理与流程资产默认使用中文，代码标识符保持英文",
+    "运行时自动加载源迁移到 .claude/，根 rules/ 与 agents/ 保留为历史参考"
+  ],
+  "blockers": [],
+  "approvals": {
+    "user": "同意继续推进 Phase 0 骨架"
+  },
+  "currentTask": null,
+  "validation": {
+    "status": "fresh",
+    "digest": "phase0-claude-governance-skeleton-2026-07-13",
+    "validatedAt": "2026-07-13"
+  }
+}

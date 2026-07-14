@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "changeId": "reference-service-boundary-realignment",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "reference-service",
+  "impact": {
+    "api": "yes",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "ready",
+      "queries": [
+        "reference-service cancel order flow controller application domain infrastructure repository DTO mapper entity openapi tests current architecture issues for boundary realignment",
+        "reference-service main application class spring boot package com.example.orders configuration class"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "usable-via-cli",
+      "libraries": [
+        "/tng/archunit",
+        "/mapstruct/mapstruct"
+      ]
+    }
+  },
+  "decisions": [
+    "repository port 本轮先放 domain.repository",
+    "当前纵切先使用最小显式映射与最小 MapStruct 示例，不一次性扩展到全服务",
+    "domain policy 去 Spring 注解后，由 configuration bean 负责装配"
+  ],
+  "blockers": [],
+  "approvals": {},
+  "currentTask": null,
+  "validation": {
+    "status": "fresh",
+    "digest": "reference-service-boundary-realignment-2026-07-13-green",
+    "validatedAt": "2026-07-13"
+  }
+}

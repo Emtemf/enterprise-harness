@@ -1,0 +1,32 @@
+{
+  "name": "enterprise-harness-runtime",
+  "version": "0.1.0",
+  "description": "Portable runtime adapter for the Enterprise Harness project contract.",
+  "supportedOs": ["linux", "darwin", "win32"],
+  "requiredRuntime": {
+    "node": ">=20"
+  },
+  "requiredProjectFiles": [
+    "CLAUDE.md",
+    ".claude/settings.json",
+    "harness/config.yaml",
+    "harness/specs/plugin-runtime.md"
+  ],
+  "optionalProjectFiles": [
+    ".mcp.json",
+    "harness/ACTIVE_CHANGE"
+  ],
+  "commands": {
+    "doctor": "node harness/plugin/runtime/doctor.mjs",
+    "bootstrap": "node harness/plugin/runtime/bootstrap.mjs",
+    "sync": "node harness/plugin/runtime/sync.mjs",
+    "setupLocalAdapter": "node harness/plugin/runtime/setup-local-adapter.mjs --write",
+    "install": "node harness/plugin/runtime/install.mjs"
+  },
+  "requiredEnvVars": [],
+  "notes": [
+    "Project secrets must not be committed to the repository.",
+    "Context7 may run through CLI wrappers when MCP is not configured.",
+    "This manifest describes the portable runtime layer, not the repo contract itself."
+  ]
+}

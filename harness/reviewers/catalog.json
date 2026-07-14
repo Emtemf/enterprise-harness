@@ -1,0 +1,37 @@
+[
+  {
+    "id": "requirement-reviewer",
+    "stage": "CHANGE_APPROVED",
+    "blocking": true,
+    "agent": "requirement-reviewer",
+    "owner": "harness-governance"
+  },
+  {
+    "id": "design-reviewer",
+    "stage": "DESIGN_APPROVED",
+    "blocking": true,
+    "agent": "design-reviewer",
+    "owner": "harness-governance"
+  },
+  {
+    "id": "plan-critic",
+    "stage": "TASKED",
+    "blocking": true,
+    "agent": "plan-critic",
+    "owner": "harness-governance"
+  },
+  {
+    "id": "api-consistency-reviewer",
+    "stage": "REVIEWED",
+    "blocking": true,
+    "agent": "api-consistency-reviewer",
+    "owner": "api-governance"
+  },
+  {
+    "id": "verification-reviewer",
+    "stage": "VALIDATED",
+    "blocking": true,
+    "agent": "verification-reviewer",
+    "owner": "quality-governance"
+  }
+]
