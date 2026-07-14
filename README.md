@@ -200,7 +200,7 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 ### 1. 获取仓库
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Emtemf/enterprise-harness.git
 cd enterprise-harness
 ```
 

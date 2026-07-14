@@ -40,6 +40,24 @@
 - 结论
 - fallback reason（若有）
 
+## GitHub / Release / PR 页面获取
+
+### 默认策略
+1. 对 GitHub 仓库页、PR 页、Release 页、Issue 页与公开 API 数据，优先使用 `gh` CLI 或 GitHub REST API
+2. 若只是需要仓库内文件内容，优先使用本地 `Read` / `codegraph` / `git` 信息，而不是把 GitHub 页面当主来源
+3. 只有在 `gh` / REST 不可用且确有必要时，才尝试通用网页抓取
+
+### 说明
+- 某些环境中，通用网页抓取可能因为 `github.com` 域名安全校验或企业网络策略而失败
+- 这类失败不应被误判为“页面不存在”或“仓库不可访问”
+- 遇到该情况时，优先改用 `gh repo view`、`gh pr view`、`gh release view`、`gh api` 或 `curl --http1.1` 调 GitHub REST API
+
+### 必须记录
+- 尝试过的命令或 API 路径
+- 失败原因
+- 改用的 fallback
+- 当前证据范围
+
 ## 权威性层级
 
 1. 当前项目代码与实际依赖
