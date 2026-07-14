@@ -189,13 +189,13 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 ---
 
-## 入口模型
+## 入口（先记这三个）
 
-当前仓库采用三层模型：
+如果你只想先知道“从哪进”，记住这三条就够了：
 
-1. **Skill 入口**：在 Claude Code 会话中，优先从 `/harness` 开始
-2. **Command 入口**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]` 等命令
-3. **Hooks 自动门禁**：`.claude/settings.json` 中的 hooks 自动做提醒、阻断和校验
+- **Claude Code 会话入口**：`/harness`
+- **新 change 命令入口**：`node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
+- **自动兜底层**：`.claude/settings.json` hooks 会自动做提醒、阻断和校验
 
 也就是说：
 - **skill** 负责流程编排
@@ -236,7 +236,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 优先从 `/harness` 开始
 - 纯 intake 场景可继续走 `harness-intake`
 
-### 3. 可选：使用 npm scripts
+### 5. 可选：使用 npm scripts
 ```bash
 npm run bootstrap
 npm run doctor
