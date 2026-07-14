@@ -10,6 +10,7 @@ const commands = {
   install: ['harness/plugin/runtime/install.mjs'],
   verify: ['harness/plugin/runtime/verify.mjs'],
   'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
+  update: ['harness/plugin/runtime/update.mjs'],
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],
   'upstream-check': ['harness/plugin/runtime/upstream-check.mjs'],

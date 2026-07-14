@@ -1,0 +1,30 @@
+{
+  "name": "enterprise-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portable runtime and repo contract for the Enterprise Harness Claude Code plugin skeleton.",
+  "type": "module",
+  "bin": {
+    "enterprise-harness": "bin/enterprise-harness.mjs"
+  },
+  "scripts": {
+    "bootstrap": "node harness/plugin/runtime/cli.mjs bootstrap",
+    "doctor": "node harness/plugin/runtime/cli.mjs doctor",
+    "sync": "node harness/plugin/runtime/cli.mjs sync",
+    "verify": "node harness/plugin/runtime/cli.mjs verify",
+    "install-runtime": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
+    "setup-local-adapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
+    "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
+    "migrate": "node harness/plugin/runtime/cli.mjs migrate",
+    "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "claude-code",
+    "enterprise-harness",
+    "agentic-workflow",
+    "portable-runtime"
+  ]
+}

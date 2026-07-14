@@ -103,6 +103,7 @@
 - `node harness/plugin/runtime/cli.mjs verify`
 - `node harness/plugin/runtime/cli.mjs install --write-local-adapter`
 - `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
+- `node harness/plugin/runtime/cli.mjs update`
 - `node harness/plugin/runtime/cli.mjs upgrade`
 - `node harness/plugin/runtime/cli.mjs migrate`
 - `node harness/plugin/runtime/cli.mjs upstream-check`
