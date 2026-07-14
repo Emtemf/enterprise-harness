@@ -350,6 +350,7 @@ bash hooks/full-verify.sh
 - 更完整 installer
 - upgrade / migration 机制
 - 上游升级治理与版本盘点
+- 平台验证矩阵与 prepublish 检查
 - Windows / macOS 真机验证
 
 ---

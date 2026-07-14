@@ -14,9 +14,11 @@
     "verify": "node harness/plugin/runtime/cli.mjs verify",
     "install-runtime": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "setup-local-adapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
+    "update": "node harness/plugin/runtime/cli.mjs update",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",
-    "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check"
+    "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check",
+    "prepublish-check": "node harness/plugin/runtime/prepublish.mjs"
   },
   "engines": {
     "node": ">=20"
