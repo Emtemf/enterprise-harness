@@ -100,6 +100,7 @@
 - `node harness/plugin/runtime/cli.mjs bootstrap`
 - `node harness/plugin/runtime/cli.mjs doctor`
 - `node harness/plugin/runtime/cli.mjs sync`
+- `node harness/plugin/runtime/cli.mjs verify`
 - `node harness/plugin/runtime/cli.mjs install --write-local-adapter`
 - `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
 - `node harness/plugin/runtime/cli.mjs upgrade`

@@ -21,6 +21,7 @@
     "doctor": "node harness/plugin/runtime/cli.mjs doctor",
     "bootstrap": "node harness/plugin/runtime/cli.mjs bootstrap",
     "sync": "node harness/plugin/runtime/cli.mjs sync",
+    "verify": "node harness/plugin/runtime/cli.mjs verify",
     "setupLocalAdapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
     "install": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",

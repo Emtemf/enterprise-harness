@@ -101,6 +101,7 @@ mvn -f reference-service/pom.xml test
 node harness/plugin/runtime/cli.mjs bootstrap
 node harness/plugin/runtime/cli.mjs doctor
 node harness/plugin/runtime/cli.mjs sync
+node harness/plugin/runtime/cli.mjs verify
 ```
 
 ---

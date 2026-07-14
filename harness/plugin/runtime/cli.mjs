@@ -8,6 +8,7 @@ const commands = {
   doctor: ['harness/plugin/runtime/doctor.mjs'],
   sync: ['harness/plugin/runtime/sync.mjs'],
   install: ['harness/plugin/runtime/install.mjs'],
+  verify: ['harness/plugin/runtime/verify.mjs'],
   'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],

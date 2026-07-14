@@ -82,6 +82,7 @@ required_files=(
   "$ROOT/harness/plugin/runtime/bootstrap.mjs"
   "$ROOT/harness/plugin/runtime/sync.mjs"
   "$ROOT/harness/plugin/runtime/install.mjs"
+  "$ROOT/harness/plugin/runtime/verify.mjs"
   "$ROOT/harness/plugin/runtime/setup-local-adapter.mjs"
   "$ROOT/harness/plugin/runtime/upgrade.mjs"
   "$ROOT/harness/plugin/runtime/migrate.mjs"
