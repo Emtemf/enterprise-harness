@@ -28,6 +28,10 @@ function run(command, args) {
   return spawnSync(command, args, { cwd: repoRoot, encoding: 'utf-8' });
 }
 
+function outputText(result) {
+  return String(result.stdout ?? result.stderr ?? result.error?.message ?? '').trim();
+}
+
 for (const relPath of requiredProjectFiles) {
   checks.push({
     kind: 'required-file',
@@ -58,7 +62,7 @@ checks.push({
   kind: 'tool',
   name: 'codegraph',
   ok: codegraph.status === 0,
-  detail: (codegraph.stdout || codegraph.stderr).trim(),
+  detail: outputText(codegraph),
 });
 
 const ctx7 = run('npx', ['-y', 'ctx7', 'docs', '/react/react', 'useEffect examples']);
@@ -67,7 +71,7 @@ checks.push({
   name: 'context7-cli-runtime',
   ok: ctx7.status === 0,
   severity: ctx7.status === 0 ? 'info' : 'warn',
-  detail: (ctx7.stdout || ctx7.stderr).trim().split('\n').slice(0, 3).join('\n'),
+  detail: outputText(ctx7).split('\n').slice(0, 3).join('\n'),
 });
 
 const localAdapter = readLocalAdapter();
