@@ -13,6 +13,8 @@
 - local adapter schema 与 setup
 - 上游升级治理
 - README / CONTRIBUTING / issue templates
+- GitHub Actions `platform-smoke` 已跑通 Linux / macOS / Windows 当前 runtime smoke matrix
+- 面向团队说明的中文概览 / 公告 / 安装文档
 
 ## 当前还缺
 
@@ -34,8 +36,8 @@
 ## 当前建议的发布顺序
 
 1. 完善 prepublish skeleton
-2. 跑 Linux 发布前检查
-3. 补 macOS / Windows 真机 smoke test 结果
+2. 保持 Linux / macOS / Windows CI smoke 持续稳定
+3. 补更广泛的本地开发机 / 真机 smoke test 结果
 4. 确认 package 命名与发布策略
 5. 再做正式对外发布
 
@@ -49,4 +51,4 @@
 
 当前更适合表述为：
 
-> 已具备发布前骨架与统一命令面，正在补发布前检查与平台验证矩阵。
+> 已具备发布前骨架、统一命令面和跨平台 CI smoke matrix，正在继续补更广泛真机验证与正式发布路径。
