@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness-runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable runtime adapter for the Enterprise Harness project contract.",
   "supportedOs": ["linux", "darwin", "win32"],
   "requiredRuntime": {
@@ -23,6 +23,7 @@
     "sync": "node harness/plugin/runtime/cli.mjs sync",
     "verify": "node harness/plugin/runtime/cli.mjs verify",
     "setupLocalAdapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
+    "startChange": "node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]",
     "install": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "update": "node harness/plugin/runtime/cli.mjs update",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",

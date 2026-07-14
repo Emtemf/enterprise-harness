@@ -35,6 +35,16 @@
 - `rules/`
 - `agents/`
 
+## 显式入口模型
+
+当前仓库采用三层模型：
+
+1. **Skill 入口**：在 Claude Code 会话中，优先从 `/harness` 开始；需求入口场景可继续细化到 `harness-intake`
+2. **Command 入口**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify`
+3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断和校验
+
+规则与 hooks 会自动生效，但它们不是总编排器；总入口应显式使用 skill 或 command。
+
 ## 默认工作流
 
 对 L1 及以上代码/配置行为变化，默认按以下顺序推进：

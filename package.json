@@ -15,6 +15,7 @@
     "verify": "node harness/plugin/runtime/cli.mjs verify",
     "install-runtime": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "setup-local-adapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
+    "start-change": "node harness/plugin/runtime/cli.mjs start-change",
     "update": "node harness/plugin/runtime/cli.mjs update",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",

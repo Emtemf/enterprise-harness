@@ -42,6 +42,25 @@
 
 这不足以构成跨平台、跨机器的“活插件”。
 
+## 入口分层
+
+当前推荐把入口显式分成三层：
+
+### 1. Skill 入口
+在 Claude Code 会话中，优先从 `/harness` 开始；它负责把需求接入 intake / route / design / validation 等工作流。
+
+### 2. Command 入口
+在本机/runtime 场景中，优先使用：
+
+- `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
+- `node harness/plugin/runtime/cli.mjs bootstrap`
+- `node harness/plugin/runtime/cli.mjs doctor`
+- `node harness/plugin/runtime/cli.mjs sync`
+- `node harness/plugin/runtime/cli.mjs verify`
+
+### 3. Hooks 自动门禁
+SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、校验，不承载长链路总编排。
+
 ## 插件最小能力
 
 ### CLI façade
@@ -58,6 +77,7 @@ node harness/plugin/runtime/cli.mjs <command>
 - `sync`
 - `install`
 - `setup-local-adapter`
+- `start-change`
 - `upgrade`
 - `migrate`
 

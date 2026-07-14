@@ -10,3 +10,4 @@ const parts = [
   `specs=${exists(root, 'harness/specs') ? '存在' : '缺失'}`,
 ];
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
+console.log('[Harness 入口] Claude Code 流程入口: /harness | Runtime 命令入口: node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]');
