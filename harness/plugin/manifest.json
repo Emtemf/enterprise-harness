@@ -24,6 +24,7 @@
     "verify": "node harness/plugin/runtime/cli.mjs verify",
     "setupLocalAdapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
     "startChange": "node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]",
+    "releaseLocal": "node harness/plugin/runtime/cli.mjs release-local",
     "install": "node harness/plugin/runtime/cli.mjs install --write-local-adapter",
     "update": "node harness/plugin/runtime/cli.mjs update",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
