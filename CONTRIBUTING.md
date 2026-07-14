@@ -11,6 +11,7 @@
 在提 issue 或提交改动前，建议先看：
 
 - `README.md`
+- `AGENTS.md`
 - `CLAUDE.md`
 - `harness/specs/mvp-roadmap.md`
 - `harness/specs/plugin-runtime.md`

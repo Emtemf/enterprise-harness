@@ -7,6 +7,7 @@ import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.m
 const repoRoot = process.cwd();
 
 const requiredProjectFiles = [
+  'AGENTS.md',
   'CLAUDE.md',
   '.claude/settings.json',
   'harness/config.yaml',

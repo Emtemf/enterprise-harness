@@ -27,6 +27,7 @@ export function requiredPaths() {
       'harness/plugin/runtime',
     ],
     files: [
+      'AGENTS.md',
       'CLAUDE.md',
       '.mcp.json',
       '.claude/settings.json',

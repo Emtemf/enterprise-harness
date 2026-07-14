@@ -6,8 +6,11 @@
 
 ## 目录职责
 
+### `AGENTS.md`
+仓库级的人类 / agent 协作合同，不依赖 Claude Code 自动加载，但应作为 repo-facing 前门存在。
+
 ### `CLAUDE.md`
-项目短地图与操作合同。
+项目短地图与 Claude Code 高层操作合同。
 
 ### `.claude/rules/`
 Claude Code 自动加载的项目规则。
