@@ -250,6 +250,9 @@ Claude Code 自动加载的项目规则源。当前已包括：
 - `harness/specs/mvp-roadmap.md`
 - `harness/specs/requirement-intake.md`
 - `harness/specs/plugin-runtime.md`
+- `harness/specs/platform-validation-matrix.md`
+- `harness/specs/release-readiness.md`
+- `harness/specs/release-checklist.md`
 
 ## 4.2 检查本机运行层
 当前推荐统一入口：
@@ -289,6 +292,7 @@ bash harness/bin/set-active-change.sh <change-id>
 ```bash
 bash hooks/validate-spec-structure.sh
 bash hooks/full-verify.sh
+npm run prepublish-check
 ```
 
 ---
@@ -371,6 +375,7 @@ bash hooks/full-verify.sh
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/bug_report.yml`
 - `.github/ISSUE_TEMPLATE/feature_request.yml`
+- `.github/workflows/platform-smoke.yml`
 
 对外协作时建议先看：
 

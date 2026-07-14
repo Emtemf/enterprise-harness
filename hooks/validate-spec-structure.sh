@@ -101,10 +101,15 @@ required_files=(
   "$ROOT/harness/specs/local-runtime-adapter.md"
   "$ROOT/harness/specs/upstream-governance.md"
   "$ROOT/harness/specs/distribution-roadmap.md"
+  "$ROOT/harness/specs/platform-compatibility.md"
+  "$ROOT/harness/specs/platform-validation-matrix.md"
+  "$ROOT/harness/specs/release-readiness.md"
+  "$ROOT/harness/specs/release-checklist.md"
   "$ROOT/harness/upstream/registry.json"
   "$ROOT/harness/plugin/runtime/upstream-check.mjs"
   "$ROOT/harness/plugin/runtime/lifecycle.mjs"
   "$ROOT/harness/plugin/runtime/context7.mjs"
+  "$ROOT/harness/plugin/runtime/prepublish.mjs"
 )
 
 missing=0
