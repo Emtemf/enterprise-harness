@@ -1,0 +1,54 @@
+name: Bug report
+description: 报告一个实际问题或不符合预期的行为
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量说明你遇到的问题属于哪一层：repo contract、runtime、hook、change lifecycle，还是 reference-service 样板。
+  - type: dropdown
+    id: layer
+    attributes:
+      label: 问题层级
+      options:
+        - Repo contract
+        - Portable runtime
+        - Hook / validation
+        - Change lifecycle
+        - Reference service
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 发生了什么？期望是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请给出最小复现步骤或命令。
+      placeholder: |
+        1. 运行 ...
+        2. 修改 ...
+        3. 看到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: OS、shell、Node 版本、是否使用 codegraph/context7 等。
+    validations:
+      required: false
+  - type: textarea
+    id: validation
+    attributes:
+      label: 已执行的验证
+      description: 如果你跑过 `doctor`、`sync`、`full-verify` 或 `mvn test`，请贴结果摘要。
+    validations:
+      required: false

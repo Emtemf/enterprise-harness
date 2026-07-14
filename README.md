@@ -331,26 +331,21 @@ bash hooks/full-verify.sh
 
 ---
 
-## 8. 关于上传到 GitHub
+## 8. 公开仓库协作
 
-我已经把项目 README 落到了：
+当前仓库已补齐最小公开协作文件：
 
-- `README.md`
+- `CONTRIBUTING.md`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/ISSUE_TEMPLATE/bug_report.yml`
+- `.github/ISSUE_TEMPLATE/feature_request.yml`
 
-但**上传到 GitHub 之前**，还需要你告诉我目标仓库：
+对外协作时建议先看：
 
-- 新建仓库？
-- 还是上传到已有仓库？
-- 仓库地址 / owner / repo name 是什么？
-
-因为我现在所在目录不是 Git 仓库，不能直接替你 push 到一个未知远端。
-
-如果你下一条把 GitHub 仓库目标告诉我，我就可以继续帮你做：
-
-1. Git 初始化（如果需要）
-2. 本地提交整理
-3. 关联远端
-4. push
+1. `README.md`
+2. `CLAUDE.md`
+3. `harness/specs/mvp-roadmap.md`
+4. `CONTRIBUTING.md`
 
 ---
 

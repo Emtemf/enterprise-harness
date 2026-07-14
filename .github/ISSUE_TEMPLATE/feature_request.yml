@@ -1,0 +1,41 @@
+name: Feature request
+description: 提出一个增强方向或下一步迭代建议
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提出增强建议。为了便于评估，请尽量说明它属于 MVP 已完成能力，还是后续迭代能力。
+  - type: dropdown
+    id: track
+    attributes:
+      label: 更接近哪个方向？
+      options:
+        - Iteration 1 - gates
+        - Iteration 2 - Java sample quality
+        - Iteration 3 - plugin productization
+        - Documentation / onboarding
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你希望增加什么能力？
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: 为什么它重要？
+      description: 它解决了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: 你觉得它更像哪一层的改动？
+      description: repo contract / runtime / hooks / sample service / docs 等。
+    validations:
+      required: false
