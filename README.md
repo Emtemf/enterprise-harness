@@ -31,6 +31,7 @@
 ### 1. Repo Contract（仓库共享契约）
 团队共享、提交进仓库：
 
+- `AGENTS.md`
 - `CLAUDE.md`
 - `.claude/rules/`
 - `.claude/agents/`

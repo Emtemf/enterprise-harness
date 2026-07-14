@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "changeId": "pi-inspired-improvements",
+  "tier": "L3",
+  "state": "SPECIFIED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": "本轮主研究对象是外部公开仓库设计，不是本地代码影响分析。"
+    },
+    "documentation": {
+      "status": "external-reference",
+      "libraries": [
+        {
+          "name": "earendil-works/pi",
+          "version": "repo-main",
+          "query": "README, AGENTS.md, root package.json, containerization docs"
+        }
+      ]
+    }
+  },
+  "decisions": [
+    "先把 pi 的可借鉴点登记成 issue，再实现至少一个高价值低风险优化。",
+    "第一批实现选 AGENTS.md 作为仓库级人类/agent 协作前门，保持与 CLAUDE.md / .claude/rules 的分工清晰。",
+    "release:local 与 containerization 先登记 issue，不在同一个 change 中一起实现。"
+  ],
+  "blockers": [],
+  "approvals": {},
+  "currentTask": "implement-agents-md-entry-contract",
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  }
+}
