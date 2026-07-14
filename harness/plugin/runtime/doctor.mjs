@@ -25,7 +25,11 @@ function exists(relPath) {
 }
 
 function run(command, args) {
-  return spawnSync(command, args, { cwd: repoRoot, encoding: 'utf-8' });
+  return spawnSync(command, args, {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    shell: process.platform === 'win32',
+  });
 }
 
 function outputText(result) {

@@ -8,7 +8,11 @@ const registryPath = path.join(repoRoot, 'harness', 'upstream', 'registry.json')
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
 
 function run(command, args) {
-  return spawnSync(command, args, { cwd: repoRoot, encoding: 'utf-8' });
+  return spawnSync(command, args, {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    shell: process.platform === 'win32',
+  });
 }
 
 const checks = [];
@@ -18,7 +22,7 @@ checks.push({
   name: 'CodeGraph',
   kind: 'runtime-upstream',
   ok: codegraph.status === 0,
-  currentVersion: (codegraph.stdout || '').trim(),
+  currentVersion: String(codegraph.stdout ?? codegraph.stderr ?? codegraph.error?.message ?? '').trim(),
   expectedVersion: registry.runtimeUpstreams.find((x) => x.name === 'CodeGraph')?.currentValidatedVersion ?? null,
 });
 
@@ -27,7 +31,7 @@ checks.push({
   name: 'Context7',
   kind: 'runtime-upstream',
   ok: ctx7.status === 0,
-  currentVersion: (ctx7.stdout || '').trim(),
+  currentVersion: String(ctx7.stdout ?? ctx7.stderr ?? ctx7.error?.message ?? '').trim(),
   expectedVersion: registry.runtimeUpstreams.find((x) => x.name === 'Context7')?.currentValidatedVersion ?? null,
 });
 
