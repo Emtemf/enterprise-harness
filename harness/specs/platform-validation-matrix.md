@@ -13,9 +13,9 @@
 
 | 平台 | 当前状态 | 已验证能力 | 未验证能力 | 备注 |
 |---|---|---|---|---|
-| Linux | 已实测 | repo contract、runtime CLI、local adapter、doctor、sync、verify、hook adapter smoke tests | 公开发布后安装路径 | 当前主要开发环境 |
-| macOS | 设计兼容，待真机验证 | Node runtime 路径设计 | 真机执行、路径/权限细节 | 不应宣称已验证 |
-| Windows | 设计兼容，待真机验证 | Node runtime 路径设计 | 真机执行、路径分隔符、APPDATA adapter 写入 | 不应宣称已验证 |
+| Linux | 已实测 + CI smoke 通过 | repo contract、runtime CLI、local adapter、doctor、sync、verify、hook adapter smoke tests | 公开发布后安装路径 | 当前主要开发环境 |
+| macOS | CI smoke 通过 | runtime CLI、bootstrap、setup-local-adapter、doctor、sync、verify、upstream-check | 更广泛真机开发机场景、路径/权限细节 | 可宣称当前 runtime smoke 路径已验证 |
+| Windows | CI smoke 通过 | runtime CLI、bootstrap、setup-local-adapter、doctor、sync、verify、upstream-check | 更广泛真机开发机场景、路径分隔符与企业代理/权限差异 | 可宣称当前 runtime smoke 路径已验证 |
 
 ## 最小 smoke test
 

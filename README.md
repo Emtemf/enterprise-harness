@@ -1,6 +1,8 @@
-# Enterprise Harness MVP
+# Enterprise Harness
 
-一个面向 **Claude Code** 的企业后端交付骨架项目。目标不是演示“模型会写代码”，而是把需求分流、代码探索、文档检索、设计、计划、TDD、验证、归档和本地运行时适配，变成一套**可落盘、可验证、可跨机器接入**的工程骨架。
+一个围绕 **Claude Code** 的企业后端交付骨架项目。
+
+它的目标不是单纯证明“模型会写代码”，而是把一次需求从输入到落地，推进成一套更接近企业团队协作的工程过程：**可探索、可落盘、可审查、可验证、可恢复、可跨机器接入**。
 
 > 当前状态：**可运行的 repo contract + portable runtime MVP**
 >
@@ -8,128 +10,232 @@
 
 ---
 
-## 1. 这个项目是什么
+## 为什么会有这个项目
 
-它是一套围绕 Claude Code 的本地企业 Harness，分成两层：
+很多 AI coding workflow 停留在：
 
-### A. Repo Contract（仓库共享契约）
-提交到仓库，由团队共享：
+- 会话里说过的话，下轮就丢了
+- 模型容易直接开写，跳过设计、TDD 和验证
+- 项目规则写了很多，但没有真正接进运行时
+- change、review、validation、evidence 分散在不同地方
+- 换一台机器或换一个系统后，本地运行方式不一致
 
-- 根 `CLAUDE.md`：短地图与操作合同
-- `.claude/rules/`：项目自动加载规则
-- `.claude/agents/`：项目 reviewer / subagent 骨架
-- `.claude/skills/`：项目级 skill（当前有 `harness-intake`）
-- `harness/specs/`：长期稳定规范
-- `harness/templates/`：通用模板
-- `harness/config.yaml`：项目能力声明
-- `.mcp.json`：项目级 MCP 声明（只放无密配置）
-
-### B. Portable Runtime（跨平台运行层）
-每台机器自己适配：
-
-- `harness/plugin/manifest.json`
-- `harness/plugin/runtime/cli.mjs`（统一入口）
-- `harness/plugin/runtime/bootstrap.mjs`
-- `harness/plugin/runtime/doctor.mjs`
-- `harness/plugin/runtime/sync.mjs`
-- `harness/plugin/runtime/install.mjs`
-- `harness/plugin/runtime/setup-local-adapter.mjs`
-- `harness/plugin/runtime/upgrade.mjs`
-- `harness/plugin/runtime/migrate.mjs`
-- `harness/plugin/runtime/local-adapter.schema.json`
-- `harness/plugin/runtime/local-adapter.example.json`
-- `harness/plugin/runtime/hooks/*.mjs`
-
-这两层分开后，项目就不再只是“当前 Linux 会话里能跑的一堆脚本”，而是开始具备**换机器、换系统也能接入**的插件骨架。
+**Enterprise Harness** 想解决的不是“再写一套 prompt”，而是把 Claude Code 放进一套更像工程系统的结构里。
 
 ---
 
-## 2. 当前已经真实可用的能力
+## 这个项目是什么
 
-### 2.1 代码探索
+你可以把它理解成两层：
+
+### 1. Repo Contract（仓库共享契约）
+团队共享、提交进仓库：
+
+- `CLAUDE.md`
+- `.claude/rules/`
+- `.claude/agents/`
+- `.claude/skills/`
+- `harness/specs/`
+- `harness/templates/`
+- `harness/changes/`
+- `harness/config.yaml`
+
+这部分负责定义：
+
+- 工作流
+- 规则
+- 资产结构
+- reviewer 角色
+- change 生命周期
+- 文档与探索证据的落点
+
+### 2. Portable Runtime（跨平台运行层）
+每台机器本地适配：
+
+- `harness/plugin/runtime/cli.mjs`
+- `bootstrap` / `doctor` / `sync` / `verify`
+- `install` / `setup-local-adapter` / `upgrade` / `migrate`
+- `local-adapter.schema.json`
+- `local-adapter.example.json`
+- Node 版 hook adapters
+
+这部分负责解决：
+
+- OS / shell 差异
+- 本地路径与命令
+- 环境变量与 secrets
+- 本机工具可用性
+- 本地接入、自检、同步与迁移
+
+---
+
+## 一个请求进来后，会发生什么
+
+这套 Harness 的重点不是“马上改代码”，而是先让流程站住。
+
+### 当前主路径
+1. **加载项目 contract**
+   - Claude Code 通过 `.claude/settings.json` 接入 SessionStart / PreToolUse / PostToolUse / Stop hooks
+2. **主 agent 判断 request shape / tier**
+   - 先分流：是问答、文档、L0、L1、L2 还是更高风险变更
+3. **先探索，再决定 route**
+   - 代码问题默认 **codegraph-first**
+   - 外部库/框架问题默认 **Context7-first**
+4. **必要时落 change 资产**
+   - 把 `state.json`、`change.md`、`validation.md`、`evidence/tooling.md` 放进 `harness/changes/`
+5. **写入前过 gate**
+   - 对受治理路径（当前重点是 `reference-service/`）检查 `active change`、`designApproved`、`redVerified`
+6. **写入后自动检查**
+   - 结构、轻语义、review/evidence 状态检查
+   - 必要时把 validation 标为 stale
+7. **完成前必须刷新验证证据**
+   - Stop gate 会阻止 stale validation 或缺失 validation 资产的“伪完成”状态
+
+更详细的时序图见：
+
+- [`docs/zh-cn/overview.md`](docs/zh-cn/overview.md)
+
+---
+
+## 当前已经真实可用的能力
+
+### 代码探索与文档检索
 - **codegraph-first** 已真实可用
-- 当前项目已经完成 `.codegraph/` 初始化
-- `codegraph status` 能返回真实索引状态
-
-### 2.2 外部文档检索
 - **Context7 CLI wrapper** 已真实可用
-- 当前默认入口：
-  - `bash harness/bin/context7-library.sh <library-name> <query>`
-  - `bash harness/bin/context7-docs.sh <library-id> <query>`
-- 当前阶段不依赖待审批的 project MCP 作为主路径
+- 已有明确 fallback policy，而不是静默退回 grep / Read
 
-### 2.3 变更生命周期命令
-当前同时保留：
+### change 生命周期与治理骨架
+- `harness/changes/` 资产模型已成形
+- `state.json` / `change.md` / `validation.md` / `evidence/tooling.md` 已形成最小 change bundle
+- `active change` 与受治理路径写入约束已接入 runtime gate
 
-#### legacy shell commands
-- `create-change-scaffold.sh`
-- `create-exploration-artifact.sh`
-- `update-change-state.sh`
-- `set-active-change.sh`
-- `show-active-change.sh`
-- `set-change-impact.sh`
-- `record-review-verdict.sh`
-- `mark-change-reviewed.sh`
-- `mark-change-validated.sh`
+### runtime CLI
+当前统一入口：
 
-#### unified runtime entry
-- `node harness/plugin/runtime/cli.mjs lifecycle ...`
-- `node harness/plugin/runtime/cli.mjs context7 ...`
+```bash
+node harness/plugin/runtime/cli.mjs <command>
+```
 
-这两条入口都已经实际 smoke test 通过；长期方向是把安装者更多地引导到统一 runtime CLI。
+当前已具备：
 
-### 2.4 写入门禁
-- 通过 `harness/ACTIVE_CHANGE` 管控受治理路径写入
-- 对 `reference-service/src/main` / `src/test` / `openapi` 的修改，必须有 active change
-- 若 active change 仍是 `DRAFT`，Node runtime pre-write gate 会阻断写入
-- 若未标记 `designApproved=true`，测试路径写入会被阻断
-- 若未标记 `redVerified=true`，生产源码与 OpenAPI 路径写入会被阻断
-- 若某个 change 已 `VALIDATED` 但 `validation.status=stale`，stop gate 会阻断结束
+- `bootstrap`
+- `doctor`
+- `sync`
+- `verify`
+- `install`
+- `setup-local-adapter`
+- `update`
+- `upgrade`
+- `migrate`
+- `upstream-check`
+- `lifecycle`
+- `context7`
 
-### 2.5 本地验证
-当前最小验证面已经真实可运行：
+### hook adapters
+`.claude/settings.json` 当前已接上：
 
-- `bash hooks/validate-spec-structure.sh`
-- `bash hooks/validate-openapi.sh`
-- `bash hooks/validate-controller-consistency.sh`
-- `bash hooks/full-verify.sh`
+- `SessionStart`
+- `PreToolUse`
+- `PostToolUse`
+- `Stop`
 
-### 2.6 跨平台 runtime 自检与同步
-当前推荐统一入口：
+### 平台 smoke matrix
+GitHub Actions `platform-smoke` 当前已覆盖：
 
-- `node harness/plugin/runtime/cli.mjs bootstrap`
-- `node harness/plugin/runtime/cli.mjs doctor`
-- `node harness/plugin/runtime/cli.mjs sync`
-- `node harness/plugin/runtime/cli.mjs verify`
-- `node harness/plugin/runtime/cli.mjs install --write-local-adapter`
-- `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
-- `node harness/plugin/runtime/cli.mjs update`
-- `node harness/plugin/runtime/cli.mjs upgrade`
-- `node harness/plugin/runtime/cli.mjs migrate`
-- `node harness/plugin/runtime/cli.mjs upstream-check`
-- `node harness/plugin/runtime/cli.mjs lifecycle <action> ...`
-- `node harness/plugin/runtime/cli.mjs context7 <library|docs> ...`
+- Linux
+- macOS
+- Windows
 
-第一次接入建议直接看：
+当前可以准确表述为：
 
-- `harness/plugin/runtime/ONBOARDING.md`
-
-其中：
-- `doctor` 支持人类可读输出和 `--json`
-- `sync` 支持人类可读输出和 `--json`
-- install / setup / migrate / upgrade 已有可执行 skeleton
-- upstream-check 已可运行，用于盘点 CodeGraph / Context7 / 参考型上游关系
-- 当前都已真实跑通过
+> Linux 已长期实测；macOS / Windows 的当前 runtime smoke 路径已在 CI matrix 验证通过。
 
 ---
 
-## 3. 当前目录结构
+## 当前还不该夸大的地方
+
+这个项目当前**不是**：
+
+- 完整企业级强门禁平台
+- 已 fully productized 的公开安装插件
+- 所有路径都已接入同等强度 gate 的系统
+- 所有本机环境都零差异支持的成品
+
+以下能力仍在继续建设中：
+
+- 更完整的 plan gate / task gate
+- 更细粒度的 `RED_VERIFIED` 消费逻辑
+- ArchUnit
+- JaCoCo 85% 机械门禁
+- 真实 HTTP API E2E
+- 更强 OpenAPI 语义门禁
+- 更完整 installer / upgrade / migration 体验
+- 更广泛真机开发机场景验证
+
+---
+
+## 适合谁 / 不适合谁
+
+### 适合谁
+- 想把 Claude Code 用进 **Java / Spring Boot 后端团队流程**的人
+- 想让 AI coding 从“会话技巧”进入“项目契约 + runtime + change 资产”的团队
+- 想以 codegraph-first / Context7-first 方式组织探索和文档检索的人
+- 想基于现有骨架继续做企业化扩展的人
+
+### 不适合谁
+- 想找一个已经发布完成、可一键安装的成品插件的人
+- 想把它直接当成完整 CI/CD 与质量平台替代品的人
+- 只关心前端 UI 点击测试的人
+
+---
+
+## Quickstart
+
+> 当前最推荐的接入方式仍是：**clone 仓库后在仓库根目录执行 runtime CLI**。
+
+### 前置要求
+- Node.js **>= 20**
+- 推荐安装 `codegraph`
+- 推荐可用 `npx` / `ctx7`
+
+### 1. 获取仓库
+```bash
+git clone <your-repo-url>
+cd enterprise-harness
+```
+
+### 2. 首次接入
+```bash
+node harness/plugin/runtime/cli.mjs bootstrap
+node harness/plugin/runtime/cli.mjs setup-local-adapter --write
+node harness/plugin/runtime/cli.mjs doctor
+node harness/plugin/runtime/cli.mjs sync
+node harness/plugin/runtime/cli.mjs verify
+node harness/plugin/runtime/cli.mjs upstream-check
+```
+
+### 3. 可选：使用 npm scripts
+```bash
+npm run bootstrap
+npm run doctor
+npm run sync
+npm run verify
+npm run upstream-check
+```
+
+完整安装说明见：
+
+- [`docs/zh-cn/installation-guide.md`](docs/zh-cn/installation-guide.md)
+- [`harness/plugin/runtime/ONBOARDING.md`](harness/plugin/runtime/ONBOARDING.md)
+
+---
+
+## 关键目录地图
 
 ```text
 .
-├── CLAUDE.md
 ├── README.md
-├── .mcp.json
+├── CLAUDE.md
 ├── .claude/
 │   ├── settings.json
 │   ├── rules/
@@ -145,197 +251,48 @@
 │   ├── specs/
 │   ├── templates/
 │   └── work/
-├── reference-service/
-├── rules/      # 历史参考，不再是运行时唯一真相
-└── agents/     # 历史参考，不再是运行时唯一真相
+├── docs/
+│   └── zh-cn/
+└── reference-service/
 ```
 
-### 关键目录说明
-
-#### `.claude/rules/`
-Claude Code 自动加载的项目规则源。当前已包括：
-
-- `00-workflow.md`
-- `10-code-analysis.md`
-- `20-documentation.md`
-- `30-java-architecture.md`
-- `40-java-style.md`
-- `50-testing.md`
-- `60-api-contract.md`
-- `70-review.md`
-
-#### `.claude/agents/`
-项目 reviewer 骨架：
-
-- `requirement-reviewer`
-- `design-reviewer`
-- `plan-critic`
-- `api-consistency-reviewer`
-- `verification-reviewer`
-
-#### `.claude/skills/harness-intake/`
-企业 Java 后端需求入口。它的职责不是直接开写代码，而是：
-
-- provisional triage
-- minimum discovery
-- codegraph-first / Context7-first
-- Socratic clarification
-- final route（L0/L1/L2/L3）
-- 驱动最小 change 资产落盘
-
-#### `harness/specs/`
-长期稳定规范。当前已包括：
-
-- `instruction-layering.md`
-- `directory-model.md`
-- `artifact-lifecycle.md`
-- `requirement-intake.md`
-- `tool-fallback-policy.md`
-- `plugin-runtime.md`
-- `local-runtime-adapter.md`
-- `mvp-roadmap.md`
-
-#### `harness/templates/`
-通用模板：
-
-- `state.json`
-- `change.md`
-- `spec.md`
-- `design.md`
-- `tasks.md`
-- `validation.md`
-- `review-verdict.json`
-- `exploration.md`
-- `tooling-evidence.md`
-
-#### `harness/changes/`
-活动 change 资产区。每个 change 默认至少有：
-
-- `state.json`
-- `change.md`
-- `validation.md`
-- `evidence/tooling.md`
-
-#### `harness/plugin/runtime/`
-跨平台运行层。当前已具备：
-
-- `bootstrap.mjs`
-- `doctor.mjs`
-- `sync.mjs`
-- `install.mjs`
-- `setup-local-adapter.mjs`
-- `local-adapter.example.json`
-- `hooks/*.mjs`
-- `lib/*.mjs`
-
-#### `reference-service/`
-一个可运行的 Java 后端参考服务，用于演示：
-
-- 四层分层
-- domain port / adapter 方向
-- 最小 MapStruct 示例
-- 最小 error contract
-- BDD 命名 + `@DisplayName` + JavaDoc
-
-它现在是**样板演示面**，不是整个插件的核心。
+### 最重要的几个位置
+- `CLAUDE.md`：项目高层操作合同
+- `.claude/rules/`：自动加载规则源
+- `harness/specs/`：长期稳定规范
+- `harness/templates/`：change / design / tasks / validation 模板
+- `harness/changes/`：活动 change 资产
+- `harness/plugin/runtime/`：跨平台运行层
+- `reference-service/`：Java 参考样板，不是插件本身的全部核心
 
 ---
 
-## 4. 如何使用这套骨架
+## 文档地图
 
-## 4.1 先看 contract
-阅读：
+### 先看这些
+- [`docs/zh-cn/overview.md`](docs/zh-cn/overview.md)
+- [`docs/zh-cn/installation-guide.md`](docs/zh-cn/installation-guide.md)
+- [`docs/zh-cn/announcement.md`](docs/zh-cn/announcement.md)
+- [`docs/zh-cn/launch-post-kit.md`](docs/zh-cn/launch-post-kit.md)
+- [`docs/zh-cn/github-release-v0.1.0.md`](docs/zh-cn/github-release-v0.1.0.md)
 
-- `CLAUDE.md`
-- `harness/specs/mvp-roadmap.md`
-- `harness/specs/requirement-intake.md`
-- `harness/specs/plugin-runtime.md`
-- `harness/specs/platform-validation-matrix.md`
-- `harness/specs/release-readiness.md`
-- `harness/specs/release-checklist.md`
+### 核心 contract / spec
+- [`CLAUDE.md`](CLAUDE.md)
+- [`harness/specs/plugin-runtime.md`](harness/specs/plugin-runtime.md)
+- [`harness/specs/local-runtime-adapter.md`](harness/specs/local-runtime-adapter.md)
+- [`harness/specs/platform-validation-matrix.md`](harness/specs/platform-validation-matrix.md)
+- [`harness/specs/release-readiness.md`](harness/specs/release-readiness.md)
+- [`harness/specs/mvp-roadmap.md`](harness/specs/mvp-roadmap.md)
 
-## 4.2 检查本机运行层
-当前推荐统一入口：
-
-```bash
-node harness/plugin/runtime/cli.mjs bootstrap
-node harness/plugin/runtime/cli.mjs doctor
-node harness/plugin/runtime/cli.mjs sync
-```
-
-如果你希望在本机生成一个 local adapter 示例文件：
-
-```bash
-node harness/plugin/runtime/cli.mjs setup-local-adapter --write
-```
-
-默认本机 adapter 路径约定：
-
-- 若设置了 `HARNESS_LOCAL_ADAPTER`：优先使用该路径
-- Windows：`%APPDATA%/enterprise-harness/local-adapter.json`
-- Linux / macOS：`${XDG_CONFIG_HOME:-~/.config}/enterprise-harness/local-adapter.json`
-
-## 4.3 创建一个新的 change
-```bash
-bash harness/bin/create-change-scaffold.sh <change-id> [owner] [tier]
-```
-
-可选继续：
-
-```bash
-bash harness/bin/create-exploration-artifact.sh <change-id> <topic-kebab-case>
-bash harness/bin/update-change-state.sh <change-id> DISCOVERED L2
-bash harness/bin/set-active-change.sh <change-id>
-```
-
-## 4.4 跑结构与 contract 自检
-```bash
-bash hooks/validate-spec-structure.sh
-bash hooks/full-verify.sh
-npm run prepublish-check
-```
+### 对外协作
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/ISSUE_TEMPLATE/`
+- `.github/workflows/platform-smoke.yml`
 
 ---
 
-## 5. 当前 MVP 的边界
-
-## 已完成（可以算 MVP）
-
-- repo contract 已成形
-- portable runtime skeleton 已成形
-- 本地 doctor / sync / bootstrap / install skeleton 可运行
-- codegraph-first 真实可用
-- Context7 CLI wrapper 真实可用
-- active change + pre-write gate 真实可用
-- change 生命周期通用命令已具备并 smoke test 通过
-- Node runtime hook adapter 已落地并 smoke test 通过
-
-## 尚未完成（还不是 MVP 已交付）
-
-- plan gate 与更完整的 design gate / task gate 语义
-- 更细粒度的 `RED_VERIFIED` 消费逻辑
-- ArchUnit 真接入
-- JaCoCo 85% 真接入
-- 真实 HTTP API E2E
-- 完整 OpenAPI 语义硬门禁
-- 完整 installer / upgrade / migration 机制
-- Windows / macOS 真机矩阵验证
-
-所以当前最准确的状态是：
-
-> **可运行的 repo contract + portable runtime MVP**
-
-不是完整的企业级强门禁平台。
-
----
-
-## 6. 后续迭代路线图
-
-路线图已经写在：
-
-- `harness/specs/mvp-roadmap.md`
-
-简版如下：
+## 当前路线图（简版）
 
 ### Iteration 1：门禁收紧
 - design gate
@@ -350,46 +307,23 @@ npm run prepublish-check
 - 更强 OpenAPI 契约语义校验
 
 ### Iteration 3：插件产品化
-- machine-local adapter 正式 schema
+- machine-local adapter 正式 schema 继续收紧
 - 更完整 installer
-- upgrade / migration 机制
+- upgrade / migration 机制完善
 - 上游升级治理与版本盘点
-- 平台验证矩阵与 prepublish 检查
-- Windows / macOS 真机验证
+- 更广泛平台 / 真机验证
 
 ---
 
-## 7. 语言与协作约定
+## 语言约定
 
 - 仓库文档、流程资产、评审说明默认使用**中文**
 - 代码标识符、包名、公开 API 默认保持**英文**
-- secrets / 本地 adapter / 本地 token 不提交进仓库
 
 ---
 
-## 8. 公开仓库协作
+## 一句话总结
 
-当前仓库已补齐最小公开协作文件：
+**Enterprise Harness** 当前已经不是“几篇规则文档 + 一堆脚本”，而是：
 
-- `CONTRIBUTING.md`
-- `.github/PULL_REQUEST_TEMPLATE.md`
-- `.github/ISSUE_TEMPLATE/bug_report.yml`
-- `.github/ISSUE_TEMPLATE/feature_request.yml`
-- `.github/workflows/platform-smoke.yml`
-
-对外协作时建议先看：
-
-1. `README.md`
-2. `CLAUDE.md`
-3. `harness/specs/mvp-roadmap.md`
-4. `harness/specs/upstream-governance.md`
-5. `harness/specs/platform-compatibility.md`
-6. `CONTRIBUTING.md`
-
----
-
-## 9. 一句话总结
-
-这个项目现在已经不是“几篇规则文档 + 一堆 bash 脚本”了，而是：
-
-> **一套围绕 Claude Code 的企业后端交付骨架：有共享契约、有变更生命周期、有本地运行层、有跨机器接入入口，并且关键路径已经真实跑通。**
+> 一套围绕 Claude Code 的企业后端交付骨架：有共享契约、有变更生命周期、有本地运行层、有跨机器接入入口，并且关键路径已经真实跑通。
