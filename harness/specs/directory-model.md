@@ -12,6 +12,9 @@
 ### `CLAUDE.md`
 项目短地图与 Claude Code 高层操作合同。
 
+### `PROGRESS.md`
+repo-facing 的阶段快照与继续阅读入口；不替代 `harness/ACTIVE_CHANGE` 与 `harness/changes/*/state.json` 的动态真相职责。
+
 ### `.claude/rules/`
 Claude Code 自动加载的项目规则。
 
@@ -25,20 +28,22 @@ Claude Code 可发现的项目 subagent / reviewer。
 本地快速反馈与完成前门禁脚本。
 
 ### `harness/templates/`
-可复用模板。
+可复用模板，例如 `requirements.md`、`design.md`、`tasks.md`、`validation.md` 等 staged workflow 资产模板。
 
 ### `harness/specs/`
-长期稳定规范，例如 plugin runtime、local adapter、evidence submission、containerization/sandboxing 等长期真相。
+长期稳定规范，例如 staged-workflow、plugin runtime、session-lifecycle、local adapter、evidence submission、containerization/sandboxing 等长期真相。
 
 ### `harness/changes/<change-id>/`
 活动变更资产：
 
+- `requirements.md`
 - `state.json`
 - `change.md`
 - `specs/`
 - `design.md`
 - `tasks.md`
 - `validation.md`
+- `reviews/`
 - `evidence/`
 
 ### `harness/archive/`

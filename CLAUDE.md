@@ -39,22 +39,22 @@
 
 当前仓库采用三层模型：
 
-1. **Skill 入口**：在 Claude Code 会话中，优先从 `/harness` 开始；需求入口场景可继续细化到 `harness-intake`
+1. **Skill 入口**：在 Claude Code 会话中，统一从 `/harness` 开始；它负责 clarify-first staged workflow 的单一入口与阶段路由
 2. **Command 入口**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify`
-3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断和校验
+3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、恢复提示和校验
 
-规则与 hooks 会自动生效，但它们不是总编排器；总入口应显式使用 skill 或 command。
+规则与 hooks 会自动生效，但它们不是总编排器；总入口应显式使用 `/harness` 或 backend command。
 
 ## 默认工作流
 
 对 L1 及以上代码/配置行为变化，默认按以下顺序推进：
 
-1. 需求 intake 与最小探索
+1. 先进入 `clarify`：先探索代码/文档，再进行一问一答澄清与用户确认
 2. 形成 final route（L0 / L1 / L2 / L3）
-3. 需要时完成 durable design
+3. 完成 durable design
 4. design 批准后进入 plan
 5. 严格执行 RED → GREEN → REFACTOR
-6. reviewer 与验证证据通过后才能完成
+6. 统一在 `verify` 阶段消费 reviewer verdict 与验证证据
 7. 必要时归档到 `harness/changes/`、`harness/specs/`、`harness/archive/`
 
 ## 编码与架构基线
@@ -80,7 +80,8 @@
 
 ## 资产位置
 
-- 稳定规范：`harness/specs/`
+- 进度快照：`PROGRESS.md`
+- 稳定规范：`harness/specs/`（含 `staged-workflow.md` / `session-lifecycle.md`）
 - 活动 change：`harness/changes/`
 - 活动历史工作：`harness/work/`
 - 探索证据：`harness/explorations/`

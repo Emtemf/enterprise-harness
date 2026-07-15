@@ -25,6 +25,14 @@
   "blockers": [],
   "approvals": {},
   "currentTask": null,
+  "workflow": {
+    "stage": "clarify",
+    "clarifyReady": false,
+    "userConfirmedScope": false,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness"
+  },
   "validation": {
     "status": "missing",
     "digest": null,

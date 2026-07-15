@@ -1,6 +1,71 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
+import { loadActiveChange } from '../lib/gates.mjs';
+
+function inferWorkflowStage(changeId, data) {
+  if (!changeId || !data) return null;
+  if (changeId === 'clarify-first-staged-orchestrator') {
+    if (data.validation?.status === 'fresh' && data.state === 'VALIDATED') return 'archive';
+    if (data.state === 'VALIDATED' || data.state === 'REVIEWED') return 'verify';
+    if (data.state === 'EXECUTING') return 'tdd';
+    if (data.state === 'TASKED') return 'plan';
+    if (data.approvals?.design?.status === 'pass' || data.gates?.designApproved) return 'design';
+    if (data.state === 'DISCOVERED') return 'route';
+    return 'clarify';
+  }
+  if (data.validation?.status === 'fresh' && data.state === 'VALIDATED') return 'archive';
+  if (data.state === 'VALIDATED' || data.state === 'REVIEWED') return 'verify';
+  if (data.state === 'EXECUTING') return 'tdd';
+  if (data.state === 'TASKED') return 'plan';
+  if (data.approvals?.design?.status === 'pass' || data.gates?.designApproved) return 'design';
+  if (data.state === 'DISCOVERED') return 'route';
+  return 'clarify';
+}
+
+function recommendNextEntry(stage) {
+  switch (stage) {
+    case 'clarify': return '/harness';
+    case 'route': return '/harness';
+    case 'design': return '/harness-design';
+    case 'plan': return '/harness-plan';
+    case 'tdd': return '/harness-tdd';
+    case 'verify': return '/harness-verify';
+    case 'archive': return '/harness';
+    default: return '/harness';
+  }
+}
+
+function activeChangeGuidance(root) {
+  const active = loadActiveChange(root);
+  if (!active.ok) {
+    return {
+      assetGuidance: 'change-specific 结论：优先写回当前 active change 资产；若当前没有 active change，请先补足对应 change bundle。',
+      workflowStage: null,
+      nextEntry: '/harness',
+    };
+  }
+  const workflowStage = inferWorkflowStage(active.changeId, active.data);
+  return {
+    assetGuidance: `change-specific 结论：优先写回 harness/changes/${active.changeId}/ 下的 change.md / design.md / tasks.md / validation.md / evidence/*.md / reviews/*.json。`,
+    workflowStage,
+    nextEntry: recommendNextEntry(workflowStage),
+  };
+}
+
+function printHandoffGuidance(root) {
+  const guidance = activeChangeGuidance(root);
+  console.error('Stop handoff guidance:');
+  console.error(`- ${guidance.assetGuidance}`);
+  if (guidance.workflowStage) {
+    console.error(`- 当前 workflow stage：${guidance.workflowStage}`);
+    console.error(`- 建议下次从：${guidance.nextEntry} 恢复`);
+  }
+  console.error('- repo-level 阶段信息：写回 PROGRESS.md，更新整体阶段、当前目标与下一步重点。');
+  console.error('- Claude memory：只保存 repo 中没有记录、但跨会话仍有价值的非仓库事实，而且必须通过显式动作触发。');
+  console.error('- 聊天记录：可以作为来源，但不是仓库真相，也不能替代 change 资产、PROGRESS.md 或 Claude memory。');
+  console.error('- 如需重新确认当前状态，可运行 node harness/plugin/runtime/cli.mjs status。');
+}
 
 const root = projectRoot();
 const changesDir = path.join(root, 'harness', 'changes');
@@ -28,4 +93,5 @@ for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
 if (warned) {
   console.error('Stop gate 提醒：仍有 change 处于 EXECUTING，请确认是否要结束在当前中间状态。');
 }
+printHandoffGuidance(root);
 process.exit(0);

@@ -1,0 +1,18 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "design-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    "single-entry 与 subordinate stage entry 的主从关系已在 stable spec、requirements 与 `/harness` skill 中基本统一。",
+    "`workflow.*` 已明确为 staged orchestrator 的首选 machine-readable source，legacy 字段仅作回退。",
+    "exploration / ambiguity / context contract 已进入 `harness/specs/`，change-local spec 已降级为 historical snapshot。",
+    "durable artifacts 的长期口径已基本统一，但 plan 中仍应优先继续收口少量 repo-facing 文档与消费者的 legacy 表述。"
+  ],
+  "evidence": [
+    "`harness/specs/staged-workflow.md` 已明确 `/harness` 是唯一主入口，stage skill 为 subordinate recovery entry。",
+    "`harness/specs/staged-workflow.md` 与 `design.md` 已明确 `workflow.*` 为新的首选 stage source。",
+    "`harness/specs/exploration-packet.md`、`ambiguity-scoring.md`、`context-packet.md` 已成为稳定规范层 contract。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-15"
+}

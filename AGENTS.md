@@ -12,9 +12,12 @@
 
 1. `README.md`：项目定位、入口模型、Quickstart
 2. `AGENTS.md`：仓库级协作合同
-3. `CLAUDE.md`：Claude Code 专用高层操作合同
-4. `harness/specs/`：长期稳定规范
-5. `CONTRIBUTING.md`：贡献与提交约定
+3. `PROGRESS.md`：当前阶段快照与继续阅读入口
+4. `CLAUDE.md`：Claude Code 专用高层操作合同
+5. `harness/specs/session-lifecycle.md`：会话打开/结束与 handoff 规则
+6. `harness/specs/staged-workflow.md`：clarify-first staged workflow 与阶段 gate 规则
+7. `harness/specs/`：长期稳定规范
+7. `CONTRIBUTING.md`：贡献与提交约定
 
 ## 入口模型
 
@@ -27,7 +30,9 @@
 
 - 接住新需求
 - 继续当前 change
-- 判断下一步进入 intake / design / validation / release 的哪一段
+- 作为 clarify-first staged workflow 的单一入口
+- 判断当前处于 `clarify / route / design / plan / tdd / verify / archive` 的哪一段
+- 给出下一阶段的恢复入口或 backend 命令
 
 ### 2. Runtime / 仓库命令入口
 优先使用：
@@ -56,16 +61,19 @@
 对 L1 及以上变更，默认按以下顺序推进：
 
 ```text
-intake
-→ discovery
+clarify
 → route
 → design
 → plan
-→ TDD
-→ review
-→ validation
+→ tdd
+→ verify
 → archive
 ```
+
+说明：
+- `clarify` 是强制第一阶段，优先通过代码/文档探索拿事实，再进行一问一答澄清与用户确认
+- `verify` 吸收 reviewer verdict、validation freshness 与 completion evidence 的统一消费职责
+- exploration 在高噪声场景下默认下沉为 read-only subagent，主 orchestrator 只消费压缩结论
 
 ## 仓库约定
 

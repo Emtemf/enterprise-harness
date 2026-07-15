@@ -18,6 +18,10 @@ export function requiredPaths() {
       '.claude/skills',
       '.claude/skills/harness',
       '.claude/skills/harness-intake',
+      '.claude/skills/harness-design',
+      '.claude/skills/harness-plan',
+      '.claude/skills/harness-tdd',
+      '.claude/skills/harness-verify',
       'hooks',
       'harness',
       'harness/templates',
@@ -29,6 +33,7 @@ export function requiredPaths() {
     files: [
       'AGENTS.md',
       'CLAUDE.md',
+      'PROGRESS.md',
       '.mcp.json',
       '.claude/settings.json',
       '.claude/rules/00-workflow.md',
@@ -44,12 +49,20 @@ export function requiredPaths() {
       '.claude/agents/plan-critic.md',
       '.claude/agents/api-consistency-reviewer.md',
       '.claude/agents/verification-reviewer.md',
+      '.claude/agents/code-explore.md',
+      '.claude/agents/doc-research.md',
+      '.claude/agents/impact-explore.md',
       '.claude/skills/harness/SKILL.md',
       '.claude/skills/harness-intake/SKILL.md',
+      '.claude/skills/harness-design/SKILL.md',
+      '.claude/skills/harness-plan/SKILL.md',
+      '.claude/skills/harness-tdd/SKILL.md',
+      '.claude/skills/harness-verify/SKILL.md',
       'harness/config.yaml',
       'harness/templates/state.json',
       'harness/templates/change.md',
       'harness/templates/spec.md',
+      'harness/templates/requirements.md',
       'harness/templates/design.md',
       'harness/templates/tasks.md',
       'harness/templates/validation.md',
@@ -64,6 +77,8 @@ export function requiredPaths() {
       'harness/specs/tool-fallback-policy.md',
       'harness/specs/evidence-submission.md',
       'harness/specs/containerization-sandboxing.md',
+      'harness/specs/session-lifecycle.md',
+      'harness/specs/staged-workflow.md',
       'harness/specs/plugin-runtime.md',
       'harness/specs/local-runtime-adapter.md',
       'harness/bin/create-change-scaffold.sh',
@@ -83,6 +98,7 @@ export function requiredPaths() {
       'harness/plugin/runtime/sync.mjs',
       'harness/plugin/runtime/local-adapter.example.json',
       'harness/plugin/runtime/README.md',
+      'harness/plugin/runtime/lib/workflow.mjs',
     ],
   };
 }
@@ -110,6 +126,8 @@ export function validateArtifactStates(root) {
   const allowedStates = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','BLOCKED','REJECTED']);
   const allowedImpact = new Set(['yes','no','unknown']);
   const allowedValidation = new Set(['missing','fresh','stale']);
+  const allowedWorkflowStages = new Set(['clarify','route','design','plan','tdd','verify','archive']);
+  const allowedTddStatuses = new Set(['not-started','test-written','red-verified','green-verified','refactor-verified']);
   const errors = [];
   for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
@@ -126,6 +144,15 @@ export function validateArtifactStates(root) {
       if (!allowedImpact.has(data.impact?.[key])) errors.push(`${statePath}: invalid impact.${key}`);
     }
     if (!allowedValidation.has(data.validation?.status)) errors.push(`${statePath}: invalid validation.status ${data.validation?.status}`);
+    if (data.workflow) {
+      if (!allowedWorkflowStages.has(data.workflow.stage)) errors.push(`${statePath}: invalid workflow.stage ${data.workflow.stage}`);
+      if (typeof data.workflow.clarifyReady !== 'boolean') errors.push(`${statePath}: invalid workflow.clarifyReady`);
+      if (typeof data.workflow.userConfirmedScope !== 'boolean') errors.push(`${statePath}: invalid workflow.userConfirmedScope`);
+      if (typeof data.workflow.planReady !== 'boolean') errors.push(`${statePath}: invalid workflow.planReady`);
+      if (!allowedTddStatuses.has(data.workflow.tddStatus)) errors.push(`${statePath}: invalid workflow.tddStatus ${data.workflow.tddStatus}`);
+      if (typeof data.workflow.nextEntry !== 'string' || data.workflow.nextEntry.length === 0) errors.push(`${statePath}: invalid workflow.nextEntry`);
+      if (data.workflow.clarifyReady && !data.workflow.userConfirmedScope) errors.push(`${statePath}: workflow.clarifyReady requires workflow.userConfirmedScope`);
+    }
     if (data.state === 'VALIDATED' && data.validation?.status !== 'fresh') errors.push(`${statePath}: VALIDATED requires fresh validation`);
   }
   return errors;

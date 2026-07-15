@@ -145,12 +145,14 @@ sequenceDiagram
 
 ### 高层入口
 - `README.md`
+- `PROGRESS.md`
 - `CLAUDE.md`
+- `harness/specs/staged-workflow.md`
 
 ### 自动加载入口
 - `.claude/settings.json`
 - `.claude/rules/`
-- `.claude/agents/`
+- `.claude/agents/`（含 reviewer 与 exploration worker）
 - `.claude/skills/`
 
 ### 变更与资产
@@ -202,6 +204,9 @@ sequenceDiagram
 - [项目公告文案](./announcement.md)
 - [安装教程](./installation-guide.md)
 - `README.md`
+- `PROGRESS.md`
 - `CLAUDE.md`
+- `harness/specs/session-lifecycle.md`
+- `harness/specs/staged-workflow.md`
 - `harness/specs/plugin-runtime.md`
 - `harness/specs/platform-validation-matrix.md`

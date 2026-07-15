@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "changeId": "clarify-first-staged-orchestrator",
+  "tier": "L3",
+  "state": "TASKED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "How do /harness skill, harness-intake skill, session-start hook, stop hook, and runtime status/start-change commands currently work together as the workflow entry and governance surface? Focus on .claude skills, hooks, runtime cli, and status summary."
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "partial-browser-evidence",
+      "libraries": [
+        {
+          "name": "superpowers",
+          "resolvedLibraryId": "github-public-tree-observation",
+          "version": "public-main-2026-07-15",
+          "query": "workflow-first skills/hooks/subagent packaging structure"
+        },
+        {
+          "name": "oh-my-claudecode deep-interview",
+          "resolvedLibraryId": "github-public-tree-observation",
+          "version": "public-main-2026-07-15",
+          "query": "socratic deep interview with ambiguity gating"
+        }
+      ]
+    }
+  },
+  "decisions": [
+    "当前主架构应建模成 Claude Code repo-local `.claude` 扩展层 + `harness/*` durable workflow state，而不是先建模成外部分发 plugin。",
+    "clarify 升级为强制第一阶段，不再只是必要时才做的澄清动作。",
+    "新主阶段模型采用 `clarify -> route -> design -> plan -> tdd -> verify -> archive`。",
+    "高噪声探索默认下沉为 read-only subagent，主 orchestrator 只消费 exploration packet/context packet。",
+    "本轮先只做 Claude Code-only staged orchestrator，不展开多宿主 packaging-first 重构。",
+    "`/harness` 仍是默认主入口；阶段 skill 仅作为 subordinate recovery entry。",
+    "当前 design 已达到可进入 plan 的 advisory 级别；plan-critic 已 pass，可把 tasks 作为正式 plan artifact 使用。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "advisory",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-15"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-15"
+    }
+  },
+  "gates": {
+    "designApproved": true
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "tdd",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-tdd"
+  },
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  }
+}

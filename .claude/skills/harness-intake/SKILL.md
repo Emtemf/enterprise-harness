@@ -1,34 +1,35 @@
 ---
 name: harness-intake
 description: >
-  企业 Java 后端需求入口。用于把用户需求先做结构化 intake，再决定是否进入轻量路径或完整 design/plan/TDD 路径。适用于新增功能、Bug 修复、API 变化、数据结构变化、架构治理与平台规则调整。要求优先做 codegraph-first 代码探索；涉及外部库、框架、SDK 或版本行为时优先 Context7-first。只对会改变后续路径的未知项做澄清，默认一次问一个高影响问题。
+  Clarify-first staged workflow 的 clarify/route 子流程入口。用于把用户需求先做苏格拉底式澄清、ambiguity scoring、repo/documentation fact gathering，再形成 final route，并决定是否进入 design/plan/TDD/verify 主流程。适用于新增功能、Bug 修复、API 变化、数据结构变化、架构治理与平台规则调整。要求优先 codegraph-first 与 Context7-first，并默认一次只问一个高价值问题。
 ---
 
 # Harness Intake
 
 ## 目标
 
-把需求从“用户一句话”转成仓库内可追踪的 change 输入，而不是直接开始写代码。
+把需求从“用户一句话”先推进到 **clarify-ready**，再转成仓库内可追踪的 route/change 输入，而不是直接开始写代码。
 
 ## 入口职责
 
-收到需求后，必须先完成以下动作，再决定是否进入设计或实现：
+收到需求后，必须先完成以下动作，再决定是否进入 design 或实现：
 
 1. 判断 request shape：`new` / `modify` / `mixed` / `unknown`
-2. 做 provisional triage
-3. 做 minimum discovery
-4. 根据证据形成 final route（L0/L1/L2/L3）
-5. 明确下一个 artifact / gate，而不是直接进入实现
+2. 进入 `clarify`：通过探索 + 一问一答降低歧义
+3. 做 provisional triage
+4. 做 minimum discovery
+5. 根据证据形成 final route（L0/L1/L2/L3）
+6. 明确下一个 artifact / gate，而不是直接进入实现
 
 ## 默认顺序
 
 1. 判断是新增、修改还是 mixed
-2. 做 provisional triage
-3. 做 minimum discovery
-4. codegraph-first；失败才 grep / Read，并留痕
-5. 外部库/框架问题走 Context7-first；不足再官方文档
-6. 只针对会改变路径的未知项发起澄清
-7. 形成 final route（L0/L1/L2/L3）
+2. 先做 minimum discovery
+3. codegraph-first；失败才 grep / Read，并留痕
+4. 外部库/框架问题走 Context7-first；不足再官方文档
+5. 基于事实进入苏格拉底式澄清
+6. 一次只问一个高价值问题，并维护 ambiguity scoring
+7. 在 clarify-ready 且用户确认后，形成 final route（L0/L1/L2/L3）
 8. 明确下一个 artifact / gate
 
 ## Provisional Triage 最低输出
@@ -60,10 +61,29 @@ description: >
 ## Socratic 澄清原则
 
 - 默认一次一个高影响问题
+- 每轮都应显式针对 weakest dimension 发问
 - 只问会改变后续路径的问题
 - 低影响局部选择应采用合理默认并记录
 - 无法确定时应 block，而不是猜测继续
 - 若多个问题彼此强耦合，只能在确有必要时合并成一组
+- clarify 结束前必须达到 clarify-ready，并获得用户确认
+
+## Ambiguity Scoring 最低要求
+
+至少跟踪以下维度：
+
+- Goal clarity
+- Scope clarity
+- User / actor clarity
+- Data / SQL clarity
+- Interface / API clarity
+- Acceptance criteria clarity
+- Constraint / risk clarity
+
+最低规则：
+- 每轮更新一次分数
+- 标出 weakest dimension
+- 只有在关键维度达标且用户确认后，才允许进入 final route
 
 ## Final Route 最低输出
 
@@ -92,6 +112,7 @@ description: >
 
 当 final route 为 L1、L2 或 L3 时，必须确保以下最小资产存在并被更新：
 
+- `harness/changes/<change-id>/requirements.md`
 - `harness/changes/<change-id>/state.json`
 - `harness/changes/<change-id>/change.md`
 - `harness/changes/<change-id>/evidence/tooling.md`
@@ -127,6 +148,10 @@ bash harness/bin/set-active-change.sh <change-id>
 - `tooling.documentation`
 - `decisions`
 - `blockers`
+- `workflow.stage`
+- `workflow.clarifyReady`
+- `workflow.userConfirmedScope`
+- `workflow.nextEntry`
 
 ### `change.md` 最少要更新
 - 原始需求

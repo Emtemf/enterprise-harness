@@ -29,6 +29,22 @@ DRAFT
 → ARCHIVED
 ```
 
+在 clarfiy-first staged workflow 下，以上主状态之外，还应结合 machine-readable `workflow.*` 字段识别当前所处阶段：
+
+```text
+clarify
+→ route
+→ design
+→ plan
+→ tdd
+→ verify
+→ archive
+```
+
+其中：
+- `workflow.stage` 是首选阶段来源
+- 若 `workflow.*` 缺失，才允许回退到 `state + approvals + validation` 推断
+
 允许的异常状态：
 
 - `BLOCKED`
@@ -72,6 +88,7 @@ NOT_STARTED
 
 ## 硬门禁
 
+- clarify 未达标或用户未确认执行范围，不得进入 route/design/plan/TDD。
 - 未完成最小探索，不得宣布 final route。
 - design 未批准，不得进入 plan。
 - plan 未就绪，不得进入 implementation。

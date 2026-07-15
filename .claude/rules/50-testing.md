@@ -12,6 +12,20 @@
 
 没有观察到有效 RED，不得声称完成了 TDD。
 
+在 staged workflow 下，TDD 阶段还必须显式经过：
+
+```text
+TEST_WRITTEN
+→ RED_VERIFIED
+→ GREEN_VERIFIED
+→ REFACTOR_VERIFIED
+```
+
+其中：
+- 没有 RED 证据，不得修改生产代码
+- 没有 GREEN 证据，不得进入 verify
+- `workflow.tddStatus` 只表达执行子阶段，不替代 reviewer / validation gate
+
 ## 最小测试类型
 
 对 Java 后端，至少区分：

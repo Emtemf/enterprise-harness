@@ -8,6 +8,7 @@
 
 ```text
 用户需求
+→ Clarify
 → Provisional Triage
 → Minimum Discovery
 → Evidence-confirmed Route
@@ -44,9 +45,12 @@
 
 ## 决策澄清
 
-只对会改变后续路径的未知项发起澄清：
+clarify-first staged workflow 下，澄清不是“必要时才做”，而是进入 route 前的强制阶段：
 
 - 默认一次一个高影响问题
+- 每轮应显式针对 weakest dimension 发问
+- 先探索，再问用户
+- 用户未确认执行范围前，不得进入 route/design/plan/implementation
 - 低影响局部选择采用合理默认并记录
 - 无法确定时 block，而不是猜测继续
 
@@ -69,14 +73,16 @@
 - 默认不建完整 change bundle
 
 ### L1
-- 轻量 spec
+- `requirements.md` + 轻量 spec
 - 定向 RED → GREEN → REFACTOR 证据
 
 ### L2
+- `requirements.md`
 - durable design
 - design approval 后进入 plan
 
 ### L3
+- `requirements.md`
 - 完整设计路径
 - 明确 reviewer verdict
 

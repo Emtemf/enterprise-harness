@@ -6,6 +6,8 @@
 
 ## Commands Executed
 
+## Clarify / Requirements Confirmation
+
 ## Unit Tests
 
 ## Unit Coverage
@@ -21,6 +23,13 @@
 ## Google Java Style
 
 ## Review Verdicts
+
+## Stage Gate Summary
+- clarify:
+- design:
+- plan:
+- tdd:
+- verify:
 
 ## Skipped Checks
 

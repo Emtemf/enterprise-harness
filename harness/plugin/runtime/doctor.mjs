@@ -9,9 +9,13 @@ const repoRoot = process.cwd();
 const requiredProjectFiles = [
   'AGENTS.md',
   'CLAUDE.md',
+  'PROGRESS.md',
   '.claude/settings.json',
   'harness/config.yaml',
   'harness/specs/plugin-runtime.md',
+  'harness/specs/session-lifecycle.md',
+  'harness/specs/staged-workflow.md',
+  'harness/templates/requirements.md',
 ];
 
 const optionalProjectFiles = [

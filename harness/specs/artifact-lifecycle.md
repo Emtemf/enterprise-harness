@@ -12,10 +12,12 @@
 
 最小资产集合：
 
+- `requirements.md`
 - `state.json`
 - `change.md`
 - `validation.md`
-- 视 tier 增加 `specs/`、`design.md`、`tasks.md`
+- `evidence/`
+- 视 tier 增加 `specs/`、`design.md`、`tasks.md`、`reviews/`
 
 ## 生命周期
 

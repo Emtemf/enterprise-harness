@@ -1,7 +1,7 @@
 ---
 name: harness
 description: >
-  Enterprise Harness 的统一流程入口。用于接住新需求、继续当前 change、决定应该走 intake / validation / release 路径，或明确应该调用哪个 runtime command。适用于“我应该从哪开始”“帮我按 harness 流程推进”“继续当前 change”“需要一个确定性的 change 入口命令”等场景。
+  Enterprise Harness 的统一流程入口与阶段编排器。用于接住新需求、继续当前 change、识别 clarify / route / design / plan / tdd / verify / archive 所处阶段，并给出下一步 stage skill 或 backend command。适用于“我应该从哪开始”“帮我按 staged workflow 推进”“继续当前 change”“需要一个确定性的 change 入口命令”等场景。
 ---
 
 # Harness Entry
@@ -23,12 +23,13 @@ description: >
 
 - `/harness`
 
-它是统一工作流入口，用于：
+它是 clarify-first staged workflow 的统一工作流入口，用于：
 
 - 接住新需求
 - 继续当前 change
-- 判断下一步是 intake / design / plan / validation / release
-- 明确应该调用哪个 runtime command
+- 判断当前处于 `clarify / route / design / plan / tdd / verify / archive` 的哪一阶段
+- 在 gate 满足时把用户导向下一阶段 skill 或 backend command
+- 在用户打断后给出恢复入口
 
 ### 2. 在本机/runtime 动作中
 优先使用：
@@ -55,15 +56,15 @@ description: >
 ## 你被调用后应该怎么做
 
 ### 模式 A：用户带来一个新需求 / 修改需求
-按 `harness-intake` 的规则推进：
+按 clarify-first staged workflow 推进：
 
-1. 判断 request shape
-2. 做 provisional triage
-3. 做 minimum discovery
-4. codegraph-first
-5. 外部库问题 Context7-first
-6. 形成 final route（L0/L1/L2/L3）
-7. 明确下一个 artifact / gate
+1. 先进入 `clarify`
+2. 先做 minimum discovery（codegraph-first / Context7-first）
+3. 一次只问一个高价值问题，逐步降低 ambiguity
+4. 在用户确认后进入 `route`
+5. 形成 final route（L0/L1/L2/L3）
+6. 再进入 `design -> plan -> tdd -> verify`
+7. 明确下一个 artifact / gate / 恢复入口
 
 若需要最小 change 资产但当前还没有，可优先驱动或建议：
 
@@ -77,12 +78,15 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - `harness/ACTIVE_CHANGE`
 - 对应 `state.json`
 - 当前 blockers / decisions / validation 状态
+- 当前位于哪个 workflow stage
+- 当前需要哪个 exploration lane（如 `code-explore` / `doc-research` / `impact-explore`）先补事实
 
 然后回答：
 
 - 当前做到哪一阶段
-- 下一步应该进哪个 gate
-- 是否需要 design / RED / validation 证据
+- 下一步应该进哪个 gate / stage
+- 是否需要 clarify 确认 / design / RED / validation 证据
+- 如果现在打断，下次应从哪个入口恢复
 
 ### 模式 C：用户问“我该跑哪个命令”
 不要泛泛而谈，直接按目标给出命令：
@@ -105,17 +109,50 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 是否需要 tag / PR / merge / release
 - 是否已有对应 release note
 
+## Stage Routing 最低要求
+
+`/harness` 应把当前 active change 与 durable artifacts 映射成下一步阶段，而不是只输出泛化建议。
+
+最低应遵循：
+
+- 若当前没有 active change：先引导或驱动创建 change，再进入 `clarify`
+- 若 `requirements.md` 缺失、clarify 未达标、或用户尚未确认执行范围：继续 `clarify`
+- 若 clarify-ready 且 `state.json.state` 仍在 `DRAFT` / `DISCOVERED`：进入 `route`
+- 若 route 已形成但 `design.md` 缺失、关键 section 不完整、或 design approval 不存在：进入 `design`
+- 若 design 已批准但 `tasks.md` 仍是 draft、缺 touched files / RED point / acceptance checks、或 plan verdict 仍不可消费：进入 `plan`
+- 若 `state.json.state` 为 `TASKED` / `EXECUTING`，或当前 task 仍缺 RED / GREEN / REFACTOR 证据：进入 `tdd`
+- 若实现已完成且需要 reviewer / validation 收口，或 `state.json.state` 为 `REVIEWED` / `VALIDATED` 但 validation 仍缺解释：进入 `verify`
+- 若 validation 已 fresh 且完成声明成立：进入 `archive`
+
+在任何阶段，都应优先给出：
+
+1. 当前 stage
+2. 当前缺口（artifact / approval / evidence）
+3. 推荐恢复入口（skill 或 backend command）
+4. 若事实不足，推荐先走哪个 exploration lane（`code-explore` / `doc-research` / `impact-explore`）
+5. 当前为何还不能进入下一阶段
+6. 若已存在 machine-readable workflow state，则显式引用 `workflow.stage`、`workflow.clarifyReady`、`workflow.userConfirmedScope` 等字段解释当前判定
+
+## Exploration Lane Routing 最低要求
+
+- 若问题是多模块代码事实不清：优先 `code-explore`
+- 若问题是外部库 / 框架 / SDK / 版本行为不清：优先 `doc-research`
+- 若问题是 API / data / architecture / rule 影响面不清：优先 `impact-explore`
+- clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery
+- verify 阶段可再次调用独立 exploration lane 做事实复核
+
 ## 与 `harness-intake` 的关系
 
-- `/harness` 是**总入口**
-- `harness-intake` 是**intake 专用入口**
+- `/harness` 是**总入口 / stage orchestrator**
+- `harness-intake` 是**clarify / route 子流程入口**
 
-当问题本质上是“开始一个需求工作流”时，你可以直接按 `harness-intake` 的顺序执行，不必把用户来回踢给别的入口。
+当问题本质上是“开始一个需求工作流”时，你可以直接按 `harness-intake` 的 clarify-first 顺序执行，不必把用户来回踢给别的入口。
 
 ## 禁止事项
 
 - 不得把 hooks 当成总编排器
 - 不得把 command 当成需求分析器
-- 不得在未完成 intake / route 前直接进入实现
+- 不得在未完成 clarify / route 前直接进入实现
 - 不得在 codegraph 可用时跳过 codegraph-first
+- 不得把 exploration dump 直接堆进主 orchestrator 上下文
 - 不得把“skill 可能被模型选中”误表述成“像 hook 一样自动触发”

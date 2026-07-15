@@ -77,20 +77,25 @@
 ### 当前主路径
 1. **加载项目 contract**
    - Claude Code 通过 `.claude/settings.json` 接入 SessionStart / PreToolUse / PostToolUse / Stop hooks
-2. **主 agent 判断 request shape / tier**
-   - 先分流：是问答、文档、L0、L1、L2 还是更高风险变更
-3. **先探索，再决定 route**
+2. **从 `/harness` 进入 staged workflow**
+   - `/harness` 是单一用户入口，后续按阶段路由而不是让用户自行猜下一步
+3. **先澄清，再推进**
+   - workflow 正在收敛为：`clarify -> route -> design -> plan -> tdd -> verify -> archive`
+   - clarify 阶段会先自动探索代码/文档，再进行一问一答澄清，并在用户确认后进入下一阶段
+4. **探索优先下沉到适当层**
    - 代码问题默认 **codegraph-first**
    - 外部库/框架问题默认 **Context7-first**
-4. **必要时落 change 资产**
-   - 把 `state.json`、`change.md`、`validation.md`、`evidence/tooling.md` 放进 `harness/changes/`
-5. **写入前过 gate**
-   - 对受治理路径（当前重点是 `reference-service/`）检查 `active change`、`designApproved`、`redVerified`
-6. **写入后自动检查**
+   - 高噪声探索应优先下沉为 read-only subagent，主 orchestrator 只消费压缩结论
+5. **必要时落 change 资产**
+   - 把 `requirements.md`、`state.json`、`change.md`、`design.md`、`tasks.md`、`validation.md`、`evidence/*.md` 放进 `harness/changes/`
+6. **写入前过 gate**
+   - 对受治理路径（当前重点是 `reference-service/`）检查 active change 与当前阶段 gate
+7. **写入后自动检查**
    - 结构、轻语义、review/evidence 状态检查
-   - 必要时把 validation 标为 stale
-7. **完成前必须刷新验证证据**
+   - 必要时把 validation 标为 stale，并提示下一阶段或恢复入口
+8. **完成前必须刷新验证证据**
    - Stop gate 会阻止 stale validation 或缺失 validation 资产的“伪完成”状态
+   - 同时明确提示：change-specific 结论应回写 change 资产，repo-level 阶段信息应回写 `PROGRESS.md`，Claude memory 只保存显式触发的非仓库事实
 
 更详细的时序图见：
 
@@ -123,6 +128,7 @@ node harness/plugin/runtime/cli.mjs <command>
 - `doctor`
 - `sync`
 - `verify`
+- `status`
 - `install`
 - `setup-local-adapter`
 - `update`
@@ -196,12 +202,12 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 - **Claude Code 会话入口**：`/harness`
 - **新 change 命令入口**：`node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
-- **自动兜底层**：`.claude/settings.json` hooks 会自动做提醒、阻断和校验
+- **自动兜底层**：`.claude/settings.json` hooks 会自动做提醒、阻断、恢复提示和验证检查
 
 也就是说：
-- **skill** 负责流程编排
-- **command** 负责确定性动作
-- **hooks** 负责自动兜底
+- **skill** 负责单入口与阶段编排
+- **command** 负责确定性 backend 动作
+- **hooks** 负责自动兜底与当前阶段/下一阶段提示
 
 ## Quickstart
 
@@ -233,11 +239,17 @@ node harness/plugin/runtime/cli.mjs upstream-check
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
 ```
 
-### 4. 在 Claude Code 会话中进入工作流
+### 4. 查看当前全局状态
+```bash
+node harness/plugin/runtime/cli.mjs status
+node harness/plugin/runtime/cli.mjs status --json
+```
+
+### 5. 在 Claude Code 会话中进入工作流
 - 优先从 `/harness` 开始
 - 纯 intake 场景可继续走 `harness-intake`
 
-### 5. 可选：使用 npm scripts
+### 6. 可选：使用 npm scripts
 ```bash
 npm run bootstrap
 npm run doctor
@@ -300,8 +312,11 @@ npm run upstream-check
 - [`docs/zh-cn/github-release-v0.1.0.md`](docs/zh-cn/github-release-v0.1.0.md)
 
 ### 核心 contract / spec
+- [`PROGRESS.md`](PROGRESS.md)
 - [`CLAUDE.md`](CLAUDE.md)
 - [`harness/specs/plugin-runtime.md`](harness/specs/plugin-runtime.md)
+- [`harness/specs/session-lifecycle.md`](harness/specs/session-lifecycle.md)
+- [`harness/specs/staged-workflow.md`](harness/specs/staged-workflow.md)
 - [`harness/specs/local-runtime-adapter.md`](harness/specs/local-runtime-adapter.md)
 - [`harness/specs/containerization-sandboxing.md`](harness/specs/containerization-sandboxing.md)
 - [`harness/specs/evidence-submission.md`](harness/specs/evidence-submission.md)
