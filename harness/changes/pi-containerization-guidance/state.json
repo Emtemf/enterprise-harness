@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "changeId": "pi-containerization-guidance",
+  "tier": "L2",
+  "state": "SPECIFIED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "unknown",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "unknown",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "currentTask": null,
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  }
+}
