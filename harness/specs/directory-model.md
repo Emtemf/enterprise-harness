@@ -28,7 +28,7 @@ Claude Code 可发现的项目 subagent / reviewer。
 可复用模板。
 
 ### `harness/specs/`
-长期稳定规范。
+长期稳定规范，例如 plugin runtime、local adapter、evidence submission、containerization/sandboxing 等长期真相。
 
 ### `harness/changes/<change-id>/`
 活动变更资产：

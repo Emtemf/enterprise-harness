@@ -303,6 +303,7 @@ npm run upstream-check
 - [`CLAUDE.md`](CLAUDE.md)
 - [`harness/specs/plugin-runtime.md`](harness/specs/plugin-runtime.md)
 - [`harness/specs/local-runtime-adapter.md`](harness/specs/local-runtime-adapter.md)
+- [`harness/specs/containerization-sandboxing.md`](harness/specs/containerization-sandboxing.md)
 - [`harness/specs/evidence-submission.md`](harness/specs/evidence-submission.md)
 - [`harness/specs/platform-validation-matrix.md`](harness/specs/platform-validation-matrix.md)
 - [`harness/specs/release-readiness.md`](harness/specs/release-readiness.md)

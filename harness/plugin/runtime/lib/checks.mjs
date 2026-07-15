@@ -63,6 +63,7 @@ export function requiredPaths() {
       'harness/specs/requirement-intake.md',
       'harness/specs/tool-fallback-policy.md',
       'harness/specs/evidence-submission.md',
+      'harness/specs/containerization-sandboxing.md',
       'harness/specs/plugin-runtime.md',
       'harness/specs/local-runtime-adapter.md',
       'harness/bin/create-change-scaffold.sh',

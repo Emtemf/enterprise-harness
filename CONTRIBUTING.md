@@ -20,6 +20,7 @@
 如果你要改 runtime / plugin 层，再看：
 
 - `harness/specs/local-runtime-adapter.md`
+- `harness/specs/containerization-sandboxing.md`
 - `harness/plugin/manifest.json`
 - `harness/plugin/runtime/README.md`
 
