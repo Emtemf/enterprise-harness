@@ -17,10 +17,12 @@
     "setup-local-adapter": "node harness/plugin/runtime/cli.mjs setup-local-adapter --write",
     "start-change": "node harness/plugin/runtime/cli.mjs start-change",
     "release-local": "node harness/plugin/runtime/cli.mjs release-local",
+    "status": "node harness/plugin/runtime/cli.mjs status",
     "update": "node harness/plugin/runtime/cli.mjs update",
     "upgrade": "node harness/plugin/runtime/cli.mjs upgrade",
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",
     "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check",
+    "workflow": "node harness/plugin/runtime/cli.mjs workflow",
     "prepublish-check": "node harness/plugin/runtime/prepublish.mjs"
   },
   "engines": {

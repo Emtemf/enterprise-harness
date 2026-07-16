@@ -12,11 +12,13 @@ const commands = {
   'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
   'start-change': ['harness/plugin/runtime/start-change.mjs'],
   'release-local': ['harness/plugin/runtime/release-local.mjs'],
+  status: ['harness/plugin/runtime/status.mjs'],
   update: ['harness/plugin/runtime/update.mjs'],
   upgrade: ['harness/plugin/runtime/upgrade.mjs'],
   migrate: ['harness/plugin/runtime/migrate.mjs'],
   'upstream-check': ['harness/plugin/runtime/upstream-check.mjs'],
   lifecycle: ['harness/plugin/runtime/lifecycle.mjs'],
+  workflow: ['harness/plugin/runtime/workflow.mjs'],
   context7: ['harness/plugin/runtime/context7.mjs'],
 };
 
