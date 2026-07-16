@@ -71,8 +71,8 @@
     "nextEntry": "/harness-tdd"
   },
   "validation": {
-    "status": "missing",
-    "digest": null,
-    "validatedAt": null
+    "status": "fresh",
+    "digest": "clarify-first-staged-orchestrator-contract-skeleton-2026-07-16",
+    "validatedAt": "2026-07-16"
   }
 }

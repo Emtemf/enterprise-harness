@@ -11,7 +11,7 @@ const files = {
   checks: path.join(repoRoot, 'harness', 'plugin', 'runtime', 'lib', 'checks.mjs'),
 };
 const expected = {
-  currentChangeState: ['"workflow"', '"stage": "route"', '"clarifyReady": true', '"userConfirmedScope": true', '"nextEntry": "/harness-design"'],
+  currentChangeState: ['"workflow"', '"stage": "tdd"', '"clarifyReady": true', '"userConfirmedScope": true', '"planReady": true', '"nextEntry": "/harness-tdd"'],
   workflowHelper: ['data.workflow?.stage', 'data?.workflow?.nextEntry', 'inferWorkflowStage', 'recommendNextEntry'],
   checks: ['allowedWorkflowStages', 'allowedTddStatuses', 'workflow.clarifyReady requires workflow.userConfirmedScope'],
 };
