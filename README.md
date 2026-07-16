@@ -331,6 +331,7 @@ npm run upstream-check
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/`
 - `.github/workflows/platform-smoke.yml`
+- 当前 orchestration/gate 主线的 issue 关系与 open issue 对齐说明见：`harness/changes/clarify-first-staged-orchestrator/evidence/open-issues-matrix.md`
 
 ---
 
