@@ -17,7 +17,7 @@
 ## 当前 active change
 
 - 当前 active change：`clarify-first-staged-orchestrator`（当前处于 `TASKED` / `workflow.stage=tdd`）
-- 当前目标：把 clarify-first staged orchestrator 从 contract/plan-ready 主线推进到真实执行阶段，并继续深化 workflow runner、runtime stage routing 与 exploration lane 调度
+- 当前目标：把 clarify-first staged orchestrator 从 contract/plan-ready 主线推进到真实执行阶段，并继续深化 workflow runner、runtime stage routing 与 exploration lane 调度；当前最小 workflow runner 已可内部使用
 
 ## 动态真相
 

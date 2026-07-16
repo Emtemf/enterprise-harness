@@ -49,9 +49,15 @@
     - Result: passed
 13. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs doctor --json`
     - Result: passed (warning-only context7 external fetch in current environment)
-14. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
+14. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-runner-smoke.mjs verify`
+    - Result: passed
+15. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-decision-smoke.mjs verify`
+    - Result: passed
+16. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs workflow status clarify-first-staged-orchestrator --json`
+    - Result: returned machine-readable lifecycle object including `state` / `stage` / `status` / `nextAction` / `pendingDecision` / `recommendedLane` / `currentGap`
+17. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
     - Result: `OK contract and runtime checks passed.`
-15. `bash /home/wula/IdeaProjects/sdd/hooks/validate-spec-structure.sh`
+18. `bash /home/wula/IdeaProjects/sdd/hooks/validate-spec-structure.sh`
     - Result: `Harness structure validation passed.`
 
 ## Unit Tests
@@ -119,5 +125,6 @@
 ## Final Verdict
 
 - 当前 change 已完成 clarify-first staged orchestrator 第一版 **contract / template / worker / guidance / smoke 骨架** 的验证收口。
+- 额外地，最小可用的 workflow runner 现已可用：`workflow run|resume|status|decide` 已落地，并有对应 smoke 与 machine-readable result 证据支撑。
 - design-reviewer 已给出可进入 plan 的 advisory；plan-critic 已给出 pass，可把 `tasks.md` 作为正式 plan artifact 使用。
-- 当前 change **并未宣称执行阶段已完成**；它现在处于 `state=TASKED`、`workflow.stage=tdd`，下一步应从 `/harness-tdd` 或经 `/harness` 路由后进入真实执行阶段。
+- 当前 change **并未宣称完整执行阶段已完成**；它现在处于 `state=TASKED`、`workflow.stage=tdd`，下一步应从 `/harness-tdd` 或经 `/harness` 路由后进入真实执行阶段。
