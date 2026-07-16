@@ -253,15 +253,19 @@ node harness/plugin/runtime/cli.mjs status --json
 node harness/plugin/runtime/cli.mjs workflow run <change-id> [owner] [tier] [topic]
 node harness/plugin/runtime/cli.mjs workflow resume [change-id]
 node harness/plugin/runtime/cli.mjs workflow status [change-id] --json
+node harness/plugin/runtime/cli.mjs workflow decide <change-id> <decision> [reason]
 ```
 
 当前它提供 machine-readable 的：
 - `state`
 - `stage`
+- `status`
 - `nextAction`
 - `pendingDecision`
 - `recommendedLane`
 - `currentGap`
+- `revision`
+- `lastEventId`
 
 ### 6. 在 Claude Code 会话中进入工作流
 - 优先从 `/harness` 开始
