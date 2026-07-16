@@ -337,6 +337,8 @@ npm run upstream-check
 ## 当前路线图（简版）
 
 ### Iteration 1：clarify-first orchestrator + 门禁收紧
+- 主线 issue：#20（single human entrypoint / automation-first lifecycle runner）
+- 支撑 issue：#8、#11（design / plan / task / RED / validation gate 收紧）
 - `/harness` 作为单一主入口与阶段编排器
 - clarify / route / design / plan / tdd / verify / archive 主线
 - design gate
@@ -346,16 +348,18 @@ npm run upstream-check
 - exploration lanes（code-explore / doc-research / impact-explore）
 
 ### Iteration 2：Java 黄金样板增强
+- 主线 issue：#9、#12
 - ArchUnit
 - JaCoCo 85%
 - 真实 HTTP API E2E
 - 更强 OpenAPI 契约语义校验
 
-### Iteration 3：插件产品化
+### Iteration 3：runtime / distribution productization
+- 主线 issue：#10、#13、#15
 - machine-local adapter 正式 schema 继续收紧
 - 更完整 installer
 - upgrade / migration 机制完善
-- 上游升级治理与版本盘点
+- 本地 source-external release smoke path
 - 更广泛平台 / 真机验证
 
 ---
@@ -371,4 +375,4 @@ npm run upstream-check
 
 **Enterprise Harness** 当前已经不是“几篇规则文档 + 一堆脚本”，而是：
 
-> 一套围绕 Claude Code 的企业后端交付骨架：有共享契约、有变更生命周期、有本地运行层、有跨机器接入入口，并且关键路径已经真实跑通。
+> 一套围绕 Claude Code 的企业后端交付骨架：有共享契约、有变更生命周期、有本地运行层、有跨机器接入入口，并且当前正沿 #20 + #8/#11 主线收敛为 clarify-first staged orchestrator。

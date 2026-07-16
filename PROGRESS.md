@@ -8,6 +8,7 @@
 ## 最近完成
 
 - 三层入口模型已成形：`/harness`、runtime CLI、hooks
+- clarify-first staged orchestrator 第一版 contract / template / worker / guidance / smoke 骨架已落地
 - repo-facing `AGENTS.md` 已落地
 - `release-local` 本地源外 smoke 路径已落地
 - containerization / sandboxing 指南已落地
@@ -28,7 +29,8 @@
 - 按 `/harness-tdd` 或经 `/harness` 路由后进入执行阶段，验证 clarify-first 主线在真实实现中的可用性
 - 继续深化 `workflow.*` 与 legacy state/approvals/validation 的协同表达
 - 在 design / plan / tdd / verify 阶段逐步接入 exploration lane 的真实调度策略
-- 结合 issue #11/#20 的意见，把 task 子状态、tier-specific artifact matrix 与 automation-first lifecycle runner 继续收口到运行时行为中
+- 结合 open issues #20 / #8 / #11 的意见，把 task 子状态、tier-specific artifact matrix 与 automation-first lifecycle runner 继续收口到运行时行为中
+- 中期继续衔接 #9/#12（Java golden sample）与 #10/#13/#15（runtime/distribution productization）
 
 ## 推荐先读
 
