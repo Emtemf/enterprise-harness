@@ -15,8 +15,8 @@
 
 ## 当前 active change
 
-- 当前 active change：`clarify-first-staged-orchestrator`（当前处于 `DISCOVERED` / `workflow.stage=route`）
-- 当前目标：继续把 `/harness` 从 contract-level stage orchestrator 推进到更强的运行时阶段映射与后续 design 收口
+- 当前 active change：`clarify-first-staged-orchestrator`（当前处于 `TASKED` / `workflow.stage=tdd`）
+- 当前目标：把 clarify-first staged orchestrator 从 contract/plan-ready 主线推进到真实执行阶段，并继续深化 runtime stage routing 与 exploration lane 调度
 
 ## 动态真相
 
@@ -25,9 +25,10 @@
 
 ## 下一步重点
 
-- 把 `/harness` 的 stage mapping 从 contract 推进到更细的运行时决策规则
+- 按 `/harness-tdd` 或经 `/harness` 路由后进入执行阶段，验证 clarify-first 主线在真实实现中的可用性
 - 继续深化 `workflow.*` 与 legacy state/approvals/validation 的协同表达
 - 在 design / plan / tdd / verify 阶段逐步接入 exploration lane 的真实调度策略
+- 结合 issue #11/#20 的意见，把 task 子状态、tier-specific artifact matrix 与 automation-first lifecycle runner 继续收口到运行时行为中
 
 ## 推荐先读
 

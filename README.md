@@ -4,9 +4,9 @@
 
 它的目标不是单纯证明“模型会写代码”，而是把一次需求从输入到落地，推进成一套更接近企业团队协作的工程过程：**可探索、可落盘、可审查、可验证、可恢复、可跨机器接入**。
 
-> 当前状态：**可运行的 repo contract + portable runtime MVP**
+> 当前状态：**可运行的 repo contract + portable runtime MVP，且已进入 clarify-first staged orchestrator 主线**
 >
-> 它已经足够作为团队共享、跨会话可恢复、跨机器可接入的第一版骨架；但还不是完整企业级强门禁平台。
+> 它已经足够作为团队共享、跨会话可恢复、跨机器可接入的第一版骨架；clarify-first staged workflow 的第一版 contract / template / worker / guidance / smoke 也已落地，但距离完整企业级强门禁平台仍有后续行为深化工作。
 
 ---
 
@@ -171,7 +171,9 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 以下能力仍在继续建设中：
 
 - 更完整的 plan gate / task gate
+- task 子状态 `NOT_STARTED -> TEST_WRITTEN -> RED_VERIFIED -> GREEN_VERIFIED -> REFACTOR_VERIFIED -> TASK_REVIEWED -> DONE` 的更强机读消费
 - 更细粒度的 `RED_VERIFIED` 消费逻辑
+- `/harness` 的 automation-first lifecycle runner 行为深化
 - ArchUnit
 - JaCoCo 85% 机械门禁
 - 真实 HTTP API E2E
@@ -334,11 +336,14 @@ npm run upstream-check
 
 ## 当前路线图（简版）
 
-### Iteration 1：门禁收紧
+### Iteration 1：clarify-first orchestrator + 门禁收紧
+- `/harness` 作为单一主入口与阶段编排器
+- clarify / route / design / plan / tdd / verify / archive 主线
 - design gate
 - stale validation gate
 - `RED_VERIFIED` 才允许生产源码写入
 - reviewer verdict 消费逻辑更明确
+- exploration lanes（code-explore / doc-research / impact-explore）
 
 ### Iteration 2：Java 黄金样板增强
 - ArchUnit
