@@ -129,6 +129,7 @@ node harness/plugin/runtime/cli.mjs <command>
 - `sync`
 - `verify`
 - `status`
+- `workflow`
 - `install`
 - `setup-local-adapter`
 - `update`
@@ -247,9 +248,24 @@ node harness/plugin/runtime/cli.mjs status
 node harness/plugin/runtime/cli.mjs status --json
 ```
 
-### 5. 在 Claude Code 会话中进入工作流
+### 5. 使用 workflow runner（最小可用）
+```bash
+node harness/plugin/runtime/cli.mjs workflow run <change-id> [owner] [tier] [topic]
+node harness/plugin/runtime/cli.mjs workflow resume [change-id]
+node harness/plugin/runtime/cli.mjs workflow status [change-id] --json
+```
+
+当前它提供 machine-readable 的：
+- `state`
+- `stage`
+- `nextAction`
+- `pendingDecision`
+- `recommendedLane`
+- `currentGap`
+
+### 6. 在 Claude Code 会话中进入工作流
 - 优先从 `/harness` 开始
-- 纯 intake 场景可继续走 `harness-intake`
+- `harness-intake` / `harness-design` / `harness-plan` / `harness-tdd` / `harness-verify` 作为 subordinate recovery entry 或高级入口
 
 ### 6. 可选：使用 npm scripts
 ```bash

@@ -50,9 +50,11 @@ const ok =
   resumeResult.status === 0 &&
   statusResult.status === 0 &&
   runJson?.changeId === changeId &&
+  runJson?.status &&
   resumeJson?.nextAction &&
   statusJson?.stage &&
-  statusJson?.currentGap;
+  statusJson?.currentGap &&
+  Object.prototype.hasOwnProperty.call(statusJson, 'pendingDecision');
 
 if (mode === 'red') {
   if (!ok) {
