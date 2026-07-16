@@ -46,13 +46,13 @@
 
 ## 最小探索证据
 
-- 当前 `/harness` skill 已明确三层模型：`Skill = 编排`、`Command = 本机/runtime 确定性动作`、`Hooks = 自动提醒/阻断/校验`，说明单入口编排模型已有骨架，但尚未阶段化和 clarify-first 化
-- 当前 `SessionStart` hook 只输出“启动检查 + 当前阶段 + 静态快照 + 动态真相 + 下一步命令”，尚未输出**当前 stage / 下一阶段恢复入口**
-- 当前 `Stop` hook 已消费 validation freshness 和 handoff guidance，但尚未把“你停在哪一阶段、下次从哪个 stage 恢复”产品化
-- 当前 runtime CLI 已有 `start-change` / `status` / `verify` / `doctor` 等 backend hub，说明 backend 面已具备，但仍与用户前门并列暴露
+- 当前 `/harness` skill 已明确三层模型：`Skill = 编排`、`Command = 本机/runtime 确定性动作`、`Hooks = 自动提醒/阻断/校验`，并已升级为 clarify-first staged orchestrator contract
+- 当前 `SessionStart` / `status` / `Stop` 已能输出 **当前 stage / 当前缺口 / 推荐探索通道 / 恢复入口**，说明 guidance surface 已从纯状态摘要升级为阶段提示面
+- 当前 runtime CLI 已有 `start-change` / `status` / `verify` / `doctor` 等 backend hub，说明 backend 面已具备，但主用户入口仍统一回到 `/harness`
 - 当前 `.claude/settings.json` 已是真正的 Claude Code hook wiring，说明主架构应建模成 repo-local `.claude` 原生扩展层，而不是先建模成外部分发 plugin
 - 浏览器检查的 `superpowers` 可见结构表明其强项在于：workflow-first、skills-first、自动推进、subagent 驱动、shared hooks/skills；但它是 multi-host packaging-first，不能直接照搬顶层形态
 - 浏览器检查的 `deep-interview` skill 明确强调：一问一答、ambiguity scoring、weakest-dimension targeting、明确执行确认、先探索再问用户，这些机制非常适合作为本项目的 `clarify` 阶段 contract
+- 当前 open issue 列表（#7、#8、#9、#10、#11、#12、#13、#15、#20）已逐个审阅，并整理为 `evidence/open-issues-matrix.md`；当前主线明确定位于 orchestration/gate 分支（#20 + #8/#11），Java golden sample 与 runtime/distribution 归入后续平行轨道
 
 ## 最终路由
 
