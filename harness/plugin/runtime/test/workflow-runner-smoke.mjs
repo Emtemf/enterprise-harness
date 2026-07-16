@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const workflowPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'workflow.mjs');
@@ -45,6 +45,8 @@ const resumeResult = runWorkflow(repoRoot, ['resume', changeId]);
 const resumeJson = parseJson(resumeResult);
 const statusResult = runWorkflow(repoRoot, ['status', changeId, '--json']);
 const statusJson = parseJson(statusResult);
+const eventLogPath = path.join(repoRoot, 'harness', 'changes', changeId, 'evidence', 'workflow-events.jsonl');
+const eventLogExists = fs.existsSync(eventLogPath) && fs.readFileSync(eventLogPath, 'utf-8').includes('"type":"resume"');
 const ok =
   runResult.status === 0 &&
   resumeResult.status === 0 &&
@@ -54,17 +56,18 @@ const ok =
   resumeJson?.nextAction &&
   statusJson?.stage &&
   statusJson?.currentGap &&
-  Object.prototype.hasOwnProperty.call(statusJson, 'pendingDecision');
+  Object.prototype.hasOwnProperty.call(statusJson, 'pendingDecision') &&
+  eventLogExists;
 
 if (mode === 'red') {
   if (!ok) {
-    fail('Expected workflow runner to create/resume/status a change with machine-readable lifecycle output');
+    fail('Expected workflow runner to create/resume/status a change with machine-readable lifecycle output and event log evidence');
   }
   pass('Red precondition no longer holds.');
 }
 
 if (!ok) {
-  fail('Expected workflow runner to create/resume/status a change with machine-readable lifecycle output');
+  fail('Expected workflow runner to create/resume/status a change with machine-readable lifecycle output and event log evidence');
 }
 
 pass(mode === 'green' ? 'Green workflow-runner smoke passed.' : 'Workflow-runner verify smoke passed.');

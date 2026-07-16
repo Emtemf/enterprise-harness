@@ -74,5 +74,7 @@
     "status": "fresh",
     "digest": "clarify-first-staged-orchestrator-contract-skeleton-2026-07-16",
     "validatedAt": "2026-07-16"
-  }
+  },
+  "revision": 3,
+  "lastEventId": "wf_af68e2cd-d045-43e0-856c-7331535eb65f"
 }
