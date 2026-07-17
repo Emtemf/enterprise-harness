@@ -100,7 +100,11 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 ## 4. 认识入口分工
 
-当前仓库不是只有命令入口，而是三层模型：
+对用户来说，当前仓库只有一个入口：
+
+- `/harness`
+
+其他东西都不是用户前门，而是后台层：
 
 1. **唯一用户入口**：Claude Code 会话中优先从 `/harness` 开始
 2. **后台命令**：本机/runtime 场景中使用 `node harness/plugin/runtime/cli.mjs ...`
@@ -111,9 +115,16 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - command 负责后台确定性动作，不是第二个用户入口
 - hooks 负责自动校验与阻断
 
-## 5. 统一命令入口
+## 5. 后台命令入口（仅在需要低层控制时）
 
-安装 plugin 之后，你仍可以直接使用仓库内的命令入口。
+安装 plugin 之后，普通用户不需要记住这些命令；如果你只是按 SOP 使用，直接从 `/harness` 开始即可。
+
+下面这些命令只属于：
+
+- fallback
+- troubleshooting
+- maintainer / repo operator
+- 需要低层控制时的后台动作
 
 ### 方式 A：direct runtime CLI
 

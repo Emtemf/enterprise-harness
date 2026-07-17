@@ -43,7 +43,7 @@
 2. **Command 后台动作**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify` 这类确定性 backend 动作
 3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、恢复提示和校验
 
-规则与 hooks 会自动生效，但它们不是总编排器；对用户的总入口应始终显式保持为 `/harness`。
+规则与 hooks 会自动生效，但它们不是总编排器；对用户的总入口应始终显式保持为 `/harness`，不要把 backend command 暴露成并列前门。
 
 ## 默认工作流
 

@@ -32,7 +32,7 @@
   - `claude plugin marketplace update enterprise-harness`
   - `claude plugin update enterprise-harness@enterprise-harness --scope local`
 
-这条路径更接近 superpowers 的安装/更新体验；clone + runtime CLI 仍作为 fallback / development path 保留。
+这条路径更接近 superpowers 的安装/更新体验；但对用户真正的工作流前门仍然只有 `/harness`。
 
 ### 1. Claude Code 会话唯一前门
 优先从：
@@ -56,7 +56,7 @@
 - `node harness/plugin/runtime/cli.mjs sync`
 - `node harness/plugin/runtime/cli.mjs verify`
 
-这些命令是 `/harness` 背后的确定性 backend 动作，不是与 `/harness` 平级的第二个用户入口。
+这些命令是 `/harness` 背后的确定性 backend 动作，不是与 `/harness` 平级的第二个用户入口；普通用户按 SOP 使用时不需要先记住它们。
 
 ### 3. 自动门禁层
 自动发生但不是总入口：

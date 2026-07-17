@@ -202,18 +202,13 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 ---
 
-## 入口（先记这三个）
+## 入口（先记两个层次）
 
-如果你只想先知道“从哪进”，记住这三条就够了：
+如果你只想先知道“从哪进”，只记住这一条：
 
-- **唯一用户入口**：`/harness`
-- **后台建档/运行命令**：`node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify`
-- **自动兜底层**：`.claude/settings.json` hooks 会自动做提醒、阻断、恢复提示和验证检查
+- **用户唯一入口**：`/harness`
 
-也就是说：
-- **skill** 负责单入口与阶段编排
-- **command** 负责后台确定性动作，不是第二个用户入口
-- **hooks** 负责自动兜底与当前阶段/下一阶段提示
+其余命令（如 `start-change` / `bootstrap` / `doctor` / `sync` / `verify`）都是 `/harness` 背后的后台动作、fallback 或维护工具，不应被理解成与 `/harness` 并列的多个用户入口。
 
 ## Quickstart
 
@@ -271,21 +266,18 @@ claude plugin marketplace update enterprise-harness
 claude plugin update enterprise-harness@enterprise-harness --scope local
 ```
 
-### 4. 首次 runtime 接入
-安装插件后，仍建议在仓库根目录执行一次 runtime 初始化：
+### 4. 安装后怎么进入工作流
+安装插件后，对用户仍然只有一个前门：
 
-```bash
-node harness/plugin/runtime/cli.mjs bootstrap
-node harness/plugin/runtime/cli.mjs setup-local-adapter --write
-node harness/plugin/runtime/cli.mjs doctor
-node harness/plugin/runtime/cli.mjs sync
-node harness/plugin/runtime/cli.mjs verify
-node harness/plugin/runtime/cli.mjs upstream-check
-```
+- 直接从 `/harness` 开始
 
-`node harness/plugin/runtime/cli.mjs verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
+如果你只是正常使用这套 SOP，不需要记住 `bootstrap` / `doctor` / `sync` / `verify` 这些后台命令。它们属于：
 
-### 5. 开始一个新 change（后台建档命令）
+- `/harness` 背后的 backend 动作
+- fallback / troubleshooting 工具
+- maintainer / repo operator 视角的命令面
+
+下面这些命令仍然保留给需要低层控制的人：
 ```bash
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
 ```
@@ -316,9 +308,9 @@ node harness/plugin/runtime/cli.mjs workflow decide <change-id> <decision> [reas
 - `lastEventId`
 
 ### 8. 在 Claude Code 会话中进入工作流
-- 优先从 `/harness` 开始
-- `harness-intake` / `harness-design` / `harness-plan` / `harness-tdd` / `harness-verify` 作为 subordinate recovery entry 或高级入口
-- `start-change` / `doctor` / `sync` / `verify` 等命令只作为 `/harness` 背后的后台动作与 fallback，不应和 `/harness` 并列成多个用户前门
+- 对用户始终优先从 `/harness` 开始
+- `harness-intake` / `harness-design` / `harness-plan` / `harness-tdd` / `harness-verify` 只作为 subordinate recovery entry 或高级入口
+- `start-change` / `doctor` / `sync` / `verify` 等命令只作为 `/harness` 背后的后台动作与 fallback，不应要求普通用户记忆
 
 ### 9. 可选：使用 npm scripts
 ```bash

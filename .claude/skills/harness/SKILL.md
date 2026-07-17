@@ -89,7 +89,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 如果现在打断，下次应从哪个入口恢复
 
 ### 模式 C：用户问“我该跑哪个命令”
-不要泛泛而谈，直接按目标给出命令：
+不要泛泛而谈，直接按目标给出命令；但要明确这些都是 `/harness` 背后的后台动作，而不是新的用户入口：
 
 - 新机器接入：`bootstrap` → `setup-local-adapter --write` → `doctor` → `sync`
 - 新 change 后台建档：`start-change`
