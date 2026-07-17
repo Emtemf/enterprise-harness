@@ -120,12 +120,16 @@ export function validateStructure(root) {
   return missing;
 }
 
+export function normalizeDigestPath(relPath) {
+  return String(relPath).replaceAll('\\', '/');
+}
+
 function collectChangeFiles(changeDir, relDir) {
   const dir = path.join(changeDir, relDir);
   if (!fs.existsSync(dir)) return [];
   const files = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const relPath = path.join(relDir, entry.name);
+    const relPath = normalizeDigestPath(path.join(relDir, entry.name));
     if (entry.isDirectory()) {
       files.push(...collectChangeFiles(changeDir, relPath));
     } else {
@@ -157,9 +161,10 @@ export function computeValidationDigest(root, changeId) {
   const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
   const nestedFiles = [...collectChangeFiles(changeDir, 'reviews'), ...collectChangeFiles(changeDir, 'evidence'), ...collectChangeFiles(changeDir, 'specs')];
   for (const relPath of [...directFiles, ...nestedFiles]) {
-    const fullPath = path.join(changeDir, relPath);
+    const normalizedRelPath = normalizeDigestPath(relPath);
+    const fullPath = path.join(changeDir, ...normalizedRelPath.split('/'));
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) continue;
-    hash.update(`${relPath}\n`);
+    hash.update(`${normalizedRelPath}\n`);
     hash.update(fs.readFileSync(fullPath, 'utf-8'));
     hash.update('\n');
   }
