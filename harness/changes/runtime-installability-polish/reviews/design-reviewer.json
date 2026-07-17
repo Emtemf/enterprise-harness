@@ -1,0 +1,45 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "设计已把普通用户主路径收口为本地 marketplace 安装后直接从 `/harness` 开始。",
+      "detail": "design 明确区分了普通用户路径与 maintainer/fallback 路径，并把 `ONBOARDING.md` 降级为 maintainer / 排障附录。"
+    },
+    {
+      "severity": "info",
+      "summary": "设计已把 `/harness` 单入口合同写入 testing strategy。",
+      "detail": "除 installability/docs smoke 外，design 还把 `harness-stage-router-smoke.mjs verify` 纳入验证面，用于证明 `/harness` 仍是 clarify-first stage router。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "plugin install 后 hooks 的真实运行时触发仍未验证，应继续保持为后续项。",
+      "detail": "design 已诚实把该项保留为 open question / non-goal；verify 结论不得把它偷换成已完成事实。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/design.md",
+      "lines": "1-76",
+      "note": "Requirement alignment、scope 与 current-state evidence 已完整覆盖 installability、`/harness` 单前门与附录文档定位。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/design.md",
+      "lines": "77-164",
+      "note": "明确了 interface contract、workflow entry contract、owning scope 与 machine-readable target state。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/ONBOARDING.md",
+      "lines": "1-16",
+      "note": "文档已显式声明其是 maintainer / operator / 排障附录，而不是普通用户第一入口。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs",
+      "lines": "8-67",
+      "note": "已有 `/harness` stage router 合同 smoke，可支撑 design 的验证面。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

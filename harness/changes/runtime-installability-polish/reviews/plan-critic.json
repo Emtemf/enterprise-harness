@@ -1,0 +1,35 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 tasks 已把历史已完成项与剩余收口工作拆开，足以机械驱动后续执行。",
+      "detail": "Task 1 明确为实现完成但由 Task 3 统一做 validation/state 收口；Task 2 明确要求 docs + stage-router verify；Task 3 明确了 reviewer 落点、目标 state 字段与 lifecycle validated 命令。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "在 state.json 更新后，应把 tasks 头部从 draft-plan 刷新到可消费状态。",
+      "detail": "当前 plan 已足以执行，但 durable 资产更新完成后还应同步刷新 plan 头部元信息，避免后续 session 误判。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/tasks.md",
+      "lines": "1-74",
+      "note": "Task 1 子状态、证据点、acceptance 与 reviewer 落点已明确。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/tasks.md",
+      "lines": "75-140",
+      "note": "Task 2 已把 `ONBOARDING.md` 与 stage-router smoke 纳入范围，并标清剩余 review 工作。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/tasks.md",
+      "lines": "141-206",
+      "note": "Task 3 已明确 reviewer 文件、target state 字段、verify 判据与 lifecycle validated 命令。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

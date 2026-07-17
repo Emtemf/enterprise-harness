@@ -7,7 +7,7 @@
 
 ## 最近完成
 
-- 三层入口模型已成形：`/harness`、runtime CLI、hooks
+- 三层入口模型已成形：普通用户 `/harness`、维护层 runtime CLI、hooks
 - clarify-first staged orchestrator 第一版 contract / template / worker / guidance / smoke 骨架已落地
 - repo-facing `AGENTS.md` 已落地
 - `release-local` 本地源外 smoke 路径已落地

@@ -83,13 +83,13 @@ export function buildStatusSummary(root) {
     ],
     nextRead: [
       'README.md',
-      'AGENTS.md',
-      'CLAUDE.md',
-      'PROGRESS.md',
-      'harness/specs/session-lifecycle.md',
-      'harness/specs/staged-workflow.md',
+      'docs/zh-cn/installation-guide.md',
+      'docs/zh-cn/overview.md',
     ],
     nextCommands: [
+      '/harness',
+    ],
+    maintainerCommands: [
       'node harness/plugin/runtime/cli.mjs status',
       'node harness/plugin/runtime/cli.mjs doctor',
       'node harness/plugin/runtime/cli.mjs verify',
@@ -118,9 +118,13 @@ export function renderStatusSummary(summary) {
     summary.recommendedLane ? `- ${summary.recommendedLane}` : null,
     '推荐恢复入口',
     `- ${summary.recommendedEntry || '/harness'}`,
-    '下一步阅读',
+    '普通用户下一步',
+    '- /harness',
+    '普通用户先看这些',
     ...summary.nextRead.map((item) => `- ${item}`),
-    '下一步命令',
+    '普通用户下一步命令',
     ...summary.nextCommands.map((item) => `- ${item}`),
+    '维护命令（如需排障）',
+    ...summary.maintainerCommands.map((item) => `- ${item}`),
   ].filter(Boolean).join('\n');
 }

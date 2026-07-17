@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "runtime-installability-polish",
   "tier": "L1",
-  "state": "DISCOVERED",
+  "state": "VALIDATED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",
@@ -24,29 +24,47 @@
     }
   },
   "decisions": [
-    "当前对外推荐文案采用双轨：README 明确 clone path 是当前最稳主路径，同时提升 bin/CLI 入口的存在感。",
-    "在未真正发布 registry 前，不把 npx / plugin-market 安装写成已验证主路径，只写成类插件入口骨架或本地包入口。"
+    "对普通用户的唯一推荐主路径收口为：获取仓库 -> 通过 Claude Code 本地 marketplace 安装 enterprise-harness -> 进入会话后直接从 /harness 开始。",
+    "clone path、bin path 与 runtime CLI path 继续保留，但仅作为 maintainer / operator / 排障 fallback，不再作为普通用户主线。",
+    "在未真正发布公共 marketplace 前，只宣称本地 marketplace 可安装/可更新，不宣称官方市场可搜索安装。",
+    "plugin install 后 hooks 的真实运行时触发未在本轮验证完成，保留为后续 productization 项。"
   ],
   "blockers": [],
-  "approvals": {},
+  "approvals": {
+    "requirement": {
+      "status": "advisory",
+      "reviewerId": "requirement-reviewer",
+      "reviewedAt": "2026-07-17"
+    },
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-17"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-17"
+    }
+  },
   "gates": {
-    "designApproved": false,
+    "designApproved": true,
     "redVerified": false,
     "redTask": null,
     "redEvidenceRef": null
   },
-  "currentTask": "task1-plugin-like-install",
+  "currentTask": null,
   "workflow": {
-    "stage": "clarify",
+    "stage": "archive",
     "clarifyReady": true,
     "userConfirmedScope": true,
-    "planReady": false,
-    "tddStatus": "not-started",
-    "nextEntry": "/harness-design"
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
   },
   "validation": {
-    "status": "stale",
-    "digest": null,
-    "validatedAt": null
+    "status": "fresh",
+    "digest": "f163050fd81303c681a216469fe05c5d8cc223c0e56e6a83a8aa677cf88a3e12",
+    "validatedAt": "2026-07-17"
   }
 }

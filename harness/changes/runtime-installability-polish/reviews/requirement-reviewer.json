@@ -1,0 +1,35 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "request shape 与 owning scope 基本合理，属于对既有 installability 与 onboarding surface 的 modify。",
+      "detail": "需求聚焦于 plugin-first 安装入口、`/harness` 单前门和 durable change 资产对齐，没有扩展成公共 marketplace 发布、npm registry 发布或新的 runtime contract 能力。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "L1 tier 成立的前提是继续把范围锁定为 installability 对齐与认知负担收口。",
+      "detail": "若后续开始改变 plugin install contract 语义、hooks 运行时行为或新的分发机制，就需要按更高 tier 重新路由。当前 requirements 与 change 已显式排除这些扩展。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/requirements.md",
+      "lines": "5-43",
+      "note": "目标、范围与非目标都已聚焦在 installability / onboarding clarity。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/change.md",
+      "lines": "29-76",
+      "note": "candidate/final tier 均保持 L1，并把 scope 收口到 plugin-first onboarding 与 durable assets。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/state.json",
+      "lines": "4-12",
+      "note": "当前 impact 仍为 api/data/architecture/rule = no，与 L1 定位一致。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

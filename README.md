@@ -4,9 +4,16 @@
 
 它的目标不是单纯证明“模型会写代码”，而是把一次需求从输入到落地，推进成一套更接近企业团队协作的工程过程：**可探索、可落盘、可审查、可验证、可恢复、可跨机器接入**。
 
+> **普通用户 30 秒开始：**
+> 1. 安装 `enterprise-harness`
+> 2. 打开 Claude Code
+> 3. 输入 `/harness`
+>
+> 到这里就够了；其余 runtime / maintainer 命令都不是普通用户前门。
+
 > 当前状态：**可运行的 repo contract + portable runtime MVP，且已进入 clarify-first staged orchestrator 主线**
 >
-> 它已经足够作为团队共享、跨会话可恢复、跨机器可接入的第一版骨架；clarify-first staged workflow 的第一版 contract / template / worker / guidance / smoke 也已落地，但距离完整企业级强门禁平台仍有后续行为深化工作。
+> 这部分描述的是仓库与维护层状态，不影响普通用户的使用路径；对普通用户来说，默认入口仍然只有 `/harness`。
 
 ---
 
@@ -50,12 +57,13 @@
 - change 生命周期
 - 文档与探索证据的落点
 
-### 2. Portable Runtime（跨平台运行层）
-每台机器本地适配：
+### runtime / maintainer layer
+下面这些属于**维护者 / 排障层**，不是普通用户前门：
 
-- `harness/plugin/runtime/cli.mjs`
+- `node harness/plugin/runtime/cli.mjs <command>`
 - `bootstrap` / `doctor` / `sync` / `verify`
 - `install` / `setup-local-adapter` / `upgrade` / `migrate`
+- `status` / `workflow` / `upstream-check` / `lifecycle`
 - `local-adapter.schema.json`
 - `local-adapter.example.json`
 - Node 版 hook adapters
@@ -67,6 +75,8 @@
 - 环境变量与 secrets
 - 本机工具可用性
 - 本地接入、自检、同步与迁移
+
+普通用户不需要先理解这些；对普通用户真正暴露的工作流入口仍然只有 `/harness`。
 
 ---
 
@@ -115,34 +125,19 @@
 - `state.json` / `change.md` / `validation.md` / `evidence/tooling.md` 已形成最小 change bundle
 - `active change` 与受治理路径写入约束已接入 runtime gate
 
-### runtime CLI
-当前统一入口：
+### runtime / 维护者能力（普通用户可跳过）
+这些能力已经真实可用，但它们属于**维护者 / 排障层**，不是普通用户主路径：
 
-```bash
-node harness/plugin/runtime/cli.mjs <command>
-```
+- `node harness/plugin/runtime/cli.mjs <command>`
+- `bootstrap` / `doctor` / `sync` / `verify`
+- `status` / `workflow` / `install` / `update` / `upgrade` / `migrate`
+- `setup-local-adapter` / `upstream-check` / `lifecycle` / `context7`
 
-其中本轮与 local adapter diagnostics 直接相关的最小命令包括：
-- `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
-- `node harness/plugin/runtime/cli.mjs doctor --json`
-- `node harness/plugin/runtime/cli.mjs sync --json`
+普通用户不需要先理解这些，只需要安装插件后从 `/harness` 开始。
 
-当前已具备：
+如果你确实需要这些低层能力，请改读：
 
-- `bootstrap`
-- `doctor`
-- `sync`
-- `verify`
-- `status`
-- `workflow`
-- `install`
-- `setup-local-adapter`
-- `update`
-- `upgrade`
-- `migrate`
-- `upstream-check`
-- `lifecycle`
-- `context7`
+- [`docs/zh-cn/maintainer-runtime-guide.md`](docs/zh-cn/maintainer-runtime-guide.md)
 
 ### hook adapters
 `.claude/settings.json` 当前已接上：
@@ -218,7 +213,7 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 > 2. **从该 marketplace 安装 `enterprise-harness` 插件**
 > 3. **需要时通过 marketplace / plugin update 更新**
 >
-> 同时保留 clone + direct CLI 作为 fallback / 开发路径。
+> 同时保留 clone + direct CLI 作为 fallback / 开发路径；维护者若需要更低层控制，也可以直接使用 `node bin/enterprise-harness.mjs <command>`。
 
 ### 前置要求
 - Node.js **>= 20**
@@ -305,7 +300,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 完整安装说明见：
 
 - [`docs/zh-cn/installation-guide.md`](docs/zh-cn/installation-guide.md)
-- [`harness/plugin/runtime/ONBOARDING.md`](harness/plugin/runtime/ONBOARDING.md)
+- [`docs/zh-cn/maintainer-runtime-guide.md`](docs/zh-cn/maintainer-runtime-guide.md)
 
 ---
 

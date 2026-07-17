@@ -1,0 +1,53 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "plugin-first 文档合同与 `/harness` 单入口合同已有 fresh 证据支撑。",
+      "detail": "runtime-plugin-docs smoke 与 harness-stage-router smoke 已通过，README / 安装教程 / overview / AGENTS 与 maintainer appendix 的入口分层已对齐。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "plugin install 后 hooks 的真实运行时触发仍未纳入本轮验证。",
+      "detail": "当前 change 可以宣称本地 marketplace install/update 路径与 `/harness` 单入口叙事成立，但不能把 hooks runtime trigger 说成已端到端验证。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-plugin-docs-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "213-289",
+      "note": "README 已把普通用户路径收口为 plugin-first 安装后从 `/harness` 开始，并保留 bin fallback。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/docs/zh-cn/installation-guide.md",
+      "lines": "54-142",
+      "note": "安装教程已明确区分普通用户与 maintainer / 排障附录。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/docs/zh-cn/overview.md",
+      "lines": "194-203",
+      "note": "overview 已保持 plugin-first + `/harness` single-entry 定位。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/AGENTS.md",
+      "lines": "24-59",
+      "note": "AGENTS 已把 `/harness` 明确为唯一工作流前门。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/ONBOARDING.md",
+      "lines": "1-16",
+      "note": "ONBOARDING 已显式降级为 maintainer / operator / 排障附录。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

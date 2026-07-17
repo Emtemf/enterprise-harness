@@ -1,10 +1,27 @@
 # Runtime Onboarding
 
+## 这份文档给谁看
+
+这份文档是 **maintainer / operator / 排障者附录**，不是普通用户的第一入口。
+
+如果你是普通用户：
+
+1. 获取仓库
+2. 通过 Claude Code 本地 marketplace 安装 `enterprise-harness`
+3. 进入 Claude Code 会话后直接从 `/harness` 开始
+
+优先阅读：
+
+- `README.md`
+- `docs/zh-cn/installation-guide.md`
+
+只有当你需要维护 runtime、排查本机问题、或做低层控制时，才继续阅读本文件。
+
 ## 目标
 
-给第一次接入这套 Harness 的安装者一个最短路径，不需要先理解整个仓库。
+给维护者和排障者一个最短的 runtime 低层操作路径，而不是让普通用户先理解整个仓库。
 
-## 推荐顺序
+## 推荐顺序（维护 / 排障场景）
 
 ### 1. 进入仓库根目录
 ```bash
@@ -59,9 +76,9 @@ node harness/plugin/runtime/cli.mjs doctor
 
 ## 下一步
 
-如果你只是安装者，到这里就够了。
+如果你只是普通用户，到这里不需要继续；直接回到 Claude Code 会话，并从 `/harness` 开始。
 
-如果你要开始推动一个新 change：
+如果你是维护者并要推动一个新 change：
 
 ```bash
 node harness/plugin/runtime/cli.mjs lifecycle scaffold <change-id> <owner> <tier>

@@ -1,0 +1,66 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 change-level 完成声明已有新鲜证据支撑。",
+      "detail": "本地 marketplace install/update smoke、plugin-first docs smoke、`/harness` stage-router smoke 和 repo-level `verify --json` 均已通过，足以支撑本轮 installability/onboarding 收口。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前 PASS 覆盖的范围清晰：本地 marketplace 安装路径、`/harness` 单入口叙事、附录分层与 durable change 资产对齐。",
+      "detail": "普通用户路径已收口为安装插件后从 `/harness` 开始；maintainer / operator / 排障路径已被降级到 installation guide 附录与 `harness/plugin/runtime/ONBOARDING.md`。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "plugin install 后 hooks 的真实运行时触发仍未在本轮验证。",
+      "detail": "当前 change 不能把 hooks runtime trigger 说成已端到端验证完成；这应作为后续 productization / plugin experience change 继续补强。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/reviews/verification-reviewer-task1.json",
+      "lines": "1-76",
+      "note": "Task 1 已记录 plugin validate / marketplace add/install/update/list 的新鲜证据。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/reviews/verification-reviewer-task2.json",
+      "lines": "1-45",
+      "note": "Task 2 已记录 docs smoke 与 harness-stage-router smoke 的新鲜证据。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/validation.md",
+      "lines": "1-115",
+      "note": "validation 已记录 installability/docs/stage-router/repo verify 结果，以及本轮明确未覆盖项。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-plugin-installability-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-plugin-docs-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json",
+      "note": "通过；`contractChecks.ok=true`，`runtimeReadinessChecks.status=not-run`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "213-289",
+      "note": "README 已把普通用户主路径收口为 plugin-first 安装后从 `/harness` 开始，并保留 bin fallback。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/ONBOARDING.md",
+      "lines": "1-16",
+      "note": "ONBOARDING 已显式降级为 maintainer / operator / 排障附录。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

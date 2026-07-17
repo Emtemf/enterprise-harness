@@ -22,5 +22,6 @@
     "./.claude/skills/harness-tdd/",
     "./.claude/skills/harness-verify/"
   ],
+  "commands": "./.claude-plugin/commands/",
   "mcpServers": "./.mcp.json"
 }

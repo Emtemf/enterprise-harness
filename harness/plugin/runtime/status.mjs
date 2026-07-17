@@ -10,4 +10,5 @@ if (process.argv.includes('--json')) {
   process.exit(0);
 }
 
+console.log('普通用户下一步：直接从 /harness 开始');
 console.log(renderStatusSummary(summary));

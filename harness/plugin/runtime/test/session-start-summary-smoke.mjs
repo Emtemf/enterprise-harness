@@ -10,10 +10,13 @@ const requiredTokens = [
   '当前阶段',
   'PROGRESS.md',
   'clarify-first-staged-orchestrator',
-  'node harness/plugin/runtime/cli.mjs status',
+  '普通用户入口: /harness',
   '[Harness Workflow] 当前 stage:',
   '[Harness Workflow] 当前缺口:',
   '[Harness Workflow] 推荐恢复入口:',
+  '[Harness Workflow] 下一步动作:',
+  '[Harness Workflow] 普通用户先看:',
+  '[Harness 维护] 如需排障再用:',
 ];
 
 function runSessionStart() {

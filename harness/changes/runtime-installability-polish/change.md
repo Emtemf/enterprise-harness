@@ -2,47 +2,55 @@
 
 ## 原始需求
 
-用户反馈当前 README 没有真正反映最新 install/verify/runtime contract，且当前接入方式不像 Claude 插件那样直接，不够容易安装。
+用户反馈当前 README 没有真正反映最新 installability 实现，而且当前接入方式“不像 Claude 插件”，第一次使用时需要先理解一堆 runtime/backend 命令，认知负担过高。
 
 ## 业务结果
 
-让仓库对外的安装与使用说明更接近“Claude 插件/CLI 可安装产品”的心智模型，同时保持当前真实能力边界：
+把当前仓库对普通用户的外显路径收口成一条几乎不需要解释的主路径：
 
-- README 清楚说明当前支持的三种入口：`node harness/plugin/runtime/cli.mjs`、`node bin/enterprise-harness.mjs`、`npx enterprise-harness` / 全局 bin（若从包内容执行）
-- README 明确区分“当前最稳主路径仍是 clone 仓库”与“已经具备类插件入口骨架，但尚未宣称 registry 发布完成”
-- bin 入口与文档对齐，降低首次接入成本
+- 先把仓库作为 Claude Code **本地 marketplace** 添加
+- 再安装 `enterprise-harness` 插件
+- 安装完成后，**只需要记住 `/harness`**
+
+同时保持真实能力边界：
+
+- 当前已经具备 **本地 marketplace install / update** 路径
+- 当前仍保留 clone + direct CLI / bin 作为 fallback / maintainer path
+- 当前不宣称已经发布到公共 marketplace 或 npm registry
 
 ## 非目标
 
-- 不在本轮承诺已发布到 npm registry
-- 不在本轮重构整个 packaging/distribution 流程
+- 不在本轮承诺已发布到公共 marketplace
+- 不在本轮承诺已完成 npm registry 发布闭环
 - 不在本轮扩展新的 runtime contract 语义
 - 不在本轮修改 Java sample / API / workflow gate
+- 不在本轮补做 plugin install 后 hooks 真实触发的运行时 E2E
 
 ## 归属服务 / 模块 / 业务域
 
-- scope: runtime installability / docs productization
-- owning module: `README.md`, `docs/zh-cn/installation-guide.md`, `docs/zh-cn/overview.md`, `bin/enterprise-harness.mjs`, `package.json`, `harness/plugin/manifest.json`
-- business domain: plugin-like install surface / onboarding clarity / runtime CLI packaging façade
+- scope: runtime installability / onboarding clarity / plugin-first docs polish
+- owning module: `README.md`, `docs/zh-cn/installation-guide.md`, `docs/zh-cn/overview.md`, `AGENTS.md`, `.claude-plugin/*`, `hooks/hooks.json`, runtime smoke tests, change assets
+- business domain: 小白用户安装心智收口、plugin-first 安装入口、`/harness` single-entry workflow
 
 ## 初步路由
 
 - request shape: modify
 - candidate tier: L1
-- reason: 当前主要是 README/安装路径/product wording 与 bin install surface 对齐，不改变 API/data 语义，也不引入新的 architecture rule gate
+- reason: 当前主要是 installability 入口、plugin metadata、用户文档与 durable assets 对齐，不改变 API/data 语义，也不引入新的 architecture rule gate
 
 ## 最小探索证据
 
-- `package.json` 已声明 `bin.enterprise-harness = bin/enterprise-harness.mjs`，但 README 仍把 clone 仓库后 `node harness/plugin/runtime/cli.mjs ...` 作为几乎唯一主路径
-- `bin/enterprise-harness.mjs` 当前只是薄包装到 `harness/plugin/runtime/cli.mjs`，说明“类插件/CLI 入口”已经存在骨架
-- `harness/plugin/manifest.json` 已列出 runtime commands 与 supportedOs，但 README / 安装教程没有把它整理成清晰的“安装方式矩阵”
-- `docs/zh-cn/installation-guide.md` 已提到 bin 入口和 npm scripts，但 README 首页仍未把它提升为更像插件的接入文案
+- `.claude-plugin/plugin.json` 与 `.claude-plugin/marketplace.json` 已存在，说明本地 marketplace install surface 已具备最小资产
+- `hooks/hooks.json` 已存在，说明 plugin-mode hooks payload 已落地
+- `harness/plugin/runtime/test/runtime-plugin-installability-smoke.mjs` 已机械覆盖 validate / add / install / list / update
+- `harness/plugin/runtime/test/runtime-plugin-docs-smoke.mjs` 已机械覆盖 README / 安装教程 / overview / AGENTS 的 plugin-first 文案
+- README / 安装教程已经把普通用户入口收口为 `/harness`，backend 命令降级为 maintainer / 排障附录
 
 ## 最终路由
 
 - final tier: L1
-- owning scope: docs/installability polish around existing runtime bin entry
-- next focus: 先收紧 README / 安装文档 / bin 行为，再决定是否需要补充更强 packaging smoke
+- owning scope: plugin-first installability + single-entry onboarding + durable change asset alignment
+- next focus: 用 requirements / design / tasks / validation / state 把已落地事实补齐，而不是继续发散做新分发机制
 
 ## 影响矩阵
 
@@ -53,17 +61,19 @@
 
 ## 需要确认的决策
 
-- 当前对外推荐文案采用“双轨”：默认推荐 clone path，同时明确给出 `node bin/enterprise-harness.mjs` / `npx enterprise-harness` 心智入口
-- 未真正发布 registry 前，不把 `npx enterprise-harness` 写成已验证主路径，只写成“面向未来的类插件入口骨架”或“包内/本地 install 入口”
+- 对普通用户默认只暴露：安装插件，然后从 `/harness` 开始
+- clone path、bin path、runtime CLI path 继续保留，但都视为 fallback / maintainer path
+- 在未真正发布公共 marketplace 前，只宣称“本地 marketplace 可安装/可更新”，不宣称“官方市场可直接搜索安装”
 
 ## 假设
 
-- 当前用户关切主要在“更好安装”和“README 没跟上实现”，不是要求立刻接入真实 Claude 插件市场发布能力
+- 用户真正关心的是“第一次使用几乎不需要理解内部结构”，而不是立刻完成公共插件市场发布
+- 当前本地 marketplace 路径已经足够支撑“像 superpowers 一样安装”的最低可用体验
 
 ## Waiver
 
-暂无。
+- 当前 plugin install 后 hooks 的真实运行时触发未纳入本轮 fresh evidence；后续若要把 plugin 体验进一步产品化，应单开 change 做补强。
 
 ## Requirement Review
 
-该需求属于 runtime docs / installability 收口，保持在 README / bin / package façade 范围内，按 L1 路由合理。
+该需求属于 runtime docs / installability / onboarding 收口，保持在 plugin metadata、文档、smoke 与 durable assets 范围内，按 L1 路由合理。
