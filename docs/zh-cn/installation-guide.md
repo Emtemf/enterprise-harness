@@ -131,7 +131,16 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 ---
 
 ## 6. 如果你是 maintainer / operator / 排障者
-只有在你需要低层控制、排查安装问题、或维护 runtime 时，才需要继续阅读这些 backend 命令与资料：
+只有在你需要低层控制、排查安装问题、或维护 runtime 时，才需要继续阅读这些 backend 命令与资料。
+
+普通用户到这里就可以停止阅读：
+
+- 安装插件
+- 打开 Claude Code
+- 输入 `/harness`
+
+后面的内容全部属于维护/排障附录。
+## 7. 维护 / 排障附录：后台命令
 ### 方式 A：direct runtime CLI
 
 ```bash
@@ -232,8 +241,7 @@ node harness/plugin/runtime/cli.mjs upstream-check
 
 ---
 
-## 7. fallback：如果你不想走 plugin marketplace
-
+## 8. fallback：如果你不想走 plugin marketplace
 仍然可以直接用仓库路径：
 
 ```bash
@@ -253,7 +261,7 @@ node bin/enterprise-harness.mjs <command>
 
 ---
 
-## 8. 常见 warning 怎么看
+## 9. 常见 warning 怎么看
 
 ### `context7-env`
 表示没有设置 `CONTEXT7_API_KEY`。
@@ -286,7 +294,7 @@ node harness/plugin/runtime/cli.mjs doctor
 
 ---
 
-## 9. 如果你要开始推动一个 change
+## 10. 如果你要开始推动一个 change
 
 当前推荐优先使用新的确定性入口命令：
 
@@ -330,7 +338,7 @@ node harness/plugin/runtime/cli.mjs lifecycle active <change-id>
 
 ---
 
-## 8. 平台说明
+## 11. 平台说明
 
 当前状态最准确的说法是：
 
@@ -342,7 +350,7 @@ node harness/plugin/runtime/cli.mjs lifecycle active <change-id>
 
 ---
 
-## 9. 安装后先看什么
+## 12. 安装后先看什么
 
 建议顺序：
 
@@ -355,7 +363,7 @@ node harness/plugin/runtime/cli.mjs lifecycle active <change-id>
 
 ---
 
-## 10. 已知边界
+## 13. 已知边界
 
 当前不要过度承诺这些能力已经 fully done：
 

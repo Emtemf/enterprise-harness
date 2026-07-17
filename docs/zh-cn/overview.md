@@ -45,14 +45,13 @@ Enterprise Harness 的思路是把这些问题拆成两层：
 
 ### 2. Portable Runtime（跨平台运行层）
 
-由每台机器自行适配：
+由每台机器自行适配，主要服务于：
 
-- `harness/plugin/runtime/cli.mjs`：统一命令入口
-- `bootstrap` / `doctor` / `sync` / `verify`
-- `install` / `setup-local-adapter` / `upgrade` / `migrate`
-- `local-adapter.schema.json`
-- `local-adapter.example.json`
-- Node 版 hook adapters
+- plugin / repo 的后台运行
+- maintainer / operator 的低层控制
+- hooks、doctor、sync、verify 等 runtime contract 消费
+
+普通用户不把它当成前门；对用户真正暴露的工作流入口仍然是 `/harness`。
 
 ---
 
