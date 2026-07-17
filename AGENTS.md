@@ -21,7 +21,7 @@
 
 ## 入口模型
 
-### 0. Claude Code plugin / marketplace 入口
+### 0. Claude Code plugin / marketplace 安装入口
 当前仓库已经具备本地 marketplace 可安装形态。
 
 推荐安装路径：
@@ -34,7 +34,7 @@
 
 这条路径更接近 superpowers 的安装/更新体验；clone + runtime CLI 仍作为 fallback / development path 保留。
 
-### 1. Claude Code 会话入口
+### 1. Claude Code 会话唯一前门
 优先从：
 
 - `/harness`
@@ -47,7 +47,7 @@
 - 判断当前处于 `clarify / route / design / plan / tdd / verify / archive` 的哪一段
 - 给出下一阶段的恢复入口或 backend 命令
 
-### 2. Runtime / 仓库命令入口
+### 2. Runtime / 仓库后台命令
 优先使用：
 
 - `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
@@ -55,6 +55,8 @@
 - `node harness/plugin/runtime/cli.mjs doctor`
 - `node harness/plugin/runtime/cli.mjs sync`
 - `node harness/plugin/runtime/cli.mjs verify`
+
+这些命令是 `/harness` 背后的确定性 backend 动作，不是与 `/harness` 平级的第二个用户入口。
 
 ### 3. 自动门禁层
 自动发生但不是总入口：

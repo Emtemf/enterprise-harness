@@ -39,11 +39,11 @@
 
 当前仓库采用三层模型：
 
-1. **Skill 入口**：在 Claude Code 会话中，统一从 `/harness` 开始；它负责 clarify-first staged workflow 的单一入口与阶段路由
-2. **Command 入口**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify`
+1. **Skill 入口**：对用户只有一个前门——在 Claude Code 会话中统一从 `/harness` 开始；它负责 clarify-first staged workflow 的单一入口与阶段路由
+2. **Command 后台动作**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify` 这类确定性 backend 动作
 3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、恢复提示和校验
 
-规则与 hooks 会自动生效，但它们不是总编排器；总入口应显式使用 `/harness` 或 backend command。
+规则与 hooks 会自动生效，但它们不是总编排器；对用户的总入口应始终显式保持为 `/harness`。
 
 ## 默认工作流
 

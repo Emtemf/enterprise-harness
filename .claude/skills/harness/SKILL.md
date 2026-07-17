@@ -1,7 +1,7 @@
 ---
 name: harness
 description: >
-  Enterprise Harness 的统一流程入口与阶段编排器。用于接住新需求、继续当前 change、识别 clarify / route / design / plan / tdd / verify / archive 所处阶段，并给出下一步 stage skill 或 backend command。适用于“我应该从哪开始”“帮我按 staged workflow 推进”“继续当前 change”“需要一个确定性的 change 入口命令”等场景。
+  Enterprise Harness 的统一流程入口与阶段编排器。用于接住新需求、继续当前 change、识别 clarify / route / design / plan / tdd / verify / archive 所处阶段，并给出下一步 stage skill 或 backend command。适用于“我应该从哪开始”“帮我按 staged workflow 推进”“继续当前 change”“需要一个确定性的后台建档命令”等场景。
 ---
 
 # Harness Entry
@@ -92,7 +92,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 不要泛泛而谈，直接按目标给出命令：
 
 - 新机器接入：`bootstrap` → `setup-local-adapter --write` → `doctor` → `sync`
-- 新 change 入口：`start-change`
+- 新 change 后台建档：`start-change`
 - 本地 contract 检查：`verify`
 - 上游盘点：`upstream-check`
 
