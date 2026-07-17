@@ -140,6 +140,13 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - 输入 `/harness`
 
 后面的内容全部属于维护/排障附录。
+
+### 维护 / 排障附录索引
+
+- backend 命令：本节以下内容
+- plugin/runtime 设计：`harness/specs/plugin-runtime.md`
+- Claude Code 运行约束：`CLAUDE.md`
+
 ## 7. 维护 / 排障附录：后台命令
 ### 方式 A：direct runtime CLI
 
