@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { normalizeDigestPath } from '../lib/checks.mjs';
+import { normalizeDigestContent, normalizeDigestPath } from '../lib/checks.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const verifyPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'verify.mjs');
@@ -77,7 +77,7 @@ function computePortableDigest(repoCopy, changeId) {
     },
   };
   hash.update('state.json\n');
-  hash.update(JSON.stringify(normalizedState));
+  hash.update(normalizeDigestContent(JSON.stringify(normalizedState)));
   hash.update('\n');
 
   const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
@@ -91,7 +91,7 @@ function computePortableDigest(repoCopy, changeId) {
     const fullPath = path.join(changeDir, ...relPath.split('/'));
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) continue;
     hash.update(`${relPath}\n`);
-    hash.update(fs.readFileSync(fullPath, 'utf-8'));
+    hash.update(normalizeDigestContent(fs.readFileSync(fullPath, 'utf-8')));
     hash.update('\n');
   }
 

@@ -124,6 +124,10 @@ export function normalizeDigestPath(relPath) {
   return String(relPath).replaceAll('\\', '/');
 }
 
+export function normalizeDigestContent(text) {
+  return String(text).replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+}
+
 function collectChangeFiles(changeDir, relDir) {
   const dir = path.join(changeDir, relDir);
   if (!fs.existsSync(dir)) return [];
@@ -155,7 +159,7 @@ export function computeValidationDigest(root, changeId) {
       },
     };
     hash.update('state.json\n');
-    hash.update(JSON.stringify(normalizedState));
+    hash.update(normalizeDigestContent(JSON.stringify(normalizedState)));
     hash.update('\n');
   }
   const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
@@ -165,7 +169,7 @@ export function computeValidationDigest(root, changeId) {
     const fullPath = path.join(changeDir, ...normalizedRelPath.split('/'));
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) continue;
     hash.update(`${normalizedRelPath}\n`);
-    hash.update(fs.readFileSync(fullPath, 'utf-8'));
+    hash.update(normalizeDigestContent(fs.readFileSync(fullPath, 'utf-8')));
     hash.update('\n');
   }
   return hash.digest('hex');
