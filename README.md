@@ -277,7 +277,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - fallback / troubleshooting 工具
 - maintainer / repo operator 视角的命令面
 
-下面这些命令仍然保留给需要低层控制的人：
+普通用户可以先忽略下面这些命令；它们仅保留给需要低层控制的人：
 ```bash
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
 ```
