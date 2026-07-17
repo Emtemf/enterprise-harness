@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "changeId": "runtime-installability-polish",
+  "tier": "L1",
+  "state": "DISCOVERED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "harness plugin runtime cli.mjs install.mjs update.mjs upgrade.mjs migrate.mjs release-local.mjs verify.mjs upstream-check.mjs context7.mjs help usage argv process.cwd external cwd"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "当前对外推荐文案采用双轨：README 明确 clone path 是当前最稳主路径，同时提升 bin/CLI 入口的存在感。",
+    "在未真正发布 registry 前，不把 npx / plugin-market 安装写成已验证主路径，只写成类插件入口骨架或本地包入口。"
+  ],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": "task1-plugin-like-install",
+  "workflow": {
+    "stage": "clarify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-design"
+  },
+  "validation": {
+    "status": "stale",
+    "digest": null,
+    "validatedAt": null
+  }
+}

@@ -122,6 +122,11 @@
 node harness/plugin/runtime/cli.mjs <command>
 ```
 
+其中本轮与 local adapter diagnostics 直接相关的最小命令包括：
+- `node harness/plugin/runtime/cli.mjs setup-local-adapter --write`
+- `node harness/plugin/runtime/cli.mjs doctor --json`
+- `node harness/plugin/runtime/cli.mjs sync --json`
+
 当前已具备：
 
 - `bootstrap`
@@ -175,8 +180,6 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 - task 子状态 `NOT_STARTED -> TEST_WRITTEN -> RED_VERIFIED -> GREEN_VERIFIED -> REFACTOR_VERIFIED -> TASK_REVIEWED -> DONE` 的更强机读消费
 - 更细粒度的 `RED_VERIFIED` 消费逻辑
 - `/harness` 的 automation-first lifecycle runner 行为深化
-- ArchUnit
-- JaCoCo 85% 机械门禁
 - 真实 HTTP API E2E
 - 更强 OpenAPI 语义门禁
 - 更完整 installer / upgrade / migration 体验
@@ -214,10 +217,17 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 ## Quickstart
 
-> 当前最推荐的接入方式仍是：**clone 仓库后在仓库根目录执行 runtime CLI**。
+> 现在最推荐的接入方式已经不是“只会 clone 仓库后手动跑脚本”，而是：
+>
+> 1. **在 Claude Code 里把当前仓库加成一个本地 marketplace**
+> 2. **从该 marketplace 安装 `enterprise-harness` 插件**
+> 3. **需要时通过 marketplace / plugin update 更新**
+>
+> 同时保留 clone + direct CLI 作为 fallback / 开发路径。
 
 ### 前置要求
 - Node.js **>= 20**
+- 已安装 Claude Code CLI（`claude` 命令可用）
 - 推荐安装 `codegraph`
 - 推荐可用 `npx` / `ctx7`
 
@@ -227,7 +237,43 @@ git clone https://github.com/Emtemf/enterprise-harness.git
 cd enterprise-harness
 ```
 
-### 2. 首次接入
+### 2. 在 Claude Code 里添加本地 marketplace
+如果你想要的是 **像 superpowers 那样的 plugin 安装体验**，当前已经支持本地 marketplace 路径。
+
+#### 方式 A：在 Claude Code 会话里执行 slash command
+```bash
+/plugin marketplace add /absolute/path/to/enterprise-harness
+/plugin install enterprise-harness@enterprise-harness
+```
+
+#### 方式 B：在终端里执行等价 CLI
+```bash
+claude plugin marketplace add /absolute/path/to/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
+```
+
+当前这条链路已经在本仓库本地验证通过：
+- marketplace add
+- plugin install
+- plugin list 可见 `enterprise-harness@enterprise-harness`
+- plugin update / marketplace update 可用
+
+### 3. 更新 marketplace / plugin
+#### Claude Code 会话里
+```bash
+/plugin marketplace update enterprise-harness
+/plugin update enterprise-harness@enterprise-harness
+```
+
+#### 终端等价 CLI
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+### 4. 首次 runtime 接入
+安装插件后，仍建议在仓库根目录执行一次 runtime 初始化：
+
 ```bash
 node harness/plugin/runtime/cli.mjs bootstrap
 node harness/plugin/runtime/cli.mjs setup-local-adapter --write
@@ -237,18 +283,20 @@ node harness/plugin/runtime/cli.mjs verify
 node harness/plugin/runtime/cli.mjs upstream-check
 ```
 
-### 3. 开始一个新 change
+`node harness/plugin/runtime/cli.mjs verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
+
+### 5. 开始一个新 change
 ```bash
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
 ```
 
-### 4. 查看当前全局状态
+### 6. 查看当前全局状态
 ```bash
 node harness/plugin/runtime/cli.mjs status
 node harness/plugin/runtime/cli.mjs status --json
 ```
 
-### 5. 使用 workflow runner（最小可用）
+### 7. 使用 workflow runner（最小可用）
 ```bash
 node harness/plugin/runtime/cli.mjs workflow run <change-id> [owner] [tier] [topic]
 node harness/plugin/runtime/cli.mjs workflow resume [change-id]
@@ -267,11 +315,11 @@ node harness/plugin/runtime/cli.mjs workflow decide <change-id> <decision> [reas
 - `revision`
 - `lastEventId`
 
-### 6. 在 Claude Code 会话中进入工作流
+### 8. 在 Claude Code 会话中进入工作流
 - 优先从 `/harness` 开始
 - `harness-intake` / `harness-design` / `harness-plan` / `harness-tdd` / `harness-verify` 作为 subordinate recovery entry 或高级入口
 
-### 6. 可选：使用 npm scripts
+### 9. 可选：使用 npm scripts
 ```bash
 npm run bootstrap
 npm run doctor
@@ -279,6 +327,29 @@ npm run sync
 npm run verify
 npm run upstream-check
 ```
+
+### 10. fallback：仍可直接走仓库 bin / direct CLI
+如果你不想用 plugin marketplace，仍可直接运行：
+
+```bash
+node bin/enterprise-harness.mjs <command>
+# 或
+node harness/plugin/runtime/cli.mjs <command>
+```
+
+### 7. `reference-service` 的当前本地 Java quality gate
+
+当前本地 Java quality gate 命令：mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify
+
+它当前负责：
+- ArchUnit 架构边界检查
+- JaCoCo report / check
+- `reference-service` 作为 reference quality profile 的本地 Maven 质量门禁
+- real backend sample 的 random-port HTTP E2E 证据（当前已在独立 change 中推进）
+- random-port HTTP E2E
+
+注意：repo-level `node harness/plugin/runtime/cli.mjs verify` / `bash hooks/full-verify.sh` 仍主要是 repo contract / runtime contract 校验，**不是** `reference-service` 的 Java quality gate。
+后续 CI 应复用同一个 Maven verify 命令，而不是重新定义另一套绿灯含义。
 
 完整安装说明见：
 

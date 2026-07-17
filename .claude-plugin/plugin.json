@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "enterprise-harness",
+  "version": "0.1.1",
+  "description": "Clarify-first staged workflow, runtime governance, and durable change assets for Claude Code.",
+  "author": {
+    "name": "wula"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "workflow",
+    "runtime",
+    "enterprise-harness"
+  ],
+  "skills": [
+    "./.claude/skills/harness/",
+    "./.claude/skills/harness-intake/",
+    "./.claude/skills/harness-design/",
+    "./.claude/skills/harness-plan/",
+    "./.claude/skills/harness-tdd/",
+    "./.claude/skills/harness-verify/"
+  ],
+  "mcpServers": "./.mcp.json"
+}

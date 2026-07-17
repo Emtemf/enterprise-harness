@@ -21,6 +21,19 @@
 
 ## 入口模型
 
+### 0. Claude Code plugin / marketplace 入口
+当前仓库已经具备本地 marketplace 可安装形态。
+
+推荐安装路径：
+
+- `claude plugin marketplace add /absolute/path/to/enterprise-harness`
+- `claude plugin install enterprise-harness@enterprise-harness --scope local`
+- 更新：
+  - `claude plugin marketplace update enterprise-harness`
+  - `claude plugin update enterprise-harness@enterprise-harness --scope local`
+
+这条路径更接近 superpowers 的安装/更新体验；clone + runtime CLI 仍作为 fallback / development path 保留。
+
 ### 1. Claude Code 会话入口
 优先从：
 

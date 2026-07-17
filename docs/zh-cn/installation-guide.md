@@ -4,13 +4,14 @@
 
 当前教程适用于：
 
+- 想在 Claude Code 里像 superpowers 一样通过 plugin marketplace 安装本项目的人
 - 想在本地运行这个仓库的人
 - 想体验 portable runtime CLI 的人
 - 想接入项目共享 contract + 本机 adapter 模式的人
 
-> 当前主路径仍是：**clone 仓库后在仓库根目录执行 runtime CLI**。
+> 当前最推荐主路径已经升级为：**先把当前仓库加成 Claude Code 本地 marketplace，再安装 `enterprise-harness` 插件。**
 >
-> 仓库里虽然已经有 `package.json` 和 `bin/enterprise-harness.mjs`，但当前并没有把“公开 registry 一键安装”作为默认已完成能力来宣称。
+> clone 仓库后直接运行 runtime CLI 仍然可用，但现在是 fallback / development path，而不是唯一主路径。
 
 ---
 
@@ -19,6 +20,7 @@
 ### 必需
 
 - Node.js **>= 20**
+- Claude Code CLI 可用（`claude` 命令存在）
 - 能进入本仓库根目录
 
 ### 推荐
@@ -38,7 +40,7 @@
 
 ## 2. 获取项目
 
-### 方式 A：clone 仓库（当前推荐）
+### clone 仓库（当前仍需要）
 
 ```bash
 git clone https://github.com/Emtemf/enterprise-harness.git
@@ -49,36 +51,83 @@ cd enterprise-harness
 
 ---
 
-## 3. 先理解入口分工
+## 3. 最推荐路径：像 superpowers 一样通过 Claude plugin marketplace 安装
+
+### 方式 A：在 Claude Code 会话里
+逐条输入：
+
+```bash
+/plugin marketplace add /absolute/path/to/enterprise-harness
+/plugin install enterprise-harness@enterprise-harness
+```
+
+### 方式 B：在终端里执行等价命令
+
+```bash
+claude plugin marketplace add /absolute/path/to/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
+```
+
+### 更新方式
+如果后续仓库内容变化，要像 superpowers 那样沿 marketplace/plugin 路径更新：
+
+#### Claude Code 会话里
+```bash
+/plugin marketplace update enterprise-harness
+/plugin update enterprise-harness@enterprise-harness
+```
+
+#### 终端等价命令
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+### 当前已验证到什么程度
+本仓库当前已经本地验证通过：
+
+- `claude plugin marketplace add /path/to/enterprise-harness`
+- `claude plugin install enterprise-harness@enterprise-harness --scope local`
+- `claude plugin list` 能看到 `enterprise-harness@enterprise-harness`
+- `claude plugin marketplace update enterprise-harness`
+- `claude plugin update enterprise-harness@enterprise-harness --scope local`
+
+> 注意：这表示**本地 marketplace / 本地插件安装与更新路径已可用**。
+>
+> 这不等于“已经发布到公共 marketplace”或“官方市场可搜索安装”。当前完成的是：**像 superpowers 那样的本地 marketplace 安装/更新体验**。
+
+---
+
+## 4. 认识入口分工
 
 当前仓库不是只有命令入口，而是三层模型：
 
-1. **Skill 入口**：Claude Code 会话中优先从 `/harness` 开始
+1. **Skill / Plugin 入口**：Claude Code 会话中优先从 `/harness` 开始
 2. **Command 入口**：本机/runtime 场景中使用 `node harness/plugin/runtime/cli.mjs ...`
 3. **Hooks 自动门禁**：自动做 SessionStart / 写前 / 写后 / Stop 检查
 
 也就是说：
-- skill 负责流程编排
+- skill/plugin 负责流程编排
 - command 负责确定性动作
 - hooks 负责自动校验与阻断
 
-## 4. 认识统一命令入口
+## 5. 统一命令入口
 
-当前统一入口有两种写法：
+安装 plugin 之后，你仍可以直接使用仓库内的命令入口。
 
-### 方式 A：直接调用 runtime CLI
+### 方式 A：direct runtime CLI
 
 ```bash
 node harness/plugin/runtime/cli.mjs <command>
 ```
 
-### 方式 B：走仓库 bin 入口
+### 方式 B：仓库 bin 入口
 
 ```bash
 node bin/enterprise-harness.mjs <command>
 ```
 
-### 方式 C：走 npm scripts
+### 方式 C：npm scripts
 
 ```bash
 npm run <script>
@@ -93,13 +142,11 @@ npm run sync
 npm run verify
 ```
 
-> 当前最稳定、最明确的口径仍建议优先使用 **方式 A**。
-
 ---
 
-## 5. 首次接入推荐顺序
+## 6. 首次 runtime 接入推荐顺序
 
-在仓库根目录依次执行：
+即使你已经安装了 plugin，仍建议在仓库根目录依次执行一次 runtime 初始化：
 
 ### 第 1 步：bootstrap
 
@@ -134,17 +181,6 @@ node harness/plugin/runtime/cli.mjs setup-local-adapter --write
 node harness/plugin/runtime/cli.mjs doctor
 ```
 
-它会检查：
-
-- `CLAUDE.md`
-- `.claude/settings.json`
-- `harness/config.yaml`
-- `harness/specs/plugin-runtime.md`
-- `codegraph` 可用性
-- `ctx7` CLI 运行情况
-- 本机 local adapter 是否存在且字段完整
-- `harness/ACTIVE_CHANGE` 是否存在（warning 级别）
-
 如果你需要机器可读输出：
 
 ```bash
@@ -156,14 +192,6 @@ node harness/plugin/runtime/cli.mjs doctor --json
 ```bash
 node harness/plugin/runtime/cli.mjs sync
 ```
-
-它会检查：
-
-- manifest 是否可读
-- bootstrap 是否已运行
-- local adapter example 是否存在
-- 本机 adapter 是否存在 / 是否缺字段
-- `CONTEXT7_API_KEY` 是否已设置（当前允许 warning）
 
 如果你需要机器可读输出：
 
@@ -177,15 +205,7 @@ node harness/plugin/runtime/cli.mjs sync --json
 node harness/plugin/runtime/cli.mjs verify
 ```
 
-它会做当前最小 contract / runtime 自检：
-
-- 结构检查
-- OpenAPI 轻检查
-- controller consistency 检查
-- change artifact 状态检查
-- review verdict 检查
-- evidence 检查
-- template 中 `TODO` / `TBD` 占位检查
+`verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
 
 ### 第 6 步：upstream-check
 
@@ -193,17 +213,11 @@ node harness/plugin/runtime/cli.mjs verify
 node harness/plugin/runtime/cli.mjs upstream-check
 ```
 
-它会盘点：
-
-- CodeGraph 当前版本
-- Context7 当前版本
-- reference-only upstream（如 Superpowers / OpenSpec）
-
 ---
 
-## 6. 一条最短安装路径
+## 7. fallback：如果你不想走 plugin marketplace
 
-如果你只想快速接入并确认本机能跑，最短命令集是：
+仍然可以直接用仓库路径：
 
 ```bash
 node harness/plugin/runtime/cli.mjs bootstrap
@@ -214,9 +228,15 @@ node harness/plugin/runtime/cli.mjs verify
 node harness/plugin/runtime/cli.mjs upstream-check
 ```
 
+或者：
+
+```bash
+node bin/enterprise-harness.mjs <command>
+```
+
 ---
 
-## 7. 常见 warning 怎么看
+## 8. 常见 warning 怎么看
 
 ### `context7-env`
 表示没有设置 `CONTEXT7_API_KEY`。
@@ -249,7 +269,7 @@ node harness/plugin/runtime/cli.mjs doctor
 
 ---
 
-## 8. 如果你要开始推动一个 change
+## 9. 如果你要开始推动一个 change
 
 当前推荐优先使用新的确定性入口命令：
 
@@ -257,7 +277,6 @@ node harness/plugin/runtime/cli.mjs doctor
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
 ```
 
-它会：
 
 - scaffold 最小 change 资产
 - 准备一个 exploration evidence 骨架
