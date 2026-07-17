@@ -115,17 +115,23 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - command 负责后台确定性动作，不是第二个用户入口
 - hooks 负责自动校验与阻断
 
-## 5. 后台命令入口（仅在需要低层控制时）
+## 5. 安装后怎么用
 
-安装 plugin 之后，普通用户不需要记住这些命令；如果你只是按 SOP 使用，直接从 `/harness` 开始即可。
+对普通用户来说，安装完成后只需要记住：
 
-下面这些命令只属于：
+- **进入 Claude Code 会话**
+- **直接从 `/harness` 开始**
 
-- fallback
-- troubleshooting
-- maintainer / repo operator
-- 需要低层控制时的后台动作
+也就是说：
 
+- plugin marketplace 是**安装方式**
+- `/harness` 是**唯一工作流入口**
+- `bootstrap` / `doctor` / `sync` / `verify` / `start-change` 这些都不是普通用户前门
+
+---
+
+## 6. 如果你是 maintainer / operator / 排障者
+只有在你需要低层控制、排查安装问题、或维护 runtime 时，才需要继续阅读这些 backend 命令与资料：
 ### 方式 A：direct runtime CLI
 
 ```bash

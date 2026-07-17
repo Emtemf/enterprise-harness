@@ -194,12 +194,12 @@ sequenceDiagram
 
 ## 当前状态的最准表述
 
-> **已具备 Claude Code 本地 marketplace 可安装/可更新路径的 repo contract + portable runtime MVP。**
+> **已具备 Claude Code 本地 marketplace 可安装/可更新路径、且对用户保持单一入口 `/harness` 的 repo contract + portable runtime MVP。**
 
 也就是说，它已经不只是一个“clone 后手动跑脚本”的仓库骨架，而是：
 
 - 可以通过 Claude Code plugin marketplace add / install / update 走本地 marketplace 安装路径
-- 对用户的正常工作流入口仍然收口为唯一前门 `/harness`
+- 对用户的正常工作流入口严格收口为唯一前门 `/harness`
 - clone + direct CLI 只保留为 fallback / development path
 - 但还不是已经公开发布到官方/公共 marketplace 的终态产品
 

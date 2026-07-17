@@ -267,70 +267,28 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 ```
 
 ### 4. 安装后怎么进入工作流
-安装插件后，对用户仍然只有一个前门：
+安装插件后，对普通用户来说，后续只需要记住一件事：
 
-- 直接从 `/harness` 开始
+- **直接从 `/harness` 开始**
 
-如果你只是正常使用这套 SOP，不需要记住 `bootstrap` / `doctor` / `sync` / `verify` 这些后台命令。它们属于：
+也就是说：
 
-- `/harness` 背后的 backend 动作
-- fallback / troubleshooting 工具
-- maintainer / repo operator 视角的命令面
+- 安装方式可以是 plugin marketplace
+- 但使用入口仍然只有 `/harness`
+- 不需要先记住 `bootstrap` / `doctor` / `sync` / `verify` / `start-change`
 
-普通用户可以先忽略下面这些命令；它们仅保留给需要低层控制的人：
-```bash
-node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
-```
+如果你不是在做仓库维护、低层排障或 runtime 开发，就可以忽略 backend 命令。
 
-### 6. 查看当前全局状态
-```bash
-node harness/plugin/runtime/cli.mjs status
-node harness/plugin/runtime/cli.mjs status --json
-```
+### 5. 需要低层控制时再看哪里
+如果你是 maintainer / repo operator，或者要排查安装问题，再去看这些低层资料：
 
-### 7. 使用 workflow runner（最小可用）
-```bash
-node harness/plugin/runtime/cli.mjs workflow run <change-id> [owner] [tier] [topic]
-node harness/plugin/runtime/cli.mjs workflow resume [change-id]
-node harness/plugin/runtime/cli.mjs workflow status [change-id] --json
-node harness/plugin/runtime/cli.mjs workflow decide <change-id> <decision> [reason]
-```
+- `docs/zh-cn/installation-guide.md`
+- `harness/specs/plugin-runtime.md`
+- `CLAUDE.md`
 
-当前它提供 machine-readable 的：
-- `state`
-- `stage`
-- `status`
-- `nextAction`
-- `pendingDecision`
-- `recommendedLane`
-- `currentGap`
-- `revision`
-- `lastEventId`
+对普通用户来说，到这里就够了：**安装插件，然后从 `/harness` 开始。**
 
-### 8. 在 Claude Code 会话中进入工作流
-- 对用户始终优先从 `/harness` 开始
-- `harness-intake` / `harness-design` / `harness-plan` / `harness-tdd` / `harness-verify` 只作为 subordinate recovery entry 或高级入口
-- `start-change` / `doctor` / `sync` / `verify` 等命令只作为 `/harness` 背后的后台动作与 fallback，不应要求普通用户记忆
-
-### 9. 可选：使用 npm scripts
-```bash
-npm run bootstrap
-npm run doctor
-npm run sync
-npm run verify
-npm run upstream-check
-```
-
-### 10. fallback：仍可直接走仓库 bin / direct CLI
-如果你不想用 plugin marketplace，仍可直接运行：
-
-```bash
-node bin/enterprise-harness.mjs <command>
-# 或
-node harness/plugin/runtime/cli.mjs <command>
-```
-
-### 7. `reference-service` 的当前本地 Java quality gate
+### 6. `reference-service` 的当前本地 Java quality gate
 
 当前本地 Java quality gate 命令：mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify
 
