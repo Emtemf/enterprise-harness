@@ -1,0 +1,81 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "task2-red-green-supported",
+      "status": "pass",
+      "detail": "Task 2 的核心声明有足够证据支撑：`validation.md` 记录了两次 `mvn verify`，先在临时 `100%` line threshold 下得到确定性 `jacoco:check` 失败，再在最终 `BUNDLE + LINE + 85%` 规则下转绿。当前 `reference-service/pom.xml` 也已实际接入 JaCoCo `prepare-agent` / `report` / `check` 到 Maven `verify`。"
+    },
+    {
+      "id": "task2-green-artifacts-fresh",
+      "status": "pass",
+      "detail": "当前存在新鲜机械产物支撑 GREEN：`reference-service/target/site/jacoco/jacoco.xml` 与 `target/surefire-reports/*` 为同一轮生成，且相关测试集均为 `Failures: 0, Errors: 0, Skipped: 0`。`jacoco.xml` 的 bundle 汇总显示 `LINE missed=\"0\" covered=\"60\"`，足以满足最终 85% 门槛。"
+    },
+    {
+      "id": "coverage-supporting-tests-present",
+      "status": "pass",
+      "detail": "Task 2 目标文件中的测试证据存在：controller integration 覆盖 success、404、409、400 blank reason、400 malformed JSON；repository integration 覆盖 adapter 边界与 save/findById；这些测试与 JaCoCo gate 结合，能够支撑 coverage gate 已真正进入 `verify`。"
+    },
+    {
+      "id": "machine-readable-state-lag",
+      "status": "advisory",
+      "detail": "`tasks.md` 中 Task 2 checklist 仍未勾选，且 `state.json` 仍显示 `workflow.tddStatus: test-written`、`validation.status: stale`。这不推翻本次 task-level 完成证据，但说明 machine-readable 状态尚未与实际验证结果同步。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md",
+      "lines": "41-73",
+      "note": "Task 2 明确要求：在 `pom.xml` 接入 JaCoCo，先以 `100%` threshold 产生确定性 RED，再回到最终 `85%` 规则并运行 `mvn verify`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/validation.md",
+      "lines": "17-31, 37-47, 92-100",
+      "note": "记录了 Task 2 的实际命令与结果：`mvn verify` 先因 `jacoco:check` 在 `100%` threshold 下失败（`lines covered ratio is 0.94, but expected minimum is 1.00`），随后在最终 `85%` rule 下通过，并明确写出 Task 2 已完成。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/pom.xml",
+      "lines": "84-131",
+      "note": "当前 `pom.xml` 已把 `org.jacoco:jacoco-maven-plugin:0.8.12` 接入 `prepare-agent`、`report`、`check`，并把 `minimum` 固定为最终 `85%`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationControllerIntegrationTest.java",
+      "lines": "34-128",
+      "note": "当前 controller integration test 覆盖 success 与多条 error path，是 Task 2 coverage 提升的直接支撑之一。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/infrastructure/persistence/JpaOrderRepositoryIntegrationTest.java",
+      "lines": "23-48",
+      "note": "当前 repository integration test 覆盖 adapter 边界与持久化往返路径，属于 Task 2 checklist 指定修改范围。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.application.OrderCancellationServiceTest.txt",
+      "lines": "1-4",
+      "note": "测试结果：`Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.infrastructure.persistence.JpaOrderRepositoryIntegrationTest.txt",
+      "lines": "1-4",
+      "note": "测试结果：`Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.interfaces.api.OrderCancellationControllerIntegrationTest.txt",
+      "lines": "1-4",
+      "note": "测试结果：`Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/site/jacoco/jacoco.xml",
+      "lines": "1-1",
+      "note": "JaCoCo 汇总当前为 `LINE missed=\"0\" covered=\"60\"`，说明现有纳入统计的 bundle 已达到 100% line coverage，显然满足最终 85% 规则；该报告与 surefire 报告同轮生成。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/state.json",
+      "lines": "63-76",
+      "note": "当前 machine-readable 状态仍显示 `workflow.stage: tdd`、`tddStatus: test-written`、`validation.status: stale`，可作为状态同步滞后的证据。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

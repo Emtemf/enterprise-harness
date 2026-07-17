@@ -1,0 +1,63 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "在补入 API consistency reviewer 与本 change-level verification review 后，当前 change 的完成声明已有新鲜 change-level 证据支撑，可用于 closure。"
+    },
+    {
+      "severity": "info",
+      "summary": "验证记录已覆盖 Task 1/Task 2/Task 3 的 RED→GREEN、real HTTP E2E、owned YAML ↔ live `/v3/api-docs` semantic assertion、文档 exact assertions，以及 `mvn verify` 全量通过与 JaCoCo `check` 通过。"
+    },
+    {
+      "severity": "minor",
+      "summary": "记录一致性曾有轻微瑕疵，但在当前 change-level refresh 后已不构成 blocking 缺口。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "lines": "17-39",
+      "note": "列出了本轮实际执行命令与关键结果：Task 1/2/3 的定向 RED/GREEN，以及两次 `mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify` 通过，结果均写明。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/reviews/verification-reviewer-task1.json",
+      "lines": "1-32",
+      "note": "Task 1 已有任务级 verification pass，证据明确指向 random-port real HTTP E2E、真实请求、持久化最终状态，以及 live `/v3/api-docs` 中 `400/404/409` 与 `ApiErrorResponse` 暴露。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/reviews/verification-reviewer-task2.json",
+      "lines": "1-49",
+      "note": "Task 2 已有任务级 verification pass，证据覆盖 owned YAML 与 live docs 的 `operationId`、request/response/error schema、`reason` 语义与 required 字段对齐。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/reviews/verification-reviewer-task3.json",
+      "lines": "1-36",
+      "note": "Task 3 已有任务级 verification pass，证据覆盖 README/CONTRIBUTING exact assertions 与后续 `mvn verify` 通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationControllerHttpE2ETest.java",
+      "lines": "46-95",
+      "note": "测试使用 `@SpringBootTest(webEnvironment = RANDOM_PORT)`、`TestRestTemplate` 和 `OrderJpaRepository` 持久化断言，属于真实 HTTP E2E 证据，不是 MockMvc 冒充。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationOpenApiSemanticTest.java",
+      "lines": "31-105",
+      "note": "测试直接对比 owned `order-service.yaml` 与 live `/v3/api-docs` 的 `/api/orders/{orderId}/cancel` 关键语义。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "281-291",
+      "note": "README 已包含 `reference quality profile`、`real backend sample`、`random-port HTTP E2E` 与 Maven verify 说明。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/CONTRIBUTING.md",
+      "lines": "85-101",
+      "note": "CONTRIBUTING 已包含 `later CI should reuse the same Maven verify command` 与 `generated `*MapperImpl` are build artifacts` 的说明。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

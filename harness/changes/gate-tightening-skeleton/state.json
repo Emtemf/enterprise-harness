@@ -29,10 +29,5 @@
     "status": "missing",
     "digest": null,
     "validatedAt": null
-  },
-  "gates": {
-    "designApproved": true,
-    "redVerified": true,
-    "redEvidenceRef": "gate-tightening-red-proof"
   }
 }

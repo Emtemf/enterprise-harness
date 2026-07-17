@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "changeId": "review-validation-stale",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": true,
+    "redVerified": true
+  },
+  "currentTask": "Task 3 smoke",
+  "validation": {
+    "status": "stale",
+    "digest": "review-validation-stale",
+    "validatedAt": "2026-07-16"
+  }
+}

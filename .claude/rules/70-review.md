@@ -44,6 +44,16 @@ review verdict 应结构化表达，而不是只给口头结论。
 - plan 不能被下游 agent/工程师无猜测执行
 - OpenAPI / controller / request-response-error 契约漂移
 - 完成声明缺少新鲜验证证据
+- required blocking reviewer verdict 缺失、`reviewedAt` 为空、`changeId` 不匹配，或 verdict=`block`
+
+## 机械消费基线
+
+当前阶段至少固定以下完成态消费规则：
+
+- `verification-reviewer`：进入 `VALIDATED` 前 mandatory
+- `api-consistency-reviewer`：仅 `impact.api=yes` 的 `REVIEWED` / `VALIDATED` 前 mandatory
+- required reviewer 缺失时，`verify` 与 `stop` 应阻断完成态
+- reviewer verdict 文件必须可追溯到目标 `changeId`
 
 ## 评审与实现分离
 

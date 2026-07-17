@@ -1,0 +1,18 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "Task 1 已具备可追溯的 RED、GREEN 与 verify 证据闭环，能够支撑 task-level 完成判断。",
+    "Task checklist 中的 review 输出路径与本次目标文件一致：`/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/reviews/plan-critic-task1.json`。",
+    "非阻断：`/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md` 仍残留少量 `issue #11` 表述，而本次 review/validation 口径为 issue #8；建议后续统一文案。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:22-30 记录了实际执行的 RED、GREEN、verify 命令与结果；其中先出现一次 repo-level verify 失败，再在归一化样例后重跑 `green && verify --json` 并得到 `ok: true`。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md:33-46 明确列出 Task 1 的 `写失败测试 → RED 命令 → GREEN 命令 → 重构 → verify → task review` 清单，且 review 输出目标为 `/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/reviews/plan-critic-task1.json`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-design-gate-smoke.mjs:86-145 提供 `red|green|verify` 入口，并断言缺 `design-reviewer`、缺 `gates.designApproved`、以及 `design-reviewer=block` 三类 design gate 缺口。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/checks.mjs:127-185 已把 design gate 消费点固定到 `TASKED/EXECUTING`、`design.md`、`reviews/design-reviewer.json` 与 `gates.designApproved=true`，与 Task 1 目标一致。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

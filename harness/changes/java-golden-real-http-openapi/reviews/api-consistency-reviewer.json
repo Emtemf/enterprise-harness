@@ -1,0 +1,85 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "api-consistency-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 cancel-order 契约与实现在 path 和 HTTP method 上一致：owned YAML 定义 `POST /api/orders/{orderId}/cancel`，`OrderCancellationController` 也通过 `@RequestMapping(\"/api/orders\") + @PostMapping(\"/{orderId}/cancel\")` 暴露同一路径。"
+    },
+    {
+      "severity": "info",
+      "summary": "request payload intent 一致：YAML 要求 `requestBody.required=true` 且 `CancelOrderRequest.reason` 为 required，并声明 non-blank 语义；实现使用 `@Valid @RequestBody CancelOrderRequest`，其中 `reason` 带 `@NotBlank` 与对应 `@Schema` metadata。"
+    },
+    {
+      "severity": "info",
+      "summary": "response payload intent 一致：YAML 的 200 response 指向 `CancelOrderResponse`，要求 `orderId`、`status`、`reason`；实现返回 `CancelOrderResponse`，并通过 `@Schema(requiredMode = REQUIRED)` 使 live docs 暴露同样的 required 字段。"
+    },
+    {
+      "severity": "info",
+      "summary": "error contract summary 仍有体现且与运行时一致：YAML 显式列出 `400/404/409` 均返回 `ApiErrorResponse`；`ApiExceptionHandler` 分别把 validation/body parse 映射到 400、缺单映射到 404、不可取消状态映射到 409，错误体统一为 `ApiErrorResponse.error`。"
+    },
+    {
+      "severity": "info",
+      "summary": "compatibility 边界自洽：design 明确本轮只允许做文档语义对齐，不允许新增 endpoint、修改 path/method、或改变 request/response/error 的外部可观察语义；当前代码与 YAML 都保持在该边界内。"
+    },
+    {
+      "severity": "info",
+      "summary": "不存在明显“实现会抛错但 contract 完全没描述”的当前主路径漂移。针对 cancel-order 的主要错误路径（validation failure、malformed JSON、missing order、non-cancellable status）已有 controller tests、real HTTP E2E、以及 owned YAML ↔ live `/v3/api-docs` semantic test 覆盖。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/openapi/order-service.yaml",
+      "lines": "5-46, 49-79",
+      "note": "owned contract 定义了 cancel-order 的 path、method、request/response schema，以及 `400/404/409 -> ApiErrorResponse`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/OrderCancellationController.java",
+      "lines": "21-60",
+      "note": "controller 暴露 `POST /api/orders/{orderId}/cancel`，并显式声明 200/400/404/409 OpenAPI responses。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/CancelOrderRequest.java",
+      "lines": "6-14",
+      "note": "`reason` 同时具备 `@NotBlank` 与 `@Schema(description/minLength/pattern)`，与 YAML 的 request 语义一致。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/CancelOrderResponse.java",
+      "lines": "5-12",
+      "note": "response DTO 暴露 `orderId/status/reason`，并标记为 required。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/ApiErrorResponse.java",
+      "lines": "5-8",
+      "note": "错误响应模型仅包含必填 `error` 字段，与 YAML 一致。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/ApiExceptionHandler.java",
+      "lines": "15-39",
+      "note": "运行时错误映射为 404/409/400，且 body 统一为 `ApiErrorResponse`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationControllerIntegrationTest.java",
+      "lines": "39-128",
+      "note": "MockMvc integration 覆盖 200、404、409、400(blank reason)、400(malformed JSON) 的外部可观察行为。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationControllerHttpE2ETest.java",
+      "lines": "46-95",
+      "note": "real HTTP E2E 验证成功响应与持久化最终状态，并检查 live docs 显式暴露 `400/404/409 -> ApiErrorResponse`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationOpenApiSemanticTest.java",
+      "lines": "31-105",
+      "note": "service-scoped semantic test 逐项对齐 owned YAML 与 live `/v3/api-docs` 的 operationId、schema ref、response description、required 字段、`reason` non-blank 语义。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/design.md",
+      "lines": "48-56, 83-95",
+      "note": "design 明确 compatibility boundary，并固定本轮 contract 审查范围。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

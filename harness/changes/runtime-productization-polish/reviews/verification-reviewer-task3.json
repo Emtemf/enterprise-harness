@@ -1,0 +1,60 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "Task 3 的核心完成声明已有新鲜 RED/GREEN/VERIFY 证据支撑。",
+      "detail": "runtime-readiness-contract-smoke.mjs 已形成完整 RED → GREEN → VERIFY 证据链，明确覆盖 verify JSON contract、human wording、upstream-check mismatch fail semantics 与 docs exact strings。"
+    },
+    {
+      "severity": "info",
+      "summary": "实现与 smoke 断言一致。",
+      "detail": "verify.mjs 现返回 `contractChecks` / `runtimeReadinessChecks` 双层结构并提示 runtime readiness 需另行运行 doctor/sync/upstream-check；upstream-check.mjs 现对 runtime-upstream mismatch 返回 `status=validated-version-mismatch` 与 exit 1；README / runtime README 也已落入精确字符串断言。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "change 级状态与验证台账仍需同步 Task 3 完成态。",
+      "detail": "Task 3 task-level pass 不等于整个 change 已 VALIDATED；后续仍需刷新 state.json / validation.md 并形成 change-level verification verdict。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/tasks.md",
+      "lines": "123-181",
+      "note": "Task 3 固定了 verify/readiness/upstream-check/docs 的 fixture、assertion matrix、命令与 review 输出路径。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/runtime-contract.md",
+      "lines": "47-140",
+      "note": "长期稳定规范已冻结 verify/readiness 分离、upstream mismatch 语义、docs oracle。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-readiness-contract-smoke.mjs",
+      "lines": "1-170",
+      "note": "Task 3 smoke 直接断言 verify JSON、human wording、upstream-check mismatch 与 docs exact strings。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify.mjs",
+      "lines": "1-61",
+      "note": "verify.mjs 已实现 `contractChecks` / `runtimeReadinessChecks` 双层结构与 contract-only human output。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/upstream-check.mjs",
+      "lines": "1-84",
+      "note": "upstream-check.mjs 已实现 `HARNESS_UPSTREAM_REGISTRY` fixture 注入、mismatch fail 与 `status=validated-version-mismatch`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "243-249",
+      "note": "README 已包含 verify/readiness 精确字符串。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/README.md",
+      "lines": "6-14",
+      "note": "runtime README 已包含 `runtime readiness 不由 verify 单独背书。`"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

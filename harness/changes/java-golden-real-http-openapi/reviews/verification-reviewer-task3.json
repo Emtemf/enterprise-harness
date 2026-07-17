@@ -1,0 +1,37 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "minor",
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/tasks.md",
+      "detail": "Task 3 清单仍未勾选，且文件头仍写 `Status: draft-plan`；这与 `validation.md` 中已记录的 RED/GREEN/verify 结果不一致，但不推翻 Task 3 已具备的新鲜任务级验证证据。"
+    },
+    {
+      "severity": "minor",
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/state.json",
+      "detail": "`currentTask` 仍指向 Task 2，且 `validation.status` 仍为 `stale`；因此本次 PASS 仅覆盖 Task 3 的任务级完成声明，不支撑整个 change 已完成或已进入 change-level VALIDATED。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/tasks.md",
+      "detail": "Task 3 明确定义了验证口径：先运行 Python exact doc assertions 观察 RED，再运行同一脚本观察 GREEN，最后执行 `mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify` 做定向验证。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "detail": "已记录 Task 3 的新鲜命令与结果：第 6 步 Python exact doc assertions 为 RED，明确指出 README 缺少 `real backend sample` / `random-port HTTP E2E`，CONTRIBUTING 缺少 `generated `*MapperImpl` are build artifacts` 与 `later CI should reuse the same Maven verify command`；第 7 步同脚本 GREEN，返回 `OK exact doc assertions passed`；第 8 步 `mvn verify` 通过，结果为 `Tests run: 14, Failures: 0, Errors: 0, Skipped: 0`，且 JaCoCo `check` 通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "detail": "文档已落入 Task 3 目标表述：`reference-service` 段落同时包含 `reference quality profile`、`real backend sample`、`random-port HTTP E2E`，并明确后续 CI 应复用同一个 Maven verify 命令。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/CONTRIBUTING.md",
+      "detail": "贡献说明已落入 Task 3 目标表述：明确 `reference-service` 应单独运行 Maven verify，包含 `later CI should reuse the same Maven verify command`，并声明 `generated `*MapperImpl` are build artifacts`，可支撑 MapStruct generated code / quality-profile explanation 的文档完成声明。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

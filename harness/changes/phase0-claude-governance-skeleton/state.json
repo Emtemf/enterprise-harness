@@ -40,7 +40,7 @@
   "currentTask": null,
   "validation": {
     "status": "fresh",
-    "digest": "phase0-claude-governance-skeleton-2026-07-13",
+    "digest": "c4543fa7f3c0675cfe51e06a6b131e2aaf332c0c2dbd42438e2caeac414625b3",
     "validatedAt": "2026-07-13"
   }
 }

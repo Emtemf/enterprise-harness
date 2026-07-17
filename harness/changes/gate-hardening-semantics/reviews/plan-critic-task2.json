@@ -1,0 +1,19 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "Task 2 的任务定义可独立执行：文件路径、consumes/produces、RED→GREEN→REFACTOR、验证命令与 review 输出路径均已明确，不需要下游补猜。",
+    "本轮实现已把最小 plan/task gate 固定为可消费合同：`TASKED` 依赖 finalized `tasks.md` 与非 block 的 `plan-critic` verdict，`EXECUTING` 依赖非空 `currentTask`。",
+    "Task 2 已形成 task-level 证据闭环：validation 中记录了 RED、GREEN 与 repo-level verify 结果，smoke 覆盖了 draft tasks 与 missing currentTask 两条核心负路径。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md:48-85 定义了 Task 2 的目标文件、Consumes/Produces，以及 `red`/`green`/`verify`/`task review` 顺序。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:33-38,95-100 记录了 `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-task-state-smoke.mjs red`、`green`、以及 `green && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json` 的结果，并给出 Task 2 完成结论。",
+    "/home/wula/IdeaProjects/sdd/.claude/rules/00-workflow.md:93-96 与 /home/wula/IdeaProjects/sdd/harness/specs/artifact-lifecycle.md:39-43 已把 `tasks.md` draft 禁止进入 `TASKED`、以及 `EXECUTING` 必须绑定 `currentTask` 的规则冻结到长期规范。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/checks.mjs:194-215 机械校验了 `TASKED/EXECUTING` 所需的 `tasks.md` header、`reviews/plan-critic.json`、以及非空 `currentTask`；/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lifecycle.mjs:59-77 在运行时阻止无 `currentTask` 进入 `EXECUTING`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-task-state-smoke.mjs:112-187 构造了 `TASKED + draft tasks` 与 `EXECUTING + missing currentTask` 两个 fixture，并断言 verify 必须报错；fixture 入口位于 /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/task-gate-draft-tasks/tasks.md:1-7。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

@@ -1,0 +1,16 @@
+{
+  "changeId": "session-lifecycle-progress",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "此前的计划阻断项已消除：tasks 已明确标成 draft plan、进入正式 Tasks 的前置条件清楚，且所有 RED/GREEN/verify 命令都已自包含地切到 repo root。",
+    "status、SessionStart、contract wiring、Stop handoff 已拆成四个可独立理解的任务，RED → GREEN → REFACTOR 与定向验证路径足以让下游无需猜测即可执行。",
+    "可作为正式 plan 的剩余建议只是弱提示：首次执行 Task 1 时先创建 runtime/test 与 fixtures 目录，且 Task 2-4 默认依赖 Task 1 产出的 PROGRESS.md、session-lifecycle.md 与 status-summary 契约。"
+  ],
+  "evidence": [
+    "tasks.md 已显式给出四个独立任务、repo-root 自包含命令、status/package/manifest wiring、doctor/verify/full-verify/Stop block 语义的独立 smoke 路径。",
+    "design.md 已把 status 契约、handoff routing 与 smoke 策略冻结为可执行的 plan 前置约束。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-15"
+}

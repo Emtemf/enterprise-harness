@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "changeId": "java-golden-quality-gates",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "reference-service",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "reference-service architecture tests existing test classes controller integration repository integration domain policy vertical slices and package layering"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "usable-via-cli",
+      "libraries": [
+        {
+          "name": "ArchUnit",
+          "resolvedLibraryId": "/tng/archunit",
+          "version": "docs-current",
+          "query": "junit 5 layeredArchitecture package rules example"
+        },
+        {
+          "name": "JaCoCo",
+          "resolvedLibraryId": "/websites/jacoco_jacoco_trunk_doc",
+          "version": "docs-current",
+          "query": "maven check rule minimum line coverage verify phase example"
+        }
+      ]
+    }
+  },
+  "decisions": [
+    "issue #12 当前先收窄为 ArchUnit + JaCoCo + 本地验证说明，不展开真实 HTTP E2E。",
+    "第一版 ArchUnit 先做最关键依赖方向，而不是一次性铺满所有层规则。",
+    "第一版 JaCoCo 接入 Maven verify，并优先保持 85% 目标与 reference sample 的有效业务包对齐。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-16"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-16"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-tdd"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "cc0079491d81b648a4a95bbb81f492b9235f88271c526913a76c689cfd2eb403",
+    "validatedAt": "2026-07-16"
+  }
+}

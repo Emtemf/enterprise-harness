@@ -90,9 +90,11 @@ NOT_STARTED
 
 - clarify 未达标或用户未确认执行范围，不得进入 route/design/plan/TDD。
 - 未完成最小探索，不得宣布 final route。
-- design 未批准，不得进入 plan。
+- 未满足 design gate（至少包含 design artifact、非 block 的 design reviewer verdict，以及可消费的 design approval）时，不得进入 plan/TASKED。
+- `tasks.md` 仍为 draft 或缺少可消费的 `plan-critic` verdict 时，不得进入 `TASKED`。
+- `EXECUTING` 必须绑定非空 `currentTask`。
 - plan 未就绪，不得进入 implementation。
-- 未观察到有效 RED，不得修改生产源码。
+- 未观察到与当前 `currentTask` 对齐的 `RED_VERIFIED` 证据，不得修改生产源码或 OpenAPI。
 - reviewer 返回 block，不得进入下一阶段。
 - validation 证据过期或缺失，不得声称完成。
 

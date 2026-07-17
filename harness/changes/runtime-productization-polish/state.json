@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "changeId": "runtime-productization-polish",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "installer upgrade migration upstream-check local adapter schema doctor sync platform smoke workflow files runtime productization current commands and docs"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "#10 当前先收口 launcher/help/readiness/upstream-check 契约，不再重复 #13 已完成的窄子问题，也不把 #15 当作已完成的 machine-readable 前提。",
+    "verify 的 contract/readiness 分离优先通过 smoke 与输出契约收紧，而不是一口气重命名全部命令。",
+    "Context7 / launcher 的 argv 边界问题优先以 deterministic smoke 驱动收口。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "designReviewer": {
+      "reviewerId": "design-reviewer",
+      "verdict": "advisory",
+      "reviewedAt": "2026-07-16"
+    },
+    "requirementReviewer": {
+      "reviewerId": "requirement-reviewer",
+      "verdict": "pass",
+      "reviewedAt": "2026-07-16"
+    },
+    "planCritic": {
+      "reviewerId": "plan-critic",
+      "verdict": "advisory",
+      "reviewedAt": "2026-07-16"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "archive",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "c914cafcbb89199a0bd0a8d14a5d7e7dd0abb8f053cf5f4fc3088f3361189871",
+    "validatedAt": "2026-07-16"
+  }
+}

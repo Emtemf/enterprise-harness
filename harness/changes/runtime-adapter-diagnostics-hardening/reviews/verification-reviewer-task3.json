@@ -1,0 +1,51 @@
+{
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "Task 3 的完成声明现在有任务级新鲜证据支撑。",
+      "detail": "validation.md 已明确记录 Task 3 同一条 python 文档断言脚本的 RED 与 GREEN 两次执行；首次失败原因写明为 README 缺少 `doctor --json`，后续 GREEN 返回 `OK exact doc assertions passed`。"
+    },
+    {
+      "severity": "info",
+      "summary": "验证命令与 Task 3 声明匹配。",
+      "detail": "tasks.md 为 Task 3 预先固定了三个文档文件与精确 token 断言；当前 README.md、runtime README.md、validation.md 均已包含对应内容，因此证据能够支撑“docs / validation 已对齐”的 task-level 声明。"
+    },
+    {
+      "severity": "info",
+      "summary": "本结论仅支持 Task 3 task-level PASS，不等同于整个 change 已完成验证。",
+      "detail": "state.json 仍显示 `currentTask=Task 3`、`workflow.stage=tdd`；因此本次结论仅收口 Task 3 reviewer gate。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/tasks.md",
+      "lines": "91-117",
+      "note": "Task 3 明确要求用 python 脚本检查 README.md、runtime README.md、validation.md 的精确 token。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/validation.md",
+      "lines": "26-27,41-44,88-95,101-105",
+      "note": "记录 Task 3 的 RED/GREEN 命令与结果，并说明首次失败与后续修复后的通过情况。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "125-128",
+      "note": "已包含 `local adapter` 相关命令示例与 `doctor --json`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/README.md",
+      "lines": "9-14",
+      "note": "已包含 `field-level diagnostics`、`hard fail`、`warning`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/state.json",
+      "lines": "50-63",
+      "note": "machine-readable 状态显示当前聚焦 Task 3，validation 仍为 fresh，因此本 PASS 应限定为 task-level。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

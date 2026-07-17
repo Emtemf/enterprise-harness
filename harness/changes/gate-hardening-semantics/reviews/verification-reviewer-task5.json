@@ -1,0 +1,19 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "Task 5 的 task-level 完成声明现在与已记录证据匹配：`validation.md` 已明确记录 `red`、`green`、以及 `computeValidationDigest + verify --json`，且这些命令直接覆盖了“validation digest 由 runtime/verifier 计算”“digest mismatch 会使 verify 失败”“active change 写入会把 validation 标成 stale”三项核心声明。",
+    "当前 `state.json` 中的 `validation.status=stale` 已被最新 `validation.md` 明确解释为后续 change asset 写入触发的预期结果；在当前 wording 下，这只阻断 change-level 的最终完成声明，不再与 Task 5 的 task-level 完成声明相冲突。",
+    "Task 5 stated scope 内未见未解释的失败项、跳过项或额外 blocker；`tasks.md` 中尚未勾选的 `task review` 项就是本次 reviewer 输出本身，不构成额外范围内阻断。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md:160-193 定义了 Task 5 的 consumes/produces、RED/GREEN/verify 顺序，以及唯一待补的 task review 输出路径。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:58-63 记录了 Task 5 的 `red`、`green`、以及 `computeValidationDigest ... && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json` 命令与结果。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:91-95 将 Task 5 的验证结论落到 contract 级断言：runtime/verifier 计算 digest、fresh digest mismatch 触发 verify 失败、Post-write 把 validation 标成 `stale`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-validation-digest-smoke.mjs:131-165 在同一 smoke 中实际执行 `validated` lifecycle、变更 active change、运行 `verify`、再运行 `post-write`，并断言 caller-supplied digest 不被接受、digest mismatch 被 verify 报错、post-write 会把 validation 置为 `stale`。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/state.json:46-50 记录了当前仍处于 Task 5 且 `validation.status=stale`、`digest=null`、`validatedAt=null` 的现状，与 `/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:136-143` 的最新范围说明一致。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

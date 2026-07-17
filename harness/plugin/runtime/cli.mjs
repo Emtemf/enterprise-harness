@@ -1,7 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const [, , subcommand, ...rest] = process.argv;
+const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 const commands = {
   bootstrap: ['harness/plugin/runtime/bootstrap.mjs'],
@@ -37,8 +40,9 @@ if (!commands[subcommand]) {
   process.exit(1);
 }
 
-const child = spawnSync('node', [...commands[subcommand], ...rest], {
-  cwd: process.cwd(),
+const targetScript = path.join(repoRoot, ...commands[subcommand][0].split('/'));
+const child = spawnSync('node', [targetScript, ...rest], {
+  cwd: repoRoot,
   encoding: 'utf-8',
 });
 process.stdout.write(child.stdout || '');

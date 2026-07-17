@@ -24,6 +24,12 @@
   "decisions": [],
   "blockers": [],
   "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
   "currentTask": null,
   "workflow": {
     "stage": "clarify",

@@ -35,3 +35,15 @@ export function requiredGateForTarget(root, target) {
   }
   return null;
 }
+
+export function hasCurrentTaskRedVerification(state) {
+  const currentTask = typeof state?.currentTask === 'string' ? state.currentTask.trim() : '';
+  const gates = state?.gates || {};
+  return Boolean(
+    gates.redVerified
+    && currentTask
+    && gates.redTask === currentTask
+    && typeof gates.redEvidenceRef === 'string'
+    && gates.redEvidenceRef.trim().length > 0
+  );
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "changeId": "gate-hardening-semantics",
+  "tier": "L3",
+  "state": "EXECUTING",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-16"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-16"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true,
+    "redEvidenceRef": "legacy-global-red-proof"
+  },
+  "currentTask": "Task 4 smoke",
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  }
+}

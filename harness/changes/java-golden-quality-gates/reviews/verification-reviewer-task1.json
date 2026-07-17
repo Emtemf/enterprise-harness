@@ -1,0 +1,46 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "task1-completion-supported",
+      "status": "pass",
+      "detail": "Task 1 的完成声明现在有新鲜证据支撑：已记录可复现的 ArchUnit RED → GREEN → 定向验证链路，且当前源码确已从 ad-hoc architecture test 切换为可执行的 ArchUnit JUnit 5 测试。"
+    },
+    {
+      "id": "scope-boundary-explicit",
+      "status": "pass",
+      "detail": "当前验证没有把 Task 1 夸大成 #12 全部完成；JaCoCo、文档对齐、真实 HTTP E2E、OpenAPI parser 均被明确标记为 deferred 或 out of scope。"
+    },
+    {
+      "id": "machine-readable-gate-lag",
+      "status": "advisory",
+      "detail": "Task 1 完成后 currentTask 已切到 Task 2，因此 machine-readable red proof 已被重绑定到当前 Task 2；这不推翻 Task 1 的验证证据，但说明 red gate 是当前 task 消费模型，而不是历史任务永久证明。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md",
+      "lines": "26-39",
+      "note": "Task 1 的预期交付与验证路径已明确写成 checklist：RED 命令、GREEN 命令、`mvn test` 定向验证，以及本次 task review 输出路径。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/validation.md",
+      "lines": "17-26",
+      "note": "记录了实际执行命令与结果：先跑 `mvn verify` 基线；随后 `-Dtest=OrderCancellationPolicyArchitectureTest test` 先 RED（缺 `com.tngtech.archunit.*`），再 GREEN（`Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`），最后 `mvn test` 全量验证（`Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`）。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/pom.xml",
+      "lines": "61-66",
+      "note": "当前 `pom.xml` 已实际加入 `com.tngtech.archunit:archunit-junit5:1.4.2` 的 test scope 依赖。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/domain/OrderCancellationPolicyArchitectureTest.java",
+      "lines": "14-70",
+      "note": "当前测试类已是显式 JUnit 5 `@Test` + `ArchRule.check(...)` 形式，并使用 `DO_NOT_INCLUDE_TESTS` 导入生产类，只验证 Task 1 设计范围内的 3 条架构规则。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

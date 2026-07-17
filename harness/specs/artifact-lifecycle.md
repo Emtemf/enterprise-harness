@@ -37,8 +37,10 @@ DRAFT
 ## 关键门禁
 
 - 未完成最小探索，不得进入 final route
-- design 未批准，不得进入 plan
-- RED 未验证，不得修改生产源码
+- 未满足 design gate（design.md + design-reviewer 非 block verdict + 可消费的 design approval）时，不得进入 plan / TASKED
+- `tasks.md` 若仍为 draft header，或缺少可消费的 `plan-critic` verdict，不得进入 `TASKED`
+- `EXECUTING` 必须绑定非空 `currentTask`
+- 生产源码 / OpenAPI 写路径若缺少与当前 `currentTask` 对齐的 `RED_VERIFIED` 证据，不得放行
 - validation 缺失或 stale，不得声称完成
 - archive 后不得继续直接编辑原目录
 

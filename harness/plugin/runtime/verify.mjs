@@ -25,11 +25,27 @@ if (fs.existsSync(templateDir)) {
   }
 }
 
-const result = {
-  repoRoot: root,
+const contractChecks = {
   ok: problems.length === 0 && todoHits.length === 0,
   problems,
   todoHits,
+};
+
+const runtimeReadinessChecks = {
+  ok: false,
+  status: 'not-run',
+  guidance: [
+    'doctor --json',
+    'sync --json',
+    'upstream-check --json',
+  ],
+};
+
+const result = {
+  repoRoot: root,
+  ok: contractChecks.ok,
+  contractChecks,
+  runtimeReadinessChecks,
 };
 
 if (process.argv.includes('--json')) {
@@ -38,10 +54,11 @@ if (process.argv.includes('--json')) {
 }
 
 console.log('Enterprise Harness Verify');
-if (problems.length === 0 && todoHits.length === 0) {
-  console.log('OK contract and runtime checks passed.');
+if (contractChecks.ok) {
+  console.log('OK contract checks passed.');
 } else {
-  for (const p of problems) console.log(`FAIL ${p}`);
-  for (const t of todoHits) console.log(`FAIL template-placeholder ${t}`);
+  for (const p of contractChecks.problems) console.log(`FAIL ${p}`);
+  for (const t of contractChecks.todoHits) console.log(`FAIL template-placeholder ${t}`);
 }
+console.log('runtime readiness requires separate commands: doctor --json, sync --json, upstream-check --json');
 process.exit(result.ok ? 0 : 1);

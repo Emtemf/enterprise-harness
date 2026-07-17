@@ -1,0 +1,101 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "change-level-pass-supported",
+      "status": "pass",
+      "detail": "从验证证据角度看，issue #12 现在已具备 change-level PASS 与 closure 条件。Task 1/2/3 均已有 task-level `verification-reviewer` PASS，且 `validation.md` 记录了可复现的 RED → GREEN → 再验证命令链路。"
+    },
+    {
+      "id": "mechanical-gates-present-and-green",
+      "status": "pass",
+      "detail": "`reference-service` 当前已把 ArchUnit 与 JaCoCo 真正接入本地 Java quality gate：`pom.xml` 已存在 `archunit-junit5` 与 `jacoco-maven-plugin` wiring；最新测试产物显示 ArchUnit、unit test、repository integration test、controller integration test 均通过，JaCoCo 报告显示 bundle 级 `LINE missed=\"0\" covered=\"60\"`，足以支撑最终 `85%` 门槛。"
+    },
+    {
+      "id": "readme-cleanup-and-ci-guidance-supported",
+      "status": "pass",
+      "detail": "README cleanup 已被最新证据覆盖。`README.md` 与 `CONTRIBUTING.md` 现在明确把 `mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify` 定义为当前本地 Java quality gate，并声明后续 CI 应复用同一条 Maven verify 命令。Task 3 的精确文档断言脚本也已 RED 后转 GREEN。"
+    },
+    {
+      "id": "scope-boundary-explicit",
+      "status": "pass",
+      "detail": "验证记录没有夸大 issue #12 的完成范围。真实 HTTP E2E 与 OpenAPI parser gate 在 `validation.md` 中被明确标记为 out of scope / skipped，因此当前 PASS 只覆盖 ArchUnit、JaCoCo 与本地/后续 CI 接入说明。"
+    },
+    {
+      "id": "artifact-lag-nonblocking",
+      "status": "advisory",
+      "detail": "`validation.md` 的部分叙述性字段曾残留 refresh 前措辞，但更新后的 `state.json`、3 份 task review 与最新测试产物彼此一致，足以覆盖该文案滞后，不构成 blocking 缺口。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/state.json",
+      "lines": "63-76",
+      "note": "latest state refresh 已显示 `workflow.stage: verify`、`tddStatus: refactor-verified`、`validation.status: fresh`、`validatedAt: 2026-07-16`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/validation.md",
+      "lines": "17-41,45-47,48-59,60-77,83-113",
+      "note": "记录了 ArchUnit targeted test、JaCoCo `mvn verify` 的 RED/GREEN、Task 3 精确文档断言脚本的 RED/GREEN、README cleanup 后再次运行 `mvn verify` 通过，以及真实 HTTP E2E/OpenAPI parser 不在本 issue 当前范围内。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/reviews/verification-reviewer-task1.json",
+      "lines": "1-46",
+      "note": "Task 1 已有 PASS：ArchUnit completion supported。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/reviews/verification-reviewer-task2.json",
+      "lines": "1-80",
+      "note": "Task 2 已有 PASS：JaCoCo RED/GREEN、coverage gate 与 supporting tests 均被确认。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/reviews/verification-reviewer-task3.json",
+      "lines": "1-56",
+      "note": "Task 3 已有 PASS：README/CONTRIBUTING/validation 对齐与 README cleanup 有直接证据。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/pom.xml",
+      "lines": "61-131",
+      "note": "当前源码已实际接入 `com.tngtech.archunit:archunit-junit5:1.4.2` 与 `org.jacoco:jacoco-maven-plugin:0.8.12`，并在 `verify` phase 执行 `report`/`check`，coverage rule 固定为 `BUNDLE + LINE + 85%`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.domain.OrderCancellationPolicyArchitectureTest.txt",
+      "lines": "1-4",
+      "note": "ArchUnit 测试当前结果为 `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.infrastructure.persistence.JpaOrderRepositoryIntegrationTest.txt",
+      "lines": "1-4",
+      "note": "repository integration test 当前结果为 `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.interfaces.api.OrderCancellationControllerIntegrationTest.txt",
+      "lines": "1-4",
+      "note": "controller integration test 当前结果为 `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/surefire-reports/com.example.orders.application.OrderCancellationServiceTest.txt",
+      "lines": "1-4",
+      "note": "unit test 当前结果为 `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/target/site/jacoco/jacoco.xml",
+      "lines": "1-1",
+      "note": "JaCoCo 最新 bundle 汇总为 `LINE missed=\"0\" covered=\"60\"`，说明当前纳入统计范围满足最终 85% line gate。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "281-291",
+      "note": "README 已明确 `当前本地 Java quality gate 命令：mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify`，并写明 repo-level verify/full-verify 不是 `reference-service` 的 Java quality gate，后续 CI 应复用同一命令。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/CONTRIBUTING.md",
+      "lines": "85-100",
+      "note": "CONTRIBUTING 已明确 `full-verify.sh` 不是 Java quality gate，`reference-service` 需单独运行 Maven verify，且后续 CI 复用同一条命令。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

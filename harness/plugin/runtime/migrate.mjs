@@ -2,6 +2,15 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { readLocalAdapter } from './lib/local-adapter.mjs';
 
+const help = process.argv.includes('--help') || process.argv.includes('-h');
+
+if (help) {
+  console.log('Enterprise Harness Migrate');
+  console.log('Usage: node harness/plugin/runtime/migrate.mjs [--write]');
+  console.log('Checks the local adapter schema and optionally rewrites missing fields from the example file.');
+  process.exit(0);
+}
+
 const localAdapter = readLocalAdapter();
 console.log('Enterprise Harness Migrate');
 if (!localAdapter.exists) {

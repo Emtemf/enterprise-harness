@@ -1,0 +1,49 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "minor",
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/state.json",
+      "detail": "change-level 状态仍写 `validation.status: stale`，且 `currentTask` / `workflow.stage` 仍停留在 Task 2 / `tdd`；这说明 machine-readable change 收口尚未刷新，但不推翻 Task 2 已具备的新鲜 task-level 验证证据。"
+    },
+    {
+      "severity": "minor",
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "detail": "`Review Verdicts` 段仍写 Task 2 `pending rerun`，与当前已补齐的 RED/GREEN + `mvn verify` 证据不一致；建议后续同步刷新文档结论。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "detail": "已记录 Task 2 的定向 RED 命令 `mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml -Dtest=OrderCancellationOpenApiSemanticTest test`；失败点明确为 live docs 缺失 owned YAML 要求的 `CancelOrderRequest.reason.description` 语义。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "detail": "同一文件已记录 Task 2 的 GREEN：在补齐 `@Schema` 元数据、required 字段元数据并做 regex 表示归一化后，`OrderCancellationOpenApiSemanticTest` 达到 `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/validation.md",
+      "detail": "已记录后续新鲜全量验证 `mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify` 通过，结果为 `Tests run: 14, Failures: 0, Errors: 0, Skipped: 0`，且 JaCoCo `check` 通过，可支撑 Task 2 改动未破坏整体构建与测试门禁。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/test/java/com/example/orders/interfaces/api/OrderCancellationOpenApiSemanticTest.java",
+      "detail": "测试直接对比 owned YAML 与 live `/v3/api-docs` 的 `/api/orders/{orderId}/cancel` 关键语义，覆盖 `operationId`、request schema `$ref`、`200/400/404/409` response description 与 schema、`reason` 的 `description/pattern/minLength`、以及 `CancelOrderResponse` 与 `ApiErrorResponse` 的 required 字段。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/CancelOrderRequest.java",
+      "detail": "`CancelOrderRequest.reason` 已显式声明 `@Schema(description = \"Must contain at least one non-whitespace character.\", minLength = 1, pattern = \".*\\\\S.*\")`，与 owned YAML 的 non-blank 语义对齐。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/CancelOrderResponse.java",
+      "detail": "`CancelOrderResponse` 三个字段均标注 `@Schema(requiredMode = Schema.RequiredMode.REQUIRED)`；与 `order-service.yaml` 中 required 列表 `orderId/status/reason` 对齐。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/ApiErrorResponse.java",
+      "detail": "`ApiErrorResponse.error` 已标注 `@Schema(requiredMode = Schema.RequiredMode.REQUIRED)`；与 `order-service.yaml` 中 required 列表 `error` 对齐。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

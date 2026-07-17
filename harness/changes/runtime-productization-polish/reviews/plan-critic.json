@@ -1,0 +1,25 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "plan-critic",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "advisory",
+      "summary": "当前 on-disk plan 已不存在真实执行 blocker。",
+      "detail": "tasks.md 已把范围、冻结决策、文件路径、fixture、assertion matrix、RED/GREEN/REFACTOR/verify 命令、review 输出路径全部写实；三项任务在 gate 放行后可直接执行。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/tasks.md",
+      "lines": "11-180",
+      "note": "plan freeze、fixture、assertion matrix 与命令路径已冻结，且 stable spec landing 唯一指向 harness/specs/runtime-contract.md。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/runtime-contract.md",
+      "lines": "36-140",
+      "note": "稳定 spec 已冻结 .bootstrap-ran state-invariant、verify/readiness contract、upstream mismatch、argv oracle 与 docs oracle。"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

@@ -1,0 +1,21 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md` 已把 3 个 task 的目标、绝对路径、consumes/produces、RED/GREEN/REFACTOR 与验证命令写清，弱执行者可按步骤推进。",
+    "Task 3 现已从模糊的“文档对齐”收敛为可执行的精确断言与对应 RED/GREEN 命令，验证不再依赖主观判断。",
+    "Task 1 与 Task 2 的 RED 证据路径都是确定性的：Task 1 先制造 ArchUnit 缺依赖失败，Task 2 先用 100% threshold 触发 `jacoco:check` 失败；随后再进入 GREEN，符合计划门禁要求。",
+    "对应 design 已冻结 ArchUnit 边界、JaCoCo 规则与 excludes，避免执行时再猜 scope 或临时改语义。"
+  ],
+  "evidence": [
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md:11-39` 明确 Task 1 文件、RED 命令、预期失败类型、GREEN/验证/review 输出路径。",
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md:41-73` 明确 Task 2 文件、固定 coverage 语义（BUNDLE / LINE / 85% + excludes）、RED 命令与预期 `jacoco:check` 失败。",
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md:75-111` 明确 Task 3 精确文档断言、完整 Python RED/GREEN 检查命令、验证命令与 review 输出路径。",
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/design.md:23-66` 冻结 ArchUnit 第一版边界、repository port / mapper 责任、JaCoCo 门禁命令、指标、检查元素与 excludes。",
+    "`/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/design.md:95-111` 显式给出 Task 1/2/3 的测试策略与 acceptance 断言。",
+    "已核对计划引用的关键路径真实存在：`/home/wula/IdeaProjects/sdd/CONTRIBUTING.md`、`/home/wula/IdeaProjects/sdd/reference-service/pom.xml` 及 3 个指定测试文件均存在。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

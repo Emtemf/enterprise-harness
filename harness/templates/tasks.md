@@ -1,10 +1,13 @@
-# Tasks
+# Draft Tasks (Pending Design Approval)
 
 Status: draft-plan
+
+> 当 design 已批准、`tasks.md` 被正式消费为 plan/task artifact，且 `plan-critic` verdict 非 `block` 后，再改为 `# Tasks`。
 
 ## Preconditions
 - clarify-ready:
 - design-approved:
+- plan-critic verdict:
 - current active change:
 
 ### Task 1: <任务名>

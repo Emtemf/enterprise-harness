@@ -1,0 +1,25 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 routing / scope / tier 已可接受。",
+      "detail": "owning scope 保持在 runtime productization / launcher / readiness / verification / cross-platform contract；machine-readable source 已不再把 #15 当作 completed truth；L3 路由合理。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/change.md",
+      "lines": "33-76",
+      "note": "change 资产已固定 owning scope、L3 tier 与不把 #15 当作 machine-readable completed truth 的表述。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/state.json",
+      "lines": "1-29",
+      "note": "machine-readable SoT 已声明 architecture/rule=yes，并在 decisions 中移除了 #15 completed truth 前提。"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

@@ -1,0 +1,60 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "设计已把 requirement alignment 与 owning scope 收敛清楚：本轮限定为 `reference-service` 的 real HTTP E2E、service-scoped OpenAPI semantic validation 与 quality-profile 文档澄清，没有再把范围扩回 shared runtime verifier 或平台级 rule 变更。"
+    },
+    {
+      "severity": "info",
+      "summary": "API/data/architecture 影响已明确。设计清楚声明 `impact.api = yes` 但仅允许文档语义对齐修复，不允许新增 endpoint、变更 path/method、或改变 request/response/error 的外部可观察契约；同时明确 `data = no`。"
+    },
+    {
+      "severity": "info",
+      "summary": "受影响层、repository port 与 mapper 责任已说明且边界清晰：`interfaces` 仅处理 controller/OpenAPI/Req/Rsp 语义，`application`/`domain` 不扩业务语义，`domain.repository.OrderRepository` 保持 inward port，三层 mapper 职责与 `*MapperImpl` generated artifact 边界均已明确。"
+    },
+    {
+      "severity": "info",
+      "summary": "stronger OpenAPI validation 现已正确限定为 service-scoped 设计，不再要求改共享 `harness/plugin/runtime/lib/checks.mjs`；并把 semantic assertion 收敛到 cancel-order 的 path/method/operationId/schema/error contract 等关键语义，能支持后续测试与验证。"
+    },
+    {
+      "severity": "info",
+      "summary": "框架文档证据已补齐且版本事实可追溯：Spring Boot random-port HTTP E2E 路径与 springdoc live `/v3/api-docs` 能力都有明确的依赖版本、查询内容和结论，足以支撑设计假设。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "设计本身已可进入 plan，但后续计划需要把 Task 1 的 RED 路径继续做成 deterministic 行为断言，而不是主要依赖“当前缺少新测试类”这一资产层失败信号。这个问题更偏 plan/TDD 执行，不构成当前设计阻断。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/design.md",
+      "lines": "5-16, 34-56, 70-80",
+      "note": "设计明确 issue #9 的目标、API 兼容性边界，以及 service-scoped semantic validation 不再触碰 shared runtime verifier。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/design.md",
+      "lines": "57-68, 82-109, 141-168",
+      "note": "设计列出受影响层、repository port/mapper 责任、固定 semantic assertion 范围，以及 testing strategy、risks、rollout/rollback。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/state.json",
+      "lines": "7-12, 21-44, 60-67",
+      "note": "state 明确 impact 矩阵、文档工具证据、关键决策，以及当前 workflow 仍处于 design 阶段。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/evidence/tooling.md",
+      "lines": "15-49",
+      "note": "Tooling evidence 记录了 Spring Boot 3.5.0 / docs v3.5.3 与 springdoc 2.8.9 的查询、结论与适用范围。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/openapi/order-service.yaml",
+      "lines": "5-79",
+      "note": "现有 owned contract 已提供设计所需的 semantic assertion 锚点，包括 cancel-order path/post、request schema、response schema 与 400/404/409 error schema。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

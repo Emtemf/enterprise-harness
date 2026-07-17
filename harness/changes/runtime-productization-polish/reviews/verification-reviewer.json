@@ -1,0 +1,70 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 change-level 完成声明已有新鲜证据支撑。",
+      "detail": "Task 1/Task 2/Task 3 的 task-level verification 均为 pass，且 fresh `verify` / `doctor --json` / `sync --json` / `upstream-check --json` 结果与 runtime-contract 中冻结的 contract/readiness 分离语义一致。"
+    },
+    {
+      "severity": "info",
+      "summary": "verify/readiness separation 与 upstream-check mismatch contract 已形成闭环。",
+      "detail": "`verify` 现在只声明 contract checks，并通过 `runtimeReadinessChecks.status=not-run` + guidance 显式要求另行运行 doctor/sync/upstream-check；`upstream-check` 已对 runtime-upstream 提供 validated-version-match / mismatch 语义，对 reference-upstream 保持 manual-review。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前 PASS 只覆盖 issue #10 的窄范围：launcher/help/readiness/upstream-check/runtime docs contract。",
+      "detail": "它不外推为更广泛的 distribution/productization 主线全部完成，但足以支撑本 change 收口与 close。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/reviews/verification-reviewer-task1.json",
+      "lines": "1-78",
+      "note": "Task 1 已有 PASS：help / usage / no-side-effect contract。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/reviews/verification-reviewer-task2.json",
+      "lines": "1-63",
+      "note": "Task 2 已有 PASS：launcher / external-cwd / argv boundary。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/reviews/verification-reviewer-task3.json",
+      "lines": "1-59",
+      "note": "Task 3 已有 PASS：verify/readiness separation、upstream-check mismatch、docs contract。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/validation.md",
+      "lines": "1-200",
+      "note": "validation 已记录三项任务的 RED/GREEN/VERIFY 证据与当前 close-ready 结论。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify",
+      "note": "通过；human output 为 contract-only success，并明确提示 runtime readiness 需另行运行 doctor/sync/upstream-check。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json",
+      "note": "通过；`ok=true`，`runtimeReadinessChecks.status=not-run`，符合稳定 spec。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs doctor --json",
+      "note": "通过；`ok=true`，`failedCount=0`，仅保留 Context7 runtime warn。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs sync --json",
+      "note": "通过；`ok=true`，仅保留 `context7-env` warn。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs upstream-check --json",
+      "note": "通过；CodeGraph/Context7 为 `validated-version-match`，reference-upstream 为 `manual-review`。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/runtime-contract.md",
+      "lines": "47-140",
+      "note": "稳定规范已冻结 verify/readiness 分离、upstream-check 语义与 docs oracle。"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

@@ -1,0 +1,16 @@
+{
+  "changeId": "session-lifecycle-progress",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "truth priority、durable handoff routing、status --json 稳定契约与 smoke 策略之间已经形成闭环。",
+    "Recommended Stop Handoff Contract 已足够可执行：active change 资产、PROGRESS.md、显式 Claude memory 与聊天记录四者的优先顺序和使用条件都已明确。",
+    "当前 design 已足以支持后续正式 plan 与 implementation，不再存在需要在 design approval 前修复的设计级 blocker 或 advisory。"
+  ],
+  "evidence": [
+    "design.md 已明确三层真相边界、durable handoff 分流规则、status --json 顶层字段与人类可读标题集合。",
+    "tasks.md 与 design 的四块能力切分保持一致，且保留了 design approval 前不得直接执行的门禁语义。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-15"
+}

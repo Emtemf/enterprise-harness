@@ -1,0 +1,15 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "当前 revised design 已把 design gate、plan/task gate、reviewer applicability、以及 verify/pre-write/stop 的职责边界收敛为可实现决策。",
+    "允许进入 DESIGN_APPROVED / 正式 plan 收敛阶段，但仍不应直接跳到 EXECUTING。"
+  ],
+  "evidence": [
+    "design.md 已明确不新增 planApproved gate key，并以 TASKED 作为 plan/task 可消费状态。",
+    "gate-state-contract.md 已明确 blocking reviewer 缺失规则、api-consistency-reviewer 的不适用语义、以及 pre-write 对 state>=TASKED 的 deferred 处理。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-14"
+}

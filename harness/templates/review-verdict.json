@@ -2,8 +2,12 @@
   "changeId": "<change-id>",
   "reviewerId": "<reviewer-id>",
   "verdict": "advisory",
-  "findings": [],
-  "evidence": [],
+  "findings": [
+    "<finding>"
+  ],
+  "evidence": [
+    "<evidence>"
+  ],
   "digest": null,
-  "reviewedAt": null
+  "reviewedAt": "<YYYY-MM-DD>"
 }

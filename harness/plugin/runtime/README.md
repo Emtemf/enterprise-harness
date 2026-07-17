@@ -9,6 +9,9 @@
 - `doctor.mjs`：最小自检入口
 - `bootstrap.mjs`：最小初始化入口
 - `manifest.json`：运行层声明
+- field-level diagnostics：adapter problems 以结构化字段输出
+- hard fail / warning：区分 machine-local adapter 的硬错误与可降级提示
+- runtime readiness 不由 verify 单独背书。
 
 ## 原则
 

@@ -1,0 +1,62 @@
+{
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "issue #13 在当前 change assets 中已被合理收敛为 #10 的窄子集：只处理 `harness/plugin/runtime/` 内的 local adapter schema 与 first-run diagnostics，不扩到 package/distribution、release smoke、跨平台真机验证或更大范围的 runtime productization。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前按 `L2` 路由基本合理。该变更会收紧 machine-local adapter contract，并改变 `setup-local-adapter`、`doctor`、`sync` 的诊断行为，但仍局限于单一 runtime 子系统，没有 API/data 变化，也没有明显跨服务 scope explosion；与仓库规则中的 `L3` 平台级/跨模块高风险范围相比更窄。"
+    },
+    {
+      "severity": "medium",
+      "summary": "仍有一个会影响后续实现边界的路径决策未完全落死：需求文字多次写到 `install/installer diagnostics`，但 design/tasks 只明确拆分了 `setup-local-adapter`、`doctor`、`sync` 的职责，未说明顶层 `install` 命令是仅透传 `setup-local-adapter` 结果，还是也要新增独立诊断输出。建议在继续执行前补一句明确范围，避免 file scope 漂移。"
+    },
+    {
+      "severity": "medium",
+      "summary": "叙述性路由已较清楚，但 machine-readable 真相尚未同步：`state.json` 仍停留在 `clarify`，且 `clarifyReady=false`、`userConfirmedScope=false`、`decisions=[]`。这不否定当前路由判断，但会影响下游按仓库 gate 读取正式状态。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/change.md",
+      "lines": "5-7, 21-26, 28-39, 48-52, 63-70, 77-79",
+      "note": "change 明确把 issue #13 定义为 local adapter schema + diagnostics tightening，排除了 Java sample、release-local/source-external smoke、runtime layer rewrite 与新发布机制，并直接写明“issue #13 是 #10 的窄子集”。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/design.md",
+      "lines": "5-8, 21-27, 29-55, 56-67, 92-95",
+      "note": "design 将方案收敛为保持 `schemaVersion=1`、区分 hard/soft required、拆分 `setup-local-adapter`/`doctor`/`sync` 诊断职责，并明确更大的 release-local / source-external smoke 与 broader productization 属于 #15 / #10。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/evidence/open-issues-matrix.md",
+      "lines": "34-47, 54-65",
+      "note": "issue 矩阵把 #10 定义为更广的 runtime productization（installer、adapter schema、cross-platform verification、packaging），把 #13 定义为 local adapter stronger execution/recovery contract，支持“#13 是 #10 的窄子集”这一判断。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/README.md",
+      "lines": "390-396",
+      "note": "README 的 Iteration 3 把 #10/#13/#15 放在同一 runtime/distribution productization 主线下，并列出更完整 installer、upgrade/migration、release smoke、平台验证等更大范围事项，说明当前 change 只截取了其中较窄的一段。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude/rules/00-workflow.md",
+      "lines": "79-87",
+      "note": "规则定义显示 `L2` 需走 design/plan/TDD/verification；`L3` 主要针对架构边界、平台规则、跨模块/跨服务高风险变化。当前收敛后的 runtime 子系统范围更贴近 L2，而不是明显的 L3 scope explosion。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/tasks.md",
+      "lines": "41-47, 53-69",
+      "note": "任务层面只把 `setup-local-adapter.mjs`、`doctor.mjs`、`sync.mjs` 列为改动文件，没有把顶层 `install` 入口单独纳入，暴露出“installer diagnostics”是否包含 install 命令本身的边界仍需补一句说明。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/state.json",
+      "lines": "4-6, 24-25, 34-40, 42-45",
+      "note": "`state.json` 已记录 `tier=L2`，但仍保留 `clarify` 阶段、`clarifyReady=false`、`userConfirmedScope=false`、`decisions=[]`，说明 machine-readable 状态尚未完全同步到叙述性 route 结论。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

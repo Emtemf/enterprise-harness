@@ -1,7 +1,16 @@
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
+const help = process.argv.includes('--help') || process.argv.includes('-h');
 const repoRoot = process.cwd();
+
+if (help) {
+  console.log('Enterprise Harness Install');
+  console.log('Usage: node harness/plugin/runtime/install.mjs [--write-local-adapter]');
+  console.log('Bootstraps the repo runtime and optionally writes the local adapter file.');
+  process.exit(0);
+}
+
 console.log('Enterprise Harness Install');
 console.log(`Repo: ${repoRoot}`);
 

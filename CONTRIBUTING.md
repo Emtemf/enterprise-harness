@@ -91,11 +91,17 @@ bash hooks/validate-spec-structure.sh
 bash hooks/full-verify.sh
 ```
 
-如果改动了 `reference-service/`，建议额外执行：
+当前 repo-level full-verify.sh 仍不是 Java quality gate；reference-service 应单独运行 Maven verify。
+后续 CI should reuse the same Maven verify command，而不是重新定义另一套绿灯含义。
+later CI should reuse the same Maven verify command.
+
+如果改动了 `reference-service/`，当前建议执行：
 
 ```bash
-mvn -f reference-service/pom.xml test
+mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify
 ```
+
+同时请明确：generated `*MapperImpl` are build artifacts，而不是 hand-authored quality profile 的主要设计面。
 
 如果改动了 portable runtime，建议额外执行：
 

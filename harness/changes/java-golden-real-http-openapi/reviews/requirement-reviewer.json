@@ -1,0 +1,52 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "本次 change 已收敛为 `reference-service` 样板增强：核心范围是 random-port real HTTP E2E、service-scoped OpenAPI semantic assertion，以及配套 docs/validation evidence；不再把共享 runtime verifier 或平台规则改造混入当前范围。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前 owner、module 与 domain 归属已明确，`state.json` 也把 owner 固定为 `reference-service`，因此该需求现在更符合 L2 的 sample-scoped API/OpenAPI/verification change，而不是 L3 的 shared runtime/platform change。"
+    },
+    {
+      "severity": "info",
+      "summary": "API 兼容性边界已足够明确：允许补充 OpenAPI/Swagger annotations、schema metadata 与文档语义对齐；不允许新增 endpoint、改变 path/method，或引入 request/response/error 的外部可观察契约变化。现有描述已能约束后续实现路径与调用方影响。"
+    },
+    {
+      "severity": "info",
+      "summary": "repo 级 README/CONTRIBUTING 变更当前被限定为说明性 supporting assets，没有把 change 扩成跨服务 scope explosion；后续仍需分别通过 design/plan/TDD/verification gate。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/change.md",
+      "lines": "26-38, 40-58, 67-77, 83-85",
+      "note": "非目标已排除 runtime/installer/release productization 与 repo-wide runtime verifier 泛化；最终路由明确为 L2，owner scope 为 `reference-service real-http/openapi quality profile`，并写明仅允许文档语义对齐、不允许对外可观察 API 契约变化。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/design.md",
+      "lines": "40-49, 50-55, 63-74, 75-87",
+      "note": "设计显式定义 API 兼容性边界、受影响层、以及“service-scoped semantic validation 而不是修改共享 runtime verifier”的方案；固定语义断言范围也已限定在 cancel-order 相关字段。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/tasks.md",
+      "lines": "11-29, 46-64, 81-95",
+      "note": "任务已围绕 `reference-service` 测试、owned YAML 与文档资产展开，不再要求改共享 `harness/plugin/runtime/*` verifier 路径；repo 级变更仅剩说明性文档与 validation evidence。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/state.json",
+      "lines": "3-12, 39-44, 54-60",
+      "note": "machine-readable 状态已固定 `tier=L2`、`owner=reference-service`，并记录“保留 MockMvc、改为 service-scoped semantic validation、不允许引入对外可观察 API 契约变化”等关键决策。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude/rules/00-workflow.md",
+      "lines": "79-87",
+      "note": "规则定义显示 L2 覆盖 OpenAPI/API 变化；L3 主要针对架构边界、平台规则、跨模块/跨服务高风险变化。当前收敛后的范围与 L2 匹配。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

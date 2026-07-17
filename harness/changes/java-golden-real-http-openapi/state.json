@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "changeId": "java-golden-real-http-openapi",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "reference-service",
+  "impact": {
+    "api": "yes",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "reference-service real HTTP E2E current test setup OpenAPI contract ownership controller yaml parser possibilities random port testing current Spring Boot tests"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "usable-via-cli",
+      "libraries": [
+        {
+          "name": "Spring Boot",
+          "resolvedLibraryId": "/spring-projects/spring-boot",
+          "version": "project dependency 3.5.0 / docs queried v3.5.3",
+          "query": "@SpringBootTest webEnvironment RANDOM_PORT TestRestTemplate"
+        },
+        {
+          "name": "springdoc-openapi",
+          "resolvedLibraryId": "/springdoc/springdoc-openapi",
+          "version": "project dependency 2.8.9",
+          "query": "OpenAPI responses schema operationId annotations /v3/api-docs"
+        }
+      ]
+    }
+  },
+  "decisions": [
+    "保留现有 MockMvc integration，并新增独立 random-port HTTP E2E，而不是直接替换。",
+    "OpenAPI semantic validation 第一版保持 service-scoped，不在本轮泛化成共享 runtime verifier 平台能力。",
+    "MapStruct generated `*MapperImpl` 继续视为 build artifacts，而不是 hand-authored quality-profile 主体。",
+    "本轮若调整 controller / Req / Rsp / error DTO，只允许做文档语义对齐修复，不允许引入对外可观察 API 契约变化。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "requirement": {
+      "status": "pass",
+      "reviewerId": "requirement-reviewer",
+      "reviewedAt": "2026-07-16"
+    },
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-16"
+    },
+    "plan": {
+      "status": "advisory",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-16"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "archive",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "2836aba1a56735b53760d217ebcfc1bdf6ab4088c4c61ee4f3ef67f8cdbe127c",
+    "validatedAt": "2026-07-16"
+  }
+}

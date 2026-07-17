@@ -1,0 +1,38 @@
+{
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "diagnostics-contract-now-defined",
+      "severity": "info",
+      "summary": "设计已补齐最小结构化 diagnostics contract，可支撑后续 plan 与测试落地。",
+      "detail": "design 明确冻结 problem 字段 `path/code/severity/message/nextAction/source`，并要求 `validateLocalAdapterData()`、`readLocalAdapter()`、`doctor --json`、`sync --json` 围绕同一结构输出，已消除上一轮关于 contract 缺失的核心阻塞。"
+    },
+    {
+      "id": "failure-paths-explicitly-covered",
+      "severity": "info",
+      "summary": "malformed JSON 与 IO failure 已被显式纳入统一诊断面。",
+      "detail": "design 已把文件不存在、损坏 JSON、读取失败/权限或 IO 异常、字段缺失/类型错误列为必须覆盖的失败路径，并要求进入统一 diagnostics contract，而不是崩溃退出。"
+    },
+    {
+      "id": "install-scope-and-issue-boundary-are-clear",
+      "severity": "info",
+      "summary": "`install.mjs` 范围已澄清，且设计仍保持在 issue #13 的窄范围内。",
+      "detail": "design 明确 `install.mjs` 本轮只透传 `setup-local-adapter.mjs` 的收紧结果，不新增独立 diagnostics contract；同时显式排除 `release-local` / `source-external smoke` 与更大的 runtime productization，符合 issue #13 收窄后的边界。"
+    },
+    {
+      "id": "testing-and-impact-statements-are-adequate",
+      "severity": "info",
+      "summary": "API/data/architecture 影响、Java 规则适用性与测试策略说明已足以进入 plan。",
+      "detail": "state.json 已明确 `api=no`、`data=no`、`architecture=yes`、`rule=yes`；design 也显式标注 Java architecture rules 为 N/A，并把 validator/schema、setup/doctor/sync、docs/validation 分成可执行的测试任务。"
+    }
+  ],
+  "evidence": [
+    {"path":"/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/design.md","lines":"48-62","note":"定义最小结构化 diagnostics contract，并要求 validator/read/doctor/sync 统一消费与输出。"},
+    {"path":"/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/design.md","lines":"63-77","note":"澄清 setup/doctor/sync/install 职责，并显式覆盖 malformed JSON、文件不存在与 IO failure。"},
+    {"path":"/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/design.md","lines":"5-9,67-80,82-85,100-115","note":"说明 issue #13 范围、install scope、排除项、Java 规则适用性与测试策略。"}
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

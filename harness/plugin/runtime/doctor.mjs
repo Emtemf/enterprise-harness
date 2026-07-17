@@ -84,14 +84,16 @@ checks.push({
 });
 
 const localAdapter = readLocalAdapter();
+const localAdapterHasError = localAdapter.problems.some((problem) => problem.severity === 'error');
 checks.push({
   kind: 'local-adapter',
   name: 'local-adapter',
-  ok: localAdapter.exists && localAdapter.errors.length === 0,
-  severity: localAdapter.exists ? (localAdapter.errors.length === 0 ? 'info' : 'warn') : 'warn',
+  ok: localAdapter.exists ? !localAdapterHasError : true,
+  severity: localAdapter.exists ? (localAdapterHasError ? 'warn' : 'info') : 'warn',
   detail: localAdapter.exists
-    ? `${localAdapter.path}${localAdapter.errors.length ? ` | ${localAdapter.errors.join('; ')}` : ''}`
+    ? `${localAdapter.path}${localAdapter.problems.length ? ` | ${localAdapter.problems.map((problem) => `${problem.path}:${problem.code}`).join('; ')}` : ''}`
     : `未找到本机 adapter，建议位置：${resolveLocalAdapterPath()}`,
+  problems: localAdapter.problems,
 });
 
 const activeChangePath = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');

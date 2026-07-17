@@ -13,12 +13,14 @@ if (raw) {
     const filePath = event.tool_input?.file_path || event.tool_input?.path;
     if (filePath) {
       const target = path.resolve(filePath);
-      if (isGovernedTarget(root, target)) {
-        const active = loadActiveChange(root);
-        if (active.ok && active.data.validation) {
-          active.data.validation.status = 'stale';
-          fs.writeFileSync(active.statePath, JSON.stringify(active.data, null, 2) + '\n', 'utf-8');
-        }
+      const active = loadActiveChange(root);
+      const activeChangeDir = active.ok ? path.resolve(path.join(root, 'harness', 'changes', active.changeId)) : null;
+      const touchesActiveChange = activeChangeDir && (target === activeChangeDir || target.startsWith(activeChangeDir + path.sep));
+      if ((isGovernedTarget(root, target) || touchesActiveChange) && active.ok && active.data.validation) {
+        active.data.validation.status = 'stale';
+        active.data.validation.digest = null;
+        active.data.validation.validatedAt = null;
+        fs.writeFileSync(active.statePath, JSON.stringify(active.data, null, 2) + '\n', 'utf-8');
       }
     }
   } catch {}

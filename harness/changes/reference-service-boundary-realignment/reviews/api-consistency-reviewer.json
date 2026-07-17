@@ -1,0 +1,13 @@
+{
+  "changeId": "reference-service-boundary-realignment",
+  "reviewerId": "api-consistency-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    "success path 与最小 4xx/409 error contract 已形成闭环；剩余建议主要是后续自动化契约语义检查增强。"
+  ],
+  "evidence": [
+    "harness/changes/reference-service-boundary-realignment/validation.md 已记录 OpenAPI 4xx/409、controller consistency 与最新 API consistency reviewer 结论。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

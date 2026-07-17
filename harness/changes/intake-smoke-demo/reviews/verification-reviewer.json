@@ -1,0 +1,13 @@
+{
+  "changeId": "intake-smoke-demo",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "当前 intake smoke demo 的完成声明已有仓库内 validation artifact，可作为历史 L1 smoke 的最小 fresh evidence。"
+  ],
+  "evidence": [
+    "harness/changes/intake-smoke-demo/validation.md 作为该历史 smoke change 的验证产物存在，且 state.json 已记录 validation.status=fresh。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

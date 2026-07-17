@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
-import { loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
+import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
 
 const root = projectRoot();
 const payload = process.stdin.read ? process.stdin.read() : '';
@@ -51,8 +51,8 @@ if (governedRoot) {
     console.error('BLOCK: 当前目标路径需要 designApproved=true。请先完成设计并标记 design gate 通过。');
     process.exit(2);
   }
-  if (gate?.needsRedVerified && !gates.redVerified) {
-    console.error('BLOCK: 当前目标路径需要 redVerified=true。请先记录 RED 证据再修改生产源码或 OpenAPI。');
+  if (gate?.needsRedVerified && !hasCurrentTaskRedVerification(state)) {
+    console.error('BLOCK: 当前目标路径需要 currentTask-scoped red verification。请先为当前 currentTask 记录 RED 证据，再修改生产源码或 OpenAPI。');
     process.exit(2);
   }
 }

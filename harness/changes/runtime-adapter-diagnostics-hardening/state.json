@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "local adapter schema diagnostics install setup doctor sync runtime local-adapter.example.json lib/local-adapter.mjs setup-local-adapter.mjs current gaps required optional fields"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "issue #13 当前收窄为 local adapter schema 与 installer diagnostics，不扩展到 release-local / source-external smoke。",
+    "schemaVersion 继续保持 1，本轮先收紧字段语义与 diagnostics，而不引入新的 migration version。",
+    "当前先把 adapter 字段语义分为 hard required 与 warning 级缺口，而不是一律 hard fail。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-16"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-16"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "archive",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "4db934023c5714757605a854698e8b3e6594fdc31ac102bf3b09e62244c456d4",
+    "validatedAt": "2026-07-16"
+  }
+}

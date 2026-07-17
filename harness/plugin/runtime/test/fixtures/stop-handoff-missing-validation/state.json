@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "changeId": "stop-handoff-missing-validation",
+  "tier": "L1",
+  "state": "REVIEWED",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": null,
+    "validatedAt": null
+  }
+}

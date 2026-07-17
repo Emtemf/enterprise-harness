@@ -1,0 +1,56 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "id": "routing-owner-ok",
+      "status": "pass",
+      "detail": "issue #12 当前被正确路由到 `reference-service` 的质量门禁增强，归属 `reference-service/` 及其配套 docs/validation 资产明确，没有漂移到 runtime/installer/distribution 产品化范围。"
+    },
+    {
+      "id": "scope-narrow-vs-issue-9",
+      "status": "pass",
+      "detail": "当前资产已把 #12 收窄为 ArchUnit、JaCoCo 与本地/后续 CI 接入说明，且显式排除了真实 HTTP E2E、OpenAPI parser gate 与更大 golden sample 扩张，整体保持了相对 #9 的窄子集定位。"
+    },
+    {
+      "id": "tier-l2-reasonable",
+      "status": "pass",
+      "detail": "L2 判定合理：本变更会改变 `reference-service` 的 Maven verify 质量门禁与架构校验语义，属于 build/rule/architecture 范畴；但未引入 API/data 变更，也未扩大为跨服务或全仓平台级规则，因此不应降到 L1，也暂未达到必须升为 L3 的证据。"
+    },
+    {
+      "id": "jacoco-scope-needs-freeze",
+      "status": "advisory",
+      "detail": "仍有一个会影响后续路径的决策需要在进入 plan 前冻结：JaCoCo 85% 的精确 check scope 目前只被表述为“与有效业务包对齐”或“更清楚的 scope 选择”，尚未落到具体 packages/includes/excludes。该边界若不钉死，后续可能把 bootstrap/config/样板噪声一并卷入，导致范围回涨。"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/change.md",
+      "lines": "21-32,34-39,50-73",
+      "summary": "非目标明确排除了业务扩张、真实 HTTP E2E、OpenAPI parser gate 与 productization；owner 为 `reference-service`；final tier 标为 L2；并将 #12 定位为 #9 的窄子集。"
+    },
+    {
+      "file": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/design.md",
+      "lines": "23-31,33-56,59-68,102-106,115-119",
+      "summary": "设计把 ArchUnit 限定为最关键依赖方向，把 JaCoCo 限定为接入 Maven `verify`，并明确当前只文档化 CI 接入位置；同时拒绝把真实 HTTP E2E 与 OpenAPI parser 塞进 #12。"
+    },
+    {
+      "file": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md",
+      "lines": "11-24,40-56,71-84",
+      "summary": "任务拆分仅覆盖 ArchUnit、JaCoCo 与文档/validation，对应窄范围实施路径，没有出现跨服务或 repo runtime 改造。"
+    },
+    {
+      "file": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/state.json",
+      "lines": "4-12,39-43,53-60",
+      "summary": "state.json 将 tier 固定为 L2，impact 为 architecture/rule=yes、api/data=no，并记录了‘先收窄为 ArchUnit + JaCoCo + 本地验证说明’的决策。"
+    },
+    {
+      "file": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/validation.md",
+      "lines": "21-23,40-46,56-61,71-73",
+      "summary": "validation 继续强调当前范围不包含真实 HTTP E2E 与 OpenAPI contract gate，且尚未进入实现验证，说明资产仍保持 requirement/design 阶段的窄范围约束。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

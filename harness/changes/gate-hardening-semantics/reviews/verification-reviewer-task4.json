@@ -1,0 +1,23 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "Task 4 的核心完成声明有新鲜证据支撑：已记录独立 RED、GREEN，以及 `green && verify --json` 的验证链路，且命令与“currentTask-scoped RED_VERIFIED 消费”目标匹配。",
+    "机械消费点已对齐同一语义：规则/规范把门禁收紧到“与当前 `currentTask` 对齐的 `RED_VERIFIED`”，`gates.mjs`/`pre-write.mjs` 负责写路径阻断，`lifecycle.mjs` 负责写入 `redTask`/`redEvidenceRef`，`checks.mjs` 负责结构校验。",
+    "本次 PASS 仅覆盖 Task 4 的 task-level contract；change 级 `validation.status` 仍为 `missing`，且后续 Task 5 仍未完成，因此不能外推为整个 issue #8 已关闭。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md:51-56 记录了 `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-red-task-smoke.mjs red` 失败、`green` 通过、以及 `green && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json` 通过，直接对应 Task 4 的验证命令。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md:123-158 将 Task 4 范围固定为“把 `redVerified` 从全局布尔门禁收紧为 currentTask 级消费”，并要求 smoke + verify 的证据链。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-red-task-smoke.mjs:72-102 使用 `/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/red-task-missing-proof/state.json` 先断言仅有 `redVerified=true` 但缺 `redTask === currentTask` / `redEvidenceRef` 时必须被 pre-write 阻断，再断言补齐 task-scoped proof 后放行。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/red-task-missing-proof/state.json:38-44 提供了旧式“全局 `redVerified=true` 但无 task-scoped proof”的负样本。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/gates.mjs:39-48 将有效 RED 证据收紧为 `gates.redVerified && gates.redTask === currentTask && non-empty redEvidenceRef`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/pre-write.mjs:48-56 在生产源码/OpenAPI 写路径上消费该 helper，并输出 `currentTask-scoped red verification` 阻断信息。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lifecycle.mjs:112-128 让 `red-verified` 动作把 `gates.redTask` 与 `gates.redEvidenceRef` 绑定到当前 `currentTask`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/checks.mjs:216-225 对 `redVerified` 状态增加 `currentTask`、`redTask` 对齐与 `redEvidenceRef` 非空的机械校验。",
+    "/home/wula/IdeaProjects/sdd/.claude/rules/00-workflow.md:97 和 /home/wula/IdeaProjects/sdd/harness/specs/artifact-lifecycle.md:43 已把“与当前 `currentTask` 对齐的 `RED_VERIFIED` 证据”冻结为长期规则。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

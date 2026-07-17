@@ -69,6 +69,13 @@
 - verdict
 - reviewedAt
 
+当该 reviewer 属于 blocking reviewer 且当前 state 已进入 `REVIEWED` / `VALIDATED` 的消费范围时：
+
+- verdict 文件缺失不能视为“默认为通过”
+- `reviewedAt` 为空不能视为有效证据
+- `changeId` 不匹配不能视为有效证据
+- verdict=`block` 必须阻断完成态推进
+
 典型落点：
 
 - `harness/changes/<change-id>/reviews/*.json`

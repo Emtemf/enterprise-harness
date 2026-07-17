@@ -1,0 +1,76 @@
+{
+  "changeId": "runtime-installability-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "Task 1 的最小本地 marketplace install/update 声明已有新鲜证据支撑。",
+      "detail": "plugin validate、marketplace validate、isolated HOME 下的 marketplace add / plugin install / marketplace update / plugin update / plugin list enabled，以及 installability smoke verify 都已通过。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "plugin-mode hooks 当前只验证到静态资产存在，未验证运行时实际触发。",
+      "detail": "`hooks/hooks.json` 已存在并被纳入 plugin 资产，但本轮 fresh evidence 尚未覆盖 SessionStart / PreToolUse / PostToolUse / Stop 在 plugin install 后的真实触发。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "durable change 状态与 validation 台账仍未同步到 Task 1 完成态。",
+      "detail": "state.json / validation.md 仍停留在 clarify/discovery 阶段，需要后续与本轮 installability smoke 证据对齐。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/tasks.md",
+      "lines": "10-70",
+      "note": "Task 1 定义了 plugin/marketplace 资产、acceptance checks、以及 verification review 输出路径。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude-plugin/plugin.json",
+      "lines": "1-25",
+      "note": "plugin manifest 已存在并可被 Claude Code validate。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude-plugin/marketplace.json",
+      "lines": "1-24",
+      "note": "marketplace manifest 已存在并可被 Claude Code validate。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/hooks/hooks.json",
+      "lines": "1-52",
+      "note": "plugin-mode hooks payload 已存在。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-plugin-installability-smoke.mjs",
+      "lines": "1-85",
+      "note": "installability smoke 在 isolated HOME 下机械化验证 validate/add/install/list/update。"
+    },
+    {
+      "command": "claude plugin validate /home/wula/IdeaProjects/sdd/.claude-plugin/plugin.json",
+      "note": "通过（warnings only）。"
+    },
+    {
+      "command": "claude plugin validate /home/wula/IdeaProjects/sdd/.claude-plugin/marketplace.json",
+      "note": "通过。"
+    },
+    {
+      "command": "HOME=<tmp> claude plugin marketplace add /home/wula/IdeaProjects/sdd && HOME=<tmp> claude plugin install enterprise-harness@enterprise-harness --scope local && HOME=<tmp> claude plugin list && HOME=<tmp> claude plugin update enterprise-harness@enterprise-harness --scope local",
+      "note": "isolated HOME 下 add/install/list/update 全部通过，且 plugin list 显示 `enterprise-harness@enterprise-harness` 为 enabled。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-plugin-installability-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/state.json",
+      "lines": "1-46",
+      "note": "durable 状态仍未吸收 Task 1 完成态。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-installability-polish/validation.md",
+      "lines": "1-76",
+      "note": "validation 台账仍停留在 design not yet started 的旧状态。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

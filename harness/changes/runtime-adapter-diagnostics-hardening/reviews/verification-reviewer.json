@@ -1,0 +1,48 @@
+{
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 change-level 完成声明已有新鲜证据支撑。Task 1 / Task 2 / Task 3 均已有 task-level verification pass，且 validation.md 记录了可复现的 RED → GREEN → verify 命令链路。"
+    },
+    {
+      "severity": "info",
+      "summary": "runtime adapter contract 与 diagnostics contract 已形成闭环：validator 结构化 problems、doctor/sync JSON diagnostics、setup/install manual-confirmation and forwarding、以及 docs / validation 对齐都已有直接证据。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前 PASS 只覆盖 issue #13 的窄范围（local adapter schema + installer diagnostics），不扩展到 broader runtime/distribution productization。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/validation.md",
+      "lines": "17-44,57-60,76-105",
+      "note": "记录了 Task 1 / Task 2 / Task 3 的 RED/GREEN/verify 命令与关键结果。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/reviews/verification-reviewer-task1.json",
+      "lines": "1-36",
+      "note": "Task 1 已有 PASS：field-level adapter diagnostics contract 已落地。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/reviews/verification-reviewer-task2.json",
+      "lines": "1-34",
+      "note": "Task 2 已有 PASS：setup / doctor / sync / install diagnostics 已在 temp repo + stubs 环境下通过 smoke。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/reviews/verification-reviewer-task3.json",
+      "lines": "1-32",
+      "note": "Task 3 已有 PASS：README / runtime README / validation 文案已与 contract 对齐。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/state.json",
+      "lines": "50-63",
+      "note": "machine-readable 状态已刷新为 fresh validation，可用于 change-level closure。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

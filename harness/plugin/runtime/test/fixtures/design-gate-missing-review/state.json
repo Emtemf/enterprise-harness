@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "changeId": "design-gate-missing-review",
+  "tier": "L3",
+  "state": "TASKED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "currentTask": null,
+  "workflow": {
+    "stage": "design",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-design"
+  },
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  },
+  "gates": {
+    "designApproved": true
+  }
+}

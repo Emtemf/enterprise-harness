@@ -1,0 +1,25 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "design-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "advisory",
+      "summary": "按当前 on-disk 资产裁定，已不存在真实 design blocker。",
+      "detail": "machine-readable 源已不再把 #15 当作已完成事实；长期稳定 spec 的落点已清楚；launcher/help/verify/upstream-check 的 command、JSON、human、exit-code 契约已冻结到可进入 TDD 的程度。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/runtime-contract.md",
+      "lines": "1-140",
+      "note": "长期稳定 spec 已完整冻结 launcher/help/verify/upstream-check/context7/docs oracle 契约。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/design.md",
+      "lines": "24-119",
+      "note": "设计正文已冻结 verify/readiness 边界、upstream-check mismatch matrix 与 help/no-side-effect contract。"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

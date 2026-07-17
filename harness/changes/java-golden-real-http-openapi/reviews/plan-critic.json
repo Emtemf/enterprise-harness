@@ -1,0 +1,49 @@
+{
+  "changeId": "java-golden-real-http-openapi",
+  "reviewerId": "plan-critic",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "id": "task1-red-now-deterministic",
+      "severity": "info",
+      "summary": "Task 1 现在已有可执行的 deterministic RED 路径。",
+      "detail": "任务明确要求先新增 `OrderCancellationControllerHttpE2ETest`，再用精确命令运行 RED，并把失败锚定为 live `/v3/api-docs` 中缺少 cancel-order 的显式 `400/404/409` 与 `ApiErrorResponse` 语义；设计也补充说明了当前缺少显式 OpenAPI response annotations，因此下游不需要再猜测 RED 失败点。"
+    },
+    {
+      "id": "task2-mostly-deterministic-and-split",
+      "severity": "info",
+      "summary": "Task 2 的主 RED 锚点已明确，且与 Task 1 的职责拆分基本成立。",
+      "detail": "任务把 RED 固定为 `CancelOrderRequest.reason` 的 non-blank 语义在 live docs 中不完整，并给出独立测试文件、独立命令和最小 GREEN 方向；设计也把 Task 1 定位为 real HTTP + error response visibility，把 Task 2 定位为 owned YAML ↔ live docs 的 deeper schema parity。整体上已可执行。"
+    },
+    {
+      "id": "task2-wording-still-has-light-overlap-and-gate-metadata-stale",
+      "severity": "advisory",
+      "summary": "Task 2 文案仍重复包含 `400/404/409` 与 `ApiErrorResponse` 检查，且 gate 元数据需同步，但不阻断进入实现。",
+      "detail": "这些点可在实现与验证过程中继续收口；当前计划正文已经基本可执行。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/tasks.md",
+      "lines": "11-45",
+      "note": "Task 1 明确了文件、consumes/produces、RED 命令与预期失败点。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-real-http-openapi/design.md",
+      "lines": "96-105,146-154",
+      "note": "设计把 Task 1/2 的职责边界与各自固定 RED 断言写清楚。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/OrderCancellationController.java",
+      "lines": "15-31",
+      "note": "当前 controller 只有基本 Spring MVC 注解，没有显式 OpenAPI response annotations，可支撑 Task 1 的 RED 假设。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/dto/CancelOrderRequest.java",
+      "lines": "3-8",
+      "note": "当前仅有 `@NotBlank` 校验，Task 2 以 `reason` 的 non-blank 语义作为 live docs/YAML 不一致的 RED 锚点是有根据的。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

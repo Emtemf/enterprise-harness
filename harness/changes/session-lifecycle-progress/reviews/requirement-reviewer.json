@@ -1,0 +1,16 @@
+{
+  "changeId": "session-lifecycle-progress",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "原 routing blocker 已清除：tier 已从 L2 修正为 L3，且 change/design/exploration/state 四处表述一致。",
+    "owning scope 保持正确，需求持续约束在 harness-governance 的 repo contract / runtime lifecycle / session lifecycle，不扩展到业务 API、数据模型或 reference-service。",
+    "关键路径决策已冻结：动态真相优先级为 harness/ACTIVE_CHANGE + harness/changes/*/state.json，PROGRESS.md 仅作静态快照；status 作为新的 top-level CLI 命令，而不是扩展 lifecycle.mjs。"
+  ],
+  "evidence": [
+    "change.md / state.json / design.md / exploration 已统一声明 L3 平台规则 / 架构语义收紧。",
+    "动态真相优先级与 top-level status 命令决策已在 change.md、state.json、design.md 中冻结。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-15"
+}

@@ -1,0 +1,13 @@
+{
+  "changeId": "plugin-runtime-skeleton",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "portable runtime / plugin skeleton 的历史完成声明有 bootstrap、doctor、sync、hook smoke 与 structure verify 证据支撑。"
+  ],
+  "evidence": [
+    "harness/changes/plugin-runtime-skeleton/validation.md 已记录 runtime bootstrap/doctor/sync/install/stop hook smoke 与 full verify 结果。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

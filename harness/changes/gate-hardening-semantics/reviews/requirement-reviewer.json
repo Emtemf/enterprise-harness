@@ -1,0 +1,15 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "L3 路由正确：该 change 影响 harness governance 的 architecture/rule 语义，而不是业务功能。",
+    "当前 scope 受控，集中在 rules/specs/runtime，不存在 cross-service 膨胀。"
+  ],
+  "evidence": [
+    "change.md 已明确 modify / L3 / architecture=yes / rule=yes。",
+    "design.md 与 tasks.md 的文件范围集中在 .claude/rules、harness/specs、harness/plugin/runtime。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-14"
+}

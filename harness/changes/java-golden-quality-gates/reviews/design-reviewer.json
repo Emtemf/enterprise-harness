@@ -1,0 +1,70 @@
+{
+  "changeId": "java-golden-quality-gates",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/design.md",
+      "lines": "23-40",
+      "note": "ArchUnit 第一版范围已收敛到关键依赖方向，并显式冻结 repository port 与三类 mapper 边界，避免后续 plan/实现阶段继续猜测 ArchUnit scope。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/design.md",
+      "lines": "41-56",
+      "note": "JaCoCo scope 已定稿为 BUNDLE + LINE + 85%，并明确排除 `ReferenceServiceApplication`、`config.*`、`*MapperImpl`，满足“现在就冻结 coverage gate 语义”的要求。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/change.md",
+      "lines": "21-26, 63-67",
+      "note": "非目标与待确认决策都保持 issue #12 窄范围，只承诺 ArchUnit、JaCoCo、本地验证说明，不把真实 HTTP E2E、OpenAPI parser gate、CI 改造混入本轮。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/tasks.md",
+      "lines": "40-57, 72-87",
+      "note": "任务草案已经继承设计冻结项：Task 2 直接消费固定 coverage rule 与 excludes，Task 3 仅做文档/validation 对齐，未扩大 scope。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/state.json",
+      "lines": "39-43, 53-60",
+      "note": "machine-readable 决策与 workflow 仍保持 design 阶段，且明确 issue #12 当前只收窄为 ArchUnit + JaCoCo + 本地验证说明，和设计文本一致。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/domain/repository/OrderRepository.java",
+      "lines": "1-12",
+      "note": "domain repository port 真实存在，设计对 repository port 的定义锚定到现有代码，不是抽象假设。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/infrastructure/persistence/JpaOrderRepository.java",
+      "lines": "1-32",
+      "note": "infrastructure adapter 真实实现 domain port，并通过 `OrderPersistenceMapper` 做 domain/entity 转换，支撑设计中对 ArchUnit 与 mapper 边界的定义。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/interfaces/api/mapper/OrderCancellationApiMapper.java",
+      "lines": "1-12",
+      "note": "interface mapper 真实存在，当前职责为 `Req/Rsp ↔ application DTO` 中的 response 侧映射，符合设计对接口层 mapper 责任的冻结。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/application/mapper/OrderCancellationApplicationMapper.java",
+      "lines": "1-14",
+      "note": "application mapper 真实存在，当前负责 domain → application DTO，说明设计中的 application mapper 边界有现状支撑。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/src/main/java/com/example/orders/infrastructure/persistence/mapper/OrderPersistenceMapper.java",
+      "lines": "1-33",
+      "note": "infrastructure mapper 真实承担 domain ↔ entity 转换，且 `*MapperImpl` 确实是 MapStruct 生成物，纳入 JaCoCo excludes 合理。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/reference-service/pom.xml",
+      "lines": "23-84",
+      "note": "当前 `pom.xml` 仍未接入 ArchUnit/JaCoCo，说明设计针对的是明确缺口，且没有把已完成实现伪装成设计结论。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/java-golden-quality-gates/validation.md",
+      "lines": "17-23, 63-73",
+      "note": "验证资产仍明确声明尚未进入 Java RED/GREEN 与 verify，不存在借设计评审偷渡“已完成 #12”的范围膨胀。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

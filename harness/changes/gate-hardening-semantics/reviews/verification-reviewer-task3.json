@@ -1,0 +1,19 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "Task 3 的完成声明在当前实现范围内有足够的新鲜证据支撑：已记录独立 RED/GREEN smoke，并补充了 `green && verify --json && stop` 的完成态验证链路。",
+    "记录口径与当前状态一致：`validation.md` 明确限定为 Task 1/2/3 的证据闭环，不宣称整个 change 已关闭；`state.json` 仍为 `EXECUTING` 且 `validation.status=missing`，与“task-level 完成、change-level 未完成”相匹配。",
+    "当前实现已把 reviewer/validation 完成态消费点固定到 `verify` 与 `stop`：`REVIEWED`/`VALIDATED` 的 fresh validation、required completion reviewer、`reviewedAt` 必填、`changeId` 匹配，均有机械检查。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/validation.md 记录了 Task 3 的 RED、GREEN，以及 `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-review-validation-smoke.mjs green && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/stop.mjs` 通过结果。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-review-validation-smoke.mjs 构造并断言了三条关键负路径：`impact.api=yes` 且缺 `api-consistency-reviewer`、`REVIEWED + validation.status=stale`、`VALIDATED + validation.status=stale`，并要求 `verify`/`stop` 阻断。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/checks.mjs 机械实现了完成态规则：`REVIEWED`/`VALIDATED` 必须 `validation.status=fresh`，并通过 `validateCompletionReviewers` 校验 required reviewer 缺失、`reviewedAt` 为空、`changeId` 不匹配、`verdict=block`。",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/stop.mjs 复用了 `validateCompletionReviewers`，并在结束时阻断 stale validation 与不满足完成态 reviewer contract 的 change。",
+    "/home/wula/IdeaProjects/sdd/harness/changes/gate-hardening-semantics/tasks.md 将 Task 3 scope 固定为 `verify/stop/runtime contract`，与上述实现和验证证据一致。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

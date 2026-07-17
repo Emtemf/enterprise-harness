@@ -1,0 +1,26 @@
+{
+  "changeId": "runtime-adapter-diagnostics-hardening",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "Task 2 的完成声明现在有任务级新鲜证据支撑：validation.md 已明确记录 local-adapter-diagnostics smoke 的 red|green|verify 三次验证及关键结果。",
+    "证据与声明匹配：local-adapter-diagnostics-smoke.mjs 的断言确实覆盖了 doctor/sync structured problems、setup --write merge 回读校验，以及 install 对 setup diagnostics 的转发约束。",
+    "本 PASS 仅支持 Task 2；state.json 仍显示 change 级 workflow.stage=tdd 且 validation.status 不是 change-level 完成态，因此不等同于整个 change 已完成验证。"
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/validation.md",
+      "summary": "显式记录 Task 2 diagnostics smoke 的 red/green/verify 命令，并写明 setup --write merge verification 与 install forwarding assertions 已通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/local-adapter-diagnostics-smoke.mjs",
+      "summary": "真实 smoke 断言包含 doctor/sync structured diagnostics、manual-confirmation guidance、merged adapter expected fields、install forwarding output。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-adapter-diagnostics-hardening/state.json",
+      "summary": "当前任务仍是 Task 2，change 级验证尚未完成，因此结论限定为 task-level PASS。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-16"
+}

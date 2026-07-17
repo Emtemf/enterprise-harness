@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "changeId": "gate-hardening-semantics",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "How are designApproved, redVerified, validation freshness, and reviewer verdicts currently enforced in this repo? Focus on runtime hooks, gate helpers, verify/checks files, and any explicit gaps around plan/task gates for issue #11."
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "本轮将 issue #11 路由为 L3 gate/rule 语义收紧，而不是文档-only 变更。",
+    "不新增 planApproved 布尔 gate key；以 TASKED 作为计划/任务已可消费的唯一状态表达。",
+    "tasks.md 在 DESIGN_APPROVED 前允许以 draft 形式存在，但不得被当作正式 plan/task artifact 消费。",
+    "verify 作为 reviewer verdict / validation freshness 的主要机械消费点；pre-write 与 stop 继续承担局部门禁职责。",
+    "api-consistency-reviewer 在 impact.api=no 时可视为不适用，不应缺席即 block。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-14"
+    },
+    "plan": {
+      "status": "advisory",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-14"
+    }
+  },
+  "currentTask": null,
+  "validation": {
+    "status": "fresh",
+    "digest": "d16d42d0a01398bb9da201c44c9fb32e7146e9a38653165d147f8898d4ab280c",
+    "validatedAt": "2026-07-16"
+  },
+  "gates": {
+    "designApproved": true
+  }
+}

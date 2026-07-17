@@ -1,0 +1,17 @@
+{
+  "changeId": "session-lifecycle-progress",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "Task 4 已把 Stop handoff guidance 收紧为可执行的三路分流提示：change-specific 资产、repo-level `PROGRESS.md`、以及仅限显式触发的 Claude memory，同时保留聊天记录不能替代正式资产的边界。",
+    "Task 4 明确保留了既有 validation block 语义：缺少 `validation.md` 仍直接退出 2，`REVIEWED`/`VALIDATED` 且 `validation.status` 非 `fresh` 仍直接退出 2；新增 guidance 只在通过 gate 后输出，不改变保护顺序。",
+    "Task 4 的 RED / GREEN / verify 证据已落盘，且当前 smoke 与 `full-verify` 都通过，计划可执行项与实现结果一致。"
+  ],
+  "evidence": [
+    "`/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/stop.mjs:14-20` 输出固定 handoff guidance，覆盖 active change 资产、`PROGRESS.md`、Claude memory、聊天记录与 `node harness/plugin/runtime/cli.mjs status` 指针；`/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/stop.mjs:34-40` 保留缺 `validation.md` 与 stale validation 的 exit=2 block。",
+    "`/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stop-handoff-smoke.mjs:12-19` 固定 guidance tokens；`/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stop-handoff-smoke.mjs:128-152` 同时断言 guidance 存在、missing validation block 维持、stale validation block 维持。",
+    "fixture 状态明确覆盖两类回归面：`/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/stop-handoff-missing-validation/state.json:1-28` 与 `/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/stop-handoff-stale-validation/state.json:1-28`；规范与 repo-facing 文档同步了 Stop 合同：`/home/wula/IdeaProjects/sdd/harness/specs/session-lifecycle.md:93-126`、`/home/wula/IdeaProjects/sdd/PROGRESS.md:26-30`、`/home/wula/IdeaProjects/sdd/README.md:92-95`；验证记录见 `/home/wula/IdeaProjects/sdd/harness/changes/session-lifecycle-progress/validation.md:88-115`。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-15"
+}

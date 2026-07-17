@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "changeId": "session-lifecycle-progress",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "ready",
+      "queries": [
+        "session start hook stop hook memory progress active change runtime verify start-change repo entry current status docs and hooks for enterprise harness",
+        "runtime verify doctor status-like smoke tests hook tests scripts patterns in harness/plugin/runtime and hooks"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "本轮按 L3 平台规则 / 架构语义收紧执行，而不是 L2 文档增强",
+    "采用静态 PROGRESS.md + 动态 status 命令的双层进度面",
+    "动态真相优先级固定为 harness/ACTIVE_CHANGE + harness/changes/*/state.json；PROGRESS.md 只承载阶段快照与阅读入口",
+    "change-specific 结论写回当前 change 资产，repo-level 阶段信息写回 PROGRESS.md，Claude memory 只保留显式动作下的非仓库事实",
+    "status 作为新的 top-level runtime CLI 子命令接入，并要求稳定的 --json 输出契约",
+    "Stop 只输出 handoff / memory 边界提醒，不宣称自动写 memory"
+  ],
+  "blockers": [],
+  "approvals": {
+    "requirement": {
+      "status": "pass",
+      "reviewerId": "requirement-reviewer",
+      "reviewedAt": "2026-07-15"
+    },
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-15"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-15"
+    }
+  },
+  "currentTask": null,
+  "validation": {
+    "status": "fresh",
+    "digest": "178fbae24acc683fb38ba42eb109d99ec8d9a65451d5e874675a2968f057400d",
+    "validatedAt": "2026-07-15"
+  },
+  "gates": {
+    "designApproved": true
+  }
+}

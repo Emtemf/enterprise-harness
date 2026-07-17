@@ -1,0 +1,15 @@
+{
+  "changeId": "gate-hardening-semantics",
+  "reviewerId": "plan-critic",
+  "verdict": "advisory",
+  "findings": [
+    "draft 标注、独立 smoke harness、按 task 区分的 review 输出与更具体的 RED 失败断言，已基本解除上一轮主要 blocker。",
+    "仍建议在 REFACTOR 阶段重跑 task 专属 green smoke，并把 consumes 中的关键 reviewer 文件路径写得更显式。"
+  ],
+  "evidence": [
+    "tasks.md 已改为正式 # Tasks，并保留 plan/task artifact 与 task-level review 输出的区分。",
+    "每个 task 现在都有独立 smoke harness 路径，且 RED 命令与预期失败文案已绑定到具体脚本。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-14"
+}

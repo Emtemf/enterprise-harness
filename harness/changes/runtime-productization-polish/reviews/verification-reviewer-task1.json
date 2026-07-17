@@ -1,0 +1,80 @@
+{
+  "changeId": "runtime-productization-polish",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "Task 1 的完成声明有足够的新鲜证据支撑。",
+      "detail": "runtime-help-contract-smoke.mjs 已形成完整 RED → GREEN → VERIFY 证据链，并在扩展覆盖 existing/missing local adapter fixture 与 cli --help/-h 后重新运行 GREEN/VERIFY 仍通过。"
+    },
+    {
+      "severity": "info",
+      "summary": "Task 1 的 assertion matrix 已被机械化覆盖到可接受粒度。",
+      "detail": "smoke 现覆盖 install/update/upgrade/migrate/release-local 的 --help/-h 首行与退出码、install 对 .bootstrap-ran 的 state-invariant、update/migrate 对 existing/missing HARNESS_LOCAL_ADAPTER fixture 的不变性、release-local 不新增 temp 目录，以及 cli.mjs 的 --help/-h / 无参数 usage / unknown command 语义。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "durable 状态与验证留痕仍需同步到 Task 1 已完成态。",
+      "detail": "当前 task-level pass 不推翻新鲜执行证据，但 state.json / validation.md / task review 产物需要与本轮 Task 1 完成事实对齐。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/tasks.md",
+      "lines": "21-76",
+      "note": "Task 1 定义了 help/no-side-effect assertion matrix、RED/GREEN/VERIFY 命令与 review 输出路径。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/runtime-contract.md",
+      "lines": "19-46",
+      "note": "长期稳定 spec 固定了 help / usage / no-side-effect contract。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/runtime-help-contract-smoke.mjs",
+      "lines": "1-274",
+      "note": "Task 1 smoke 已机械化覆盖 install/update/upgrade/migrate/release-local/cli 的 help 与 no-side-effect contract。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/install.mjs",
+      "lines": "1-31",
+      "note": "install.mjs 已在执行 bootstrap/setup 前处理 --help/-h。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/update.mjs",
+      "lines": "1-25",
+      "note": "update.mjs 已在执行 sync/doctor/upstream-check 前处理 --help/-h。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/upgrade.mjs",
+      "lines": "1-22",
+      "note": "upgrade.mjs 已加入稳定 help/usage 早退分支。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/migrate.mjs",
+      "lines": "1-39",
+      "note": "migrate.mjs 已在读取/改写 local adapter 前处理 --help/-h。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/release-local.mjs",
+      "lines": "7-15",
+      "note": "release-local.mjs 的 --help/-h 继续保持无副作用早退。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs",
+      "lines": "24-37",
+      "note": "cli.mjs 已覆盖 --help/-h / no-arg usage / unknown command 退出语义。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/validation.md",
+      "lines": "33-54",
+      "note": "validation 仍停留在进入 Task 1 前的旧状态，后续应同步本轮 fresh evidence。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/runtime-productization-polish/state.json",
+      "lines": "51-70",
+      "note": "state.json 仍未反映 Task 1 red/green/verify 已完成的最新执行状态。"
+    }
+  ],
+  "reviewedAt": "2026-07-16"
+}

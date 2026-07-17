@@ -2,9 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+const help = process.argv.includes('--help') || process.argv.includes('-h');
 const repoRoot = process.cwd();
 const manifestPath = path.join(repoRoot, 'harness', 'plugin', 'manifest.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+
+if (help) {
+  console.log('Enterprise Harness Upgrade');
+  console.log('Usage: node harness/plugin/runtime/upgrade.mjs');
+  console.log('Shows the recommended runtime upgrade sequence for the current manifest version.');
+  process.exit(0);
+}
 
 console.log('Enterprise Harness Upgrade');
 console.log(`Target runtime version: ${manifest.version}`);

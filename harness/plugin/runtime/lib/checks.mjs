@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -119,11 +120,58 @@ export function validateStructure(root) {
   return missing;
 }
 
+function collectChangeFiles(changeDir, relDir) {
+  const dir = path.join(changeDir, relDir);
+  if (!fs.existsSync(dir)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const relPath = path.join(relDir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectChangeFiles(changeDir, relPath));
+    } else {
+      files.push(relPath);
+    }
+  }
+  return files.sort();
+}
+
+export function computeValidationDigest(root, changeId) {
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
+  if (!fs.existsSync(changeDir)) return null;
+  const hash = crypto.createHash('sha256');
+  const statePath = path.join(changeDir, 'state.json');
+  if (fs.existsSync(statePath)) {
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    const normalizedState = {
+      ...state,
+      validation: {
+        status: null,
+        digest: null,
+        validatedAt: null,
+      },
+    };
+    hash.update('state.json\n');
+    hash.update(JSON.stringify(normalizedState));
+    hash.update('\n');
+  }
+  const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
+  const nestedFiles = [...collectChangeFiles(changeDir, 'reviews'), ...collectChangeFiles(changeDir, 'evidence'), ...collectChangeFiles(changeDir, 'specs')];
+  for (const relPath of [...directFiles, ...nestedFiles]) {
+    const fullPath = path.join(changeDir, relPath);
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) continue;
+    hash.update(`${relPath}\n`);
+    hash.update(fs.readFileSync(fullPath, 'utf-8'));
+    hash.update('\n');
+  }
+  return hash.digest('hex');
+}
+
 export function validateArtifactStates(root) {
   const changesDir = path.join(root, 'harness', 'changes');
   if (!fs.existsSync(changesDir)) return [];
   const allowedTiers = new Set(['L0', 'L1', 'L2', 'L3']);
   const allowedStates = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','BLOCKED','REJECTED']);
+  const designGatedStates = new Set(['TASKED','EXECUTING']);
   const allowedImpact = new Set(['yes','no','unknown']);
   const allowedValidation = new Set(['missing','fresh','stale']);
   const allowedWorkflowStages = new Set(['clarify','route','design','plan','tdd','verify','archive']);
@@ -131,7 +179,8 @@ export function validateArtifactStates(root) {
   const errors = [];
   for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const statePath = path.join(changesDir, entry.name, 'state.json');
+    const changeDir = path.join(changesDir, entry.name);
+    const statePath = path.join(changeDir, 'state.json');
     if (!fs.existsSync(statePath)) continue;
     let data;
     try { data = JSON.parse(fs.readFileSync(statePath, 'utf-8')); } catch (e) { errors.push(`${statePath}: invalid JSON`); continue; }
@@ -153,7 +202,146 @@ export function validateArtifactStates(root) {
       if (typeof data.workflow.nextEntry !== 'string' || data.workflow.nextEntry.length === 0) errors.push(`${statePath}: invalid workflow.nextEntry`);
       if (data.workflow.clarifyReady && !data.workflow.userConfirmedScope) errors.push(`${statePath}: workflow.clarifyReady requires workflow.userConfirmedScope`);
     }
-    if (data.state === 'VALIDATED' && data.validation?.status !== 'fresh') errors.push(`${statePath}: VALIDATED requires fresh validation`);
+    const designPath = path.join(changeDir, 'design.md');
+    const designReviewPath = path.join(changeDir, 'reviews', 'design-reviewer.json');
+    const tasksPath = path.join(changeDir, 'tasks.md');
+    const planReviewPath = path.join(changeDir, 'reviews', 'plan-critic.json');
+    const designGateEnabled = data.gates?.designApproved === true || designGatedStates.has(data.state);
+    let designReview = null;
+    if (fs.existsSync(designReviewPath)) {
+      try {
+        designReview = JSON.parse(fs.readFileSync(designReviewPath, 'utf-8'));
+      } catch {
+        errors.push(`${designReviewPath}: invalid JSON`);
+      }
+    }
+    let planReview = null;
+    if (fs.existsSync(planReviewPath)) {
+      try {
+        planReview = JSON.parse(fs.readFileSync(planReviewPath, 'utf-8'));
+      } catch {
+        errors.push(`${planReviewPath}: invalid JSON`);
+      }
+    }
+    if (designGatedStates.has(data.state) && data.gates?.designApproved !== true) {
+      errors.push(`${statePath}: ${data.state} requires gates.designApproved=true`);
+    }
+    if (designGateEnabled && !fs.existsSync(designPath)) {
+      errors.push(`${statePath}: designApproved requires design.md`);
+    }
+    if (designGateEnabled && !designReview) {
+      errors.push(`${statePath}: designApproved requires reviews/design-reviewer.json`);
+    }
+    if (designReview) {
+      if (designReview.changeId !== data.changeId) errors.push(`${designReviewPath}: changeId mismatch`);
+      if (designReview.reviewerId !== 'design-reviewer') errors.push(`${designReviewPath}: reviewerId must be design-reviewer`);
+      if (designReview.verdict === 'block') errors.push(`${designReviewPath}: block verdict prevents design approval`);
+      if (!designReview.reviewedAt) errors.push(`${designReviewPath}: reviewedAt required for design approval`);
+    }
+    if (data.state === 'TASKED' || data.state === 'EXECUTING') {
+      if (!fs.existsSync(tasksPath)) {
+        errors.push(`${statePath}: ${data.state} requires tasks.md`);
+      } else {
+        const tasksText = fs.readFileSync(tasksPath, 'utf-8');
+        if (!tasksText.startsWith('# Tasks')) {
+          errors.push(`${statePath}: ${data.state} requires finalized tasks.md header (# Tasks)`);
+        }
+      }
+      if (!planReview) {
+        errors.push(`${statePath}: ${data.state} requires reviews/plan-critic.json`);
+      }
+    }
+    if (planReview) {
+      if (planReview.changeId !== data.changeId) errors.push(`${planReviewPath}: changeId mismatch`);
+      if (planReview.reviewerId !== 'plan-critic') errors.push(`${planReviewPath}: reviewerId must be plan-critic`);
+      if (planReview.verdict === 'block') errors.push(`${planReviewPath}: block verdict prevents TASKED/EXECUTING`);
+      if (!planReview.reviewedAt) errors.push(`${planReviewPath}: reviewedAt required for TASKED/EXECUTING`);
+    }
+    if (data.state === 'EXECUTING' && (!data.currentTask || typeof data.currentTask !== 'string' || data.currentTask.trim().length === 0)) {
+      errors.push(`${statePath}: EXECUTING requires non-empty currentTask`);
+    }
+    if (data.gates?.redVerified) {
+      if (!data.currentTask || !String(data.currentTask).trim()) {
+        errors.push(`${statePath}: redVerified requires non-empty currentTask`);
+      }
+      if (data.gates.redTask !== data.currentTask) {
+        errors.push(`${statePath}: redVerified requires gates.redTask to match currentTask`);
+      }
+      if (typeof data.gates.redEvidenceRef !== 'string' || data.gates.redEvidenceRef.trim().length === 0) {
+        errors.push(`${statePath}: redVerified requires non-empty gates.redEvidenceRef`);
+      }
+    }
+    if ((data.state === 'REVIEWED' || data.state === 'VALIDATED') && data.validation?.status !== 'fresh') {
+      errors.push(`${statePath}: ${data.state} requires fresh validation`);
+    }
+    if (data.validation?.status === 'fresh') {
+      if (!data.validation.digest || typeof data.validation.digest !== 'string') {
+        errors.push(`${statePath}: fresh validation requires non-empty validation.digest`);
+      } else {
+        const computedDigest = computeValidationDigest(root, entry.name);
+        if (computedDigest && data.validation.digest !== computedDigest) {
+          errors.push(`${statePath}: validation digest mismatch`);
+        }
+      }
+      if (!data.validation.validatedAt || typeof data.validation.validatedAt !== 'string') {
+        errors.push(`${statePath}: fresh validation requires non-empty validation.validatedAt`);
+      }
+    }
+  }
+  return errors;
+}
+
+function readReviewVerdictFile(file, allowed, errors) {
+  if (!fs.existsSync(file)) return null;
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch {
+    errors.push(`${file}: invalid JSON`);
+    return null;
+  }
+  for (const key of ['changeId', 'reviewerId', 'verdict', 'findings', 'evidence', 'reviewedAt']) {
+    if (!(key in data)) errors.push(`${file}: missing ${key}`);
+  }
+  if (!allowed.has(data.verdict)) errors.push(`${file}: invalid verdict ${data.verdict}`);
+  return data;
+}
+
+function requiredCompletionReviewers(root, changeId, state) {
+  const catalogPath = path.join(root, 'harness', 'reviewers', 'catalog.json');
+  if (!fs.existsSync(catalogPath)) return [];
+  let catalog;
+  try {
+    catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf-8'));
+  } catch {
+    return [];
+  }
+  return catalog.filter((entry) => {
+    if (!entry.blocking) return false;
+    if (entry.id === 'verification-reviewer') return state.state === 'VALIDATED';
+    if (entry.id === 'api-consistency-reviewer') {
+      return (state.state === 'REVIEWED' || state.state === 'VALIDATED') && state.impact?.api === 'yes';
+    }
+    return false;
+  }).map((entry) => entry.id);
+}
+
+export function validateCompletionReviewers(root, changeId, state) {
+  const errors = [];
+  const allowed = new Set(['pass', 'block', 'advisory']);
+  for (const reviewerId of requiredCompletionReviewers(root, changeId, state)) {
+    const reviewPath = path.join(root, 'harness', 'changes', changeId, 'reviews', `${reviewerId}.json`);
+    const review = readReviewVerdictFile(reviewPath, allowed, errors);
+    if (!review) {
+      if (!fs.existsSync(reviewPath)) {
+        errors.push(`${reviewPath}: missing required reviewer verdict`);
+      }
+      continue;
+    }
+    if (review.changeId !== changeId) errors.push(`${reviewPath}: changeId mismatch`);
+    if (review.reviewerId !== reviewerId) errors.push(`${reviewPath}: reviewerId mismatch`);
+    if (review.verdict === 'block') errors.push(`${reviewPath}: block verdict prevents ${state.state}`);
+    if (!review.reviewedAt) errors.push(`${reviewPath}: reviewedAt required`);
   }
   return errors;
 }
@@ -172,13 +360,21 @@ export function validateReviewVerdicts(root) {
     }
   }
   for (const file of files) {
-    if (!fs.existsSync(file)) continue;
-    let data;
-    try { data = JSON.parse(fs.readFileSync(file, 'utf-8')); } catch { errors.push(`${file}: invalid JSON`); continue; }
-    for (const key of ['changeId','reviewerId','verdict','findings','evidence']) {
-      if (!(key in data)) errors.push(`${file}: missing ${key}`);
+    readReviewVerdictFile(file, allowed, errors);
+  }
+  if (fs.existsSync(changesDir)) {
+    for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const statePath = path.join(changesDir, entry.name, 'state.json');
+      if (!fs.existsSync(statePath)) continue;
+      let state;
+      try {
+        state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      } catch {
+        continue;
+      }
+      errors.push(...validateCompletionReviewers(root, entry.name, state));
     }
-    if (!allowed.has(data.verdict)) errors.push(`${file}: invalid verdict ${data.verdict}`);
   }
   return errors;
 }

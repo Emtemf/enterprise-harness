@@ -34,13 +34,15 @@ steps.push({
     : '缺少 local runtime adapter 示例文件。',
 });
 
+const localAdapterHasError = localAdapter.problems.some((problem) => problem.severity === 'error');
 steps.push({
   id: 'local-adapter',
-  ok: localAdapter.exists && localAdapter.errors.length === 0,
-  severity: localAdapter.exists ? (localAdapter.errors.length === 0 ? 'info' : 'warn') : 'warn',
+  ok: localAdapter.exists ? !localAdapterHasError : true,
+  severity: localAdapter.exists ? (localAdapterHasError ? 'warn' : 'info') : 'warn',
   message: localAdapter.exists
-    ? `已检测到本机 adapter：${localAdapter.path}${localAdapter.errors.length ? ` | ${localAdapter.errors.join('; ')}` : ''}`
+    ? `已检测到本机 adapter：${localAdapter.path}${localAdapter.problems.length ? ` | ${localAdapter.problems.map((problem) => `${problem.path}:${problem.code}`).join('; ')}` : ''}`
     : `未检测到本机 adapter；建议运行 node harness/plugin/runtime/setup-local-adapter.mjs --write，默认路径：${resolveLocalAdapterPath()}`,
+  problems: localAdapter.problems,
 });
 
 steps.push({

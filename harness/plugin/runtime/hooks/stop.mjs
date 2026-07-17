@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot } from '../lib/checks.mjs';
+import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 
 function inferWorkflowStage(changeId, data) {
@@ -84,6 +84,14 @@ for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
   }
   if ((state.state === 'VALIDATED' || state.state === 'REVIEWED') && state.validation?.status !== 'fresh') {
     console.error(`BLOCK: ${changeDir} 的 validation.status=${state.validation?.status}，请先刷新验证证据。`);
+    process.exit(2);
+  }
+  const reviewerProblems = validateCompletionReviewers(root, entry.name, state);
+  if (reviewerProblems.length) {
+    console.error(`BLOCK: ${changeDir} 的 reviewer verdict 未满足完成态要求。`);
+    for (const problem of reviewerProblems) {
+      console.error(`- ${problem}`);
+    }
     process.exit(2);
   }
   if (state.state === 'EXECUTING') {
