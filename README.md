@@ -297,13 +297,14 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 ### 4. 安装后怎么进入工作流
 安装插件后，对普通用户来说，后续只需要记住一件事：
 
-- **直接从 `/harness` 开始**
+- **所有请求都必须先走 `/harness` 进入 SOP**
 
 也就是说：
 
 - 安装方式可以是 plugin marketplace
 - 但使用入口仍然只有 `/harness`
-- 不需要先记住 `bootstrap` / `doctor` / `sync` / `verify` / `start-change`
+- 即使是简单的 bug fix 或读代码请求，也必须先走 `/harness` 进入 SOP
+- 后续可以在 router 层优化成快速路径，但前期必须先走 SOP
 
 如果你不是在做仓库维护、低层排障或 runtime 开发，就可以忽略 backend 命令。
 
