@@ -4,7 +4,11 @@ Status: draft-plan
 
 > 当 design 已批准、`tasks.md` 被正式消费为 plan/task artifact，且 `plan-critic` verdict 非 `block` 后，再改为 `# Tasks`。
 
-## Preconditions
+## Role Ownership
+- 主导角色：Fullstack Developer 视角
+- 参与角色：Quality Engineer
+- 本阶段交接物：开发详细设计 / 代码级执行切片 `tasks.md`
+
 - clarify-ready:
 - design-approved:
 - plan-critic verdict:

@@ -2,9 +2,9 @@
 
 ## Source Digest
 
-- Validation scope: clarify-first staged orchestrator **第一版 contract / template / worker / guidance / smoke 骨架**
-- 不包含：后续真实执行期的 `/harness-tdd` 任务实现结果
-- 当前 machine-readable state：`state=TASKED`、`workflow.stage=tdd`、`workflow.tddStatus=not-started`
+- Validation scope: clarify-first staged orchestrator **第一版 contract / template / worker / guidance / workflow-state / smoke 骨架**
+- 不包含：后续真实执行期的 `/harness-tdd` 业务任务实现结果
+- 当前 machine-readable state 将从骨架执行入口收口到骨架验证完成态
 
 ## Artifact Digest
 
@@ -15,6 +15,14 @@
 - reviews:
   - `reviews/design-reviewer.json`
   - `reviews/plan-critic.json`
+  - `reviews/design-reviewer-task1.json`
+  - `reviews/plan-critic-task2.json`
+  - `reviews/design-reviewer-task3.json`
+  - `reviews/verification-reviewer-task4.json`
+  - `reviews/plan-critic-task5a.json`
+  - `reviews/plan-critic-task5b.json`
+  - `reviews/verification-reviewer-task6a.json`
+  - `reviews/verification-reviewer-task6b.json`
 - stable specs:
   - `harness/specs/staged-workflow.md`
   - `harness/specs/ambiguity-scoring.md`
@@ -59,6 +67,8 @@
     - Result: `OK contract and runtime checks passed.`
 18. `bash /home/wula/IdeaProjects/sdd/hooks/validate-spec-structure.sh`
     - Result: `Harness structure validation passed.`
+19. `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json`
+    - Result: `contractChecks.ok=true`
 
 ## Unit Tests
 
@@ -68,13 +78,17 @@
 ## Unit Coverage
 
 - 本轮未运行覆盖率统计。
-- 原因：当前主线仍处于 staged orchestrator contract / plan-ready 阶段，不是 Java 质量 profile 执行阶段。
+- 原因：当前主线收口的是 staged orchestrator skeleton，而不是 Java 质量 profile 执行阶段。
 
 ## Architecture Tests
 
 - 通过的 contract/structure smoke 已覆盖：
   - staged workflow contract
+  - staged template contract
   - stage router contract
+  - stage guidance contract
+  - exploration / ambiguity / context contract
+  - lane worker contract
   - workflow state contract
   - workflow state consumption contract
 
@@ -86,7 +100,7 @@
 ## Backend API E2E
 
 - 本轮未执行后端 API E2E。
-- 原因：当前 change 不涉及 `reference-service` 行为实现，仅收敛 orchestration/gate 主线。
+- 原因：当前 change 不涉及 `reference-service` 行为实现，仅收敛 orchestration/gate 主线骨架。
 
 ## OpenAPI Contract
 
@@ -100,31 +114,41 @@
 
 ## Review Verdicts
 
-- `design-reviewer`: advisory — 已可进入 plan
-- `plan-critic`: pass — `tasks.md` 已可作为正式 plan artifact 使用
+- `design-reviewer`: advisory（change-level）
+- `plan-critic`: pass（change-level）
+- `design-reviewer` Task 1: pass
+- `plan-critic` Task 2: pass
+- `design-reviewer` Task 3: pass
+- `verification-reviewer` Task 4: pass
+- `plan-critic` Task 5A: pass
+- `plan-critic` Task 5B: pass
+- `verification-reviewer` Task 6A: pass
+- `verification-reviewer` Task 6B: pass
 
 ## Stage Gate Summary
 
-- clarify: ready（`workflow.clarifyReady=true` 且 `userConfirmedScope=true`）
-- route: completed for current skeleton scope
-- design: design review 已给出可进入 plan 的 advisory
-- plan: plan-critic 已 pass，`workflow.planReady=true`
-- tdd: 尚未开始真实执行，`workflow.tddStatus=not-started`
-- verify: 当前 validation 只覆盖第一版骨架收口，不覆盖后续执行态结果
+- clarify: complete
+- route: complete for current skeleton scope
+- design: complete for first skeleton scope
+- plan: complete，`tasks.md` 已与已验证现实对齐
+- tdd: 当前骨架相关 TDD/verify 证据已完成
+- verify: complete for first skeleton scope
+- archive: ready after state refresh
 
 ## Skipped Checks
 
 - Java golden sample / ArchUnit / JaCoCo / real HTTP E2E：不在本次 change 范围内
-- Runtime installer / adapter schema / release-local source-external smoke：本次只做 issue/readme/progress 对齐，不在本 change 直接实现范围内
+- Runtime installer / adapter schema / release-local source-external smoke：不在本 change 直接实现范围内
+- 完整“真实业务执行阶段” `/harness-tdd` 行为深化：不在本第一版骨架收口范围内
 
 ## Failures and Retries
 
-- 浏览器外部 GitHub 内容抓取中，`WebFetch/curl/gh` 在当前环境不稳定，因此 issue / superpowers / deep-interview 主要通过浏览器页面读取补证；这已被 `open-issues-matrix.md` 与 exploration evidence 记录。
-- `context7-cli-runtime` 在 `doctor --json` 中为 warning-only，不影响本次 contract 验证结论。
+- 第一轮进入 `/harness-tdd` 评估时，发现最初判断“先开第一批 RED”已经过时：对应的 RED precondition 已不再成立，说明关键骨架 smoke 已早于本次收口完成。
+- 真正的缺口转移为：tasks 勾选状态、task-level reviewer verdict、validation/state 结论未同步到已绿现实；本轮已按该现实补账。
 
 ## Final Verdict
 
-- 当前 change 已完成 clarify-first staged orchestrator 第一版 **contract / template / worker / guidance / smoke 骨架** 的验证收口。
-- 额外地，最小可用的 workflow runner 现已可用：`workflow run|resume|status|decide` 已落地，并有对应 smoke 与 machine-readable result 证据支撑。
-- design-reviewer 已给出可进入 plan 的 advisory；plan-critic 已给出 pass，可把 `tasks.md` 作为正式 plan artifact 使用。
-- 当前 change **并未宣称完整执行阶段已完成**；它现在处于 `state=TASKED`、`workflow.stage=tdd`，下一步应从 `/harness-tdd` 或经 `/harness` 路由后进入真实执行阶段。
+- 当前 change 已完成 clarify-first staged orchestrator 第一版 **contract / template / worker / guidance / workflow-state / smoke 骨架** 的验证收口。
+- 最小可用的 workflow runner 现已可用：`workflow run|resume|status|decide` 已落地，并有 smoke 与 machine-readable result 证据支撑。
+- 当前 change 的完成态仅覆盖第一版骨架，不外推为完整后续业务执行阶段都已完成。
+- 对当前收口范围而言，change 已具备进入 `VALIDATED/archive` 的条件。

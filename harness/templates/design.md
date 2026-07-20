@@ -1,6 +1,10 @@
 # Design
 
-## Requirement Alignment
+## Role Ownership
+- 主导角色：Principal Architect 视角
+- 参与角色：Fullstack Developer / Quality Engineer / Human User（如需范围确认）
+- 本阶段交接物：提供给开发与测试消费的 `design.md`
+
 
 ## Current-State Evidence
 

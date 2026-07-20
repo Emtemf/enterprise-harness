@@ -75,6 +75,12 @@ export function inferCurrentGap(root, changeId, data, workflowStage) {
       return 'route 已形成，下一步应进入 design。';
     case 'design':
       if (!hasDesign) return '缺少 design.md。';
+      if (data.workflow?.suppressionBaseline?.designMdSha256) {
+        return 'execution deepening 切片仍需修订。';
+      }
+      if (data.approvals?.design?.status && data.approvals?.design?.status !== 'block' && !data.gates?.designApproved) {
+        return 'execution deepening 第一批切片待冻结。';
+      }
       if (!(data.approvals?.design?.status === 'pass' || data.gates?.designApproved)) return 'design 尚未批准。';
       return 'design 已批准，下一步应进入 plan。';
     case 'plan':

@@ -21,7 +21,9 @@ const workflowStage = summary.nextStage || '未识别';
 const currentGap = summary.currentGap || '未识别当前缺口';
 const recommendedLane = summary.recommendedLane || null;
 const recommendedEntry = summary.recommendedEntry || '/harness';
-const nextAction = activeChange.includes('当前没有 active change') ? '/harness' : (recommendedEntry || '/harness');
+const nextAction = summary.activeChange?.present && workflowStage === 'design' && summary.currentGap === 'execution deepening 第一批切片待冻结。'
+  ? `workflow decide ${summary.activeChange.changeId} freeze-slice`
+  : '/harness';
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
 console.log(`[Harness 入口] 普通用户入口: ${userEntry}`);
 console.log(`[Harness 进度] 当前阶段: ${summary.currentPhase}`);

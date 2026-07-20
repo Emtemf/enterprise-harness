@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "clarify-first-staged-orchestrator",
   "tier": "L3",
-  "state": "TASKED",
+  "state": "VALIDATED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",
@@ -43,7 +43,7 @@
     "高噪声探索默认下沉为 read-only subagent，主 orchestrator 只消费 exploration packet/context packet。",
     "本轮先只做 Claude Code-only staged orchestrator，不展开多宿主 packaging-first 重构。",
     "`/harness` 仍是默认主入口；阶段 skill 仅作为 subordinate recovery entry。",
-    "当前 design 已达到可进入 plan 的 advisory 级别；plan-critic 已 pass，可把 tasks 作为正式 plan artifact 使用。"
+    "当前第一版骨架已完成 contract/template/worker/guidance/workflow-state 收口；后续真实执行期行为深化应作为下一阶段演进，而不是继续混在本骨架 change 中。"
   ],
   "blockers": [],
   "approvals": {
@@ -63,17 +63,17 @@
   },
   "currentTask": null,
   "workflow": {
-    "stage": "tdd",
+    "stage": "verify",
     "clarifyReady": true,
     "userConfirmedScope": true,
     "planReady": true,
-    "tddStatus": "not-started",
-    "nextEntry": "/harness-tdd"
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
   },
   "validation": {
     "status": "fresh",
-    "digest": "efc2f1c127f385ee70581d44a6aa5e479143ddc347d72aacdd0d4b857845a566",
-    "validatedAt": "2026-07-16"
+    "digest": "cc8aefdcb110c9c40286ae9022a8a42bcf0bd478dd10aae553411a64ac6796e8",
+    "validatedAt": "2026-07-17"
   },
   "revision": 3,
   "lastEventId": "wf_af68e2cd-d045-43e0-856c-7331535eb65f"

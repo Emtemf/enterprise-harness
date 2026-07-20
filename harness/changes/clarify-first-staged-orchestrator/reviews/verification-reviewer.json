@@ -1,0 +1,80 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 change-level 完成声明已有新鲜证据支撑。",
+      "detail": "第一版 staged orchestrator 骨架相关 contract/template/router/guidance/exploration/workflow-state smoke 均已通过，且 repo-level verify 保持通过。"
+    },
+    {
+      "severity": "info",
+      "summary": "当前 PASS 的范围清晰，仅覆盖 clarify-first staged orchestrator 第一版骨架。",
+      "detail": "本次完成态覆盖的是 contract / template / worker / guidance / workflow-state / smoke 骨架，不外推为后续真实业务执行阶段都已完成。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/validation.md",
+      "lines": "1-220",
+      "note": "validation 已记录第一版骨架相关 verify 证据与当前收口边界。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task4.json",
+      "lines": "1-40",
+      "note": "stage guidance surface 已 pass。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task6a.json",
+      "lines": "1-32",
+      "note": "workflow state contract 已 pass。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task6b.json",
+      "lines": "1-36",
+      "note": "workflow state consumption 已 pass。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/clarify-stage-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/staged-template-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stage-guidance-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-stable-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/lane-worker-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-consumption-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify --json",
+      "note": "通过；`contractChecks.ok=true`。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

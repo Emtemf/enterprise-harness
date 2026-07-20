@@ -30,18 +30,18 @@ Status: finalized-plan
 - `requirements/change/design/tasks/validation/reviews/state/evidence` 的 durable workflow state 边界
 - `/harness` 为唯一主用户入口、stage skill 为 subordinate recovery entry 的 repo-level contract
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 staged workflow spec / repo-facing contract 缺少 clarify-first、single-entry 与 durable artifact 定义时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/clarify-stage-contract-smoke.mjs red`
   - Expected failure: `Expected staged workflow contract to define clarify-first phases and durable artifact boundaries`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/clarify-stage-contract-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/clarify-stage-contract-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `design-reviewer`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/design-reviewer-task1.json`
 
@@ -64,18 +64,18 @@ Status: finalized-plan
 - `design` 阶段的 enterprise mandatory sections
 - `plan` 阶段的 touched-files / RED / GREEN / commands / acceptance checks contract
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当模板缺少 required sections（如 interface / SQL / test strategy / RED point）时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/staged-template-smoke.mjs red`
   - Expected failure: `Expected staged workflow templates to include requirements/design/plan/validation mandatory sections`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/staged-template-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/staged-template-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `plan-critic`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/plan-critic-task2.json`
 
@@ -99,18 +99,18 @@ Status: finalized-plan
 - subordinate stage skill skeleton
 - clarify-first / design / plan / tdd / verify 的入口职责分工
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 `/harness` 仍只描述总入口但没有 stage route / clarify-first / stage skill 映射时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs red`
   - Expected failure: `Expected /harness to act as a clarify-first stage router with stage skill mappings`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/harness-stage-router-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `design-reviewer`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/design-reviewer-task3.json`
 
@@ -134,18 +134,18 @@ Status: finalized-plan
 - Stop 的“当前停在哪一阶段 + 下次从哪恢复”提示
 - status surface 的 machine-readable / human-readable guidance 闭环
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 SessionStart/Stop/status 仍只有状态摘要而没有 stage/gap/recovery guidance 时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stage-guidance-smoke.mjs red`
   - Expected failure: `Expected SessionStart and Stop to provide current-stage and next-stage recovery guidance`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stage-guidance-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stage-guidance-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `verification-reviewer`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task4.json`
 
@@ -171,18 +171,18 @@ Status: finalized-plan
 - 稳定规范层的 exploration packet / ambiguity scoring / context packet 定稿
 - change-local shadow copy 的“历史快照、非权威”说明
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 stable exploration/ambiguity/context contract 或非权威 shadow snapshot 说明缺失时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-contract-smoke.mjs red && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-stable-contract-smoke.mjs red`
   - Expected failure: `Expected clarify-first contract to define ambiguity scoring and exploration/context packet boundaries`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-contract-smoke.mjs green && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-stable-contract-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-contract-smoke.mjs verify && node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-stable-contract-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `plan-critic`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/plan-critic-task5a.json`
 
@@ -204,18 +204,18 @@ Status: finalized-plan
 - `code-explore` / `doc-research` / `impact-explore` 的 worker contract 对齐
 - `/harness` 与 `workflow.mjs` 的 lane 选择逻辑一致
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 orchestrator lane routing 与 worker contract 不一致时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/lane-worker-contract-smoke.mjs red`
   - Expected failure: `Expected exploration lane worker contracts and lane routing logic to stay aligned`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/lane-worker-contract-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/lane-worker-contract-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `plan-critic`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/plan-critic-task5b.json`
 
@@ -238,18 +238,18 @@ Status: finalized-plan
 - machine-readable workflow state 第一版稳定 contract
 - clarify-first changes 优先读取 `workflow.*` 的 schema/字段要求
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 workflow state 缺少 `workflow.stage / clarifyReady / userConfirmedScope / planReady / tddStatus / nextEntry` contract 时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-contract-smoke.mjs red`
   - Expected failure: `Expected workflow state contract to define machine-readable workflow fields`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-contract-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-contract-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `verification-reviewer`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task6a.json`
 
@@ -273,23 +273,24 @@ Status: finalized-plan
 - 当前 change 的 machine-readable workflow state 基线
 - SessionStart/status surface 对 `workflow.stage / nextEntry / recommendedLane / currentGap` 的一致消费
 
-- [ ] 写失败测试
+- [x] 写失败测试
   - 目标：当 runtime helper、checks 或状态 surface 不消费 `workflow.*` 时失败
-- [ ] 运行 RED 命令
+- [x] 运行 RED 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-consumption-smoke.mjs red`
   - Expected failure: `Expected runtime helpers and checks to consume machine-readable workflow state`
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
+- [x] 实现最小 GREEN 改动
+- [x] 运行 GREEN 命令
   - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-consumption-smoke.mjs green`
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/cli.mjs verify`
-- [ ] 运行 task review
+- [x] 在全绿状态下重构
+- [x] 运行定向验证
+  - Command: `node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-consumption-smoke.mjs verify`
+- [x] 运行 task review
   - Reviewer: `verification-reviewer`
   - Output: `/home/wula/IdeaProjects/sdd/harness/changes/clarify-first-staged-orchestrator/reviews/verification-reviewer-task6b.json`
 
 ## Notes
 
-- 本轮先以 spec-first / template-first / stage-contract-first 为主，不追求第一批 task 就完成所有 runtime 行为接线。
-- exploration lane 与 workflow state 已进入 contract surface，但后续“真实调度”与“自动推进”仍属于下一阶段行为深化。
+- 当前第一版骨架相关 smoke 已全部通过；本 tasks 已按已验证现实补齐状态。
+- 当前 change 仍不宣称完整业务执行阶段完成；它收口的是 clarify-first staged orchestrator 第一版 contract / template / worker / guidance / workflow-state 骨架。
+- 后续“真实调度”与“自动推进”深化仍可作为下一阶段行为演进，而不是本骨架收口的阻断项。
 - 多宿主 packaging 明确排除在本 change 外；主线只面向 Claude Code repo-native 架构。

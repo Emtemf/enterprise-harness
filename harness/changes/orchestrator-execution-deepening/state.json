@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "changeId": "orchestrator-execution-deepening",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "execution deepening workflow.mjs lib/workflow.mjs status-summary.mjs session-start.mjs stop.mjs workflow-runner-smoke workflow-decision-smoke session-status-smoke session-start-summary-smoke /harness automation-first progression"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "本轮继续收紧现有 `workflow.mjs` 与 `lib/workflow.mjs`，不另起第二套 execution runner。",
+    "本轮第一批切片优先覆盖 execution-phase status progression、decision surface deepening、snapshot/active-change synchronization。",
+    "普通用户唯一前门仍保持 `/harness`；execution deepening 只深化其背后的 runner/guidance 行为。",
+    "`execution-readiness` 不是新的 reviewer verdict，也不是第二套 design gate；它是在已有 design review 基础上的人类执行检查点。",
+    "repo-level `recommendedEntry` 始终代表普通用户默认入口 `/harness`；内部阶段恢复入口继续由 `workflow.nextEntry` 表达。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "advisory",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-20"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-20"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "8e78a1e162603a7485450df785bd1c2ec225165ab8e2b85c9533e0ccf23052f9",
+    "validatedAt": "2026-07-20"
+  }
+}

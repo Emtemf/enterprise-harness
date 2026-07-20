@@ -1,0 +1,30 @@
+{
+  "changeId": "orchestrator-execution-deepening",
+  "reviewerId": "design-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "当前 design 已达到可进入 plan 的信息密度。",
+      "detail": "`execution-readiness` 的法律地位、review artifact / runtime projection 分层、`workflow.nextEntry` 与 `recommendedEntry` 字段所有权，以及 execution deepening 第一批 smoke 切片都已明确。"
+    },
+    {
+      "severity": "advisory",
+      "summary": "正式进入 plan 前仍应落盘本次 design reviewer 结论并同步 state projection。",
+      "detail": "这属于流程门禁消费步骤，而不是 design 内容本身的 blocker。"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/orchestrator-execution-deepening/design.md",
+      "lines": "54-395",
+      "note": "已明确 execution-readiness、shared inference owner、user-facing 入口分层与第一批 smoke oracle。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/orchestrator-execution-deepening/tasks.md",
+      "lines": "13-323",
+      "note": "tasks 已与 design 的 contract、oracle、gate 语义一致。"
+    }
+  ],
+  "reviewedAt": "2026-07-20"
+}

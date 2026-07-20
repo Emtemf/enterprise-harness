@@ -9,6 +9,11 @@
 ## 非目标
 
 ## 关键参与者 / 用户 / 调用方
+- 用户：
+- Product Owner 视角：
+- Principal Architect 视角：
+- Fullstack Developer 视角：
+- Quality Engineer 视角：
 
 ## 业务上下文
 

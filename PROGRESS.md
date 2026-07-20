@@ -2,13 +2,14 @@
 
 ## 当前阶段
 
-- 当前阶段：clarify-first staged orchestrator 已完成第一版 contract / template / worker / guidance / smoke 骨架（L3 clarify-first-staged-orchestrator）
-- 进度定位：repo contract + portable runtime MVP 正在从 intake-first 骨架升级为 single-entry staged workflow core
+- 当前阶段：clarify-first staged orchestrator 第一版 contract / template / worker / guidance / workflow-state / smoke 骨架已完成验证收口（L3 clarify-first-staged-orchestrator）
+- 进度定位：repo contract + portable runtime MVP 已完成 single-entry staged workflow core 的第一版骨架，当前进入 execution deepening 新阶段
 
 ## 最近完成
 
 - 三层入口模型已成形：普通用户 `/harness`、维护层 runtime CLI、hooks
-- clarify-first staged orchestrator 第一版 contract / template / worker / guidance / smoke 骨架已落地
+- 普通用户单入口 `/harness` 收口已完成，并已同步 GitHub description
+- clarify-first staged orchestrator 第一版 contract / template / worker / guidance / workflow-state / smoke 骨架已进入 `VALIDATED`
 - repo-facing `AGENTS.md` 已落地
 - `release-local` 本地源外 smoke 路径已落地
 - containerization / sandboxing 指南已落地
@@ -16,8 +17,8 @@
 
 ## 当前 active change
 
-- 当前 active change：`clarify-first-staged-orchestrator`（当前处于 `TASKED` / `workflow.stage=tdd`）
-- 当前目标：把 clarify-first staged orchestrator 从 contract/plan-ready 主线推进到真实执行阶段，并继续深化 workflow runner、runtime stage routing 与 exploration lane 调度；当前最小 workflow runner 已可内部使用
+- 当前 active change：`orchestrator-execution-deepening`（当前处于 `DRAFT` / `workflow.stage=clarify`）
+- 当前目标：在 clarify-first staged orchestrator 第一版骨架完成后，继续深化 workflow runner、runtime stage routing、automation-first progression 与 execution-phase guidance
 
 ## 动态真相
 

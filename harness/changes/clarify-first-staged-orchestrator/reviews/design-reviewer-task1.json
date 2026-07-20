@@ -1,0 +1,29 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "clarify-first staged workflow contract 与 durable artifact 边界已形成可消费的稳定规范层。",
+      "detail": "`clarify-stage-contract-smoke.mjs verify` 已通过，相关 stable spec、repo-facing contract 与 `/harness` 单入口定义已落地到 `harness/specs/*`、`README.md`、`AGENTS.md` 与 `CLAUDE.md`。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/clarify-stage-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/staged-workflow.md",
+      "lines": "1-220",
+      "note": "已定义 clarify-first 主阶段、durable artifact 边界与 `/harness` 单入口。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude/skills/harness/SKILL.md",
+      "lines": "1-180",
+      "note": "已将 `/harness` 固定为总入口 / stage orchestrator。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

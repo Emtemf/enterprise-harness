@@ -6,9 +6,17 @@ description: >
 
 # Harness Verify
 
-## 目标
+## 角色定位
 
-在宣称完成前，用统一的 reviewer + evidence + freshness contract 收口，而不是只跑零散命令。
+本阶段默认以 **Quality Engineer 视角**主导。
+
+参与角色通常包括：
+- Fullstack Developer（补实现/命令证据）
+- Principal Architect（必要时确认架构与设计一致性）
+- Human User（最终业务验收）
+
+verify 的目标是把工程验证和用户验收收成一个完成声明，而不是只跑几个命令。
+
 
 ## 前置条件
 

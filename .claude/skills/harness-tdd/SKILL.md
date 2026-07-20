@@ -6,9 +6,12 @@ description: >
 
 # Harness TDD
 
-## 目标
+## 角色定位
 
-把 plan 变成受状态机约束、带证据的 TDD 执行，而不是只写测试文件或直接改生产代码。
+本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与验证 RED/GREEN/REFACTOR 证据。
+
+重点不是“写点测试”，而是让开发与测试围绕同一组证据推进实现。
+
 
 ## 前置条件
 

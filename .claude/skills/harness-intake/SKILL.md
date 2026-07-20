@@ -6,9 +6,17 @@ description: >
 
 # Harness Intake
 
-## 目标
+## 角色定位
 
-把需求从“用户一句话”先推进到 **clarify-ready**，再转成仓库内可追踪的 route/change 输入，而不是直接开始写代码。
+本阶段默认以 **Product Owner 视角**主导，但必须保留当前 clarify-first 方法论：
+- 苏格拉底式提问
+- ambiguity scoring
+- weakest-dimension targeting
+- 先探索，再问用户
+- 必要时做轻量头脑风暴 / 多方案发散后再收敛
+
+角色化只能增强“谁主导澄清”，不能把 clarify 退化成僵硬问卷。
+
 
 ## 入口职责
 

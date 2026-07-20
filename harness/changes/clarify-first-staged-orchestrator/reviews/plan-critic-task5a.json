@@ -1,0 +1,28 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "stable exploration / ambiguity / context contract 已定稿，并与 change-local shadow snapshot 的非权威定位分离。",
+      "detail": "`exploration-contract-smoke.mjs verify` 与 `exploration-stable-contract-smoke.mjs verify` 均已通过，稳定规范层与历史快照层边界已明确。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/exploration-stable-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/specs/exploration-packet.md",
+      "lines": "1-220",
+      "note": "稳定 exploration packet contract 已存在。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

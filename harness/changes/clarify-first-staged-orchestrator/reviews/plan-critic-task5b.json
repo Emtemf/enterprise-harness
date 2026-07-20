@@ -1,0 +1,29 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "exploration lane worker contract 与 orchestrator lane 选择规则已对齐。",
+      "detail": "`lane-worker-contract-smoke.mjs verify` 已通过，`code-explore` / `doc-research` / `impact-explore` worker contract 与 `/harness` / `workflow.mjs` lane routing 规则一致。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/lane-worker-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/.claude/agents/code-explore.md",
+      "lines": "1-120",
+      "note": "lane worker contract 已存在。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/workflow.mjs",
+      "lines": "126-148",
+      "note": "recommendedLane / currentGap / nextAction 已参与 orchestrator 路由。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

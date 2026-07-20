@@ -66,7 +66,7 @@ export function buildStatusSummary(root) {
     progressSnapshot,
     activeChange,
     nextStage: activeChange.present ? activeChange.workflowStage : null,
-    recommendedEntry: activeChange.present ? activeChange.nextEntry : '/harness',
+    recommendedEntry: '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
     currentGap: activeChange.currentGap,
     truthSources: [

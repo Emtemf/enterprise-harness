@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
@@ -22,6 +22,50 @@ function writeJson(file, data) {
 function setActiveChange(changeId) {
   fs.writeFileSync(activeFile, `${changeId}\n`, 'utf-8');
 }
+
+function computeFileSha256(file) {
+  return createHash('sha256').update(fs.readFileSync(file, 'utf-8')).digest('hex');
+}
+
+function designReviewArtifactPath(changeId) {
+  return path.join(changeDir(changeId), 'reviews', 'design-reviewer.json');
+}
+
+function designFilePath(changeId) {
+  return path.join(changeDir(changeId), 'design.md');
+}
+
+function designProjectionMatchesArtifact(changeId, data) {
+  const reviewPath = designReviewArtifactPath(changeId);
+  if (!fs.existsSync(reviewPath)) {
+    return { ok: false, reason: 'missing-reviewer-artifact' };
+  }
+  let review;
+  try {
+    review = JSON.parse(fs.readFileSync(reviewPath, 'utf-8'));
+  } catch {
+    return { ok: false, reason: 'invalid-reviewer-artifact' };
+  }
+  const projection = data.approvals?.design;
+  if (!projection) {
+    return { ok: false, reason: 'missing-design-projection' };
+  }
+  const matches =
+    review.changeId === changeId &&
+    review.reviewerId === projection.reviewerId &&
+    review.reviewedAt === projection.reviewedAt &&
+    review.verdict === projection.status;
+  return { ok: matches, reason: matches ? null : 'projection-drift' };
+}
+
+function shouldSuppressExecutionReadiness(changeId, data) {
+  const baseline = data.workflow?.suppressionBaseline?.designMdSha256;
+  if (!baseline) return false;
+  const file = designFilePath(changeId);
+  if (!fs.existsSync(file)) return false;
+  return computeFileSha256(file) === baseline;
+}
+
 
 function ensureChangeExists(changeId) {
   const statePath = path.join(changesDir, changeId, 'state.json');
@@ -106,6 +150,18 @@ function inferPendingDecision(changeId, data, stage, currentGap) {
       evidence: [`harness/changes/${changeId}/requirements.md`],
     };
   }
+  if (stage === 'design' && data.approvals?.design?.status && data.approvals?.design?.status !== 'block' && !data.gates?.designApproved) {
+    if (shouldSuppressExecutionReadiness(changeId, data)) {
+      return null;
+    }
+    return {
+      kind: 'execution-readiness',
+      message: '需要确认 execution deepening 第一批切片是否已冻结，可以进入 plan。',
+      options: ['freeze-slice', 'revise-slice'],
+      defaultDecision: 'freeze-slice',
+      evidence: [`harness/changes/${changeId}/design.md`],
+    };
+  }
   if (stage === 'design' && !(data.approvals?.design?.status === 'pass' || data.gates?.designApproved)) {
     return {
       kind: 'design-approval',
@@ -130,12 +186,17 @@ function buildWorkflowResult(changeId, data) {
   const recommendedLane = recommendExplorationLane(stage, data);
   const currentGap = inferCurrentGap(root, changeId, data, stage);
   const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap);
+  const nextAction = pendingDecision
+    ? (pendingDecision.defaultDecision
+      ? `workflow decide ${changeId} ${pendingDecision.defaultDecision}`
+      : `workflow decide ${changeId} <${pendingDecision.options.join('|')}>`)
+    : nextEntry;
   return {
     changeId,
     state: data.state ?? null,
     stage,
     status: inferRunnerStatus(stage, pendingDecision),
-    nextAction: pendingDecision ? `workflow decide ${changeId} <${pendingDecision.options.join('|')}>` : nextEntry,
+    nextAction,
     pendingDecision,
     recommendedLane,
     currentGap,
@@ -200,29 +261,32 @@ function applyDecision(changeId, decision, reason = null) {
     }
   }
 
-  if (pending.kind === 'design-approval') {
-    data.approvals = data.approvals || {};
-    if (decision === 'approve') {
-      data.approvals.design = {
-        status: 'pass',
-        reviewerId: 'human-checkpoint',
-        reviewedAt: new Date().toISOString().slice(0, 10),
-        rationale: reason || 'approved via workflow decide',
-      };
+  if (pending.kind === 'execution-readiness') {
+    const consistency = designProjectionMatchesArtifact(changeId, data);
+    if (decision === 'freeze-slice') {
+      if (!consistency.ok) {
+        console.error(`Execution readiness gate failed: ${consistency.reason}`);
+        process.exit(2);
+      }
       data.gates = data.gates || {};
       data.gates.designApproved = true;
+      data.state = 'DESIGN_APPROVED';
       data.workflow.stage = 'plan';
       data.workflow.nextEntry = '/harness-plan';
+      data.workflow.planReady = false;
+      delete data.workflow.suppressionBaseline;
     }
-    if (decision === 'request-changes' || decision === 'reject') {
-      data.approvals.design = {
-        status: decision === 'reject' ? 'block' : 'advisory',
-        reviewerId: 'human-checkpoint',
-        reviewedAt: new Date().toISOString().slice(0, 10),
-        rationale: reason || `${decision} via workflow decide`,
-      };
+    if (decision === 'revise-slice') {
+      data.gates = data.gates || {};
+      data.gates.designApproved = false;
+      data.state = 'DISCOVERED';
       data.workflow.stage = 'design';
       data.workflow.nextEntry = '/harness-design';
+      data.workflow.planReady = false;
+      const designPath = designFilePath(changeId);
+      data.workflow.suppressionBaseline = {
+        designMdSha256: fs.existsSync(designPath) ? computeFileSha256(designPath) : null,
+      };
     }
   }
 

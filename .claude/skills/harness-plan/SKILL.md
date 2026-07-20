@@ -6,9 +6,15 @@ description: >
 
 # Harness Plan
 
-## 目标
+## 角色定位
 
-把 design 转成下游 agent 或工程师无需猜测即可执行的 plan/task artifact。
+本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与确认可测性与验收边界。
+
+职责不是重复 design，而是：
+- 把架构设计变成开发详细设计
+- 明确 touched files / 实现顺序 / 失败测试入口
+- 让下游执行者无需猜测即可进入 TDD
+
 
 ## 前置条件
 

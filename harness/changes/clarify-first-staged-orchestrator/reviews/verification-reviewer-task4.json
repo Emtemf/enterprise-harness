@@ -1,0 +1,32 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "SessionStart / Stop / status surface 已提供当前阶段、当前缺口与恢复入口 guidance。",
+      "detail": "`stage-guidance-smoke.mjs verify`、`session-start-summary-smoke.mjs verify` 与 `session-status-smoke.mjs verify` 均已通过；status surface 现已区分普通用户下一步与维护命令。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/stage-guidance-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/session-start-summary-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/session-status-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/status-summary.mjs",
+      "lines": "58-127",
+      "note": "已输出 current stage / gap / next entry / user-first reads / maintainer commands。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

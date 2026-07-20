@@ -1,0 +1,34 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "staged workflow templates 已具备 requirements/design/tasks/validation 的 mandatory sections，可作为正式 plan/template contract 使用。",
+      "detail": "`staged-template-smoke.mjs verify` 已通过，模板层已覆盖 interface / SQL / test strategy / RED point / acceptance checks 等关键 section。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/staged-template-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/templates/requirements.md",
+      "lines": "1-220",
+      "note": "requirements 模板已补齐 clarify-first 所需 section。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/templates/design.md",
+      "lines": "1-260",
+      "note": "design 模板已固化 enterprise mandatory sections。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/templates/tasks.md",
+      "lines": "1-260",
+      "note": "tasks 模板已包含 touched files / RED / GREEN / acceptance checks contract。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

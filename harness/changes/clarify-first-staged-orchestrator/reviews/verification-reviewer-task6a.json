@@ -1,0 +1,24 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "machine-readable workflow state contract 已定义完成。",
+      "detail": "`workflow-state-contract-smoke.mjs verify` 已通过，`workflow.stage / clarifyReady / userConfirmedScope / planReady / tddStatus / nextEntry` 这些字段已形成稳定 contract。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-contract-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/templates/state.json",
+      "lines": "1-160",
+      "note": "workflow.* 字段已进入模板 contract。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

@@ -30,6 +30,8 @@ Claude Code 会话中，统一从：
 ### 入口职责
 `/harness` 不是单纯的说明 skill，而是阶段编排器，负责：
 
+> 角色协作版本的补充草案见：`harness/specs/role-guided-staged-workflow.md`
+
 1. 识别当前 active change 与当前阶段
 2. 判断缺少哪些 artifact / approvals / evidence
 3. 必要时自动调用探索 subagent 获取 repo 或文档事实

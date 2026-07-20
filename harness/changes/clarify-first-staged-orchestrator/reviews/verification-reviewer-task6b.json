@@ -1,0 +1,29 @@
+{
+  "changeId": "clarify-first-staged-orchestrator",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "runtime helper / status surface 已实际消费 machine-readable workflow state。",
+      "detail": "`workflow-state-consumption-smoke.mjs verify` 已通过，当前 `workflow.stage=tdd`、`nextEntry=/harness-tdd`、recommendedLane/currentGap 的 machine-readable consumption 已有证据支撑。"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "node /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/workflow-state-consumption-smoke.mjs verify",
+      "note": "通过。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/status-summary.mjs",
+      "lines": "58-127",
+      "note": "status summary 已消费 workflow state 形成用户/维护者分层提示。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/workflow.mjs",
+      "lines": "126-148",
+      "note": "workflow status machine-readable object 已返回 stage/status/nextAction/pendingDecision/currentGap。"
+    }
+  ],
+  "reviewedAt": "2026-07-17"
+}

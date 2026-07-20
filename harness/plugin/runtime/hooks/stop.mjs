@@ -2,38 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
+import { inferWorkflowStage } from '../lib/workflow.mjs';
 
-function inferWorkflowStage(changeId, data) {
-  if (!changeId || !data) return null;
-  if (changeId === 'clarify-first-staged-orchestrator') {
-    if (data.validation?.status === 'fresh' && data.state === 'VALIDATED') return 'archive';
-    if (data.state === 'VALIDATED' || data.state === 'REVIEWED') return 'verify';
-    if (data.state === 'EXECUTING') return 'tdd';
-    if (data.state === 'TASKED') return 'plan';
-    if (data.approvals?.design?.status === 'pass' || data.gates?.designApproved) return 'design';
-    if (data.state === 'DISCOVERED') return 'route';
-    return 'clarify';
-  }
-  if (data.validation?.status === 'fresh' && data.state === 'VALIDATED') return 'archive';
-  if (data.state === 'VALIDATED' || data.state === 'REVIEWED') return 'verify';
-  if (data.state === 'EXECUTING') return 'tdd';
-  if (data.state === 'TASKED') return 'plan';
-  if (data.approvals?.design?.status === 'pass' || data.gates?.designApproved) return 'design';
-  if (data.state === 'DISCOVERED') return 'route';
-  return 'clarify';
-}
-
-function recommendNextEntry(stage) {
-  switch (stage) {
-    case 'clarify': return '/harness';
-    case 'route': return '/harness';
-    case 'design': return '/harness-design';
-    case 'plan': return '/harness-plan';
-    case 'tdd': return '/harness-tdd';
-    case 'verify': return '/harness-verify';
-    case 'archive': return '/harness';
-    default: return '/harness';
-  }
+function recommendNextEntry(_stage) {
+  return '/harness';
 }
 
 function activeChangeGuidance(root) {
