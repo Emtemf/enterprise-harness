@@ -1,9 +1,15 @@
 import fs from 'node:fs';
-import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateControllerConsistency } from '../lib/checks.mjs';
+import { projectRoot, isHarnessManaged, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateControllerConsistency } from '../lib/checks.mjs';
 import path from 'node:path';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
 
 const root = projectRoot();
+
+// If the plugin is installed into a target project that is not harness-managed,
+// harness structure/state validation does not apply. No-op gracefully.
+if (!isHarnessManaged(root)) {
+  process.exit(0);
+}
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();

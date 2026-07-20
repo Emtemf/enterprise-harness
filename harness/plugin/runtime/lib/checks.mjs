@@ -10,6 +10,16 @@ export function exists(root, relPath) {
   return fs.existsSync(path.join(root, relPath));
 }
 
+// A project is "harness-managed" only when it actually contains the durable
+// harness governance assets in its own working tree. When the plugin is
+// installed into a target project that has NOT been onboarded, structure/state
+// validation must NOT run against the target's cwd — otherwise hooks spam
+// harness self-structure errors (see issue #21 cluster).
+export function isHarnessManaged(root) {
+  return fs.existsSync(path.join(root, 'harness', 'changes'))
+    && fs.existsSync(path.join(root, 'harness', 'specs'));
+}
+
 export function requiredPaths() {
   return {
     dirs: [
