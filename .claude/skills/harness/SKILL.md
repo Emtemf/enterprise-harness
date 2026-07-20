@@ -92,10 +92,15 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 ### 模式 C：用户问“我该跑哪个命令”
 不要泛泛而谈，直接按目标给出命令；但要明确这些都是 `/harness` 背后的后台动作，而不是新的用户入口：
 
-- 新机器接入：`bootstrap` → `setup-local-adapter --write` → `doctor` → `sync`
+- 新机器接入（维护者 / 排障者）：`bootstrap` → `setup-local-adapter --write` → `doctor` → `sync`
 - 新 change 后台建档：`start-change`
 - 本地 contract 检查：`verify`
 - 上游盘点：`upstream-check`
+
+### 未初始化目标项目的约束
+
+- 若当前项目还没有 harness 资产或 runtime 初始化信息，不得因为缺少 `.harness/`、bootstrap marker、或本地 adapter 而阻断普通用户继续通过 `/harness` 进入澄清流程
+- 对普通用户，这类缺口只能作为“维护者可后续补 bootstrap/doctor/sync”的建议，不能当作必须先完成的前置条件
 
 ### 模式 D：用户想发版 / 做发布动作
 优先区分：

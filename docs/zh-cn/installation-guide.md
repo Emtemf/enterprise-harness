@@ -135,6 +135,8 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - 打开 Claude Code
 - 输入 `/harness`
 
+普通用户不需要先初始化 `.harness/`、bootstrap marker 或本机 adapter，缺这些也不应阻止继续通过 `/harness` 澄清需求。
+
 如果你需要：
 
 - runtime 初始化
