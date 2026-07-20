@@ -12,6 +12,11 @@ description: >
 
 重点不是“写点测试”，而是让开发与测试围绕同一组证据推进实现。
 
+## 默认执行面
+
+- 只要目标项目存在真实构建/测试命令，TDD 默认应下沉给专职 worker / subagent 执行 RED/GREEN/REFACTOR，而不是把所有执行细节堆在主对话里
+- 主上下文应保留：当前 task、当前构建命令、RED/GREEN 证据摘要、失败原因与下一步决策
+
 
 ## 前置条件
 
@@ -43,6 +48,7 @@ TEST_WRITTEN
 - 先写失败测试，再执行 RED
 - RED/GREEN/REFACTOR 证据必须绑定**目标项目真实构建/测试命令**
 - Java / Maven 项目默认应优先调用 `mvn test` / `mvn verify` 这类项目原生命令，而不是只跑 harness 自己的 runtime verify
+- 默认优先使用 worker / subagent 执行这些真实构建命令；主上下文只保留结果摘要，不应把整段构建输出长期堆积在主对话里
 - GREEN 仅做最小实现
 - REFACTOR 后必须重新确认全绿
 - 必要时可调用专职 worker，但主上下文必须保留当前任务与证据点摘要
