@@ -227,26 +227,32 @@ git clone https://github.com/Emtemf/enterprise-harness.git
 cd enterprise-harness
 ```
 
-### 2. 在 Claude Code 里添加本地 marketplace
-如果你想要的是 **像 superpowers 那样的 plugin 安装体验**，当前已经支持本地 marketplace 路径。
+### 2. 在 Claude Code 里添加 marketplace
+如果你想要的是 **像 superpowers 那样的 plugin 安装体验**，当前推荐直接把 GitHub 仓库加入 marketplace。
 
-#### 方式 A：在 Claude Code 会话里执行 slash command
+#### 方式 A：在 Claude Code 会话里执行 slash command（推荐，企业试点默认）
 ```bash
-/plugin marketplace add /absolute/path/to/enterprise-harness
+/plugin marketplace add https://github.com/Emtemf/enterprise-harness
 /plugin install enterprise-harness@enterprise-harness
 ```
 
 #### 方式 B：在终端里执行等价 CLI
 ```bash
-claude plugin marketplace add /absolute/path/to/enterprise-harness
+claude plugin marketplace add https://github.com/Emtemf/enterprise-harness
 claude plugin install enterprise-harness@enterprise-harness --scope local
 ```
 
-当前这条链路已经在本仓库本地验证通过：
-- marketplace add
-- plugin install
-- plugin list 可见 `enterprise-harness@enterprise-harness`
-- plugin update / marketplace update 可用
+当前已确认：
+- Git 远程仓库 URL 可以被 `claude plugin marketplace add` 识别为 marketplace 来源
+- 在网络、代理、TLS clone 稳定时，这条链路更接近 `superpowers` 的使用体验
+
+#### 本地仓库 fallback（网络 / 代理 / TLS clone 不稳时使用）
+如果你的企业网络、代理或 Git/TLS 环境会导致远程 clone 不稳定，再退回本地仓库路径：
+
+```bash
+claude plugin marketplace add /absolute/path/to/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
+```
 
 ### 3. 更新 marketplace / plugin
 #### Claude Code 会话里

@@ -56,30 +56,35 @@ cd enterprise-harness
 
 ## 4. 安装插件
 
-### 方式 A：在 Claude Code 会话里
+### 方式 A：在 Claude Code 会话里（推荐，企业试点默认）
 
 ```bash
-/plugin marketplace add /absolute/path/to/enterprise-harness
+/plugin marketplace add https://github.com/Emtemf/enterprise-harness
 /plugin install enterprise-harness@enterprise-harness
 ```
 
 ### 方式 B：在终端里执行等价命令
 
 ```bash
+claude plugin marketplace add https://github.com/Emtemf/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
+```
+
+当前已确认：
+
+- Git 远程仓库 URL 可以被 `claude plugin marketplace add` 识别为 marketplace 来源
+- 在网络、代理、TLS clone 稳定时，这条链路更接近 `superpowers` 的安装体验
+
+### 本地仓库 fallback（网络 / 代理 / TLS clone 不稳时使用）
+如果你正在企业网络、代理环境、或 Git/TLS clone 不稳定的机器上实践，再退回本地仓库路径：
+
+```bash
 claude plugin marketplace add /absolute/path/to/enterprise-harness
 claude plugin install enterprise-harness@enterprise-harness --scope local
 ```
 
-当前这条链路已经在本仓库本地验证通过：
-
-- marketplace add
-- plugin install
-- plugin list 可见 `enterprise-harness@enterprise-harness`
-- plugin update / marketplace update 可用
-
-> 注意：这里指的是**本地 marketplace 安装/更新路径可用**。
->
-> 当前对普通用户的承诺是：**你可以安装这个插件，然后直接从 `/harness` 开始使用。**
+> 注意：现在对普通用户的推荐主路径是**远程 Git 仓库 marketplace 安装**；
+> 但为了真实企业环境可用性，仍保留本地路径 fallback，而不是假装远程链路在所有网络条件下都稳定。
 
 ---
 
