@@ -12,7 +12,7 @@ description: >
 
 职责不是直接开始实现，而是：
 - 给开发和测试讲清楚方案
-- 明确接口设计、表/数据设计、状态流与架构边界
+- 明确接口设计、表/数据设计、消息/事件/MQ 设计、状态流与架构边界
 - 把风险/回滚/测试策略讲成可评审设计
 
 
@@ -36,10 +36,11 @@ description: >
 3. Affected modules
 4. Interface contract
 5. Data / SQL design
-6. Flow / state changes
-7. Architecture boundary
-8. Risk / rollback
-9. Test strategy
+6. Messaging / Event / MQ design
+7. Flow / state changes
+8. Architecture boundary
+9. Risk / rollback
+10. Test strategy
 
 ## 行为要求
 

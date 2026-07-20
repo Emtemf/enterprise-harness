@@ -29,6 +29,14 @@
 - Rollback:
 - Constraints / indexes / transactions:
 
+## Messaging / Event / MQ Design
+- Broker / topic / queue:
+- Producer / consumer responsibility:
+- Message schema / versioning:
+- Delivery guarantee / idempotency / ordering:
+- Retry / DLQ / replay / timeout:
+- Transaction boundary with DB / external API:
+
 ## Architecture Boundary
 - Layer ownership:
 - Object / mapper responsibility:
