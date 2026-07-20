@@ -26,6 +26,8 @@ const nextAction = summary.activeChange?.present && workflowStage === 'design' &
   : '/harness';
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
 console.log(`[Harness 入口] 普通用户入口: ${userEntry}`);
+console.log(`[Harness 强制约束] 需求类请求（新功能/修改/架构/接口变更）必须先走 ${userEntry} 进入 clarify，不得跳过直接写代码。`);
+console.log(`[Harness 强制约束] 非需求类操作（修 bug/读代码/解释）可直接执行，无需经过 ${userEntry}。`);
 console.log(`[Harness 进度] 当前阶段: ${summary.currentPhase}`);
 console.log(`[Harness 进度] 静态快照: ${progressFile}`);
 console.log(`[Harness 进度] 动态真相: ${activeChange}`);

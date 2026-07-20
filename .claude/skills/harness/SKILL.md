@@ -156,14 +156,31 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 
 ## 强制前置检查
 
-**每次用户提出需求时，必须首先执行以下检查，不得跳过：**
+**区分"需求类请求"与"非需求类操作"：**
 
-1. 是否有 `harness/ACTIVE_CHANGE`？如果没有，必须先创建 change 或引导用户进入 `/harness`。
-2. 是否有 `requirements.md`？如果没有，必须先进入 clarify 阶段，不得直接写代码。
-3. 是否 `clarifyReady = true` 且 `userConfirmedScope = true`？如果不是，不得进入 design/plan/tdd。
-4. 未观察到 `RED_VERIFIED` 证据，不得修改任何生产源码。
+### 必须走 `/harness` 的请求类型
+- 新功能开发（如"增加XX功能"）
+- 需求变更（如"修改XX逻辑"）
+- 架构调整（如"重构XX模块"）
+- 接口变更（如"增加XX接口"）
+- 任何会影响 API / data / architecture / rule 的代码变更
 
-**违反以上任何一条，必须立即停止当前操作，通知用户当前应该走哪个阶段。**
+### 允许直接执行的操作类型
+- 修复明确的编译错误
+- 纯阅读/解释代码
+- 执行已有命令
+- 查看已有文件
+
+### 判断规则
+收到用户请求后，问自己：**这个操作是否会改变代码行为？**
+- 如果会改变行为 → 走 `/harness` → clarify
+- 如果不会改变行为 → 可以直接执行
+
+### 强制约束
+- **需求类请求**：如果当前没有 active change，必须先通过 `/harness` 进入 clarify，不得跳过
+- **需求类请求**：未完成 clarify / route，不得开始编写任何业务代码
+- **需求类请求**：未观察到 `RED_VERIFIED` 证据，不得修改生产源码
+- **非需求类操作**：可以跳过 `/harness`，直接执行
 
 ## 禁止事项
 
