@@ -44,7 +44,7 @@ description: >
 
 ## 行为要求
 
-- 优先基于 `requirements.md`、`change.md` 与 exploration evidence 写 design
+- 优先基于 `requirements.md`、`change.md`、目标项目 `CLAUDE.md` 与 exploration evidence 写 design
 - 若仓库事实不足，先触发代码/文档探索，再补设计
 - 设计不完整时不得直接跳到实现建议
 - 需要 API 一致性时，应为 `api-consistency-reviewer` 留出可评审输入
