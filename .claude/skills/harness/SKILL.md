@@ -60,11 +60,12 @@ description: >
 
 1. 先进入 `clarify`
 2. 先做 minimum discovery（codegraph-first / Context7-first）
-3. 一次只问一个高价值问题，逐步降低 ambiguity
+3. 一次只问一个高价值问题，默认优先用选项式问题（A/B/C + 其他）逐步降低 ambiguity
 4. 在用户确认后进入 `route`
 5. 形成 final route（L0/L1/L2/L3）
 6. 再进入 `design -> plan -> tdd -> verify`
 7. 明确下一个 artifact / gate / 恢复入口
+8. 在 clarify-ready 之前，不得给“跳过 clarify 直接进 design/plan”的逃逸路径
 
 若需要最小 change 资产但当前还没有，可优先驱动或建议：
 

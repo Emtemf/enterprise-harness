@@ -36,6 +36,10 @@ Status: draft-plan
 1.
 2.
 
+**Project-native Build/Test Command**
+- Primary command: 
+- Why this command is authoritative for the target project: 
+
 **RED Evidence Point**
 - Command:
 - Expected failure:

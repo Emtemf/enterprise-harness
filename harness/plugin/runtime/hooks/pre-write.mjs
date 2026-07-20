@@ -15,13 +15,26 @@ const toolInput = event.tool_input || {};
 const filePath = toolInput.file_path || toolInput.path;
 if (!filePath) process.exit(0);
 const target = path.resolve(filePath);
-const legacyRoots = [path.join(root, 'rules'), path.join(root, 'agents')].map((p) => path.resolve(p));
+const legacyRulesRoot = path.resolve(path.join(root, 'rules'));
+const legacyAgentsRoot = path.resolve(path.join(root, 'agents'));
+const pluginAgentSurface = new Set([
+  path.resolve(path.join(root, 'agents', 'api-consistency-reviewer.md')),
+  path.resolve(path.join(root, 'agents', 'design-reviewer.md')),
+  path.resolve(path.join(root, 'agents', 'plan-critic.md')),
+  path.resolve(path.join(root, 'agents', 'requirement-reviewer.md')),
+  path.resolve(path.join(root, 'agents', 'verification-reviewer.md')),
+  path.resolve(path.join(root, 'agents', 'code-explore.md')),
+  path.resolve(path.join(root, 'agents', 'doc-research.md')),
+  path.resolve(path.join(root, 'agents', 'impact-explore.md')),
+]);
 const archiveRoot = path.resolve(path.join(root, 'harness', 'archive'));
-for (const legacy of legacyRoots) {
-  if (target.startsWith(legacy + path.sep) || target === legacy) {
-    console.error(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacy} 。当前自动加载层以 .claude/ 为准。`);
-    process.exit(2);
-  }
+if (target.startsWith(legacyRulesRoot + path.sep) || target === legacyRulesRoot) {
+  console.error(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyRulesRoot} 。当前自动加载层以 .claude/ 为准。`);
+  process.exit(2);
+}
+if ((target.startsWith(legacyAgentsRoot + path.sep) || target === legacyAgentsRoot) && !pluginAgentSurface.has(target)) {
+  console.error(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyAgentsRoot} 。当前自动加载层以 .claude/ 为准。`);
+  process.exit(2);
 }
 if (target.startsWith(archiveRoot + path.sep) || target === archiveRoot) {
   console.error('BLOCK: harness/archive/ 视为冻结历史，不允许直接编辑。');

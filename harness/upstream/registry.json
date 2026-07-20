@@ -40,7 +40,7 @@
       "name": "Context7",
       "source": "https://github.com/upstash/context7",
       "status": "runtime",
-      "currentValidatedVersion": "0.5.4",
+      "currentValidatedVersion": "0.5.5",
       "lastReviewed": "2026-07-14",
       "requiredChecks": [
         "ctx7 --version",

@@ -69,12 +69,14 @@ description: >
 ## Socratic 澄清原则
 
 - 默认一次一个高影响问题
+- 默认优先使用**选项式问题**（A/B/C + 其他），而不是把一整组开放式问题一次性丢给用户
 - 每轮都应显式针对 weakest dimension 发问
 - 只问会改变后续路径的问题
 - 低影响局部选择应采用合理默认并记录
 - 无法确定时应 block，而不是猜测继续
 - 若多个问题彼此强耦合，只能在确有必要时合并成一组
 - clarify 结束前必须达到 clarify-ready，并获得用户确认
+- 未达 clarify-ready 时，不得建议“跳过 clarify 直接进入 design/plan”
 
 ## Ambiguity Scoring 最低要求
 

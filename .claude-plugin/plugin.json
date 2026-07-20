@@ -22,6 +22,16 @@
     "./.claude/skills/harness-tdd/",
     "./.claude/skills/harness-verify/"
   ],
+  "agents": [
+    "./agents/code-explore.md",
+    "./agents/doc-research.md",
+    "./agents/impact-explore.md",
+    "./agents/requirement-reviewer.md",
+    "./agents/design-reviewer.md",
+    "./agents/plan-critic.md",
+    "./agents/api-consistency-reviewer.md",
+    "./agents/verification-reviewer.md"
+  ],
   "commands": "./.claude-plugin/commands/",
   "mcpServers": "./.mcp.json"
 }

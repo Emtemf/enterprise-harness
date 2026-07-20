@@ -75,7 +75,7 @@ fs.writeFileSync(
           name: 'Context7',
           source: 'https://github.com/upstash/context7',
           status: 'runtime',
-          currentValidatedVersion: '0.5.4',
+          currentValidatedVersion: '0.5.5',
         },
       ],
     },
@@ -149,7 +149,7 @@ try {
   if (!String(upstreamHuman.stdout || '').includes('status=validated-version-mismatch')) {
     failures.push(`upstream human output missing mismatch status: ${JSON.stringify(String(upstreamHuman.stdout || '').trim())}`);
   }
-  if (!String(upstreamHuman.stdout || '').includes('current=0.5.3 expected=0.5.4')) {
+  if (!String(upstreamHuman.stdout || '').includes('current=0.5.3 expected=0.5.5')) {
     failures.push(`upstream human output missing current/expected detail: ${JSON.stringify(String(upstreamHuman.stdout || '').trim())}`);
   }
   if (!readmeText.includes('verify 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。')) {

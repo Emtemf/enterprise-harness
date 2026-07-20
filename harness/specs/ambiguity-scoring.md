@@ -57,8 +57,9 @@ clarify-ready 的最低条件：
 1. 记录当前维度分值
 2. 找出 weakest dimension
 3. 只问一个针对 weakest dimension 的问题
-4. 在用户回答后重新评分
-5. 若已有足够 repo/documentation facts，可先更新事实，再问用户
+4. 默认优先使用选项式问题（A/B/C + 其他），降低自由输入负担
+5. 在用户回答后重新评分
+6. 若已有足够 repo/documentation facts，可先更新事实，再问用户
 
 ## 显示规则
 
