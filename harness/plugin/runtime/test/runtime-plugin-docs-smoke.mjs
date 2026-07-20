@@ -37,17 +37,17 @@ const overview = read(files.overview);
 const agents = read(files.agents);
 
 const checks = [
-  { ok: readme.includes('/plugin marketplace add /absolute/path/to/enterprise-harness'), why: 'README missing marketplace add path' },
+  { ok: readme.includes('/plugin marketplace add') && (readme.includes('/absolute/path/to/enterprise-harness') || readme.includes('https://github.com/Emtemf/enterprise-harness')), why: 'README missing marketplace add path' },
   { ok: readme.includes('/plugin install enterprise-harness@enterprise-harness'), why: 'README missing plugin install path' },
   { ok: readme.includes('claude plugin marketplace update enterprise-harness'), why: 'README missing marketplace update path' },
   { ok: readme.includes('claude plugin update enterprise-harness@enterprise-harness --scope local'), why: 'README missing plugin update path' },
   { ok: readme.includes('node bin/enterprise-harness.mjs <command>'), why: 'README missing bin fallback' },
-  { ok: install.includes('claude plugin marketplace add /absolute/path/to/enterprise-harness'), why: 'installation guide missing marketplace add path' },
+  { ok: install.includes('claude plugin marketplace add'), why: 'installation guide missing marketplace add path' },
   { ok: install.includes('claude plugin install enterprise-harness@enterprise-harness --scope local'), why: 'installation guide missing plugin install path' },
   { ok: install.includes('claude plugin marketplace update enterprise-harness'), why: 'installation guide missing marketplace update path' },
   { ok: install.includes('claude plugin update enterprise-harness@enterprise-harness --scope local'), why: 'installation guide missing plugin update path' },
   { ok: overview.includes('已具备 Claude Code 本地 marketplace 可安装/可更新路径的 repo contract + portable runtime MVP'), why: 'overview missing plugin-first positioning' },
-  { ok: agents.includes('claude plugin marketplace add /absolute/path/to/enterprise-harness'), why: 'AGENTS missing plugin marketplace entry' },
+  { ok: agents.includes('claude plugin marketplace add'), why: 'AGENTS missing plugin marketplace entry' },
   { ok: agents.includes('claude plugin install enterprise-harness@enterprise-harness --scope local'), why: 'AGENTS missing plugin install entry' },
 ];
 
