@@ -3,7 +3,14 @@ import path from 'node:path';
 
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
-  if (data.workflow?.stage) return data.workflow.stage;
+  const explicitStage = data.workflow?.stage;
+  if (explicitStage === 'design' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope)) {
+    return 'clarify';
+  }
+  if (explicitStage === 'plan' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope || !data.gates?.designApproved)) {
+    return 'design';
+  }
+  if (explicitStage) return explicitStage;
   if (changeId === 'clarify-first-staged-orchestrator') {
     if (data.validation?.status === 'fresh' && data.state === 'VALIDATED') return 'archive';
     if (data.state === 'VALIDATED' || data.state === 'REVIEWED') return 'verify';
@@ -23,7 +30,7 @@ export function inferWorkflowStage(changeId, data) {
 }
 
 export function recommendNextEntry(stage, data = null) {
-  if (data?.workflow?.nextEntry) return data.workflow.nextEntry;
+  if (data?.workflow?.nextEntry && data?.workflow?.stage === stage) return data.workflow.nextEntry;
   switch (stage) {
     case 'clarify': return '/harness';
     case 'route': return '/harness';

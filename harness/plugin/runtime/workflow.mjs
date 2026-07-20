@@ -134,19 +134,19 @@ function recordEvent(changeId, data, type, payload = {}) {
 
 function inferPendingDecision(changeId, data, stage, currentGap) {
   if (!stage || !data) return null;
-  if (stage === 'clarify' && !data.workflow?.userConfirmedScope) {
-    return {
-      kind: 'scope-confirmation',
-      message: '需要用户确认执行范围后才能继续 route。',
-      options: ['confirm-scope', 'revise-scope'],
-      evidence: [`harness/changes/${changeId}/requirements.md`],
-    };
-  }
   if (stage === 'clarify' && !data.workflow?.clarifyReady) {
     return {
       kind: 'requirement-clarification',
       message: currentGap,
       options: ['answer-next-question', 'narrow-scope', 'stop'],
+      evidence: [`harness/changes/${changeId}/requirements.md`],
+    };
+  }
+  if (stage === 'clarify' && !data.workflow?.userConfirmedScope) {
+    return {
+      kind: 'scope-confirmation',
+      message: '需要用户确认执行范围后才能继续 route。',
+      options: ['confirm-scope', 'revise-scope'],
       evidence: [`harness/changes/${changeId}/requirements.md`],
     };
   }
