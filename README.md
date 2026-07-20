@@ -160,6 +160,33 @@ GitHub Actions `platform-smoke` 当前已覆盖：
 
 ---
 
+## 评判标准（你可以用这个判断它现在能不能用）
+
+### 对普通用户
+- 安装后是否能直接从 `/harness` 开始
+- 是否不要求先理解 runtime CLI / hooks / state.json
+- clarify 阶段是否一次一问、默认优先选项式提问，且未达 clarify-ready 不得跳进 design/plan
+
+### 对团队流程
+- `requirements.md` / `design.md` / `tasks.md` / `validation.md` 是否形成 durable change bundle
+- reviewer verdict 是否有据可查（`pass / block / advisory`）
+- `validation.status` 是否 fresh
+- `verify` 前是否已有真实 RED/GREEN/REFACTOR 证据
+
+### 当前通过线
+当前最小通过线是：
+- 普通用户单入口 `/harness`
+- clarify-first staged workflow 第一版骨架已验证
+- execution deepening 第一批切片已验证
+- repo-level `verify` 通过
+
+### 当前不通过线
+以下任一项存在，就不应宣称完成：
+- clarify 未达标却直接进入 design/plan
+- reviewer verdict 缺失或 verdict=`block`
+- `validation.status != fresh`
+- 只跑 harness 自己的校验，却没有目标项目真实构建/测试证据
+
 ## 当前还不该夸大的地方
 
 这个项目当前**不是**：

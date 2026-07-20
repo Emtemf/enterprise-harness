@@ -73,6 +73,13 @@ interfaces -> infrastructure / domain internals
 - repository port 归 `domain`（或后续正式批准的 inward port 层）
 - infrastructure 负责实现 port
 - application 只能依赖 port，不能依赖 infrastructure 实现包
+- 使用 MyBatis / JPA / SQL 时，SQL 访问与 persistence mapper 只允许停留在 infrastructure；不得在 application / domain 中直接写 SQL 或拼接查询细节
+
+## 领域模型规则
+
+- 领域模型默认优先采用充血模型，而不是把核心业务规则全部下沉到 service/convert 层
+- domain 应承载真正的业务不变量、状态流转与决策方法
+- 若暂时无法采用充血模型，必须在 design 或 waiver 中说明为什么仍保持贫血模型
 
 ## MapStruct 规则
 

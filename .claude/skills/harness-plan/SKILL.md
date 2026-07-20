@@ -46,6 +46,11 @@ description: >
 - 必须显式给出 RED/GREEN 验证点
 - 任务粒度要让 `plan-critic` 可以无猜测评审
 
+## Gate Discipline
+
+- plan/任务阶段同样不允许通过“继续”绕过 reviewer/gate
+- 若 `plan-critic` 未通过或 plan 仍为 draft，不得直接进入 TDD
+
 ## 退出条件
 
 - `tasks.md` 从 draft 收敛为正式 plan

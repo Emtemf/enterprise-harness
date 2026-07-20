@@ -151,6 +151,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 
 ## 禁止事项
 
+- reviewer 返回 block，不得进入下一阶段
 - 不得把 hooks 当成总编排器
 - 不得把 command 当成需求分析器
 - 不得在未完成 clarify / route 前直接进入实现

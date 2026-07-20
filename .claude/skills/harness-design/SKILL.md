@@ -49,6 +49,11 @@ description: >
 - 设计不完整时不得直接跳到实现建议
 - 需要 API 一致性时，应为 `api-consistency-reviewer` 留出可评审输入
 
+## Gate Discipline
+
+- `design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
+- 若 design review 发现 blocker，必须停留在 design 阶段修正，而不是靠聊天确认跳过
+
 ## 退出条件
 
 - `design.md` 关键 section 已完整
