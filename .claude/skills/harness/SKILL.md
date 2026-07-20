@@ -154,12 +154,26 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 
 当问题本质上是“开始一个需求工作流”时，你可以直接按 `harness-intake` 的 clarify-first 顺序执行，不必把用户来回踢给别的入口。
 
+## 强制前置检查
+
+**每次用户提出需求时，必须首先执行以下检查，不得跳过：**
+
+1. 是否有 `harness/ACTIVE_CHANGE`？如果没有，必须先创建 change 或引导用户进入 `/harness`。
+2. 是否有 `requirements.md`？如果没有，必须先进入 clarify 阶段，不得直接写代码。
+3. 是否 `clarifyReady = true` 且 `userConfirmedScope = true`？如果不是，不得进入 design/plan/tdd。
+4. 未观察到 `RED_VERIFIED` 证据，不得修改任何生产源码。
+
+**违反以上任何一条，必须立即停止当前操作，通知用户当前应该走哪个阶段。**
+
 ## 禁止事项
 
 - reviewer 返回 block，不得进入下一阶段
 - 不得把 hooks 当成总编排器
 - 不得把 command 当成需求分析器
-- 不得在未完成 clarify / route 前直接进入实现
+- **不得在未完成 clarify / route 前直接进入实现**
+- 不得在未完成 clarify / route 前开始编写任何 Java/JS 业务代码
+- 不得在未观察到 `RED_VERIFIED` 证据前修改生产源码
 - 不得在 codegraph 可用时跳过 codegraph-first
 - 不得把 exploration dump 直接堆进主 orchestrator 上下文
-- 不得把“skill 可能被模型选中”误表述成“像 hook 一样自动触发”
+- 不得把”skill 可能被模型选中”误表述成”像 hook 一样自动触发”
+- **收到用户需求后，如果当前没有 active change，不得跳过 `/harness` 直接开始写代码**
