@@ -6,7 +6,7 @@ description: >
 
 # Harness Plan
 
-## 角色定位
+## 目标
 
 本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与确认可测性与验收边界。
 

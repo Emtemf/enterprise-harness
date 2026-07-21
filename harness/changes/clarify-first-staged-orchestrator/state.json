@@ -72,9 +72,9 @@
   },
   "validation": {
     "status": "fresh",
-    "digest": "0b6a84d4dd09ffe3e7bf9f4f889b76962904c05aae1a3bb3aee8047ecfa72548",
-    "validatedAt": "2026-07-20"
+    "digest": "6dec9f915364b3e6c39ccbdc690a5dc5d053873bed834a7582b8162e01877318",
+    "validatedAt": "2026-07-21"
   },
-  "revision": 5,
-  "lastEventId": "wf_b49ac4b9-31a4-46b9-bcbd-9d44517b2379"
+  "revision": 7,
+  "lastEventId": "wf_07465f76-e63d-4b27-95df-391c6f7a6d51"
 }

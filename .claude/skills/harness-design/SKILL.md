@@ -6,7 +6,7 @@ description: >
 
 # Harness Design
 
-## 角色定位
+## 目标
 
 本阶段默认以 **Principal Architect 视角**主导。
 

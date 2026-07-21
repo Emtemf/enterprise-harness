@@ -6,7 +6,7 @@ description: >
 
 # Harness Verify
 
-## 角色定位
+## 目标
 
 本阶段默认以 **Quality Engineer 视角**主导。
 

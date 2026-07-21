@@ -1,10 +1,9 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const [, , subcommand, ...rest] = process.argv;
-const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+const repoRoot = process.cwd();
 
 const commands = {
   bootstrap: ['harness/plugin/runtime/bootstrap.mjs'],

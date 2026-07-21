@@ -197,7 +197,7 @@ try {
   } catch {
     parsed = null;
   }
-  const problems = parsed?.problems ?? [];
+  const problems = parsed?.contractChecks?.problems ?? parsed?.problems ?? [];
   const stopReviewerOutput = `${stopReviewerResult.stdout || ''}${stopReviewerResult.stderr || ''}`;
   const stopReviewedStaleOutput = `${stopReviewedStaleResult.stdout || ''}${stopReviewedStaleResult.stderr || ''}`;
   const stopValidatedStaleOutput = `${stopValidatedStaleResult.stdout || ''}${stopValidatedStaleResult.stderr || ''}`;

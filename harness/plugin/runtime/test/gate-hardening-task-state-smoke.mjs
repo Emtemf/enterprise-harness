@@ -168,7 +168,7 @@ try {
     parsed = null;
   }
 
-  const problems = parsed?.problems ?? [];
+  const problems = parsed?.contractChecks?.problems ?? parsed?.problems ?? [];
   const hasDraftTaskFailure = problems.some((problem) => problem.includes('task-gate-draft-tasks') && problem.includes('finalized tasks.md'));
   const hasCurrentTaskFailure = problems.some((problem) => problem.includes('task-gate-missing-current-task') && problem.includes('currentTask'));
   const ok = result.status !== 0 && parsed && hasDraftTaskFailure && hasCurrentTaskFailure;

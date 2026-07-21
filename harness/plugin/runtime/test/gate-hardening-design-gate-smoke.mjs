@@ -125,7 +125,7 @@ try {
     parsed = null;
   }
 
-  const problems = parsed?.problems ?? [];
+  const problems = parsed?.contractChecks?.problems ?? parsed?.problems ?? [];
   const hasMissingReviewFailure = problems.some((problem) => problem.includes('design-gate-missing-review') && problem.includes('design-reviewer'));
   const hasMissingApprovalFailure = problems.some((problem) => problem.includes('design-gate-missing-approval') && problem.includes('designApproved'));
   const hasBlockedReviewFailure = problems.some((problem) => problem.includes('design-gate-blocked-review') && problem.includes('block verdict'));
