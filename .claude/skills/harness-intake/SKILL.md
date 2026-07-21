@@ -92,6 +92,8 @@ description: >
 - 若多个问题彼此强耦合，只能在确有必要时合并成一组
 - clarify 结束前必须达到 clarify-ready，并获得用户确认
 - 未达 clarify-ready 时，不得建议“跳过 clarify 直接进入 design/plan”
+- 每轮有价值的澄清问答，应记录到可复盘的 session log：
+  `node harness/plugin/runtime/cli.mjs workflow note <change-id> clarify-qa "<问题与用户选择摘要>"`
 
 ## Ambiguity Scoring 最低要求
 
@@ -125,6 +127,11 @@ description: >
 - `state.json` 是否已从 `DRAFT` / `DISCOVERED` 推进到更准确状态
 
 `change-id` 应采用简短 kebab-case，并能表达这次需求的主语义。若需求后续被拆分为多个 slice，应在 `change.md` 中明确拆分原因与边界。
+
+形成 final route 后，应记录一条 route 决策事件，供后续复盘：
+`node harness/plugin/runtime/cli.mjs workflow note <change-id> route-decided "tier=<L?> 因为 <理由>"`
+
+会话恢复或复盘时，可用 `node harness/plugin/runtime/cli.mjs workflow session-log <change-id>` 查看该 change 的决策时间线。
 
 ## 产物落点
 

@@ -3,11 +3,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap } from './lib/workflow.mjs';
 
 const root = projectRoot();
+// 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd（企业目标项目里 cwd 是用户项目根）。
+const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const changesDir = path.join(root, 'harness', 'changes');
 const activeFile = path.join(root, 'harness', 'ACTIVE_CHANGE');
 
@@ -73,7 +76,7 @@ function ensureChangeExists(changeId) {
 }
 
 function createChange(changeId, owner, tier, topic) {
-  const child = spawnSync('node', [path.join(root, 'harness', 'plugin', 'runtime', 'start-change.mjs'), changeId, owner, tier, topic], {
+  const child = spawnSync('node', [path.join(runtimeDir, 'start-change.mjs'), changeId, owner, tier, topic], {
     cwd: root,
     encoding: 'utf-8',
   });
@@ -299,11 +302,13 @@ const [, , action, ...args] = process.argv;
 
 if (!action || action === '--help' || action === '-h') {
   console.log('Enterprise Harness Workflow');
-  console.log('Usage: node harness/plugin/runtime/workflow.mjs <run|resume|status|decide> [args]');
+  console.log('Usage: node harness/plugin/runtime/workflow.mjs <run|resume|status|decide|note|session-log> [args]');
   console.log('  run <change-id> [owner] [tier] [topic]');
   console.log('  resume [change-id]');
   console.log('  status [change-id] [--json]');
   console.log('  decide <change-id> <decision> [reason]');
+  console.log('  note <change-id> <clarify-qa|route-decided> <text>');
+  console.log('  session-log [change-id]');
   process.exit(0);
 }
 
@@ -368,6 +373,47 @@ switch (action) {
     }
     const result = applyDecision(changeId, decision, reasonParts.join(' ') || null);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+    process.exit(0);
+  }
+  case 'note': {
+    // 记录决策级事件（如 clarify-qa / route-decided），用于后续可复盘的 session log。
+    const [changeIdRaw, noteType, ...noteParts] = args;
+    const changeId = resolveChangeId(changeIdRaw);
+    const allowed = ['clarify-qa', 'route-decided'];
+    if (!allowed.includes(noteType)) {
+      console.error(`Usage: workflow note <change-id> <${allowed.join('|')}> <text>`);
+      process.exit(1);
+    }
+    if (!ensureChangeExists(changeId)) {
+      console.error(`BLOCK: change 不存在：${changeId}`);
+      process.exit(2);
+    }
+    const data = loadChange(changeId);
+    recordEvent(changeId, data, noteType, { note: noteParts.join(' ') });
+    saveChange(changeId, data);
+    console.log(`Noted ${noteType} on ${changeId}`);
+    process.exit(0);
+  }
+  case 'session-log': {
+    // 把事件流渲染成人可读的决策时间线，供复盘/优化使用。
+    const changeId = resolveChangeId(args[0]);
+    const logPath = eventLogPathFor(changeId);
+    if (!fs.existsSync(logPath)) {
+      console.log(`（${changeId} 暂无事件记录）`);
+      process.exit(0);
+    }
+    const events = fs.readFileSync(logPath, 'utf-8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => { try { return JSON.parse(line); } catch { return null; } })
+      .filter(Boolean);
+    console.log(`# Session Log — ${changeId}`);
+    console.log('');
+    for (const ev of events) {
+      const detail = ev.payload?.note || ev.payload?.decision || ev.payload?.topic || '';
+      const suffix = detail ? ` — ${detail}` : '';
+      console.log(`- ${ev.timestamp} [${ev.type}] stage=${ev.workflowStage ?? '-'}${suffix}`);
+    }
     process.exit(0);
   }
   default:

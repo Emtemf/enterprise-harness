@@ -1,7 +1,11 @@
+import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = process.cwd();
+// 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd。
+const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
 const [, , changeId, owner = 'harness-governance', tier = 'L1', topic = 'minimum-discovery'] = process.argv;
 
 if (!changeId || changeId === '--help' || changeId === '-h') {
@@ -12,7 +16,7 @@ if (!changeId || changeId === '--help' || changeId === '-h') {
 }
 
 function run(args) {
-  const child = spawnSync('node', ['harness/plugin/runtime/lifecycle.mjs', ...args], {
+  const child = spawnSync('node', [path.join(runtimeDir, 'lifecycle.mjs'), ...args], {
     cwd: repoRoot,
     encoding: 'utf-8',
   });
