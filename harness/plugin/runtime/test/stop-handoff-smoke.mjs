@@ -126,13 +126,21 @@ try {
   const staleValidationOutput = outputOf(staleValidationResult);
 
   const hasGuidance = guidanceTokens.every((token) => guidanceOutput.includes(token));
+  // Stop hook 放行(exit 0)时 stdout 必须是合法 JSON，否则 Claude Code 报 "JSON validation failed"。
+  let allowStdoutIsJson = false;
+  try {
+    JSON.parse((guidanceResult.stdout || '').trim());
+    allowStdoutIsJson = guidanceResult.status === 0;
+  } catch {
+    allowStdoutIsJson = false;
+  }
   const keepsMissingValidationBlock =
     missingValidationResult.status === 2 && missingValidationOutput.includes('缺少 validation.md');
   const keepsStaleValidationBlock =
     staleValidationResult.status === 2 && staleValidationOutput.includes('validation.status=stale');
 
   if (mode === 'red') {
-    if (!hasGuidance || !keepsMissingValidationBlock || !keepsStaleValidationBlock) {
+    if (!hasGuidance || !allowStdoutIsJson || !keepsMissingValidationBlock || !keepsStaleValidationBlock) {
       fail('Expected Stop guidance or validation block contract to be incomplete before implementation');
     }
     pass('Red precondition no longer holds.');
@@ -140,6 +148,9 @@ try {
 
   if (guidanceResult.status !== 0) {
     fail(`Expected Stop guidance path to succeed, got exit=${guidanceResult.status}`);
+  }
+  if (!allowStdoutIsJson) {
+    fail('Expected Stop allow path (exit 0) to emit valid JSON on stdout, got: ' + JSON.stringify(guidanceResult.stdout || ''));
   }
   if (!hasGuidance) {
     fail('Expected Stop output to include handoff guidance for change assets, PROGRESS.md, Claude memory, and chat logs');

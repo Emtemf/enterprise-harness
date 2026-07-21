@@ -6,5 +6,6 @@
 
 <!-- LESSONS:BEGIN -->
 - runtime-sibling-script-cwd-path — high — runtime, cwd, spawn, plugin
+- stop-hook-stdout-json — high — hooks, stop, json, protocol
 - validation-digest-volatile-fields — high — validation, digest, state, smoke
 <!-- LESSONS:END -->

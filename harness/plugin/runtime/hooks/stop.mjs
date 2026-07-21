@@ -41,7 +41,14 @@ function printHandoffGuidance(root) {
 
 const root = projectRoot();
 const changesDir = path.join(root, 'harness', 'changes');
-if (!fs.existsSync(changesDir)) process.exit(0);
+// Stop hook 契约：exit 0 放行时，Claude Code 会按 {decision?, reason?, systemMessage?}
+// 校验 stdout，空 stdout 不是合法 JSON 会触发 "JSON validation failed"，因此放行必须输出 {}。
+// 阻断走 exit 2 + stderr（此时 stdout 的 JSON 被忽略）。
+function allow() {
+  process.stdout.write('{}\n');
+  process.exit(0);
+}
+if (!fs.existsSync(changesDir)) allow();
 let warned = false;
 for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
@@ -74,4 +81,4 @@ if (warned) {
   console.error('Stop gate 提醒：仍有 change 处于 EXECUTING，请确认是否要结束在当前中间状态。');
 }
 printHandoffGuidance(root);
-process.exit(0);
+allow();

@@ -2,6 +2,13 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.6]
+
+### Fixed
+
+- **Stop hook "JSON validation failed" 报错**：`stop.mjs` 放行（exit 0）时 stdout 为空，不符合 Claude Code 的 Stop hook 契约（exit 0 会按 `{decision?, reason?, systemMessage?}` 校验 stdout）。改为放行输出 `{}`、阻断继续走 exit 2 + stderr。每次会话结束不再报错。
+- 记录经验 `stop-hook-stdout-json`；`stop-handoff-smoke` 增加“放行路径 stdout 必须是合法 JSON”断言。
+
 ## [0.1.5]
 
 ### Added
