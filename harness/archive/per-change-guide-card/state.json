@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "per-change-guide-card",
   "tier": "L2",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",
