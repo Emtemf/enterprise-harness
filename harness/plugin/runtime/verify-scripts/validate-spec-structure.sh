@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
+ROOT="$(cd -- "$(dirname -- "$0")/../../../.." && pwd)"
 
 required_dirs=(
   "$ROOT/.claude"
@@ -69,14 +69,13 @@ required_files=(
   "$ROOT/harness/specs/session-lifecycle.md"
   "$ROOT/harness/specs/staged-workflow.md"
   "$ROOT/harness/specs/mvp-roadmap.md"
-  "$ROOT/hooks/session-start.sh"
-  "$ROOT/hooks/pre-write-gate.sh"
-  "$ROOT/hooks/post-write-gate.sh"
-  "$ROOT/hooks/stop-gate.sh"
-  "$ROOT/hooks/full-verify.sh"
-  "$ROOT/hooks/validate-artifact-state.sh"
-  "$ROOT/hooks/validate-review-verdicts.sh"
-  "$ROOT/hooks/validate-change-evidence.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/full-verify.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-spec-structure.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-openapi.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-artifact-state.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-review-verdicts.sh"
+  "$ROOT/harness/plugin/runtime/verify-scripts/validate-change-evidence.sh"
   "$ROOT/harness/bin/create-change-scaffold.sh"
   "$ROOT/harness/bin/create-exploration-artifact.sh"
   "$ROOT/harness/bin/update-change-state.sh"

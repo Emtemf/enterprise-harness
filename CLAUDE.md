@@ -17,7 +17,7 @@
 
 - 不做前端页面点击测试
 - 不把聊天上下文当成唯一状态来源
-- 不把项目根 `rules/` 或 `agents/` 当成运行时唯一真相
+- 不把 `.claude/` 之外的目录当成运行时规则/agent 的唯一真相
 - 不在 codegraph 可用时直接跳过到 grep
 - 不在缺少设计、RED 证据或新鲜验证时直接推进实现或宣称完成
 
@@ -29,11 +29,6 @@
 - `.claude/agents/`：项目 reviewer / subagent
 - `.claude/skills/`：项目 skill
 - `.claude/settings.json`：项目 hooks / settings
-
-项目根目录中的下列内容目前视为**历史参考或迁移来源**：
-
-- `rules/`
-- `agents/`
 
 ## 显式入口模型
 
@@ -72,9 +67,9 @@
 
 当前阶段的本地验证仍以轻量脚本为主：
 
-- `hooks/validate-spec-structure.sh`
-- `hooks/validate-openapi.sh`
-- `hooks/validate-controller-consistency.sh`
+- `harness/plugin/runtime/verify-scripts/validate-spec-structure.sh`
+- `harness/plugin/runtime/verify-scripts/validate-openapi.sh`
+- `harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh`
 
 统一的 full verification 入口仍在后续阶段建设中；在它落地前，不得把现有轻量脚本误当成完整企业级门禁。
 

@@ -328,7 +328,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - real backend sample 的 random-port HTTP E2E 证据（当前已在独立 change 中推进）
 - random-port HTTP E2E
 
-注意：repo-level `node harness/plugin/runtime/cli.mjs verify` / `bash hooks/full-verify.sh` 仍主要是 repo contract / runtime contract 校验，**不是** `reference-service` 的 Java quality gate。
+注意：repo-level `node harness/plugin/runtime/cli.mjs verify` / `bash harness/plugin/runtime/verify-scripts/full-verify.sh` 仍主要是 repo contract / runtime contract 校验，**不是** `reference-service` 的 Java quality gate。
 `verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
 verify 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
 后续 CI 应复用同一个 Maven verify 命令，而不是重新定义另一套绿灯含义。

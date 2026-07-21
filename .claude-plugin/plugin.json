@@ -23,14 +23,14 @@
     "./.claude/skills/harness-verify/"
   ],
   "agents": [
-    "./agents/code-explore.md",
-    "./agents/doc-research.md",
-    "./agents/impact-explore.md",
-    "./agents/requirement-reviewer.md",
-    "./agents/design-reviewer.md",
-    "./agents/plan-critic.md",
-    "./agents/api-consistency-reviewer.md",
-    "./agents/verification-reviewer.md"
+    "./.claude/agents/code-explore.md",
+    "./.claude/agents/doc-research.md",
+    "./.claude/agents/impact-explore.md",
+    "./.claude/agents/requirement-reviewer.md",
+    "./.claude/agents/design-reviewer.md",
+    "./.claude/agents/plan-critic.md",
+    "./.claude/agents/api-consistency-reviewer.md",
+    "./.claude/agents/verification-reviewer.md"
   ],
   "commands": "./.claude-plugin/commands/",
   "mcpServers": "./.mcp.json"

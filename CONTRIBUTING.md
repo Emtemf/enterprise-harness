@@ -87,8 +87,8 @@
 当前最小验证命令：
 
 ```bash
-bash hooks/validate-spec-structure.sh
-bash hooks/full-verify.sh
+bash harness/plugin/runtime/verify-scripts/validate-spec-structure.sh
+bash harness/plugin/runtime/verify-scripts/full-verify.sh
 ```
 
 当前 repo-level full-verify.sh 仍不是 Java quality gate；reference-service 应单独运行 Maven verify。

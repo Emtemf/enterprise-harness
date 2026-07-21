@@ -44,7 +44,7 @@
 
 - `node harness/plugin/runtime/cli.mjs verify`
 - `mvn -f reference-service/pom.xml test`
-- `bash hooks/full-verify.sh`
+- `bash harness/plugin/runtime/verify-scripts/full-verify.sh`
 
 ### B. 工具探索证据（tooling evidence）
 用于说明：

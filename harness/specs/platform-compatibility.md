@@ -29,7 +29,7 @@
 
 ## 当前仍存在的限制
 
-- `hooks/full-verify.sh` 仍是 shell 脚本
+- `harness/plugin/runtime/verify-scripts/full-verify.sh` 仍是 shell 脚本
 - `harness/bin/*.sh` 仍保留 shell 过渡实现
 - 虽然 GitHub Actions matrix 已覆盖 Linux / macOS / Windows，但更广泛的团队本地开发机与代理/权限差异仍需继续验证
 - 本地 secrets / env vars 仍由 machine-local adapter 管理，不自动分发
@@ -50,7 +50,7 @@
 4. `node harness/plugin/runtime/cli.mjs sync`
 5. `node harness/plugin/runtime/cli.mjs verify`
 6. `node harness/plugin/runtime/cli.mjs upstream-check`
-7. `bash hooks/full-verify.sh`（若本机具备 bash）或后续 Node 版 full verify
+7. `bash harness/plugin/runtime/verify-scripts/full-verify.sh`（若本机具备 bash）或后续 Node 版 full verify
 
 ## 结论
 

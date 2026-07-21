@@ -8,7 +8,7 @@ const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const cliPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'cli.mjs');
 const doctorPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'doctor.mjs');
 const checksPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'lib', 'checks.mjs');
-const shellValidatePath = path.join(repoRoot, 'hooks', 'validate-spec-structure.sh');
+const shellValidatePath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'verify-scripts', 'validate-spec-structure.sh');
 const files = {
   readme: path.join(repoRoot, 'README.md'),
   agents: path.join(repoRoot, 'AGENTS.md'),
@@ -88,7 +88,7 @@ if (mode === 'red') {
 }
 
 const verifyResult = run([cliPath, 'verify']);
-const fullVerifyResult = run([path.join(repoRoot, 'hooks', 'full-verify.sh')], 'bash');
+const fullVerifyResult = run([path.join(repoRoot, 'harness', 'plugin', 'runtime', 'verify-scripts', 'full-verify.sh')], 'bash');
 
 if (!doctor.ok) {
   fail(`Expected doctor contract to pass, got ${doctor.reason}`);

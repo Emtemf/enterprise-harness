@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
+ROOT="$(cd -- "$(dirname -- "$0")/../../../.." && pwd)"
 YAML_FILE="$ROOT/reference-service/openapi/order-service.yaml"
 CONTROLLER_FILE="$ROOT/reference-service/src/main/java/com/example/orders/interfaces/api/OrderCancellationController.java"
 
