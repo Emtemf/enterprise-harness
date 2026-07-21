@@ -2,6 +2,22 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.4]
+
+### Added
+
+- **跨 change 经验库 `harness/lessons/`**：`lifecycle lesson-add` / `lesson-list` 命令；clarify 阶段进入前自动检索、命中主动提示，verify 收尾记录新坑，闭环“同样问题不再犯”。
+- **自动归档命令 `lifecycle archive <changeId>`**：VALIDATED 校验 + 物理移到 `harness/archive/` + 置 ARCHIVED + 清 active 指针 + 拒绝被 runtime smoke 引用的 change；接入 harness archive 阶段。
+- **可复盘决策记录**：`workflow note`（clarify-qa / route-decided 事件）+ `workflow session-log`（渲染决策时间线）；clarify 阶段自动记录澄清问答与 route 决策。
+
+### Fixed
+
+- **runtime 自引用路径**：`workflow.mjs` / `start-change.mjs` 改为相对自身目录定位兄弟脚本，修复装进企业目标项目后 `workflow run` 报 `MODULE_NOT_FOUND`。
+
+### Cleanup
+
+- 删除根 `rules/` 僵尸目录、agents 收敛为 `.claude/agents/` 单一来源、归档一次性 demo change、shell 校验脚本迁移到 `harness/plugin/runtime/verify-scripts/`。
+
 ## [0.1.3]
 
 ### Fixed
