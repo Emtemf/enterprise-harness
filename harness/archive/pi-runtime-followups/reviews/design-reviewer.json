@@ -1,0 +1,17 @@
+{
+  "changeId": "pi-runtime-followups",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：source-external smoke 逻辑清晰，Option B 风险更低，与当前仓库状态匹配。",
+    "pass：临时 HARNESS_LOCAL_ADAPTER 隔离策略正确，避免污染用户配置。",
+    "pass：非目标明确，不与 registry/package 发布耦合。"
+  ],
+  "evidence": [
+    "design.md:21-34 — Options Considered 与 Selected Option 分析",
+    "design.md:35-37 — Rejected Options 说明",
+    "release-local.mjs — 已实现的完整逻辑"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

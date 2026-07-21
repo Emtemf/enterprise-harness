@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "changeId": "pi-runtime-followups",
+  "tier": "L3",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "used",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "source-external smoke 优先以 runtime CLI 命令实现，不先做完整 npm/package 发布系统。",
+    "使用独立临时 HARNESS_LOCAL_ADAPTER 避免污染用户本机 adapter。",
+    "codegraph init 在临时目录可能慢，核心功能不依赖其完成时间，可后续优化。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "4a4f0f4e96c478a01178956cc1b3bed2771d04495168049178caecfdfded430a",
+    "validatedAt": "2026-07-22"
+  }
+}

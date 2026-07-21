@@ -1,0 +1,18 @@
+{
+  "changeId": "pi-runtime-followups",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：release-local.mjs 实现完整，逻辑与 design 一致。",
+    "pass：cli 命令已注册，package.json 已更新。",
+    "pass：release-readiness.md 已同步当前能力。",
+    "advisory：codegraph init 在临时目录可能慢，后续可优化。"
+  ],
+  "evidence": [
+    "release-local.mjs:24-86 — 完整实现",
+    "cli.mjs:20 — 命令注册",
+    "release-readiness.md:13,31,41 — 文档更新"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}
