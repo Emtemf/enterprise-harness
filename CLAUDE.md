@@ -4,6 +4,19 @@
 
 本项目的目标是把 Claude Code 变成一个适合企业 Java 后端交付的本地 harness：让较弱模型也能在明确约束下，稳定完成需求分流、设计、计划、TDD、验证与归档。
 
+## 设计谱系（为什么 SOP 要这么厚）
+
+第一性目标是**给较弱模型兜底**：模型在缺约束时会跳步、糊弄验收、丢失状态。因此本项目用"厚 SOP + 机械门禁 + durable 状态"替代"模型自觉"。这条 WHY 是承重墙——简化 SOP 前必须先理解它，不得因为"看起来啰嗦"就削薄。
+
+各设计支柱的来源（详见 `harness/upstream/registry.json`）：
+
+- **分阶段 SOP** ← Superpowers：`clarify → route → design → plan → tdd → verify → archive` 的阶段骨架
+- **归档与资产分层** ← OpenSpec：change / spec / archive 模型；企业交付中归档很重要
+- **苏格拉底式 clarify** ← deep-interview：clarify 阶段的提问技术，需求澄清是重中之重
+- **打断后可继续** ← gump 的 agent 工作环境理念：durable `state.json` + `workflow.stage`，中间被打断可恢复
+- **角色视角** ← role-workbench（蒸馏课程）：提升 design 阶段效果；当前仍是草案，未接入 runtime
+- **代码探索工具** ← CodeGraph（codegraph-first）；**文档检索工具** ← Context7（Context7-first）
+
 ## 本项目做什么
 
 - 面向 **Java 后端 / Spring Boot** 场景

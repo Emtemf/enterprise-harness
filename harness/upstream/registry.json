@@ -21,6 +21,39 @@
       ],
       "lastReviewed": "2026-07-14",
       "observedVersions": ["repo-main"]
+    },
+    {
+      "name": "deep-interview",
+      "source": "https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/deep-interview/SKILL.md",
+      "status": "reference-only",
+      "notes": [
+        "Clarify enhancement only: Socratic interviewing technique for requirement clarification.",
+        "Informs harness-intake clarify stage; do not import the skill verbatim."
+      ],
+      "lastReviewed": "2026-07-21",
+      "observedVersions": ["repo-main"]
+    },
+    {
+      "name": "gump-agent-workspace",
+      "source": "https://www.gump.top/blog/dang-gong-cheng-shi-de-gong-zuo-cong-xie-dai-ma-zhuan-xiang-she-ji-agent-de-gong-zuo-huan-jing",
+      "status": "reference-only",
+      "notes": [
+        "Concept only: durable agent workspace so an interrupted mid-process change can resume.",
+        "Informs durable state.json + workflow.stage recovery design."
+      ],
+      "lastReviewed": "2026-07-21",
+      "observedVersions": ["blog-article"]
+    },
+    {
+      "name": "role-workbench",
+      "source": "https://github.com/Emtemf/role-workbench/tree/master/.claude/skills",
+      "status": "reference-only",
+      "notes": [
+        "Role-perspective skills distilled from courses; informs design-stage quality.",
+        "Currently a draft (role-guided-staged-workflow.md); not yet wired into runtime."
+      ],
+      "lastReviewed": "2026-07-21",
+      "observedVersions": ["master"]
     }
   ],
   "runtimeUpstreams": [
