@@ -63,6 +63,12 @@ description: >
 
 ## Minimum Discovery 最低要求
 
+### 经验库先行（避免重复踩坑）
+- 进入正式澄清前，先检索跨 change 经验库：`node harness/plugin/runtime/lifecycle.mjs lesson-list`
+- 若当前需求涉及某类主题（如 validation / digest / api / state），用 `lesson-list <tag>` 过滤
+- 命中相关教训时，必须在澄清或设计中主动提示该坑与既有规避方式，不得让同样问题重复发生
+- 经验库为空或无匹配时，直接继续，不因此 block
+
 ### 代码探索
 - Java 仓库默认 codegraph-first
 - 若 codegraph 不可用，必须记录：失败原因、改用工具、搜索范围、当前可信度

@@ -159,6 +159,100 @@ function cmdMarkValidationStale(changeId) {
   console.log(`Validation marked stale: ${changeId}`);
 }
 
+const lessonsDir = path.join(repoRoot, 'harness', 'lessons');
+const lessonsIndex = path.join(lessonsDir, 'INDEX.md');
+
+// 跨 change 教训库：记录一条 lesson 并同步索引，供后续 clarify 阶段先行检索、避免同样问题重复发生。
+function cmdLessonAdd(slug, severity = 'medium', tags = '', sourceChange = '', date) {
+  if (!slug) {
+    console.error('BLOCK: lesson-add 需要 <slug>。');
+    process.exit(2);
+  }
+  fs.mkdirSync(lessonsDir, { recursive: true });
+  const recordedAt = date || new Date().toISOString().slice(0, 10);
+  const normalizedTags = tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const lessonPath = path.join(lessonsDir, `${slug}.md`);
+  // 1. 幂等：已存在则不覆盖正文，只保证索引里有该条。
+  if (!fs.existsSync(lessonPath)) {
+    const body = [
+      '---',
+      `id: ${slug}`,
+      `severity: ${severity}`,
+      `tags: [${normalizedTags.join(', ')}]`,
+      `sourceChange: ${sourceChange}`,
+      `recordedAt: ${recordedAt}`,
+      '---',
+      '',
+      `# ${slug}`,
+      '',
+      '## 症状',
+      '',
+      '（待补充：可观察到的错误现象）',
+      '',
+      '## 根因',
+      '',
+      '（待补充：为什么会发生）',
+      '',
+      '## 规避',
+      '',
+      '（待补充：下次如何避免）',
+      '',
+    ].join('\n');
+    fs.writeFileSync(lessonPath, body, 'utf-8');
+  }
+  // 2. 更新索引：确保 INDEX.md 的 marker 区间内包含该条。
+  ensureLessonsIndex();
+  const indexLine = `- ${slug} — ${severity} — ${normalizedTags.join(', ')}`;
+  const raw = fs.readFileSync(lessonsIndex, 'utf-8');
+  const begin = '<!-- LESSONS:BEGIN -->';
+  const end = '<!-- LESSONS:END -->';
+  const before = raw.slice(0, raw.indexOf(begin) + begin.length);
+  const after = raw.slice(raw.indexOf(end));
+  const middle = raw.slice(raw.indexOf(begin) + begin.length, raw.indexOf(end));
+  const lines = middle.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('- '));
+  const existing = lines.filter((l) => !l.startsWith(`- ${slug} `));
+  existing.push(indexLine);
+  existing.sort();
+  fs.writeFileSync(lessonsIndex, `${before}\n${existing.join('\n')}\n${after}`, 'utf-8');
+  console.log(`Lesson recorded: ${slug}`);
+}
+
+function ensureLessonsIndex() {
+  fs.mkdirSync(lessonsDir, { recursive: true });
+  if (fs.existsSync(lessonsIndex)) return;
+  const seed = [
+    '# Lessons Index',
+    '',
+    '本文件是跨 change 的经验/教训索引。每行一条：`id — severity — tags`。',
+    '',
+    '<!-- LESSONS:BEGIN -->',
+    '<!-- LESSONS:END -->',
+    '',
+  ].join('\n');
+  fs.writeFileSync(lessonsIndex, seed, 'utf-8');
+}
+
+function cmdLessonList(tagFilter) {
+  if (!fs.existsSync(lessonsIndex)) {
+    console.log('（暂无 lessons）');
+    return;
+  }
+  const raw = fs.readFileSync(lessonsIndex, 'utf-8');
+  const begin = '<!-- LESSONS:BEGIN -->';
+  const end = '<!-- LESSONS:END -->';
+  const middle = raw.slice(raw.indexOf(begin) + begin.length, raw.indexOf(end));
+  const lines = middle.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('- '));
+  const filtered = tagFilter ? lines.filter((l) => l.includes(tagFilter)) : lines;
+  if (filtered.length === 0) {
+    console.log(tagFilter ? `（无匹配 tag=${tagFilter} 的 lesson）` : '（暂无 lessons）');
+    return;
+  }
+  for (const line of filtered) console.log(line);
+}
+
 const [, , action, ...args] = process.argv;
 switch (action) {
   case 'scaffold': cmdScaffold(args[0], args[1], args[2]); break;
@@ -174,8 +268,10 @@ switch (action) {
   case 'reviewed': cmdState(args[0], 'REVIEWED', args[1]); break;
   case 'validated': cmdMarkValidated(args[0], args[1], args[2]); break;
   case 'validation-stale': cmdMarkValidationStale(args[0]); break;
+  case 'lesson-add': cmdLessonAdd(args[0], args[1], args[2], args[3], args[4]); break;
+  case 'lesson-list': cmdLessonList(args[0]); break;
   default:
     console.log('Usage: node harness/plugin/runtime/lifecycle.mjs <action> ...');
-    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale');
+    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale, lesson-add, lesson-list');
     process.exit(1);
 }
