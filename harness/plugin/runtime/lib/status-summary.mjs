@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap } from './workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder } from './workflow.mjs';
 
 function readText(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
@@ -35,6 +35,7 @@ function activeChangeSummary(root) {
       workflowStage: null,
       nextEntry: '/harness',
       recommendedLane: null,
+      guideReminder: null,
       currentGap: '当前没有 active change。',
     };
   }
@@ -51,6 +52,7 @@ function activeChangeSummary(root) {
     workflowStage,
     nextEntry: recommendNextEntry(workflowStage, data),
     recommendedLane: recommendExplorationLane(workflowStage, data),
+    guideReminder: computeGuideReminder(root, active.changeId),
     currentGap: inferCurrentGap(root, active.changeId, data, workflowStage),
   };
 }
@@ -114,6 +116,8 @@ export function renderStatusSummary(summary) {
     summary.nextStage ? `- ${summary.nextStage}` : null,
     '当前缺口',
     `- ${summary.currentGap}`,
+    summary.activeChange?.guideReminder ? 'GUIDE 提醒' : null,
+    summary.activeChange?.guideReminder ? `- ${summary.activeChange.guideReminder}` : null,
     summary.recommendedLane ? '推荐探索通道' : null,
     summary.recommendedLane ? `- ${summary.recommendedLane}` : null,
     '推荐恢复入口',

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "changeId": "per-change-guide-card",
+  "tier": "L2",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": "本 change 目标文件(lifecycle.mjs cmdScaffold / templates/)已在 clarify 阶段用直接 Read 定位,范围极小且明确,无需 codegraph 结构化影响分析"
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "GUIDE 生成方式:轻量自动填充——机械字段(change-id/tier/impact/验收命令)自动填,业务内容留空待填。",
+    "门禁形态:软门禁——缺失/未填只提醒,不阻断推进。",
+    "作用范围:仅对新建 change 生效,不回填现有 change。",
+    "手写样品移出已 VALIDATED 的 clarify-first-staged-orchestrator,作为模板原型存于 harness/work/per-change-guide-card/guide-prototype.md。",
+    "占位符替换只覆盖 GUIDE 机械字段,不升级为通用模板引擎。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-21"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-21"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "1348382d45bf5d8a58d1ab0fb2c9d8c88f9aa3ecc11a33ce62c30b946a36ca9b",
+    "validatedAt": "2026-07-21"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "changeId": "per-change-guide-card",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：digest mismatch 已修复。原始 block 因 stored digest 与 computed digest 不匹配，现已用 cmdMarkValidated 重新计算。",
+    "pass：GUIDE 生成契约 RED/GREEN 齐全，scaffold-guide-contract-smoke verify 通过。",
+    "pass：guideReminder 独立字段 + SessionStart 覆盖 + currentGap 回归保护成立，guide-reminder-contract-smoke verify 通过。",
+    "pass：durable 规则 45-guide-card.md 存在且与 design 一致。",
+    "pass：design-reviewer 和 plan-critic verdict 均为 pass。",
+    "advisory：RED 证据描述与代码实际失败机制略有偏差（模块级 import error vs 业务断言失败），不影响 TDD 正确性。"
+  ],
+  "evidence": [
+    "validation.md:31-36 — GUIDE 生成契约验证",
+    "validation.md:38-49 — 软门禁提醒契约验证",
+    "validation.md:51-57 — currentGap 回归保护验证",
+    "validation.md:59-62 — durable 规则验证",
+    "state.json:59-62 — validation digest 已刷新",
+    "cli verify: OK contract checks passed（重跑后）",
+    "smoke: 51/51 全绿（重跑后）"
+  ],
+  "digest": "44584c7865db7f10c4fba6c2c45ecae62d621a123c226ae5beaccfdea073f5a6",
+  "reviewedAt": "2026-07-21"
+}

@@ -1,0 +1,20 @@
+{
+  "changeId": "per-change-guide-card",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "pass：tasks.md 现已把 GUIDE 生成契约与 guideReminder/SessionStart/currentGap 回归保护拆成两个唯一职责 smoke，Task 2/Task 4 的 GREEN 边界清晰，不再需要下游猜测。",
+    "pass：requirements 中“验收命令自动填入”已被机械计划化——Task 1/2 显式把 4 条命令纳入 GUIDE 契约与 smoke 断言。",
+    "pass：RED-first、SessionStart 覆盖、impact=unknown、规则文件单独机械验证、全量 smoke 批量命令等关键执行细节已可直接照抄。",
+    "advisory：requirements.md 的软门禁文案已在本轮清理为“仅缺失 GUIDE 时提醒、Stop 不在范围内”，减少后续 verify/人工审核歧义。"
+  ],
+  "evidence": [
+    "tasks.md:20-86 — scaffold-guide-contract-smoke 只负责 GUIDE 生成契约",
+    "tasks.md:148-224 — guide-reminder-contract-smoke 只负责 guideReminder/SessionStart/currentGap 回归保护",
+    "design.md:126-145 — Testing Strategy 已同步为双 smoke 边界",
+    "tasks.md:38-42,107-111,302-309 — 4 条验收命令已纳入 GUIDE 契约与 verify",
+    "requirements.md:10-13,17-19,56-60 — 需求文案已收敛到本轮可执行范围"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-21"
+}

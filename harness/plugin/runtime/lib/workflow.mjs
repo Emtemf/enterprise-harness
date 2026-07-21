@@ -1,6 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export function computeGuideReminder(root, changeId) {
+  if (!root || !changeId) return null;
+  const guidePath = path.join(root, 'harness', 'changes', changeId, 'GUIDE.md');
+  return fs.existsSync(guidePath) ? null : '提醒：该 change 尚无 GUIDE.md 导航卡（不阻断）。';
+}
+
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
   const explicitStage = data.workflow?.stage;

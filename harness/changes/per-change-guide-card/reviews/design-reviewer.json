@@ -1,0 +1,19 @@
+{
+  "changeId": "per-change-guide-card",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "F1(原 block)已解决:提醒改由独立字段 guideReminder 承载,新增纯函数 computeGuideReminder,不改 inferCurrentGap/currentGap;4 处 currentGap 精确等值消费方零影响;测试新增 currentGap 逐字不变回归断言。",
+    "F2(原 block-contributing)已解决:新增 durable 规则载体 .claude/rules/45-guide-card.md(45 槽位空闲),对齐 rule=yes。",
+    "F3(原 advisory)已解决:显式声明 Stop 本轮不覆盖,验收标准 3 由 SessionStart + /harness 的'或'逻辑满足。"
+  ],
+  "evidence": [
+    "design.md:65,85-90,106-108,133-136 — F1 独立字段方案 + currentGap 回归保护",
+    "lib/status-summary.mjs:24-130 — 结构支持纯增量加字段,currentGap 不受影响",
+    "grep guideReminder|computeGuideReminder 全仓零命中 — 无命名冲突",
+    ".claude/rules/ 目录 45 槽位空闲 — F2 规则载体落点有效",
+    "hooks/stop.mjs 只用 inferWorkflowStage — 与 F3 不覆盖 Stop 声明一致"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-21"
+}

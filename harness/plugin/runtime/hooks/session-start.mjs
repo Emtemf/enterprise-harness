@@ -20,6 +20,7 @@ const maintainerStatusCommand = summary.maintainerCommands?.find((command) => co
 const userEntry = '/harness';
 const workflowStage = summary.nextStage || '未识别';
 const currentGap = summary.currentGap || '未识别当前缺口';
+const guideReminder = summary.activeChange?.guideReminder || null;
 const recommendedLane = summary.recommendedLane || null;
 const recommendedEntry = summary.recommendedEntry || '/harness';
 const nextAction = summary.activeChange?.present && workflowStage === 'design' && summary.currentGap === 'execution deepening 第一批切片待冻结。'
@@ -33,6 +34,9 @@ console.log(`[Harness 进度] 静态快照: ${progressFile}`);
 console.log(`[Harness 进度] 动态真相: ${activeChange}`);
 console.log(`[Harness Workflow] 当前 stage: ${workflowStage}`);
 console.log(`[Harness Workflow] 当前缺口: ${currentGap}`);
+if (guideReminder) {
+  console.log(`[Harness Workflow] GUIDE 提醒: ${guideReminder}`);
+}
 if (recommendedLane) {
   console.log(`[Harness Workflow] 推荐探索通道: ${recommendedLane}`);
 }
