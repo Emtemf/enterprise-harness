@@ -37,6 +37,21 @@ for (const eventEntries of Object.values(hooksJson.hooks ?? {})) {
 const allUsePluginRoot = hookCommands.length > 0 && hookCommands.every((cmd) => cmd.includes('${CLAUDE_PLUGIN_ROOT}'));
 const nonePluginRelative = hookCommands.every((cmd) => !/node harness\//.test(cmd));
 
+// Contract 1b: 本地 .claude/settings.json 的 hook 必须用 $CLAUDE_PROJECT_DIR，
+// 不能用 ${CLAUDE_PLUGIN_ROOT}——后者只在插件 hooks/hooks.json 有效，settings.json
+// 里用它会报 "references ${CLAUDE_PLUGIN_ROOT} but the hook is not associated with a plugin"。
+const settingsJson = JSON.parse(fs.readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf-8'));
+const settingsCommands = [];
+for (const eventEntries of Object.values(settingsJson.hooks ?? {})) {
+  for (const entry of eventEntries) {
+    for (const hook of entry.hooks ?? []) {
+      if (hook.type === 'command') settingsCommands.push(hook.command);
+    }
+  }
+}
+const settingsUseProjectDir = settingsCommands.length > 0 && settingsCommands.every((cmd) => cmd.includes('$CLAUDE_PROJECT_DIR'));
+const settingsNoPluginRoot = settingsCommands.every((cmd) => !cmd.includes('CLAUDE_PLUGIN_ROOT'));
+
 // Contract 2: hook scripts must degrade gracefully when cwd is a target project
 // WITHOUT harness assets: exit 0, no MODULE_NOT_FOUND, no structure-problem spam.
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-native-target-'));
@@ -61,6 +76,8 @@ try {
   const failures = [];
   if (!allUsePluginRoot) failures.push('hooks.json commands must use ${CLAUDE_PLUGIN_ROOT}');
   if (!nonePluginRelative) failures.push('hooks.json commands must not use project-relative "node harness/..." paths');
+  if (!settingsUseProjectDir) failures.push('.claude/settings.json commands must use $CLAUDE_PROJECT_DIR');
+  if (!settingsNoPluginRoot) failures.push('.claude/settings.json commands must NOT use ${CLAUDE_PLUGIN_ROOT} (only valid in plugin hooks.json)');
   if (sessionStart.status !== 0) failures.push(`session-start exit=${sessionStart.status}: ${sessionStart.stderr?.slice(0, 200)}`);
   if (!`${sessionStart.stdout}`.includes('/harness')) failures.push('session-start in target project must still point users to /harness');
   if (preWrite.status !== 0) failures.push(`pre-write exit=${preWrite.status}: ${preWrite.stderr?.slice(0, 200)}`);

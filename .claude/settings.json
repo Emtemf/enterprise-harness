@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/session-start.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/session-start.mjs\"",
             "timeout": 30,
             "statusMessage": "加载 harness 启动检查"
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/pre-write.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/pre-write.mjs\"",
             "timeout": 30,
             "statusMessage": "执行写入前治理检查"
           }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/post-write.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/post-write.mjs\"",
             "timeout": 60,
             "statusMessage": "执行写入后治理检查"
           }
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/stop.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/stop.mjs\"",
             "timeout": 30,
             "statusMessage": "检查完成前验证状态"
           }

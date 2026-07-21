@@ -2,6 +2,14 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.7]
+
+### Fixed
+
+- **`.claude/settings.json` hook 变量作用域错误**：之前误把本地 settings.json 的 hook 路径也改成 `${CLAUDE_PLUGIN_ROOT}`，但该变量只在插件 `hooks/hooks.json` 有效，本地项目 settings 用它会报 `references ${CLAUDE_PLUGIN_ROOT} but the hook is not associated with a plugin` 并连带 `JSON validation failed`。改为 `$CLAUDE_PROJECT_DIR`（Claude Code 项目根变量）。
+- 明确两文件分化：`settings.json` 用 `$CLAUDE_PROJECT_DIR`（本地开发），`hooks/hooks.json` 用 `${CLAUDE_PLUGIN_ROOT}`（插件分发），不再一刀切统一。
+- 记录经验 `hook-var-scope-settings-vs-plugin`；`plugin-native-hooks-smoke` 增加 settings.json 变量断言。
+
 ## [0.1.6]
 
 ### Fixed
