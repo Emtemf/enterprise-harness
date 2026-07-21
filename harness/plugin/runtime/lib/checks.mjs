@@ -160,8 +160,11 @@ export function computeValidationDigest(root, changeId) {
   const statePath = path.join(changeDir, 'state.json');
   if (fs.existsSync(statePath)) {
     const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    // revision / lastEventId 是 workflow-runner 每次交互都会 bump 的易变 bookkeeping，
+    // 不属于稳定验证内容；纳入 digest 会让每次 workflow 运行都误报 validation digest mismatch。
+    const { revision: _revision, lastEventId: _lastEventId, ...durableState } = state;
     const normalizedState = {
-      ...state,
+      ...durableState,
       validation: {
         status: null,
         digest: null,
@@ -173,7 +176,11 @@ export function computeValidationDigest(root, changeId) {
     hash.update('\n');
   }
   const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
-  const nestedFiles = [...collectChangeFiles(changeDir, 'reviews'), ...collectChangeFiles(changeDir, 'evidence'), ...collectChangeFiles(changeDir, 'specs')];
+  // workflow-events.jsonl 是 append-only 事件流，会在每次 workflow 交互（含 smoke）时追加，
+  // 不属于稳定验证产物；纳入 digest 会让每次 workflow 运行都误报 validation digest mismatch。
+  const volatileEvidence = new Set(['evidence/workflow-events.jsonl']);
+  const nestedFiles = [...collectChangeFiles(changeDir, 'reviews'), ...collectChangeFiles(changeDir, 'evidence'), ...collectChangeFiles(changeDir, 'specs')]
+    .filter((relPath) => !volatileEvidence.has(normalizeDigestPath(relPath)));
   for (const relPath of [...directFiles, ...nestedFiles]) {
     const normalizedRelPath = normalizeDigestPath(relPath);
     const fullPath = path.join(changeDir, ...normalizedRelPath.split('/'));
