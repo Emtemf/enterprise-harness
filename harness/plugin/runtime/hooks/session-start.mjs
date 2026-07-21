@@ -1,5 +1,6 @@
-import { projectRoot, exists } from '../lib/checks.mjs';
+import { projectRoot, exists, isHarnessManaged } from '../lib/checks.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
+import { highSeverityLessons } from '../lib/lessons.mjs';
 
 const root = projectRoot();
 const parts = [
@@ -39,3 +40,15 @@ console.log(`[Harness Workflow] 推荐恢复入口: ${recommendedEntry}`);
 console.log(`[Harness Workflow] 下一步动作: ${nextAction}`);
 console.log(`[Harness Workflow] 普通用户先看: ${summary.nextRead.join(' / ')}`);
 console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
+
+// 强制层的"不再犯"：开会话即把高危教训推到上下文，弱模型也漏不掉。
+if (isHarnessManaged(root)) {
+  const lessons = highSeverityLessons(root);
+  if (lessons.length > 0) {
+    console.log(`[Harness 经验] 高危教训 ${lessons.length} 条，动手前务必先规避（详见 harness/lessons/）：`);
+    for (const lesson of lessons) {
+      console.log(`[Harness 经验] - ${lesson.id}（${lesson.tags}）`);
+    }
+    console.log('[Harness 经验] 涉及相关主题时，先 lifecycle lesson-list <tag> 查规避方式，再动手。');
+  }
+}

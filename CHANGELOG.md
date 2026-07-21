@@ -2,6 +2,13 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.5]
+
+### Added
+
+- **经验库强制层浮现**：session-start hook 在 harness-managed 项目开会话时，自动把高危（severity=high）教训推到上下文最前，弱模型也漏不掉；非 harness 项目静默。把"同样问题不再犯"从 skill 指令层提升到 hook 强制层。
+- `lib/lessons.mjs`：`readLessonIndex` / `highSeverityLessons` 纯函数，供 session-start 及后续消费方复用。
+
 ## [0.1.4]
 
 ### Added
