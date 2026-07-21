@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "java-golden-quality-gates",
   "tier": "L2",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "reference-service",
   "impact": {
     "api": "no",
