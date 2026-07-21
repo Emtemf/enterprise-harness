@@ -1,27 +1,30 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const [, , subcommand, ...rest] = process.argv;
-const repoRoot = process.cwd();
+// 兄弟脚本相对 cli.mjs 自身目录定位；命令作用目标始终是调用方 cwd。
+const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
+const targetCwd = process.cwd();
 
 const commands = {
-  bootstrap: ['harness/plugin/runtime/bootstrap.mjs'],
-  doctor: ['harness/plugin/runtime/doctor.mjs'],
-  sync: ['harness/plugin/runtime/sync.mjs'],
-  install: ['harness/plugin/runtime/install.mjs'],
-  verify: ['harness/plugin/runtime/verify.mjs'],
-  'setup-local-adapter': ['harness/plugin/runtime/setup-local-adapter.mjs'],
-  'start-change': ['harness/plugin/runtime/start-change.mjs'],
-  'release-local': ['harness/plugin/runtime/release-local.mjs'],
-  status: ['harness/plugin/runtime/status.mjs'],
-  update: ['harness/plugin/runtime/update.mjs'],
-  upgrade: ['harness/plugin/runtime/upgrade.mjs'],
-  migrate: ['harness/plugin/runtime/migrate.mjs'],
-  'upstream-check': ['harness/plugin/runtime/upstream-check.mjs'],
-  lifecycle: ['harness/plugin/runtime/lifecycle.mjs'],
-  workflow: ['harness/plugin/runtime/workflow.mjs'],
-  context7: ['harness/plugin/runtime/context7.mjs'],
+  bootstrap: ['bootstrap.mjs'],
+  doctor: ['doctor.mjs'],
+  sync: ['sync.mjs'],
+  install: ['install.mjs'],
+  verify: ['verify.mjs'],
+  'setup-local-adapter': ['setup-local-adapter.mjs'],
+  'start-change': ['start-change.mjs'],
+  'release-local': ['release-local.mjs'],
+  status: ['status.mjs'],
+  update: ['update.mjs'],
+  upgrade: ['upgrade.mjs'],
+  migrate: ['migrate.mjs'],
+  'upstream-check': ['upstream-check.mjs'],
+  lifecycle: ['lifecycle.mjs'],
+  workflow: ['workflow.mjs'],
+  context7: ['context7.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {
@@ -39,9 +42,9 @@ if (!commands[subcommand]) {
   process.exit(1);
 }
 
-const targetScript = path.join(repoRoot, ...commands[subcommand][0].split('/'));
+const targetScript = path.join(runtimeDir, commands[subcommand][0]);
 const child = spawnSync('node', [targetScript, ...rest], {
-  cwd: repoRoot,
+  cwd: targetCwd,
   encoding: 'utf-8',
 });
 process.stdout.write(child.stdout || '');

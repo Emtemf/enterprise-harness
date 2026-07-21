@@ -33,6 +33,5 @@
     "./agents/verification-reviewer.md"
   ],
   "commands": "./.claude-plugin/commands/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }
