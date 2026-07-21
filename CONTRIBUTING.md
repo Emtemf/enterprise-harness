@@ -98,7 +98,7 @@ later CI should reuse the same Maven verify command.
 如果改动了 `reference-service/`，当前建议执行：
 
 ```bash
-mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify
+mvn -f reference-service/pom.xml verify
 ```
 
 同时请明确：generated `*MapperImpl` are build artifacts，而不是 hand-authored quality profile 的主要设计面。

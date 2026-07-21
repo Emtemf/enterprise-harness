@@ -319,7 +319,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 ### 6. `reference-service` 的当前本地 Java quality gate
 
-当前本地 Java quality gate 命令：mvn -f /home/wula/IdeaProjects/sdd/reference-service/pom.xml verify
+当前本地 Java quality gate 命令：`mvn -f reference-service/pom.xml verify`（在仓库根目录执行）
 
 它当前负责：
 - ArchUnit 架构边界检查
