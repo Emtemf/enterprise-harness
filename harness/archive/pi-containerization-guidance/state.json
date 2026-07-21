@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "changeId": "pi-containerization-guidance",
+  "tier": "L2",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "containerization-sandboxing.md 作为稳定 spec 落地，不实现真正 sandbox runtime。",
+    "三种推荐模式：宿主机运行+容器承载项目、整个 runtime 在容器中、外层宿主机+工具路由沙箱。",
+    "secrets 默认留在宿主机或 machine-local adapter，不进容器镜像。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "d46321f068449033a93166a913e6705b270d5d34b80cb99175a92f9762f3d76e",
+    "validatedAt": "2026-07-22"
+  }
+}

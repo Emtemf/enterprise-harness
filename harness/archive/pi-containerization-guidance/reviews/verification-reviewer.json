@@ -1,0 +1,16 @@
+{
+  "changeId": "pi-containerization-guidance",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：spec 文件存在且内容完整。",
+    "pass：cli verify 通过。",
+    "pass：README 已更新。"
+  ],
+  "evidence": [
+    "cli verify: OK contract checks passed",
+    "README.md:414 — reference to spec"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

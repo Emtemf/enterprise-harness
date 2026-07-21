@@ -1,0 +1,17 @@
+{
+  "changeId": "pi-containerization-guidance",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：containerization-sandboxing.md 内容完整，覆盖三种模式、local adapter 处理、governed writes 边界。",
+    "pass：非目标明确，不实现真正 sandbox runtime。",
+    "pass：已加入 checks.mjs required paths 和 README.md 引用。"
+  ],
+  "evidence": [
+    "containerization-sandboxing.md — 完整 spec",
+    "checks.mjs:90 — required path",
+    "README.md:414 — doc reference"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}
