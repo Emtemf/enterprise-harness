@@ -129,6 +129,8 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 若 `state.json.state` 为 `TASKED` / `EXECUTING`，或当前 task 仍缺 RED / GREEN / REFACTOR 证据：进入 `tdd`
 - 若实现已完成且需要 reviewer / validation 收口，或 `state.json.state` 为 `REVIEWED` / `VALIDATED` 但 validation 仍缺解释：进入 `verify`
 - 若 validation 已 fresh 且完成声明成立：进入 `archive`
+  - archive 阶段应在用户确认需求完成后，用 `node harness/plugin/runtime/cli.mjs lifecycle archive <changeId>` 把 change 物理归档到 `harness/archive/`（仅 VALIDATED 可归档；被 runtime smoke 引用的 change 会被拒绝）
+  - 归档是收尾动作，不改变"用户只感知 `/harness`"——它由本阶段自动驱动，用户无需记忆该命令
 
 在任何阶段，都应优先给出：
 

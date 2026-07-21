@@ -159,6 +159,61 @@ function cmdMarkValidationStale(changeId) {
   console.log(`Validation marked stale: ${changeId}`);
 }
 
+const archiveDir = path.join(repoRoot, 'harness', 'archive');
+const testDir = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'test');
+
+// 自动归档：把已 VALIDATED 的 change 物理移到 harness/archive/，置 ARCHIVED，清 active 指针。
+function cmdArchive(changeId) {
+  if (!changeId) {
+    console.error('BLOCK: archive 需要 <changeId>。');
+    process.exit(2);
+  }
+  const srcDir = path.join(changesDir, changeId);
+  const statePath = path.join(srcDir, 'state.json');
+  // 1. 存在性校验。
+  if (!fs.existsSync(statePath)) {
+    console.error(`BLOCK: change 不存在或缺少 state.json：${changeId}`);
+    process.exit(2);
+  }
+  const data = readJson(statePath);
+  // 2. 只允许归档已 VALIDATED 的 change，避免误归档半成品。
+  if (data.state !== 'VALIDATED') {
+    console.error(`BLOCK: 只有 VALIDATED 才能归档，当前 state=${data.state}。`);
+    process.exit(2);
+  }
+  // 3. 被 runtime smoke 硬编码引用的 change 不能归档，否则会打断 smoke。
+  if (isReferencedByTests(changeId)) {
+    console.error(`BLOCK: ${changeId} 仍被 harness/plugin/runtime/test 引用，归档会破坏 smoke，先解除引用。`);
+    process.exit(2);
+  }
+  const destDir = path.join(archiveDir, changeId);
+  if (fs.existsSync(destDir)) {
+    console.error(`BLOCK: 归档目标已存在：harness/archive/${changeId}`);
+    process.exit(2);
+  }
+  // 4. 置 ARCHIVED 后物理移动。
+  data.state = 'ARCHIVED';
+  writeJson(statePath, data);
+  fs.mkdirSync(archiveDir, { recursive: true });
+  fs.renameSync(srcDir, destDir);
+  // 5. 若归档的是当前 active change，清空指针。
+  if (fs.existsSync(activeFile)) {
+    const active = fs.readFileSync(activeFile, 'utf-8').trim();
+    if (active === changeId) fs.rmSync(activeFile);
+  }
+  console.log(`Archived: ${changeId} -> harness/archive/${changeId}`);
+}
+
+function isReferencedByTests(changeId) {
+  if (!fs.existsSync(testDir)) return false;
+  for (const entry of fs.readdirSync(testDir)) {
+    if (!entry.endsWith('.mjs')) continue;
+    const text = fs.readFileSync(path.join(testDir, entry), 'utf-8');
+    if (text.includes(changeId)) return true;
+  }
+  return false;
+}
+
 const lessonsDir = path.join(repoRoot, 'harness', 'lessons');
 const lessonsIndex = path.join(lessonsDir, 'INDEX.md');
 
@@ -268,10 +323,11 @@ switch (action) {
   case 'reviewed': cmdState(args[0], 'REVIEWED', args[1]); break;
   case 'validated': cmdMarkValidated(args[0], args[1], args[2]); break;
   case 'validation-stale': cmdMarkValidationStale(args[0]); break;
+  case 'archive': cmdArchive(args[0]); break;
   case 'lesson-add': cmdLessonAdd(args[0], args[1], args[2], args[3], args[4]); break;
   case 'lesson-list': cmdLessonList(args[0]); break;
   default:
     console.log('Usage: node harness/plugin/runtime/lifecycle.mjs <action> ...');
-    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale, lesson-add, lesson-list');
+    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale, archive, lesson-add, lesson-list');
     process.exit(1);
 }
