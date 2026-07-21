@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "runtime-adapter-diagnostics-hardening",
   "tier": "L2",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",

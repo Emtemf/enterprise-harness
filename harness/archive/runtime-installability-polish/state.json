@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "runtime-installability-polish",
   "tier": "L1",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",
