@@ -10,7 +10,7 @@ const packagePath = path.join(repoRoot, 'package.json');
 const manifestPath = path.join(repoRoot, 'harness', 'plugin', 'manifest.json');
 const mode = process.argv[2];
 const jsonKeys = ['summaryVersion', 'currentPhase', 'progressSnapshot', 'activeChange', 'nextStage', 'recommendedEntry', 'recommendedLane', 'truthSources', 'nextRead', 'nextCommands', 'maintainerCommands'];
-const headings = ['普通用户下一步：直接从 /harness 开始', '当前阶段', '静态快照', '动态真相', '当前 workflow stage', '当前缺口', '推荐恢复入口', '普通用户先看这些', '普通用户下一步命令', '维护命令（如需排障）'];
+const headings = ['普通用户下一步：直接从 /harness 开始', '当前阶段', '静态快照', '动态真相', '当前缺口', '推荐恢复入口', '普通用户先看这些', '普通用户下一步命令', '维护命令（如需排障）'];
 
 function runCliStatus() {
   return spawnSync('node', [cliPath, 'status'], {

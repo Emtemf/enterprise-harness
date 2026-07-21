@@ -8,7 +8,7 @@ const sessionStartPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'ho
 const stopPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'hooks', 'stop.mjs');
 const mode = process.argv[2];
 const requiredStartTokens = ['[Harness Workflow] 当前 stage:', '[Harness Workflow] 推荐恢复入口:'];
-const requiredStopTokens = ['当前 workflow stage', '建议下次从：'];
+const requiredStopTokens = ['Stop handoff guidance'];
 
 function runNode(file) {
   return spawnSync('node', [file], {

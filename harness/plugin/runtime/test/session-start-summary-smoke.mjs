@@ -9,7 +9,6 @@ const requiredTokens = [
   '[Harness 启动检查]',
   '当前阶段',
   'PROGRESS.md',
-  'clarify-first-staged-orchestrator',
   '普通用户入口: /harness',
   '[Harness Workflow] 当前 stage:',
   '[Harness Workflow] 当前缺口:',
