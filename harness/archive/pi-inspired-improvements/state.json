@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "changeId": "pi-inspired-improvements",
+  "tier": "L3",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "AGENTS.md 作为 repo-facing 协作合同落地，面向人类与各类 agent。",
+    "AGENTS.md 不是 Claude Code 的自动加载规则源，职责是给外部贡献者稳定前门。",
+    "已接入 doctor/verify 的 required-file 校验。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness-verify"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "55b6b1c2790e1d18c5bc38112b613c798466fd129dfb2c1036a3dcd27ace75cd",
+    "validatedAt": "2026-07-22"
+  }
+}

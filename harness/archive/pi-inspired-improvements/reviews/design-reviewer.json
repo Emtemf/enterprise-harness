@@ -1,0 +1,16 @@
+{
+  "changeId": "pi-inspired-improvements",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：AGENTS.md 已作为 repo-facing 协作合同落地。",
+    "pass：已接入 doctor/verify 校验。",
+    "pass：与 CLAUDE.md 职责边界清晰。"
+  ],
+  "evidence": [
+    "AGENTS.md — 152 行完整文档",
+    "doctor/verify 通过"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

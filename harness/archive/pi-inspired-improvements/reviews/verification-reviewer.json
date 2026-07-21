@@ -1,0 +1,15 @@
+{
+  "changeId": "pi-inspired-improvements",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：AGENTS.md 存在且内容完整。",
+    "pass：cli verify 通过。"
+  ],
+  "evidence": [
+    "AGENTS.md — 152 行",
+    "cli verify: OK"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}
