@@ -11,6 +11,7 @@ const targetCwd = process.cwd();
 const commands = {
   bootstrap: ['bootstrap.mjs'],
   doctor: ['doctor.mjs'],
+  'doctor-hooks': ['doctor-hooks.mjs'],
   sync: ['sync.mjs'],
   install: ['install.mjs'],
   verify: ['verify.mjs'],

@@ -304,6 +304,14 @@ node harness/plugin/runtime/cli.mjs update-local
 封装「marketplace update → plugin update（自动识别实际 scope）→ 清理旧版本缓存」一条龙，
 避免手动漏 `--scope local` 或旧缓存残留。加 `--dry-run` 只预览不执行。更新后重启会话生效。
 
+#### 自检 Stop hook 健康（排查 "JSON validation failed"）
+```bash
+node harness/plugin/runtime/cli.mjs doctor-hooks
+```
+不用等会话结束，直接检查「全新会话会加载的所有 Stop hook 是否都输出合法 JSON」：
+实跑 enterprise-harness 自己的 stop hook，并静态标记可能是报错源的第三方插件。
+注意 hook 改动只对**全新会话**生效（完全退出后重新 `claude`，勿用 `--continue`/`--resume`）。
+
 ### 4. 安装后怎么进入工作流
 安装插件后，对普通用户来说，后续只需要记住一件事：
 

@@ -2,6 +2,14 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.9]
+
+### Added
+
+- **`cli.mjs doctor-hooks` Stop hook 自检命令**：不用等会话结束，直接检查「全新会话会加载的所有 Stop hook 是否都输出合法 JSON」。实跑 enterprise-harness 自己的 stop hook，并静态标记可能触发 `JSON validation failed` 的第三方插件（如 oh-my-claudecode 输出 `continue`/`suppressOutput` 非法字段）。用于快速区分报错是否来自本插件。
+- `lib/hook-audit.mjs`：`classifyStopStdout` / `extractEventCommands` / `collectStopSources` 纯函数。
+- README 补充 doctor-hooks 用法；记录经验 `hook-changes-need-fresh-session`（hook 改动只对全新会话生效）。
+
 ## [0.1.8]
 
 ### Added
