@@ -6,6 +6,7 @@
 
 <!-- LESSONS:BEGIN -->
 - hook-var-scope-settings-vs-plugin — high — hooks, settings, plugin, path
+- local-plugin-update-scope-and-cache — high — plugin, update, scope, cache, hooks
 - runtime-sibling-script-cwd-path — high — runtime, cwd, spawn, plugin
 - stop-hook-stdout-json — high — hooks, stop, json, protocol
 - validation-digest-volatile-fields — high — validation, digest, state, smoke

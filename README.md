@@ -294,6 +294,16 @@ claude plugin marketplace update enterprise-harness
 claude plugin update enterprise-harness@enterprise-harness --scope local
 ```
 
+> 注意：本地安装（`--scope local`）更新时**必须带 `--scope local`**；默认查 user scope 会报
+> `not installed at scope user`。且旧版本缓存目录里的旧 hook 仍可能被加载并报错。
+
+#### 一键更新（推荐给插件作者 / 本地迭代）
+```bash
+node harness/plugin/runtime/cli.mjs update-local
+```
+封装「marketplace update → plugin update（自动识别实际 scope）→ 清理旧版本缓存」一条龙，
+避免手动漏 `--scope local` 或旧缓存残留。加 `--dry-run` 只预览不执行。更新后重启会话生效。
+
 ### 4. 安装后怎么进入工作流
 安装插件后，对普通用户来说，后续只需要记住一件事：
 

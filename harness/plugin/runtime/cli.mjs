@@ -19,6 +19,7 @@ const commands = {
   'release-local': ['release-local.mjs'],
   status: ['status.mjs'],
   update: ['update.mjs'],
+  'update-local': ['update-local.mjs'],
   upgrade: ['upgrade.mjs'],
   migrate: ['migrate.mjs'],
   'upstream-check': ['upstream-check.mjs'],

@@ -2,6 +2,14 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.8]
+
+### Added
+
+- **`cli.mjs update-local` 一键更新命令**：封装「marketplace update → plugin update（自动识别实际 scope）→ 清理旧版本缓存」一条龙，解决本地安装更新时漏 `--scope local`（报 `not installed at scope user`）和旧缓存残留导致旧 hook 继续报错的问题（issue #35 根源）。支持 `--dry-run` 预览。
+- `lib/plugin-cache.mjs`：`selectStaleVersions` / `listVersionDirs` 纯函数，供缓存清理逻辑复用与单测。
+- README 补充本地更新注意事项与 `update-local` 用法；记录经验 `local-plugin-update-scope-and-cache`。
+
 ## [0.1.7]
 
 ### Fixed
