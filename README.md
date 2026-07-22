@@ -1,521 +1,103 @@
 # Enterprise Harness
 
-一个围绕 **Claude Code** 的企业后端交付骨架项目。
+给 Claude Code 一套企业级的 SOP 骨架，让较弱的模型也能在明确约束下，稳定完成需求分流、设计、计划、TDD、验证与归档。
 
-它的目标不是单纯证明“模型会写代码”，而是把一次需求从输入到落地，推进成一套更接近企业团队协作的工程过程：**可探索、可落盘、可审查、可验证、可恢复、可跨机器接入**。
-
-> **普通用户 30 秒开始：**
-> 1. 安装 `enterprise-harness`
-> 2. 打开 Claude Code
-> 3. 输入 `/harness`
->
-> 到这里就够了；其余 runtime / maintainer 命令都不是普通用户前门。
-
-> 当前状态：**可运行的 repo contract + portable runtime MVP，且已进入 clarify-first staged orchestrator 主线**
->
-> 这部分描述的是仓库与维护层状态，不影响普通用户的使用路径；对普通用户来说，默认入口仍然只有 `/harness`。
-
----
-
-## 安装
-
-### 方式一：从 GitHub Release 安装（推荐）
-
-1. 从 [GitHub Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载最新版本的 tarball
-2. 解压到任意目录：
-   ```bash
-   tar -xzf enterprise-harness-*.tar.gz -C /tmp/eh-install
-   ```
-3. 进入解压目录，运行安装脚本，指定你的项目路径：
-   ```bash
-   cd /tmp/eh-install
-   node bin/install.mjs --target /path/to/your/project
-   ```
-4. 安装脚本会：
-   - 复制 `CLAUDE.md`、`AGENTS.md`、`PROGRESS.md` 到你的项目根目录
-   - 复制 `.claude/rules/`、`.claude/skills/`、`.claude/agents/`
-   - **智能合并** `.claude/settings.json`（保留你已有的 hooks 配置）
-   - 复制 `harness/` 目录
-5. 在你的项目里打开 Claude Code，输入 `/harness` 开始
-
-> 先用 `--dry-run` 预览将要复制的文件：
-> ```bash
-> node bin/install.mjs --target /path/to/your/project --dry-run
-> ```
-
-### 方式二：从源码安装
-
-```bash
-git clone https://github.com/Emtemf/enterprise-harness.git
-cd enterprise-harness
-node bin/install.mjs --target /path/to/your/project
-```
-
-### 发布新版本（维护者）
-
-```bash
-# patch: 0.1.9 -> 0.1.10
-npm run release
-
-# minor: 0.1.9 -> 0.2.0
-npm run release -- --minor
-
-# 预览（不实际执行）
-npm run release -- --dry-run
-```
-
-推送 tag 后，GitHub Actions 会自动构建 tarball 并发布到 GitHub Releases。
-
----
-
-## 为什么会有这个项目
-
-很多 AI coding workflow 停留在：
-
-- 会话里说过的话，下轮就丢了
-- 模型容易直接开写，跳过设计、TDD 和验证
-- 项目规则写了很多，但没有真正接进运行时
-- change、review、validation、evidence 分散在不同地方
-- 换一台机器或换一个系统后，本地运行方式不一致
-
-**Enterprise Harness** 想解决的不是“再写一套 prompt”，而是把 Claude Code 放进一套更像工程系统的结构里。
-
----
-
-## 这个项目是什么
-
-你可以把它理解成两层：
-
-### 1. Repo Contract（仓库共享契约）
-团队共享、提交进仓库：
-
-- `AGENTS.md`
-- `CLAUDE.md`
-- `.claude/rules/`
-- `.claude/agents/`
-- `.claude/skills/`
-- `harness/specs/`
-- `harness/templates/`
-- `harness/changes/`
-- `harness/config.yaml`
-
-这部分负责定义：
-
-- 工作流
-- 规则
-- 资产结构
-- reviewer 角色
-- change 生命周期
-- 文档与探索证据的落点
-
-### runtime / maintainer layer
-下面这些属于**维护者 / 排障层**，不是普通用户前门：
-
-- `node harness/plugin/runtime/cli.mjs <command>`
-- `bootstrap` / `doctor` / `sync` / `verify`
-- `install` / `setup-local-adapter` / `upgrade` / `migrate`
-- `status` / `workflow` / `upstream-check` / `lifecycle`
-- `local-adapter.schema.json`
-- `local-adapter.example.json`
-- Node 版 hook adapters
-
-这部分负责解决：
-
-- OS / shell 差异
-- 本地路径与命令
-- 环境变量与 secrets
-- 本机工具可用性
-- 本地接入、自检、同步与迁移
-
-普通用户不需要先理解这些；对普通用户真正暴露的工作流入口仍然只有 `/harness`。
-
----
-
-## 一个请求进来后，会发生什么
-
-这套 Harness 的重点不是“马上改代码”，而是先让流程站住。
-
-### 当前主路径
-1. **加载项目 contract**
-   - Claude Code 通过 `.claude/settings.json` 接入 SessionStart / PreToolUse / PostToolUse / Stop hooks
-2. **从 `/harness` 进入 staged workflow**
-   - `/harness` 是单一用户入口，后续按阶段路由而不是让用户自行猜下一步
-3. **先澄清，再推进**
-   - workflow 正在收敛为：`clarify -> route -> design -> plan -> tdd -> verify -> archive`
-   - clarify 阶段会先自动探索代码/文档，再进行一问一答澄清，并在用户确认后进入下一阶段
-4. **探索优先下沉到适当层**
-   - 代码问题默认 **codegraph-first**
-   - 外部库/框架问题默认 **Context7-first**
-   - 高噪声探索应优先下沉为 read-only subagent，主 orchestrator 只消费压缩结论
-5. **必要时落 change 资产**
-   - 把 `requirements.md`、`state.json`、`change.md`、`design.md`、`tasks.md`、`validation.md`、`evidence/*.md` 放进 `harness/changes/`
-6. **写入前过 gate**
-   - 对受治理路径（当前重点是 `reference-service/`）检查 active change 与当前阶段 gate
-7. **写入后自动检查**
-   - 结构、轻语义、review/evidence 状态检查
-   - 必要时把 validation 标为 stale，并提示下一阶段或恢复入口
-8. **完成前必须刷新验证证据**
-   - Stop gate 会阻止 stale validation 或缺失 validation 资产的“伪完成”状态
-   - 同时明确提示：change-specific 结论应回写 change 资产，repo-level 阶段信息应回写 `PROGRESS.md`，Claude memory 只保存显式触发的非仓库事实
-
-更详细的时序图见：
-
-- [`docs/zh-cn/overview.md`](docs/zh-cn/overview.md)
-
----
-
-## 当前已经真实可用的能力
-
-### 代码探索与文档检索
-- **codegraph-first** 已真实可用
-- **Context7 CLI wrapper** 已真实可用
-- 已有明确 fallback policy，而不是静默退回 grep / Read
-
-### change 生命周期与治理骨架
-- `harness/changes/` 资产模型已成形
-- `state.json` / `change.md` / `validation.md` / `evidence/tooling.md` 已形成最小 change bundle
-- `active change` 与受治理路径写入约束已接入 runtime gate
-
-### runtime / 维护者能力（普通用户可跳过）
-这些能力已经真实可用，但它们属于**维护者 / 排障层**，不是普通用户主路径：
-
-- `node harness/plugin/runtime/cli.mjs <command>`
-- `bootstrap` / `doctor` / `sync` / `verify`
-- `status` / `workflow` / `install` / `update` / `upgrade` / `migrate`
-- `setup-local-adapter` / `upstream-check` / `lifecycle` / `context7`
-
-普通用户不需要先理解这些，只需要安装插件后从 `/harness` 开始。
-
-如果你确实需要这些低层能力，请改读：
-
-- [`docs/zh-cn/maintainer-runtime-guide.md`](docs/zh-cn/maintainer-runtime-guide.md)
-
-### hook adapters
-`.claude/settings.json` 当前已接上：
-
-- `SessionStart`
-- `PreToolUse`
-- `PostToolUse`
-- `Stop`
-
-### 平台 smoke matrix
-GitHub Actions `platform-smoke` 当前已覆盖：
-
-- Linux
-- macOS
-- Windows
-
-当前可以准确表述为：
-
-> Linux 已长期实测；macOS / Windows 的当前 runtime smoke 路径已在 CI matrix 验证通过。
-
----
-
-## 评判标准（你可以用这个判断它现在能不能用）
-
-### 对普通用户
-- 安装后是否能直接从 `/harness` 开始
-- 是否不要求先理解 runtime CLI / hooks / state.json
-- clarify 阶段是否一次一问、默认优先选项式提问，且未达 clarify-ready 不得跳进 design/plan
-
-### 对团队流程
-- `requirements.md` / `design.md` / `tasks.md` / `validation.md` 是否形成 durable change bundle
-- reviewer verdict 是否有据可查（`pass / block / advisory`）
-- `validation.status` 是否 fresh
-- `verify` 前是否已有真实 RED/GREEN/REFACTOR 证据
-
-### 当前通过线
-当前最小通过线是：
-- 普通用户单入口 `/harness`
-- clarify-first staged workflow 第一版骨架已验证
-- execution deepening 第一批切片已验证
-- repo-level `verify` 通过
-
-### 当前不通过线
-以下任一项存在，就不应宣称完成：
-- clarify 未达标却直接进入 design/plan
-- reviewer verdict 缺失或 verdict=`block`
-- `validation.status != fresh`
-- 只跑 harness 自己的校验，却没有目标项目真实构建/测试证据
-
-## 当前还不该夸大的地方
-
-这个项目当前**不是**：
-
-- 完整企业级强门禁平台
-- 已 fully productized 的公开安装插件
-- 所有路径都已接入同等强度 gate 的系统
-- 所有本机环境都零差异支持的成品
-
-以下能力仍在继续建设中：
-
-- 更完整的 plan gate / task gate
-- task 子状态 `NOT_STARTED -> TEST_WRITTEN -> RED_VERIFIED -> GREEN_VERIFIED -> REFACTOR_VERIFIED -> TASK_REVIEWED -> DONE` 的更强机读消费
-- 更细粒度的 `RED_VERIFIED` 消费逻辑
-- `/harness` 的 automation-first lifecycle runner 行为深化
-- 真实 HTTP API E2E
-- 更强 OpenAPI 语义门禁
-- 更完整 installer / upgrade / migration 体验
-- 更广泛真机开发机场景验证
-
----
-
-## 适合谁 / 不适合谁
-
-### 适合谁
-- 想把 Claude Code 用进 **Java / Spring Boot 后端团队流程**的人
-- 想让 AI coding 从“会话技巧”进入“项目契约 + runtime + change 资产”的团队
-- 想以 codegraph-first / Context7-first 方式组织探索和文档检索的人
-- 想基于现有骨架继续做企业化扩展的人
-
-### 不适合谁
-- 想找一个已经发布完成、可一键安装的成品插件的人
-- 想把它直接当成完整 CI/CD 与质量平台替代品的人
-- 只关心前端 UI 点击测试的人
-
----
-
-## 入口（先记两个层次）
-
-如果你只想先知道“从哪进”，只记住这一条：
-
-- **用户唯一入口**：`/harness`
-
-其余命令（如 `start-change` / `bootstrap` / `doctor` / `sync` / `verify`）都是 `/harness` 背后的后台动作、fallback 或维护工具，不应被理解成与 `/harness` 并列的多个用户入口。
+面向 **Java 后端 / Spring Boot** 场景，默认采用 codegraph-first 代码探索与 Context7-first 文档检索。
 
 ## Quickstart
 
-> 现在最推荐的接入方式已经不是“只会 clone 仓库后手动跑脚本”，而是：
->
-> 1. **在 Claude Code 里把当前仓库加成一个本地 marketplace**
-> 2. **从该 marketplace 安装 `enterprise-harness` 插件**
-> 3. **需要时通过 marketplace / plugin update 更新**
->
-> 同时保留 clone + direct CLI 作为 fallback / 开发路径；维护者若需要更低层控制，也可以直接使用 `node bin/enterprise-harness.mjs <command>`。
+### 安装
 
-### 前置要求
-- Node.js **>= 20**
-- 已安装 Claude Code CLI（`claude` 命令可用）
-- 推荐安装 `codegraph`
-- 推荐可用 `npx` / `ctx7`
-
-### 1. 获取仓库
-```bash
-git clone https://github.com/Emtemf/enterprise-harness.git
-cd enterprise-harness
-```
-
-### 2. 在 Claude Code 里添加 marketplace
-如果你想要的是 **像 superpowers 那样的 plugin 安装体验**，当前推荐直接把 GitHub 仓库加入 marketplace。
-
-#### 方式 A：在 Claude Code 会话里执行 slash command（推荐，企业试点默认）
-```bash
-/plugin marketplace add https://github.com/Emtemf/enterprise-harness
-/plugin install enterprise-harness@enterprise-harness
-```
-
-#### 方式 B：在终端里执行等价 CLI
-```bash
-claude plugin marketplace add https://github.com/Emtemf/enterprise-harness
-claude plugin install enterprise-harness@enterprise-harness --scope local
-```
-
-当前已确认：
-- Git 远程仓库 URL 可以被 `claude plugin marketplace add` 识别为 marketplace 来源
-- 在网络、代理、TLS clone 稳定时，这条链路更接近 `superpowers` 的使用体验
-
-#### 本地仓库 fallback（网络 / 代理 / TLS clone 不稳时使用）
-如果你的企业网络、代理或 Git/TLS 环境会导致远程 clone 不稳定，再退回本地仓库路径：
+从 [GitHub Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载最新 tarball，解压后安装到你的项目：
 
 ```bash
-claude plugin marketplace add /absolute/path/to/enterprise-harness
-claude plugin install enterprise-harness@enterprise-harness --scope local
+tar -xzf enterprise-harness-*.tar.gz -C /tmp/eh
+cd /tmp/eh
+node bin/install.mjs --target /path/to/your/project --dry-run   # 先预览
+node bin/install.mjs --target /path/to/your/project             # 再执行
 ```
 
-### 3. 更新 marketplace / plugin
-#### Claude Code 会话里
+安装脚本会复制 `CLAUDE.md`、`.claude/`（rules/skills/agents/settings）、`harness/` 到你的项目，并**智能合并** settings.json（不覆盖你已有的 hooks）。
+
+### 开始使用
+
+在项目里打开 Claude Code，输入：
+
+```
+/harness
+```
+
+就这样。后续的一切都从这个入口展开。
+
+## 它是怎么工作的
+
+当你输入 `/harness`，它不会直接跳进去写代码。它会先后退一步，问你到底想做什么。
+
+它会先探索代码与文档（codegraph-first + Context7-first），再做**苏格拉底式澄清**——一次只问一个高价值问题，逐步把歧义降到你确认执行范围为止。
+
+确认后，需求进入一条分阶段状态机：
+
+```
+clarify → route → design → plan → tdd → verify → archive
+```
+
+每个阶段都有**模板、gate、durable artifact**。reviewer 门禁是硬约束——reviewer 返回 block，就不得进入下一阶段。连这个 harness 自己改自己，都得走一遍这条流程。
+
+这意味着：状态不在聊天上下文里丢失，打断后能从 durable `state.json` 恢复；完成声明必须由新鲜验证证据支撑，不是空话。
+
+## 核心工作流
+
+1. **clarify** — 苏格拉底式一问一答 + ambiguity scoring，先探索再问用户
+2. **route** — 分流到 L0/L1/L2/L3 tier，确定 owning scope 与影响面
+3. **design** — durable design.md，强制覆盖接口/数据/架构边界/测试策略
+4. **plan** — tasks.md，拆成可机械执行的切片，含 touched files 与 RED/GREEN 证据点
+5. **tdd** — 严格 RED→GREEN→REFACTOR，没有 RED 证据不得改生产源码
+6. **verify** — 消费 reviewer verdict + validation freshness，确认完成态
+7. **archive** — 物理归档到 `harness/archive/`
+
+每个 change 还会自动生成一张 **GUIDE.md 导航卡**——愿景、做什么、不做什么、验收命令，弱模型不用读完整份卷宗就知道红线在哪。
+
+## 设计谱系
+
+第一性目标是**给较弱模型兜底**：模型在缺约束时会跳步、糊弄验收、丢状态。所以用"厚 SOP + 机械门禁 + durable 状态"替代"模型自觉"。各支柱来源见 `harness/upstream/registry.json`：
+
+- **分阶段 SOP** ← Superpowers
+- **归档与资产分层** ← OpenSpec
+- **苏格拉底式 clarify** ← deep-interview
+- **打断后可继续** ← gump（durable state）
+- **角色视角** ← role-workbench（草案）
+- **代码探索** ← CodeGraph · **文档检索** ← Context7
+
+## 适合谁 / 不适合谁
+
+**适合**：
+- Java 后端团队，想让 AI 稳定交付而不是乱写
+- 弱模型场景，需要厚约束兜底
+- 企业合规要求，需要可追溯的 durable artifact 与 reviewer 门禁
+
+**不适合**：
+- 只想做快速原型、不想走流程
+- 前端为主（本项目不做 UI 点击测试）
+- 期待"一问就出代码"的体验
+
+## 维护者命令
+
 ```bash
-/plugin marketplace update enterprise-harness
-/plugin update enterprise-harness@enterprise-harness
+npm run release -- --dry-run     # 预览版本 bump
+npm run release                   # 发布（patch）
+npm run release -- --minor        # 发布（minor）
+
+node harness/plugin/runtime/cli.mjs doctor     # 环境体检
+node harness/plugin/runtime/cli.mjs verify     # 契约检查
+node harness/plugin/runtime/cli.mjs status     # 当前状态
 ```
 
-#### 终端等价 CLI
-```bash
-claude plugin marketplace update enterprise-harness
-claude plugin update enterprise-harness@enterprise-harness --scope local
-```
+## 当前状态
 
-> 注意：本地安装（`--scope local`）更新时**必须带 `--scope local`**；默认查 user scope 会报
-> `not installed at scope user`。且旧版本缓存目录里的旧 hook 仍可能被加载并报错。
+- 版本：见 [Releases](https://github.com/Emtemf/enterprise-harness/releases)
+- 平台 smoke：Linux / macOS / Windows 已在 CI 验证
+- Java 黄金样板仍在完善中，非最终企业级标准
 
-#### 一键更新（推荐给插件作者 / 本地迭代）
-```bash
-node harness/plugin/runtime/cli.mjs update-local
-```
-封装「marketplace update → plugin update（自动识别实际 scope）→ 清理旧版本缓存」一条龙，
-避免手动漏 `--scope local` 或旧缓存残留。加 `--dry-run` 只预览不执行。更新后重启会话生效。
+## License
 
-#### 自检 Stop hook 健康（排查 "JSON validation failed"）
-```bash
-node harness/plugin/runtime/cli.mjs doctor-hooks
-```
-不用等会话结束，直接检查「全新会话会加载的所有 Stop hook 是否都输出合法 JSON」：
-实跑 enterprise-harness 自己的 stop hook，并静态标记可能是报错源的第三方插件。
-注意 hook 改动只对**全新会话**生效（完全退出后重新 `claude`，勿用 `--continue`/`--resume`）。
-
-### 4. 安装后怎么进入工作流
-安装插件后，对普通用户来说，后续只需要记住一件事：
-
-- **所有请求都必须先走 `/harness` 进入 SOP**
-
-也就是说：
-
-- 安装方式可以是 plugin marketplace
-- 但使用入口仍然只有 `/harness`
-- 即使是简单的 bug fix 或读代码请求，也必须先走 `/harness` 进入 SOP
-- 后续可以在 router 层优化成快速路径，但前期必须先走 SOP
-
-如果你不是在做仓库维护、低层排障或 runtime 开发，就可以忽略 backend 命令。
-
-### 5. 需要低层控制时再看哪里
-如果你是 maintainer / repo operator，或者要排查安装问题，再去看这些低层资料：
-
-- `docs/zh-cn/installation-guide.md`
-- `harness/specs/plugin-runtime.md`
-- `CLAUDE.md`
-
-对普通用户来说，到这里就够了：**安装插件，然后从 `/harness` 开始。**
-
-### 6. `reference-service` 的当前本地 Java quality gate
-
-当前本地 Java quality gate 命令：`mvn -f reference-service/pom.xml verify`（在仓库根目录执行）
-
-它当前负责：
-- ArchUnit 架构边界检查
-- JaCoCo report / check
-- `reference-service` 作为 reference quality profile 的本地 Maven 质量门禁
-- real backend sample 的 random-port HTTP E2E 证据（当前已在独立 change 中推进）
-- random-port HTTP E2E
-
-注意：repo-level `node harness/plugin/runtime/cli.mjs verify` / `bash harness/plugin/runtime/verify-scripts/full-verify.sh` 仍主要是 repo contract / runtime contract 校验，**不是** `reference-service` 的 Java quality gate。
-`verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
-verify 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
-后续 CI 应复用同一个 Maven verify 命令，而不是重新定义另一套绿灯含义。
-
-完整安装说明见：
-
-- [`docs/zh-cn/installation-guide.md`](docs/zh-cn/installation-guide.md)
-- [`docs/zh-cn/maintainer-runtime-guide.md`](docs/zh-cn/maintainer-runtime-guide.md)
-
----
-
-## 关键目录地图
-
-```text
-.
-├── README.md
-├── CLAUDE.md
-├── .claude/
-│   ├── settings.json
-│   ├── rules/
-│   ├── agents/
-│   └── skills/
-├── hooks/
-├── harness/
-│   ├── bin/
-│   ├── changes/
-│   ├── explorations/
-│   ├── plugin/
-│   ├── reviewers/
-│   ├── specs/
-│   ├── templates/
-│   └── work/
-├── docs/
-│   └── zh-cn/
-└── reference-service/
-```
-
-### 最重要的几个位置
-- `CLAUDE.md`：项目高层操作合同
-- `.claude/rules/`：自动加载规则源
-- `harness/specs/`：长期稳定规范
-- `harness/templates/`：change / design / tasks / validation 模板
-- `harness/changes/`：活动 change 资产
-- `harness/plugin/runtime/`：跨平台运行层
-- `reference-service/`：Java 参考样板，不是插件本身的全部核心
-
----
-
-## 文档地图
-
-### 先看这些
-- [`docs/zh-cn/overview.md`](docs/zh-cn/overview.md)
-- [`docs/zh-cn/installation-guide.md`](docs/zh-cn/installation-guide.md)
-- [`docs/zh-cn/announcement.md`](docs/zh-cn/announcement.md)
-- [`docs/zh-cn/launch-post-kit.md`](docs/zh-cn/launch-post-kit.md)
-- [`docs/zh-cn/github-release-v0.1.0.md`](docs/zh-cn/github-release-v0.1.0.md)
-
-### 核心 contract / spec
-- [`PROGRESS.md`](PROGRESS.md)
-- [`CLAUDE.md`](CLAUDE.md)
-- [`harness/specs/plugin-runtime.md`](harness/specs/plugin-runtime.md)
-- [`harness/specs/session-lifecycle.md`](harness/specs/session-lifecycle.md)
-- [`harness/specs/staged-workflow.md`](harness/specs/staged-workflow.md)
-- [`harness/specs/local-runtime-adapter.md`](harness/specs/local-runtime-adapter.md)
-- [`harness/specs/containerization-sandboxing.md`](harness/specs/containerization-sandboxing.md)
-- [`harness/specs/evidence-submission.md`](harness/specs/evidence-submission.md)
-- [`harness/specs/platform-validation-matrix.md`](harness/specs/platform-validation-matrix.md)
-- [`harness/specs/release-readiness.md`](harness/specs/release-readiness.md)
-- [`harness/specs/mvp-roadmap.md`](harness/specs/mvp-roadmap.md)
-
-### 对外协作
-- [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- `.github/PULL_REQUEST_TEMPLATE.md`
-- `.github/ISSUE_TEMPLATE/`
-- `.github/workflows/platform-smoke.yml`
-- 当前 orchestration/gate 主线的 issue 关系与 open issue 对齐说明见：`harness/changes/clarify-first-staged-orchestrator/evidence/open-issues-matrix.md`
-
----
-
-## 当前路线图（简版）
-
-### Iteration 1：clarify-first orchestrator + 门禁收紧
-- 主线 issue：#20（single human entrypoint / automation-first lifecycle runner）
-- 支撑 issue：#8、#11（design / plan / task / RED / validation gate 收紧）
-- `/harness` 作为单一主入口与阶段编排器
-- clarify / route / design / plan / tdd / verify / archive 主线
-- design gate
-- stale validation gate
-- `RED_VERIFIED` 才允许生产源码写入
-- reviewer verdict 消费逻辑更明确
-- exploration lanes（code-explore / doc-research / impact-explore）
-
-### Iteration 2：Java 黄金样板增强
-- 主线 issue：#9、#12
-- ArchUnit
-- JaCoCo 85%
-- 真实 HTTP API E2E
-- 更强 OpenAPI 契约语义校验
-
-### Iteration 3：runtime / distribution productization
-- 主线 issue：#10、#13、#15
-- machine-local adapter 正式 schema 继续收紧
-- 更完整 installer
-- upgrade / migration 机制完善
-- 本地 source-external release smoke path
-- 更广泛平台 / 真机验证
-
----
-
-## 语言约定
-
-- 仓库文档、流程资产、评审说明默认使用**中文**
-- 代码标识符、包名、公开 API 默认保持**英文**
-
----
-
-## 一句话总结
-
-**Enterprise Harness** 当前已经不是“几篇规则文档 + 一堆脚本”，而是：
-
-> 一套围绕 Claude Code 的企业后端交付骨架：有共享契约、有变更生命周期、有本地运行层、有跨机器接入入口，并且当前正沿 #20 + #8/#11 主线收敛为 clarify-first staged orchestrator。
+Apache-2.0
