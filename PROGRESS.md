@@ -1,20 +1,20 @@
 # Progress
 
-> 快照更新时间：2026-07-21。本文件是人工维护的阶段快照与阅读入口，
+> 快照更新时间：2026-07-22。本文件是人工维护的阶段快照与阅读入口，
 > **不替代动态状态真相**（动态真相以 `harness/ACTIVE_CHANGE` + `harness/changes/*/state.json` 为准）。
 
 ## 当前阶段
 
 - clarify-first staged orchestrator 主线（骨架 + 执行深化）两批工作均已收口到 `VALIDATED`。
-- 当前无"在途"（非 VALIDATED）开发中变更；处于两批 orchestrator 工作完成后的间歇期，等待下一轮选题。
+- **插件分发机制已落地**：可通过 `/plugin marketplace add` + `/plugin install` 安装，GitHub Release 自动发布 tarball。
+- 当前无"在途"（非 VALIDATED）开发中变更。
 
-## 健康快照（2026-07-21 实测）
+## 健康快照（2026-07-22 实测）
 
-- `cli.mjs verify`：contract checks 通过
-- `cli.mjs doctor`：16 项 OK（必需文件齐全、node v22.22.1、codegraph 已建索引 115 文件 / 1882 节点 / 3046 边）
-- runtime smoke（`harness/plugin/runtime/test/*smoke*.mjs`，共 49 个，`verify` 模式）：全绿
-  - 注意：这些是 `red|green|verify` 三态 TDD 脚本，无参直接运行会打印 Usage 并退出（不是失败）
-  - 已知坑：部分 `workflow-*-smoke` 会写真实仓库的 active change 状态，跑完需 `git checkout -- harness/changes/` 复位
+- `cli.mjs verify`：contract checks 通过（含版本一致性检查）
+- `cli.mjs doctor`：16 项 OK
+- runtime smoke（共 54 个，`verify` 模式）：全绿
+- 插件安装端到端验证：`/plugin install` → 版本 0.1.11 正确
 
 ## 最近完成
 

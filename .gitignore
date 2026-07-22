@@ -12,6 +12,7 @@ harness/plugin/runtime/.bootstrap-ran
 
 # Build outputs
 reference-service/target/
+dist/
 
 # Local validation logs
 *.log

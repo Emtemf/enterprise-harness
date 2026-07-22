@@ -2,6 +2,29 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.11]
+
+### Added
+
+- **插件安装流程验证**：`plugin-install-flow-smoke.mjs` 端到端验证 marketplace add → install → update → 版本正确，发布前手动跑。
+- **版本一致性机械检查**：`cli verify` 新增检查 package.json / manifest.json / .claude-plugin/plugin.json 版本一致，不一致精确报错。
+- **`release.mjs` 自动同步三个版本文件**，从源头杜绝版本不同步（此前 0.1.10 发布时 plugin.json 漏更新导致安装旧版）。
+- **`.gitignore` 排除 `dist/`**，防止打包产物误提交。
+
+## [0.1.10]
+
+### Added
+
+- **插件分发机制**：`bin/install.mjs`（智能合并 settings.json）、`bin/package.mjs`（构建 tarball）、`bin/release.mjs`（一键 bump+tag+push）。
+- **GitHub Actions release.yml**：tag 触发自动构建 tarball 并发布到 GitHub Releases。
+- **GUIDE 导航卡机制**：scaffold 自动为每个 change 生成 GUIDE.md（机械字段自动填，软门禁提醒）。
+- **README 重写**：参考 superpowers 叙事风格，体现 `/plugin marketplace add` + `/plugin install` 安装方式。
+- **smoke 污染修复**：workflow-runner-smoke 改用临时 changeId，不再写真实仓库。
+
+### Fixed
+
+- `workflow-*-smoke` 会写真实仓库 active change 状态的副作用。
+
 ## [0.1.9]
 
 ### Added
