@@ -32,8 +32,10 @@ if (help) {
 // 读取当前版本
 const pkgPath = path.join(repoRoot, 'package.json');
 const manifestPath = path.join(repoRoot, 'harness', 'plugin', 'manifest.json');
+const pluginJsonPath = path.join(repoRoot, '.claude-plugin', 'plugin.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
 const currentVersion = pkg.version;
 
 // 计算 bump 后的版本
@@ -57,12 +59,11 @@ console.log(`Tag: ${tagName}`);
 console.log('');
 
 const steps = [
-  `1. 更新 package.json version -> ${newVersion}`,
-  `2. 更新 manifest.json version -> ${newVersion}`,
-  `3. git add + commit: "chore: release ${newVersion}"`,
-  `4. git tag ${tagName}`,
-  `5. git push origin main --tags`,
-  `6. GitHub Actions (release.yml) 自动构建 tarball 并发布到 GitHub Releases`,
+  `1. 更新 package.json / manifest.json / .claude-plugin/plugin.json version -> ${newVersion}`,
+  `2. git add + commit: "chore: release ${newVersion}"`,
+  `3. git tag ${tagName}`,
+  `4. git push origin main --tags`,
+  `5. GitHub Actions (release.yml) 自动构建 tarball 并发布到 GitHub Releases`,
 ];
 
 console.log('Release steps:');
@@ -77,17 +78,16 @@ if (dryRun) {
 // 实际执行
 console.log('Executing release...');
 
-// 1. 更新 package.json
+// 1. 更新 package.json / manifest.json / plugin.json
 pkg.version = newVersion;
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
-console.log(`  ✓ package.json updated`);
-
-// 2. 更新 manifest.json
 manifest.version = newVersion;
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
-console.log(`  ✓ manifest.json updated`);
+pluginJson.version = newVersion;
+fs.writeFileSync(pluginJsonPath, JSON.stringify(pluginJson, null, 2) + '\n', 'utf-8');
+console.log(`  ✓ package.json / manifest.json / plugin.json updated`);
 
-// 3. git add + commit
+// 2. git add + commit
 const commitResult = spawnSync('git', ['add', '-A'], { cwd: repoRoot, encoding: 'utf-8' });
 if (commitResult.status !== 0) {
   console.error('ERROR: git add failed');

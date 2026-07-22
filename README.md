@@ -6,9 +6,55 @@
 
 ## Quickstart
 
-### 安装
+### 前置要求
 
-从 [GitHub Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载最新 tarball，解压后安装到你的项目：
+- **Claude Code** CLI 已安装（`claude` 命令可用）
+- **Node.js >= 20**
+- 推荐安装 `codegraph`（代码探索）和 `ctx7`（文档检索）
+
+### 安装（作为 Claude Code 插件）
+
+**方式 A：在 Claude Code 会话里（推荐）**
+
+```
+/plugin marketplace add https://github.com/Emtemf/enterprise-harness
+/plugin install enterprise-harness@enterprise-harness
+```
+
+**方式 B：在终端里**
+
+```bash
+claude plugin marketplace add https://github.com/Emtemf/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
+```
+
+安装后，skills、agents、hooks 会自动加载到你的 Claude Code 会话。
+
+### 更新
+
+```
+/plugin marketplace update enterprise-harness
+/plugin update enterprise-harness@enterprise-harness
+```
+
+> 终端更新记得带 `--scope local`。或用一键更新（封装了 marketplace update + plugin update + 清理旧缓存）：
+> ```bash
+> node harness/plugin/runtime/cli.mjs update-local
+> ```
+
+### 开始使用
+
+安装后，在任意项目里打开 Claude Code，输入：
+
+```
+/harness
+```
+
+就这样。后续的一切都从这个入口展开。
+
+### Fallback：手动安装（离线 / 企业代理 / TLS 不稳）
+
+如果 plugin marketplace 在你的网络环境下不可用，可从 [GitHub Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载 tarball，用安装脚本复制到目标项目：
 
 ```bash
 tar -xzf enterprise-harness-*.tar.gz -C /tmp/eh
@@ -17,17 +63,7 @@ node bin/install.mjs --target /path/to/your/project --dry-run   # 先预览
 node bin/install.mjs --target /path/to/your/project             # 再执行
 ```
 
-安装脚本会复制 `CLAUDE.md`、`.claude/`（rules/skills/agents/settings）、`harness/` 到你的项目，并**智能合并** settings.json（不覆盖你已有的 hooks）。
-
-### 开始使用
-
-在项目里打开 Claude Code，输入：
-
-```
-/harness
-```
-
-就这样。后续的一切都从这个入口展开。
+安装脚本会**智能合并** settings.json，不覆盖你已有的 hooks。
 
 ## 它是怎么工作的
 
