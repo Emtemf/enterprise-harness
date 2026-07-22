@@ -32,23 +32,34 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 
 ### 更新
 
+**Claude Code 会话里：**
+
 ```
 /plugin marketplace update enterprise-harness
 /plugin update enterprise-harness@enterprise-harness
 ```
 
-> 终端更新记得带 `--scope local`。或用一键更新（封装了 marketplace update + plugin update + 清理旧缓存）：
+**终端等价 CLI：**
+
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+> 本地安装（`--scope local`）更新时必须带 `--scope local`。或用一键更新（封装了 marketplace update + plugin update + 清理旧缓存）：
 > ```bash
 > node harness/plugin/runtime/cli.mjs update-local
 > ```
 
 ### 开始使用
 
-安装后，在任意项目里打开 Claude Code，输入：
+安装后，**用户唯一入口**：`/harness`。在任意项目里打开 Claude Code，输入：
 
 ```
 /harness
 ```
+
+就这样。后续的一切都从这个入口展开。
 
 就这样。后续的一切都从这个入口展开。
 
@@ -118,15 +129,38 @@ clarify → route → design → plan → tdd → verify → archive
 
 ## 维护者命令
 
+发布：
+
 ```bash
 npm run release -- --dry-run     # 预览版本 bump
 npm run release                   # 发布（patch）
 npm run release -- --minor        # 发布（minor）
+```
 
+发布前建议验证插件安装流程（端到端，依赖网络）：
+
+```bash
+# 推送 tag 后，验证用户能从 marketplace 安装到正确版本
+EXPECTED_PLUGIN_VERSION=0.1.10 node harness/plugin/runtime/test/plugin-install-flow-smoke.mjs
+```
+
+排障 / 低层控制（需要低层控制时使用 `node bin/enterprise-harness.mjs <command>`）：
+
+```bash
 node harness/plugin/runtime/cli.mjs doctor     # 环境体检
 node harness/plugin/runtime/cli.mjs verify     # 契约检查
 node harness/plugin/runtime/cli.mjs status     # 当前状态
 ```
+
+> verify 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
+
+## 深入阅读
+
+- `PROGRESS.md` — 当前进度快照
+- `harness/specs/staged-workflow.md` — 分阶段工作流规范
+- `harness/specs/session-lifecycle.md` — 会话生命周期规范
+- `CLAUDE.md` — 项目约束与编码基线
+- `AGENTS.md` — 面向人类与各类 agent 的协作合同
 
 ## 当前状态
 

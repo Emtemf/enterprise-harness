@@ -4,7 +4,38 @@ import { projectRoot, validateStructure, validateArtifactStates, validateReviewV
 
 const root = projectRoot();
 
+// 版本一致性检查：package.json / manifest.json / .claude-plugin/plugin.json 必须一致
+function validateVersionConsistency(repoRoot) {
+  const errors = [];
+  const files = [
+    ['package.json', 'version'],
+    ['harness/plugin/manifest.json', 'version'],
+    ['.claude-plugin/plugin.json', 'version'],
+  ];
+  const versions = {};
+  for (const [rel, key] of files) {
+    const fullPath = path.join(repoRoot, rel);
+    if (!fs.existsSync(fullPath)) {
+      errors.push(`version-consistency: missing ${rel}`);
+      continue;
+    }
+    try {
+      const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+      versions[rel] = data[key];
+    } catch {
+      errors.push(`version-consistency: ${rel} invalid JSON`);
+    }
+  }
+  const unique = new Set(Object.values(versions));
+  if (unique.size > 1) {
+    const detail = Object.entries(versions).map(([f, v]) => `${f}=${v}`).join(', ');
+    errors.push(`version-consistency: version mismatch (${detail})`);
+  }
+  return errors;
+}
+
 const problems = [
+  ...validateVersionConsistency(root),
   ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
   ...validateOpenApiLight(root),
   ...validateControllerConsistency(root),
