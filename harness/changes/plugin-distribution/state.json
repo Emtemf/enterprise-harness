@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "changeId": "plugin-distribution",
+  "tier": "L3",
+  "state": "VALIDATED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "not-needed",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "发布目标: GitHub Release（用户通过 git clone 或下载 tarball 安装）。",
+    "安装方式: 嵌入项目目录（用户把包放在项目的 enterprise-harness/ 目录下，Claude Code 自动检测）。",
+    "打包内容: 完整 harness 资产（runtime、hooks、rules、skills、templates、specs、agents、参考实现）。",
+    "发布流程: 一键 release 脚本（npm run release，自动 bump version、tag、push、构建 tarball、发布到 GitHub Releases）。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "design",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-design"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "c4822bac2e0534d6c0d324a2ef9d6349901a18c454fe41f545ffe93bc851ee36",
+    "validatedAt": "2026-07-22"
+  }
+}

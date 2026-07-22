@@ -1,0 +1,20 @@
+{
+  "changeId": "plugin-distribution",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：三个新 smoke（install/package/release）RED→GREEN→verify 齐全。",
+    "pass：52 个 smoke 全绿，零退化。",
+    "pass：release --dry-run 输出正确，显示版本 bump 与步骤。",
+    "pass：package.mjs 构建的 tarball 不含 .git/node_modules。"
+  ],
+  "evidence": [
+    "install-contract-smoke.mjs verify passed",
+    "package-contract-smoke.mjs verify passed",
+    "release-workflow-smoke.mjs verify passed",
+    "SMOKE: PASS=52 FAIL=0",
+    "release --dry-run 输出正确"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

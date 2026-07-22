@@ -1,0 +1,21 @@
+{
+  "changeId": "plugin-distribution",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "pass：install/package/release 三脚本设计清晰，职责分离。",
+    "pass：智能合并 settings.json 方案可行，保留用户已有 hooks。",
+    "pass：package.mjs 排除 .git/node_modules/.codegraph 等正确。",
+    "pass：GitHub Actions release.yml tag 触发合理。",
+    "advisory：design-reviewer 子代理因 harness hook 干扰无法获得 verdict，本 verdict 为 inline 预审。"
+  ],
+  "evidence": [
+    "bin/install.mjs — 完整实现",
+    "bin/package.mjs — tar 打包 + 排除规则",
+    "bin/release.mjs — bump + tag + push",
+    ".github/workflows/release.yml — tag 触发",
+    "52 smoke 全绿 + release --dry-run 正确"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

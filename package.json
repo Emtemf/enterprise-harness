@@ -23,7 +23,10 @@
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",
     "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check",
     "workflow": "node harness/plugin/runtime/cli.mjs workflow",
-    "prepublish-check": "node harness/plugin/runtime/prepublish.mjs"
+    "prepublish-check": "node harness/plugin/runtime/prepublish.mjs",
+    "pack": "node bin/package.mjs",
+    "release": "node bin/release.mjs",
+    "install-to": "node bin/install.mjs"
   },
   "engines": {
     "node": ">=20"

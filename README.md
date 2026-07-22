@@ -17,6 +17,57 @@
 
 ---
 
+## 安装
+
+### 方式一：从 GitHub Release 安装（推荐）
+
+1. 从 [GitHub Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载最新版本的 tarball
+2. 解压到任意目录：
+   ```bash
+   tar -xzf enterprise-harness-*.tar.gz -C /tmp/eh-install
+   ```
+3. 进入解压目录，运行安装脚本，指定你的项目路径：
+   ```bash
+   cd /tmp/eh-install
+   node bin/install.mjs --target /path/to/your/project
+   ```
+4. 安装脚本会：
+   - 复制 `CLAUDE.md`、`AGENTS.md`、`PROGRESS.md` 到你的项目根目录
+   - 复制 `.claude/rules/`、`.claude/skills/`、`.claude/agents/`
+   - **智能合并** `.claude/settings.json`（保留你已有的 hooks 配置）
+   - 复制 `harness/` 目录
+5. 在你的项目里打开 Claude Code，输入 `/harness` 开始
+
+> 先用 `--dry-run` 预览将要复制的文件：
+> ```bash
+> node bin/install.mjs --target /path/to/your/project --dry-run
+> ```
+
+### 方式二：从源码安装
+
+```bash
+git clone https://github.com/Emtemf/enterprise-harness.git
+cd enterprise-harness
+node bin/install.mjs --target /path/to/your/project
+```
+
+### 发布新版本（维护者）
+
+```bash
+# patch: 0.1.9 -> 0.1.10
+npm run release
+
+# minor: 0.1.9 -> 0.2.0
+npm run release -- --minor
+
+# 预览（不实际执行）
+npm run release -- --dry-run
+```
+
+推送 tag 后，GitHub Actions 会自动构建 tarball 并发布到 GitHub Releases。
+
+---
+
 ## 为什么会有这个项目
 
 很多 AI coding workflow 停留在：
