@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "plugin-distribution",
   "tier": "L3",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",
