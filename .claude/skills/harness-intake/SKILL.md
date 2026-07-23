@@ -38,6 +38,16 @@ description: >
 5. 根据证据形成 final route（L0/L1/L2/L3）
 6. 明确下一个 artifact / gate，而不是直接进入实现
 
+### 实现前 orchestration guardrail（硬约束）
+
+在任何代码实现、任务推进或生产文件修改之前，必须至少满足：
+
+- 已明确当前 change / 执行范围
+- 已完成 `clarify` 或至少已达到 clarify-ready 并获得用户确认
+- 已完成 `route`（L1+ 变化不得跳过）
+
+若上述条件不满足，不得开始实现，也不得把“我已经足够理解需求”替代为正式的阶段推进。
+
 ## 默认顺序
 
 1. 判断是新增、修改还是 mixed

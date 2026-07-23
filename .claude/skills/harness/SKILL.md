@@ -55,6 +55,18 @@ description: >
 
 ## 你被调用后应该怎么做
 
+### 实现前 orchestration guardrail（硬约束）
+
+在任何代码实现、设计落地、任务推进、文件创建或生产修改之前，必须先满足以下条件：
+
+- 已进入 `/harness` 或显式 staged workflow 入口
+- 已完成 `clarify` 或至少已建立 active change 并明确执行范围
+- 已完成 `route`（L1+ 变化不得跳过）
+- 已满足当前阶段 gate，不得直接从聊天意图跳到实现
+
+如果上述任一条件不满足，不得开始写业务代码、设计落地代码、任务推进代码或任何实现动作。  
+这条是 orchestration 级门禁，不是建议。
+
 ### 模式 A：用户带来一个新需求 / 修改需求
 按 clarify-first staged workflow 推进：
 

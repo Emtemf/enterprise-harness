@@ -20,6 +20,7 @@
 
 - `cli.mjs verify`：contract checks 通过（含版本一致性检查）
 - `subagent-contract-smoke.mjs`：green / red / verify 全通过
+- `orchestration-guardrail-smoke.mjs`：green / red / verify 全通过
 - 关键 orchestrator 合约 smoke：`lane-worker-contract-smoke`、`harness-stage-router-smoke`、`mandatory-gate-contract-smoke`、`clarify-stage-contract-smoke` 全通过
 - 插件安装端到端验证：`/plugin install` → 版本 0.1.11 / 0.1.14 / 0.1.15 交付链路可见
 
@@ -38,6 +39,10 @@
   `/harness`、`/harness-intake`、`code-explore`、`impact-explore` 与验收文档里显式新增
   subagent 标题必须对准用户项目、结论必须被消费、禁止重复探索的契约；新增
   `subagent-contract-smoke.mjs` 做机械回归保护。
+- **`phase-skip-orchestration-hardening`（2026-07-23，L1，`VALIDATED`，已发布为 `v0.1.15` 补丁）**：
+  把“未完成 clarify/route 前不得实现”从散点禁止项提升为显式 orchestration guardrail，
+  落到 `/harness`、`/harness-intake`、`CLAUDE.md`、`staged-workflow.md`、验收文档与新增
+  `orchestration-guardrail-smoke.mjs`；同时补齐 `manifest.json` / `plugin.json` 版本一致性。
 - **`workflow-runner-fixture-isolation`（2026-07-23，L1，`VALIDATED`，已归档到 `harness/archive/`）**：
   修复 `workflow-runner-smoke.mjs` 直接在真实仓库根目录上执行 `workflow.mjs run/resume/status`、
   并把 `harness/ACTIVE_CHANGE` 覆写成 `test-runner-smoke` 的问题。改为复制整仓到临时副本，在副本内运行全部

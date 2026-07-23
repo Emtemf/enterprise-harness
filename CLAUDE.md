@@ -65,6 +65,17 @@
 6. 统一在 `verify` 阶段消费 reviewer verdict 与验证证据
 7. 必要时归档到 `harness/changes/`、`harness/specs/`、`harness/archive/`
 
+### 实现前 orchestration guardrail（硬约束）
+
+对 L1 及以上变化，在进入实现前必须先满足：
+
+- 已通过 `/harness` 或等效 staged workflow 入口建立当前 change
+- 已完成 `clarify`（或至少 clarify-ready 并获得用户确认）
+- 已完成 `route`
+
+在上述条件满足前，不得开始写业务代码、设计落地代码、任务推进代码或任何实现动作。  
+这是 orchestration 级门禁，不是建议。
+
 ## 编码与架构基线
 
 - Java 分层：`interfaces` / `application` / `domain` / `infrastructure`
