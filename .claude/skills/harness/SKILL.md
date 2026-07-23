@@ -60,6 +60,7 @@ description: >
 
 1. 先进入 `clarify`
 2. 先做 minimum discovery（codegraph-first / Context7-first）
+   - **调用 Agent 工具做代码探索时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**——不要只说"Explore this project"而不指定工具，否则弱模型会直接用 grep
 3. 一次只问一个高价值问题，默认优先用选项式问题（A/B/C + 其他）逐步降低 ambiguity
 4. 在用户确认后进入 `route`
 5. 形成 final route（L0/L1/L2/L3）

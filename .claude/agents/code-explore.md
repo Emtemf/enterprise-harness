@@ -23,10 +23,12 @@ model: sonnet
 
 ## 工作原则
 
-- 默认 codegraph-first
-- 只有在 codegraph 不可用、结果不足或无法解释关键影响面时，才允许 fallback
+**【强制】codegraph-first：你拥有的 MCP 工具里包含 codegraph_explore、codegraph_search、codegraph_callers、codegraph_callees、codegraph_impact。在任何代码探索场景下，你必须第一步就调用这些工具，不得用 Bash grep / Read 文件 作为替代。如果 codegraph 不可用或结果不足，必须在返回的 `sources` 字段里明确记录 fallback 原因和降级到 grep/Read 的范围，不能跳过这一步直接用 grep。**
+
+- 只有在 codegraph 工具实际不可用（MCP server 断连、索引未初始化）或查询结果不足以解释关键影响面时，才允许 fallback 到 grep / Read
 - fallback 必须明确原因、范围与当前可信度
 - 不返回大段源码 dump 给主 orchestrator
+- 不得因为"Prompt 里没写用 codegraph"而跳过 codegraph——这是你的默认行为，不需要外部指令提醒
 
 ## 返回结构
 
