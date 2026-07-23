@@ -4,60 +4,120 @@
 
 > 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
 
-## 核心价值：机械门禁
+## G4C：这个项目是怎么工作的
 
-这是本项目与其他 AI 工作流框架**最本质的区别**——它不是靠"提示词建议 AI 自觉"，而是有**真实程序拦截违规操作**：
+G4C 是本项目的核心方法论——五个维度，缺一不可：
 
-| 拦截点 | 触发条件 | 结果 |
-|--------|---------|------|
-| **写代码前**（pre-write） | 写 `src/main/java`、`src/test/java`、`openapi/` 等受治理路径，但 `designApproved=false` 或 RED 证据不足 | **直接报错 BLOCK，写不进去** |
-| **写代码后**（post-write） | 缺少 `change.md`/`validation.md`/`evidence/tooling.md` | **报错，阻止继续** |
-| **会话结束前**（stop） | 验证数据是 stale（过期） | **拦住，不让你假装完成** |
-
-这 4 个 hook 是**跑在你机器上的 Node.js 程序**（`pre-write.mjs`/`post-write.mjs`/`stop.mjs`/`session-start.mjs`），通过 `.claude/settings.json` 注册到 Claude Code 的 PreToolUse/PostToolUse/Stop 生命周期。不管模型多弱，程序拦截都会生效。
-
-已验证支持：任意项目路径（`foo-service/src/main/java`、`order-service/src/test/java` 等），不再限于本仓库自带的 `reference-service` demo。
-
-## 它还提供什么
-
-**工作流 prompt（模型自觉层）**
-
-`/harness` 命令引导 Claude 按澄清→设计→计划→TDD→验证的流程推进。这是 SKILL.md 里的文字指令，Claude 会尝试遵守，但本质是"建议"。强模型（Opus/Sonnet）通常遵守，弱模型可能跳过。
-
-**状态管理（打断后可恢复）**
-
-每个 change 都有 `state.json` + `validation.md` + reviewer verdict。即使 Claude 会话中断，下次恢复时能看到之前做到哪一步。
+| 维度 | 含义 | 在本项目中 |
+|------|------|-----------|
+| **Goal** | 要达成什么？什么叫成功？ | 每个 change 都有明确的目标和成功标准 |
+| **Context** | 知道什么？还缺什么？ | 探索代码/文档后才问用户，不凭空猜 |
+| **Choice** | 为什么这么走？还有哪些路径？ | 路由决策（L0-L3）有理由，可回溯 |
+| **Checkpoint** | 怎么知道当前步骤对不对？ | G4C 进度卡：✓/▸/○ 阶梯可视化 |
+| **Correction** | 发现偏差后怎么办？ | BLOCK 消息 + 恢复入口，不是死胡同 |
 
 ## 一个需求进来，会发生什么
 
 ```mermaid
-graph LR
-    U[你: /harness 我要XX] --> C[Clarify<br/>Claude 问你问题]
-    C --> D[Design<br/>Claude 写设计文档]
-    D --> P[Plan<br/>Claude 拆任务]
-    P --> R[RED<br/>写失败测试]
-    R --> W[写代码]
-    W --> G[GREEN<br/>测试通过]
-    G --> F[Fix & Verify<br/>验收]
-    F --> A[Archive<br/>归档]
+graph TD
+    U["/harness 你的需求"] --> S["Session Start<br/>输出 G4C 卡"]
+    S --> E["代码探索<br/>委托 subagent"]
+    E --> C["澄清<br/>一次问一个问题"]
+    C --> R["路由<br/>L0/L1/L2/L3"]
+    R --> D["设计<br/>design.md"]
+    D --> T["计划<br/>tasks.md"]
+    T --> RED["RED<br/>写失败测试"]
+    RED --> GREEN["GREEN<br/>写最小实现"]
+    GREEN --> V["验证<br/>cli verify"]
+    V --> A["归档<br/>lifecycle archive"]
 
-    style R fill:#ff6b6b,color:#fff
-    style G fill:#51cf66,color:#fff
-    style W stroke:#ff6b6b,stroke-width:3px
+    style S fill:#4ecdc4,color:#fff
+    style E fill:#4ecdc4,color:#fff
+    style C fill:#45b7d1,color:#fff
+    style R fill:#45b7d1,color:#fff
+    style D fill:#96ceb4,color:#fff
+    style T fill:#96ceb4,color:#fff
+    style RED fill:#ff6b6b,color:#fff
+    style GREEN fill:#51cf66,color:#fff
+    style V fill:#feca57,color:#333
+    style A fill:#a29bfe,color:#fff
 ```
 
-**哪些是真正强制的（程序拦截）：**
-- 写 `src/main/java` 前：没有 `designApproved` → 被拦
-- 写完代码后：缺少变更文档 → 报错
-- 会话结束前：验证数据过期 → 被拦
+### 每一步的 G4C 验收
 
-**哪些是"建议遵守"的（模型自觉）：**
-- 先探索代码再动手
-- 一次只问一个问题
-- 先设计再编码
+| 步骤 | Goal | Checkpoint（你应该看到） | 门禁级别 |
+|------|------|-------------------------|---------|
+| **Session Start** | 知道当前状态 | `[Harness 进度卡]` 含 ✓/▸/○ 阶梯 | 程序强制 |
+| **代码探索** | 了解项目结构 | 通过 `code-explore` subagent 探索 | prompt 约束 |
+| **澄清** | 把需求变明确 | Claude 一次问你一个问题 | prompt 约束 |
+| **路由** | 确定复杂度 tier | `state.json` 中 tier 有值 | prompt 约束 |
+| **设计** | 形成完整设计 | `design.md` ≥ 50 行 + reviewer pass | 程序强制 |
+| **计划** | 拆成可执行任务 | `tasks.md` 存在 + plan critic pass | 程序强制 |
+| **RED** | 证明问题存在 | 测试先失败（RED 证据） | prompt 约束 |
+| **GREEN** | 最小实现通过 | 测试通过（GREEN 证据） | prompt 约束 |
+| **验证** | 确认无回归 | `cli.mjs verify` OK + validation fresh | 程序强制 |
+| **归档** | 结束 change | change 移入 `harness/archive/` | 程序强制 |
 
-> 完整的 15 步时序图、每步涉及的文件、产出、checklist，见
-> [docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md)（面向开发者/维护者）
+**程序强制** = Node.js hook 拦截，不管模型多弱都生效  
+**prompt 约束** = SKILL.md 文字指令，强模型遵守，弱模型可能跳过
+
+### G4C 进度卡
+
+任何时候你都可以看到这张卡（session-start / `cli status` / BLOCK 时自动输出）：
+
+```
+┌─ hard-delete-template (L2) ─
+│ Goal    ▸ 模板支持硬删除，级联清理关联数据
+│ Success ▸ 删除后关联数据清空
+│ Choice  ▸ 涉及 API + 数据变化，故 L2
+│ Ladder
+  ✓ clarify
+  ✓ route
+  ✓ design
+  ▸ plan
+  ○ tdd
+  ○ verify
+  ○ archive
+│ Correction ▸ tasks.md 不存在，需先完成任务拆分
+│ Next     ▸ /harness-plan
+└─
+```
+
+## 核心价值：机械门禁
+
+这是本项目与其他 AI 工作流框架**最本质的区别**——它不是靠"提示词建议 AI 自觉"，而是有**真实程序拦截违规操作**：
+
+### pre-write hook（写代码前）
+
+11 道拦截，按顺序检查：
+
+| # | 检查 | 触发条件 |
+|---|------|---------|
+| 1 | 路径保护 | 写 `rules/` / `agents/` 历史目录 |
+| 2 | 路径保护 | 写 `harness/archive/` 冻结目录 |
+| 3 | ACTIVE_CHANGE | 未设置 active change |
+| 4 | state=DRAFT | change 还没推进 |
+| 5 | state=ARCHIVED/REJECTED | change 已结束 |
+| 6 | **clarify 产物** | `requirements.md` 缺失 或 `userConfirmedScope=false` |
+| 7 | **route 产物** | `tier` 未设置 |
+| 8 | **design 产物** | `design.md` 不存在 |
+| 9 | **plan 产物** | `tasks.md` 不存在 |
+| 10 | designApproved | 设计未批准 |
+| 11 | RED 证据 | 测试未先失败 |
+
+**模型跳过任何阶段都会被程序级 BLOCK**，不依赖模型自觉。
+
+### post-write hook（写代码后）
+
+- artifact 完整性检查（`change.md` / `validation.md` / `evidence/tooling.md`）
+- OpenAPI 结构检查（任意 `openapi/*.yaml`）
+- **通用 OpenAPI ↔ Controller 一致性检查**（path + method 对齐）
+
+### stop hook（会话结束前）
+
+- validation stale → BLOCK
+- reviewer verdict 未满足 → BLOCK
+- 输出 G4C 卡（v0.1.19+）
 
 ## 安装
 
@@ -91,37 +151,21 @@ node bin/install.mjs --target /path/to/your/project
 
 在任意项目里输入 `/harness`，Claude 会先澄清需求，再走流程。改代码时门禁自动生效。
 
-### 每一步应该看到什么
-
-| 步骤 | 应该看到 | 如果没看到 |
-|------|---------|-----------|
-| 启动 | 会话开头有 `[Harness 启动检查] ...` 输出 | 插件没安装，重新 `plugin install` |
-| 代码探索 | Claude 调用 `codegraph_explore` / `codegraph_search` | 弱模型跳过了，提 issue |
-| 需求澄清 | Claude 一次只问一个问题，用选项式回答 | 弱模型跳过了，提 issue |
-| 写代码前 | 如果 `designApproved=false`，被 BLOCK | hook 没触发，提 issue |
-| 会话结束 | 如果 validation 不是 fresh，被 stop hook 拦截 | 正常行为 |
-
-完整检查清单见 [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md)。  
-G4C 五维验收指南见 [docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g4c-user-acceptance-guide.md)。
-
-**提 issue 时请提供**：① 用的模型 ② 哪一步不符合预期 ③ 实际输出 ④ 期望输出 ⑤ `node harness/plugin/runtime/cli.mjs status` 的结果。
-
 ## 诚实边界
 
-### 什么是真正强制的
+### 什么是真正强制的（程序拦截）
 
-- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的写入前检查
+- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 11 道写入前检查
 - 变更资产完整性检查
+- OpenAPI ↔ Controller 一致性检查
 - 验证新鲜度检查
 
-### 什么是"建议遵守"的
+### 什么是"建议遵守"的（prompt 约束）
 
+- 代码探索必须委托 subagent（不得自己 grep/Read）
 - 一次只问一个问题
 - 先澄清再动手
-- reviewer block 时不进入下一阶段
 - TDD 严格 RED→GREEN→REFACTOR
-
-这些是 SKILL.md 和 `.claude/rules/` 里的文字指令。Claude 强模型通常会遵守，弱模型可能跳过。
 
 ### 什么还没实现
 
@@ -156,13 +200,14 @@ G4C 五维验收指南见 [docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g
 
 ```bash
 node harness/plugin/runtime/cli.mjs doctor     # 环境体检
-node harness/plugin/runtime/cli.mjs verify     # 契约检查
-node harness/plugin/runtime/cli.mjs status     # 当前状态
+node harness/plugin/runtime/cli.mjs verify     # 契约检查（含 G4C 卡）
+node harness/plugin/runtime/cli.mjs status     # 当前状态（含 G4C 卡）
 ```
 
 ## 深入阅读
 
-- **[docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md)** — **每个步骤的真相文档**（时序图 + 涉及文件 + 产出 + checklist + 提 issue 条件）
+- **[docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g4c-user-acceptance-guide.md)** — **G4C 五维验收指南**（每步的预期/实际/证据）
+- [docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md) — 每个步骤的真相文档（时序图 + 涉及文件 + 产出 + checklist）
 - [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md) — 快速定位指南
 - `PROGRESS.md` — 当前进度
 - `CLAUDE.md` — 项目约束

@@ -64,7 +64,7 @@ Enterprise Harness 的思路是把这些问题拆成两层：
 
 ## 一个请求过来，这套 Harness 会发生什么
 
-下面的时序图描述的是**当前仓库已经实现的主流程**。其中部分 gate 只对受治理路径生效，特别是 `reference-service/`。
+下面的时序图描述的是**当前仓库已经实现的主流程**。其中部分 gate 只对受治理路径（`src/main/java` / `src/test/java` / `openapi/`）生效，且已泛化到任意目标项目。
 
 ```mermaid
 sequenceDiagram
