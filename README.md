@@ -128,6 +128,8 @@ node harness/plugin/runtime/cli.mjs status     # 当前状态
 
 ## 深入阅读
 
+- **[docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md)** — **每个步骤的真相文档**（时序图 + 涉及文件 + 产出 + checklist + 提 issue 条件）
+- [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md) — 快速定位指南
 - `PROGRESS.md` — 当前进度
 - `CLAUDE.md` — 项目约束
 - `AGENTS.md` — 仓库协作合同
