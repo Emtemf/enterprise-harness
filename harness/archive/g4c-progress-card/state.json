@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "changeId": "g4c-progress-card",
   "tier": "L2",
-  "state": "DESIGN_APPROVED",
+  "state": "ARCHIVED",
   "owner": "wula",
   "impact": {
     "api": "no",
@@ -16,7 +16,9 @@
       "queries": [
         "renderG4CCard",
         "status-summary",
-        "session-start"
+        "session-start",
+        "pre-write",
+        "state-migration"
       ],
       "fallbackReason": null
     },
@@ -60,12 +62,12 @@
   ],
   "routingReason": "涉及 runtime hooks + state schema + 新渲染函数，L2",
   "workflow": {
-    "stage": "plan",
+    "stage": "archive",
     "clarifyReady": true,
     "userConfirmedScope": true,
-    "planReady": false,
+    "planReady": true,
     "tddStatus": "not-started",
-    "nextEntry": "/harness-plan"
+    "nextEntry": "/harness"
   },
   "validation": {
     "status": "stale",
