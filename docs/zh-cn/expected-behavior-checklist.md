@@ -34,9 +34,15 @@ Claude 在写代码之前，应该**先探索你的项目结构**。
 
 **如果没看到**：
 - Claude 直接开始写代码，没有任何代码探索过程 → **不符合预期**，请提 issue
-- 这是 prompt 级约束（`codegraph-first`），弱模型可能跳过，但不应该跳过
+- 这是 prompt 约束（`codegraph-first`），弱模型可能跳过，但不应该跳过
 
-**验证方法**：在 Claude 的思考输出里搜索 `codegraph` 关键词。如果完全没有，说明没用 codegraph。
+**还应该看到**：
+- subagent 的任务标题应该指向**当前用户项目**或具体探索主题，而不是写成 `Explore enterprise-harness codebase`
+- subagent 完成后，主 agent 应基于 subagent 结论继续，而不是忽略它并重新探索相同问题
+
+**验证方法**：
+- 在 Claude 的思考输出里搜索 `codegraph` 关键词。如果完全没有，说明没用 codegraph。
+- 检查 Agent 标题是否包含 `enterprise-harness`、`this repo`、`this codebase`，而不是用户项目或具体探索主题。
 
 ---
 
@@ -141,6 +147,8 @@ Claude 应该在写代码之前先写出 design.md。
 | 没有 `[Harness 启动检查]` 输出 | 插件没正确安装 | ❌ 重新安装 |
 | change 目录没被创建 | harness 没正常工作 | ❌ 提 issue |
 | design.md 内容很短 | 模型跳过了部分步骤 | ⚠️ 提 issue |
+| subagent 标题写成 `enterprise-harness` | 主 orchestrator prompt 编排 bug | ❌ 提 issue |
+| 主 agent 忽略 subagent 结果又自己探索 | subagent 通信/消费契约 bug | ❌ 提 issue |
 | 会话结束后验证报错 | validation 不是 fresh | ✅ 正常行为 |
 
 ## 提 issue 时请提供

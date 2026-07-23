@@ -16,13 +16,12 @@
   直接在真实仓库根目录上执行 `workflow.mjs run/resume/status` 并污染真实 `harness/ACTIVE_CHANGE` 的问题
   （详见「最近完成」）。之前记录的技术债"workflow-*-smoke 会写真实仓库 active change 状态"已关闭。
 
-## 健康快照（2026-07-22 实测）
+## 健康快照（2026-07-23 实测）
 
 - `cli.mjs verify`：contract checks 通过（含版本一致性检查）
-- `cli.mjs doctor`：16 项 OK
-- runtime smoke（`verify` 模式）：全绿，含 `gate-tightening-skeleton` 新增的 4 个 smoke 与
-  `smoke-fixture-decoupling` 新增的 1 个 guard smoke
-- 插件安装端到端验证：`/plugin install` → 版本 0.1.11 正确
+- `subagent-contract-smoke.mjs`：green / red / verify 全通过
+- 关键 orchestrator 合约 smoke：`lane-worker-contract-smoke`、`harness-stage-router-smoke`、`mandatory-gate-contract-smoke`、`clarify-stage-contract-smoke` 全通过
+- 插件安装端到端验证：`/plugin install` → 版本 0.1.11 / 0.1.14 / 0.1.15 交付链路可见
 
 ## 最近完成
 
@@ -33,6 +32,12 @@
   重置为 `false`。新增 6 组 backward-compat 回归测试，确认旧格式 state.json 在新代码下自动迁移、
   `validateArtifactStates` 无错误、磁盘已更新。同时修复了 issue #38 反映的 `pre-write.mjs` 错误信息
   硬编码 "reference-service" 问题。
+- **`subagent-orchestration-contract`（2026-07-23，L1，`VALIDATED`，已发布为 `v0.1.15`）**：
+  修复弱模型场景下 subagent 探索标题被写成 `Explore enterprise-harness codebase`、主 orchestrator
+  忽略 subagent 结论并重复探索的问题（issue #41 / #42 / #43 / #44 / #45 / #46）。在
+  `/harness`、`/harness-intake`、`code-explore`、`impact-explore` 与验收文档里显式新增
+  subagent 标题必须对准用户项目、结论必须被消费、禁止重复探索的契约；新增
+  `subagent-contract-smoke.mjs` 做机械回归保护。
 - **`workflow-runner-fixture-isolation`（2026-07-23，L1，`VALIDATED`，已归档到 `harness/archive/`）**：
   修复 `workflow-runner-smoke.mjs` 直接在真实仓库根目录上执行 `workflow.mjs run/resume/status`、
   并把 `harness/ACTIVE_CHANGE` 覆写成 `test-runner-smoke` 的问题。改为复制整仓到临时副本，在副本内运行全部

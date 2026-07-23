@@ -2,6 +2,27 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.15]
+
+### Fixed
+
+- **subagent 编排契约收紧**：修复弱模型场景下 `code-explore` / `impact-explore` 被主 orchestrator 误用为模糊探索任务、标题被写成 `Explore enterprise-harness codebase`、以及 subagent 返回结论后主 agent 无视结论并重复探索的问题（issue #41 / #42 / #43 / #44 / #45 / #46）。
+
+### Added
+
+- `/harness` 与 `/harness-intake` 明确要求 subagent 标题必须对准当前用户项目与具体探索主题，禁止硬编码 harness 仓库名。
+- 明确必须等待 subagent 结论并消费结论，禁止忽略结论后重新发起相同探索。
+- `code-explore` / `impact-explore` agent 文档补上“禁止笼统写成 `enterprise-harness` / `this repo` / `this codebase`”。
+- `docs/zh-cn/expected-behavior-checklist.md` / `docs/zh-cn/full-lifecycle-truth.md` 新增 subagent 标题、结论消费与重复探索检查项。
+- 新增 `subagent-contract-smoke.mjs`，机械校验上述编排契约已落地。
+
+## [0.1.14]
+
+### Added
+
+- **session-start hook 新增项目技术栈与 codegraph 提醒**：若目标项目存在 `harness/project-info.json`，启动时输出 `language` / `buildTool` / `testCommand` / `buildCommand` 等信息；同时始终输出 `codegraph-first` 工具提醒，强化 clarify 阶段默认行为。
+- 新增 `harness/templates/project-info.json` 模板，用于声明目标项目的技术栈信息（默认为占位值，不硬编码 Java/Spring）。
+
 ## [0.1.11]
 
 ### Added

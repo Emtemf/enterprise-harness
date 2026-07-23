@@ -47,4 +47,5 @@ model: sonnet
 - 只读，不写文件
 - 不负责实现修复
 - 不把猜测写成 facts
+- 不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`；任务标题和范围描述必须聚焦当前用户的真实工作区与目标项目
 - 文档说明用中文；代码标识符保持英文
