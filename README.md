@@ -4,26 +4,29 @@
 
 > 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
 
-## 它是什么
+## 核心价值：机械门禁
 
-装上这个插件后，你得到三层东西：
+这是本项目与其他 AI 工作流框架**最本质的区别**——它不是靠"提示词建议 AI 自觉"，而是有**真实程序拦截违规操作**：
 
-**1. 一套工作流 prompt（模型自觉层）**
+| 拦截点 | 触发条件 | 结果 |
+|--------|---------|------|
+| **写代码前**（pre-write） | 写 `src/main/java`、`src/test/java`、`openapi/` 等受治理路径，但 `designApproved=false` 或 RED 证据不足 | **直接报错 BLOCK，写不进去** |
+| **写代码后**（post-write） | 缺少 `change.md`/`validation.md`/`evidence/tooling.md` | **报错，阻止继续** |
+| **会话结束前**（stop） | 验证数据是 stale（过期） | **拦住，不让你假装完成** |
 
-`/harness` 命令会引导 Claude 按澄清→设计→计划→TDD→验证的流程推进需求。这些是 SKILL.md 里的文字指令，Claude 会尝试遵守，但本质上是"建议"而非"强制"。
+这 4 个 hook 是**跑在你机器上的 Node.js 程序**（`pre-write.mjs`/`post-write.mjs`/`stop.mjs`/`session-start.mjs`），通过 `.claude/settings.json` 注册到 Claude Code 的 PreToolUse/PostToolUse/Stop 生命周期。不管模型多弱，程序拦截都会生效。
 
-**2. 几个真正有效的机械门禁（程序拦截层）**
+已验证支持：任意项目路径（`foo-service/src/main/java`、`order-service/src/test/java` 等），不再限于本仓库自带的 `reference-service` demo。
 
-当 Claude 尝试写入受治理路径（`src/main/java`、`src/test/java`、`openapi/`）时：
-- `pre-write.mjs` 会检查 `state.json`，缺少 `designApproved` 或 RED 证据时直接报错
-- `post-write.mjs` 会检查变更资产完整性
-- `stop.mjs` 会阻止带着过期验证数据"假装完成"
+## 它还提供什么
 
-这些是**跑在你机器上的 Node.js 程序**，不依赖模型自觉。
+**工作流 prompt（模型自觉层）**
 
-**3. 状态管理（打断后可恢复）**
+`/harness` 命令引导 Claude 按澄清→设计→计划→TDD→验证的流程推进。这是 SKILL.md 里的文字指令，Claude 会尝试遵守，但本质是"建议"。强模型（Opus/Sonnet）通常遵守，弱模型可能跳过。
 
-每个 change 都有 `state.json` + `validation.md` + reviewer verdict。即使 Claude 会话中断，下次恢复时能看到之前做到哪一步、差什么。
+**状态管理（打断后可恢复）**
+
+每个 change 都有 `state.json` + `validation.md` + reviewer verdict。即使 Claude 会话中断，下次恢复时能看到之前做到哪一步。
 
 ## 一个需求进来，会发生什么
 
