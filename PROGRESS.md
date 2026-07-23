@@ -26,6 +26,13 @@
 
 ## 最近完成
 
+- **`state-schema-migration`（2026-07-23，L2，`VALIDATED`，已归档到 `harness/archive/`）**：
+  引入 `state-migration.mjs` 模块，在 `loadActiveChange` 读取 `state.json` 时自动检测 `schemaVersion`
+  并补齐缺失字段（`workflow.*`/`gates.redTask`/`redEvidenceRef`），写回磁盘持久化。`schemaVersion`
+  从 1 升到 2；旧版本 1 的 state.json 缺 `workflow.*` 时自动补默认值，`redVerified=true` 但缺关联字段时
+  重置为 `false`。新增 6 组 backward-compat 回归测试，确认旧格式 state.json 在新代码下自动迁移、
+  `validateArtifactStates` 无错误、磁盘已更新。同时修复了 issue #38 反映的 `pre-write.mjs` 错误信息
+  硬编码 "reference-service" 问题。
 - **`workflow-runner-fixture-isolation`（2026-07-23，L1，`VALIDATED`，已归档到 `harness/archive/`）**：
   修复 `workflow-runner-smoke.mjs` 直接在真实仓库根目录上执行 `workflow.mjs run/resume/status`、
   并把 `harness/ACTIVE_CHANGE` 覆写成 `test-runner-smoke` 的问题。改为复制整仓到临时副本，在副本内运行全部
@@ -86,7 +93,7 @@
   reference-service-boundary-realignment、session-lifecycle-progress、add-enterprise-harness-mvp
 - 未推完（候选下一步）：
   - `SPECIFIED`：pi-containerization-guidance、pi-inspired-improvements、pi-runtime-followups
-- 已归档（`harness/archive/`）：workflow-runner-fixture-isolation、red-task-fixture-decoupling、openapi-contract-check-generalization、smoke-fixture-decoupling、gate-tightening-skeleton、gate-hardening-semantics、draft-gate-demo、
+- 已归档（`harness/archive/`）：state-schema-migration、workflow-runner-fixture-isolation、red-task-fixture-decoupling、openapi-contract-check-generalization、smoke-fixture-decoupling、gate-tightening-skeleton、gate-hardening-semantics、draft-gate-demo、
   release-local-source-external-smoke、java-golden-real-http-openapi、runtime-adapter-diagnostics-hardening、
   runtime-installability-polish、runtime-productization-polish
 
@@ -111,6 +118,8 @@
   已由 `smoke-fixture-decoupling`（2026-07-22，L1，`VALIDATED`）修复
 - ~~技术债：`gate-hardening-red-task-smoke.mjs` 硬编码引用 `gate-hardening-semantics` 导致无法归档~~——
   已由 `red-task-fixture-decoupling`（2026-07-22，L1，`VALIDATED`）修复
+- 技术债：`workflow.mjs` 中的 `ensureWorkflowShape` 与 `state-migration.mjs` 的迁移逻辑高度重叠，
+  两套并存可能随时间漂移，需要独立 change 统一（见 `state-schema-migration` design.md Non-goals 注释）
 
 ## 推荐先读
 

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { migrateAndPersist } from './state-migration.mjs';
 
 export function loadActiveChange(root) {
   const activeFile = path.join(root, 'harness', 'ACTIVE_CHANGE');
@@ -10,7 +11,8 @@ export function loadActiveChange(root) {
   if (!changeId) return { ok: false, reason: 'empty-active-change' };
   const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
   if (!fs.existsSync(statePath)) return { ok: false, reason: 'missing-state', changeId, statePath };
-  const data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  let data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  data = migrateAndPersist(data, statePath);
   return { ok: true, changeId, statePath, data };
 }
 

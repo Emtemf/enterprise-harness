@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "changeId": "state-schema-migration",
+  "tier": "L2",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "yes",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "Read checks.mjs validateArtifactStates workflow.*校验, gates.mjs hasCurrentTaskRedVerification, templates/state.json schemaVersion"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "迁移策略：在 loadActiveChange 读取 state.json 时自动检测并补齐缺失字段，写回磁盘。",
+    "schemaVersion 从 1 升到 2，迁移逻辑明确针对 version 1→2 的转换。",
+    "验证时不再需要容忍缺失字段，因为迁移在读取时已完成。"
+  ],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": true,
+    "redTask": "tasks-1-3-complete",
+    "redEvidenceRef": "harness/changes/state-schema-migration/validation.md#commands-executed"
+  },
+  "currentTask": "tasks-1-3-complete",
+  "workflow": {
+    "stage": "design",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "fd63fb60767a958cd72270b6df8276feb0ddcde82b52014b0cd2c1c240c968c9",
+    "validatedAt": "2026-07-23"
+  }
+}
