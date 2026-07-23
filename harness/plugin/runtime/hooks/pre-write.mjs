@@ -61,6 +61,15 @@ if (governedRoot) {
     process.exit(2);
   }
 
+  // design.md 存在性检查：如果 active change 已建立但 design.md 不存在，说明模型跳过了 design 阶段
+  // 这是程序级拦截，不依赖模型自觉
+  const changeDir = path.join(root, 'harness', 'changes', active.changeId);
+  const designPath = path.join(changeDir, 'design.md');
+  if (!fs.existsSync(designPath)) {
+    console.error('BLOCK: 当前 active change 缺少 design.md。必须先完成设计阶段（创建 design.md）再修改受治理路径的生产代码。这是 orchestration 级门禁，不得跳过。');
+    process.exit(2);
+  }
+
   const gate = requiredGateForTarget(root, target);
   const gates = state.gates || {};
   if (gate?.needsDesignApproved && !gates.designApproved) {

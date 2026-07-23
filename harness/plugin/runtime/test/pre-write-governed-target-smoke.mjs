@@ -93,6 +93,8 @@ check('scenario B: gates satisfied must PASS', () => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },
     }));
+    // design.md must exist for the new design-existence check to pass
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
     const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
     writeText(target, '// fixture\n');
     const result = runPreWrite(tempRoot, target);
@@ -120,6 +122,38 @@ check('scenario D: reference-service backward compatibility must still BLOCK', (
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /BLOCK/);
+  });
+});
+
+check('scenario E: governed path with active change but no design.md must BLOCK (design-existence gate)', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      state: 'DISCOVERED',
+      gates: { designApproved: false, redVerified: false, redTask: null, redEvidenceRef: null },
+    }));
+    // Explicitly NO design.md — model skipped design phase
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
+    assert.match(result.stderr, /design\.md/);
+  });
+});
+
+check('scenario F: governed path with active change AND design.md but designApproved=false must still BLOCK', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      state: 'DISCOVERED',
+      gates: { designApproved: false, redVerified: false, redTask: null, redEvidenceRef: null },
+    }));
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
+    assert.match(result.stderr, /designApproved/);
   });
 });
 
