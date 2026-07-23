@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.20]
+
+### Fixed
+
+- **主 orchestrator 代码探索委派硬约束**：将"调用 Agent 工具时用 code-explore"提升为"主 orchestrator 不得自己直接用 grep/Read 搜索代码，必须委托 subagent"。修复弱模型绕过 Agent 工具直接自己探索的问题（issue #49）。
+
 ## [0.1.19]
 
 ### Added
