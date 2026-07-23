@@ -2,6 +2,21 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.21]
+
+### Added
+
+- **G4C 用户验收指南**（`docs/zh-cn/g4c-user-acceptance-guide.md`）：每一步都按 Goal / Context / Choice / Checkpoint / Correction 五维验收，含预期效果、实际效果 checkbox、提 issue 所需证据清单和 issue 模板。
+- **G4C 卡全链路回显**：`stop.mjs`（会话结束时）和 `verify.mjs`（验证通过时）现在也输出 G4C 进度卡，加上之前的 session-start / status / pre-write BLOCK，共 5 个触发点统一回显同一张卡。
+- **scaffold 自动设置 goal**：`create-change-scaffold.sh` 和 `start-change.mjs` 现在将 topic 参数自动写入 `state.json` 的 `goal` 字段，不再显示"未记录"。
+
+### Fixed
+
+- **README 重写**：用 G4C 框架重新组织——开篇讲 G4C 五维 → mermaid 时序图 → 每步 G4C 验收表 → G4C 卡示例 → 机械门禁详表。用户打开第一眼就知道"这是什么、怎么工作、每步该看到什么"。
+- **overview.md 矛盾修复**：删除"特别是 reference-service"过时表述，与"已泛化到任意项目"保持一致。
+- **模板 state.json 补 G4C 字段**：`goal: null` / `successCriteria: []` / `routingReason: null`，新创建的 change 立即有 G4C 字段结构。
+- **主 orchestrator 代码探索委派硬约束**：将"调用 Agent 时用 code-explore"提升为"主 orchestrator 不得自己直接 grep/Read，必须委托 subagent"（issue #49）。
+
 ## [0.1.20]
 
 ### Fixed
