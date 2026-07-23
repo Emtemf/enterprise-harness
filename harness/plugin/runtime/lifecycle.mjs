@@ -24,7 +24,7 @@ function ensureChangeDir(changeId) {
   return changeDir;
 }
 
-function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1') {
+function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic = '') {
   const changeDir = ensureChangeDir(changeId);
   const statePath = path.join(changeDir, 'state.json');
   if (!fs.existsSync(statePath)) {
@@ -32,6 +32,9 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1') {
     data.changeId = changeId;
     data.owner = owner;
     data.tier = tier;
+    if (topic && topic !== '-' && topic !== 'none') {
+      data.goal = topic;
+    }
     writeJson(statePath, data);
   }
   const files = [
@@ -325,7 +328,7 @@ function cmdLessonList(tagFilter) {
 
 const [, , action, ...args] = process.argv;
 switch (action) {
-  case 'scaffold': cmdScaffold(args[0], args[1], args[2]); break;
+  case 'scaffold': cmdScaffold(args[0], args[1], args[2], args[3]); break;
   case 'exploration': cmdExploration(args[0], args[1]); break;
   case 'state': cmdState(args[0], args[1], args[2]); break;
   case 'active': cmdActive(args[0]); break;

@@ -31,6 +31,9 @@
     "redEvidenceRef": null
   },
   "currentTask": null,
+  "goal": null,
+  "successCriteria": [],
+  "routingReason": null,
   "workflow": {
     "stage": "clarify",
     "clarifyReady": false,

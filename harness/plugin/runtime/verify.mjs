@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from './lib/checks.mjs';
+import { loadActiveChange } from './lib/gates.mjs';
+import { renderG4CCard } from './lib/g4c-card.mjs';
 
 const root = projectRoot();
 
@@ -93,4 +95,14 @@ if (contractChecks.ok) {
   for (const t of contractChecks.todoHits) console.log(`FAIL template-placeholder ${t}`);
 }
 console.log('runtime readiness requires separate commands: doctor --json, sync --json, upstream-check --json');
+
+// G4C 进度卡
+try {
+  const active = loadActiveChange(root);
+  if (active.ok) {
+    const card = renderG4CCard(root, active.changeId, active.data);
+    console.log(card);
+  }
+} catch {}
+
 process.exit(result.ok ? 0 : 1);

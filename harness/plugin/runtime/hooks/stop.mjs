@@ -3,6 +3,7 @@ import path from 'node:path';
 import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { inferWorkflowStage } from '../lib/workflow.mjs';
+import { renderG4CCard } from '../lib/g4c-card.mjs';
 
 function recommendNextEntry(_stage) {
   return '/harness';
@@ -33,6 +34,14 @@ function printHandoffGuidance(root) {
     console.error(`- 当前 workflow stage：${guidance.workflowStage}`);
     console.error(`- 建议下次从：${guidance.nextEntry} 恢复`);
   }
+  // G4C 进度卡
+  try {
+    const active = loadActiveChange(root);
+    if (active.ok) {
+      const card = renderG4CCard(root, active.changeId, active.data);
+      console.error(card);
+    }
+  } catch {}
   console.error('- repo-level 阶段信息：写回 PROGRESS.md，更新整体阶段、当前目标与下一步重点。');
   console.error('- Claude memory：只保存 repo 中没有记录、但跨会话仍有价值的非仓库事实，而且必须通过显式动作触发。');
   console.error('- 聊天记录：可以作为来源，但不是仓库真相，也不能替代 change 资产、PROGRESS.md 或 Claude memory。');

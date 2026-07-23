@@ -6,18 +6,19 @@ TEMPLATES="$ROOT/harness/templates"
 CHANGES_DIR="$ROOT/harness/changes"
 
 if [ "$#" -lt 1 ]; then
-  printf '用法：%s <change-id> [owner] [tier]\n' "$0" >&2
+  printf '用法：%s <change-id> [owner] [tier] [topic]\n' "$0" >&2
   exit 1
 fi
 
 CHANGE_ID="$1"
 OWNER="${2:-harness-governance}"
 TIER="${3:-L1}"
+TOPIC="${4:-}"
 CHANGE_DIR="$CHANGES_DIR/$CHANGE_ID"
 
 mkdir -p "$CHANGE_DIR/evidence" "$CHANGE_DIR/specs" "$CHANGE_DIR/reviews"
 
-python - <<'PY' "$ROOT" "$CHANGE_ID" "$OWNER" "$TIER"
+python - <<'PY' "$ROOT" "$CHANGE_ID" "$OWNER" "$TIER" "$TOPIC"
 from pathlib import Path
 import json
 import sys
@@ -26,6 +27,7 @@ root = Path(sys.argv[1])
 change_id = sys.argv[2]
 owner = sys.argv[3]
 tier = sys.argv[4]
+topic = sys.argv[5] if len(sys.argv) > 5 else ''
 change_dir = root / 'harness' / 'changes' / change_id
 templates = root / 'harness' / 'templates'
 
@@ -36,6 +38,8 @@ if not state_path.exists():
     data['changeId'] = change_id
     data['owner'] = owner
     data['tier'] = tier
+    if topic:
+        data['goal'] = topic
     state_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 # markdown helpers

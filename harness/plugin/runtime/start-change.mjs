@@ -31,7 +31,7 @@ console.log('Enterprise Harness Start Change');
 console.log(`Repo: ${repoRoot}`);
 console.log(`changeId=${changeId} owner=${owner} tier=${tier}`);
 
-run(['scaffold', changeId, owner, tier]);
+run(['scaffold', changeId, owner, tier, topic]);
 if (topic && topic !== '-' && topic !== 'none') {
   run(['exploration', changeId, topic]);
 }
