@@ -47,17 +47,17 @@ if (!governedRoot && target.endsWith('.java')) {
 if (governedRoot) {
   const active = loadActiveChange(root);
   if (!active.ok) {
-    console.error('BLOCK: 修改 reference-service 受治理路径前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
+    console.error('BLOCK: 修改受治理路径（src/main/java、src/test/java、openapi 等）前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
     process.exit(2);
   }
   const state = active.data;
   const current = state.state;
   if (current === 'DRAFT') {
-    console.error('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改 reference-service。');
+    console.error('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改受治理路径。');
     process.exit(2);
   }
   if (current === 'ARCHIVED' || current === 'REJECTED') {
-    console.error(`BLOCK: 当前 active change 处于 ${current}，不能继续修改 reference-service。`);
+    console.error(`BLOCK: 当前 active change 处于 ${current}，不能继续修改受治理路径。`);
     process.exit(2);
   }
 
