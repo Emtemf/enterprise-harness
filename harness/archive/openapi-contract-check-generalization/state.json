@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "changeId": "openapi-contract-check-generalization",
+  "tier": "L2",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "validateOpenApiLight validateControllerConsistency post-write.mjs verify.mjs OrderCancellationController order-service.yaml"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "范围：只泛化 validateOpenApiLight/validate-openapi.sh 的结构检查；validateControllerConsistency/validate-controller-consistency.sh 诚实重新定位为 reference-service 自身回归检查，不做完整通用交叉校验器。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true,
+    "redTask": "tasks-1-5-complete",
+    "redEvidenceRef": "harness/changes/openapi-contract-check-generalization/validation.md#commands-executed"
+  },
+  "currentTask": "tasks-1-5-complete",
+  "workflow": {
+    "stage": "verify",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "397bb6a2b6cfa356b2aa394b1755b4363f20ac865f6481a63230487e238105c4",
+    "validatedAt": "2026-07-22"
+  }
+}

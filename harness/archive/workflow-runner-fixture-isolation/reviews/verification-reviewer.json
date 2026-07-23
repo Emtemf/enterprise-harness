@@ -1,0 +1,18 @@
+{
+  "changeId": "workflow-runner-fixture-isolation",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    "独立重跑 node harness/plugin/runtime/test/workflow-runner-smoke.mjs green: PASS",
+    "运行前 ACTIVE_CHANGE=[workflow-runner-fixture-isolation]，运行后一致，未被污染",
+    "真实仓库 harness/changes/test-runner-smoke 不存在: PASS",
+    "cli.mjs verify: 唯一剩余为 REVIEWED requires fresh validation（validation gate 正确执行，非缺陷）",
+    "process.on('exit', cleanup) 保留在源码第71行: PASS",
+    "/tmp/workflow-runner-smoke-* 运行前后均为0: PASS，无泄漏",
+    "源码审查: repoRoot 动态计算未被替换; runWorkflow全部3处使用repoCopy; eventLogPath指向副本内; cleanup只删tempRoot; try/finally双重防御保留",
+    "validation.md 命令记录与独立重跑结果一致，RED证据采集含快照-恢复-二次确认安全流程"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-23"
+}

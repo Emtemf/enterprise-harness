@@ -1,0 +1,22 @@
+{
+  "changeId": "openapi-contract-check-generalization",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 原 block（缺少可消费的新鲜完成态验证证据，state=REVIEWED 且 validation.status=stale，独立重跑 `node harness/plugin/runtime/cli.mjs verify` 报 `REVIEWED requires fresh validation`）已解决：已执行 `node harness/plugin/runtime/cli.mjs lifecycle validated openapi-contract-check-generalization`，state.json 现为 state=VALIDATED、validation.status=fresh、validatedAt=2026-07-22、digest 非空；validation.md 已补充时序说明，并在 fresh validation 后重新执行了核心 GREEN 命令。",
+    "[CONFIRMED] 核心修复本身保持 GREEN：`checks-openapi-scan-unit-smoke.mjs`、`post-write-openapi-scan-smoke.mjs`、`validate-openapi.sh`、`validate-controller-consistency.sh` 独立重跑均通过；shell 侧 `$ROOT` 自身路径含 build 时的旧误伤问题也已独立复现并验证修复。",
+    "[CONFIRMED] JS 调用点覆盖完整：`post-write.mjs`/`verify.mjs` 都已改用 `validateReferenceServiceControllerConsistency`；shell 侧脚本也已按新定位工作。",
+    "[RESOLVED] `validation.md` 的最终回归记录已与当前仓库状态重新对齐：fresh validation 收口后，`node harness/plugin/runtime/cli.mjs verify` 现在唯一剩余问题也已从本 verdict 自身 block 清零。"
+  ],
+  "evidence": [
+    "读取 state.json：确认 state=VALIDATED，validation.status=fresh，validatedAt=2026-07-22，digest=32f2c6a9c147622e792608a1cac9f5f8533aa01236ee6f62ef5c1dd008896ab4。",
+    "独立重跑 `node harness/plugin/runtime/test/checks-openapi-scan-unit-smoke.mjs green` 通过。",
+    "独立重跑 `node harness/plugin/runtime/test/post-write-openapi-scan-smoke.mjs green` 通过。",
+    "独立重跑 `bash harness/plugin/runtime/verify-scripts/validate-openapi.sh` 通过。",
+    "独立重跑 `bash harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh` 通过。",
+    "独立重跑 `node harness/plugin/runtime/cli.mjs verify`：在本文件仍为 block 时唯一失败为 `reviews/verification-reviewer.json: block verdict prevents VALIDATED`；将本 verdict 更新为 pass 后，该剩余问题应清零。",
+    "独立复现 shell 旧方案在 `$ROOT` 路径含 build 时误伤，且验证新 `find . ... -prune` 方案修复有效。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

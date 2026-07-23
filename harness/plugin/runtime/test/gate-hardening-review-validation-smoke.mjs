@@ -69,20 +69,6 @@ function createChange(repoCopy, changeId, state, options = {}) {
   }
 }
 
-function ensureReview(repoCopy, changeId, reviewerId, verdict) {
-  const reviewsDir = path.join(repoCopy, 'harness', 'changes', changeId, 'reviews');
-  fs.mkdirSync(reviewsDir, { recursive: true });
-  writeJson(path.join(reviewsDir, `${reviewerId}.json`), {
-    changeId,
-    reviewerId,
-    verdict,
-    findings: verdict === 'block' ? ['blocked in smoke fixture'] : [],
-    evidence: ['review validation smoke fixture'],
-    digest: null,
-    reviewedAt: '2026-07-16',
-  });
-}
-
 function runVerify(cwd) {
   return spawnSync('node', [cliPath, 'verify', '--json'], {
     cwd,
@@ -114,24 +100,9 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const { tempRoot, repoCopy } = createTempRepo();
 try {
-  const staleFixture = readJson(path.join(fixturesRoot, 'review-validation-stale', 'state.json'));
-  const skeletonStatePath = path.join(repoCopy, 'harness', 'changes', 'gate-tightening-skeleton', 'state.json');
-  if (fs.existsSync(skeletonStatePath)) {
-    const skeletonState = readJson(skeletonStatePath);
-    delete skeletonState.gates;
-    writeJson(skeletonStatePath, skeletonState);
-  }
+  fs.rmSync(path.join(repoCopy, 'harness', 'changes'), { recursive: true, force: true });
 
-  const normalizedReviews = [
-    ['intake-smoke-demo', 'verification-reviewer'],
-    ['phase0-claude-governance-skeleton', 'verification-reviewer'],
-    ['plugin-runtime-skeleton', 'verification-reviewer'],
-    ['reference-service-boundary-realignment', 'api-consistency-reviewer'],
-    ['reference-service-boundary-realignment', 'verification-reviewer'],
-  ];
-  for (const [changeId, reviewerId] of normalizedReviews) {
-    ensureReview(repoCopy, changeId, reviewerId, 'pass');
-  }
+  const staleFixture = readJson(path.join(fixturesRoot, 'review-validation-stale', 'state.json'));
 
   createChange(repoCopy, staleFixture.changeId, staleFixture, {
     reviews: {

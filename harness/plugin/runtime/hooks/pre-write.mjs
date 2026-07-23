@@ -41,6 +41,9 @@ if (target.startsWith(archiveRoot + path.sep) || target === archiveRoot) {
   process.exit(2);
 }
 const governedRoot = isGovernedTarget(root, target);
+if (!governedRoot && target.endsWith('.java')) {
+  console.error(`REMINDER: ${target} 看起来是 Java 源码，但未匹配到 src/main/java|src/test/java|openapi 常见约定，机械门禁（designApproved/RED 校验）不会保护此路径。如目录结构非标准，请检查是否符合 Maven/Gradle 约定。`);
+}
 if (governedRoot) {
   const active = loadActiveChange(root);
   if (!active.ok) {

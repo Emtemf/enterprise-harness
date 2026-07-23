@@ -1,0 +1,42 @@
+{
+  "changeId": "openapi-contract-check-generalization",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/tasks.md:40-55",
+      "summary": "Task 1 已把 post-write hook smoke 的夹具与断言机械固定：先复制整仓、清空 harness/changes、只注入一个最小合法 change、固定 stdin 事件，并显式要求对 validateStructure/validateArtifactStates/validateReviewVerdicts/validateChangeEvidence 做负断言，能够证明失败确实来自 validateOpenApiLight 路径。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/post-write.mjs:36-56",
+      "summary": "post-write.mjs 的语义校验位于结构/状态/review/evidence gate 之后；Task 1 现在已针对这一调用链顺序设计防串扰夹具，能避免被前置 gate 抢先拦截。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/tasks.md:198-228",
+      "summary": "Task 3 已把 shell RED/GREEN 复现固定为可直接复制执行的具体命令：RED 复现旧 -not -path 误伤、GREEN 验证 cd \"$ROOT\" && find . ... -prune、补充 target/generated/openapi 排除场景，并包含 rm -rf \"$TMP\" 清理步骤。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify-scripts/validate-openapi.sh:4-9",
+      "summary": "validate-openapi.sh 的 ROOT 依赖脚本物理位置；Task 3 现已针对该事实，把 reviewer 上一轮 blocker 固定为独立 find 命令级 RED/GREEN 证据，而不是含糊地写‘实现时再想’。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/tasks.md:120-131",
+      "summary": "Task 2 的实现顺序仍合理：先导出 GOVERNANCE_BLOCKLIST，再在 checks.mjs 实现 findOpenApiYamlFiles 和 validateOpenApiLight，多处调用点最后统一改名收口；结合当前代码，未见除 post-write.mjs 与 verify.mjs 之外的隐藏 JS 调用点。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/gates.mjs:17-18,57-67",
+      "summary": "GOVERNANCE_BLOCKLIST 当前集中定义于 gates.mjs；计划先导出该常量再被 checks.mjs 复用，符合 design 中避免双份黑名单漂移的要求。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/tasks.md:288-291",
+      "summary": "Task 4 已明确依赖 Task 2/3 的真实实现完成后再更新规则/文档，避免先写文档再补代码。"
+    },
+    {
+      "location": "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/tasks.md:355-357",
+      "summary": "Task 5 已澄清 validate-controller-consistency.sh 只是 shell spot-check，不再误表述成 JS 改名回归的必经证明；JS 改名主证据仍由 hook smoke + cli.mjs verify 提供。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

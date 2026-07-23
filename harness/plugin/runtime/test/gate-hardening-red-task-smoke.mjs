@@ -64,20 +64,28 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const { tempRoot, repoCopy } = createTempRepo();
 try {
+  fs.rmSync(path.join(repoCopy, 'harness', 'changes'), { recursive: true, force: true });
+
+  const fixtureChangeId = 'red-task-smoke-fixture';
   const activePath = path.join(repoCopy, 'harness', 'ACTIVE_CHANGE');
-  const statePath = path.join(repoCopy, 'harness', 'changes', 'gate-hardening-semantics', 'state.json');
+  const statePath = path.join(repoCopy, 'harness', 'changes', fixtureChangeId, 'state.json');
   const fixtureState = readJson(path.join(fixturesRoot, 'red-task-missing-proof', 'state.json'));
-  fs.writeFileSync(activePath, 'gate-hardening-semantics\n', 'utf-8');
+  fs.writeFileSync(activePath, `${fixtureChangeId}\n`, 'utf-8');
 
   const target = path.join(repoCopy, 'reference-service', 'src', 'main', 'java', 'com', 'example', 'orders', 'interfaces', 'api', 'OrderCancellationController.java');
-  writeJson(statePath, fixtureState);
+  const blockedState = {
+    ...fixtureState,
+    changeId: fixtureChangeId,
+  };
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  writeJson(statePath, blockedState);
   const blockedResult = runPreWrite(repoCopy, target);
   const blockedOutput = `${blockedResult.stdout || ''}${blockedResult.stderr || ''}`;
 
   const passingState = {
-    ...fixtureState,
+    ...blockedState,
     gates: {
-      ...fixtureState.gates,
+      ...blockedState.gates,
       redTask: 'Task 4 smoke',
       redEvidenceRef: 'task-4-red-proof',
     },

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "changeId": "gate-tightening-skeleton",
+  "tier": "L3",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "isGovernedTarget requiredGateForTarget loadLocalAdapter local-adapter governed path config setup-local-adapter",
+        "codegraph_impact(isGovernedTarget, depth=2)"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "受治理路径识别方式：自动探测常见 Java 目录约定，不做显式手动配置字段。",
+    "探测不到常见约定时：pre-write 提醒但不拦截，避免对非标准布局项目造成误伤式静默放行以外的新问题。",
+    "本次一并修复 post-write.mjs 的 isHarnessManaged=false 时整体 no-op 的同类问题。",
+    "reference-service demo 的既有保护行为必须在新探测规则下保持向后兼容。",
+    "黑名单检查只作用于受治理路径匹配位置之前的祖先段，不检查匹配段自身或其后的包名路径（design review 复审 advisory 采纳）。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "currentTask": "tasks-1-5-complete",
+  "workflow": {
+    "stage": "archive",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true,
+    "redTask": "tasks-1-5-complete",
+    "redEvidenceRef": "harness/changes/gate-tightening-skeleton/validation.md#commands-executed"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "55822813ad64277faed7c63133d4b1f0a872e44eafbfdc12bc8e63f3a9fea0ca",
+    "validatedAt": "2026-07-22"
+  }
+}

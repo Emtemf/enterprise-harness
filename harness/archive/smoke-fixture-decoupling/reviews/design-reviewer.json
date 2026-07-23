@@ -1,0 +1,24 @@
+{
+  "changeId": "smoke-fixture-decoupling",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[第一轮 block / RESOLVED] 范围从最初认为的 1 个文件（gate-hardening-design-gate-smoke.mjs）修正为实际穷尽核实的 4 个文件（另加 gate-hardening-task-state-smoke.mjs / gate-hardening-review-validation-smoke.mjs / gate-hardening-validation-digest-smoke.mjs）。已重新执行 `grep -rln \"gate-tightening-skeleton\" harness/plugin/runtime/test/*.mjs`，精确命中且仅命中这4个文件，与 design.md Current-State Evidence（第10-17行）描述完全一致。",
+    "[第一轮 block / RESOLVED] gate-hardening-review-validation-smoke.mjs 额外的 normalizedReviews 循环（第125-134行，对4个真实 changeId 做同类噪音压制）已被识别、纳入范围并计划删除，行号与内容核实准确。",
+    "[第二轮 block / RESOLVED] 新增 guard smoke（gate-hardening-fixture-guard-smoke.mjs）此前的设计描述（'断言源码不包含字面量字符串 gate-tightening-skeleton'）会导致 guard 自身因写入该字面量而变成 isReferencedByTests() 的第5个引用源，使最终验收标准（archive 成功）无法达成——本轮已改为运行时动态枚举方案：guard 通过 `fs.readdirSync(harness/changes/)` 在运行时读取当前真实存在的 changeId 列表（只作为运行时字符串值使用，从不作为源码字面量写入 guard 自身），再核对4个目标文件源码是否包含其中任意一个作为子串。已重新核实 lifecycle.mjs:222-230 的 isReferencedByTests() 是纯静态源码文本子串扫描，不关心运行时行为读到了什么值，只关心文件文本本身是否含有该字面量——因此该方案在技术上确实能规避自我引用悖论，且比原方案更通用（可防止未来任何真实 change 被同样方式硬编码进这4个文件，不局限于这一次的 gate-tightening-skeleton）。",
+    "[交叉验证 / 无新问题] 用实际数据逐一核对当前仓库 harness/changes/ 下全部9个真实 changeId 是否出现在4个目标文件中：结果显示除 gate-tightening-skeleton（4个文件全含）与 normalizedReviews 涉及的4个真实ID（仅出现在 review-validation-smoke.mjs 一处）外，没有其他真实 changeId 残留或潜在子串碰撞。这与本次计划的修复动作（删除 skeleton 特例块 + 删除 normalizedReviews）精确对应——修复完成后，guard 的动态枚举检查不会漏判（4个目标文件确实不再含任何真实changeId），也不会因为其他真实changeId恰好作为子串出现在无关文本里而误报。",
+    "[范围排除 / 合理] gate-hardening-red-task-smoke.mjs 硬编码的另一个真实 changeId `gate-hardening-semantics`（第68/70行）已明确排除在本次 guard 检查范围外、记入独立技术债——由于该文件不含 `gate-tightening-skeleton` 字符串，这一排除不影响本次'解除 gate-tightening-skeleton 归档拦截'这一具体验收目标，范围边界清晰、不产生遗留缺口。",
+    "[advisory，非阻断，供 plan/TDD 阶段参考] 当前对'guard 自身源码不得含真实 changeId 字面量'这一关键不变量，design 目前只安排了实现期人工二次确认（记录于 validation.md），建议 plan 阶段考虑追加一条低成本自动化自检：guard 在扫描4个目标文件的同时，把自己的源码文件（通过 import.meta.url 定位自身路径）也纳入扫描目标集合一并核对，把'人工确认'升级为'自动化自我核验'，进一步降低未来维护者不慎在 guard 源码注释里写入真实 changeId 而破坏此不变量的风险。",
+    "[advisory，非阻断] guard 的检测结果依赖仓库运行时刻的 harness/changes/ 实际内容（动态枚举），测试行为会随真实 change 增删而变化，这是该方案'结构性防未来复发'的必然代价，属于合理权衡，非缺陷；建议在 plan/TDD 阶段仅需确保 RED/GREEN 证据采集时明确记录当时 harness/changes/ 的真实内容快照，便于未来复现该证据时理解上下文。",
+    "[advisory，非阻断] gate-hardening-review-validation-smoke.mjs 仍是本次风险最高的文件（design.md Risks 第一条已正确标注），TDD 阶段须用真实 GREEN 证据确认移除 normalizedReviews 后其5条断言仍全部通过，不能假设。"
+  ],
+  "evidence": [
+    "Read design.md 全文（第1-192行），确认 Testing Strategy（第122-158行）与新增的'Testing Strategy 补充说明'（第159-163行）已针对第二轮 block 给出具体、可执行的动态枚举解法。",
+    "重新核对 harness/plugin/runtime/lifecycle.mjs:222-230 isReferencedByTests() 实现：确认它是对文件文本做静态子串扫描，不涉及运行时行为，因此'guard 运行时读取到 changeId 字符串'不会被判定为'guard 源码引用了该 changeId'，动态枚举方案的核心推理成立。",
+    "Bash: 逐一核对当前 harness/changes/ 下全部9个真实 changeId（add-enterprise-harness-mvp/clarify-first-staged-orchestrator/gate-hardening-semantics/gate-tightening-skeleton/intake-smoke-demo/phase0-claude-governance-skeleton/plugin-runtime-skeleton/reference-service-boundary-realignment/smoke-fixture-decoupling）是否出现在4个目标文件中，确认命中情况与本次计划修复范围（skeleton特例块 + normalizedReviews）精确对应，无遗漏、无意外碰撞。",
+    "Read harness/plugin/runtime/test/gate-hardening-red-task-smoke.mjs 全文（第一、二轮已核实），确认其硬编码的 gate-hardening-semantics 与本次验收目标（gate-tightening-skeleton 归档解除）无关，排除范围合理。",
+    "对照第一轮、第二轮 design-reviewer 历史记录（本文件先前版本），逐条核实此前提出的 block finding 是否已在当前 design.md 版本中得到对应修正，三轮问题（范围遗漏、normalizedReviews、guard自引用悖论）均已解决，未发现新的阻断项。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

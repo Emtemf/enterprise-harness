@@ -81,10 +81,10 @@
 当前阶段的本地验证仍以轻量脚本为主：
 
 - `harness/plugin/runtime/verify-scripts/validate-spec-structure.sh`
-- `harness/plugin/runtime/verify-scripts/validate-openapi.sh`
-- `harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh`
+- `harness/plugin/runtime/verify-scripts/validate-openapi.sh`（已泛化为任意 `openapi/` 目录下 YAML 文件的基础结构检查）
+- `harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh`（仍仅用于 `reference-service` 自身回归，不是通用的任意项目 controller/OpenAPI 交叉校验器）
 
-统一的 full verification 入口仍在后续阶段建设中；在它落地前，不得把现有轻量脚本误当成完整企业级门禁。
+统一的 full verification 入口仍在后续阶段建设中；在它落地前，不得把现有轻量脚本误当成完整企业级门禁，更不得把 `validate-controller-consistency.sh` 误表述成任意项目通用能力。
 
 ## 资产位置
 

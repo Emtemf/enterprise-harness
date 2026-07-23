@@ -1,0 +1,18 @@
+{
+  "changeId": "workflow-runner-fixture-isolation",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] repoRoot 计算方式已在 design.md:77-81 明确：保留 workflow-runner-smoke.mjs 现有的 fileURLToPath 动态计算，明确说明现有 9 个先例文件里的硬编码绝对路径是那些文件自身的可移植性缺陷、不予复用，本次只复用『复制到临时副本 + cwd 切换』这个隔离机制。已解决此前 block finding #2（先例硬编码路径被误复用的风险）。",
+    "[RESOLVED] design.md 新增『RED 证据采集的安全性』一节（design.md:87-101），机械化规定：采集前快照真实 harness/ACTIVE_CHANGE 内容 -> 运行现有未修复脚本观察 RED -> 采集后立即删除误建的真实 harness/changes/test-runner-smoke/ 并把 ACTIVE_CHANGE 写回原内容 -> 用 git status/cat 二次确认真实仓库已恢复干净，且要求写入 tasks.md 为具体步骤而非口头操作。已解决此前 block finding #1（RED 采集本身会污染真实仓库且无恢复步骤的风险）。",
+    "[advisory，非阻断] evidence/tooling.md 仍是完全未填写的空模板，等价 fallback 说明已记录在 exploration.md 中，不构成对 10-code-analysis.md 记录要求的违反，建议后续同步或清理，但不阻塞进入 plan。",
+    "[advisory，非阻断] Scope/Non-goals（change.md:11-16、design.md:21-29）与用户已确认范围一致，未发现问题。"
+  ],
+  "evidence": [
+    "已重新阅读修订后的 design.md：Flow / State Changes 小节（design.md:73-85）新增 77-81 行明确 repoRoot 动态计算保留声明；新增 87-101 行『RED 证据采集的安全性』小节给出可执行的快照-运行-恢复-核验四步流程；Risks 小节（design.md:136-144）同步补充了这两点的风险说明与既有性能实测引用。两处此前的 block finding 均已在 design.md 中被具体、可执行地解决，不是口头承诺。",
+    "此前已核实的技术可行性结论仍然成立：workflow.mjs 的 root = projectRoot()（harness/plugin/runtime/lib/checks.mjs:7）基于 process.cwd()，run 命令的子进程链（workflow.mjs -> start-change.mjs -> lifecycle.mjs）逐跳以 process.cwd() 派生路径且显式透传 cwd，未发现 .git/codegraph/硬编码真实路径依赖，Option B 与既有两个先例（workflow-decision-smoke.mjs、workflow-execution-status-smoke.mjs）已验证行为一致。",
+    "此前已实测：真实仓库排除 .git/.codegraph 后为 72M / 686 个文件，既有同模式 smoke 复制+运行耗时约 0.2s，支撑 design.md Risks 中『整仓复制性能可接受』的表述。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

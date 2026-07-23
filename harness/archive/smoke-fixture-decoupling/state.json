@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "changeId": "smoke-fixture-decoupling",
+  "tier": "L1",
+  "state": "ARCHIVED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "Read gate-hardening-design-gate-smoke.mjs full source; cross-checked gate-hardening-red-task-smoke.mjs / gate-hardening-validation-digest-smoke.mjs for copyDir+verify vs copyDir+single-file-hook distinction",
+        "grep -rln gate-tightening-skeleton harness/plugin/runtime/test/*.mjs (design review round 1 correction: 4 files, not 1)"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    "采用结构性修复：清空临时副本的 harness/changes/ 后只注入所需 fixture change，不依赖任何真实 change 状态。",
+    "范围扩大到 4 个文件（design review 第一轮 block 发现范围遗漏）：gate-hardening-design-gate-smoke.mjs / gate-hardening-task-state-smoke.mjs / gate-hardening-review-validation-smoke.mjs / gate-hardening-validation-digest-smoke.mjs。",
+    "guard smoke 不写死任何真实 changeId 字面量，改为运行时动态枚举 harness/changes/ 目录名比对（design review 第二轮 block 发现自引用悖论后的修正），并把 guard 自身源码也纳入自检范围（design review 第三轮 pass 附带建议采纳）。",
+    "gate-hardening-red-task-smoke.mjs 硬编码 gate-hardening-semantics 的同类问题明确排除在本次范围外，记入 PROGRESS.md 技术债。",
+    "plan-critic 修正：guard smoke 的 red 模式极性统一为 ok=hits.length===0，与仓库既有测试惯例一致；Task 4 明确风险源为 3 个新注入 fixture 之间的 readdirSync 顺序，非其他真实 change。"
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-22"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-22"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true,
+    "redTask": "tasks-1-6-complete",
+    "redEvidenceRef": "harness/changes/smoke-fixture-decoupling/validation.md#commands-executed"
+  },
+  "currentTask": "tasks-1-6-complete",
+  "workflow": {
+    "stage": "archive",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "refactor-verified",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "39cf95d1160130ccd78232eab3aef6bcfa58a487fc1e6c4982eb5925e21e34f9",
+    "validatedAt": "2026-07-22"
+  }
+}

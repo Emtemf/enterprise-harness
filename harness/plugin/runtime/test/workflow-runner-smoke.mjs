@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,27 @@ import { spawnSync } from 'node:child_process';
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const workflowPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'workflow.mjs');
 const mode = process.argv[2];
+
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (entry.name === '.git' || entry.name === '.codegraph') continue;
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+function createTempRepo() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'workflow-runner-smoke-'));
+  const repoCopy = path.join(tempRoot, 'repo');
+  copyDir(repoRoot, repoCopy);
+  return { tempRoot, repoCopy };
+}
 
 function runWorkflow(cwd, args) {
   return spawnSync('node', [workflowPath, ...args], {
@@ -38,26 +60,30 @@ if (!['red', 'green', 'verify'].includes(mode)) {
   process.exit(1);
 }
 
-const changeId = 'test-runner-smoke';
-const changeDir = path.join(repoRoot, 'harness', 'changes', changeId);
+let tempRoot = null;
 
-// 清理函数：确保不污染真实仓库
 function cleanup() {
-  if (fs.existsSync(changeDir)) {
-    fs.rmSync(changeDir, { recursive: true, force: true });
+  if (tempRoot && fs.existsSync(tempRoot)) {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
 process.on('exit', cleanup);
 
+const { tempRoot: tr, repoCopy } = createTempRepo();
+tempRoot = tr;
+
 try {
-  const runResult = runWorkflow(repoRoot, ['run', changeId, 'harness-governance', 'L3', 'runner-smoke']);
+  const changeId = 'test-runner-smoke';
+  const changeDir = path.join(repoCopy, 'harness', 'changes', changeId);
+
+  const runResult = runWorkflow(repoCopy, ['run', changeId, 'harness-governance', 'L3', 'runner-smoke']);
   const runJson = parseJson(runResult);
-  const resumeResult = runWorkflow(repoRoot, ['resume', changeId]);
+  const resumeResult = runWorkflow(repoCopy, ['resume', changeId]);
   const resumeJson = parseJson(resumeResult);
-  const statusResult = runWorkflow(repoRoot, ['status', changeId, '--json']);
+  const statusResult = runWorkflow(repoCopy, ['status', changeId, '--json']);
   const statusJson = parseJson(statusResult);
-  const eventLogPath = path.join(repoRoot, 'harness', 'changes', changeId, 'evidence', 'workflow-events.jsonl');
+  const eventLogPath = path.join(repoCopy, 'harness', 'changes', changeId, 'evidence', 'workflow-events.jsonl');
   const eventLogExists = fs.existsSync(eventLogPath) && fs.readFileSync(eventLogPath, 'utf-8').includes('"type":"resume"');
   const ok =
     runResult.status === 0 &&

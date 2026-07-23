@@ -1,0 +1,47 @@
+{
+  "changeId": "red-task-fixture-decoupling",
+  "targetChange": "red-task-fixture-decoupling",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/red-task-fixture-decoupling/tasks.md:25-31",
+      "note": "Task 1 已把 guard smoke 的实现步骤、输入来源、命中判定和三态极性写清；其 `ok = hits.length === 0`、`red` 命中即 fail、`green/verify` 命中也 fail，与既有 guard 先例保持一致。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-fixture-guard-smoke.mjs:37-61",
+      "note": "仓库既有 guard smoke 的三态契约与 Task 1 文案一致，可作为可执行先例。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/red-task-fixture-decoupling/tasks.md:95-103",
+      "note": "Task 2 已把 design-reviewer 的 advisory 精确下沉到实现步骤：使用 synthetic changeId、显式改写 `fixtureState.changeId`、并新增 `fs.mkdirSync(..., { recursive: true })` 重建 synthetic fixture 目录，消除了此前 `writeJson()` 不创建父目录导致的 ENOENT blocker。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-red-task-smoke.mjs:31-33",
+      "note": "现有 `writeJson()` 仅写文件不建目录；结合 Task 2 新增的目录重建步骤，现已足够让下游工程师无猜测实现。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/red-task-missing-proof/state.json:1-49",
+      "note": "该 fixture 单文件已足够支撑清空 `harness/changes/` 后的 smoke：包含 `changeId`、`state`、`currentTask`、`gates.designApproved`、`gates.redVerified` 等关键字段；第一次因缺 `gates.redTask` 被 BLOCK，第二次补齐 `redTask/redEvidenceRef` 后可 PASS，不需要额外补其他 fixture 文件。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/gates.mjs:4-15,69-78",
+      "note": "`pre-write` 依赖的 active change 装载与 currentTask-scoped RED 校验只消费 `harness/ACTIVE_CHANGE` 和对应 `state.json`，支持 Task 2 的 synthetic fixture 方案。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/red-task-fixture-decoupling/tasks.md:171-187",
+      "note": "Task 3 已明确回归顺序，并显式说明 `node harness/plugin/runtime/cli.mjs lifecycle archive gate-hardening-semantics` 成功本身就等价于 `isReferencedByTests` 清零，无需再额外实现内部探针；业务验收边界清楚。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lifecycle.mjs:195-203,222-229",
+      "note": "archive 命令内部确实把 `isReferencedByTests(changeId)` 作为硬阻断，因此 Task 3 现有验收表述与真实实现一致。"
+    },
+    {
+      "path": "/home/wula/IdeaProjects/sdd/harness/changes/red-task-fixture-decoupling/tasks.md:1-224",
+      "note": "当前任务分解无 TODO/TBD/‘实现时再想’占位表达；每个 task 的文件路径、Consumes/Produces、RED/GREEN 验证点与验收标准均已明确。"
+    }
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

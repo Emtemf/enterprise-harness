@@ -110,41 +110,34 @@ sequenceDiagram
 - `codegraph-first` 已经是真实可用的主路径
 - `Context7` 已有 CLI wrapper 路径
 - `harness/changes/`、`state.json`、`validation.md`、`evidence/tooling.md` 已形成最小 change 资产模型
-- `reference-service/` 受治理路径已经接入 pre-write gate
+- 受治理路径（`src/main/java` / `src/test/java` / `openapi/`）的机械门禁已泛化到任意目标项目，不再只保护 `reference-service` demo
+- OpenAPI 结构检查已泛化到任意 `openapi/` 目录下的 YAML 文件
 - `doctor` / `sync` / `verify` / `upstream-check` 已有统一 CLI 入口
 - GitHub Actions `platform-smoke` 已在 Linux / macOS / Windows 运行 smoke test
 
 ### 还在建设中
 
-- 更完整的 plan gate / task gate
+- 更完整的 plan gate / task gate 消费逻辑
 - 更细粒度的 `RED_VERIFIED` 消费逻辑
-- ArchUnit
-- JaCoCo 85% 机械门禁
+- ArchUnit 架构门禁
+- JaCoCo 覆盖率机械检查
 - 真实 HTTP API E2E
-- 更强的 OpenAPI 语义门禁
+- 通用 OpenAPI ↔ Controller 交叉一致性校验器（当前只做结构检查）
 - 更完整的 installer / upgrade / migration 体验
 - 更广泛的真机开发机场景验证
 
 ---
 
-## 当前对“门禁”的准确理解
+## 当前对”门禁”的准确理解
 
-不要把当前项目理解成“所有文件、所有路径、所有流程都已经被强门禁接管”。
+不要把当前项目理解成”所有文件、所有路径、所有流程都已经被强门禁接管”。
 
 更准确的说法是：
 
 - **共享契约层**已经比较清楚
 - **运行时入口**已经统一到 Node CLI
-- **关键治理路径**已经开始真实拦截
+- **关键治理路径**已经开始真实拦截，且已泛化到任意目标项目的 `src/main/java` / `src/test/java` / `openapi/` 目录
 - **完整企业门禁**仍处于 MVP 向更强平台迭代的阶段
-
-尤其是：
-
-- `reference-service/src/main`
-- `reference-service/src/test`
-- `reference-service/openapi`
-
-这些路径的治理最严格；其他文档和 runtime 骨架路径，目前更多依赖结构检查与流程约束，而不是同等强度的业务 gate。
 
 ---
 

@@ -1,13 +1,15 @@
 import fs from 'node:fs';
-import { projectRoot, isHarnessManaged, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateControllerConsistency } from '../lib/checks.mjs';
+import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency } from '../lib/checks.mjs';
 import path from 'node:path';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
 
 const root = projectRoot();
+const managed = isHarnessManaged(root);
+const trackingChanges = hasChangeTracking(root);
 
-// If the plugin is installed into a target project that is not harness-managed,
-// harness structure/state validation does not apply. No-op gracefully.
-if (!isHarnessManaged(root)) {
+// A target project with no harness/changes/ at all has no change-lifecycle state to
+// validate against; no-op gracefully rather than reading stdin for nothing.
+if (!managed && !trackingChanges) {
   process.exit(0);
 }
 const chunks = [];
@@ -32,10 +34,14 @@ if (raw) {
   } catch {}
 }
 const problems = [
-  ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
-  ...validateArtifactStates(root),
-  ...validateReviewVerdicts(root),
-  ...validateChangeEvidence(root),
+  // validateStructure checks this repo's own fixed file list; only meaningful once a
+  // target project has fully onboarded (harness/changes/ + harness/specs/ both present).
+  ...(managed ? validateStructure(root).map((m) => `${m.kind}:${m.path}`) : []),
+  // These three only touch harness/changes/*, are self-guarded for its absence, and should
+  // run for any project tracking changes even before it has authored harness/specs/.
+  ...(trackingChanges ? validateArtifactStates(root) : []),
+  ...(trackingChanges ? validateReviewVerdicts(root) : []),
+  ...(trackingChanges ? validateChangeEvidence(root) : []),
 ];
 if (problems.length) {
   for (const problem of problems) console.error(problem);
@@ -43,7 +49,7 @@ if (problems.length) {
 }
 const semanticProblems = [
   ...validateOpenApiLight(root),
-  ...validateControllerConsistency(root),
+  ...validateReferenceServiceControllerConsistency(root),
 ];
 if (semanticProblems.length) {
   for (const problem of semanticProblems) console.error(problem);

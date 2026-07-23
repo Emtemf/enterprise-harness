@@ -1,0 +1,16 @@
+{
+  "reviewerId": "plan-critic",
+  "changeId": "smoke-fixture-decoupling",
+  "verdict": "pass",
+  "findings": [
+    "[第一轮 block / RESOLVED] tasks.md Task 1（原第54-58行）guard smoke 的 `red` 模式判定极性与已 pass 的 design.md RED path、以及仓库既有全部同类 smoke 测试的实际极性相反，且错误引用 mandatory-gate-contract-smoke.mjs 作为'极性一致'的依据。已重写为（现第34-47/69-73行）：`const ok = hits.length === 0`，三态统一复用同一个 ok 判定，`red` 模式下 `!ok` 时必须 `fail()`（非0退出，这才是可观察 RED 证据），`ok===true` 时才 `pass('Red precondition no longer holds.')`——已实读 mandatory-gate-contract-smoke.mjs:39-44 与 4 个既有目标文件的 red 分支，确认现在的描述与仓库统一惯例完全同构，也与 design.md 第142-146行、Task 2-5 各自用 verify 模式观察 fail() 的极性一致。原先'命中即pass'的错误判定与对既有先例的误引用已消除。",
+    "[第二轮 block / RESOLVED] tasks.md Task 4（原第235-239行）的 stop.mjs 遍历顺序风险归因，在 Option B 清空 harness/changes/ 之后已不准确（仍归因于'其他真实 change'，而清空后已无真实 change）。已重写为（现第250-266行）：明确指出风险源是清空后新注入的3个 fixture（review-validation-stale / review-validation-reviewed-stale / review-validation-missing-api-review）彼此之间的 readdirSync 返回顺序，并引用 stop.mjs:53（fs.readdirSync 遍历 + 命中第一个 BLOCK 即 exit(2)、不聚合）作为依据；给出具体可执行分支：先用 console.log(fs.readdirSync(changesDir).map(e=>e.name)) 实测顺序，若不符合预期则回到 design 阶段评估'聚合式校验'或'每次调用前只保留单个目录'的重构方向，并明确禁止靠恢复 normalizedReviews 凑顺序。已不再是空泛兜底，而是有确切成因、确切诊断命令、确切禁止项的可执行分支。",
+    "[本轮复核 / 无新问题] Task 2/3/5 的改动描述（createTempRepo() 后插入 rmSync + 删除 skeletonStatePath 块）与4个待修复文件实际源码结构的对应关系、Task 1 guard 的动态枚举+自检设计、Task 6 归档验收流程，均在上一轮已逐行核实无误，本轮重读未见回归或新增偏差。"
+  ],
+  "evidence": [
+    "Read /home/wula/IdeaProjects/sdd/harness/changes/smoke-fixture-decoupling/tasks.md 全文（第1-438行），重点核对 Task 1 第17-95行（Produces 第27-47行、RED Evidence Point 第69-73行）与 Task 4 第221-309行（Implementation Order 第237-266行）的重写内容。",
+    "Read /home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/mandatory-gate-contract-smoke.mjs 全文，确认第39-44行的 red 语义与 tasks.md Task 1 重写后的描述一致。",
+    "上一轮已 Read /home/wula/IdeaProjects/sdd/harness/changes/smoke-fixture-decoupling/design.md、4个待修复源文件全文、harness/plugin/runtime/hooks/stop.mjs 全文、harness/plugin/runtime/lifecycle.mjs 第200-230行，本轮结论建立在这些既有证据基础上，重点复核了两处修正点与既有证据是否一致，未发现冲突。"
+  ],
+  "reviewedAt": "2026-07-22"
+}

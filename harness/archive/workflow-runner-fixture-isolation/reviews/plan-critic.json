@@ -1,0 +1,59 @@
+{
+  "changeId": "workflow-runner-fixture-isolation",
+  "reviewerId": "plan-critic",
+  "target": "tasks.md",
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "block",
+      "status": "resolved",
+      "location": "harness/changes/workflow-runner-fixture-isolation/tasks.md:46-53 (Task 1, Implementation Order step 2)",
+      "summary": "[RESOLVED] 原先声称『red 模式会因断言逻辑未改动而直接 pass、观察不到副作用』与源码不符。修正后的文字明确：red/green/verify 三种 mode 在计算 ok 之前代码路径完全一致，red 模式同样会产生完整真实副作用，不存在『red 模式天然安全』这回事；四步快照-恢复流程对任意 mode 都生效。",
+      "evidence": "重读 tasks.md:46-53，文字与 workflow-runner-smoke.mjs:53-85 的实际代码路径一致，不再包含错误论断。"
+    },
+    {
+      "id": "F2",
+      "severity": "block",
+      "status": "resolved",
+      "location": "harness/changes/workflow-runner-fixture-isolation/tasks.md:31-45 (步骤1), 62-72 (步骤4), 73-86 (步骤5)",
+      "summary": "[RESOLVED] 新增 ORIGINAL_ACTIVE_CHANGE_EXISTED 标志位，显式区分『文件原本不存在』与『文件原本存在但为空』；步骤4按标志位分别用 rm -f 或 printf 写回；步骤5同时校验存在性与内容，不再只比较内容。",
+      "evidence": "重读 tasks.md:31-45/62-72/73-86，恢复与二次确认逻辑均已按存在性分支处理，能正确处理 ACTIVE_CHANGE 原本不存在的边界情况。"
+    },
+    {
+      "id": "F3",
+      "severity": "block",
+      "status": "resolved",
+      "location": "harness/changes/workflow-runner-fixture-isolation/tasks.md:144-186 (Task 2 新增『清理机制』专项 + Implementation Order 步骤1/5/6/8 + Acceptance Checks)",
+      "summary": "[RESOLVED] 新增专项章节明确 process.exit() 跳过 finally 的实测结论、当前文件真正生效的清理机制是 process.on('exit', cleanup)、明确禁止照抄 workflow-decision-smoke.mjs 的 finally-only 模式（并引用现场 /tmp 残留证据）；给出两种可行的 tempRoot 作用域/注册顺序解法（不强制唯一路径，避免实现者被迫在两个都正确的方案间瞎猜）；新增步骤8的 /tmp 泄漏计数检查与对应 Acceptance Check。",
+      "evidence": "重读 tasks.md:144-165（清理机制说明）、167-186（Implementation Order 含步骤8泄漏检查）、207-214（Acceptance Checks 含 process.on('exit', cleanup) 与泄漏检查两条新增项）。方案对 tempRoot 的可见性问题给出了『注册顺序』或『cleanup 内部存在性判断』两种明确可执行选项，足以避免下游实现者猜测。"
+    },
+    {
+      "id": "F4",
+      "severity": "advisory",
+      "status": "resolved",
+      "location": "harness/changes/workflow-runner-fixture-isolation/tasks.md:238-242 (Task 3)",
+      "summary": "[RESOLVED] 新增说明段落，解释『不污染真实仓库』断言刻意放在外部 shell 脚本层而非 .mjs 自身断言逻辑的原因（跨进程、跨仓库根的外部观察点）。",
+      "evidence": "重读 tasks.md:238-242，advisory 建议已被采纳。"
+    },
+    {
+      "id": "F5",
+      "severity": "advisory",
+      "status": "new",
+      "location": "harness/changes/workflow-runner-fixture-isolation/tasks.md:59-61 (Task 1, 步骤3 预期说明)",
+      "summary": "Task 1 步骤3 的预期说明仍将当前（未修复）文件里真实 harness/changes/test-runner-smoke/ 被删除的原因归因于『脚本自身的 finally { cleanup() }』，但 Task 2 新增的『清理机制』专项（tasks.md:148-152）明确指出：pass()/fail() 均走 process.exit()，第86-88行的 finally 在该路径下不会执行，真正生效的是第51行的 process.on('exit', cleanup)。这是同一份 tasks.md 内部关于同一段现有代码行为的自相矛盾表述。",
+      "failure_scenario": "不影响 Task 1 实际要执行的命令与预期可观察结果（该目录届时确实已被删除，只是机制归因写错），因此不构成执行风险，但下游读者若对照 Task 1 与 Task 2 两处说明会发现明显矛盾，可能产生不必要的困惑或怀疑其他技术论断的可信度。建议顺手把 tasks.md:59-61 的归因从『finally { cleanup() }』改成『process.on('exit', cleanup)』，与 Task 2 的准确表述保持一致。不阻断当前 verdict。"
+    }
+  ],
+  "evidence": [
+    "重新阅读修订后的 harness/changes/workflow-runner-fixture-isolation/tasks.md 全文",
+    "逐条比对此前 F1-F4 四项 block/advisory finding 的修正文字与原始 workflow-runner-smoke.mjs / workflow-decision-smoke.mjs 源码结论是否一致",
+    "确认 F1 的修正文字与 workflow-runner-smoke.mjs:53-85 的实际共享执行路径一致",
+    "确认 F2 的存在性分支逻辑（tasks.md:31-45/62-72/73-86）能正确处理 ACTIVE_CHANGE 缺失的边界情况",
+    "确认 F3 的『清理机制』专项（tasks.md:144-186）准确复述了此前现场实测的 process.exit()/finally 结论与 /tmp 残留证据，且给出了不依赖猜测的具体实现路径与独立验收步骤",
+    "确认 F4 的说明段落（tasks.md:238-242）已采纳",
+    "发现 F5：Task 1 步骤3（tasks.md:59-61）与 Task 2 新增专项（tasks.md:148-152）对同一段现有代码『谁真正执行了 cleanup』存在自相矛盾的归因，判定为不阻断执行的文字性 advisory"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

@@ -1,0 +1,18 @@
+{
+  "changeId": "red-task-fixture-decoupling",
+  "reviewerId": "design-reviewer",
+  "verdict": "advisory",
+  "findings": [
+    "[ADVISORY] 设计未显式处理专用 fixture 内嵌真实 changeId 的一致性问题：当前唯一候选 fixture `harness/plugin/runtime/test/fixtures/red-task-missing-proof/state.json` 仍写死 `gate-hardening-semantics`。就当前 runtime 而言功能上足够驱动 pre-write 的 BLOCK/PASS 路径，但若直接复用而不改写 `changeId`，会留下 synthetic fixture 目录名与 state.json 内容不一致的 durable state。建议在进入 plan/TDD 前明确：注入 fixture 时同步把 `fixtureState.changeId` 改成 synthetic changeId，或新建 dedicated fixture state 文件。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/fixtures/red-task-missing-proof/state.json:3",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/gates.mjs:4-15",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/pre-write.mjs:47-73",
+    "/home/wula/IdeaProjects/sdd/harness/changes/red-task-fixture-decoupling/design.md:76-87",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lifecycle.mjs:222-229",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/test/gate-hardening-fixture-guard-smoke.mjs:15-35"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

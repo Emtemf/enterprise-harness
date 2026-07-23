@@ -1,0 +1,26 @@
+{
+  "changeId": "openapi-contract-check-generalization",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 上一轮唯一 blocker 已解除：design.md 现采用 `cd \"$ROOT\" && find . ... -prune ... -name openapi -print` 的 shell 方案，黑名单匹配仅作用于相对 root 之后的路径片段，不再受 `$ROOT` 自身绝对路径中出现 `build`/`target` 等词影响。已独立实测：当 ROOT 位于 `<tmp>/build/reference-service` 下时，修正后命令能正确发现合法 `openapi` 目录，同时仍正确排除 `target/generated/openapi`。",
+    "[INFO] design.md 对现状源码（checks.mjs 两个函数、post-write.mjs/verify.mjs 调用点、两个 shell 脚本与 full-verify.sh 的调用关系、full-verify.sh 未接入自动化管线）的描述经独立复核仍准确。",
+    "[ADVISORY] Testing Strategy 已足够进入 plan；若后续想再增强，可把 shell 回归里的 `$ROOT` 自身路径含 `build`/`target` 词段场景再显式写成一条单独测试说明，但这不阻断进入 plan。"
+  ],
+  "evidence": [
+    "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/change.md",
+    "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/design.md",
+    "/home/wula/IdeaProjects/sdd/harness/changes/openapi-contract-check-generalization/evidence/openapi-contract-generalization-exploration.md",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/checks.mjs",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/lib/gates.mjs",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/hooks/post-write.mjs",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify.mjs",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify-scripts/validate-openapi.sh",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh",
+    "/home/wula/IdeaProjects/sdd/harness/plugin/runtime/verify-scripts/full-verify.sh",
+    "/home/wula/IdeaProjects/sdd/.claude/rules/60-api-contract.md",
+    "/home/wula/IdeaProjects/sdd/CLAUDE.md"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

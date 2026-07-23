@@ -1,0 +1,20 @@
+{
+  "changeId": "gate-tightening-skeleton",
+  "reviewerId": "plan-critic",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 原 block finding（Task 5 遗漏 4 个直接 spawn 本次被改 hook/函数的既有 smoke，且把 `cli.mjs verify` 误当成'全量 smoke'）已修正：tasks.md:277-336 现在在 Files/Produces/Implementation Order/Acceptance Checks 四处一致列出 5 个既有 smoke（`gate-hardening-design-gate-smoke.mjs`/`gate-hardening-red-task-smoke.mjs`/`gate-hardening-validation-digest-smoke.mjs`/`plugin-native-hooks-smoke.mjs`/`non-harness-entry-smoke.mjs`），移除了无关的 `mandatory-gate-contract-smoke.mjs`。已用 `grep -ln \"'pre-write.mjs'\\|'post-write.mjs'\" *.mjs` 复核，确认这就是仓库内真实 spawn 到 `pre-write.mjs`/`post-write.mjs` 的全部既有测试文件，没有遗漏，`session-contract-surface-smoke.mjs`/`workflow-state-consumption-smoke.mjs` 确认与本次改动无关（此前宽泛 grep 的假阳性）。",
+    "[RESOLVED] `cli.mjs verify` 的表述已改为'结构/契约检查'（tasks.md:296/308/316），并显式写明 verify.mjs 只跑 checks.mjs 的 validate* 函数、不会 spawn 任何 test/*.mjs，仓库当前无聚合 smoke runner，9 条命令需逐一单独执行，且要求 validation.md 记录这一事实（tasks.md:309/336）。与实测的 verify.mjs/cli.mjs 源码行为一致，不再有事实性夸大。",
+    "[RESOLVED] Task 4 Test-first Order 第 3 项（tasks.md:236/241）已从模糊的'确认 validateStructure 仍正常执行'改为具体可执行的断言方式：临时项目具备 harness/changes + harness/specs（isHarnessManaged=true）但故意不创建 requiredPaths() 要求的 AGENTS.md，断言输出包含对应的 `file:AGENTS.md` 报错（与 post-write.mjs:35 的 `validateStructure(root).map((m) => \\`${m.kind}:${m.path}\\`)` 拼接格式完全对应）。这是低成本、无需复刻全量 requiredPaths() 清单即可验证的具体断言，消除了此前'完整复刻清单 vs 断言单条消息'的粒度分歧。",
+    "[ACKNOWLEDGED，非阻断] design-reviewer.json 记录内容滞后于 design.md 最终算法版本一事，design.md 的 Design Self-Review 已经在最初版本里就显式记录了两轮修正历史与'原 blocking finding 已解决、本次是在 pass 基础上的主动加固、无需重新触发 review'的说明；该项此前即被本审查标注为 advisory/供追溯，不构成阻断条件，维持原判断，无需在本轮进一步处理。",
+    "[minor / 不影响 verdict] Task 5 关于 `gate-hardening-design-gate-smoke.mjs` 的描述（tasks.md:282）写'需确认本 change 给 state.json 新增的字段不影响其既有断言'——已核实本 change 实际不修改任何 change 的 state.json schema（只改 gates.mjs/checks.mjs/pre-write.mjs/post-write.mjs 四个运行时源码文件），该表述略有夸大，但不影响任务可执行性（下游只需照常运行该 smoke 并确认 GREEN），不构成阻断，建议后续顺手把措辞改成'确认该 smoke 对 gate-tightening-skeleton/state.json 的读取/清理逻辑不受本次运行时代码改动影响'会更精确。"
+  ],
+  "evidence": [
+    "重新阅读 harness/changes/gate-tightening-skeleton/tasks.md 全文（350 行），逐条核对 Task 5 的 Files（279-286）、Produces（291-296）、Implementation Order（298-309）、Acceptance Checks（328-336）四处，确认均一致列出同一份 5 个既有 smoke 清单，且都明确区分'既有 smoke 需逐一运行'与'cli.mjs verify 是结构/契约检查'两类不同性质的验证。",
+    "在 harness/plugin/runtime/test/ 下执行 `grep -ln \"'pre-write.mjs'\\|'post-write.mjs'\\|pre-write\\.mjs\\|post-write\\.mjs\" *.mjs`，结果精确为 gate-hardening-validation-digest-smoke.mjs / non-harness-entry-smoke.mjs / gate-hardening-red-task-smoke.mjs / plugin-native-hooks-smoke.mjs 四个文件，加上专门核对 gate-tightening-skeleton/state.json 清理逻辑的 gate-hardening-design-gate-smoke.mjs，与 tasks.md 当前列出的 5 个既有 smoke 完全对应，无遗漏、无多余。",
+    "核对 tasks.md:241 的断言目标字符串 `file:AGENTS.md` 与 harness/plugin/runtime/hooks/post-write.mjs:35（`validateStructure(root).map((m) => \\`${m.kind}:${m.path}\\`)`）及 lib/checks.mjs:117-131（validateStructure 对缺失文件 push `{kind:'file', path: rel}`）的实际输出格式手工推演一致，断言可执行、无需猜测。",
+    "重新核对 tasks.md:296/308/309/316 关于 cli.mjs verify 性质的表述，与此前已实测确认的 verify.mjs（仅 import 并调用 checks.mjs 的 6 个 validate* 函数、不 spawn test/*.mjs）及 cli.mjs:17 路由表一致，无新的事实偏差。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

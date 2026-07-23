@@ -1,0 +1,19 @@
+{
+  "changeId": "gate-tightening-skeleton",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 原 block（validation.md 对 cli.mjs verify 第 9 条命令的表述未说明时序：该记录采集于 state 被置为 REVIEWED 之前，独立重跑一度复现 FAIL）已解决：validation.md 新增『时序说明』段落准确复述根因（checks.mjs:307 的 REVIEWED/VALIDATED fresh-validation 规则、post-write.mjs 自我标记 stale 机制），并已执行 `cli.mjs lifecycle validated gate-tightening-skeleton` 计算新鲜 digest；重新独立核对 state.json 现为 state=VALIDATED、validation.status=fresh、digest 非空、validatedAt=2026-07-22。",
+    "[RESOLVED] 原 block 关联项（6 个未披露的连带失败测试：doctor-hooks-contract-smoke.mjs / gate-hardening-review-validation-smoke.mjs / runtime-readiness-contract-smoke.mjs / session-contract-surface-smoke.mjs / stage-guidance-smoke.mjs / workflow-execution-status-smoke.mjs）已在 validation.md 中如实披露并标注根因（与本次运行时代码改动无关，已用 git stash 隔离验证）。本轮重新执行确认：这 6 个测试目前仍失败，但失败原因已从『REVIEWED requires fresh validation』收窄为统一的『block verdict prevents VALIDATED』——与本 verdict 文件本身的 block 状态直接对应，预期在本 verdict 更新为 pass 后一并转绿；该收尾确认应作为独立于本文件的只读确认动作记录在对话/交付说明中。",
+    "[非阻断/确认无问题，沿用第一轮结论] 4 个新增测试的 RED 证据真实（git stash 隔离复核）、5 个既有回归 smoke 均真实通过、reference-service 向后兼容证据充分（新增单测 3 组 + pre-write 场景 D + 既有 gate-hardening-red-task-smoke.mjs 三条独立证据链）、既有 smoke 覆盖范围完整无遗漏、state.json 的 approvals/gates/workflow 与两份 reviewer verdict 文件相互一致，未发现造假或遗漏字段。"
+  ],
+  "evidence": [
+    "重新执行 node harness/plugin/runtime/cli.mjs verify --json：contractChecks.problems 仅剩一条 `reviews/verification-reviewer.json: block verdict prevents VALIDATED`，其余此前的 REVIEWED/stale 问题已清零。",
+    "读取 harness/changes/gate-tightening-skeleton/state.json：确认 state=VALIDATED，validation={status:fresh, digest:非空, validatedAt:2026-07-22}。",
+    "重新逐一执行此前发现的 6 个连带失败测试：仍为非 0 退出，但输出均指向同一根因（本 verdict 文件的 block 状态），与 validation.md 新增的『时序说明』段落描述一致，未发现新的、无法解释的失败模式。",
+    "核对 harness/changes/gate-tightening-skeleton/validation.md 的『时序说明』与『Review Verdicts』章节：内容与本 reviewer 第一轮 block finding 的根因分析及证据链一致，无失真。",
+    "grep harness/plugin/runtime/lib/checks.mjs:376 确认『block verdict prevents ${state.state}』的判定逻辑，证实一旦本文件 verdict 改为 pass，该项检查会随之清零。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

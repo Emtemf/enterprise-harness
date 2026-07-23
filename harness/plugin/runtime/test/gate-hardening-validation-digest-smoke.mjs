@@ -177,12 +177,7 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const { tempRoot, repoCopy } = createTempRepo();
 try {
-  const skeletonStatePath = path.join(repoCopy, 'harness', 'changes', 'gate-tightening-skeleton', 'state.json');
-  if (fs.existsSync(skeletonStatePath)) {
-    const skeletonState = readJson(skeletonStatePath);
-    delete skeletonState.gates;
-    writeJson(skeletonStatePath, skeletonState);
-  }
+  fs.rmSync(path.join(repoCopy, 'harness', 'changes'), { recursive: true, force: true });
 
   const { changeId, statePath, changePath } = createChange(repoCopy);
   const callerDigest = 'caller-supplied-digest';

@@ -1,0 +1,22 @@
+{
+  "changeId": "gate-tightening-skeleton",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 原 blocking finding（黑名单只检查首段，导致多模块嵌套生成物目录如 order-service/target/generated-sources/annotations/src/main/java/Foo.java 被漏判为受治理 main 路径）已修正：Flow / State Changes 第 3 步改为 `segments.some(s => BLOCKLIST.has(s))` 遍历全体 segments，并显式写明黑名单检查须先于第 4/5/6 步子序列匹配执行、命中即短路返回 null 的算法顺序。Testing Strategy 同步新增该边界路径的单测，明确断言返回 null，不再是'待实现时确认'的开放问题。Risks #1 措辞同步更新。核对 design.md 第 95-109 行、137 行，确认修正到位、逻辑自洽。",
+    "[RESOLVED] 原 advisory（validateReviewVerdicts 早退机制描述不准确）已修正：Current-State Evidence 第 16 行现在准确描述为'没有顶层 existsSync 早退，而是无条件读取 harness/templates/review-verdict.json 并靠 readReviewVerdictFile 内部及函数体内两处 if (fs.existsSync(changesDir)) 保护'，与 checks.mjs:375-406 实际源码一致。",
+    "[RESOLVED] 原 advisory/info（verify.mjs 是独立调用链未被提及）已修正：Current-State Evidence 第 17 行新增说明 verify.mjs 与 post-write.mjs 是两条独立调用链、不经过 isHarnessManaged/hasChangeTracking 判定、本次改动不需要也不应该触碰。",
+    "[ADVISORY / 未阻断，建议后续小幅补充] 黑名单检查从'只查首段'改为'遍历全体 segments'后，修复了漏判风险，但引入了相反方向的新残余风险：若目标项目的 Java 包路径中恰好包含与黑名单同名的目录段（如业务包名 `com.acme.target.service` 或 `com.acme.build.pipeline`，对应目录 src/main/java/com/acme/target/...），会被整段误判为不受治理，导致本应受 designApproved/RED 保护的业务代码被静默放行——这是治理工具场景下更需要谨慎对待的方向（漏保护 vs 误拦截，后者只是体验噪音，前者是治理失效）。当前 design.md 的 Risks #1 与 Testing Strategy 均只覆盖了'黑名单误伤合法路径'方向的用例，未显式覆盖'黑名单导致合法 governed 路径被误判为不受治理'这一新方向的边界用例（例如 src/main/java/com/acme/target/OrderService.java 应该仍被判定为受治理 main 路径）。建议在 plan/TDD 阶段补一条单测锁定'黑名单词只应匹配典型生成物根目录语境，不应吞掉业务包名恰好同名的情况'——如当前设计选择接受这一低概率残余风险，也可仅在 Risks 中显式补一句说明并保持 waiver 式的可追溯记录，不必阻断本次进入 plan。",
+    "[ADVISORY / 未阻断，历史遗留未处理项] openapi 探测为 segments 任意位置命中单段 'openapi' 即判定为 openapi kind，可能对与契约无关但恰好命名为 openapi 的目录（如前端生成类型目录）产生误判；已被 Open Questions #3 部分覆盖，但未与 Risks #1 并列说明缓解方式，建议后续在 plan 或实现阶段视情况补充，非本轮阻断项。"
+  ],
+  "evidence": [
+    "重新核对 design.md 第 95-109 行（Flow / State Changes 第 3 步及其后的算法决策说明）：确认黑名单检查已改为 `segments.some(...)` 全量遍历，且明确规定检查顺序（黑名单先于子序列匹配、命中即短路），与此前 block finding 指出的问题一一对应解决。",
+    "重新核对 design.md 第 137 行 Testing Strategy 的 Unit 测试描述：确认新增 `order-service/target/generated-sources/annotations/src/main/java/Foo.java` 边界用例并要求断言返回 null，不再是'需在实现时确认'的未决表述。",
+    "重新核对 design.md 第 155 行 Risks #1：措辞已同步更新为'遍历 segments 全体'。",
+    "重新核对 design.md 第 16 行 Current-State Evidence 对 validateReviewVerdicts 的描述，与此前实际核对的 checks.mjs:375-406 源码（无顶层 existsSync 早退，靠内部/函数体两处 existsSync 保护）一致，措辞已修正。",
+    "重新核对 design.md 第 17 行新增的 verify.mjs 独立调用链说明，与此前核对的 verify.mjs:1-45 源码（无条件调用同批 validate* 函数、不经过 isHarnessManaged/hasChangeTracking）一致。",
+    "执行 `find reference-service/src -type d | grep -iE \"target|build|dist|out|node_modules|\\.git\"` 确认本仓库 reference-service demo 现有目录结构中不存在与黑名单同名的包/目录段，本次算法调整对现有向后兼容回归测试无已知冲突。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

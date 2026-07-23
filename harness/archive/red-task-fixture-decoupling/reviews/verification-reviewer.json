@@ -1,0 +1,20 @@
+{
+  "changeId": "red-task-fixture-decoupling",
+  "targetChange": "red-task-fixture-decoupling",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [
+    "[RESOLVED] 原 block（state=REVIEWED 且 validation.status=stale，独立重跑 `node harness/plugin/runtime/cli.mjs verify` 报 `REVIEWED requires fresh validation`）已解决：已执行 `node harness/plugin/runtime/cli.mjs lifecycle validated red-task-fixture-decoupling`，state.json 现为 state=VALIDATED、validation.status=fresh、validatedAt=2026-07-22、digest 非空。",
+    "[RESOLVED] validation.md 中与 fresh validation 收口时序相关的不一致已补充说明；fresh validation 之后，guard green、red-task smoke green 与 `cli.mjs verify` 已重新确认。",
+    "[CONFIRMED] guard smoke 已不再命中任何当前真实 changeId；`gate-hardening-red-task-smoke.mjs` 的 BLOCK/PASS 语义未被破坏；synthetic fixture 的 `changeId` 确实被改写；`gate-hardening-semantics` 已成功归档。"
+  ],
+  "evidence": [
+    "读取 state.json：确认 state=VALIDATED，validation.status=fresh，validatedAt=2026-07-22，digest=84329644ec8f66128066d2a81304e4a4a91b89a275b303d5e0e347226bfcb198。",
+    "独立重跑 `node harness/plugin/runtime/test/gate-hardening-red-task-fixture-guard-smoke.mjs green` 通过。",
+    "独立重跑 `node harness/plugin/runtime/test/gate-hardening-red-task-smoke.mjs green` 通过。",
+    "在本 verdict 仍为 block 时，`node harness/plugin/runtime/cli.mjs verify` 唯一剩余失败为 `reviews/verification-reviewer.json: block verdict prevents VALIDATED`；将本 verdict 更新为 pass 后，该剩余问题应清零。",
+    "文件系统状态确认 `harness/archive/gate-hardening-semantics/` 存在且 `harness/changes/gate-hardening-semantics/` 不存在。"
+  ],
+  "digest": null,
+  "reviewedAt": "2026-07-22"
+}

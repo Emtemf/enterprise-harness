@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { GOVERNANCE_BLOCKLIST } from './gates.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -18,6 +19,13 @@ export function exists(root, relPath) {
 export function isHarnessManaged(root) {
   return fs.existsSync(path.join(root, 'harness', 'changes'))
     && fs.existsSync(path.join(root, 'harness', 'specs'));
+}
+
+// Looser than isHarnessManaged: a target project that has started using `start-change`
+// (which only creates harness/changes/, not harness/specs/) should still get its change
+// artifact/evidence validated, even before it has authored any stable harness/specs/.
+export function hasChangeTracking(root) {
+  return fs.existsSync(path.join(root, 'harness', 'changes'));
 }
 
 export function requiredPaths() {
@@ -431,18 +439,61 @@ export function activeChangeInfo(root) {
   return { ok: changeId.length > 0, message: changeId || 'ACTIVE_CHANGE 为空。' };
 }
 
+function findOpenApiYamlFiles(root) {
+  const results = [];
+  const seen = new Set();
+
+  function visit(dir, depth) {
+    if (depth > 12) return;
+
+    const resolvedDir = path.resolve(dir);
+    if (seen.has(resolvedDir)) return;
+    seen.add(resolvedDir);
+
+    let entries;
+    try {
+      entries = fs.readdirSync(resolvedDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    const dirName = path.basename(resolvedDir);
+    if (dirName === 'openapi') {
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+        if (!entry.name.endsWith('.yaml') && !entry.name.endsWith('.yml')) continue;
+        results.push(path.join(resolvedDir, entry.name));
+      }
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (GOVERNANCE_BLOCKLIST.has(entry.name)) continue;
+      visit(path.join(resolvedDir, entry.name), depth + 1);
+    }
+  }
+
+  visit(root, 0);
+  return results;
+}
+
 export function validateOpenApiLight(root) {
-  const file = path.join(root, 'reference-service', 'openapi', 'order-service.yaml');
-  if (!fs.existsSync(file)) return [];
-  const text = fs.readFileSync(file, 'utf-8');
+  const files = findOpenApiYamlFiles(root);
   const errors = [];
-  for (const pattern of [/^openapi:/m, /^paths:/m, /^components:/m]) {
-    if (!pattern.test(text)) errors.push(`openapi:${pattern.toString()}`);
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf-8');
+    const relPath = normalizeDigestPath(path.relative(root, file));
+    for (const pattern of [/^openapi:/m, /^paths:/m, /^components:/m]) {
+      if (!pattern.test(text)) errors.push(`openapi:${relPath}:${pattern.toString()}`);
+    }
   }
   return errors;
 }
 
-export function validateControllerConsistency(root) {
+// 注意：这是 reference-service 自身的 demo 回归检查（硬编码 OrderCancellationController 的路径/注解语义），
+// 不是通用的任意项目 OpenAPI-Controller 交叉一致性校验器。真正的通用校验器需要解析任意 OpenAPI `paths`
+// 与任意 Spring `@RequestMapping`/`@GetMapping`/... 注解并做双向比对，是独立的、更大的后续 initiative。
+export function validateReferenceServiceControllerConsistency(root) {
   const yamlFile = path.join(root, 'reference-service', 'openapi', 'order-service.yaml');
   const controllerFile = path.join(root, 'reference-service', 'src', 'main', 'java', 'com', 'example', 'orders', 'interfaces', 'api', 'OrderCancellationController.java');
   if (!fs.existsSync(yamlFile) || !fs.existsSync(controllerFile)) return [];

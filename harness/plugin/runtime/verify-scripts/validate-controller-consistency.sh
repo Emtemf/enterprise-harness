@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "$0")/../../../.." && pwd)"
+# 注意：该脚本文件名刻意保持不变（避免牵连 full-verify.sh 与 CLAUDE.md 的文件名引用），
+# 但其语义范围仅限 reference-service 自身回归检查，不是通用的任意项目
+# OpenAPI-Controller 交叉一致性校验器。
 YAML_FILE="$ROOT/reference-service/openapi/order-service.yaml"
 CONTROLLER_FILE="$ROOT/reference-service/src/main/java/com/example/orders/interfaces/api/OrderCancellationController.java"
 

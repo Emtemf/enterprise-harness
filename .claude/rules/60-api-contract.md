@@ -39,7 +39,12 @@
 
 ## 当前 MVP 过渡说明
 
-现有 hook 仍以轻量 marker 检查为主，但这不是最终门禁能力。后续必须替换为真实 OpenAPI parser / validator。
+现有 hook / verify 仍以轻量检查为主，但能力已分化：
+
+- `validateOpenApiLight` / `validate-openapi.sh`：已泛化为**任意 `openapi/` 目录下 YAML 文件**的基础结构检查（`openapi:` / `paths:` / `components:` 顶层 key）
+- `validateReferenceServiceControllerConsistency` / `validate-controller-consistency.sh`：仍仅是 **`reference-service` 自身** 的 demo 回归检查，不是通用的任意项目 OpenAPI-Controller 交叉一致性校验器
+
+这仍然不是最终企业级门禁能力。后续若要覆盖任意项目的 controller/OpenAPI 交叉一致性，必须引入真实 OpenAPI parser / validator 与 Spring 注解解析，而不是继续堆硬编码字符串检查。
 
 ## 禁止事项
 
