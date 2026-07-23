@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency } from './lib/checks.mjs';
+import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from './lib/checks.mjs';
 
 const root = projectRoot();
 
@@ -38,6 +38,7 @@ const problems = [
   ...validateVersionConsistency(root),
   ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
   ...validateOpenApiLight(root),
+  ...validateGenericControllerConsistency(root),
   ...validateReferenceServiceControllerConsistency(root),
   ...validateArtifactStates(root),
   ...validateReviewVerdicts(root),

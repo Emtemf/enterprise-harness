@@ -490,6 +490,206 @@ export function validateOpenApiLight(root) {
   return errors;
 }
 
+// ── Generic OpenAPI ↔ Controller Consistency Checker ──
+
+function findJavaControllerFiles(root) {
+  const results = [];
+  const seen = new Set();
+
+  function visit(dir, depth) {
+    if (depth > 12) return;
+    const resolvedDir = path.resolve(dir);
+    if (seen.has(resolvedDir)) return;
+    seen.add(resolvedDir);
+
+    let entries;
+    try { entries = fs.readdirSync(resolvedDir, { withFileTypes: true }); } catch { return; }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        if (entry.isFile() && entry.name.endsWith('Controller.java')) {
+          results.push(path.join(resolvedDir, entry.name));
+        }
+        continue;
+      }
+      if (GOVERNANCE_BLOCKLIST.has(entry.name)) continue;
+      visit(path.join(resolvedDir, entry.name), depth + 1);
+    }
+  }
+
+  visit(root, 0);
+  return results;
+}
+
+/**
+ * 解析 OpenAPI YAML，提取所有 paths + methods + request/response schema 名。
+ * 使用 regex 提取，不依赖外部 YAML parser。
+ * 返回 Map<path, Map<method, { requestBody?: string, responseSchemas: string[] }>>
+ */
+function parseOpenApiPaths(yamlText) {
+  const result = new Map();
+
+  // 按路径分割 YAML：找到顶层 paths 下的每个 /path: 块
+  // 匹配格式：  /some/path:  （两个空格缩进 + 路径 + 冒号）
+  const lines = yamlText.split('\n');
+  let currentPath = null;
+  let currentMethod = null;
+  let inPaths = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // 检测 paths: 顶层 key
+    if (/^paths:\s*$/.test(line)) {
+      inPaths = true;
+      continue;
+    }
+
+    if (!inPaths) continue;
+
+    // 顶层 key 切换（如 components:）→ 退出 paths 区域
+    if (/^[a-z]/.test(line) && !/^\s/.test(line) && line.trim().length > 0) {
+      inPaths = false;
+      currentPath = null;
+      currentMethod = null;
+      continue;
+    }
+
+    // 检测路径行：  /api/orders/{orderId}/cancel:
+    const pathMatch = line.match(/^  (\/\S+):\s*$/);
+    if (pathMatch) {
+      currentPath = pathMatch[1];
+      currentMethod = null;
+      if (!result.has(currentPath)) result.set(currentPath, new Map());
+      continue;
+    }
+
+    if (!currentPath) continue;
+
+    // 检测方法行：    get: / post: / put: / delete: / patch:
+    const methodMatch = line.match(/^    (get|post|put|delete|patch|head|options):\s*$/);
+    if (methodMatch) {
+      currentMethod = methodMatch[1];
+      result.get(currentPath).set(currentMethod, { requestBody: null, responseSchemas: [] });
+      continue;
+    }
+
+    if (!currentMethod) continue;
+
+    // 在当前 method 块内提取 requestBody schema $ref
+    const schemaRefMatch = line.match(/\$ref:\s*['"]?#\/components\/schemas\/(\w+)['"]?/);
+    if (schemaRefMatch) {
+      const entry = result.get(currentPath).get(currentMethod);
+      if (!entry.requestBody) {
+        entry.requestBody = schemaRefMatch[1];
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 解析 Java Controller 源码，提取 class-level @RequestMapping + method-level @XxxMapping。
+ * 返回 Map<fullPath, Map<method, { source: string }>>
+ */
+function parseControllerMappings(javaText) {
+  const result = new Map();
+
+  // 提取 class-level @RequestMapping("...")
+  const classMappingMatch = javaText.match(/@RequestMapping\s*\(\s*"([^"]+)"\s*\)/);
+  const basePath = classMappingMatch ? classMappingMatch[1] : '';
+
+  // 提取方法级 @XxxMapping("...")
+  const methodPatterns = [
+    { method: 'get', regex: /@GetMapping\s*\(\s*"([^"]+)"\s*\)/g },
+    { method: 'post', regex: /@PostMapping\s*\(\s*"([^"]+)"\s*\)/g },
+    { method: 'put', regex: /@PutMapping\s*\(\s*"([^"]+)"\s*\)/g },
+    { method: 'delete', regex: /@DeleteMapping\s*\(\s*"([^"]+)"\s*\)/g },
+    { method: 'patch', regex: /@PatchMapping\s*\(\s*"([^"]+)"\s*\)/g },
+    // @RequestMapping + method=RequestMethod.XXX（method-level）
+    { method: 'request', regex: /@RequestMapping\s*\(\s*(?:value\s*=\s*)?"([^"]+)"\s*,\s*method\s*=\s*RequestMethod\.(GET|POST|PUT|DELETE|PATCH)\s*\)/g },
+  ];
+
+  for (const { method, regex } of methodPatterns) {
+    let match;
+    while ((match = regex.exec(javaText)) !== null) {
+      const methodPath = match[1];
+      const fullPath = basePath + methodPath;
+      let effectiveMethod = method;
+      if (method === 'request' && match[2]) {
+        effectiveMethod = match[2].toLowerCase();
+      }
+      if (!result.has(fullPath)) result.set(fullPath, new Map());
+      result.get(fullPath).set(effectiveMethod, { source: 'controller' });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 通用 OpenAPI ↔ Controller 一致性检查器。
+ * 扫描项目中所有 openapi/*.yaml 与 *Controller.java，做 path + method 对齐校验。
+ *
+ * 返回 error 字符串数组，空数组表示一致或无内容可检查。
+ */
+export function validateGenericControllerConsistency(root) {
+  const yamlFiles = findOpenApiYamlFiles(root);
+  const javaFiles = findJavaControllerFiles(root);
+  if (yamlFiles.length === 0 || javaFiles.length === 0) return [];
+
+  // 收集所有 YAML paths + methods
+  const yamlPaths = new Map();
+  for (const file of yamlFiles) {
+    const text = fs.readFileSync(file, 'utf-8');
+    const relPath = normalizeDigestPath(path.relative(root, file));
+    const paths = parseOpenApiPaths(text);
+    for (const [p, methods] of paths) {
+      for (const [m, info] of methods) {
+        const key = `${p} ${m}`;
+        yamlPaths.set(key, { file: relPath, ...info });
+      }
+    }
+  }
+
+  // 收集所有 Controller paths + methods
+  const controllerPaths = new Map();
+  for (const file of javaFiles) {
+    const text = fs.readFileSync(file, 'utf-8');
+    const relPath = normalizeDigestPath(path.relative(root, file));
+    const paths = parseControllerMappings(text);
+    for (const [p, methods] of paths) {
+      for (const [m, info] of methods) {
+        const key = `${p} ${m}`;
+        controllerPaths.set(key, { file: relPath, ...info });
+      }
+    }
+  }
+
+  if (yamlPaths.size === 0 || controllerPaths.size === 0) return [];
+
+  const errors = [];
+
+  // YAML 里有但 Controller 里没有的 path+method
+  for (const [key, yamlInfo] of yamlPaths) {
+    if (!controllerPaths.has(key)) {
+      const [p, m] = key.split(' ');
+      errors.push(`openapi-controller:path-missing-in-controller:${yamlInfo.file}:${m.toUpperCase()} ${p}`);
+    }
+  }
+
+  // Controller 里有但 YAML 里没有的 path+method
+  for (const [key, ctrlInfo] of controllerPaths) {
+    if (!yamlPaths.has(key)) {
+      const [p, m] = key.split(' ');
+      errors.push(`openapi-controller:method-missing-in-openapi:${ctrlInfo.file}:${m.toUpperCase()} ${p}`);
+    }
+  }
+
+  return errors;
+}
+
 // 注意：这是 reference-service 自身的 demo 回归检查（硬编码 OrderCancellationController 的路径/注解语义），
 // 不是通用的任意项目 OpenAPI-Controller 交叉一致性校验器。真正的通用校验器需要解析任意 OpenAPI `paths`
 // 与任意 Spring `@RequestMapping`/`@GetMapping`/... 注解并做双向比对，是独立的、更大的后续 initiative。

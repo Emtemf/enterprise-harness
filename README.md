@@ -124,7 +124,6 @@ node bin/install.mjs --target /path/to/your/project
 
 ### 什么还没实现
 
-- 通用 OpenAPI ↔ Controller 交叉校验器（当前只做结构检查）
 - ArchUnit 架构门禁
 - JaCoCo 覆盖率机械检查
 - 真实 HTTP API E2E

@@ -2,6 +2,17 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.16]
+
+### Added
+
+- **通用 OpenAPI ↔ Controller 一致性检查器**（`validateGenericControllerConsistency`）：自动扫描任意项目的 `openapi/*.yaml` 与 `*Controller.java`，比对 path + HTTP method 对齐，检测 OpenAPI 契约与 Spring Controller 之间的漂移。已集成到 post-write hook（写后自动检查）和 `cli verify`（契约检查入口）。regex 实现，不依赖外部 YAML/Java parser。reference-service demo 仍作为回归验证用例。
+- `openapi-controller-consistency-smoke.mjs`：5 个 fixture 场景（aligned / path-mismatch / method-mismatch / no-openapi / no-controllers）+ reference-service 回归，覆盖 RED/GREEN/verify。
+
+### Fixed
+
+- `validateReferenceServiceControllerConsistency` 注释已明确标注为 demo-only；通用能力由新函数承担。
+
 ## [0.1.15]
 
 ### Fixed

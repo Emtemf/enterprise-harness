@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency } from '../lib/checks.mjs';
+import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from '../lib/checks.mjs';
 import path from 'node:path';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
 
@@ -49,6 +49,7 @@ if (problems.length) {
 }
 const semanticProblems = [
   ...validateOpenApiLight(root),
+  ...validateGenericControllerConsistency(root),
   ...validateReferenceServiceControllerConsistency(root),
 ];
 if (semanticProblems.length) {
