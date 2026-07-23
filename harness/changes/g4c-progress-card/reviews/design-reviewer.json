@@ -1,0 +1,20 @@
+{
+  "changeId": "g4c-progress-card",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [
+    {
+      "severity": "info",
+      "summary": "G4C 卡渲染逻辑清晰，纯函数易测试，三处复用同一渲染源"
+    },
+    {
+      "severity": "info",
+      "summary": "state.json 新增字段均为可选，向后兼容，缺失降级不 BLOCK"
+    }
+  ],
+  "evidence": [
+    "design.md 覆盖 scope/non-goals/options/affected layers/testing strategy",
+    "卡片紧凑 ≤20 行，不刷屏"
+  ],
+  "reviewedAt": "2026-07-23"
+}

@@ -57,7 +57,7 @@ check('schemaVersion upgraded to 2', () => {
 
     const result = loadActiveChange(root);
     if (!result.ok) throw new Error(`loadActiveChange failed: ${result.reason}`);
-    if (result.data.schemaVersion !== 2) throw new Error(`expected schemaVersion 2, got ${result.data.schemaVersion}`);
+    if (result.data.schemaVersion !== 3) throw new Error(`expected schemaVersion 3, got ${result.data.schemaVersion}`);
   });
 });
 
@@ -139,13 +139,13 @@ check('disk state.json persisted after migration', () => {
 
     loadActiveChange(root);
     const diskData = JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8'));
-    if (diskData.schemaVersion !== 2) throw new Error(`disk schemaVersion not updated: ${diskData.schemaVersion}`);
+    if (diskData.schemaVersion !== 3) throw new Error(`disk schemaVersion not updated: ${diskData.schemaVersion}`);
     if (!diskData.workflow) throw new Error('disk workflow not written');
   });
 });
 
-// Test 6: state already at version 2 should NOT be re-migrated
-check('version 2 state not re-migrated', () => {
+// Test 6: state at version 2 should be migrated to v3 (G4C fields)
+check('version 2 state migrated to v3 with G4C fields', () => {
   withTempRoot((root) => {
     const changeDir = path.join(root, 'harness', 'changes', 'v2-change');
     fs.mkdirSync(changeDir, { recursive: true });
@@ -170,9 +170,12 @@ check('version 2 state not re-migrated', () => {
 
     const result = loadActiveChange(root);
     if (!result.ok) throw new Error(`loadActiveChange failed: ${result.reason}`);
-    if (result.data.schemaVersion !== 2) throw new Error('schemaVersion should remain 2');
-    if (result.data.gates.redVerified !== true) throw new Error('redVerified should remain true for v2 state');
-    if (result.data.gates.redTask !== 'my-task') throw new Error('redTask should remain unchanged for v2 state');
+    if (result.data.schemaVersion !== 3) throw new Error(`expected schemaVersion 3, got ${result.data.schemaVersion}`);
+    if (result.data.goal !== null) throw new Error(`expected goal null, got ${result.data.goal}`);
+    if (!Array.isArray(result.data.successCriteria)) throw new Error('successCriteria should be array');
+    if (result.data.routingReason !== null) throw new Error(`expected routingReason null, got ${result.data.routingReason}`);
+    if (result.data.gates.redVerified !== true) throw new Error('redVerified should remain true');
+    if (result.data.gates.redTask !== 'my-task') throw new Error('redTask should remain unchanged');
   });
 });
 

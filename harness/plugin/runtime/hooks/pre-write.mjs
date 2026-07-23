@@ -3,8 +3,33 @@ import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
 import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
 import { inferWorkflowStage } from '../lib/workflow.mjs';
+import { renderG4CCard } from '../lib/g4c-card.mjs';
 
 const root = projectRoot();
+
+function blockWithCard(message) {
+  console.error(message);
+  try {
+    const active = loadActiveChange(root);
+    if (active.ok) {
+      const card = renderG4CCard(root, active.changeId, active.data);
+      console.error(card);
+    }
+  } catch {}
+  process.exit(2);
+}
+
+function blockGoverned(message, activeData) {
+  console.error(message);
+  try {
+    if (activeData) {
+      const card = renderG4CCard(root, activeData.changeId, activeData);
+      console.error(card);
+    }
+  } catch {}
+  process.exit(2);
+}
+
 const payload = process.stdin.read ? process.stdin.read() : '';
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -30,16 +55,13 @@ const pluginAgentSurface = new Set([
 ]);
 const archiveRoot = path.resolve(path.join(root, 'harness', 'archive'));
 if (target.startsWith(legacyRulesRoot + path.sep) || target === legacyRulesRoot) {
-  console.error(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyRulesRoot} 。当前自动加载层以 .claude/ 为准。`);
-  process.exit(2);
+  blockWithCard(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyRulesRoot} 。当前自动加载层以 .claude/ 为准。`);
 }
 if ((target.startsWith(legacyAgentsRoot + path.sep) || target === legacyAgentsRoot) && !pluginAgentSurface.has(target)) {
-  console.error(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyAgentsRoot} 。当前自动加载层以 .claude/ 为准。`);
-  process.exit(2);
+  blockWithCard(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyAgentsRoot} 。当前自动加载层以 .claude/ 为准。`);
 }
 if (target.startsWith(archiveRoot + path.sep) || target === archiveRoot) {
-  console.error('BLOCK: harness/archive/ 视为冻结历史，不允许直接编辑。');
-  process.exit(2);
+  blockWithCard('BLOCK: harness/archive/ 视为冻结历史，不允许直接编辑。');
 }
 const governedRoot = isGovernedTarget(root, target);
 if (!governedRoot && target.endsWith('.java')) {
@@ -48,58 +70,46 @@ if (!governedRoot && target.endsWith('.java')) {
 if (governedRoot) {
   const active = loadActiveChange(root);
   if (!active.ok) {
-    console.error('BLOCK: 修改受治理路径（src/main/java、src/test/java、openapi 等）前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
-    process.exit(2);
+    blockWithCard('BLOCK: 修改受治理路径（src/main/java、src/test/java、openapi 等）前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
   }
   const state = active.data;
   const current = state.state;
+  const data = { ...state, changeId: active.changeId };
   if (current === 'DRAFT') {
-    console.error('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改受治理路径。');
-    process.exit(2);
+    blockGoverned('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改受治理路径。', data);
   }
   if (current === 'ARCHIVED' || current === 'REJECTED') {
-    console.error(`BLOCK: 当前 active change 处于 ${current}，不能继续修改受治理路径。`);
-    process.exit(2);
+    blockGoverned(`BLOCK: 当前 active change 处于 ${current}，不能继续修改受治理路径。`, data);
   }
 
   // ── Stage-level artifact guards ──
-  // Each stage in clarify→route→design→plan→tdd requires specific artifacts to exist.
-  // If the model skips a stage and jumps to implementation, this catches it.
   const changeDir = path.join(root, 'harness', 'changes', active.changeId);
   const stage = inferWorkflowStage(active.changeId, state);
 
-  // clarify gate: requirements.md must exist, user must have confirmed scope
   if (stage === 'clarify') {
     const missing = [];
     if (!fs.existsSync(path.join(changeDir, 'requirements.md'))) missing.push('requirements.md');
     if (!state.workflow?.userConfirmedScope) missing.push('workflow.userConfirmedScope');
     if (missing.length > 0) {
-      console.error(`BLOCK: 当前仍处于 clarify 阶段，缺少: ${missing.join(', ')}。必须先完成需求澄清并获得用户确认，再修改受治理路径。`);
-      process.exit(2);
+      blockGoverned(`BLOCK: 当前仍处于 clarify 阶段，缺少: ${missing.join(', ')}。必须先完成需求澄清并获得用户确认，再修改受治理路径。`, data);
     }
   }
 
-  // route gate: tier must be set, state must have progressed beyond DISCOVERED
   if (stage === 'route') {
     if (!state.tier || !['L0', 'L1', 'L2', 'L3'].includes(state.tier)) {
-      console.error('BLOCK: 当前仍处于 route 阶段，tier 未设置。必须先完成路由决策，再修改受治理路径。');
-      process.exit(2);
+      blockGoverned('BLOCK: 当前仍处于 route 阶段，tier 未设置。必须先完成路由决策，再修改受治理路径。', data);
     }
   }
 
-  // design gate: design.md must exist
   if (stage === 'design') {
     if (!fs.existsSync(path.join(changeDir, 'design.md'))) {
-      console.error('BLOCK: 当前仍处于 design 阶段，design.md 不存在。必须先完成设计文档，再修改受治理路径。');
-      process.exit(2);
+      blockGoverned('BLOCK: 当前仍处于 design 阶段，design.md 不存在。必须先完成设计文档，再修改受治理路径。', data);
     }
   }
 
-  // plan gate: tasks.md must exist
   if (stage === 'plan') {
     if (!fs.existsSync(path.join(changeDir, 'tasks.md'))) {
-      console.error('BLOCK: 当前仍处于 plan 阶段，tasks.md 不存在。必须先完成任务拆分，再修改受治理路径。');
-      process.exit(2);
+      blockGoverned('BLOCK: 当前仍处于 plan 阶段，tasks.md 不存在。必须先完成任务拆分，再修改受治理路径。', data);
     }
   }
 
@@ -107,12 +117,10 @@ if (governedRoot) {
   const gate = requiredGateForTarget(root, target);
   const gates = state.gates || {};
   if (gate?.needsDesignApproved && !gates.designApproved) {
-    console.error('BLOCK: 当前目标路径需要 designApproved=true。请先完成设计并标记 design gate 通过。');
-    process.exit(2);
+    blockGoverned('BLOCK: 当前目标路径需要 designApproved=true。请先完成设计并标记 design gate 通过。', data);
   }
   if (gate?.needsRedVerified && !hasCurrentTaskRedVerification(state)) {
-    console.error('BLOCK: 当前目标路径需要 currentTask-scoped red verification。请先为当前 currentTask 记录 RED 证据，再修改生产源码或 OpenAPI。');
-    process.exit(2);
+    blockGoverned('BLOCK: 当前目标路径需要 currentTask-scoped red verification。请先为当前 currentTask 记录 RED 证据，再修改生产源码或 OpenAPI。', data);
   }
 }
 process.exit(0);

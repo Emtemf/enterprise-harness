@@ -1,6 +1,8 @@
 import { projectRoot, exists, isHarnessManaged } from '../lib/checks.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { highSeverityLessons } from '../lib/lessons.mjs';
+import { loadActiveChange } from '../lib/gates.mjs';
+import { renderG4CCard } from '../lib/g4c-card.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -69,6 +71,15 @@ console.log(`[Harness Workflow] 推荐恢复入口: ${recommendedEntry}`);
 console.log(`[Harness Workflow] 下一步动作: ${nextAction}`);
 console.log(`[Harness Workflow] 普通用户先看: ${summary.nextRead.join(' / ')}`);
 console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
+
+// G4C 进度卡
+try {
+  const active = loadActiveChange(root);
+  if (active.ok) {
+    const card = renderG4CCard(root, active.changeId, active.data);
+    console.log(`[Harness 进度卡]\n${card}`);
+  }
+} catch {}
 
 // 代码探索工具可用性提醒
 console.log('[Harness 工具提醒] 代码探索时请优先使用 codegraph_explore/codegraph_search 等 MCP 工具，不要用 grep/Read 替代。');

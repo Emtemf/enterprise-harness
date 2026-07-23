@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder } from './workflow.mjs';
+import { renderG4CCard } from './g4c-card.mjs';
 
 function readText(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
@@ -62,11 +63,19 @@ export function buildStatusSummary(root) {
   const progressText = readText(progressPath);
   const progressSnapshot = parseProgressSnapshot(progressText);
   const activeChange = activeChangeSummary(root);
+  let g4cCard = null;
+  if (activeChange.present) {
+    const active = loadActiveChange(root);
+    if (active.ok) {
+      try { g4cCard = renderG4CCard(root, active.changeId, active.data); } catch {}
+    }
+  }
   return {
     summaryVersion: 1,
     currentPhase: progressSnapshot.currentPhase,
     progressSnapshot,
     activeChange,
+    _g4cCard: g4cCard,
     nextStage: activeChange.present ? activeChange.workflowStage : null,
     recommendedEntry: '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
@@ -130,5 +139,7 @@ export function renderStatusSummary(summary) {
     ...summary.nextCommands.map((item) => `- ${item}`),
     '维护命令（如需排障）',
     ...summary.maintainerCommands.map((item) => `- ${item}`),
+    '',
+    ...(summary.activeChange.present && summary._g4cCard ? ['G4C 进度卡', summary._g4cCard] : []),
   ].filter(Boolean).join('\n');
 }

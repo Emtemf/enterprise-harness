@@ -2,6 +2,14 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.19]
+
+### Added
+
+- **G4C 进度卡**：新增 `renderG4CCard()` 纯函数，把变更进度渲染成 Goal / Context / Choice / Checkpoint(阶梯) / Correction 五维可视化卡片。三处统一回显：`cli.mjs status`、`session-start`、`pre-write` BLOCK 路径。
+- `state.json` schema v3：新增可选字段 `goal`（目标）、`successCriteria`（成功标准）、`routingReason`（路由理由），旧 state 自动迁移补齐默认值。
+- `state-migration.mjs` 新增 `migrateStateV2ToV3`：v2→v3 链式迁移，补 G4C 字段。
+
 ## [0.1.18]
 
 ### Fixed

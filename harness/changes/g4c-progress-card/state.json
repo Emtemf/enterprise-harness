@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 3,
+  "changeId": "g4c-progress-card",
+  "tier": "L2",
+  "state": "DESIGN_APPROVED",
+  "owner": "wula",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "renderG4CCard",
+        "status-summary",
+        "session-start"
+      ],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "not-needed",
+      "libraries": []
+    }
+  },
+  "decisions": [
+    {
+      "id": "rendering-approach",
+      "decision": "单一纯函数 renderG4CCard()，三处复用同一张卡"
+    },
+    {
+      "id": "schema-extension",
+      "decision": "state.json 新增 goal/successCriteria/routingReason，可选字段，缺失降级不 BLOCK"
+    }
+  ],
+  "blockers": [],
+  "approvals": {
+    "design": {
+      "status": "pass",
+      "reviewedAt": "2026-07-23"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "goal": "将 BLOCK/STATUS/STOP 三处反馈统一成 G4C 可见进度卡，让用户任何时刻都知道目标、走到哪、为什么被拦、怎么恢复",
+  "successCriteria": [
+    "renderG4CCard 输出含 ✓/▸/○ 阶梯",
+    "cli.mjs status 显示 G4C 卡",
+    "session-start 输出 G4C 卡",
+    "pre-write BLOCK 时 stderr 附带 G4C 卡",
+    "旧 state.json 缺新字段时不报错",
+    "全部 smoke 测试通过"
+  ],
+  "routingReason": "涉及 runtime hooks + state schema + 新渲染函数，L2",
+  "workflow": {
+    "stage": "plan",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-plan"
+  },
+  "validation": {
+    "status": "stale",
+    "digest": null,
+    "validatedAt": null
+  }
+}

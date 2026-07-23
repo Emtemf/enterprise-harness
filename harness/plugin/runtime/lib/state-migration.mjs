@@ -52,9 +52,24 @@ export function migrateStateV1ToV2(data) {
   return data;
 }
 
+export function migrateStateV2ToV3(data) {
+  if (!data || typeof data !== 'object') return data;
+  if (data.schemaVersion >= 3) return data;
+
+  data.schemaVersion = 3;
+
+  // G4C fields: goal, successCriteria, routingReason (optional, default null/[])
+  if (!('goal' in data)) data.goal = null;
+  if (!('successCriteria' in data)) data.successCriteria = [];
+  if (!('routingReason' in data)) data.routingReason = null;
+
+  return data;
+}
+
 export function migrateAndPersist(data, statePath) {
   const before = JSON.stringify(data);
-  const migrated = migrateStateV1ToV2(data);
+  let migrated = migrateStateV1ToV2(data);
+  migrated = migrateStateV2ToV3(migrated);
   const after = JSON.stringify(migrated);
   if (before !== after) {
     try {
