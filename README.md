@@ -57,6 +57,20 @@ node bin/install.mjs --target /path/to/your/project
 
 在任意项目里输入 `/harness`，Claude 会先澄清需求，再走流程。改代码时门禁自动生效。
 
+### 每一步应该看到什么
+
+| 步骤 | 应该看到 | 如果没看到 |
+|------|---------|-----------|
+| 启动 | 会话开头有 `[Harness 启动检查] ...` 输出 | 插件没安装，重新 `plugin install` |
+| 代码探索 | Claude 调用 `codegraph_explore` / `codegraph_search` | 弱模型跳过了，提 issue |
+| 需求澄清 | Claude 一次只问一个问题，用选项式回答 | 弱模型跳过了，提 issue |
+| 写代码前 | 如果 `designApproved=false`，被 BLOCK | hook 没触发，提 issue |
+| 会话结束 | 如果 validation 不是 fresh，被 stop hook 拦截 | 正常行为 |
+
+完整检查清单见 [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md)。
+
+**提 issue 时请提供**：① 用的模型 ② 哪一步不符合预期 ③ 实际输出 ④ 期望输出 ⑤ `node harness/plugin/runtime/cli.mjs status` 的结果。
+
 ## 诚实边界
 
 ### 什么是真正强制的
