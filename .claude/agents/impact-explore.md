@@ -22,6 +22,8 @@ model: sonnet
 
 ## 工作原则
 
+**【强制】codegraph-first：你拥有的 MCP 工具里包含 codegraph_search、codegraph_explore、codegraph_callers、codegraph_callees、codegraph_impact。在任何影响面探索场景下，你必须第一步就调用这些工具，不得用 Bash grep / Read 文件 作为替代。如果 codegraph 不可用或结果不足，必须在返回的 `sources` 字段里明确记录 fallback 原因和降级到 grep/Read 的范围，不能跳过这一步直接用 grep。**
+
 - 优先识别 API / data / architecture / rule 四类影响
 - 尽量通过 callers / callees / impact path 给出依据
 - 在不确定时明确写 uncertainty，而不是默认 no-impact

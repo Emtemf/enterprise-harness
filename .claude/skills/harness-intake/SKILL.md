@@ -43,6 +43,7 @@ description: >
 1. 判断是新增、修改还是 mixed
 2. 先做 minimum discovery
 3. codegraph-first；失败才 grep / Read，并留痕
+   - **调用 Agent 工具做代码探索时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**——不要只说"Explore"而不指定工具，否则弱模型会直接用 grep
 4. 外部库/框架问题走 Context7-first；不足再官方文档
 5. 基于事实进入苏格拉底式澄清
 6. 一次只问一个高价值问题，并维护 ambiguity scoring
