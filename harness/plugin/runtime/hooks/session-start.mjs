@@ -1,6 +1,8 @@
 import { projectRoot, exists, isHarnessManaged } from '../lib/checks.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { highSeverityLessons } from '../lib/lessons.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const root = projectRoot();
 const parts = [
@@ -29,6 +31,29 @@ const nextAction = summary.activeChange?.present && workflowStage === 'design' &
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
 console.log(`[Harness 入口] 普通用户入口: ${userEntry}`);
 console.log(`[Harness 强制约束] 所有请求必须先走 ${userEntry} 进入 SOP，不得跳过。`);
+
+// 项目技术栈信息
+const projectInfoPath = path.join(root, 'harness', 'project-info.json');
+if (fs.existsSync(projectInfoPath)) {
+  try {
+    const pi = JSON.parse(fs.readFileSync(projectInfoPath, 'utf-8'));
+    const items = [];
+    if (pi.language && !pi.language.startsWith('<')) items.push(`language=${pi.language}`);
+    if (pi.buildTool && !pi.buildTool.startsWith('<')) items.push(`buildTool=${pi.buildTool}`);
+    if (pi.testCommand && !pi.testCommand.startsWith('<')) items.push(`testCommand=${pi.testCommand}`);
+    if (pi.buildCommand && !pi.buildCommand.startsWith('<')) items.push(`buildCommand=${pi.buildCommand}`);
+    if (items.length > 0) {
+      console.log(`[Harness 项目技术栈] ${items.join(' | ')}`);
+    } else {
+      console.log('[Harness 项目技术栈] 未配置（project-info.json 存在但字段未填写），建议运行 setup-local-adapter --write 并编辑 harness/project-info.json 填写项目技术栈');
+    }
+  } catch {
+    // ignore parse errors
+  }
+} else {
+  console.log('[Harness 项目技术栈] 未找到 harness/project-info.json，建议运行 setup-local-adapter --write 生成并填写');
+}
+
 console.log(`[Harness 进度] 当前阶段: ${summary.currentPhase}`);
 console.log(`[Harness 进度] 静态快照: ${progressFile}`);
 console.log(`[Harness 进度] 动态真相: ${activeChange}`);
@@ -44,6 +69,9 @@ console.log(`[Harness Workflow] 推荐恢复入口: ${recommendedEntry}`);
 console.log(`[Harness Workflow] 下一步动作: ${nextAction}`);
 console.log(`[Harness Workflow] 普通用户先看: ${summary.nextRead.join(' / ')}`);
 console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
+
+// 代码探索工具可用性提醒
+console.log('[Harness 工具提醒] 代码探索时请优先使用 codegraph_explore/codegraph_search 等 MCP 工具，不要用 grep/Read 替代。');
 
 // 强制层的"不再犯"：开会话即把高危教训推到上下文，弱模型也漏不掉。
 if (isHarnessManaged(root)) {

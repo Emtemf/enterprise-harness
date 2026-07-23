@@ -1,0 +1,21 @@
+{
+  "_comment": "此文件定义目标项目的技术栈信息。harness 启动时会读取并告知 Claude 项目使用什么构建工具、测试框架等。请根据你的项目实际情况修改此文件。",
+  "language": "<language>",
+  "buildTool": "<maven|gradle|pip|cargo>",
+  "javaVersion": "<java-version>",
+  "testFramework": "<test-framework>",
+  "testCommand": "<test-command>",
+  "buildCommand": "<build-command>",
+  "database": "<database>",
+  "architectureNotes": "<architecture-notes>",
+  "openApiPath": "<openapi-file-path>",
+  "_示例（参考后删除此注释）": {
+    "language": "java",
+    "buildTool": "maven",
+    "javaVersion": "17",
+    "testFramework": "JUnit5 + Spring Boot Test",
+    "testCommand": "mvn test",
+    "buildCommand": "mvn clean install",
+    "database": "MySQL"
+  }
+}
