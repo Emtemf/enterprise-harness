@@ -48,6 +48,10 @@
   比对 path + HTTP method 对齐，检测 OpenAPI 契约与 Spring Controller 之间的漂移。已集成到 post-write hook
   和 `cli verify`。regex 实现，不依赖外部 YAML/Java parser；5 个 fixture 场景 + reference-service 回归验证。
   修复了此前只有硬编码 reference-service demo 检查、对用户项目静默 no-op 的问题。
+- **`pre-write-design-existence-gate`（2026-07-23，L1，`VALIDATED`，已发布为 `v0.1.17`）**：
+  pre-write.mjs 新增 design.md 存在性拦截：active change 存在但 design.md 缺失时，写入受治理路径直接 BLOCK。
+  修复了弱模型澄清完直接跳到实现、跳过 design 阶段的问题（issue #48）。同时将 subagent_type 强制约束
+  写入 skill（`code-explore` / `impact-explore`，禁止 `general-purpose`），修复 issue #47。
 - **`workflow-runner-fixture-isolation`（2026-07-23，L1，`VALIDATED`，已归档到 `harness/archive/`）**：
   修复 `workflow-runner-smoke.mjs` 直接在真实仓库根目录上执行 `workflow.mjs run/resume/status`、
   并把 `harness/ACTIVE_CHANGE` 覆写成 `test-runner-smoke` 的问题。改为复制整仓到临时副本，在副本内运行全部

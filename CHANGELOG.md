@@ -2,6 +2,13 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.17]
+
+### Fixed
+
+- **pre-write 新增 design.md 存在性拦截**：如果 active change 已建立但 `design.md` 不存在，写入受治理路径（`src/main/java`、`src/test/java`、`openapi/`）时直接 BLOCK。这是程序级拦截，修复了弱模型澄清完直接跳到实现、跳过 design 阶段的问题（issue #48）。
+- **subagent_type 强制约束**：`/harness` 和 `/harness-intake` 显式要求代码探索必须使用 `subagent_type: code-explore` 或 `impact-explore`，禁止使用 `general-purpose` 做代码探索（issue #47）。
+
 ## [0.1.16]
 
 ### Added
