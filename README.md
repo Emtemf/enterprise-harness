@@ -25,6 +25,37 @@
 
 每个 change 都有 `state.json` + `validation.md` + reviewer verdict。即使 Claude 会话中断，下次恢复时能看到之前做到哪一步、差什么。
 
+## 一个需求进来，会发生什么
+
+```mermaid
+graph LR
+    U[你: /harness 我要XX] --> C[Clarify<br/>Claude 问你问题]
+    C --> D[Design<br/>Claude 写设计文档]
+    D --> P[Plan<br/>Claude 拆任务]
+    P --> R[RED<br/>写失败测试]
+    R --> W[写代码]
+    W --> G[GREEN<br/>测试通过]
+    G --> F[Fix & Verify<br/>验收]
+    F --> A[Archive<br/>归档]
+
+    style R fill:#ff6b6b,color:#fff
+    style G fill:#51cf66,color:#fff
+    style W stroke:#ff6b6b,stroke-width:3px
+```
+
+**哪些是真正强制的（程序拦截）：**
+- 写 `src/main/java` 前：没有 `designApproved` → 被拦
+- 写完代码后：缺少变更文档 → 报错
+- 会话结束前：验证数据过期 → 被拦
+
+**哪些是"建议遵守"的（模型自觉）：**
+- 先探索代码再动手
+- 一次只问一个问题
+- 先设计再编码
+
+> 完整的 15 步时序图、每步涉及的文件、产出、checklist，见
+> [docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md)（面向开发者/维护者）
+
 ## 安装
 
 ### 方式 A：Claude Code 会话里（推荐）
