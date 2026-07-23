@@ -17,11 +17,12 @@ const files = {
 
 const expected = {
   harnessSkill: [
-    'Agent 标题/名称必须指向当前目标项目的工作区内容，禁止写成 `Explore enterprise-harness`',
+    'Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`',
     '必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源',
     '不得无视结论并重新发起相同的探索',
     '必须使用 `subagent_type: code-explore`',
     '不得使用 `general-purpose` 做代码探索',
+    '代码探索必须委托 subagent',
   ],
   intakeSkill: [
     'Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness codebase`',
@@ -29,6 +30,7 @@ const expected = {
     '不得无视结论并重新探索同一问题',
     '必须使用 `subagent_type: code-explore`',
     '不得使用 `general-purpose` 做代码探索',
+    '代码探索必须委托 subagent',
   ],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
   impactExploreAgent: ['禁止笼统写成 `Explore enterprise-harness` / `Explore this repo`'],

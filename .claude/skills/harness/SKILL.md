@@ -72,9 +72,9 @@ description: >
 
 1. 先进入 `clarify`
 2. 先做 minimum discovery（codegraph-first / Context7-first）
-   - **调用 Agent 工具做代码探索时，必须使用 `subagent_type: code-explore`（代码探索）或 `subagent_type: impact-explore`（影响面分析）——不得使用 `general-purpose` 做代码探索**
-   - **调用 Agent 工具时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**——不要只说"Explore this project"而不指定工具，否则弱模型会直接用 grep
-   - **Agent 标题/名称必须指向当前目标项目的工作区内容，禁止写成 `Explore enterprise-harness`、`Explore this repo` 之类的仓库名或 harness 产品名**
+   - **【硬约束】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore` 或 `subagent_type: impact-explore` 完成代码探索。这是强制委派规则，不是建议。
+   - **派遣 Agent 时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**
+   - **Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness` 或 `Explore this repo`**
    - **必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得忽略 subagent 结果后自己重新探索同一主题**
    - **若 subagent 已返回代码事实、文件路径、架构发现或影响面结论，主 orchestrator 不得再重复执行相同的 code-explore / impact-explore，只能在新问题、补盲或复核时再发起新探索**
 3. 一次只问一个高价值问题，默认优先用选项式问题（A/B/C + 其他）逐步降低 ambiguity
@@ -206,6 +206,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [top
 - 不得把 exploration dump 直接堆进主 orchestrator 上下文
 - 不得把”skill 可能被模型选中”误表述成”像 hook 一样自动触发”
 - **收到用户需求后，如果当前没有 active change，不得跳过 `/harness` 直接开始写代码**
+- **不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` / `impact-explore` subagent**
 - **调用 subagent 探索时，必须使用 `subagent_type: code-explore` 或 `impact-explore`，不得使用 `general-purpose` 做代码探索**
 - **调用 subagent 探索时，不得把 Agent 标题写成 harness 仓库名或 `enterprise-harness`，必须聚焦当前用户工作区和目标项目**
 - **收到 subagent 探索结论后，不得无视结论并重新发起相同的探索；必须基于已有结论推进，只在有新事实缺口时再发起补盲探索**

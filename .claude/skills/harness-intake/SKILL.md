@@ -53,8 +53,8 @@ description: >
 1. 判断是新增、修改还是 mixed
 2. 先做 minimum discovery
 3. codegraph-first；失败才 grep / Read，并留痕
-   - **调用 Agent 工具做代码探索时，必须使用 `subagent_type: code-explore`（代码探索）或 `subagent_type: impact-explore`（影响面分析）——不得使用 `general-purpose` 做代码探索**
-   - **调用 Agent 工具时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**——不要只说"Explore"而不指定工具，否则弱模型会直接用 grep
+   - **【硬约束】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore` 或 `subagent_type: impact-explore` 完成代码探索。这是强制委派规则，不是建议。
+   - **派遣 Agent 时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**——不要只说"Explore"而不指定工具，否则弱模型会直接用 grep
    - **Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness codebase` 或 `Explore this repo`**
    - **必须等 subagent 返回结论后再推进；主 orchestrator 不得无视 subagent 结果并重复发起相同探索**
 4. 外部库/框架问题走 Context7-first；不足再官方文档
@@ -244,6 +244,7 @@ bash harness/bin/set-active-change.sh <change-id>
 - 不得在关键未知项未澄清时假装 final route 已确认
 - 不得把聊天上下文当成唯一状态来源
 - 文档说明用中文；代码标识符保持英文
+- **不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` / `impact-explore` subagent**
 - **发起 subagent 探索时，必须使用 `subagent_type: code-explore` 或 `impact-explore`，不得使用 `general-purpose` 做代码探索**
 - **发起 subagent 探索时，禁止把标题/任务描述硬编码为 harness 仓库或 `enterprise-harness`，必须对准当前用户需求与目标项目**
 - **收到 subagent 探索结论后，不得无视结论并重新探索同一问题；必须消费结论，只在存在新缺口时再发起补盲探索**
