@@ -2,6 +2,19 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.18]
+
+### Fixed
+
+- **pre-write 全阶段守卫**：将 pre-write.mjs 从单一 design.md 检查升级为完整的阶段产物守卫系统。写入受治理路径时，pre-write hook 现在会根据当前 workflow stage 机械校验所有前置阶段的产出物是否齐全：
+  - `clarify`：`requirements.md` 必须存在 + `userConfirmedScope` 必须为 true
+  - `route`：`tier` 必须已设置（L0-L3）
+  - `design`：`design.md` 必须存在
+  - `plan`：`tasks.md` 必须存在
+  - `tdd`/`verify`/`archive`：已有 gate-level 检查（designApproved / RED 证据）
+  
+  模型跳过任何阶段都会被程序级 BLOCK，不依赖模型自觉（issue #47, #48）。
+
 ## [0.1.17]
 
 ### Fixed

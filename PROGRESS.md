@@ -52,6 +52,10 @@
   pre-write.mjs 新增 design.md 存在性拦截：active change 存在但 design.md 缺失时，写入受治理路径直接 BLOCK。
   修复了弱模型澄清完直接跳到实现、跳过 design 阶段的问题（issue #48）。同时将 subagent_type 强制约束
   写入 skill（`code-explore` / `impact-explore`，禁止 `general-purpose`），修复 issue #47。
+- **`pre-write-full-stage-guards`（2026-07-23，L1，`VALIDATED`，已发布为 `v0.1.18`）**：
+  将 pre-write.mjs 从单一 design.md 检查升级为完整的阶段产物守卫系统。写入受治理路径时，pre-write hook
+  根据当前 workflow stage 机械校验 clarify/route/design/plan 各阶段的产出物是否齐全，模型跳过任何阶段
+  都会被程序级 BLOCK。10 个 fixture 场景覆盖所有阶段守卫路径。
 - **`workflow-runner-fixture-isolation`（2026-07-23，L1，`VALIDATED`，已归档到 `harness/archive/`）**：
   修复 `workflow-runner-smoke.mjs` 直接在真实仓库根目录上执行 `workflow.mjs run/resume/status`、
   并把 `harness/ACTIVE_CHANGE` 覆写成 `test-runner-smoke` 的问题。改为复制整仓到临时副本，在副本内运行全部

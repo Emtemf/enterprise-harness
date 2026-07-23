@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
 import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
+import { inferWorkflowStage } from '../lib/workflow.mjs';
 
 const root = projectRoot();
 const payload = process.stdin.read ? process.stdin.read() : '';
@@ -61,15 +62,48 @@ if (governedRoot) {
     process.exit(2);
   }
 
-  // design.md 存在性检查：如果 active change 已建立但 design.md 不存在，说明模型跳过了 design 阶段
-  // 这是程序级拦截，不依赖模型自觉
+  // ── Stage-level artifact guards ──
+  // Each stage in clarify→route→design→plan→tdd requires specific artifacts to exist.
+  // If the model skips a stage and jumps to implementation, this catches it.
   const changeDir = path.join(root, 'harness', 'changes', active.changeId);
-  const designPath = path.join(changeDir, 'design.md');
-  if (!fs.existsSync(designPath)) {
-    console.error('BLOCK: 当前 active change 缺少 design.md。必须先完成设计阶段（创建 design.md）再修改受治理路径的生产代码。这是 orchestration 级门禁，不得跳过。');
-    process.exit(2);
+  const stage = inferWorkflowStage(active.changeId, state);
+
+  // clarify gate: requirements.md must exist, user must have confirmed scope
+  if (stage === 'clarify') {
+    const missing = [];
+    if (!fs.existsSync(path.join(changeDir, 'requirements.md'))) missing.push('requirements.md');
+    if (!state.workflow?.userConfirmedScope) missing.push('workflow.userConfirmedScope');
+    if (missing.length > 0) {
+      console.error(`BLOCK: 当前仍处于 clarify 阶段，缺少: ${missing.join(', ')}。必须先完成需求澄清并获得用户确认，再修改受治理路径。`);
+      process.exit(2);
+    }
   }
 
+  // route gate: tier must be set, state must have progressed beyond DISCOVERED
+  if (stage === 'route') {
+    if (!state.tier || !['L0', 'L1', 'L2', 'L3'].includes(state.tier)) {
+      console.error('BLOCK: 当前仍处于 route 阶段，tier 未设置。必须先完成路由决策，再修改受治理路径。');
+      process.exit(2);
+    }
+  }
+
+  // design gate: design.md must exist
+  if (stage === 'design') {
+    if (!fs.existsSync(path.join(changeDir, 'design.md'))) {
+      console.error('BLOCK: 当前仍处于 design 阶段，design.md 不存在。必须先完成设计文档，再修改受治理路径。');
+      process.exit(2);
+    }
+  }
+
+  // plan gate: tasks.md must exist
+  if (stage === 'plan') {
+    if (!fs.existsSync(path.join(changeDir, 'tasks.md'))) {
+      console.error('BLOCK: 当前仍处于 plan 阶段，tasks.md 不存在。必须先完成任务拆分，再修改受治理路径。');
+      process.exit(2);
+    }
+  }
+
+  // ── Gate-level checks ──
   const gate = requiredGateForTarget(root, target);
   const gates = state.gates || {};
   if (gate?.needsDesignApproved && !gates.designApproved) {
