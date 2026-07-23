@@ -101,7 +101,8 @@ node bin/install.mjs --target /path/to/your/project
 | 写代码前 | 如果 `designApproved=false`，被 BLOCK | hook 没触发，提 issue |
 | 会话结束 | 如果 validation 不是 fresh，被 stop hook 拦截 | 正常行为 |
 
-完整检查清单见 [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md)。
+完整检查清单见 [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md)。  
+G4C 五维验收指南见 [docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g4c-user-acceptance-guide.md)。
 
 **提 issue 时请提供**：① 用的模型 ② 哪一步不符合预期 ③ 实际输出 ④ 期望输出 ⑤ `node harness/plugin/runtime/cli.mjs status` 的结果。
 
