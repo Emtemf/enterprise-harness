@@ -147,9 +147,22 @@ node bin/install.mjs --target /path/to/your/project
 
 ## 使用
 
-安装后唯一入口：`/harness`。
+**用户唯一入口**：`/harness`
 
 在任意项目里输入 `/harness`，Claude 会先澄清需求，再走流程。改代码时门禁自动生效。
+
+### 更新插件
+
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+### 手动 fallback
+
+```bash
+node bin/enterprise-harness.mjs <command>
+```
 
 ## 诚实边界
 
@@ -213,6 +226,7 @@ node harness/plugin/runtime/cli.mjs status     # 当前状态（含 闭环五检
 - `CLAUDE.md` — 项目约束
 - `AGENTS.md` — 仓库协作合同
 - `harness/specs/staged-workflow.md` — 分阶段工作流规范
+- `harness/specs/session-lifecycle.md` — 会话生命周期规范
 
 ## License
 

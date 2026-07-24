@@ -60,6 +60,9 @@ description: >
 4. 外部库/框架问题走 Context7-first；不足再官方文档
 5. 基于事实进入苏格拉底式澄清
 6. 一次只问一个高价值问题，并维护 ambiguity scoring
+   - **每轮必须向用户展示评分表**：全维度分数 + overall + weakest dimension + 评分依据
+   - **用户有权修正评分**：如果用户说"这个应该是 3 不是 4"，必须接受并调整
+   - 评分依据必须引用具体探索发现或用户回答，不得凭空打分
 7. 在 clarify-ready 且用户确认后，形成 final route（L0/L1/L2/L3）
 8. 明确下一个 artifact / gate
 

@@ -12,8 +12,8 @@ const files = {
   validation: path.join(repoRoot, 'harness', 'templates', 'validation.md'),
 };
 const expected = {
-  requirements: ['## 歧义评分', '## 当前最弱维度', '## 用户确认'],
-  design: ['## Interface Contract', '## Data / SQL Design', '## Architecture Boundary', '## Testing Strategy'],
+  requirements: ['## T 目标', '## C 上下文', '## E 证据', '## P 路由'],
+  design: ['## T 目标', '## C 上下文', '## E 证据', '## P 路径', '### P 纠正预案', 'Design Self-Review'],
   tasks: ['**Implementation Order**', '**RED Evidence Point**', '**GREEN Evidence Point**', '**Acceptance Checks**'],
   validation: ['## Clarify / Requirements Confirmation', '## Stage Gate Summary', '## Review Verdicts'],
 };

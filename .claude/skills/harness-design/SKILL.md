@@ -60,7 +60,7 @@ description: >
 
 ## Gate Discipline
 
-- `design-reviewer` 属于强制 gate，不得提供"继续 / 跳过 review 直接进入 plan"的逃逸路径
+- `design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
 - 若 design review 发现 blocker，必须停留在 design 阶段修正，而不是靠聊天确认跳过
 - design-reviewer 必须检查 TECP 四维是否都有实质内容（不是占位符）
 
