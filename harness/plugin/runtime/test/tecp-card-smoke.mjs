@@ -25,7 +25,7 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 // ── RED ──
 if (mode === 'red') {
   try {
-    const { renderTECPCard } = await import('../lib/g4c-card.mjs');
+    const { renderTECPCard } = await import('../lib/tecp-card.mjs');
     if (typeof renderTECPCard === 'function') {
       fail('renderTECPCard already exists — red precondition no longer holds.');
     }
@@ -36,7 +36,7 @@ if (mode === 'red') {
 }
 
 // ── GREEN / VERIFY ──
-const { renderTECPCard, renderG4CCard } = await import('../lib/g4c-card.mjs');
+const { renderTECPCard } = await import('../lib/tecp-card.mjs');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'tecp-card-smoke-'));
@@ -192,10 +192,6 @@ check('Compact: no more than 20 lines', () => {
   } finally { cleanup(tmp); }
 });
 
-check('Backward compat: renderG4CCard alias works', () => {
-  if (typeof renderG4CCard !== 'function') failures.push('renderG4CCard alias missing');
-  if (renderG4CCard !== renderTECPCard) failures.push('renderG4CCard should be same function as renderTECPCard');
-});
 
 // ── Results ──
 if (failures.length > 0) {

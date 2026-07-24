@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { renderG4CCard } from './lib/g4c-card.mjs';
+import { renderTECPCard } from './lib/tecp-card.mjs';
 
 const root = projectRoot();
 
@@ -100,7 +100,7 @@ console.log('runtime readiness requires separate commands: doctor --json, sync -
 try {
   const active = loadActiveChange(root);
   if (active.ok) {
-    const card = renderG4CCard(root, active.changeId, active.data);
+    const card = renderTECPCard(root, active.changeId, active.data);
     console.log(card);
   }
 } catch {}

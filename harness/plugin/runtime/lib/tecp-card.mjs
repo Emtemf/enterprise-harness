@@ -104,5 +104,3 @@ function renderEvidenceSummary(data) {
   return parts.length > 0 ? parts.join(' | ') : '尚无证据';
 }
 
-// Backward compat alias
-export const renderG4CCard = renderTECPCard;

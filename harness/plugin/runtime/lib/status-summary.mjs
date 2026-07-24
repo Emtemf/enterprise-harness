@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder } from './workflow.mjs';
-import { renderG4CCard } from './g4c-card.mjs';
+import { renderTECPCard } from './tecp-card.mjs';
 
 function readText(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
@@ -67,7 +67,7 @@ export function buildStatusSummary(root) {
   if (activeChange.present) {
     const active = loadActiveChange(root);
     if (active.ok) {
-      try { tecpCard = renderG4CCard(root, active.changeId, active.data); } catch {}
+      try { tecpCard = renderTECPCard(root, active.changeId, active.data); } catch {}
     }
   }
   return {

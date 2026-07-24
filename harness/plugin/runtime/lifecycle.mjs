@@ -2,11 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { computeValidationDigest } from './lib/checks.mjs';
+import { renderTECPCard } from './lib/tecp-card.mjs';
 
 const repoRoot = process.cwd();
 const templatesDir = path.join(repoRoot, 'harness', 'templates');
 const changesDir = path.join(repoRoot, 'harness', 'changes');
 const activeFile = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');
+
+function printTECPCard(root, changeId) {
+  const statePath = path.join(changesDir, changeId, 'state.json');
+  if (!fs.existsSync(statePath)) return;
+  try {
+    const data = readJson(statePath);
+    console.log(renderTECPCard(root, changeId, data));
+  } catch {}
+}
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf-8'));
@@ -86,6 +96,7 @@ function cmdState(changeId, state, tier) {
   if (tier) data.tier = tier;
   writeJson(statePath, data);
   console.log(`State updated: ${changeId} -> ${state}${tier ? ` (${tier})` : ''}`);
+  printTECPCard(root, changeId);
 }
 
 function cmdCurrentTask(changeId, currentTask) {
@@ -129,6 +140,20 @@ function cmdReviewVerdict(changeId, reviewerId, verdict) {
 }
 
 function cmdMarkGate(changeId, gate, value, extra = null) {
+  const statePath = path.join(changesDir, changeId, 'state.json');
+  const data = readJson(statePath);
+  if (!data.gates) data.gates = {};
+  data.gates[gate] = value;
+  if (gate === 'redVerified' && value) {
+    data.gates.redTask = data.currentTask || null;
+    data.gates.redEvidenceRef = extra || null;
+  }
+  if (!data.workflow) data.workflow = {};
+  if (gate === 'redVerified' && value) data.workflow.tddStatus = 'red-verified';
+  writeJson(statePath, data);
+  console.log(`Gate updated: ${changeId} -> ${gate}=${value}${extra ? ` (${extra})` : ''}`);
+  printTECPCard(repoRoot, changeId);
+}
   const statePath = path.join(changesDir, changeId, 'state.json');
   const json = readJson(statePath);
   json.gates = json.gates || {};
