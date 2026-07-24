@@ -2,6 +2,13 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.26]
+
+### Changed
+- **全生命周期真相文档完全重写**（`docs/zh-cn/full-lifecycle-truth.md`）：15 步时序全部按 TECP 维度组织，每步包含：涉及文件表、产出文件、预期输出示例、异常检测表。用户在任何一步都能对照文档判断"对不对"。
+- **歧义评分增强**：`ambiguity-scoring.md` 新增 7 个维度的详细评分标准（0-5 每级的具体判定标准 + 证据要求），新增交互格式示例和用户参与确认规则。
+- **5 个 smoke 测试修复**：staged-template / mandatory-gate / session-contract / plugin-docs / lifecycle-truth 全部通过。
+
 ## [0.1.25]
 
 ### Changed
