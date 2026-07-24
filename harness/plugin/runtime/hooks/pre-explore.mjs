@@ -51,17 +51,15 @@ if (isExempt) {
   process.exit(0);
 }
 
-// 只在有 active change 时检查
+// 检查 codegraph 是否已标记为已用（从 active change 读取）
 const active = loadActiveChange(root);
-if (!active.ok) {
-  process.exit(0);
+let codegraphUsed = false;
+if (active.ok) {
+  const codegraphStatus = active.data?.tooling?.codegraph?.status;
+  const codegraphQueries = active.data?.tooling?.codegraph?.queries;
+  codegraphUsed = codegraphStatus && codegraphStatus !== 'unknown'
+    && Array.isArray(codegraphQueries) && codegraphQueries.length > 0;
 }
-
-// 检查 codegraph 是否已标记为已用
-const codegraphStatus = active.data?.tooling?.codegraph?.status;
-const codegraphQueries = active.data?.tooling?.codegraph?.queries;
-const codegraphUsed = codegraphStatus && codegraphStatus !== 'unknown'
-  && Array.isArray(codegraphQueries) && codegraphQueries.length > 0;
 
 if (codegraphUsed) {
   // 已委托 subagent 探索过，主 orchestrator 可以读取已探索的内容
@@ -69,6 +67,8 @@ if (codegraphUsed) {
 }
 
 // 未委托 subagent，主 orchestrator 直接探索代码 → BLOCK
+// 注意：即使没有 active change（/harness 刚进来还没建 change），也要拦截，
+// 因为 codegraph-first 约束不依赖 change 是否存在。
 console.error('BLOCK: 主 orchestrator 不得直接用 Grep/Read/Glob 探索代码。代码探索必须委托 code-explore subagent（通过 Agent 工具，subagent_type: code-explore），由 subagent 使用 codegraph_explore/codegraph_search 完成探索。这是 codegraph-first 硬约束。');
 console.error('');
 console.error('如果你是在读取 subagent 已探索的结论文件（在 harness/changes/ 下），这是允许的。');

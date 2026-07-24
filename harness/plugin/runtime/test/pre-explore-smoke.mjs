@@ -133,12 +133,13 @@ check('E: Read on CLAUDE.md must PASS (exempt)', () => {
   });
 });
 
-check('F: no active change must PASS (no enforcement)', () => {
+check('F: no active change but has change tracking — exploring business code must still BLOCK', () => {
   withTempRoot((tempRoot) => {
     fs.mkdirSync(path.join(tempRoot, 'harness', 'changes'), { recursive: true });
-    // no ACTIVE_CHANGE
-    const result = runPreExplore(tempRoot, 'Grep', { pattern: 'foo', path: 'src/' });
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    // no ACTIVE_CHANGE, but project uses harness (has harness/changes/)
+    const result = runPreExplore(tempRoot, 'Grep', { pattern: 'foo', path: 'src/main/java/Foo.java' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
   });
 });
 
