@@ -96,7 +96,7 @@ if (contractChecks.ok) {
 }
 console.log('runtime readiness requires separate commands: doctor --json, sync --json, upstream-check --json');
 
-// G4C 进度卡
+// 闭环五检进度卡
 try {
   const active = loadActiveChange(root);
   if (active.ok) {

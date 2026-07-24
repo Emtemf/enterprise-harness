@@ -144,8 +144,8 @@ check('disk state.json persisted after migration', () => {
   });
 });
 
-// Test 6: state at version 2 should be migrated to v3 (G4C fields)
-check('version 2 state migrated to v3 with G4C fields', () => {
+// Test 6: state at version 2 should be migrated to v3 (闭环五检 fields)
+check('version 2 state migrated to v3 with 闭环五检 fields', () => {
   withTempRoot((root) => {
     const changeDir = path.join(root, 'harness', 'changes', 'v2-change');
     fs.mkdirSync(changeDir, { recursive: true });

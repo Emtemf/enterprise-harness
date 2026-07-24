@@ -58,7 +58,7 @@ export function migrateStateV2ToV3(data) {
 
   data.schemaVersion = 3;
 
-  // G4C fields: goal, successCriteria, routingReason (optional, default null/[])
+  // 闭环五检 fields: goal, successCriteria, routingReason (optional, default null/[])
   if (!('goal' in data)) data.goal = null;
   if (!('successCriteria' in data)) data.successCriteria = [];
   if (!('routingReason' in data)) data.routingReason = null;

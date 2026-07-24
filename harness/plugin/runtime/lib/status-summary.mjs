@@ -63,11 +63,11 @@ export function buildStatusSummary(root) {
   const progressText = readText(progressPath);
   const progressSnapshot = parseProgressSnapshot(progressText);
   const activeChange = activeChangeSummary(root);
-  let g4cCard = null;
+  let tecpCard = null;
   if (activeChange.present) {
     const active = loadActiveChange(root);
     if (active.ok) {
-      try { g4cCard = renderG4CCard(root, active.changeId, active.data); } catch {}
+      try { tecpCard = renderG4CCard(root, active.changeId, active.data); } catch {}
     }
   }
   return {
@@ -75,7 +75,7 @@ export function buildStatusSummary(root) {
     currentPhase: progressSnapshot.currentPhase,
     progressSnapshot,
     activeChange,
-    _g4cCard: g4cCard,
+    _tecpCard: tecpCard,
     nextStage: activeChange.present ? activeChange.workflowStage : null,
     recommendedEntry: '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
@@ -140,6 +140,6 @@ export function renderStatusSummary(summary) {
     '维护命令（如需排障）',
     ...summary.maintainerCommands.map((item) => `- ${item}`),
     '',
-    ...(summary.activeChange.present && summary._g4cCard ? ['闭环五检 (TECP)', summary._g4cCard] : []),
+    ...(summary.activeChange.present && summary._tecpCard ? ['闭环五检 (TECP)', summary._tecpCard] : []),
   ].filter(Boolean).join('\n');
 }

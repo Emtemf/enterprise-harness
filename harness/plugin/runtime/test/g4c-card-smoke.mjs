@@ -18,7 +18,7 @@ function pass(message) {
 }
 
 if (!['red', 'green', 'verify'].includes(mode)) {
-  console.error('Usage: node harness/plugin/runtime/test/g4c-card-smoke.mjs <red|green|verify>');
+  console.error('Usage: node harness/plugin/runtime/test/tecp-card-smoke.mjs <red|green|verify>');
   process.exit(1);
 }
 

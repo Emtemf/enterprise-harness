@@ -72,7 +72,7 @@ console.log(`[Harness Workflow] 下一步动作: ${nextAction}`);
 console.log(`[Harness Workflow] 普通用户先看: ${summary.nextRead.join(' / ')}`);
 console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
 
-// G4C 进度卡
+// 闭环五检进度卡
 try {
   const active = loadActiveChange(root);
   if (active.ok) {

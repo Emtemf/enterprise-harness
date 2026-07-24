@@ -34,7 +34,7 @@ function printHandoffGuidance(root) {
     console.error(`- 当前 workflow stage：${guidance.workflowStage}`);
     console.error(`- 建议下次从：${guidance.nextEntry} 恢复`);
   }
-  // G4C 进度卡
+  // 闭环五检进度卡
   try {
     const active = loadActiveChange(root);
     if (active.ok) {
