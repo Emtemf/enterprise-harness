@@ -89,7 +89,7 @@ graph TD
 
 ### pre-write hook（写代码前）
 
-11 道拦截，按顺序检查：
+12 道拦截，按顺序检查：
 
 | # | 检查 | 触发条件 |
 |---|------|---------|
@@ -102,10 +102,11 @@ graph TD
 | 7 | **route 产物** | `tier` 未设置 |
 | 8 | **design 产物** | `design.md` 不存在 |
 | 9 | **plan 产物** | `tasks.md` 不存在 |
-| 10 | designApproved | 设计未批准 |
-| 11 | RED 证据 | 测试未先失败 |
+| 10 | **codegraph 证据** | `tooling.codegraph` 仍为 unknown/空 |
+| 11 | designApproved | 设计未批准 |
+| 12 | RED 证据 | 测试未先失败 |
 
-**模型跳过任何阶段都会被程序级 BLOCK**，不依赖模型自觉。
+**模型跳过任何阶段、或未记录 codegraph 使用都会被程序级 BLOCK**，不依赖模型自觉。
 
 ### post-write hook（写代码后）
 
@@ -145,11 +146,55 @@ cd /tmp/eh
 node bin/install.mjs --target /path/to/your/project
 ```
 
-## 使用
+## 使用：两种运行模式，同一套门禁
+
+harness 的门禁和 TECP 卡跑在**真实的 Node.js 脚本**上，不依赖宿主环境。
+所以无论你用什么客户端，门禁都生效。区别只在于"谁触发"。
+
+### 模式 A：原生 Claude Code（自动挡）
+
+通过 `/plugin install` 安装后，Claude Code 的 PreToolUse/PostToolUse/Stop/SessionStart
+生命周期会**自动执行** harness 的 hook。你只需要打字，门禁在后台兜底。
+
+- 写代码前 → 12 道拦截自动检查
+- 被拦 → 看到 BLOCK + TECP 卡
+- 会话开头 → 自动输出 TECP 卡
 
 **用户唯一入口**：`/harness`
 
-在任意项目里输入 `/harness`，Claude 会先澄清需求，再走流程。改代码时门禁自动生效。
+### 模式 B：非原生宿主（手动挡）
+
+如果你的环境**不是原生 Claude Code**——比如 opencode、基于 Claude Code SDK 的二次开发客户端、
+或纯 CI/CD——宿主不会自动触发 hook。这时用 runtime CLI 手动驱动：
+
+```bash
+node harness/plugin/runtime/cli.mjs start-change my-feature wula L2 "模板硬删除"
+node harness/plugin/runtime/cli.mjs status          # 看当前 TECP 卡
+node harness/plugin/runtime/cli.mjs verify          # 跑契约检查（含 TECP 卡）
+node harness/plugin/runtime/cli.mjs lifecycle state my-change SPECIFIED
+node harness/plugin/runtime/cli.mjs doctor          # 环境体检
+```
+
+或用全局 bin：
+
+```bash
+enterprise-harness status
+enterprise-harness verify
+```
+
+### 为什么两种模式门禁都生效？
+
+因为门禁逻辑在 `harness/plugin/runtime/hooks/*.mjs`——是纯 Node.js 脚本，
+读的是**项目目录里的 `harness/` 状态文件**（`state.json` / `ACTIVE_CHANGE` / `design.md` 等）。
+
+| 模式 | 谁触发 hook | 读写的状态 | 门禁是否生效 |
+|------|------------|-----------|-------------|
+| A 原生 Claude Code | Claude Code 生命周期（`$CLAUDE_PROJECT_DIR`） | 你的项目 `harness/` | ✅ |
+| B 非原生 / CI | 你手动跑 CLI（`process.cwd()`） | 同一份 `harness/` | ✅ |
+
+两种模式**共享同一份 durable 状态**：
+- 你在会话里建的 change → CLI 的 `status` 能看到
+- 你用 CLI 建的 change → 会话里的 hook 也会读到
 
 ### 更新插件
 
@@ -158,25 +203,18 @@ claude plugin marketplace update enterprise-harness
 claude plugin update enterprise-harness@enterprise-harness --scope local
 ```
 
-### 手动 fallback
-
-```bash
-node bin/enterprise-harness.mjs <command>
-```
-
 ## 诚实边界
 
 ### 什么是真正强制的（程序拦截）
 
-- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 11 道写入前检查
+- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 **12 道写入前检查**（含 codegraph 证据门禁）
 - 变更资产完整性检查
 - OpenAPI ↔ Controller 一致性检查
 - 验证新鲜度检查
 
 ### 什么是"建议遵守"的（prompt 约束）
 
-- 代码探索必须委托 subagent（不得自己 grep/Read）
-- 一次只问一个问题
+- 一次只问一个问题 + 展示歧义评分
 - 先澄清再动手
 - TDD 严格 RED→GREEN→REFACTOR
 
