@@ -51,7 +51,7 @@ graph TD
 | **代码探索** | 了解项目结构 | 通过 `code-explore` subagent 探索 | prompt 约束 |
 | **澄清** | 把需求变明确 | Claude 一次问你一个问题 | prompt 约束 |
 | **路由** | 确定复杂度 tier | `state.json` 中 tier 有值 | prompt 约束 |
-| **设计** | 形成完整设计 | `design.md` ≥ 50 行 + reviewer pass | 程序强制 |
+| **设计** | TECP 驱动的完整设计 | `design.md` 含 T/C/E/P 四维 + reviewer pass | 程序强制 |
 | **计划** | 拆成可执行任务 | `tasks.md` 存在 + plan critic pass | 程序强制 |
 | **RED** | 证明问题存在 | 测试先失败（RED 证据） | prompt 约束 |
 | **GREEN** | 最小实现通过 | 测试通过（GREEN 证据） | prompt 约束 |

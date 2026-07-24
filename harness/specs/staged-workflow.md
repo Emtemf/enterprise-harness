@@ -84,12 +84,12 @@ durable artifact：
 - 补齐 `change.md` 与 `state.json`
 
 ### design
-目标：把需求变成可评审的企业设计，而不是直接跳到实现。
+目标：用闭环五检 (TECP) 框架把需求变成可评审的企业设计，而不是直接跳到实现。每个设计决策必须回答：T 目标、C 上下文、E 证据、P 路径。
 
 最低要求：
-- `design.md` 完整
-- 覆盖接口、SQL/数据、架构边界、测试策略
-- `design-reviewer` 可评审
+- `design.md` 按 TECP 四维组织，每维有实质内容
+- 覆盖接口、SQL/数据、架构边界、测试策略、纠正预案
+- `design-reviewer` 可评审（检查 TECP 完整性）
 - 涉及 API 时，`api-consistency-reviewer` 可评审
 
 ### plan

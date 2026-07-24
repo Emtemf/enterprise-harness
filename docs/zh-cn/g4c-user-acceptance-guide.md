@@ -161,13 +161,14 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 ### 预期效果
 
 - `harness/changes/<id>/design.md` 被创建
-- 包含：Problem、Scope、Options、Affected Layers、Testing Strategy
+- 包含 TECP 四维：T 目标（业务目标+成功标准）、C 上下文（探索事实+影响矩阵）、E 证据（决策依据+测试策略）、P 路径（方案对比+接口/数据/架构设计+纠正预案）
 - `state.json` 中 `approvals.design.status` 有值
 - `reviews/design-reviewer.json` 存在
 
 ### 实际效果检查
 ```bash
 wc -l harness/changes/*/design.md      # 应 ≥ 50 行
+grep -c "T 目标\|C 上下文\|E 证据\|P 路径" harness/changes/*/design.md  # 应 ≥ 4
 cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verdict'))"  # 应有 pass/block
 ```
 - [ ] `design.md` 存在且内容充实 → ✅

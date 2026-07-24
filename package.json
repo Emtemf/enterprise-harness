@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "private": true,
   "description": "Portable runtime and repo contract for the Enterprise Harness Claude Code plugin skeleton.",
   "license": "Apache-2.0",

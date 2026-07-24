@@ -2,6 +2,25 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.25]
+
+### Changed
+
+- **设计产出物全面 TECP 化**：design.md / requirements.md 模板从传统文档结构（Problem/Scope/Options）重组为闭环五检 (TECP) 驱动结构：
+  - **T 目标**：业务目标 + 成功标准
+  - **C 上下文**：探索事实 + 影响矩阵 + 技术约束
+  - **E 证据**：每个决策有证据来源 + 测试策略 + 验证命令
+  - **P 路径**：方案对比 + 接口/数据/架构设计 + 风险回滚 + **纠正预案**
+- **design-reviewer agent** 新增 TECP 质量门禁：T 目标不能是占位符、C 上下文必须引用具体代码、E 证据必须有来源、P 路径必须有方案对比
+- **harness-design SKILL.md** 重写为 TECP 四维 checklist
+- **staged-workflow.md** design 阶段描述更新为 TECP 驱动
+- **验收指南 / lifecycle truth** Step 5/6 设计产出物描述同步更新
+- **CLAUDE.md** 设计阶段描述更新为 TECP 驱动
+
+### Fixed
+- 全仓库 G4C 维度名清理：Goal→T目标、Choice→P路径、Checkpoint→E证据、Correction→P纠正
+- ambiguity-scoring.md / harness-intake SKILL / requirements template 中 `Goal clarity` → `T 目标 clarity`
+
 ## [0.1.24]
 
 ### Changed
