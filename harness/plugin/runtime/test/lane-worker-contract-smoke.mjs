@@ -8,16 +8,14 @@ const mode = process.argv[2];
 const files = {
   codeExplore: path.join(repoRoot, '.claude', 'agents', 'code-explore.md'),
   docResearch: path.join(repoRoot, '.claude', 'agents', 'doc-research.md'),
-  impactExplore: path.join(repoRoot, '.claude', 'agents', 'impact-explore.md'),
   workflowHelper: path.join(repoRoot, 'harness', 'plugin', 'runtime', 'lib', 'workflow.mjs'),
   harnessSkill: path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'),
 };
 const expected = {
   codeExplore: ['只读代码探索 worker', '`question`', '`scope`', '`facts`', '`suggestedUserQuestion`'],
   docResearch: ['只读文档调研 worker', '`question`', '`scope`', '`facts`', '`suggestedUserQuestion`'],
-  impactExplore: ['只读影响面探索 worker', '`question`', '`scope`', '`facts`', '`suggestedUserQuestion`'],
-  workflowHelper: ['export function recommendExplorationLane', "return 'code-explore'", "return 'doc-research'", "return 'impact-explore'"],
-  harnessSkill: ['code-explore', 'doc-research', 'impact-explore', '优先补事实再问用户'],
+  workflowHelper: ['export function recommendExplorationLane', "return 'code-explore'", "return 'doc-research'"],
+  harnessSkill: ['code-explore', 'doc-research', '优先补事实再问用户'],
 };
 
 function readText(file) {

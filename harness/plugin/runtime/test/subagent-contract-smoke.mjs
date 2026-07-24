@@ -12,7 +12,6 @@ const files = {
   claudeMd: path.join(repoRoot, 'CLAUDE.md'),
   codeAnalysisRule: path.join(repoRoot, '.claude', 'rules', '10-code-analysis.md'),
   codeExploreAgent: path.join(repoRoot, '.claude', 'agents', 'code-explore.md'),
-  impactExploreAgent: path.join(repoRoot, '.claude', 'agents', 'impact-explore.md'),
   expectedBehavior: path.join(repoRoot, 'docs', 'zh-cn', 'expected-behavior-checklist.md'),
   lifecycleTruth: path.join(repoRoot, 'docs', 'zh-cn', 'full-lifecycle-truth.md'),
 };
@@ -37,7 +36,6 @@ const expected = {
   claudeMd: ['代码探索必须委托 subagent', 'subagent_type: code-explore', '一次只问一个问题', '歧义度评分'],
   codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
-  impactExploreAgent: ['禁止笼统写成 `Explore enterprise-harness` / `Explore this repo`'],
   expectedBehavior: [
     'subagent 的任务标题应该指向**当前用户项目**或具体探索主题，而不是写成 `Explore enterprise-harness codebase`',
     'subagent 完成后，主 agent 应基于 subagent 结论继续，而不是忽略它并重新探索相同问题',

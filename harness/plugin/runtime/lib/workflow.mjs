@@ -55,13 +55,13 @@ export function recommendExplorationLane(stage, data = null) {
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
     return 'code-explore';
   }
-  if (stage === 'route') return 'impact-explore';
+  if (stage === 'route') return 'code-explore';
   if (stage === 'design') {
-    if (data?.impact?.api === 'yes' || data?.impact?.data === 'yes') return 'impact-explore';
+    if (data?.impact?.api === 'yes' || data?.impact?.data === 'yes') return 'code-explore';
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
     return 'code-explore';
   }
-  if (stage === 'verify') return 'impact-explore';
+  if (stage === 'verify') return 'code-explore';
   return null;
 }
 

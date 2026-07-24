@@ -51,7 +51,6 @@ const pluginAgentSurface = new Set([
   path.resolve(path.join(root, 'agents', 'verification-reviewer.md')),
   path.resolve(path.join(root, 'agents', 'code-explore.md')),
   path.resolve(path.join(root, 'agents', 'doc-research.md')),
-  path.resolve(path.join(root, 'agents', 'impact-explore.md')),
 ]);
 const archiveRoot = path.resolve(path.join(root, 'harness', 'archive'));
 if (target.startsWith(legacyRulesRoot + path.sep) || target === legacyRulesRoot) {

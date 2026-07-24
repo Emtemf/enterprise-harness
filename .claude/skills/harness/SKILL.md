@@ -135,16 +135,15 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 ## Exploration Lane（补事实的通道）
 
 clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
-- 多模块代码事实不清 → `code-explore`
+- 代码事实 / 调用链 / 影响面不清 → `code-explore`（codegraph 一套搞定定位+传播）
 - 外部库/框架/SDK 版本行为不清 → `doc-research`
-- API/data/architecture/rule 影响面不清 → `impact-explore`
 
 ## 禁止事项
 
 - reviewer 返回 block，不得进入下一阶段
 - 不得跳过任何阶段
-- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: code-explore` 或 `impact-explore`，不得使用 `general-purpose` 做代码探索
-- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` / `impact-explore` subagent
+- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: code-explore`，不得使用 `general-purpose` 做代码探索
+- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` subagent
 - Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
 - 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
 - 不得一次问多个问题

@@ -13,7 +13,7 @@
 - plan
 - tdd
 - verify
-- `code-explore` / `doc-research` / `impact-explore` 等 read-only worker
+- `code-explore` / `doc-research` / `code-explore` 等 read-only worker
 
 ## 基本原则
 

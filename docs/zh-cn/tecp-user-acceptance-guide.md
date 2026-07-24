@@ -58,7 +58,7 @@
 | **T 目标** | 在写代码前了解你的项目结构、现有实现、关键文件 |
 | **C 上下文** | 插件知道你的项目使用什么框架、有哪些模块、代码在哪 |
 | **P 路径** | 为什么用 subagent 而不是直接探索——避免污染主对话上下文 |
-| **E 证据** | Claude 派遣了 `code-explore` / `impact-explore` subagent |
+| **E 证据** | Claude 派遣了 `code-explore` / `code-explore` subagent |
 | **P 纠正** | 如果 Claude 自己直接 grep/Read→不符合预期 |
 
 ### 预期效果

@@ -124,7 +124,7 @@ graph TD
 | 文件 | 角色 |
 |------|------|
 | `.claude/agents/code-explore.md` | 探索 agent 定义 |
-| `.claude/agents/impact-explore.md` | 影响面探索 agent |
+| `.claude/agents/code-explore.md` | 代码探索 agent（定位 + 调用链 + 影响面） |
 | `harness/explorations/` | 探索证据存放 |
 | `harness/changes/<id>/evidence/tooling.md` | 工具使用证据 |
 

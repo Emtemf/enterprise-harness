@@ -12,7 +12,7 @@ codegraph-first 的含义是：
 
 ## 委派约束（强制）
 
-**【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`（代码探索）或 `subagent_type: impact-explore`（影响面分析）完成代码探索。这是强制委派规则，不是建议。
+**【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`完成代码探索。这是强制委派规则，不是建议。
 
 理由：弱模型会直接跳过 skill 指令中的委托要求，直接 grep/Read。将此约束写入自动加载规则层，确保每次会话都可见。
 

@@ -70,7 +70,6 @@ export function requiredPaths() {
       '.claude/agents/verification-reviewer.md',
       '.claude/agents/code-explore.md',
       '.claude/agents/doc-research.md',
-      '.claude/agents/impact-explore.md',
       '.claude/skills/harness/SKILL.md',
       '.claude/skills/harness-intake/SKILL.md',
       '.claude/skills/harness-design/SKILL.md',

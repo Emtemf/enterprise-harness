@@ -12,7 +12,7 @@ const files = {
   stableAmbiguity: path.join(repoRoot, 'harness', 'specs', 'ambiguity-scoring.md'),
 };
 const expected = {
-  stagedWorkflow: ['`code-explore`', '`doc-research`', '`impact-explore`', 'Context Packet'],
+  stagedWorkflow: ['`code-explore`', '`doc-research`', 'Context Packet'],
   contextPacket: ['businessGoal', 'scope', 'nonGoals', 'constraints', 'acceptanceCriteria', 'domainGlossary'],
   stableExploration: ['`question`', '`scope`', '`facts`', '`uncertainties`', '`impact`', '`suggestedUserQuestion`', '`sources`'],
   stableAmbiguity: ['一次只问一个问题', 'weakest dimension', '所有关键维度 >= 4', '用户已显式确认执行范围'],

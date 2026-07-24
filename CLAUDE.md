@@ -21,7 +21,7 @@
 
 - 面向 **Java 后端 / Spring Boot** 场景
 - 默认采用 **codegraph-first** 的代码探索策略；失败后才允许 grep / Read fallback，并要求留痕
-- **【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`（代码探索）或 `subagent_type: impact-explore`（影响面分析）完成。这是强制委派规则，不是建议。
+- **【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`完成。这是强制委派规则，不是建议。
 - 涉及外部库、框架、SDK 或版本行为时，默认采用 **Context7-first** 文档检索；不足时再查官方文档
 - 默认工作流是：**需求 intake → design → plan → TDD → review → validation → archive**
 - 采用 OpenSpec-like 的资产分层，但品牌与结构以内建 `harness/` 为准

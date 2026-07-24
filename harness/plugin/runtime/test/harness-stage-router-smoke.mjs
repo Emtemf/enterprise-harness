@@ -19,7 +19,6 @@ const harnessTokens = [
   '恢复入口',
   'code-explore',
   'doc-research',
-  'impact-explore',
   '优先补事实再问用户',
   '`requirements.md` 缺失',
   '`state.json.state` 仍在 `DRAFT` / `DISCOVERED`',

@@ -178,10 +178,12 @@ durable artifact：
 `/harness` 作为 orchestrator，最低应识别并按需调用以下 lane：
 
 ### `code-explore`
-优先用于：
-- 多模块代码探索
-- controller / service / repository / mapper 关系梳理
+优先用于（codegraph 一套工具覆盖定位 + 调用链 + 影响面）：
+- 多模块代码探索、controller/service/repository/mapper 关系梳理
 - callers / callees / impact path 分析
+- API/data/architecture/rule 四类影响归纳
+- route 阶段的 tier/impact 决策
+- design/verify 阶段的影响面复核
 - brownfield 需求在问用户前先确认 repo 事实
 
 ### `doc-research`
@@ -190,17 +192,11 @@ durable artifact：
 - Context7-first / vendor docs / 官方源码调研
 - design/plan 阶段需要确认外部行为边界
 
-### `impact-explore`
-优先用于：
-- API / data / architecture / rule 四类影响归纳
-- route 阶段的 tier/impact 决策
-- design/verify 阶段的影响面复核
-
 ### 最低选择规则
 - clarify 阶段：优先决定是否需要 `code-explore` / `doc-research` 来补事实，再问用户
-- route 阶段：优先决定是否需要 `impact-explore` 来固定影响矩阵
+- route 阶段：优先决定是否需要 `code-explore` 来固定影响矩阵
 - design 阶段：若接口、SQL、调用方、兼容性边界不清，优先调 `code-explore` 或 `doc-research`
-- verify 阶段：若完成声明与影响面之间仍有缺口，可再次调 `impact-explore` 做独立事实复核
+- verify 阶段：若完成声明与影响面之间仍有缺口，可再次调 `code-explore` 做独立事实复核
 - 不得为了低成本、单点确认而滥开 subagent
 
 ### Exploration Packet
