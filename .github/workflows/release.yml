@@ -28,7 +28,7 @@ jobs:
         run: |
           node bin/package.mjs --out dist
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -36,3 +36,4 @@ jobs:
           generate_release_notes: true
           files: |
             dist/*.tar.gz
+          make_latest: true
