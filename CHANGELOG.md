@@ -2,6 +2,16 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.29]
+
+### Added
+- **pre-explore hook（探索阶段程序级门禁）**：新增 PreToolUse matcher `Grep|Read|Glob` → `pre-explore.mjs`。主 orchestrator 直接用 Grep/Read/Glob 探索业务代码时，如果 `state.json` 无 codegraph 使用证据，直接 BLOCK。修复了之前 codegraph 门禁只覆盖 Write/Edit、探索阶段（读操作）完全不拦截的问题（issue #54）。
+- 智能豁免：读 harness/ 内部文件、CLAUDE.md、docs、配置文件不拦截；无 active change 不拦截；已有 codegraph 证据不拦截。
+- 新增 `pre-explore-smoke.mjs`（7 个场景）。
+
+### Fixed
+- **根因修复**：v0.1.28 的 codegraph 门禁只在 Write/Edit 时触发，但模型探索用的是 Grep/Read/Glob（读操作），所以 hook"未生效"。现在探索阶段也有程序级门禁。
+
 ## [0.1.28]
 
 ### Fixed
