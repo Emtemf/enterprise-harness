@@ -97,6 +97,8 @@ NOT_STARTED
 - 未观察到与当前 `currentTask` 对齐的 `RED_VERIFIED` 证据，不得修改生产源码或 OpenAPI。
 - reviewer 返回 block，不得进入下一阶段。
 - validation 证据过期或缺失，不得声称完成。
+- **代码探索必须委托 `code-explore` subagent**：主 orchestrator 不得自己直接 grep/Read/Glob 探索业务代码，会被 pre-explore hook BLOCK。
+- **写受治理路径前必须有 codegraph 使用证据**：`state.json` 的 `tooling.codegraph` 仍为 unknown/空时，写生产代码会被 pre-write hook BLOCK。
 
 ## Source of Truth
 

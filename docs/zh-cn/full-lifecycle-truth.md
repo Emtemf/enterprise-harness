@@ -40,7 +40,7 @@ graph TD
 | `.claude/settings.json` | 注册 SessionStart hook |
 | `harness/plugin/runtime/hooks/session-start.mjs` | 执行启动检查 |
 | `harness/plugin/runtime/lib/status-summary.mjs` | 构建状态摘要 |
-| `harness/plugin/runtime/lib/g4c-card.mjs` | 渲染 TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | 渲染 TECP 卡 |
 | `harness/project-info.json`（目标项目） | 项目技术栈 |
 | `harness/ACTIVE_CHANGE`（目标项目） | 当前 change |
 
@@ -123,8 +123,8 @@ graph TD
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `.claude/agents/code-explore.md` | 探索 agent 定义 |
 | `.claude/agents/code-explore.md` | 代码探索 agent（定位 + 调用链 + 影响面） |
+| `harness/plugin/runtime/hooks/pre-explore.mjs` | 探索门禁（Grep/Read/Glob 拦截） |
 | `harness/explorations/` | 探索证据存放 |
 | `harness/changes/<id>/evidence/tooling.md` | 工具使用证据 |
 
@@ -384,14 +384,14 @@ design.md 必须包含以下 TECP section：
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/plugin/runtime/hooks/pre-write.mjs` | 11 道拦截 |
+| `harness/plugin/runtime/hooks/pre-write.mjs` | 12 道拦截 |
 | `harness/plugin/runtime/lib/gates.mjs` | gate 检查逻辑 |
-| `harness/plugin/runtime/lib/g4c-card.mjs` | BLOCK 时渲染 TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | BLOCK 时渲染 TECP 卡 |
 
 ### 产出文件
 无（拦截时不写文件）
 
-### 11 道拦截（按顺序）
+### 12 道拦截（按顺序）
 | # | 检查 | BLOCK 消息关键词 |
 |---|------|-----------------|
 | 1 | 写 legacy 目录 | `请不要继续把运行时规范写入历史目录` |
@@ -403,8 +403,9 @@ design.md 必须包含以下 TECP section：
 | 7 | route 缺 tier | `处于 route 阶段，tier 未设置` |
 | 8 | design 缺 design.md | `处于 design 阶段，design.md 不存在` |
 | 9 | plan 缺 tasks.md | `处于 plan 阶段，tasks.md 不存在` |
-| 10 | designApproved=false | `需要 designApproved=true` |
-| 11 | RED 证据不足 | `需要 currentTask-scoped red verification` |
+| 10 | codegraph 证据缺失 | `tooling.codegraph 仍为 unknown/空` |
+| 11 | designApproved=false | `需要 designApproved=true` |
+| 12 | RED 证据不足 | `需要 currentTask-scoped red verification` |
 
 ### 预期行为
 - BLOCK 时：stderr 输出 BLOCK 消息 + TECP 卡
@@ -510,7 +511,7 @@ design.md 必须包含以下 TECP section：
 | 文件 | 角色 |
 |------|------|
 | `harness/plugin/runtime/hooks/stop.mjs` | 停止前检查 |
-| `harness/plugin/runtime/lib/g4c-card.mjs` | TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | TECP 卡 |
 
 ### 预期行为
 - validation stale + state=VALIDATED/REVIEWED → BLOCK + TECP 卡

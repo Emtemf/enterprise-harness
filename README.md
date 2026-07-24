@@ -180,6 +180,7 @@ node harness/plugin/runtime/cli.mjs doctor          # 环境体检
 ```bash
 enterprise-harness status
 enterprise-harness verify
+node bin/enterprise-harness.mjs <command>
 ```
 
 ### 为什么两种模式门禁都生效？

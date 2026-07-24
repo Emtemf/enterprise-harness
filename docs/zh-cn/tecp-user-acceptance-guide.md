@@ -189,7 +189,7 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 |------|------|
 | **T 目标** | 确保 Claude 在满足所有前置条件后才写代码 |
 | **C 上下文** | 插件能检测到你的 change 状态和 artifact 完整性 |
-| **P 路径** | 为什么有 11 道拦截——每道对应一个被跳过的风险 |
+| **P 路径** | 为什么有 12 道拦截——每道对应一个被跳过的风险 |
 | **E 证据** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECP) 进度卡 |
 | **P 纠正** | 按 BLOCK 消息提示操作，然后重试 |
 

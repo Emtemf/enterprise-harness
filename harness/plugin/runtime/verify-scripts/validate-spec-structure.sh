@@ -41,7 +41,6 @@ required_files=(
   "$ROOT/.claude/agents/verification-reviewer.md"
   "$ROOT/.claude/agents/code-explore.md"
   "$ROOT/.claude/agents/doc-research.md"
-  "$ROOT/.claude/agents/impact-explore.md"
   "$ROOT/.claude/skills/harness-intake/SKILL.md"
   "$ROOT/.claude/skills/harness-design/SKILL.md"
   "$ROOT/.claude/skills/harness-plan/SKILL.md"
