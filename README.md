@@ -1,4 +1,4 @@
-# Enterprise Harness (v0.1.30)
+# Enterprise Harness (v0.1.31)
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 

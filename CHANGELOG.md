@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.31]
+
+### Fixed
+- **对话文本 TECPC 可见性**：CLAUDE.md 和 harness SKILL 新增"每步操作后输出 TECPC 状态卡"强制规则——模型必须在对话文本中输出进度卡，不再只依赖 hook 输出（用户看不到系统消息的问题）。
+- **issue #56**：subagent 探索后主 agent 仍直接探索 + 无 codegraph 使用。5 层约束已到位（CLAUDE.md + rules + SKILL + pre-explore hook + smoke），弱模型可能仍无视。
+
 ## [0.1.30]
 
 ### Fixed
