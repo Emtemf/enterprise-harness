@@ -133,15 +133,16 @@ graph TD
 
 ### 预期行为
 1. Claude 通过 **Agent 工具**派遣 `code-explore` subagent
-2. subagent 标题包含**用户项目名**（不是 `enterprise-harness`）
+2. subagent 的任务标题必须指向当前用户项目与具体探索主题，不得写成 `Explore enterprise-harness`
 3. subagent 使用 `codegraph_explore` / `codegraph_search` 探索
-4. subagent 返回后，Claude 基于结论继续
+4. subagent 返回结论后，主 orchestrator 应消费结论并基于事实继续推进，不得忽略结论后重新发起相同探索
 
 ### 异常检测
 | 现象 | 原因 | 处理 |
 |------|------|------|
 | Claude 自己 grep/Read 搜索 | 未委托 subagent | 提 issue（#49/#50/#51 同类） |
-| subagent 标题含 `enterprise-harness` | prompt 编排 bug | 提 issue |
+| subagent 标题写成 `enterprise-harness` 或含 `enterprise-harness` | prompt 编排 bug | 提 issue |
+| subagent 已返回结论但主 agent 忽略结论并重新探索 | subagent 通信/消费契约 bug | 提 issue |
 | subagent 返回后 Claude 重新搜索 | 忽略了 subagent 结论 | 提 issue |
 | subagent 未使用 codegraph | 弱模型限制 | 已知限制，低优先级 |
 
