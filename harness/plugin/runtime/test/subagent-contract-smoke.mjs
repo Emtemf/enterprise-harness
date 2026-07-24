@@ -34,7 +34,7 @@ const expected = {
     '不得使用 `general-purpose` 做代码探索',
     '代码探索必须委托 subagent',
   ],
-  claudeMd: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
+  claudeMd: ['代码探索必须委托 subagent', 'subagent_type: code-explore', '一次只问一个问题', '歧义度评分'],
   codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
   impactExploreAgent: ['禁止笼统写成 `Explore enterprise-harness` / `Explore this repo`'],

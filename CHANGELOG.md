@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.23]
+
+### Fixed
+
+- **澄清约束提升到自动加载层**：将"一次只问一个问题"和"必须展示歧义度评分"从 harness-intake skill 提升到 `CLAUDE.md`（每次会话自动加载）。修复弱模型一次抛出多个问题、不显示 weakest dimension 评分的问题（issue #51）。
+
 ## [0.1.22]
 
 ### Fixed
