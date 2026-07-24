@@ -2,6 +2,20 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.32]
+
+### Fixed
+- **issue #59：design/plan 产物缺失**：弱模型在 design 阶段不创建 `design.md` 就跳到 plan，plan 阶段不创建 `tasks.md` 就跳到 tdd。三层加固已到位：
+  - CLAUDE.md / harness SKILL / harness-design SKILL / harness-plan SKILL 新增【硬约束】section，明确"必须用 Write 创建 design.md/tasks.md，不得跳过"。
+  - pre-write hook 已有的 stage-level artifact guard（design.md / tasks.md 不存在则 BLOCK 受治理路径写入）现在被 skill 层显式声明，弱模型也能看到。
+- **issue #59：TDD 不是 subagent 形式、无 worktree、不跑 mvn**：harness-tdd SKILL 新增【硬约束】section——TDD 必须通过 Agent 工具派遣 subagent，必须 `isolation: "worktree"`，subagent 必须执行真实构建命令（`mvn test`/`mvn verify`），禁止主对话直接写代码。harness/SKILL 第 5 步与禁止事项同步强化。
+- **跨文档一致性对齐**（全局 double check 发现的 gap）：
+  - `harness/specs/staged-workflow.md` TDD section 补充 subagent+worktree+真实构建命令执行要求（之前只列子状态）。
+  - `harness-tdd/SKILL.md` 行为要求中"默认优先使用 worker/subagent"对齐为"必须使用"。
+  - `README.md` TDD 描述补充 subagent+worktree+真实构建命令。
+  - 动词统一：TDD 相关从"默认应优先调用 mvn"升级为"必须执行 mvn"。
+- smoke 测试同步更新：`tdd-subagent-contract-smoke` 新增 worktree/禁止直接写代码/禁止不跑构建验证；`tdd-build-command-contract-smoke` 对齐"必须执行"措辞。64/64 全绿。
+
 ## [0.1.31]
 
 ### Fixed

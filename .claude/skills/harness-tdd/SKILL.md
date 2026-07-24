@@ -43,15 +43,46 @@ TEST_WRITTEN
 - REFACTOR 只能在全绿后进行
 - 所有阶段都必须留下可进入 `validation.md` 的命令与结果摘要
 
+## 【硬约束】必须使用 subagent 执行 TDD
+
+**【强制】TDD 阶段的每个 task 必须通过 Agent 工具派遣 subagent 执行，不得在主对话中直接写代码和跑测试。**
+
+具体要求：
+1. **每个 task 使用 `Agent` 工具派遣**，参数必须包含：
+   - `subagent_type`: 使用 `general-purpose` 或项目特定 worker
+   - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
+   - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
+2. **Subagent 必须执行真实构建命令**：
+   - Java/Maven 项目：必须执行 `mvn test` / `mvn verify` / `mvn compile`
+   - 不得跳过构建命令，不得只写代码不验证
+   - RED 阶段：执行测试 → 必须失败 → 记录失败输出
+   - GREEN 阶段：执行测试 → 必须通过 → 记录通过输出
+   - REFACTOR 阶段：执行测试 → 必须全绿 → 记录通过输出
+3. **主 orchestrator 只保留结果摘要**：
+   - Subagent 返回：RED 失败输出摘要 / GREEN 通过输出摘要 / 当前状态
+   - 主上下文不堆积整段构建输出
+4. **禁止在主对话中直接 Write/Edit 生产代码**：
+   - TDD 阶段的所有代码修改必须由 subagent 在 worktree 中完成
+   - 主 orchestrator 只负责派遣 subagent 和消费结果
+
+**违反此约束 = 阻断**：如果模型试图在主对话中直接写代码或跳过 mvn 执行，pre-write hook 会拦截。
+
 ## 行为要求
 
 - 先写失败测试，再执行 RED
 - RED/GREEN/REFACTOR 证据必须绑定**目标项目真实构建/测试命令**
-- Java / Maven 项目默认应优先调用 `mvn test` / `mvn verify` 这类项目原生命令，而不是只跑 harness 自己的 runtime verify
-- 默认优先使用 worker / subagent 执行这些真实构建命令；主上下文只保留结果摘要，不应把整段构建输出长期堆积在主对话里
+- Java / Maven 项目必须执行 `mvn test` / `mvn verify` / `mvn compile` 这类项目原生命令
+- **禁止只写测试文件而不运行构建命令**——没有看到 mvn 输出就不算 RED/GREEN
+- **禁止用 MockMvc 冒充真实 HTTP E2E**
+- 必须使用 worker / subagent 执行这些真实构建命令；主上下文只保留结果摘要
 - GREEN 仅做最小实现
 - REFACTOR 后必须重新确认全绿
-- 必要时可调用专职 worker，但主上下文必须保留当前任务与证据点摘要
+- 每个 task 的 subagent 返回结果必须包含：
+  - `task-id`
+  - `tdd-status`: `test-written` / `red-verified` / `green-verified` / `refactor-verified`
+  - `command-executed`: 实际执行的 mvn/gradle 命令
+  - `command-output-summary`: 构建输出摘要（失败时的关键错误信息）
+  - `evidence-path`: 证据文件路径
 
 ## 退出条件
 

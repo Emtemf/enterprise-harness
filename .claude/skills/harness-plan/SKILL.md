@@ -43,9 +43,21 @@ description: >
 
 - 先读取目标项目 `CLAUDE.md` / 根事实，确认真实构建、约束与验收基线
 - 先明确文件和顺序，再谈实现细节
-- 不允许“实现时再想”的占位表述
+- 不允许”实现时再想”的占位表述
 - 必须显式给出 RED/GREEN 验证点
 - 任务粒度要让 `plan-critic` 可以无猜测评审
+
+## 【硬约束】必须创建 tasks.md
+
+**【强制】进入 plan 阶段后，必须在进入 tdd 前创建 `harness/changes/<change-id>/tasks.md`。**
+
+具体要求：
+1. 使用 `Write` 工具创建 `harness/changes/<change-id>/tasks.md`，基于 `harness/templates/tasks.md` 模板
+2. 每个 task 必须包含：touched files / implementation order / test-first order / RED evidence point / GREEN evidence point / acceptance checks
+3. 创建完成后，更新 `state.json` 的 `workflow.planReady = true`
+4. **不得跳过 tasks.md 创建直接进入 tdd 阶段**
+
+**违反此约束 = 阻断**：如果模型试图在 tasks.md 不存在时进入 tdd，pre-write hook 会拦截受治理路径的写入。
 
 ## Gate Discipline
 

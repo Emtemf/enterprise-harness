@@ -28,9 +28,12 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const text = readText(tddSkillPath);
 const ok = text.includes('默认应下沉给专职 worker / subagent 执行 RED/GREEN/REFACTOR')
-  && text.includes('默认优先使用 worker / subagent 执行这些真实构建命令')
+  && text.includes('必须使用 worker / subagent 执行这些真实构建命令')
   && text.includes('主上下文只保留结果摘要')
-  && text.includes('Java / Maven 项目默认应优先调用 `mvn test` / `mvn verify`');
+  && text.includes('Java / Maven 项目必须执行 `mvn test` / `mvn verify`')
+  && text.includes('worktree')
+  && text.includes('禁止在主对话中直接')
+  && text.includes('禁止只写测试文件而不运行构建命令');
 
 if (mode === 'red') {
   if (!ok) {

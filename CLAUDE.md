@@ -64,8 +64,15 @@
    - **【强制】必须展示歧义度评分**：每轮展示全维度评分表 + overall score + weakest dimension + 评分依据，用户有权修正。达标条件：所有关键维度 ≥ 4 且用户确认执行范围
 2. 形成 final route（L0 / L1 / L2 / L3）
 3. 完成 durable design（TECPC 驱动：T 目标 → E 证据 → C 上下文 → P 路径 → C 纠正）
+   - **【强制】必须创建 `design.md`**：使用 `Write` 工具创建 `harness/changes/<change-id>/design.md`，基于模板填写 TECPC 五维内容
+   - **不得在 design.md 不存在时进入 plan**
 4. design 批准后进入 plan
+   - **【强制】必须创建 `tasks.md`**：使用 `Write` 工具创建 `harness/changes/<change-id>/tasks.md`，基于模板填写每个 task 的 touched files / RED evidence point / GREEN evidence point
+   - **不得在 tasks.md 不存在时进入 tdd**
 5. 严格执行 RED → GREEN → REFACTOR
+   - **【强制】TDD 必须通过 subagent 执行**：使用 `Agent` 工具，`isolation: "worktree"`
+   - **【强制】subagent 必须执行真实构建命令**：`mvn test` / `mvn verify`，不得跳过
+   - **禁止在主对话中直接写生产代码**
 6. 统一在 `verify` 阶段消费 reviewer verdict 与验证证据
 7. 必要时归档到 `harness/changes/`、`harness/specs/`、`harness/archive/`
 

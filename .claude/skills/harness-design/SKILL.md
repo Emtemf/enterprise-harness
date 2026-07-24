@@ -58,6 +58,18 @@ description: >
 - 需要 API 一致性时，应为 `api-consistency-reviewer` 留出可评审输入
 - **每个设计决策必须标注证据来源**，不得出现"我觉得这样好"而无支撑
 
+## 【硬约束】必须创建 design.md
+
+**【强制】进入 design 阶段后，必须在进入 plan 前创建 `harness/changes/<change-id>/design.md`。**
+
+具体要求：
+1. 使用 `Write` 工具创建 `harness/changes/<change-id>/design.md`，基于 `harness/templates/design.md` 模板
+2. 填写 TECPC 五维内容（T 目标 / E 证据 / C 上下文 / P 路径 / C 纠正）
+3. 创建完成后，更新 `state.json` 的 `workflow.stage = 'design'`
+4. **不得跳过 design.md 创建直接进入 plan 阶段**
+
+**违反此约束 = 阻断**：如果模型试图在 design.md 不存在时进入 plan，pre-write hook 会拦截受治理路径的写入。
+
 ## Gate Discipline
 
 - `design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径

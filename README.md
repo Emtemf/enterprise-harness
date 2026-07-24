@@ -1,4 +1,4 @@
-# Enterprise Harness (v0.1.31)
+# Enterprise Harness (v0.1.32)
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 
@@ -227,7 +227,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 - 一次只问一个问题 + 展示歧义评分
 - 先澄清再动手
-- TDD 严格 RED→GREEN→REFACTOR
+- TDD 严格 RED→GREEN→REFACTOR，必须通过 subagent + worktree 隔离执行，必须运行真实构建命令（`mvn test`/`mvn verify`）
 - subagent 标题对准用户项目（不得写 `enterprise-harness`）
 
 ### 什么还没实现

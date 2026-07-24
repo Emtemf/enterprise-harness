@@ -31,7 +31,7 @@ const tddText = readText(tddSkillPath);
 const tasksText = readText(tasksTemplatePath);
 const ok = tddText.includes('已读取当前项目的 `CLAUDE.md` / 项目根事实')
   && tddText.includes('目标项目真实构建/测试命令')
-  && tddText.includes('Java / Maven 项目默认应优先调用 `mvn test` / `mvn verify`')
+  && tddText.includes('Java / Maven 项目必须执行 `mvn test` / `mvn verify`')
   && tasksText.includes('**Project-native Build/Test Command**')
   && tasksText.includes('Why this command is authoritative for the target project');
 

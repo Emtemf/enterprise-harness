@@ -104,6 +104,9 @@ durable artifact：
 目标：按 RED → GREEN → REFACTOR 执行，而不是先改生产代码再补测试。
 
 最低要求：
+- 通过 Agent 工具派遣 subagent 执行，使用 `isolation: "worktree"`
+- subagent 必须执行目标项目真实构建命令（如 `mvn test` / `mvn verify`），不得跳过
+- 主 orchestrator 不得直接在主对话中写生产代码
 - `TEST_WRITTEN`
 - `RED_VERIFIED`
 - `GREEN_VERIFIED`
