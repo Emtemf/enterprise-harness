@@ -113,7 +113,7 @@ description: >
 
 至少跟踪以下维度：
 
-- Goal clarity
+- T 目标 clarity
 - Scope clarity
 - User / actor clarity
 - Data / SQL clarity

@@ -26,7 +26,7 @@
 ## 验收标准
 
 ## 歧义评分
-- Goal clarity:
+- T 目标 clarity:
 - Scope clarity:
 - User/actor clarity:
 - Data/SQL clarity:

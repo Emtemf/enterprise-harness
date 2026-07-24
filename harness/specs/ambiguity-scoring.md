@@ -14,7 +14,7 @@ clarify 阶段必须：
 
 第一版采用 0-5 维度分：
 
-1. Goal clarity
+1. T 目标 clarity
 2. Scope clarity
 3. User / actor clarity
 4. Data / SQL clarity
