@@ -23,6 +23,17 @@
             "statusMessage": "执行写入前治理检查"
           }
         ]
+      },
+      {
+        "matcher": "Grep|Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/pre-explore.mjs\"",
+            "timeout": 10,
+            "statusMessage": "检查代码探索是否已委托 subagent"
+          }
+        ]
       }
     ],
     "PostToolUse": [
