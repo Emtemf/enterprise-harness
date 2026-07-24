@@ -29,22 +29,29 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const designSkill = readText(designSkillPath);
 const designTemplate = readText(designTemplatePath);
-const ok = designSkill.includes('消息/事件/MQ 设计')
-  && designSkill.includes('Messaging / Event / MQ design')
-  && designTemplate.includes('## Messaging / Event / MQ Design')
-  && designTemplate.includes('Broker / topic / queue:')
-  && designTemplate.includes('Producer / consumer responsibility:')
-  && designTemplate.includes('Retry / DLQ / replay / timeout:');
+
+// TECP-driven design checks
+const ok = designSkill.includes('闭环五检')
+  && designSkill.includes('T 目标')
+  && designSkill.includes('C 上下文')
+  && designSkill.includes('E 证据')
+  && designSkill.includes('P 路径')
+  && designTemplate.includes('## T 目标')
+  && designTemplate.includes('## C 上下文')
+  && designTemplate.includes('## E 证据')
+  && designTemplate.includes('## P 路径')
+  && designTemplate.includes('### P 纠正预案')
+  && designTemplate.includes('Design Self-Review');
 
 if (mode === 'red') {
   if (!ok) {
-    fail('Expected design contract to require messaging/event/MQ design');
+    fail('Expected TECP-driven design contract');
   }
   pass('Red precondition no longer holds.');
 }
 
 if (!ok) {
-  fail('Expected design contract to require messaging/event/MQ design');
+  fail('Expected TECP-driven design contract');
 }
 
-pass(mode === 'green' ? 'Green design messaging contract smoke passed.' : 'Design messaging contract verify smoke passed.');
+pass(mode === 'green' ? 'Green design TECP contract smoke passed.' : 'Design TECP contract verify smoke passed.');
