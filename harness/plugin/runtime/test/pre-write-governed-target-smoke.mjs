@@ -39,7 +39,7 @@ function baseState(overrides = {}) {
     state: 'EXECUTING',
     owner: 'fixture',
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' },
-    tooling: { codegraph: { status: 'available', queries: [], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
+    tooling: { codegraph: { status: 'available', queries: ['test-query'], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
     decisions: [],
     blockers: [],
     approvals: {},
@@ -212,6 +212,38 @@ check('I: plan stage — missing tasks.md must BLOCK', () => {
 });
 
 check('J: all stage artifacts present + gates satisfied must PASS', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },
+    }));
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'tasks.md'), '# Tasks\n');
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md'), '# Requirements\n');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('K: codegraph evidence missing must BLOCK', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      tooling: { codegraph: { status: 'unknown', queries: [], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
+    }));
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'tasks.md'), '# Tasks\n');
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md'), '# Requirements\n');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
+    assert.match(result.stderr, /codegraph/);
+  });
+});
+
+check('L: codegraph evidence present must PASS (if other gates satisfied)', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },

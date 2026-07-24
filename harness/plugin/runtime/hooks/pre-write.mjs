@@ -113,6 +113,16 @@ if (governedRoot) {
     }
   }
 
+  // codegraph 使用证据检查：如果要写生产代码，但 state.json 里 tooling.codegraph.status 仍为 unknown，
+  // 说明模型从未声明使用过 codegraph，违反 codegraph-first 约束。程序级拦截，不依赖模型自觉。
+  const codegraphStatus = state.tooling?.codegraph?.status;
+  const codegraphQueries = state.tooling?.codegraph?.queries;
+  const codegraphUsed = codegraphStatus && codegraphStatus !== 'unknown'
+    && Array.isArray(codegraphQueries) && codegraphQueries.length > 0;
+  if (!codegraphUsed) {
+    blockGoverned('BLOCK: 写入受治理路径前必须有 codegraph 使用证据，但 state.json 的 tooling.codegraph 仍为 unknown/空。请先通过 code-explore subagent 探索代码，并在 state.json 记录 tooling.codegraph.status=available 和 queries。', data);
+  }
+
   // ── Gate-level checks ──
   const gate = requiredGateForTarget(root, target);
   const gates = state.gates || {};
