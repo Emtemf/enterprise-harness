@@ -200,12 +200,17 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 ┌─ your-change (L2) ─
 │ T 目标    ▸ ...
+│ E 证据    ▸ 尚无证据
+│ C 上下文  ▸ design.md 不存在
+│ P 路径    ▸ ...
+│ C 纠正    ▸ 创建 design.md 后重试
 │ Ladder
   ✓ clarify
+  ✓ route
   ▸ design   ← 缺 design.md
   ○ plan
   ...
-│ P 纠正    ▸ 创建 design.md 后重试
+└─
 │ Next     ▸ /harness-design
 └─
 ```

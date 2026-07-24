@@ -58,10 +58,10 @@ graph TD
 [Harness 闭环五检]
 ┌─ your-change (L2) ─
 │ T 目标    ▸ 模板支持硬删除
-│ C 上下文  ▸ 缺少 requirements.md
 │ E 证据    ▸ 尚无证据
+│ C 上下文  ▸ 缺少 requirements.md
 │ P 路径    ▸ 涉及 API+数据，故 L2
-│ P 纠正    ▸ /harness
+│ C 纠正    ▸ /harness
 │ Ladder
   ▸ clarify
   ○ route
