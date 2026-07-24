@@ -2,6 +2,13 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.30]
+
+### Fixed
+- **72/72 smoke 测试全绿**：修复 `gate-hardening-red-task-smoke` fixture 缺 codegraph 证据、`plugin-install-flow-smoke` 输出格式误判。全量验证通过。
+- **TECPC 卡样例与实际输出对齐**：lifecycle-truth 和 acceptance-guide 的卡片样例从旧顺序（T→C→E→P）修正为实际输出顺序（T→E→C→P→C），补全 C 纠正行。
+- **README 同步**：补充版本号（v0.1.30）、pre-explore hook 描述、subagent 标题约束。
+
 ## [0.1.29]
 
 ### Added
