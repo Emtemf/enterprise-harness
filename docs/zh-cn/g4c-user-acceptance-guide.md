@@ -11,7 +11,7 @@
 | **T 目标** | 你知道当前项目状态、模型是否就绪、下一步该做什么 |
 | **C 上下文** | 插件能读取你的项目结构、active change、技术栈信息 |
 | **P 路径** | 为什么输出这些而不是更多/更少——只输出恢复所需的最小上下文 |
-| **E 证据** | 你应该看到 `[Harness 进度卡]` 包含 ✓/▸/○ 阶梯 |
+| **E 证据** | 你应该看到 `[Harness 闭环五检]` 包含 ✓/▸/○ 阶梯 |
 | **P 纠正** | 如果看不到任何 `[Harness ...]` 输出→插件未安装 |
 
 ### 预期效果
@@ -23,7 +23,7 @@
 [Harness 项目技术栈] language=java | buildTool=maven     ← 如果配置了 project-info.json
 [Harness 进度] 当前阶段: ...
 [Harness Workflow] 当前 stage: ...
-[Harness 进度卡]
+[Harness 闭环五检]
 ┌─ your-change (L2) ─
 │ T 目标    ▸ 你的目标
 │ P 路径    ▸ 为什么是 L2
@@ -39,7 +39,7 @@
 
 ### 实际效果检查
 - [ ] 看到 `[Harness 启动检查]` → ✅
-- [ ] 看到 `[Harness 进度卡]` 含 ✓/▸/○ 阶梯 → ✅
+- [ ] 看到 `[Harness 闭环五检]` 含 ✓/▸/○ 阶梯 → ✅
 - [ ] 技术栈字段不是 `<...>` 未填写 → ✅
 - [ ] 没有任何 `[Harness ...]` → ❌ 插件未安装
 
@@ -155,7 +155,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 | **T 目标** | 在写代码前形成完整设计，包含接口、数据、测试策略 |
 | **C 上下文** | 基于 Step 2-4 的探索和澄清结果 |
 | **P 路径** | 为什么先写 design 再写代码——减少返工，让 reviewer 可评审 |
-| **E 证据** | `design.md` 存在且 ≥ 50 行，含 Problem/Scope/Options/Test Strategy |
+| **E 证据** | `design.md` 存在且含 TECP 四维（T 目标/C 上下文/E 证据/P 路径） |
 | **P 纠正** | 如果 Claude 直接写 Java 代码但没有 design.md→会被 pre-write BLOCK |
 
 ### 预期效果

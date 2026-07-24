@@ -166,12 +166,11 @@
 最低产物：
 - `design.md`
 
-设计阶段必须显式覆盖：
-- Interface Contract
-- Data / SQL Design
-- Flow / State Changes
-- Architecture Boundary
-- Testing Strategy
+设计阶段必须按 TECP 四维组织，显式覆盖：
+- T 目标（业务目标 + 成功标准）
+- C 上下文（探索事实 + 影响矩阵）
+- E 证据（决策依据 + 测试策略 + 验证命令）
+- P 路径（方案对比 + 接口/数据/架构设计 + 纠正预案）
 
 ### plan
 
