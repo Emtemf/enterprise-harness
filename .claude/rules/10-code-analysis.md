@@ -10,6 +10,12 @@ codegraph-first 的含义是：
 2. 只有在 codegraph 不可用、索引不可信、结果不足或无法覆盖目标时，才允许退回 grep / Read
 3. fallback 必须记录原因与范围
 
+## 委派约束（强制）
+
+**【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`（代码探索）或 `subagent_type: impact-explore`（影响面分析）完成代码探索。这是强制委派规则，不是建议。
+
+理由：弱模型会直接跳过 skill 指令中的委托要求，直接 grep/Read。将此约束写入自动加载规则层，确保每次会话都可见。
+
 ## 首选分析目标
 
 分析应优先识别：

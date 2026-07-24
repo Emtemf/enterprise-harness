@@ -9,6 +9,8 @@ const mode = process.argv[2];
 const files = {
   harnessSkill: path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'),
   intakeSkill: path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'),
+  claudeMd: path.join(repoRoot, 'CLAUDE.md'),
+  codeAnalysisRule: path.join(repoRoot, '.claude', 'rules', '10-code-analysis.md'),
   codeExploreAgent: path.join(repoRoot, '.claude', 'agents', 'code-explore.md'),
   impactExploreAgent: path.join(repoRoot, '.claude', 'agents', 'impact-explore.md'),
   expectedBehavior: path.join(repoRoot, 'docs', 'zh-cn', 'expected-behavior-checklist.md'),
@@ -32,6 +34,8 @@ const expected = {
     '不得使用 `general-purpose` 做代码探索',
     '代码探索必须委托 subagent',
   ],
+  claudeMd: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
+  codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
   impactExploreAgent: ['禁止笼统写成 `Explore enterprise-harness` / `Explore this repo`'],
   expectedBehavior: [
