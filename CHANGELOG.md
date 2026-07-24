@@ -2,6 +2,16 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.28]
+
+### Fixed
+- **TECP 卡现在每次写完文件后都打印**：之前只在 session-start 和 BLOCK 时打印，整个推进过程用户看不到进度。现在 post-write hook 每次写完文件后输出 TECP 卡，会话里进度全程可见。
+- **codegraph 证据门禁**（issue #53）：pre-write 新增第 12 道拦截——如果 `state.json` 的 `tooling.codegraph` 仍为 unknown/空，写受治理路径直接 BLOCK。程序级拦截，不依赖模型自觉。
+
+### Changed
+- **README 统一两种运行模式**：原生 Claude Code（自动挡）vs 非原生宿主/opencode/CI（手动挡），说明为何两种模式门禁都生效。
+- **彻底清除 g4c 命名**：文件/函数/测试全部改为 tecp。
+
 ## [0.1.27]
 
 ### Fixed
