@@ -1,4 +1,4 @@
-# Enterprise Harness
+# Enterprise Harness (v0.1.29)
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 
@@ -86,6 +86,13 @@ graph TD
 ## 核心价值：机械门禁
 
 这是本项目与其他 AI 工作流框架**最本质的区别**——它不是靠"提示词建议 AI 自觉"，而是有**真实程序拦截违规操作**：
+
+### pre-explore hook（探索代码前）
+
+主 orchestrator 直接用 Grep/Read/Glob 探索业务代码时：
+- 无 active change 但有 change tracking → **BLOCK**（必须委托 code-explore subagent）
+- 已有 codegraph 证据 → 放行
+- 读 harness/ 内部文件、CLAUDE.md、docs、配置 → 放行（豁免）
 
 ### pre-write hook（写代码前）
 
@@ -208,6 +215,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 ### 什么是真正强制的（程序拦截）
 
+- 探索业务代码时被 pre-explore hook BLOCK（除非已委托 subagent 或有 codegraph 证据）
 - 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 **12 道写入前检查**（含 codegraph 证据门禁）
 - 变更资产完整性检查
 - OpenAPI ↔ Controller 一致性检查
@@ -220,6 +228,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - 一次只问一个问题 + 展示歧义评分
 - 先澄清再动手
 - TDD 严格 RED→GREEN→REFACTOR
+- subagent 标题对准用户项目（不得写 `enterprise-harness`）
 
 ### 什么还没实现
 

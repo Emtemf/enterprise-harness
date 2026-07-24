@@ -100,4 +100,4 @@ if (!finalOutput.includes('✔ enabled') && !finalOutput.includes('enabled')) {
 }
 
 console.log('');
-pass('plugin install/update flow verified end-to-end');
+pass('plugin install/update flow verify passed');

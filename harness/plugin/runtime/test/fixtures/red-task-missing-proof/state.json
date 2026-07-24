@@ -13,7 +13,7 @@
   "tooling": {
     "codegraph": {
       "status": "available",
-      "queries": [],
+      "queries": ["explore-template-module"],
       "fallbackReason": null
     },
     "documentation": {
