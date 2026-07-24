@@ -25,21 +25,21 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 // ── RED ──
 if (mode === 'red') {
   try {
-    const { renderG4CCard } = await import('../lib/g4c-card.mjs');
-    if (typeof renderG4CCard === 'function') {
-      fail('renderG4CCard already exists — red precondition no longer holds.');
+    const { renderTECPCard } = await import('../lib/g4c-card.mjs');
+    if (typeof renderTECPCard === 'function') {
+      fail('renderTECPCard already exists — red precondition no longer holds.');
     }
   } catch {
-    // Expected: module not found or import error
+    // Expected
   }
-  pass('Red precondition holds: renderG4CCard not yet implemented.');
+  pass('Red precondition holds: renderTECPCard not yet implemented.');
 }
 
 // ── GREEN / VERIFY ──
-const { renderG4CCard } = await import('../lib/g4c-card.mjs');
+const { renderTECPCard, renderG4CCard } = await import('../lib/g4c-card.mjs');
 
 function makeTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'g4c-card-smoke-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'tecp-card-smoke-'));
 }
 
 function cleanup(dir) {
@@ -62,10 +62,9 @@ function check(desc, fn) {
   try { fn(); } catch (e) { failures.push(`${desc}: ${e.message}`); }
 }
 
-// ── Fixture builders ──
 function baseState(overrides = {}) {
   return {
-    schemaVersion: 2, changeId: 'test', tier: 'L2', state: 'EXECUTING',
+    schemaVersion: 3, changeId: 'test', tier: 'L2', state: 'EXECUTING',
     goal: '模板支持硬删除', successCriteria: ['级联清理'], routingReason: '涉及 API+数据',
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' },
     tooling: { codegraph: { status: 'available', queries: [], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
@@ -87,40 +86,63 @@ function setupChangeDir(tmpDir, changeId, state, files = {}) {
   return changeDir;
 }
 
-// ── Test cases ──
+// ── TECP card tests ──
 
-check('card contains Goal when goal is set', () => {
+check('T: card contains target when goal is set', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
-    if (!card.includes('模板支持硬删除')) failures.push('card missing goal text');
-    if (!card.includes('级联清理')) failures.push('card missing successCriteria');
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('模板支持硬删除')) failures.push('card missing target text');
+    if (!card.includes('T 目标')) failures.push('card missing T label');
   } finally { cleanup(tmp); }
 });
 
-check('card shows "未记录" when goal is null', () => {
+check('T: card shows "未记录" when goal is null', () => {
   const tmp = makeTmpDir();
   try {
-    setupChangeDir(tmp, 'test', baseState({ goal: null, successCriteria: null, routingReason: null }));
+    setupChangeDir(tmp, 'test', baseState({ goal: null, routingReason: null }));
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
-    if (!card.includes('未记录')) failures.push('card should show 未记录 for missing goal');
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('未记录')) failures.push('card should show 未记录 for missing target');
   } finally { cleanup(tmp); }
 });
 
-check('card shows routingReason in Choice', () => {
+check('P: card shows routingReason in 路径', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
+    const card = renderTECPCard(tmp, 'test', state);
     if (!card.includes('涉及 API+数据')) failures.push('card missing routingReason');
+    if (!card.includes('P 路径')) failures.push('card missing P label');
   } finally { cleanup(tmp); }
 });
 
-check('card shows correct ladder for stage=tdd', () => {
+check('C: card shows context (gap)', () => {
+  const tmp = makeTmpDir();
+  try {
+    setupChangeDir(tmp, 'test', baseState());
+    const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('C 上下文')) failures.push('card missing C label');
+  } finally { cleanup(tmp); }
+});
+
+check('E: card shows evidence summary', () => {
+  const tmp = makeTmpDir();
+  try {
+    setupChangeDir(tmp, 'test', baseState({ gates: { designApproved: true, redVerified: true, redTask: 't', redEvidenceRef: 'r' } }));
+    const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('E 证据')) failures.push('card missing E label');
+    if (!card.includes('design approved')) failures.push('card missing design approved evidence');
+    if (!card.includes('RED verified')) failures.push('card missing RED verified evidence');
+  } finally { cleanup(tmp); }
+});
+
+check('Ladder: correct ✓/▸/○ for stage=tdd', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState(), {
@@ -129,51 +151,55 @@ check('card shows correct ladder for stage=tdd', () => {
       'requirements.md': '# Req\n',
     });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
-    if (!card.includes('✓')) failures.push('card missing checkmark for completed stages');
-    if (!card.includes('▸')) failures.push('card missing arrow for current stage');
-    if (!card.includes('○')) failures.push('card missing circle for future stages');
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('✓')) failures.push('card missing checkmark');
+    if (!card.includes('▸')) failures.push('card missing arrow');
+    if (!card.includes('○')) failures.push('card missing circle');
   } finally { cleanup(tmp); }
 });
 
-check('card shows all 7 stages in order', () => {
+check('Ladder: all 7 stages in order', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
-    const stages = ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive'];
-    for (const s of stages) {
+    const card = renderTECPCard(tmp, 'test', state);
+    for (const s of ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']) {
       if (!card.includes(s)) failures.push(`card missing stage: ${s}`);
     }
   } finally { cleanup(tmp); }
 });
 
-check('card includes Correction with next entry', () => {
+check('P 纠正: includes next entry', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
-    if (!card.includes('Correction')) failures.push('card missing Correction section');
+    const card = renderTECPCard(tmp, 'test', state);
+    if (!card.includes('P 纠正')) failures.push('card missing P 纠正');
     if (!card.includes('harness-tdd') && !card.includes('/harness')) failures.push('card missing recovery entry');
   } finally { cleanup(tmp); }
 });
 
-check('card is compact (no more than 20 lines)', () => {
+check('Compact: no more than 20 lines', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderG4CCard(tmp, 'test', state);
+    const card = renderTECPCard(tmp, 'test', state);
     const lines = card.split('\n').length;
     if (lines > 20) failures.push(`card too long: ${lines} lines (max 20)`);
   } finally { cleanup(tmp); }
 });
 
+check('Backward compat: renderG4CCard alias works', () => {
+  if (typeof renderG4CCard !== 'function') failures.push('renderG4CCard alias missing');
+  if (renderG4CCard !== renderTECPCard) failures.push('renderG4CCard should be same function as renderTECPCard');
+});
+
 // ── Results ──
 if (failures.length > 0) {
-  fail(`g4c-card-smoke failed:\n${failures.join('\n')}`);
+  fail(`tecp-card-smoke failed:\n${failures.join('\n')}`);
 }
 
-pass(mode === 'green' ? 'Green g4c-card-smoke passed.' : 'G4c-card verify smoke passed.');
+pass(mode === 'green' ? 'Green tecp-card-smoke passed.' : 'TECP-card verify smoke passed.');

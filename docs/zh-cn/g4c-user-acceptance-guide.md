@@ -1,6 +1,6 @@
-# G4C 用户验收指南
+# 闭环五检 (TECP) 用户验收指南
 
-> **用法**：每一步都按 G4C 五维验收。预期效果是"插件应该给你什么"；实际效果是"你实际看到了什么"；如果不一致，按"提 issue 所需证据"收集后提交。
+> **用法**：每一步都按 闭环五检 (TECP) 五维验收。预期效果是"插件应该给你什么"；实际效果是"你实际看到了什么"；如果不一致，按"提 issue 所需证据"收集后提交。
 
 ---
 
@@ -189,7 +189,7 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 | **Goal** | 确保 Claude 在满足所有前置条件后才写代码 |
 | **Context** | 插件能检测到你的 change 状态和 artifact 完整性 |
 | **Choice** | 为什么有 11 道拦截——每道对应一个被跳过的风险 |
-| **Checkpoint** | 如果前置条件不满足→看到 `BLOCK:` 消息 + G4C 进度卡 |
+| **Checkpoint** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECP) 进度卡 |
 | **Correction** | 按 BLOCK 消息提示操作，然后重试 |
 
 ### 预期效果
@@ -211,12 +211,12 @@ BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 
 ### 实际效果检查
 - [ ] 缺 design.md 时被 BLOCK → ✅（门禁生效）
-- [ ] BLOCK 消息后附带 G4C 进度卡 → ✅（v0.1.19+）
+- [ ] BLOCK 消息后附带 闭环五检 (TECP) 进度卡 → ✅（v0.1.19+）
 - [ ] Claude 在条件不满足时直接写入成功 → ❌（门禁失效）
-- [ ] BLOCK 消息没有 G4C 卡 → ⚠️ 插件版本过旧
+- [ ] BLOCK 消息没有 闭环五检 (TECP) 卡 → ⚠️ 插件版本过旧
 
 ### 提 issue 所需证据
-1. Claude 尝试写文件时的完整 BLOCK 输出（含 G4C 卡）
+1. Claude 尝试写文件时的完整 BLOCK 输出（含 闭环五检 (TECP) 卡）
 2. 当前 `state.json` 的完整内容
 3. `ls harness/changes/*/design.md`（是否存在）
 4. `node -p "require('./package.json').version"` 版本号
@@ -314,7 +314,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 
 ---
 
-## 快速定位：G4C 五维对照表
+## 快速定位：闭环五检 (TECP) 五维对照表
 
 | 你遇到的问题 | Goal 缺失 | Context 缺失 | Choice 不清 | Checkpoint 失败 | Correction 不明 |
 |---|---|---|---|---|---|
@@ -322,7 +322,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 | Claude 没问问题直接写代码 | | | | Step 3 ❌ | |
 | Claude 跳过设计直接写代码 | | | Step 5 ❌ | Step 5 ❌ | |
 | BLOCK 后不知道怎么恢复 | | | | | Step 6 ❌ |
-| BLOCK 没有 G4C 卡 | | | | Step 6 ❌ | Step 6 ❌ |
+| BLOCK 没有 闭环五检 (TECP) 卡 | | | | Step 6 ❌ | Step 6 ❌ |
 | 会话中断后不知道做到哪 | Step 1 ❌ | Step 1 ❌ | | Step 1 ❌ | Step 1 ❌ |
 
 ## 提 issue 模板
@@ -331,7 +331,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 ### 问题层级
 Repo contract / Bug / Feature
 
-### G4C 维度（哪个断了？）
+### 闭环五检 (TECP) 维度（哪个断了？）
 Goal / Context / Choice / Checkpoint / Correction
 
 ### 你用的模型

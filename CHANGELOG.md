@@ -2,6 +2,19 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.24]
+
+### Changed
+
+- **G4C 重命名为闭环五检 (TECP)**：本项目的核心方法论从 G4C（Goal/Context/Choice/Checkpoint/Correction）重命名为 **闭环五检 TECP**（Target/Context/Evidence/Path），完全自主命名。
+  - T = Target（目标）：要达成什么
+  - C = Context（上下文）：知道什么、缺什么
+  - E = Evidence（证据）：用什么证明对了
+  - P = Path（路径 + 纠正）：为什么这么走、错了怎么办
+- 卡片格式更新为 `│ T 目标 ▸ ... / │ C 上下文 ▸ ... / │ E 证据 ▸ ... / │ P 路径 ▸ ... / │ P 纠正 ▸ ...`
+- `renderG4CCard` 保留为 `renderTECPCard` 的向后兼容别名
+- README、验收指南、lifecycle truth 文档全面更新为闭环五检命名
+
 ## [0.1.23]
 
 ### Fixed

@@ -140,6 +140,6 @@ export function renderStatusSummary(summary) {
     '维护命令（如需排障）',
     ...summary.maintainerCommands.map((item) => `- ${item}`),
     '',
-    ...(summary.activeChange.present && summary._g4cCard ? ['G4C 进度卡', summary._g4cCard] : []),
+    ...(summary.activeChange.present && summary._g4cCard ? ['闭环五检 (TECP)', summary._g4cCard] : []),
   ].filter(Boolean).join('\n');
 }

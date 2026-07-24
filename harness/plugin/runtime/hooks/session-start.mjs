@@ -77,7 +77,7 @@ try {
   const active = loadActiveChange(root);
   if (active.ok) {
     const card = renderG4CCard(root, active.changeId, active.data);
-    console.log(`[Harness 进度卡]\n${card}`);
+    console.log(`[Harness 闭环五检]\n${card}`);
   }
 } catch {}
 

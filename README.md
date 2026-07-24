@@ -4,23 +4,23 @@
 
 > 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
 
-## G4C：这个项目是怎么工作的
+## 闭环五检 (TECP)：这个项目是怎么工作的
 
-G4C 是本项目的核心方法论——五个维度，缺一不可：
+闭环五检 (TECP) 是本项目的核心方法论——五个维度，缺一不可：
 
 | 维度 | 含义 | 在本项目中 |
 |------|------|-----------|
 | **Goal** | 要达成什么？什么叫成功？ | 每个 change 都有明确的目标和成功标准 |
 | **Context** | 知道什么？还缺什么？ | 探索代码/文档后才问用户，不凭空猜 |
 | **Choice** | 为什么这么走？还有哪些路径？ | 路由决策（L0-L3）有理由，可回溯 |
-| **Checkpoint** | 怎么知道当前步骤对不对？ | G4C 进度卡：✓/▸/○ 阶梯可视化 |
+| **Checkpoint** | 怎么知道当前步骤对不对？ | 闭环五检 (TECP) 进度卡：✓/▸/○ 阶梯可视化 |
 | **Correction** | 发现偏差后怎么办？ | BLOCK 消息 + 恢复入口，不是死胡同 |
 
 ## 一个需求进来，会发生什么
 
 ```mermaid
 graph TD
-    U["/harness 你的需求"] --> S["Session Start<br/>输出 G4C 卡"]
+    U["/harness 你的需求"] --> S["Session Start<br/>输出 闭环五检 (TECP) 卡"]
     S --> E["代码探索<br/>委托 subagent"]
     E --> C["澄清<br/>一次问一个问题"]
     C --> R["路由<br/>L0/L1/L2/L3"]
@@ -43,7 +43,7 @@ graph TD
     style A fill:#a29bfe,color:#fff
 ```
 
-### 每一步的 G4C 验收
+### 每一步的 闭环五检 (TECP) 验收
 
 | 步骤 | Goal | Checkpoint（你应该看到） | 门禁级别 |
 |------|------|-------------------------|---------|
@@ -61,15 +61,17 @@ graph TD
 **程序强制** = Node.js hook 拦截，不管模型多弱都生效  
 **prompt 约束** = SKILL.md 文字指令，强模型遵守，弱模型可能跳过
 
-### G4C 进度卡
+### 闭环五检 (TECP) 进度卡
 
 任何时候你都可以看到这张卡（session-start / `cli status` / BLOCK 时自动输出）：
 
 ```
 ┌─ hard-delete-template (L2) ─
-│ Goal    ▸ 模板支持硬删除，级联清理关联数据
-│ Success ▸ 删除后关联数据清空
-│ Choice  ▸ 涉及 API + 数据变化，故 L2
+│ T 目标    ▸ 模板支持硬删除，级联清理关联数据
+│ C 上下文  ▸ tasks.md 不存在，需先完成任务拆分
+│ E 证据    ▸ design approved | RED verified
+│ P 路径    ▸ 涉及 API + 数据变化，故 L2
+│ P 纠正    ▸ /harness-plan
 │ Ladder
   ✓ clarify
   ✓ route
@@ -78,8 +80,6 @@ graph TD
   ○ tdd
   ○ verify
   ○ archive
-│ Correction ▸ tasks.md 不存在，需先完成任务拆分
-│ Next     ▸ /harness-plan
 └─
 ```
 
@@ -117,7 +117,7 @@ graph TD
 
 - validation stale → BLOCK
 - reviewer verdict 未满足 → BLOCK
-- 输出 G4C 卡（v0.1.19+）
+- 输出 闭环五检 (TECP) 卡（v0.1.19+）
 
 ## 安装
 
@@ -200,13 +200,13 @@ node bin/install.mjs --target /path/to/your/project
 
 ```bash
 node harness/plugin/runtime/cli.mjs doctor     # 环境体检
-node harness/plugin/runtime/cli.mjs verify     # 契约检查（含 G4C 卡）
-node harness/plugin/runtime/cli.mjs status     # 当前状态（含 G4C 卡）
+node harness/plugin/runtime/cli.mjs verify     # 契约检查（含 闭环五检 (TECP) 卡）
+node harness/plugin/runtime/cli.mjs status     # 当前状态（含 闭环五检 (TECP) 卡）
 ```
 
 ## 深入阅读
 
-- **[docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g4c-user-acceptance-guide.md)** — **G4C 五维验收指南**（每步的预期/实际/证据）
+- **[docs/zh-cn/g4c-user-acceptance-guide.md](docs/zh-cn/g4c-user-acceptance-guide.md)** — **闭环五检 (TECP) 五维验收指南**（每步的预期/实际/证据）
 - [docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md) — 每个步骤的真相文档（时序图 + 涉及文件 + 产出 + checklist）
 - [docs/zh-cn/expected-behavior-checklist.md](docs/zh-cn/expected-behavior-checklist.md) — 快速定位指南
 - `PROGRESS.md` — 当前进度
