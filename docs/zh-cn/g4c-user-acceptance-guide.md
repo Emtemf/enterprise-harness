@@ -8,11 +8,11 @@
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 你知道当前项目状态、模型是否就绪、下一步该做什么 |
-| **Context** | 插件能读取你的项目结构、active change、技术栈信息 |
-| **Choice** | 为什么输出这些而不是更多/更少——只输出恢复所需的最小上下文 |
-| **Checkpoint** | 你应该看到 `[Harness 进度卡]` 包含 ✓/▸/○ 阶梯 |
-| **Correction** | 如果看不到任何 `[Harness ...]` 输出→插件未安装 |
+| **T 目标** | 你知道当前项目状态、模型是否就绪、下一步该做什么 |
+| **C 上下文** | 插件能读取你的项目结构、active change、技术栈信息 |
+| **P 路径** | 为什么输出这些而不是更多/更少——只输出恢复所需的最小上下文 |
+| **E 证据** | 你应该看到 `[Harness 进度卡]` 包含 ✓/▸/○ 阶梯 |
+| **P 纠正** | 如果看不到任何 `[Harness ...]` 输出→插件未安装 |
 
 ### 预期效果
 
@@ -25,8 +25,8 @@
 [Harness Workflow] 当前 stage: ...
 [Harness 进度卡]
 ┌─ your-change (L2) ─
-│ Goal    ▸ 你的目标
-│ Choice  ▸ 为什么是 L2
+│ T 目标    ▸ 你的目标
+│ P 路径    ▸ 为什么是 L2
 │ Ladder
   ✓ clarify
   ▸ route     ← 当前位置
@@ -55,11 +55,11 @@
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 在写代码前了解你的项目结构、现有实现、关键文件 |
-| **Context** | 插件知道你的项目使用什么框架、有哪些模块、代码在哪 |
-| **Choice** | 为什么用 subagent 而不是直接探索——避免污染主对话上下文 |
-| **Checkpoint** | Claude 派遣了 `code-explore` / `impact-explore` subagent |
-| **Correction** | 如果 Claude 自己直接 grep/Read→不符合预期 |
+| **T 目标** | 在写代码前了解你的项目结构、现有实现、关键文件 |
+| **C 上下文** | 插件知道你的项目使用什么框架、有哪些模块、代码在哪 |
+| **P 路径** | 为什么用 subagent 而不是直接探索——避免污染主对话上下文 |
+| **E 证据** | Claude 派遣了 `code-explore` / `impact-explore` subagent |
+| **P 纠正** | 如果 Claude 自己直接 grep/Read→不符合预期 |
 
 ### 预期效果
 
@@ -86,11 +86,11 @@
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 把模糊需求变成明确可执行的需求 |
-| **Context** | 基于 Step 2 的探索结果提问，而不是凭空猜 |
-| **Choice** | 为什么一次只问一个问题——避免信息过载导致回答质量下降 |
-| **Checkpoint** | Claude 至少向你提了 1 个问题，且用选项式（A/B/C） |
-| **Correction** | 如果 Claude 从头到尾没问过问题→直接开始写代码→不符合预期 |
+| **T 目标** | 把模糊需求变成明确可执行的需求 |
+| **C 上下文** | 基于 Step 2 的探索结果提问，而不是凭空猜 |
+| **P 路径** | 为什么一次只问一个问题——避免信息过载导致回答质量下降 |
+| **E 证据** | Claude 至少向你提了 1 个问题，且用选项式（A/B/C） |
+| **P 纠正** | 如果 Claude 从头到尾没问过问题→直接开始写代码→不符合预期 |
 
 ### 预期效果
 
@@ -118,11 +118,11 @@
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 为你的需求建立一个可追溯的变更记录 |
-| **Context** | 插件知道你正在做什么、在什么阶段 |
-| **Choice** | 为什么需要 change 目录——支持打断后恢复、审计追溯 |
-| **Checkpoint** | `harness/ACTIVE_CHANGE` 存在 + `harness/changes/<id>/state.json` 存在 |
-| **Correction** | 如果 Claude 直接改代码但没创建 change→不符合预期 |
+| **T 目标** | 为你的需求建立一个可追溯的变更记录 |
+| **C 上下文** | 插件知道你正在做什么、在什么阶段 |
+| **P 路径** | 为什么需要 change 目录——支持打断后恢复、审计追溯 |
+| **E 证据** | `harness/ACTIVE_CHANGE` 存在 + `harness/changes/<id>/state.json` 存在 |
+| **P 纠正** | 如果 Claude 直接改代码但没创建 change→不符合预期 |
 
 ### 预期效果
 
@@ -152,11 +152,11 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 在写代码前形成完整设计，包含接口、数据、测试策略 |
-| **Context** | 基于 Step 2-4 的探索和澄清结果 |
-| **Choice** | 为什么先写 design 再写代码——减少返工，让 reviewer 可评审 |
-| **Checkpoint** | `design.md` 存在且 ≥ 50 行，含 Problem/Scope/Options/Test Strategy |
-| **Correction** | 如果 Claude 直接写 Java 代码但没有 design.md→会被 pre-write BLOCK |
+| **T 目标** | 在写代码前形成完整设计，包含接口、数据、测试策略 |
+| **C 上下文** | 基于 Step 2-4 的探索和澄清结果 |
+| **P 路径** | 为什么先写 design 再写代码——减少返工，让 reviewer 可评审 |
+| **E 证据** | `design.md` 存在且 ≥ 50 行，含 Problem/Scope/Options/Test Strategy |
+| **P 纠正** | 如果 Claude 直接写 Java 代码但没有 design.md→会被 pre-write BLOCK |
 
 ### 预期效果
 
@@ -186,11 +186,11 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 确保 Claude 在满足所有前置条件后才写代码 |
-| **Context** | 插件能检测到你的 change 状态和 artifact 完整性 |
-| **Choice** | 为什么有 11 道拦截——每道对应一个被跳过的风险 |
-| **Checkpoint** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECP) 进度卡 |
-| **Correction** | 按 BLOCK 消息提示操作，然后重试 |
+| **T 目标** | 确保 Claude 在满足所有前置条件后才写代码 |
+| **C 上下文** | 插件能检测到你的 change 状态和 artifact 完整性 |
+| **P 路径** | 为什么有 11 道拦截——每道对应一个被跳过的风险 |
+| **E 证据** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECP) 进度卡 |
+| **P 纠正** | 按 BLOCK 消息提示操作，然后重试 |
 
 ### 预期效果
 
@@ -198,13 +198,13 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 ```
 BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 ┌─ your-change (L2) ─
-│ Goal    ▸ ...
+│ T 目标    ▸ ...
 │ Ladder
   ✓ clarify
   ▸ design   ← 缺 design.md
   ○ plan
   ...
-│ Correction ▸ 创建 design.md 后重试
+│ P 纠正    ▸ 创建 design.md 后重试
 │ Next     ▸ /harness-design
 └─
 ```
@@ -227,11 +227,11 @@ BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 先写失败测试证明问题存在，再写最小实现通过测试 |
-| **Context** | 基于 design.md 和 tasks.md 中的 RED/GREEN evidence point |
-| **Choice** | 为什么 TDD——确保测试覆盖、减少回归风险 |
-| **Checkpoint** | 测试先失败（RED）再通过（GREEN） |
-| **Correction** | 如果跳过 RED 直接写实现→不符合预期 |
+| **T 目标** | 先写失败测试证明问题存在，再写最小实现通过测试 |
+| **C 上下文** | 基于 design.md 和 tasks.md 中的 RED/GREEN evidence point |
+| **P 路径** | 为什么 TDD——确保测试覆盖、减少回归风险 |
+| **E 证据** | 测试先失败（RED）再通过（GREEN） |
+| **P 纠正** | 如果跳过 RED 直接写实现→不符合预期 |
 
 ### 预期效果
 
@@ -258,11 +258,11 @@ BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 确认实现满足设计、测试通过、无回归 |
-| **Context** | 基于 Step 7 的 TDD 证据和 Step 5 的 design |
-| **Choice** | 为什么需要独立验证——防止自己验收自己 |
-| **Checkpoint** | `validation.md` fresh + `verification-reviewer.json` pass |
-| **Correction** | 如果 verification 未通过→按 reviewer findings 修复 |
+| **T 目标** | 确认实现满足设计、测试通过、无回归 |
+| **C 上下文** | 基于 Step 7 的 TDD 证据和 Step 5 的 design |
+| **P 路径** | 为什么需要独立验证——防止自己验收自己 |
+| **E 证据** | `validation.md` fresh + `verification-reviewer.json` pass |
+| **P 纠正** | 如果 verification 未通过→按 reviewer findings 修复 |
 
 ### 预期效果
 
@@ -292,11 +292,11 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 
 | 维度 | 内容 |
 |------|------|
-| **Goal** | 防止带着过期验证数据假装完成 |
-| **Context** | 插件知道你的 validation 是否 fresh |
-| **Choice** | 为什么拦截——确保用户不会在过期状态下结束 |
-| **Checkpoint** | 如果 validation stale→被 BLOCK；如果 fresh→正常放行 |
-| **Correction** | 刷新验证证据后重试 |
+| **T 目标** | 防止带着过期验证数据假装完成 |
+| **C 上下文** | 插件知道你的 validation 是否 fresh |
+| **P 路径** | 为什么拦截——确保用户不会在过期状态下结束 |
+| **E 证据** | 如果 validation stale→被 BLOCK；如果 fresh→正常放行 |
+| **P 纠正** | 刷新验证证据后重试 |
 
 ### 预期效果
 
@@ -316,7 +316,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 
 ## 快速定位：闭环五检 (TECP) 五维对照表
 
-| 你遇到的问题 | Goal 缺失 | Context 缺失 | Choice 不清 | Checkpoint 失败 | Correction 不明 |
+| 你遇到的问题 | T 目标 缺失 | C 上下文 缺失 | P 路径 不清 | E 证据 失败 | P 纠正 不明 |
 |---|---|---|---|---|---|
 | Claude 没探索直接写代码 | | Step 2 ❌ | | Step 2 ❌ | |
 | Claude 没问问题直接写代码 | | | | Step 3 ❌ | |
@@ -332,7 +332,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 Repo contract / Bug / Feature
 
 ### 闭环五检 (TECP) 维度（哪个断了？）
-Goal / Context / Choice / Checkpoint / Correction
+T 目标 / C 上下文 / E 证据 / P 路径 / P 纠正
 
 ### 你用的模型
 /model 的输出
