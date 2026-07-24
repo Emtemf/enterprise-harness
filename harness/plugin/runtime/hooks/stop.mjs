@@ -3,7 +3,7 @@ import path from 'node:path';
 import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { inferWorkflowStage } from '../lib/workflow.mjs';
-import { renderTECPCard } from '../lib/tecp-card.mjs';
+import { renderTECPCCard } from '../lib/tecp-card.mjs';
 
 function recommendNextEntry(_stage) {
   return '/harness';
@@ -38,7 +38,7 @@ function printHandoffGuidance(root) {
   try {
     const active = loadActiveChange(root);
     if (active.ok) {
-      const card = renderTECPCard(root, active.changeId, active.data);
+      const card = renderTECPCCard(root, active.changeId, active.data);
       console.error(card);
     }
   } catch {}

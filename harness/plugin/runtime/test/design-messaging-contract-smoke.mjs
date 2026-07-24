@@ -30,7 +30,7 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const designSkill = readText(designSkillPath);
 const designTemplate = readText(designTemplatePath);
 
-// TECP-driven design checks
+// TECPC-driven design checks
 const ok = designSkill.includes('闭环五检')
   && designSkill.includes('T 目标')
   && designSkill.includes('C 上下文')
@@ -45,13 +45,13 @@ const ok = designSkill.includes('闭环五检')
 
 if (mode === 'red') {
   if (!ok) {
-    fail('Expected TECP-driven design contract');
+    fail('Expected TECPC-driven design contract');
   }
   pass('Red precondition no longer holds.');
 }
 
 if (!ok) {
-  fail('Expected TECP-driven design contract');
+  fail('Expected TECPC-driven design contract');
 }
 
-pass(mode === 'green' ? 'Green design TECP contract smoke passed.' : 'Design TECP contract verify smoke passed.');
+pass(mode === 'green' ? 'Green design TECPC contract smoke passed.' : 'Design TECPC contract verify smoke passed.');

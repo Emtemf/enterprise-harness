@@ -25,18 +25,18 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 // ── RED ──
 if (mode === 'red') {
   try {
-    const { renderTECPCard } = await import('../lib/tecp-card.mjs');
-    if (typeof renderTECPCard === 'function') {
-      fail('renderTECPCard already exists — red precondition no longer holds.');
+    const { renderTECPCCard } = await import('../lib/tecp-card.mjs');
+    if (typeof renderTECPCCard === 'function') {
+      fail('renderTECPCCard already exists — red precondition no longer holds.');
     }
   } catch {
     // Expected
   }
-  pass('Red precondition holds: renderTECPCard not yet implemented.');
+  pass('Red precondition holds: renderTECPCCard not yet implemented.');
 }
 
 // ── GREEN / VERIFY ──
-const { renderTECPCard } = await import('../lib/tecp-card.mjs');
+const { renderTECPCCard, renderTECPCard } = await import('../lib/tecp-card.mjs');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'tecp-card-smoke-'));
@@ -86,14 +86,14 @@ function setupChangeDir(tmpDir, changeId, state, files = {}) {
   return changeDir;
 }
 
-// ── TECP card tests ──
+// ── TECPC card tests ──
 
 check('T: card contains target when goal is set', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('模板支持硬删除')) failures.push('card missing target text');
     if (!card.includes('T 目标')) failures.push('card missing T label');
   } finally { cleanup(tmp); }
@@ -104,7 +104,7 @@ check('T: card shows "未记录" when goal is null', () => {
   try {
     setupChangeDir(tmp, 'test', baseState({ goal: null, routingReason: null }));
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('未记录')) failures.push('card should show 未记录 for missing target');
   } finally { cleanup(tmp); }
 });
@@ -114,7 +114,7 @@ check('P: card shows routingReason in 路径', () => {
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('涉及 API+数据')) failures.push('card missing routingReason');
     if (!card.includes('P 路径')) failures.push('card missing P label');
   } finally { cleanup(tmp); }
@@ -125,7 +125,7 @@ check('C: card shows context (gap)', () => {
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('C 上下文')) failures.push('card missing C label');
   } finally { cleanup(tmp); }
 });
@@ -135,7 +135,7 @@ check('E: card shows evidence summary', () => {
   try {
     setupChangeDir(tmp, 'test', baseState({ gates: { designApproved: true, redVerified: true, redTask: 't', redEvidenceRef: 'r' } }));
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('E 证据')) failures.push('card missing E label');
     if (!card.includes('design approved')) failures.push('card missing design approved evidence');
     if (!card.includes('RED verified')) failures.push('card missing RED verified evidence');
@@ -151,7 +151,7 @@ check('Ladder: correct ✓/▸/○ for stage=tdd', () => {
       'requirements.md': '# Req\n',
     });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     if (!card.includes('✓')) failures.push('card missing checkmark');
     if (!card.includes('▸')) failures.push('card missing arrow');
     if (!card.includes('○')) failures.push('card missing circle');
@@ -163,20 +163,20 @@ check('Ladder: all 7 stages in order', () => {
   try {
     setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     for (const s of ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']) {
       if (!card.includes(s)) failures.push(`card missing stage: ${s}`);
     }
   } finally { cleanup(tmp); }
 });
 
-check('P 纠正: includes next entry', () => {
+check('C 纠正: includes next entry', () => {
   const tmp = makeTmpDir();
   try {
     setupChangeDir(tmp, 'test', baseState());
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
-    if (!card.includes('P 纠正')) failures.push('card missing P 纠正');
+    const card = renderTECPCCard(tmp, 'test', state);
+    if (!card.includes('C 纠正')) failures.push('card missing C 纠正');
     if (!card.includes('harness-tdd') && !card.includes('/harness')) failures.push('card missing recovery entry');
   } finally { cleanup(tmp); }
 });
@@ -186,10 +186,15 @@ check('Compact: no more than 20 lines', () => {
   try {
     setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
-    const card = renderTECPCard(tmp, 'test', state);
+    const card = renderTECPCCard(tmp, 'test', state);
     const lines = card.split('\n').length;
     if (lines > 20) failures.push(`card too long: ${lines} lines (max 20)`);
   } finally { cleanup(tmp); }
+});
+
+check('Alias: renderTECPCard is backward-compatible alias for renderTECPCCard', () => {
+  if (typeof renderTECPCard !== 'function') failures.push('renderTECPCard alias is not a function');
+  if (renderTECPCard !== renderTECPCCard) failures.push('renderTECPCard is not the same function as renderTECPCCard');
 });
 
 
@@ -198,4 +203,4 @@ if (failures.length > 0) {
   fail(`tecp-card-smoke failed:\n${failures.join('\n')}`);
 }
 
-pass(mode === 'green' ? 'Green tecp-card-smoke passed.' : 'TECP-card verify smoke passed.');
+pass(mode === 'green' ? 'Green tecp-card-smoke passed.' : 'TECPC-card verify smoke passed.');

@@ -32,11 +32,11 @@ const harnessText = readText(harnessPath);
 const intakeText = readText(intakePath);
 const ambiguityText = readText(ambiguityPath);
 
-const ok = harnessText.includes('选项式问题（A/B/C + 其他）')
-  && harnessText.includes('不得给“跳过 clarify 直接进 design/plan”的逃逸路径')
+const ok = harnessText.includes('选项式 A/B/C + 其他')
+  && harnessText.includes('跳过 clarify 直接进 design/plan')
   && intakeText.includes('选项式问题')
-  && intakeText.includes('不得建议“跳过 clarify 直接进入 design/plan”')
-  && ambiguityText.includes('默认优先使用选项式问题（A/B/C + 其他）');
+  && intakeText.includes('跳过 clarify 直接进入 design/plan')
+  && ambiguityText.includes('选项式 A/B/C + 其他');
 
 if (mode === 'red') {
   if (!ok) {

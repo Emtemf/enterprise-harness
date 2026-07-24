@@ -1,7 +1,7 @@
 ---
 name: harness-design
 description: >
-  Clarify-first staged workflow 的 design 阶段入口。基于闭环五检 (TECP) 框架驱动设计产出：T 目标 → C 上下文 → E 证据 → P 路径。适用于"进入 design 阶段""补设计""让 design-reviewer 可评审"等场景。
+  Clarify-first staged workflow 的 design 阶段入口。基于闭环五检 (TECPC) 框架驱动设计产出：T 目标 → E 证据 → C 上下文 → P 路径 → C 纠正。适用于"进入 design 阶段""补设计""让 design-reviewer 可评审"等场景。
 ---
 
 # Harness Design（闭环五检驱动）
@@ -11,8 +11,8 @@ description: >
 本阶段默认以 **Principal Architect 视角**主导。
 
 职责不是直接开始实现，而是：
-- 用 TECP 四维组织设计产出
-- 每个设计决策回答：T 目标是什么、C 上下文有什么约束、E 用什么证据支撑、P 为什么选这条路径
+- 用 TECPC 五维组织设计产出
+- 每个设计决策回答：T 目标是什么、E 用什么证据支撑、C 上下文有什么约束、P 为什么选这条路径、C 发现偏差怎么纠正
 - 给开发和测试讲清楚方案，让 reviewer 可评审
 
 ## 前置条件
@@ -20,7 +20,7 @@ description: >
 进入本 skill 前，至少应满足：
 
 - 当前 change 已完成 `clarify`
-- `requirements.md` 已记录 TECP 五维评分和最终路由
+- `requirements.md` 已记录 TECPC 五维评分和最终路由
 - final route 已形成
 - 用户已确认执行范围
 
@@ -28,7 +28,7 @@ description: >
 
 - `harness/changes/<change-id>/design.md`
 
-## TECP 设计必查项
+## TECPC 设计必查项
 
 ### T 目标
 - [ ] 业务目标明确
@@ -62,10 +62,10 @@ description: >
 
 - `design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
 - 若 design review 发现 blocker，必须停留在 design 阶段修正，而不是靠聊天确认跳过
-- design-reviewer 必须检查 TECP 四维是否都有实质内容（不是占位符）
+- design-reviewer 必须检查 TECPC 五维是否都有实质内容（不是占位符）
 
 ## 退出条件
 
-- `design.md` TECP 四维 section 均已填写（非空、非占位符）
+- `design.md` TECPC 五维 section 均已填写（非空、非占位符）
 - 能明确进入 design review
 - 不能以"实现时再补"替代设计缺口

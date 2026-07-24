@@ -1,6 +1,6 @@
 # 快速定位指南
 
-> 完整的 TECP 五维验收指南见 [tecp-user-acceptance-guide.md](tecp-user-acceptance-guide.md)。
+> 完整的 TECPC 五维验收指南见 [tecp-user-acceptance-guide.md](tecp-user-acceptance-guide.md)。
 > 本文档仅提供快速对照表。
 
 ## 现象 → 原因 → 是否符合预期
@@ -21,7 +21,7 @@
 | 没有展示歧义评分 | 模型跳过了评分规则 | ❌ 提 issue |
 | 一次问了 5 个以上问题 | 模型跳过了一问一答规则 | ⚠️ 提 issue |
 | 会话结束后验证报错 | validation 不是 fresh | ✅ 正常行为 |
-| BLOCK 后没有 TECP 卡 | 插件版本过旧 | ❌ 更新插件 |
+| BLOCK 后没有 TECPC 卡 | 插件版本过旧 | ❌ 更新插件 |
 
 ## 提 issue 时请提供
 

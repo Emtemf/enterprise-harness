@@ -132,18 +132,17 @@ clarify
 
 ## 受治理路径
 
-当前 `reference-service/` 受更严格 gate 保护。
+任意项目下的以下路径都受 pre-write gate 保护（不只限于 `reference-service/`）：
 
-当修改以下路径时：
+- `src/main/java/**`
+- `src/test/java/**`
+- `openapi/**`
 
-- `reference-service/src/main`
-- `reference-service/src/test`
-- `reference-service/openapi`
-
-应确保：
+当修改这些路径时，应确保：
 
 - `harness/ACTIVE_CHANGE` 有效
 - 相应 design / RED gate 已满足
+- `tooling.codegraph` 已有使用证据（否则被 codegraph 证据门禁 BLOCK）
 
 ## 结论
 

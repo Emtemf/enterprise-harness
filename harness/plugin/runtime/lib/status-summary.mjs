@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder } from './workflow.mjs';
-import { renderTECPCard } from './tecp-card.mjs';
+import { renderTECPCCard } from './tecp-card.mjs';
 
 function readText(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
@@ -67,7 +67,7 @@ export function buildStatusSummary(root) {
   if (activeChange.present) {
     const active = loadActiveChange(root);
     if (active.ok) {
-      try { tecpCard = renderTECPCard(root, active.changeId, active.data); } catch {}
+      try { tecpCard = renderTECPCCard(root, active.changeId, active.data); } catch {}
     }
   }
   return {
@@ -140,6 +140,6 @@ export function renderStatusSummary(summary) {
     '维护命令（如需排障）',
     ...summary.maintainerCommands.map((item) => `- ${item}`),
     '',
-    ...(summary.activeChange.present && summary._tecpCard ? ['闭环五检 (TECP)', summary._tecpCard] : []),
+    ...(summary.activeChange.present && summary._tecpCard ? ['闭环五检 (TECPC)', summary._tecpCard] : []),
   ].filter(Boolean).join('\n');
 }

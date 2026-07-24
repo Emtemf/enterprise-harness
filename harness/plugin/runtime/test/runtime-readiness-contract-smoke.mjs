@@ -152,7 +152,7 @@ try {
   if (!String(upstreamHuman.stdout || '').includes('current=0.5.3 expected=0.5.5')) {
     failures.push(`upstream human output missing current/expected detail: ${JSON.stringify(String(upstreamHuman.stdout || '').trim())}`);
   }
-  if (!readmeText.includes('verify 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。')) {
+  if (!readmeText.includes('verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。')) {
     failures.push('README.md missing exact verify/readiness string');
   }
   if (!runtimeReadmeText.includes('runtime readiness 不由 verify 单独背书。')) {

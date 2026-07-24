@@ -62,15 +62,15 @@ function renderLadder(changeDir, data, currentStage) {
 }
 
 /**
- * Render a TECP (闭环五检) progress card for a change.
- * T = Target, C = Context, E = Evidence, P = Path (选择 + 纠正)
+ * Render a TECPC (闭环五检) progress card for a change.
+ * T = Target, E = Evidence, C = Context, P = Path, C = Correction
  *
  * @param {string} root - projectRoot
  * @param {string} changeId - change identifier
  * @param {object} data - loaded state.json object
- * @returns {string} multi-line TECP card text
+ * @returns {string} multi-line TECPC card text
  */
-export function renderTECPCard(root, changeId, data) {
+export function renderTECPCCard(root, changeId, data) {
   const changeDir = path.join(root, 'harness', 'changes', changeId);
   const stage = inferWorkflowStage(changeId, data) || 'clarify';
   const gap = inferCurrentGap(root, changeId, data, stage) || '';
@@ -83,15 +83,18 @@ export function renderTECPCard(root, changeId, data) {
   return [
     `┌─ ${changeId} (${data.tier || '?'}) ─`,
     `│ T 目标    ▸ ${target}`,
-    `│ C 上下文  ▸ ${gap}`,
     `│ E 证据    ▸ ${renderEvidenceSummary(data)}`,
+    `│ C 上下文  ▸ ${gap}`,
     `│ P 路径    ▸ ${reason}`,
-    `│ P 纠正    ▸ ${nextEntry}`,
+    `│ C 纠正    ▸ ${nextEntry}`,
     `│ Ladder`,
     ladder,
     `└─`,
   ].join('\n');
 }
+
+// Backward-compatible alias; new code should use renderTECPCCard.
+export const renderTECPCard = renderTECPCCard;
 
 function renderEvidenceSummary(data) {
   const parts = [];

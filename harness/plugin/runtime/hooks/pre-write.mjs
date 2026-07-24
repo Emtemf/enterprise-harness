@@ -3,7 +3,7 @@ import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
 import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
 import { inferWorkflowStage } from '../lib/workflow.mjs';
-import { renderTECPCard } from '../lib/tecp-card.mjs';
+import { renderTECPCCard } from '../lib/tecp-card.mjs';
 
 const root = projectRoot();
 
@@ -12,7 +12,7 @@ function blockWithCard(message) {
   try {
     const active = loadActiveChange(root);
     if (active.ok) {
-      const card = renderTECPCard(root, active.changeId, active.data);
+      const card = renderTECPCCard(root, active.changeId, active.data);
       console.error(card);
     }
   } catch {}
@@ -23,7 +23,7 @@ function blockGoverned(message, activeData) {
   console.error(message);
   try {
     if (activeData) {
-      const card = renderTECPCard(root, activeData.changeId, activeData);
+      const card = renderTECPCCard(root, activeData.changeId, activeData);
       console.error(card);
     }
   } catch {}

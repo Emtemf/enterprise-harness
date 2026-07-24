@@ -2,7 +2,7 @@ import { projectRoot, exists, isHarnessManaged } from '../lib/checks.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { highSeverityLessons } from '../lib/lessons.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
-import { renderTECPCard } from '../lib/tecp-card.mjs';
+import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -76,7 +76,7 @@ console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
 try {
   const active = loadActiveChange(root);
   if (active.ok) {
-    const card = renderTECPCard(root, active.changeId, active.data);
+    const card = renderTECPCCard(root, active.changeId, active.data);
     console.log(`[Harness 闭环五检]\n${card}`);
   }
 } catch {}

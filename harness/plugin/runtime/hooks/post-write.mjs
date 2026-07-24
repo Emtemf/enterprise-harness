@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from '../lib/checks.mjs';
 import path from 'node:path';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
-import { renderTECPCard } from '../lib/tecp-card.mjs';
+import { renderTECPCCard } from '../lib/tecp-card.mjs';
 
 const root = projectRoot();
 const managed = isHarnessManaged(root);
@@ -58,11 +58,11 @@ if (semanticProblems.length) {
   process.exit(1);
 }
 console.log('Post-write gate passed. 如有业务完成声明，后续仍需 fresh validation 证据。');
-// 每次写完受治理路径后，输出 TECP 卡让用户看到进度更新
+// 每次写完受治理路径后，输出 TECPC 卡让用户看到进度更新
 try {
   const active = loadActiveChange(root);
   if (active.ok) {
-    const card = renderTECPCard(root, active.changeId, active.data);
+    const card = renderTECPCCard(root, active.changeId, active.data);
     console.log(`[Harness 闭环五检]\n${card}`);
   }
 } catch {}

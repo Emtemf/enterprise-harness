@@ -62,7 +62,7 @@
    - **【强制】一次只问一个问题**，用选项式（A/B/C + 其他），不得批量抛给用户多个问题
    - **【强制】必须展示歧义度评分**：每轮展示全维度评分表 + overall score + weakest dimension + 评分依据，用户有权修正。达标条件：所有关键维度 ≥ 4 且用户确认执行范围
 2. 形成 final route（L0 / L1 / L2 / L3）
-3. 完成 durable design（TECP 驱动：T 目标 → C 上下文 → E 证据 → P 路径）
+3. 完成 durable design（TECPC 驱动：T 目标 → E 证据 → C 上下文 → P 路径 → C 纠正）
 4. design 批准后进入 plan
 5. 严格执行 RED → GREEN → REFACTOR
 6. 统一在 `verify` 阶段消费 reviewer verdict 与验证证据

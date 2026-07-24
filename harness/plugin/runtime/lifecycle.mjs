@@ -2,19 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { computeValidationDigest } from './lib/checks.mjs';
-import { renderTECPCard } from './lib/tecp-card.mjs';
+import { renderTECPCCard } from './lib/tecp-card.mjs';
 
 const repoRoot = process.cwd();
 const templatesDir = path.join(repoRoot, 'harness', 'templates');
 const changesDir = path.join(repoRoot, 'harness', 'changes');
 const activeFile = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');
 
-function printTECPCard(root, changeId) {
+function printTECPCCard(root, changeId) {
   const statePath = path.join(changesDir, changeId, 'state.json');
   if (!fs.existsSync(statePath)) return;
   try {
     const data = readJson(statePath);
-    console.log(renderTECPCard(root, changeId, data));
+    console.log(renderTECPCCard(root, changeId, data));
   } catch {}
 }
 
@@ -96,7 +96,7 @@ function cmdState(changeId, state, tier) {
   if (tier) data.tier = tier;
   writeJson(statePath, data);
   console.log(`State updated: ${changeId} -> ${state}${tier ? ` (${tier})` : ''}`);
-  printTECPCard(root, changeId);
+  printTECPCCard(repoRoot, changeId);
 }
 
 function cmdCurrentTask(changeId, currentTask) {
@@ -152,24 +152,7 @@ function cmdMarkGate(changeId, gate, value, extra = null) {
   if (gate === 'redVerified' && value) data.workflow.tddStatus = 'red-verified';
   writeJson(statePath, data);
   console.log(`Gate updated: ${changeId} -> ${gate}=${value}${extra ? ` (${extra})` : ''}`);
-  printTECPCard(repoRoot, changeId);
-}
-  const statePath = path.join(changesDir, changeId, 'state.json');
-  const json = readJson(statePath);
-  json.gates = json.gates || {};
-  json.gates[gate] = value;
-  if (gate === 'redVerified') {
-    if (!json.currentTask || !String(json.currentTask).trim()) {
-      console.error('BLOCK: 标记 redVerified 前必须先设置非空 currentTask。');
-      process.exit(2);
-    }
-    json.gates.redTask = String(json.currentTask).trim();
-    json.gates.redEvidenceRef = extra || `${json.gates.redTask}-red-proof`;
-  } else if (extra) {
-    json.gates[`${gate}Ref`] = extra;
-  }
-  writeJson(statePath, json);
-  console.log(`Gate updated: ${changeId} ${gate}=${value}`);
+  printTECPCCard(repoRoot, changeId);
 }
 
 function cmdMarkValidated(changeId, _digest, date) {

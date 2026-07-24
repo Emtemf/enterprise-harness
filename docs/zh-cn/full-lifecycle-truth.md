@@ -1,6 +1,6 @@
 # Harness 全生命周期真相文档（闭环五检驱动）
 
-> **用途**：本文档是 harness 的唯一时序真相。每一步标明：TECP 维度、涉及文件、产出文件、预期输出、异常检测。**如果实际行为与本文档不符，就是 bug，应该提 issue。**
+> **用途**：本文档是 harness 的唯一时序真相。每一步标明：TECPC 维度、涉及文件、产出文件、预期输出、异常检测。**如果实际行为与本文档不符，就是 bug，应该提 issue。**
 
 ---
 
@@ -12,7 +12,7 @@ graph TD
     B --> C["3. 代码探索<br/>委托 code-explore subagent"]
     C --> D["4. 需求澄清<br/>歧义评分 + 一问一答"]
     D --> E["5. 路由决策<br/>L0/L1/L2/L3"]
-    E --> F["6. 设计<br/>TECP 四维 design.md"]
+    E --> F["6. 设计<br/>TECPC 五维 design.md"]
     F --> G["7. 计划<br/>tasks.md"]
     G --> H["8. TDD RED<br/>写失败测试"]
     H --> I["9. 写代码<br/>pre-write hook 拦截"]
@@ -28,10 +28,10 @@ graph TD
 
 ## Step 1: Session Start（会话启动）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：让用户知道当前项目状态
 - **C 上下文**：插件读取项目结构 + active change
-- **E 证据**：输出闭环五检卡（TECP 卡）
+- **E 证据**：输出闭环五检卡（TECPC 卡）
 - **P 纠正**：告诉用户下一步该做什么
 
 ### 涉及文件
@@ -40,7 +40,7 @@ graph TD
 | `.claude/settings.json` | 注册 SessionStart hook |
 | `harness/plugin/runtime/hooks/session-start.mjs` | 执行启动检查 |
 | `harness/plugin/runtime/lib/status-summary.mjs` | 构建状态摘要 |
-| `harness/plugin/runtime/lib/tecp-card.mjs` | 渲染 TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | 渲染 TECPC 卡 |
 | `harness/project-info.json`（目标项目） | 项目技术栈 |
 | `harness/ACTIVE_CHANGE`（目标项目） | 当前 change |
 
@@ -77,13 +77,13 @@ graph TD
 | 无任何 `[Harness ...]` 输出 | 插件未安装 | `plugin install` |
 | 技术栈显示 `<...>` 未填写 | project-info.json 未配置 | 编辑 `harness/project-info.json` |
 | 无 `[Harness 闭环五检]` | 无 active change 或 hook 异常 | `cli.mjs status` |
-| TECP 卡全显示"未记录" | state.json 缺 goal 字段 | 旧版本迁移自动补齐 |
+| TECPC 卡全显示"未记录" | state.json 缺 goal 字段 | 旧版本迁移自动补齐 |
 
 ---
 
 ## Step 2: /harness 加载
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：识别用户意图，进入正确流程
 - **C 上下文**：读取 active change 状态
 - **P 路径**：决定走 clarify / 继续 / 恢复
@@ -115,7 +115,7 @@ graph TD
 
 ## Step 3: 代码探索（委托 subagent）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：了解项目结构
 - **C 上下文**：获取代码事实
 - **E 证据**：subagent 返回的 exploration packet
@@ -150,7 +150,7 @@ graph TD
 
 ## Step 4: 需求澄清（歧义评分 + 一问一答）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：把模糊需求变明确
 - **C 上下文**：基于探索事实提问
 - **E 证据**：歧义评分表（7 维度 × 0-5 分）
@@ -160,12 +160,12 @@ graph TD
 | 文件 | 角色 |
 |------|------|
 | `harness/specs/ambiguity-scoring.md` | 评分规则和标准 |
-| `harness/changes/<id>/requirements.md` | 产出：TECP 驱动的需求文档 |
+| `harness/changes/<id>/requirements.md` | 产出：TECPC 驱动的需求文档 |
 | `harness/changes/<id>/state.json` | 更新 workflow.clarifyReady |
 | `harness/changes/<id>/change.md` | 记录澄清过程 |
 
 ### 产出文件
-- `harness/changes/<id>/requirements.md`（含 TECP 评分表）
+- `harness/changes/<id>/requirements.md`（含 TECPC 评分表）
 - `harness/changes/<id>/state.json`（更新 workflow 字段）
 
 ### 预期行为（每轮）
@@ -209,7 +209,7 @@ C. 其他
 
 ## Step 5: 路由决策（L0/L1/L2/L3）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：确定变更复杂度
 - **C 上下文**：基于 clarify 结果
 - **E 证据**：tier 决策理由
@@ -240,9 +240,9 @@ C. 其他
 
 ---
 
-## Step 6: 设计（TECP 四维 design.md）
+## Step 6: 设计（TECPC 五维 design.md）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：设计必须回答"要达成什么"
 - **C 上下文**：必须基于探索事实
 - **E 证据**：每个决策必须有证据来源
@@ -251,18 +251,18 @@ C. 其他
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/templates/design.md` | TECP 驱动的模板 |
+| `harness/templates/design.md` | TECPC 驱动的模板 |
 | `harness/changes/<id>/design.md` | 产出：设计文档 |
 | `.claude/skills/harness-design/SKILL.md` | design 阶段行为 |
-| `.claude/agents/design-reviewer.md` | 设计审查（含 TECP 门禁） |
+| `.claude/agents/design-reviewer.md` | 设计审查（含 TECPC 门禁） |
 | `harness/changes/<id>/reviews/design-reviewer.json` | reviewer verdict |
 
 ### 产出文件
-- `harness/changes/<id>/design.md`（TECP 四维完整）
+- `harness/changes/<id>/design.md`（TECPC 五维完整）
 - `harness/changes/<id>/reviews/design-reviewer.json`
 
 ### 预期行为
-design.md 必须包含以下 TECP section：
+design.md 必须包含以下 TECPC section：
 
 ```
 ## T 目标
@@ -291,7 +291,7 @@ design.md 必须包含以下 TECP section：
 - [ ] P 路径清晰且有纠正预案
 ```
 
-### design-reviewer TECP 门禁
+### design-reviewer TECPC 门禁
 - T 目标不能是占位符（如"待补充"）
 - C 上下文必须引用具体代码/文件/模块
 - E 证据列必须有实际来源
@@ -312,7 +312,7 @@ design.md 必须包含以下 TECP section：
 
 ## Step 7: 计划（tasks.md）
 
-### TECP 维度
+### TECPC 维度
 - **T 目标**：把设计拆成可执行任务
 - **E 证据**：每个 task 有 RED/GREEN evidence point
 - **P 路径**：实现顺序 + 文件列表
@@ -349,7 +349,7 @@ design.md 必须包含以下 TECP section：
 
 ## Step 8: TDD RED（写失败测试）
 
-### TECP 维度
+### TECPC 维度
 - **E 证据**：测试先失败 = 问题存在的证据
 
 ### 涉及文件
@@ -378,15 +378,15 @@ design.md 必须包含以下 TECP section：
 
 ## Step 9: 写入代码（pre-write hook 拦截）
 
-### TECP 维度
-- **P 纠正**：如果前置条件不满足→BLOCK + TECP 卡
+### TECPC 维度
+- **P 纠正**：如果前置条件不满足→BLOCK + TECPC 卡
 
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
 | `harness/plugin/runtime/hooks/pre-write.mjs` | 12 道拦截 |
 | `harness/plugin/runtime/lib/gates.mjs` | gate 检查逻辑 |
-| `harness/plugin/runtime/lib/tecp-card.mjs` | BLOCK 时渲染 TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | BLOCK 时渲染 TECPC 卡 |
 
 ### 产出文件
 无（拦截时不写文件）
@@ -408,21 +408,21 @@ design.md 必须包含以下 TECP section：
 | 12 | RED 证据不足 | `需要 currentTask-scoped red verification` |
 
 ### 预期行为
-- BLOCK 时：stderr 输出 BLOCK 消息 + TECP 卡
+- BLOCK 时：stderr 输出 BLOCK 消息 + TECPC 卡
 - 通过时：exit 0
 
 ### 异常检测
 | 现象 | 原因 | 处理 |
 |------|------|------|
 | 跳过 design 直接写代码但没被 BLOCK | 门禁失效 | 提 issue |
-| BLOCK 消息没有 TECP 卡 | 版本过旧 | 更新插件 |
+| BLOCK 消息没有 TECPC 卡 | 版本过旧 | 更新插件 |
 | BLOCK 消息含 "reference-service" | 版本过旧（< 0.1.12） | 更新插件 |
 
 ---
 
 ## Step 10: 写后检查（post-write hook）
 
-### TECP 维度
+### TECPC 维度
 - **E 证据**：检查 artifact 完整性 + OpenAPI 一致性
 
 ### 涉及文件
@@ -446,7 +446,7 @@ design.md 必须包含以下 TECP section：
 
 ## Step 11-12: TDD GREEN + REFACTOR
 
-### TECP 维度
+### TECPC 维度
 - **E 证据**：测试通过 = 实现正确的证据
 - **T 目标**：最小实现通过测试
 
@@ -457,14 +457,14 @@ design.md 必须包含以下 TECP section：
 
 ## Step 13: 验证（verify + reviewer）
 
-### TECP 维度
+### TECPC 维度
 - **E 证据**：validation fresh + reviewer pass
 - **P 纠正**：不通过则按 findings 修复
 
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/plugin/runtime/verify.mjs` | 契约检查（含 TECP 卡） |
+| `harness/plugin/runtime/verify.mjs` | 契约检查（含 TECPC 卡） |
 | `.claude/agents/verification-reviewer.md` | 验证审查 |
 | `harness/changes/<id>/validation.md` | 验证记录 |
 | `harness/changes/<id>/reviews/verification-reviewer.json` | verdict |
@@ -472,14 +472,14 @@ design.md 必须包含以下 TECP section：
 ### 预期行为
 - `cli.mjs verify` 输出 `OK contract checks passed`
 - `validation.status` = `fresh`
-- verify 输出 TECP 卡
+- verify 输出 TECPC 卡
 
 ### 异常检测
 | 现象 | 原因 | 处理 |
 |------|------|------|
 | verify 报错 | 契约违反 | 按错误修复 |
 | validation.status=stale | 验证未完成 | 重新验证 |
-| verify 无 TECP 卡 | 版本过旧 | 更新插件 |
+| verify 无 TECPC 卡 | 版本过旧 | 更新插件 |
 
 ---
 
@@ -504,28 +504,28 @@ design.md 必须包含以下 TECP section：
 
 ## Step 15: 会话结束（stop hook）
 
-### TECP 维度
-- **P 纠正**：validation stale 时 BLOCK + TECP 卡 + 恢复指引
+### TECPC 维度
+- **P 纠正**：validation stale 时 BLOCK + TECPC 卡 + 恢复指引
 
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
 | `harness/plugin/runtime/hooks/stop.mjs` | 停止前检查 |
-| `harness/plugin/runtime/lib/tecp-card.mjs` | TECP 卡 |
+| `harness/plugin/runtime/lib/tecp-card.mjs` | TECPC 卡 |
 
 ### 预期行为
-- validation stale + state=VALIDATED/REVIEWED → BLOCK + TECP 卡
+- validation stale + state=VALIDATED/REVIEWED → BLOCK + TECPC 卡
 - 正常放行 → stdout `{}`
 
 ### 异常检测
 | 现象 | 原因 | 处理 |
 |------|------|------|
 | validation stale 未被拦截 | stop hook 失效 | 提 issue |
-| BLOCK 无 TECP 卡 | 版本过旧 | 更新插件 |
+| BLOCK 无 TECPC 卡 | 版本过旧 | 更新插件 |
 
 ---
 
-## TECP 卡片格式参考
+## TECPC 卡片格式参考
 
 任何触发点（session-start / status / BLOCK / stop / verify）都输出同一张卡：
 

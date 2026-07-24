@@ -1,6 +1,6 @@
-# 闭环五检 (TECP) 用户验收指南
+# 闭环五检 (TECPC) 用户验收指南
 
-> **用法**：每一步都按 闭环五检 (TECP) 五维验收。预期效果是"插件应该给你什么"；实际效果是"你实际看到了什么"；如果不一致，按"提 issue 所需证据"收集后提交。
+> **用法**：每一步都按 闭环五检 (TECPC) 五维验收。预期效果是"插件应该给你什么"；实际效果是"你实际看到了什么"；如果不一致，按"提 issue 所需证据"收集后提交。
 
 ---
 
@@ -155,13 +155,13 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 | **T 目标** | 在写代码前形成完整设计，包含接口、数据、测试策略 |
 | **C 上下文** | 基于 Step 2-4 的探索和澄清结果 |
 | **P 路径** | 为什么先写 design 再写代码——减少返工，让 reviewer 可评审 |
-| **E 证据** | `design.md` 存在且含 TECP 四维（T 目标/C 上下文/E 证据/P 路径） |
+| **E 证据** | `design.md` 存在且含 TECPC 五维（T 目标/C 上下文/E 证据/P 路径） |
 | **P 纠正** | 如果 Claude 直接写 Java 代码但没有 design.md→会被 pre-write BLOCK |
 
 ### 预期效果
 
 - `harness/changes/<id>/design.md` 被创建
-- 包含 TECP 四维：T 目标（业务目标+成功标准）、C 上下文（探索事实+影响矩阵）、E 证据（决策依据+测试策略）、P 路径（方案对比+接口/数据/架构设计+纠正预案）
+- 包含 TECPC 五维：T 目标（业务目标+成功标准）、C 上下文（探索事实+影响矩阵）、E 证据（决策依据+测试策略）、P 路径（方案对比+接口/数据/架构设计+纠正预案）
 - `state.json` 中 `approvals.design.status` 有值
 - `reviews/design-reviewer.json` 存在
 
@@ -190,7 +190,7 @@ cat harness/changes/*/reviews/design-reviewer.json | python3 -c "import sys,json
 | **T 目标** | 确保 Claude 在满足所有前置条件后才写代码 |
 | **C 上下文** | 插件能检测到你的 change 状态和 artifact 完整性 |
 | **P 路径** | 为什么有 12 道拦截——每道对应一个被跳过的风险 |
-| **E 证据** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECP) 进度卡 |
+| **E 证据** | 如果前置条件不满足→看到 `BLOCK:` 消息 + 闭环五检 (TECPC) 进度卡 |
 | **P 纠正** | 按 BLOCK 消息提示操作，然后重试 |
 
 ### 预期效果
@@ -212,12 +212,12 @@ BLOCK: 当前仍处于 design 阶段，design.md 不存在。...
 
 ### 实际效果检查
 - [ ] 缺 design.md 时被 BLOCK → ✅（门禁生效）
-- [ ] BLOCK 消息后附带 闭环五检 (TECP) 进度卡 → ✅（v0.1.19+）
+- [ ] BLOCK 消息后附带 闭环五检 (TECPC) 进度卡 → ✅（v0.1.19+）
 - [ ] Claude 在条件不满足时直接写入成功 → ❌（门禁失效）
-- [ ] BLOCK 消息没有 闭环五检 (TECP) 卡 → ⚠️ 插件版本过旧
+- [ ] BLOCK 消息没有 闭环五检 (TECPC) 卡 → ⚠️ 插件版本过旧
 
 ### 提 issue 所需证据
-1. Claude 尝试写文件时的完整 BLOCK 输出（含 闭环五检 (TECP) 卡）
+1. Claude 尝试写文件时的完整 BLOCK 输出（含 闭环五检 (TECPC) 卡）
 2. 当前 `state.json` 的完整内容
 3. `ls harness/changes/*/design.md`（是否存在）
 4. `node -p "require('./package.json').version"` 版本号
@@ -315,7 +315,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 
 ---
 
-## 快速定位：闭环五检 (TECP) 五维对照表
+## 快速定位：闭环五检 (TECPC) 五维对照表
 
 | 你遇到的问题 | T 目标 缺失 | C 上下文 缺失 | P 路径 不清 | E 证据 失败 | P 纠正 不明 |
 |---|---|---|---|---|---|
@@ -323,7 +323,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 | Claude 没问问题直接写代码 | | | | Step 3 ❌ | |
 | Claude 跳过设计直接写代码 | | | Step 5 ❌ | Step 5 ❌ | |
 | BLOCK 后不知道怎么恢复 | | | | | Step 6 ❌ |
-| BLOCK 没有 闭环五检 (TECP) 卡 | | | | Step 6 ❌ | Step 6 ❌ |
+| BLOCK 没有 闭环五检 (TECPC) 卡 | | | | Step 6 ❌ | Step 6 ❌ |
 | 会话中断后不知道做到哪 | Step 1 ❌ | Step 1 ❌ | | Step 1 ❌ | Step 1 ❌ |
 
 ## 提 issue 模板
@@ -332,7 +332,7 @@ cat harness/changes/*/state.json | python3 -c "import sys,json; d=json.load(sys.
 ### 问题层级
 Repo contract / Bug / Feature
 
-### 闭环五检 (TECP) 维度（哪个断了？）
+### 闭环五检 (TECPC) 维度（哪个断了？）
 T 目标 / C 上下文 / E 证据 / P 路径 / P 纠正
 
 ### 你用的模型
