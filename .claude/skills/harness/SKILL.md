@@ -29,6 +29,8 @@ description: >
 
 **【强制】每步操作后输出 TECPC 状态卡**：每完成一个阶段或关键动作，在对话文本中输出当前闭环五检卡，让用户看到进度。不要只依赖 hook 输出——对话文本中的输出用户一定能看到。
 
+**【强制】等待 subagent / 后台任务时禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 已能自动通知完成的任务已经启动后，主 orchestrator 不得再用 `sleep`、倒计时、循环“继续等待”、反复状态播报或伪进展输出来占用对话。默认做法是：启动任务后立即停手，等待 Claude Code 的完成通知或用户下一条真实消息。只有通知机制覆盖不到的外部系统，才允许设置单次兜底等待；即便如此，也不得在等待期间持续骚扰用户。
+
 ### 第 0 步：建立 change（如果还没有）
 ```
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<一句话目标>"
@@ -149,6 +151,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 - 无 active change → 第 0 步
 - `requirements.md` 缺失 / clarify 未达标 / 用户未确认范围 → 第 1 步
 - `state.json.state` 仍在 `DRAFT` / `DISCOVERED` / tier 未设置 → 第 2 步
+- 处于 clarify / route 阶段时，推荐恢复入口应显式显示为 `/harness-intake`
 - `design.md` 缺失 / design approval 不存在 → 第 3 步
 - `tasks.md` 仍是 draft / plan verdict 不可消费 → 第 4 步
 - `state.json.state` 为 `TASKED` / `EXECUTING` / `tddStatus` 未到 `refactor-verified` → 第 5 步
@@ -160,6 +163,14 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 2. 当前缺口（artifact / approval / evidence）
 3. 推荐恢复入口（skill 或 backend command）
 4. 当前为何还不能进入下一阶段
+
+恢复入口约定：
+- `clarify` / `route` 阶段默认恢复到 `/harness-intake`
+- `design` 阶段恢复到 `/harness-design`
+- `plan` 阶段恢复到 `/harness-plan`
+- `tdd` 阶段恢复到 `/harness-tdd`
+- `verify` 阶段恢复到 `/harness-verify`
+- `archive` 或未知阶段恢复到 `/harness`
 
 ## 未初始化目标项目的约束
 
@@ -180,6 +191,7 @@ clarify 阶段应优先补事实再问用户，不得先问用户去替系统做
 - 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` subagent
 - Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
 - 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
+- 不得在已启动可通知任务后通过 `sleep`、倒计时、循环“继续等待”或反复状态播报来刷屏
 - 不得一次问多个问题
 - 不得不展示歧义评分就推进
 - 不得在没有 RED 证据时写生产代码

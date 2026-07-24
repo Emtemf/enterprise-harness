@@ -17,6 +17,7 @@ const harnessTokens = [
   'clarify / route / design / plan / tdd / verify / archive',
   '先进入 `clarify`',
   '恢复入口',
+  '/harness-intake',
   'code-explore',
   'doc-research',
   '优先补事实再问用户',

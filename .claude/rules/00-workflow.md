@@ -98,6 +98,7 @@ NOT_STARTED
 - reviewer 返回 block，不得进入下一阶段。
 - validation 证据过期或缺失，不得声称完成。
 - **代码探索必须委托 `code-explore` subagent**：主 orchestrator 不得自己直接 grep/Read/Glob 探索业务代码，会被 pre-explore hook BLOCK。
+- **等待已启动的可通知任务时，主 orchestrator 禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 能自动回送完成通知的任务已经启动后，主 orchestrator 不得再通过 `sleep`、倒计时、循环“继续等待”或重复状态播报来占用对话；必须等待任务通知或用户下一条真实消息。只有通知机制覆盖不到的外部系统，才允许单次兜底等待。
 - **写受治理路径前必须有 codegraph 使用证据**：`state.json` 的 `tooling.codegraph` 仍为 unknown/空时，写生产代码会被 pre-write hook BLOCK。
 
 ## Source of Truth

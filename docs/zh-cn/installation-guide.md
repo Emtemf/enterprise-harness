@@ -105,6 +105,11 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 - `verify`
 - `archive`
 
+如中途恢复：
+- `clarify` / `route` 默认恢复到 `/harness-intake`
+- `design` / `plan` / `tdd` / `verify` 分别恢复到对应阶段 skill
+- 普通用户第一次进入仍然始终从 `/harness` 开始
+
 你不需要先理解这些阶段的内部实现，也不需要手动挑 backend 命令。
 
 ---

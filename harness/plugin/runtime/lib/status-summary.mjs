@@ -77,7 +77,7 @@ export function buildStatusSummary(root) {
     activeChange,
     _tecpCard: tecpCard,
     nextStage: activeChange.present ? activeChange.workflowStage : null,
-    recommendedEntry: '/harness',
+    recommendedEntry: activeChange.present ? activeChange.nextEntry : '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
     currentGap: activeChange.currentGap,
     truthSources: [

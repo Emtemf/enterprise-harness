@@ -38,8 +38,8 @@ export function inferWorkflowStage(changeId, data) {
 export function recommendNextEntry(stage, data = null) {
   if (data?.workflow?.nextEntry && data?.workflow?.stage === stage) return data.workflow.nextEntry;
   switch (stage) {
-    case 'clarify': return '/harness';
-    case 'route': return '/harness';
+    case 'clarify': return '/harness-intake';
+    case 'route': return '/harness-intake';
     case 'design': return '/harness-design';
     case 'plan': return '/harness-plan';
     case 'tdd': return '/harness-tdd';

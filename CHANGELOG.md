@@ -2,6 +2,20 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.33]
+
+### Fixed
+- **issue #61：等待 subagent 时主 agent 死循环刷屏**：将“等待可通知任务时禁止轮询刷屏”提升为仓库硬约束，并同步到 `CLAUDE.md`、`.claude/rules/00-workflow.md`、`/harness` skill。主 orchestrator 在 `Agent` / `Monitor` / 后台 Bash 已可由 Claude Code 自动通知完成时，不得再用 `sleep`、倒计时、循环“继续等待”或反复状态播报占用对话。
+- **clarify / route 恢复入口不明确**：`recommendNextEntry()` 现在对 `clarify` / `route` 默认返回 `/harness-intake`，与 staged entry 设计保持一致；README、overview、installation-guide、harness skill 已同步恢复入口说明。
+- **stop hook 恢复入口错误**：`stop.mjs` 删除本地 `recommendNextEntry()` 覆盖，改为委托 `lib/workflow.mjs`，handoff guidance 会根据当前 stage 输出正确恢复入口。
+- **status 页面恢复入口被写死**：`status-summary.mjs` 不再把 `recommendedEntry` 固定成 `/harness`，而是复用 active change 的 `nextEntry`。`cli.mjs status` 现在会正确显示如 `/harness-plan` 这样的阶段恢复入口。
+
+### Added
+- 新增 `subagent-waiting-contract-smoke.mjs`：机械校验“禁止轮询等待、依赖 Claude Code 通知机制”的合同。
+- 新增 `workflow-next-entry-smoke.mjs`：机械校验 clarify/route/design/plan/tdd/verify/archive 的恢复入口映射。
+- 新增 `status-summary-next-entry-smoke.mjs`：机械校验 status summary 复用 active change 的 `nextEntry`，不再回退成硬编码 `/harness`。
+- 新增 `stop-recommend-next-entry-smoke.mjs`：机械校验 stop hook 的恢复入口来自 `lib/workflow.mjs`。
+
 ## [0.1.32]
 
 ### Fixed

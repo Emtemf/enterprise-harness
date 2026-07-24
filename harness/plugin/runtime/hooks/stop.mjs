@@ -2,12 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
-import { inferWorkflowStage } from '../lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry } from '../lib/workflow.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
-
-function recommendNextEntry(_stage) {
-  return '/harness';
-}
 
 function activeChangeGuidance(root) {
   const active = loadActiveChange(root);
@@ -22,7 +18,7 @@ function activeChangeGuidance(root) {
   return {
     assetGuidance: `change-specific 结论：优先写回 harness/changes/${active.changeId}/ 下的 change.md / design.md / tasks.md / validation.md / evidence/*.md / reviews/*.json。`,
     workflowStage,
-    nextEntry: recommendNextEntry(workflowStage),
+    nextEntry: recommendNextEntry(workflowStage, active.data),
   };
 }
 
