@@ -27,6 +27,8 @@ description: >
 
 收到用户需求后，**严格按以下顺序执行**。不要跳步，不要自作主张。
 
+**【强制】每步操作后输出 TECPC 状态卡**：每完成一个阶段或关键动作，在对话文本中输出当前闭环五检卡，让用户看到进度。不要只依赖 hook 输出——对话文本中的输出用户一定能看到。
+
 ### 第 0 步：建立 change（如果还没有）
 ```
 node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<一句话目标>"
