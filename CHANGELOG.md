@@ -2,6 +2,14 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.27]
+
+### Fixed
+- **证据链现在每次阶段推进都可见**：`lifecycle.mjs` 的 `state` / `gate` 命令执行后输出 TECP 卡，用户每次推进阶段都能看到证据链（T目标/C上下文/E证据/P路径/纠正 + Ladder ✓/▸/○），不再只在 session-start 和 BLOCK 时可见（issue #52）。
+
+### Changed
+- **彻底清除 g4c 命名**：文件 `g4c-card.mjs` → `tecp-card.mjs`，函数 `renderG4CCard` → `renderTECPCard`（删除向后兼容别名），测试 `g4c-card-smoke.mjs` → `tecp-card-smoke.mjs`。runtime 代码 g4c 引用归零。
+
 ## [0.1.26]
 
 ### Changed
