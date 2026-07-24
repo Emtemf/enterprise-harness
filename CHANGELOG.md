@@ -2,6 +2,16 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.1.22]
+
+### Fixed
+
+- **委托约束提升到自动加载层**：将"代码探索必须委托 subagent"从仅 skill 层（需 `/harness` 触发）提升到 `CLAUDE.md` 和 `.claude/rules/10-code-analysis.md`（每次会话自动加载）。修复弱模型在 skill 未加载时直接 grep/Read 不委托 subagent 的问题（issue #50）。
+- **release workflow 幂等修复**：添加 `make_latest: true`，避免手动 release 与 Actions workflow 冲突。
+
+### Added
+- `subagent-contract-smoke.mjs` 新增对 CLAUDE.md 和 10-code-analysis.md 的委托约束机械校验。
+
 ## [0.1.21]
 
 ### Added
