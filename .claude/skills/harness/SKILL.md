@@ -1,212 +1,153 @@
 ---
 name: harness
 description: >
-  Enterprise Harness 的统一流程入口与阶段编排器。用于接住新需求、继续当前 change、识别 clarify / route / design / plan / tdd / verify / archive 所处阶段，并给出下一步 stage skill 或 backend command。适用于“我应该从哪开始”“帮我按 staged workflow 推进”“继续当前 change”“需要一个确定性的后台建档命令”等场景。
+  Enterprise Harness 的统一 SOP 入口与阶段编排器。按闭环五检 (TECP) 驱动的 clarify-first staged workflow 推进需求：clarify → route → design → plan → tdd → verify → archive。每个阶段有明确的产出物、门禁和 TECP 检查。
 ---
 
-# Harness Entry
+# Harness — TECP 分阶段 SOP 入口
 
-## 目标
+## 这个 skill 做什么
 
-给当前仓库提供一个**显式的前门**，而不是只依赖自动加载规则和 hooks。
+你是 harness 工作流的**统一流程入口与阶段编排器**。用户的每个需求都从这里进入，按 7 个阶段顺序推进。
+每个阶段都要过**闭环五检 (TECP)**，不达标不能进下一步。
 
-本入口的职责不是替代 hooks，也不是替代 runtime command，而是把三层模型讲清楚并真正用起来：
-
-1. **Skill**：负责流程编排
-2. **Command**：负责本机/runtime/仓库确定性动作
-3. **Hooks**：负责自动提醒、阻断、校验
-
-## 入口模型
-
-### 1. 在 Claude Code 会话中
-优先使用：
-
-- `/harness`
-
-它是 clarify-first staged workflow 的统一工作流入口，用于：
-
-- 接住新需求
-- 继续当前 change
-- 判断当前处于 `clarify / route / design / plan / tdd / verify / archive` 的哪一阶段
-- 在 gate 满足时把用户导向下一阶段 skill 或 backend command
-- 在用户打断后给出恢复入口
-
-### 2. 在本机/runtime 动作中
-优先使用：
-
-- `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
-- `node harness/plugin/runtime/cli.mjs bootstrap`
-- `node harness/plugin/runtime/cli.mjs doctor`
-- `node harness/plugin/runtime/cli.mjs sync`
-- `node harness/plugin/runtime/cli.mjs verify`
-
-### 3. 自动发生的事情
-无需显式调用，但会自动生效：
-
-- `CLAUDE.md`
-- `.claude/rules/`
-- `.claude/settings.json` hooks
-
-这些负责：
-
-- 默认流程约束
-- 写前/写后 gate
-- stop validation 检查
-
-## 你被调用后应该怎么做
+这是 clarify-first staged workflow：`clarify / route / design / plan / tdd / verify / archive`。
 
 ### 实现前 orchestration guardrail（硬约束）
 
-在任何代码实现、设计落地、任务推进、文件创建或生产修改之前，必须先满足以下条件：
-
+在任何代码实现、设计落地、任务推进或生产修改之前，必须先满足：
 - 已进入 `/harness` 或显式 staged workflow 入口
-- 已完成 `clarify` 或至少已建立 active change 并明确执行范围
+- 已完成 `clarify`（或至少 clarify-ready 并获得用户确认）
 - 已完成 `route`（L1+ 变化不得跳过）
-- 已满足当前阶段 gate，不得直接从聊天意图跳到实现
 
-如果上述任一条件不满足，不得开始写业务代码、设计落地代码、任务推进代码或任何实现动作。  
-这条是 orchestration 级门禁，不是建议。
+不得在未完成 clarify / route 前直接进入实现。这是 orchestration 级门禁，不是建议。
 
-### 模式 A：用户带来一个新需求 / 修改需求
-按 clarify-first staged workflow 推进：
+## 完整 SOP 步骤序列
 
-1. 先进入 `clarify`
-2. 先做 minimum discovery（codegraph-first / Context7-first）
-   - **【硬约束】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore` 或 `subagent_type: impact-explore` 完成代码探索。这是强制委派规则，不是建议。
-   - **派遣 Agent 时，prompt 开头必须写"先用 codegraph_explore / codegraph_search 等 MCP 工具"**
-   - **Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness` 或 `Explore this repo`**
-   - **必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得忽略 subagent 结果后自己重新探索同一主题**
-   - **若 subagent 已返回代码事实、文件路径、架构发现或影响面结论，主 orchestrator 不得再重复执行相同的 code-explore / impact-explore，只能在新问题、补盲或复核时再发起新探索**
-3. 一次只问一个高价值问题，默认优先用选项式问题（A/B/C + 其他）逐步降低 ambiguity
-4. 在用户确认后进入 `route`
-5. 形成 final route（L0/L1/L2/L3）
-6. 再进入 `design -> plan -> tdd -> verify`
-7. 明确下一个 artifact / gate / 恢复入口
-8. 在 clarify-ready 之前，不得给“跳过 clarify 直接进 design/plan”的逃逸路径
+收到用户需求后，**严格按以下顺序执行**。不要跳步，不要自作主张。
 
-若需要最小 change 资产但当前还没有，可优先驱动或建议：
+### 第 0 步：建立 change（如果还没有）
+```
+node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<一句话目标>"
+```
+这会创建 `harness/changes/<id>/state.json` 并设置 `goal`。
 
-```bash
-node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]
+### 第 1 步：clarify（需求澄清）
+**目标**：把模糊需求变成明确的、可执行的、用户确认的需求。先进入 `clarify`。
+
+1. **先委托探索**（不得自己做）：
+   - 【硬约束】代码探索必须委托 subagent
+   - 派遣 `subagent_type: code-explore` 探索代码，不得使用 `general-purpose` 做代码探索
+   - subagent prompt 开头写"先用 codegraph_explore / codegraph_search"
+   - Agent 标题写用户的项目名 + 具体主题（禁止写 `enterprise-harness`）
+2. **一次只问一个问题**（选项式 A/B/C + 其他）
+3. **每轮展示歧义评分**：7 维度 × 0-5 分 + overall + weakest + 评分依据
+4. **用户有权修正评分**——接受并调整
+5. **产出**：`requirements.md`（TECP 四维：T 目标 / C 上下文 / E 证据 / P 路由）
+6. **达标条件**：所有维度 ≥ 4 + 用户确认执行范围
+7. 更新 `state.json`：`workflow.clarifyReady=true`、`workflow.userConfirmedScope=true`
+
+### 第 2 步：route（路由决策）
+**目标**：确定变更复杂度 tier。
+
+1. 基于 clarify 结果判断 L0/L1/L2/L3
+2. 记录 `routingReason`（为什么选这个 tier）
+3. 更新 `state.json`：`tier`、`goal`
+4. 产出：`change.md` 记录路由决策
+
+### 第 3 步：design（TECP 驱动设计）
+**目标**：产出可评审的、有证据支撑的设计。
+
+1. 读 `requirements.md` 和探索证据
+2. 写 `design.md`，**必须包含 TECP 四维**：
+   - **T 目标**：业务目标 + 成功标准
+   - **C 上下文**：探索事实（引用具体文件）+ 影响矩阵
+   - **E 证据**：每个决策的证据来源 + 测试策略 + 验证命令
+   - **P 路径**：方案对比表 + 接口/数据/架构设计 + 风险回滚 + **纠正预案**
+3. 跑 `design-reviewer`，获得 pass verdict
+4. 更新 `state.json`：`gates.designApproved=true`
+
+### 第 4 步：plan（任务拆分）
+**目标**：把设计拆成可机械执行的任务。
+
+1. 写 `tasks.md`，每个 task 必须有：
+   - Touched files
+   - Implementation order
+   - **RED evidence point**（哪个测试先失败）
+   - **GREEN evidence point**（哪个测试后通过）
+   - Acceptance checks
+2. 跑 `plan-critic`，获得 pass verdict
+
+### 第 5 步：tdd（RED → GREEN → REFACTOR）
+**目标**：先证明问题存在，再写最小实现。
+
+1. **RED**：先写测试 → 运行 → 必须失败 → 更新 `workflow.tddStatus=test-written` → `red-verified`
+2. **GREEN**：写最小实现 → 运行 → 必须通过 → `green-verified`
+3. **REFACTOR**：全绿后重构 → 重新确认全绿 → `refactor-verified`
+
+### 第 6 步：verify（验证收口）
+**目标**：用新鲜证据确认完成。
+
+1. 更新 `validation.md`（运行了什么命令、结果是什么）
+2. 跑 `cli.mjs verify`（必须 OK）
+3. 跑 `verification-reviewer`（必须 pass）
+4. 更新 `state.json`：`validation.status=fresh`
+
+### 第 7 步：archive（归档）
+```
+node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 ```
 
-### 模式 B：用户想继续当前 change
-优先检查：
+## TECP 检查（每个阶段都要过）
 
-- `harness/ACTIVE_CHANGE`
-- 对应 `state.json`
-- 当前 blockers / decisions / validation 状态
-- 当前位于哪个 workflow stage
-- 当前需要哪个 exploration lane（如 `code-explore` / `doc-research` / `impact-explore`）先补事实
+| 维度 | 每阶段必须回答 |
+|------|--------------|
+| **T 目标** | 这一步要达成什么？产出物是什么？ |
+| **C 上下文** | 基于什么事实/证据？引用具体文件 |
+| **E 证据** | 用什么证明这步做对了？（测试/reviewer/命令输出） |
+| **P 路径** | 为什么这么做？错了怎么恢复？ |
 
-然后回答：
+## 硬约束（程序级门禁会拦截）
 
-- 当前做到哪一阶段
-- 下一步应该进哪个 gate / stage
-- 是否需要 clarify 确认 / design / RED / validation 证据
-- 如果现在打断，下次应从哪个入口恢复
+- 写 `src/main/java` 前：必须已完成 clarify + route + design + plan + codegraph 证据
+- 主 orchestrator 不得直接 Grep/Read/Glob 探索业务代码——必须委托 `code-explore` subagent
+- 跳过任何阶段都会被 pre-write hook BLOCK（12 道拦截）
+- 探索业务代码会被 pre-explore hook BLOCK（除非已记录 codegraph 证据）
 
-### 模式 C：用户问“我该跑哪个命令”
-不要泛泛而谈，直接按目标给出命令；但要明确这些都是 `/harness` 背后的后台动作，而不是新的用户入口：
+## 阶段判定（怎么知道当前在哪步）
 
-- 新机器接入（维护者 / 排障者）：`bootstrap` → `setup-local-adapter --write` → `doctor` → `sync`
-- 新 change 后台建档：`start-change`
-- 本地 contract 检查：`verify`
-- 上游盘点：`upstream-check`
+读取 `harness/ACTIVE_CHANGE` + `state.json` 的 `workflow.stage`、`workflow.clarifyReady`、`workflow.userConfirmedScope`：
+- 无 active change → 第 0 步
+- `requirements.md` 缺失 / clarify 未达标 / 用户未确认范围 → 第 1 步
+- `state.json.state` 仍在 `DRAFT` / `DISCOVERED` / tier 未设置 → 第 2 步
+- `design.md` 缺失 / design approval 不存在 → 第 3 步
+- `tasks.md` 仍是 draft / plan verdict 不可消费 → 第 4 步
+- `state.json.state` 为 `TASKED` / `EXECUTING` / `tddStatus` 未到 `refactor-verified` → 第 5 步
+- `state.json.state` 为 `REVIEWED` / `VALIDATED` 但 validation 缺解释 → 第 6 步
+- validation 已 fresh 且完成声明成立 → 第 7 步
 
-### 未初始化目标项目的约束
-
-- 若当前项目还没有 harness 资产或 runtime 初始化信息，不得因为缺少 `.harness/`、bootstrap marker、或本地 adapter 而阻断普通用户继续通过 `/harness` 进入澄清流程
-- 对普通用户，这类缺口只能作为“维护者可后续补 bootstrap/doctor/sync”的建议，不能当作必须先完成的前置条件
-
-### 模式 D：用户想发版 / 做发布动作
-优先区分：
-
-- 是仓库文档和 release 文案整理
-- 还是 runtime / package / tag / GitHub Release 动作
-
-若是后者，应明确：
-
-- 当前版本
-- 是否需要 bump
-- 是否需要 tag / PR / merge / release
-- 是否已有对应 release note
-
-## Stage Routing 最低要求
-
-`/harness` 应把当前 active change 与 durable artifacts 映射成下一步阶段，而不是只输出泛化建议。
-
-最低应遵循：
-
-- 若当前没有 active change：先引导或驱动创建 change，再进入 `clarify`
-- 若 `requirements.md` 缺失、clarify 未达标、或用户尚未确认执行范围：继续 `clarify`
-- 若 clarify-ready 且 `state.json.state` 仍在 `DRAFT` / `DISCOVERED`：进入 `route`
-- 若 route 已形成但 `design.md` 缺失、关键 section 不完整、或 design approval 不存在：进入 `design`
-- 若 design 已批准但 `tasks.md` 仍是 draft、缺 touched files / RED point / acceptance checks、或 plan verdict 仍不可消费：进入 `plan`
-- 若 `state.json.state` 为 `TASKED` / `EXECUTING`，或当前 task 仍缺 RED / GREEN / REFACTOR 证据：进入 `tdd`
-- 若实现已完成且需要 reviewer / validation 收口，或 `state.json.state` 为 `REVIEWED` / `VALIDATED` 但 validation 仍缺解释：进入 `verify`
-- 若 validation 已 fresh 且完成声明成立：进入 `archive`
-  - archive 阶段应在用户确认需求完成后，用 `node harness/plugin/runtime/cli.mjs lifecycle archive <changeId>` 把 change 物理归档到 `harness/archive/`（仅 VALIDATED 可归档；被 runtime smoke 引用的 change 会被拒绝）
-  - 归档是收尾动作，不改变"用户只感知 `/harness`"——它由本阶段自动驱动，用户无需记忆该命令
-
-在任何阶段，都应优先给出：
-
+判定后必须明确告诉用户：
 1. 当前 stage
 2. 当前缺口（artifact / approval / evidence）
 3. 推荐恢复入口（skill 或 backend command）
-4. 若事实不足，推荐先走哪个 exploration lane（`code-explore` / `doc-research` / `impact-explore`）
-5. 当前为何还不能进入下一阶段
-6. 若已存在 machine-readable workflow state，则显式引用 `workflow.stage`、`workflow.clarifyReady`、`workflow.userConfirmedScope` 等字段解释当前判定
+4. 当前为何还不能进入下一阶段
 
-## Exploration Lane Routing 最低要求
+## Exploration Lane（补事实的通道）
 
-- 若问题是多模块代码事实不清：优先 `code-explore`
-- 若问题是外部库 / 框架 / SDK / 版本行为不清：优先 `doc-research`
-- 若问题是 API / data / architecture / rule 影响面不清：优先 `impact-explore`
-- clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery
-- verify 阶段可再次调用独立 exploration lane 做事实复核
-
-## 与 `harness-intake` 的关系
-
-- `/harness` 是**总入口 / stage orchestrator**
-- `harness-intake` 是**clarify / route 子流程入口**
-
-当问题本质上是“开始一个需求工作流”时，你可以直接按 `harness-intake` 的 clarify-first 顺序执行，不必把用户来回踢给别的入口。
-
-## 强制前置检查
-
-**所有用户请求都必须先通过 `/harness` 进入 SOP，不得跳过。**
-
-### 为什么前期要重
-即使请求看起来很简单（如修 bug、读代码），也必须先走 `/harness` 进入 SOP。因为：
-1. 统一入口便于追踪
-2. 便于后续在 router 层优化成快速路径
-3. 便于区分"需求类"和"非需求类"操作
-
-### 后续优化方向
-当 SOP 运行稳定后，可以在 router 层增加快速路径：
-- 简单 bug fix → 可跳过完整 clarify，直接进入 fix 流程
-- 纯读代码 → 可直接执行，无需 SOP
-- 但这些优化必须建立在 SOP 已经稳定运行的基础上
-
-### 强制约束
-- **所有用户请求**：必须先通过 `/harness` 进入 SOP
-- **需求类请求**：未完成 clarify / route，不得开始编写业务代码
-- **非需求类操作**：可以走快速路径，但必须由 router 决定，不得自行跳过 `/harness`
+clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
+- 多模块代码事实不清 → `code-explore`
+- 外部库/框架/SDK 版本行为不清 → `doc-research`
+- API/data/architecture/rule 影响面不清 → `impact-explore`
 
 ## 禁止事项
 
 - reviewer 返回 block，不得进入下一阶段
-- 不得把 hooks 当成总编排器
-- 不得把 command 当成需求分析器
-- **不得在未完成 clarify / route 前直接进入实现**
-- 不得在未完成 clarify / route 前开始编写任何 Java/JS 业务代码
-- 不得在未观察到 `RED_VERIFIED` 证据前修改生产源码
+- 不得跳过任何阶段
+- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: code-explore` 或 `impact-explore`，不得使用 `general-purpose` 做代码探索
+- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` / `impact-explore` subagent
+- Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
+- 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
+- 不得一次问多个问题
+- 不得不展示歧义评分就推进
+- 不得在没有 RED 证据时写生产代码
 - 不得在 codegraph 可用时跳过 codegraph-first
-- 不得把 exploration dump 直接堆进主 orchestrator 上下文
-- 不得把”skill 可能被模型选中”误表述成”像 hook 一样自动触发”
-- **收到用户需求后，如果当前没有 active change，不得跳过 `/harness` 直接开始写代码**
-- **不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` / `impact-explore` subagent**
-- **调用 subagent 探索时，必须使用 `subagent_type: code-explore` 或 `impact-explore`，不得使用 `general-purpose` 做代码探索**
-- **调用 subagent 探索时，不得把 Agent 标题写成 harness 仓库名或 `enterprise-harness`，必须聚焦当前用户工作区和目标项目**
-- **收到 subagent 探索结论后，不得无视结论并重新发起相同的探索；必须基于已有结论推进，只在有新事实缺口时再发起补盲探索**

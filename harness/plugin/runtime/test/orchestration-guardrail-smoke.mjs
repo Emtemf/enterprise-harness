@@ -31,12 +31,12 @@ const expected = {
   ],
   stagedWorkflow: ['不得在未完成 clarify / route 前直接进入实现'],
   expectedBehavior: [
-    'Claude 直接开始写 Java 代码，没有先写 design → **不符合预期**',
-    'Claude 直接开始写代码，没问过任何问题 → **不符合预期**',
+    'Claude 没问问题直接写代码',
+    'Claude 写 `src/main/java` 没被拦截',
   ],
   lifecycleTruth: [
-    'Claude 直接开始写 Java 代码，没有任何探索和澄清 → **不符合预期**',
-    'Claude 直接开始写 Java 代码，从未创建 `design.md` → **不符合预期**',
+    'Claude 直接写 Java 代码',
+    '不得跳过',
   ],
 };
 
