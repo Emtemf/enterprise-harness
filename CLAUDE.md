@@ -161,6 +161,7 @@
 - `harness/specs/session-lifecycle.md`
 - `harness/specs/plugin-runtime.md`
 - `harness/specs/double-check-model.md`
+- `harness/specs/reviewer-verdict-contract.md`
 - `harness/specs/verify-contract.md`
 
 ### 如果你要理解 clarify / 探索 / 评分
