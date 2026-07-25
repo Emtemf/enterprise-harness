@@ -163,6 +163,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 2. 当前缺口（artifact / approval / evidence）
 3. 推荐恢复入口（skill 或 backend command）
 4. 当前为何还不能进入下一阶段
+5. **当前动作顺序**（这一轮会先做什么、再做什么、默认会派哪些 subagent）
 
 恢复入口约定：
 - `clarify` / `route` 阶段默认恢复到 `/harness-intake`
@@ -182,6 +183,23 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
 - 代码事实 / 调用链 / 影响面不清 → `code-explore`（codegraph 一套搞定定位+传播）
 - 外部库/框架/SDK 版本行为不清 → `doc-research`
+
+## 当前动作顺序（orchestrator shell 显示要求）
+
+`/harness` 不只是展示当前 stage / gap / nextEntry，还应向用户显式说明“这一轮会怎么调度”。
+
+最低要求：
+- clarify：先补 repo/documentation facts，再做 ambiguity scoring，再问一个 weakest-dimension 问题
+- route：先消费 clarify 结果，再决定 tier / impact / route 结论
+- design：先消费 requirements / exploration，再产出 design，再派 `design-reviewer`
+- plan：先消费 design，再产出 tasks，再派 `plan-critic`
+- tdd：先派 `tdd-executor`，再消费 RED/GREEN/REFACTOR 摘要并推进子状态
+- verify：先消费 `validation.md` / reviewer verdict，再派 `verification-reviewer` 或直接统一消费完成态证据
+
+若某一轮会派 subagent，必须显式说明：
+- 会派哪个 agent
+- 为什么派
+- 返回后主对话会消费什么结论
 
 ## 禁止事项
 

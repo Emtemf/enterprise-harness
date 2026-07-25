@@ -21,6 +21,8 @@ const harnessTokens = [
   'code-explore',
   'doc-research',
   '优先补事实再问用户',
+  '当前动作顺序',
+  '会派哪个 agent',
   '`requirements.md` 缺失',
   '`state.json.state` 仍在 `DRAFT` / `DISCOVERED`',
   '`state.json.state` 为 `TASKED` / `EXECUTING`',
