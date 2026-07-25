@@ -29,7 +29,7 @@
   },
   {
     "id": "verification-reviewer",
-    "stage": "VALIDATED",
+    "stage": "REVIEWED",
     "blocking": true,
     "agent": "verification-reviewer",
     "owner": "quality-governance"

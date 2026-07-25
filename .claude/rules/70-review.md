@@ -50,7 +50,7 @@ review verdict 应结构化表达，而不是只给口头结论。
 
 当前阶段至少固定以下完成态消费规则：
 
-- `verification-reviewer`：进入 `VALIDATED` 前 mandatory
+- `verification-reviewer`：进入 `REVIEWED` / `VALIDATED` 前 mandatory
 - `api-consistency-reviewer`：仅 `impact.api=yes` 的 `REVIEWED` / `VALIDATED` 前 mandatory
 - required reviewer 缺失时，`verify` 与 `stop` 应阻断完成态
 - reviewer verdict 文件必须可追溯到目标 `changeId`
