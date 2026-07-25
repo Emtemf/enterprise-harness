@@ -2,6 +2,19 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.2]
+
+### Fixed
+- **Phase 1 contract 与实现对齐**：修复 `/harness` 仍派发 `general-purpose` 做 TDD、`workflow.mjs` 中 clarify/route 恢复入口仍写成 `/harness`、以及 exploration contract 对主 orchestrator 直接探索业务代码放得过宽的问题，统一回到当前 phase 1 设计。
+- **Verify 运行时输出 contract 补齐**：`verify.mjs` 现在真实输出 `completion-verdict`、`blockers`、`consumed-evidence-summary` 与 `next-step`，不再只是文档上声明。
+- **OpenAPI 能力表述修正**：README 与 lifecycle truth 不再误称已具备“通用 OpenAPI ↔ Controller 一致性检查”，改回与 `CLAUDE.md` 一致的真实边界。
+- **Claude Code-only phase 1 口径补正**：明确 Claude Code-only 指交互与编排收口到 Claude Code，`harness/` 继续承载 repo truth / durable assets；同时突出 CodeGraph-first / Context7-first 是 phase 1 的双探索亮点。
+
+### Added
+- 新增 `verify-runtime-output-smoke.mjs`：机械校验 `verify.mjs` 已真正实现 completion verdict 输出 contract。
+- 新增 `phase1-positioning-smoke.mjs`：机械校验 phase 1 文档不会误删 `harness/` 地位，并会突出 CodeGraph / Context7 双探索通道。
+
+## [0.2.1]
 ## [0.2.1]
 
 ### Fixed
