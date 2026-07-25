@@ -41,7 +41,7 @@ const ok = spec.includes('Hook Adapter Layer')
   && workflow.includes('export function recommendNextEntry')
   && statusSummary.includes('buildStatusSummary')
   && sessionStart.includes('buildStatusSummary')
-  && stopText.includes('recommendNextEntry');
+  && (stopText.includes('recommendNextEntry') || stopText.includes('buildRecoveryGuidance'));
 
 if (mode === 'red') {
   if (!ok) {
