@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder } from './workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder, recommendNextAction } from './workflow.mjs';
 import { renderTECPCCard } from './tecp-card.mjs';
 
 function readText(file) {
@@ -42,6 +42,8 @@ function activeChangeSummary(root) {
   }
   const data = active.data;
   const workflowStage = inferWorkflowStage(active.changeId, data);
+  const nextEntry = recommendNextEntry(workflowStage, data);
+  const currentGap = inferCurrentGap(root, active.changeId, data, workflowStage);
   return {
     present: true,
     changeId: active.changeId,
@@ -51,10 +53,11 @@ function activeChangeSummary(root) {
     approvals: data.approvals ?? {},
     currentTask: data.currentTask ?? null,
     workflowStage,
-    nextEntry: recommendNextEntry(workflowStage, data),
+    nextEntry,
     recommendedLane: recommendExplorationLane(workflowStage, data),
     guideReminder: computeGuideReminder(root, active.changeId),
-    currentGap: inferCurrentGap(root, active.changeId, data, workflowStage),
+    currentGap,
+    nextAction: recommendNextAction(active.changeId, data, workflowStage, currentGap),
   };
 }
 
@@ -80,6 +83,7 @@ export function buildStatusSummary(root) {
     recommendedEntry: activeChange.present ? activeChange.nextEntry : '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
     currentGap: activeChange.currentGap,
+    nextAction: activeChange.present ? activeChange.nextAction : '/harness',
     truthSources: [
       {
         kind: 'dynamic',
@@ -131,6 +135,8 @@ export function renderStatusSummary(summary) {
     summary.recommendedLane ? `- ${summary.recommendedLane}` : null,
     '推荐恢复入口',
     `- ${summary.recommendedEntry || '/harness'}`,
+    '当前动作顺序',
+    `- ${summary.nextAction || '/harness'}`,
     '普通用户下一步',
     '- /harness',
     '普通用户先看这些',

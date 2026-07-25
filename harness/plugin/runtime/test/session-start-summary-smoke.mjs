@@ -15,6 +15,7 @@ const requiredTokens = [
   '[Harness Workflow] 推荐恢复入口:',
   '[Harness Workflow] 下一步动作:',
   '[Harness Workflow] 普通用户先看:',
+  '[Harness Workflow] 当前动作顺序:',
   '[Harness 维护] 如需排障再用:',
 ];
 

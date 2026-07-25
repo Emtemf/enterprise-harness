@@ -72,6 +72,7 @@ if (recommendedLane) {
 }
 console.log(`[Harness Workflow] 推荐恢复入口: ${recommendedEntry}`);
 console.log(`[Harness Workflow] 下一步动作: ${nextAction}`);
+console.log(`[Harness Workflow] 当前动作顺序: ${nextAction}`);
 console.log(`[Harness Workflow] 普通用户先看: ${summary.nextRead.join(' / ')}`);
 console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
 
