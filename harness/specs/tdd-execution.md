@@ -74,12 +74,14 @@ TEST_WRITTEN
 至少包括：
 - `change-id`
 - `task-id`
-- touched files
-- test-first order
-- RED evidence point
-- GREEN evidence point
-- project-native build/test command
-- currentTask 对应的 scope
+- `touched-files`
+- `test-first-order`
+- `red-evidence-point`
+- `green-evidence-point`
+- `project-native-build-command`
+- `scope`
+
+若输入不足，executor 必须返回 blocker，而不是自行猜测 task scope 或命令。
 
 ## Executor 输出 contract
 
@@ -90,6 +92,7 @@ TEST_WRITTEN
 - `command-output-summary`
 - `evidence-path`
 - `next-step`
+- `blockers`
 
 ## Double-check 入口
 

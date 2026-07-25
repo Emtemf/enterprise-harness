@@ -36,6 +36,20 @@ model: sonnet
 - 主返回值必须是压缩摘要，不得把整段构建日志原样倾倒给主上下文
 - 若缺少必要输入（task 描述、命令、scope），应明确返回 blocker，而不是猜测继续
 
+## 输入要求
+
+输入至少应明确给出：
+- `change-id`
+- `task-id`
+- `touched-files`
+- `test-first-order`
+- `red-evidence-point`
+- `green-evidence-point`
+- `project-native-build-command`
+- `scope`
+
+若上述字段缺失，必须返回 blocker，而不是猜测继续。
+
 ## 返回结构
 
 至少返回：
@@ -45,6 +59,7 @@ model: sonnet
 - `command-output-summary`
 - `evidence-path`
 - `next-step`
+- `blockers`
 
 ## 约束
 
