@@ -35,6 +35,10 @@
 - 先验证单平台的一致性和可测性
 - 跨平台 / 非 Claude host 兼容放在后续 phase 2 再考虑
 
+注意：**Claude Code-only 不等于删除 `harness/` 目录**。当前预期是：
+- `.claude/` 收口前门、skills、agents、rules、hooks 配置入口
+- `harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语
+
 深入说明见：
 - `harness/specs/claude-code-only-phase1.md`
 
@@ -42,6 +46,11 @@
 
 ### 用户前门
 - **唯一前门**：`/harness`
+
+### 核心探索能力
+- **CodeGraph-first**：代码探索默认走 `code-explore`
+- **Context7-first**：文档探索默认走 `doc-research`
+- 这两条探索 lane 是本项目 phase 1 的核心亮点，不是附属工具
 
 ### 阶段恢复入口
 - `clarify` / `route` → `/harness-intake`

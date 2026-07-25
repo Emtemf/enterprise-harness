@@ -2,6 +2,8 @@
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 
+> **Claude Code-only phase 1** 指的是：前门、阶段编排与交互体验收口到 Claude Code；并不意味着删除 `harness/`。`harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语。
+
 > 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
 
 ## 闭环五检 (TECPC)：这个项目是怎么工作的
@@ -93,6 +95,12 @@ graph TD
 - 无 active change 但有 change tracking → **BLOCK**（必须委托 code-explore subagent）
 - 已有 codegraph 证据 → 放行
 - 读 harness/ 内部文件、CLAUDE.md、docs、配置 → 放行（豁免）
+
+### CodeGraph / Context7：phase 1 的双探索亮点
+
+- **CodeGraph-first**：代码探索默认走 `code-explore`，用 codegraph 做定位、调用链、影响面分析，而不是主对话直接乱 grep
+- **Context7-first**：文档探索默认走 `doc-research`，用于外部库、框架、SDK、版本行为的事实核实
+- clarify / route / design / verify 都可以依赖这两条探索通道先补事实，再决定下一步
 
 ### subagent / 后台任务等待约束
 

@@ -112,7 +112,13 @@
 - `/harness`：唯一用户前门
 - 阶段 skill：方法论与用户引导
 - agent：explore / reviewer / executor
-- runtime/hook：durable state + hard gate + deterministic backend action
+- hook adapter / primitives：durable state + hard gate + deterministic backend action
+- `harness/`：repo truth / specs / templates / changes / archive
+
+### CodeGraph / Context7 的位置
+- **CodeGraph** 不是普通工具，而是 `code-explore` lane 的能力核心
+- **Context7** 不是普通工具，而是 `doc-research` lane 的能力核心
+- phase 1 的 clarify / route / design / verify 都依赖这两条探索通道来补事实，而不是只靠模型记忆
 
 ## 总体设计结论
 

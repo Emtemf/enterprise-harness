@@ -40,6 +40,18 @@
 
 ## 目标分层
 
+## 0. repo truth / durable assets 层（保留在 `harness/`）
+
+### 负责什么
+- `harness/specs/`：规范真相层
+- `harness/templates/`：模板
+- `harness/changes/`：活动 change 资产
+- `harness/archive/`：归档资产
+- `harness/plugin/runtime/`：动作层与统一业务原语
+
+### 为什么这层必须保留
+Claude Code-only phase 1 的目标是把**编排与交互**收口到 Claude Code，而不是物理上消灭 `harness/` 目录。`harness/` 继续承载 repo truth 与 durable assets，否则 staged workflow 会失去可恢复、可审计、可机械消费的状态落点。
+
 ## 1. 编排层（Claude Code 原生）
 
 ### 负责什么
@@ -64,6 +76,22 @@
 - `/harness-verify`
 
 ---
+
+## 1.5 探索能力层（CodeGraph / Context7）
+
+### 负责什么
+- **CodeGraph-first**：代码定位、调用链、影响面、跨模块传播
+- **Context7-first**：外部库/框架/SDK/版本行为文档核实
+
+### 当前映射
+- `code-explore` ← CodeGraph
+- `doc-research` ← Context7
+
+### 为什么这是 phase 1 亮点
+这两条探索 lane 不是“顺手带上的工具”，而是本项目在 Claude Code-only phase 1 中与普通 prompt 工作流拉开差距的重要能力：
+- 代码探索不靠主对话乱 grep
+- 文档探索不靠模型记忆乱猜
+- clarify / route / design / verify 都有事实补盲通道
 
 ## 2. 执行层（专职 agent）
 

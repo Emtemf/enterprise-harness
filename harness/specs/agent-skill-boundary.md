@@ -57,7 +57,7 @@
 - 维护全局 workflow 状态机
 - 替代 `/harness` 决定整体阶段推进
 
-### 4. hooks / runtime
+### 4. hooks / runtime（更准确地说：hook adapter + workflow primitives）
 负责：
 - `state.json` / `ACTIVE_CHANGE` / verdict / validation 的 durable truth
 - PreToolUse / PostToolUse / Stop 的硬阻断
@@ -67,6 +67,16 @@
 - 作为主要用户交互面
 - 隐式承载完整 staged UX
 - 取代 skill 层的 TECPC 阶段话术
+- 被误解为“需要把 `harness/` 整体删掉”
+
+### 5. CodeGraph / Context7 探索能力层
+负责：
+- `code-explore` 的 codegraph-first 代码事实探索
+- `doc-research` 的 Context7-first 文档事实探索
+
+不负责：
+- 取代阶段 skill 的方法论说明
+- 取代 repo truth / durable asset 层
 
 ### 5. specs
 负责：

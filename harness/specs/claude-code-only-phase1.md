@@ -37,13 +37,24 @@
 - `verify` → `/harness-verify`
 - `archive` / 未识别 → `/harness`
 
+### 重要澄清：Claude Code-only 不等于删除 `harness/`
+Claude Code-only phase 1 的含义是：
+- **交互前门、阶段编排、用户体验** 收口到 Claude Code 原生机制
+- **repo truth、durable assets、templates、changes、archive、actions/primitives** 仍保留在 `harness/`
+
+因此，phase 1 不是把所有东西都挪进 `.claude/`，而是：
+- `.claude/` 负责前门、skills、agents、rules、hooks 配置入口
+- `harness/` 负责 specs、templates、changes、archive、脚本动作与统一业务原语
+
 ### 主要承载层
 - `CLAUDE.md`：短地图 + 承重墙 + 导航
 - `.claude/skills/`：阶段方法论与用户可见引导
 - `.claude/agents/`：专职执行角色 / reviewer / explorer
-- `.claude/settings.json` + runtime hooks：机械门禁
+- `.claude/settings.json`：Claude Code hooks 配置入口
 - `harness/specs/`：规范真相层
 - `harness/changes/`：durable change 资产
+- `harness/templates/` / `harness/archive/`：长期保留的 repo contract 资产
+- `harness/plugin/runtime/`：hook 接缝层与统一业务原语/动作层
 
 ## 不在 phase 1 内优先解决的事情
 
@@ -58,6 +69,12 @@
 - slash/skill 负责前台体验
 - agent 负责上下文分割与专职执行
 - hook 负责不可绕过的硬阻断
+
+### 1.5 双探索通道是 phase 1 亮点，不是附属工具
+- **CodeGraph-first**：代码探索默认走 `code-explore` + codegraph MCP/tooling
+- **Context7-first**：文档探索默认走 `doc-research` + Context7 query path
+- 这两条 lane 共同构成 phase 1 的“探索能力面”
+- 它们不是可有可无的工具，而是 staged workflow 在 clarify / route / design / verify 中补事实的核心手段
 
 ### 2. 机械门禁继续保留
 即便 phase 1 强调 Claude Code 原生体验，也不把这些能力退化成纯 prompt 约束：
