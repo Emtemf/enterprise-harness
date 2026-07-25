@@ -2,28 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry } from '../lib/workflow.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
-
-function activeChangeGuidance(root) {
-  const active = loadActiveChange(root);
-  if (!active.ok) {
-    return {
-      assetGuidance: 'change-specific 结论：优先写回当前 active change 资产；若当前没有 active change，请先补足对应 change bundle。',
-      workflowStage: null,
-      nextEntry: '/harness',
-    };
-  }
-  const workflowStage = inferWorkflowStage(active.changeId, active.data);
-  return {
-    assetGuidance: `change-specific 结论：优先写回 harness/changes/${active.changeId}/ 下的 change.md / design.md / tasks.md / validation.md / evidence/*.md / reviews/*.json。`,
-    workflowStage,
-    nextEntry: recommendNextEntry(workflowStage, active.data),
-  };
-}
+import { buildRecoveryGuidance } from '../lib/recovery-guidance.mjs';
 
 function printHandoffGuidance(root) {
-  const guidance = activeChangeGuidance(root);
+  const guidance = buildRecoveryGuidance(root);
   console.error('Stop handoff guidance:');
   console.error(`- ${guidance.assetGuidance}`);
   if (guidance.workflowStage) {

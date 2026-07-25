@@ -15,6 +15,7 @@ description: >
 ## 默认执行面
 
 - 只要目标项目存在真实构建/测试命令，TDD 默认应下沉给专职 worker / subagent 执行 RED/GREEN/REFACTOR，而不是把所有执行细节堆在主对话里
+- `/harness-tdd` 的职责是阶段编排与结果消费，不是替代 executor 承担完整执行细节
 - 主上下文应保留：当前 task、当前构建命令、RED/GREEN 证据摘要、失败原因与下一步决策
 
 
@@ -49,7 +50,7 @@ TEST_WRITTEN
 
 具体要求：
 1. **每个 task 使用 `Agent` 工具派遣**，参数必须包含：
-   - `subagent_type`: 使用 `general-purpose` 或项目特定 worker
+   - `subagent_type`: 优先使用专职 `tdd-executor`；若当前仓库尚未落地该 agent，才临时使用 `general-purpose` 或项目特定 worker
    - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
    - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
 2. **Subagent 必须执行真实构建命令**：
@@ -63,7 +64,7 @@ TEST_WRITTEN
    - 主上下文不堆积整段构建输出
 4. **禁止在主对话中直接 Write/Edit 生产代码**：
    - TDD 阶段的所有代码修改必须由 subagent 在 worktree 中完成
-   - 主 orchestrator 只负责派遣 subagent 和消费结果
+   - 主 orchestrator / `/harness-tdd` 只负责派遣 executor、消费结果、推进子状态
 
 **违反此约束 = 阻断**：如果模型试图在主对话中直接写代码或跳过 mvn 执行，pre-write hook 会拦截。
 

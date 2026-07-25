@@ -51,7 +51,8 @@ function contractHolds() {
   assert(!hasLocalOverride, 'stop.mjs should not contain a local recommendNextEntry returning /harness statically');
 
   const hasWorkflowImport = /import\s*\{[^}]*recommendNextEntry[^}]*\}\s*from\s*['"][^'"]*workflow\.mjs['"]/.test(stopText);
-  assert(hasWorkflowImport, 'stop.mjs should import recommendNextEntry from lib/workflow.mjs');
+  const hasRecoveryHelperImport = /import\s*\{[^}]*buildRecoveryGuidance[^}]*\}\s*from\s*['"][^'"]*recovery-guidance\.mjs['"]/.test(stopText);
+  assert(hasWorkflowImport || hasRecoveryHelperImport, 'stop.mjs should import recommendNextEntry directly or consume buildRecoveryGuidance');
 }
 
 try {

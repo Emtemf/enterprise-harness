@@ -4,36 +4,62 @@
 
 本项目的目标是把 Claude Code 变成一个适合企业 Java 后端交付的本地 harness：让较弱模型也能在明确约束下，稳定完成需求分流、设计、计划、TDD、验证与归档。
 
-## 设计谱系（为什么 SOP 要这么厚）
+## 承重墙（为什么 SOP 要这么厚）
 
-第一性目标是**给较弱模型兜底**：模型在缺约束时会跳步、糊弄验收、丢失状态。因此本项目用"厚 SOP + 机械门禁 + durable 状态"替代"模型自觉"。这条 WHY 是承重墙——简化 SOP 前必须先理解它，不得因为"看起来啰嗦"就削薄。
+第一性目标是**给较弱模型兜底**：模型在缺约束时会跳步、糊弄验收、丢失状态。因此本项目用“厚 SOP + 机械门禁 + durable 状态”替代“模型自觉”。
 
-各设计支柱的来源（详见 `harness/upstream/registry.json`）：
+任何“为了更简洁而削薄流程”的改动，都必须先回答：
+- 是否削弱了 TECPC 的可见性？
+- 是否削弱了 reviewer / verify / stop 的完成态闭环？
+- 是否把原本机械可验证的行为退化成纯 prompt 约束？
 
-- **分阶段 SOP** ← Superpowers：`clarify → route → design → plan → tdd → verify → archive` 的阶段骨架
-- **归档与资产分层** ← OpenSpec：change / spec / archive 模型；企业交付中归档很重要
-- **苏格拉底式 clarify** ← deep-interview：clarify 阶段的提问技术，需求澄清是重中之重
-- **打断后可继续** ← gump 的 agent 工作环境理念：durable `state.json` + `workflow.stage`，中间被打断可恢复
-- **角色视角** ← role-workbench（蒸馏课程）：提升 design 阶段效果；当前仍是草案，未接入 runtime
-- **代码探索工具** ← CodeGraph（codegraph-first）；**文档检索工具** ← Context7（Context7-first）
+## 设计谱系（摘要）
 
-## 本项目做什么
+当前设计来源的摘要如下：
 
-- 面向 **Java 后端 / Spring Boot** 场景
-- 默认采用 **codegraph-first** 的代码探索策略；失败后才允许 grep / Read fallback，并要求留痕
-- **【强制】代码探索必须委托 subagent**：主 orchestrator 不得自己直接用 grep/Read 搜索代码。必须通过 Agent 工具派遣 `subagent_type: code-explore`完成。这是强制委派规则，不是建议。
-- 涉及外部库、框架、SDK 或版本行为时，默认采用 **Context7-first** 文档检索；不足时再查官方文档
-- 默认工作流是：**需求 intake → design → plan → TDD → review → validation → archive**
-- 采用 OpenSpec-like 的资产分层，但品牌与结构以内建 `harness/` 为准
-- 采用 Clean Architecture / DDD 风格的 Java 分层、MapStruct 映射、BDD 风格测试与后端 API E2E
+- **分阶段 SOP / staged UX** ← Superpowers
+- **change / spec / archive 资产模型** ← OpenSpec
+- **苏格拉底式 clarify** ← deep-interview（来自 oh-my-claudecode）
+- **durable state / 可恢复工作空间** ← gump-agent-workspace
+- **角色视角增强** ← role-workbench（当前仍为 draft）
+- **代码/文档探索工具** ← CodeGraph / Context7
 
-## 本项目当前不做什么
+深入说明见：
+- `harness/specs/upstream-mapping.md`
 
-- 不做前端页面点击测试
-- 不把聊天上下文当成唯一状态来源
-- 不把 `.claude/` 之外的目录当成运行时规则/agent 的唯一真相
-- 不在 codegraph 可用时直接跳过到 grep
-- 不在缺少设计、RED 证据或新鲜验证时直接推进实现或宣称完成
+## 当前架构原则（Phase 1）
+
+本项目当前以 **Claude Code-only phase 1** 为主：
+
+- 先把 Claude Code 内部的 staged workflow、恢复入口、double-check、TDD 执行链打透
+- 先验证单平台的一致性和可测性
+- 跨平台 / 非 Claude host 兼容放在后续 phase 2 再考虑
+
+深入说明见：
+- `harness/specs/claude-code-only-phase1.md`
+
+## 当前分层模型
+
+### 用户前门
+- **唯一前门**：`/harness`
+
+### 阶段恢复入口
+- `clarify` / `route` → `/harness-intake`
+- `design` → `/harness-design`
+- `plan` → `/harness-plan`
+- `tdd` → `/harness-tdd`
+- `verify` → `/harness-verify`
+- `archive` / 未识别 → `/harness`
+
+### 职责边界
+- **skill**：阶段方法论、TECPC 检查、用户可见引导
+- **agent**：专职执行角色（explore / reviewer / executor）
+- **hook/runtime**：机械门禁、durable state、确定性 backend 动作
+- **spec**：单一真相层
+
+深入说明见：
+- `harness/specs/agent-skill-boundary.md`
+- `harness/specs/staged-workflow.md`
 
 ## 当前自动加载入口
 
@@ -44,49 +70,50 @@
 - `.claude/skills/`：项目 skill
 - `.claude/settings.json`：项目 hooks / settings
 
-## 显式入口模型
-
-当前仓库采用三层模型：
-
-1. **Skill 入口**：对用户只有一个前门——在 Claude Code 会话中统一从 `/harness` 开始；它负责 clarify-first staged workflow 的单一入口与阶段路由
-2. **Command 后台动作**：在本机/runtime 场景中，优先使用 `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`、`bootstrap`、`doctor`、`sync`、`verify` 这类确定性 backend 动作
-3. **Hooks 自动门禁**：`.claude/settings.json` 中的 SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、恢复提示和校验
-
-规则与 hooks 会自动生效，但它们不是总编排器；对用户的总入口应始终显式保持为 `/harness`，不要把 backend command 暴露成并列前门。
-
-## 默认工作流
+## 默认工作流（摘要）
 
 对 L1 及以上代码/配置行为变化，默认按以下顺序推进：
 
-0. **【强制】每步操作后输出 TECPC 状态卡**：每完成一个阶段或关键动作（创建文件、推进状态、被拦截），在对话文本中输出当前 TECPC 卡，让用户看到进度。格式同 `cli.mjs status` 输出的闭环五检卡。
-0.5 **【强制】等待 subagent / 后台任务时禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 可通知的任务已经启动后，主 orchestrator 不得通过 `sleep`、倒计时、循环“继续等待”、反复状态播报或伪进展输出来占用对话。默认做法是：启动任务后立即停手，等待 Claude Code 的完成通知（`<task-notification>`）或用户下一条真实消息。只有通知机制覆盖不到的外部系统（如外部 CI / 远端部署 / 非 harness 跟踪任务）才允许设置**单次兜底等待**；即便如此，也不得在等待期间持续骚扰用户。
-1. 先进入 `clarify`：先探索代码/文档，再进行一问一答澄清与用户确认
-   - **【强制】一次只问一个问题**，用选项式（A/B/C + 其他），不得批量抛给用户多个问题
-   - **【强制】必须展示歧义度评分**：每轮展示全维度评分表 + overall score + weakest dimension + 评分依据，用户有权修正。达标条件：所有关键维度 ≥ 4 且用户确认执行范围
-2. 形成 final route（L0 / L1 / L2 / L3）
-3. 完成 durable design（TECPC 驱动：T 目标 → E 证据 → C 上下文 → P 路径 → C 纠正）
-   - **【强制】必须创建 `design.md`**：使用 `Write` 工具创建 `harness/changes/<change-id>/design.md`，基于模板填写 TECPC 五维内容
-   - **不得在 design.md 不存在时进入 plan**
-4. design 批准后进入 plan
-   - **【强制】必须创建 `tasks.md`**：使用 `Write` 工具创建 `harness/changes/<change-id>/tasks.md`，基于模板填写每个 task 的 touched files / RED evidence point / GREEN evidence point
-   - **不得在 tasks.md 不存在时进入 tdd**
-5. 严格执行 RED → GREEN → REFACTOR
-   - **【强制】TDD 必须通过 subagent 执行**：使用 `Agent` 工具，`isolation: "worktree"`
-   - **【强制】subagent 必须执行真实构建命令**：`mvn test` / `mvn verify`，不得跳过
-   - **禁止在主对话中直接写生产代码**
-6. 统一在 `verify` 阶段消费 reviewer verdict 与验证证据
-7. 必要时归档到 `harness/changes/`、`harness/specs/`、`harness/archive/`
+1. `clarify`
+2. `route`
+3. `design`
+4. `plan`
+5. `tdd`
+6. `verify`
+7. `archive`
 
-### 实现前 orchestration guardrail（硬约束）
+阶段 contract 的深入说明见：
+- `harness/specs/staged-workflow.md`
+- `harness/specs/ambiguity-scoring.md`
+- `harness/specs/context-packet.md`
+- `harness/specs/exploration-packet.md`
 
-对 L1 及以上变化，在进入实现前必须先满足：
+## 当前硬约束
 
-- 已通过 `/harness` 或等效 staged workflow 入口建立当前 change
+### 1. TECPC 可见性
+- **每步操作后必须输出 TECPC 状态卡**，不能只依赖 hook 输出
+
+### 2. 等待后台任务
+- **等待 subagent / 后台任务时禁止轮询刷屏**
+- 当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 可通知的任务已启动后，主 orchestrator 不得通过 `sleep`、倒计时、循环“继续等待”或伪进展输出占用对话
+- 默认做法是：启动任务后立即停手，等待 `<task-notification>` 或用户下一条真实消息
+
+### 3. 代码探索
+- **代码探索必须委托 `code-explore` subagent**
+- 主 orchestrator 不得自己直接用 grep/Read 搜索业务代码
+- 默认采用 **codegraph-first**；失败后才允许 grep / Read fallback，并要求留痕
+
+### 4. TDD 执行
+- **TDD 必须通过 subagent 执行**
+- **必须使用 `isolation: "worktree"`**
+- **必须执行真实构建命令**：如 `mvn test` / `mvn verify`
+- 主对话禁止直接写生产代码
+
+### 5. 实现前门禁
+在进入实现前，至少必须满足：
+- 已通过 `/harness` 建立当前 change
 - 已完成 `clarify`（或至少 clarify-ready 并获得用户确认）
 - 已完成 `route`
-
-在上述条件满足前，不得开始写业务代码、设计落地代码、任务推进代码或任何实现动作。  
-这是 orchestration 级门禁，不是建议。
 
 ## 编码与架构基线
 
@@ -99,24 +126,51 @@
 - 测试默认采用 BDD 风格命名与 `@DisplayName`
 - API E2E 指真实 HTTP 后端场景编排，不包含 UI 点击
 
-## 验证
+## 验证边界（摘要）
 
 当前阶段的本地验证仍以轻量脚本为主：
 
-- `harness/plugin/runtime/verify-scripts/validate-spec-structure.sh`
-- `harness/plugin/runtime/verify-scripts/validate-openapi.sh`（已泛化为任意 `openapi/` 目录下 YAML 文件的基础结构检查）
-- `harness/plugin/runtime/verify-scripts/validate-controller-consistency.sh`（仍仅用于 `reference-service` 自身回归，不是通用的任意项目 controller/OpenAPI 交叉校验器）
+- `validate-spec-structure.sh`
+- `validate-openapi.sh`
+- `validate-controller-consistency.sh`（当前仍仅用于 `reference-service` 自身回归，不是任意项目通用 controller/OpenAPI 交叉校验器）
 
-统一的 full verification 入口仍在后续阶段建设中；在它落地前，不得把现有轻量脚本误当成完整企业级门禁，更不得把 `validate-controller-consistency.sh` 误表述成任意项目通用能力。
+统一 full verification 仍在后续阶段建设中；不得把现有轻量脚本误表述成完整企业级门禁。
 
 ## 资产位置
 
 - 进度快照：`PROGRESS.md`
-- 稳定规范：`harness/specs/`（含 `staged-workflow.md` / `session-lifecycle.md`）
+- 稳定规范：`harness/specs/`
 - 活动 change：`harness/changes/`
-- 活动历史工作：`harness/work/`
 - 探索证据：`harness/explorations/`
 - 模板：`harness/templates/`
+- 上游基线：`harness/upstream/registry.json`
+
+## 深入阅读导航
+
+- `harness/specs/README.md` — specs 真相层目录索引与建议阅读顺序
+
+### 如果你要理解“为什么这样设计”
+- `harness/specs/claude-code-only-phase1.md`
+- `harness/specs/claude-code-only-phase1-blueprint.md`
+- `harness/specs/upstream-mapping.md`
+- `harness/specs/agent-skill-boundary.md`
+- `harness/specs/hook-adapter-and-primitives.md`
+
+### 如果你要理解“当前 workflow 怎么跑”
+- `harness/specs/staged-workflow.md`
+- `harness/specs/session-lifecycle.md`
+- `harness/specs/plugin-runtime.md`
+- `harness/specs/double-check-model.md`
+- `harness/specs/reviewer-verdict-contract.md`
+- `harness/specs/verify-contract.md`
+
+### 如果你要理解 clarify / 探索 / 评分
+- `harness/specs/ambiguity-scoring.md`
+- `harness/specs/context-packet.md`
+- `harness/specs/exploration-packet.md`
+
+### 如果你要理解 TDD 专职执行 contract
+- `harness/specs/tdd-execution.md`
 
 ## 当前成熟度说明
 

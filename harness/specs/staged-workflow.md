@@ -25,7 +25,8 @@ Claude Code 会话中，统一从：
 这是**唯一的主用户入口**。阶段 skill（如 `harness-intake`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify`）属于 subordinate stage entry：
 - 可由 `/harness` 在当前阶段作为恢复入口推荐
 - 也可由熟悉仓库 contract 的高级用户直接使用
-- 但 repo-facing 文档、SessionStart、status、Stop 的默认指路应始终优先回到 `/harness`
+- 普通用户第一次进入时，repo-facing 文档应始终优先指向 `/harness`
+- 进入 staged workflow 之后，SessionStart / status / Stop 等恢复提示应指向**当前阶段对应 skill**：`clarify` / `route` → `/harness-intake`，`design` → `/harness-design`，`plan` → `/harness-plan`，`tdd` → `/harness-tdd`，`verify` → `/harness-verify`
 
 ### 入口职责
 `/harness` 不是单纯的说明 skill，而是阶段编排器，负责：

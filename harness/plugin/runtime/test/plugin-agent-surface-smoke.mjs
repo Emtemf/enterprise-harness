@@ -36,6 +36,7 @@ const declaredAgents = pluginJson.agents || [];
 const requiredAgents = [
   './.claude/agents/code-explore.md',
   './.claude/agents/doc-research.md',
+  './.claude/agents/tdd-executor.md',
 ];
 
 const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-agent-surface-home-'));
@@ -60,7 +61,7 @@ try {
   for (const agent of requiredAgents) {
     if (!declaredAgents.includes(agent)) failures.push(`plugin manifest missing ${agent}`);
   }
-  for (const agentFile of ['code-explore.md', 'doc-research.md']) {
+  for (const agentFile of ['code-explore.md', 'doc-research.md', 'tdd-executor.md']) {
     if (!installedAgents.includes(agentFile)) failures.push(`installed plugin missing ${agentFile}`);
   }
 

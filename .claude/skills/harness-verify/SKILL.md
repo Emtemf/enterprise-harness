@@ -13,6 +13,7 @@ description: >
 参与角色通常包括：
 - Fullstack Developer（补实现/命令证据）
 - Principal Architect（必要时确认架构与设计一致性）
+- `verification-reviewer`（独立审查完成声明与 fresh evidence）
 - Human User（最终业务验收）
 
 verify 的目标是把工程验证和用户验收收成一个完成声明，而不是只跑几个命令。
