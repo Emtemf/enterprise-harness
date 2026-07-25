@@ -254,13 +254,13 @@ function applyDecision(changeId, decision, reason = null) {
       data.workflow.userConfirmedScope = true;
       if (data.workflow.clarifyReady) {
         data.workflow.stage = 'route';
-        data.workflow.nextEntry = '/harness';
+        data.workflow.nextEntry = '/harness-intake';
       }
     }
     if (decision === 'revise-scope') {
       data.workflow.userConfirmedScope = false;
       data.workflow.stage = 'clarify';
-      data.workflow.nextEntry = '/harness';
+      data.workflow.nextEntry = '/harness-intake';
     }
   }
 

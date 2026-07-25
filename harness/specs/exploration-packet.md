@@ -14,11 +14,13 @@
 - 在问用户前需要先拿到 repo 事实的 brownfield 需求澄清
 - 预计会污染主上下文的高噪声搜索
 
-以下探索可由主 orchestrator 直接完成：
+以下探索仅在不触达业务代码语义时可由主 orchestrator 直接完成：
 
-- 单文件、单符号、低成本确认
 - 已知路径的定向状态检查
 - `ACTIVE_CHANGE` / `state.json` / `validation.status` 等轻量事实查询
+- docs / repo metadata / 配置层面的低成本确认
+
+业务代码事实（即使只是单文件、单符号）默认仍应委托 `code-explore`。
 
 ## 基本原则
 

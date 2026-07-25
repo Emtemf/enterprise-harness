@@ -98,7 +98,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
 **【强制】TDD 必须通过 subagent 执行，不得在主对话中直接写代码。**
 
 1. **派遣 subagent**：
-   - 使用 `Agent` 工具，`subagent_type: general-purpose`
+   - 使用 `Agent` 工具，`subagent_type: tdd-executor`（若当前仓库尚未暴露该 agent，再临时回退到 `general-purpose`）
    - `isolation: "worktree"`（每个 task 在独立 worktree 中执行）
    - prompt 包含：task 描述、touched files、RED/GREEN evidence point、目标项目构建命令
 2. **Subagent 必须执行真实构建命令**：

@@ -166,9 +166,14 @@ durable artifact：
 探索默认分流为两类：
 
 ### 主 orchestrator 直接做
-适用于：
-- 单文件、单符号、低成本确认
-- 当前上下文已足够说明行为
+仅适用于：
+- `ACTIVE_CHANGE` / `state.json` / `validation.status` / docs / repo metadata 等轻量治理信息确认
+- 已知路径的非业务代码状态检查
+
+不适用于：
+- 业务代码的单文件、单符号、低成本确认
+- controller/service/repository/mapper 等业务实现探索
+- 任何应走 `code-explore` 的代码事实确认
 
 ### read-only subagent 做
 适用于：

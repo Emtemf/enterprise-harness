@@ -75,9 +75,29 @@ const runtimeReadinessChecks = {
   ],
 };
 
+const completionVerdict = contractChecks.ok ? 'pass' : 'block';
+const blockers = contractChecks.ok
+  ? []
+  : [
+      ...contractChecks.problems.map((problem) => `contract-problem:${problem}`),
+      ...contractChecks.todoHits.map((file) => `template-placeholder:${file}`),
+    ];
+const consumedEvidenceSummary = {
+  contractProblems: contractChecks.problems.length,
+  todoHits: contractChecks.todoHits.length,
+  runtimeReadinessStatus: runtimeReadinessChecks.status,
+};
+const nextStep = contractChecks.ok
+  ? 'archive-or-completion-gate'
+  : 'fix-contract-problems-and-rerun-verify';
+
 const result = {
   repoRoot: root,
   ok: contractChecks.ok,
+  'completion-verdict': completionVerdict,
+  blockers,
+  'consumed-evidence-summary': consumedEvidenceSummary,
+  'next-step': nextStep,
   contractChecks,
   runtimeReadinessChecks,
 };

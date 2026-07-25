@@ -434,7 +434,7 @@ design.md 必须包含以下 TECPC section：
 ### 检查内容
 1. artifact 完整性（change.md / validation.md / evidence/tooling.md）
 2. OpenAPI 结构（任意 openapi/*.yaml）
-3. **通用 OpenAPI ↔ Controller 一致性**（path + method 对齐）
+3. **reference-service 的 OpenAPI ↔ Controller 一致性回归检查**（当前仍不是任意项目通用交叉校验器）
 
 ### 异常检测
 | 现象 | 原因 | 处理 |

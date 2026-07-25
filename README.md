@@ -134,7 +134,8 @@ graph TD
 
 - artifact 完整性检查（`change.md` / `validation.md` / `evidence/tooling.md`）
 - OpenAPI 结构检查（任意 `openapi/*.yaml`）
-- **通用 OpenAPI ↔ Controller 一致性检查**（path + method 对齐）
+- **OpenAPI 结构检查**（任意 `openapi/*.yaml`）
+- **reference-service 自身的 Controller 一致性回归检查**（当前仍不是任意项目通用的 OpenAPI ↔ Controller 交叉校验器）
 
 ### stop hook（会话结束前）
 
