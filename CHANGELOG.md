@@ -2,6 +2,37 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.0]
+
+### Changed
+- **Claude Code-only phase 1 基线建立**：项目正式收口为“`/harness` + 阶段 skill + 专职 agent + hook 接缝层 + 统一业务原语层”的第一阶段架构，不再把所谓 runtime 视为第二编排器。
+- **`CLAUDE.md` 摘要化 + specs 渐进披露**：`CLAUDE.md` 收敛为短地图、承重墙、当前架构原则与导航；深层设计复盘、边界、上游映射与阶段 contract 下沉到 `harness/specs/`。
+- **specs 真相层建立索引**：新增 `harness/specs/README.md`，将方向层 / 边界层 / 合同层分类，防止继续无边界膨胀。
+
+### Added
+- **phase 1 设计基线文档**：新增 `claude-code-only-phase1.md`、`claude-code-only-phase1-blueprint.md`、`agent-skill-boundary.md`、`upstream-mapping.md`、`hook-adapter-and-primitives.md`。
+- **TDD 专职执行 contract**：新增 `tdd-execution.md` 与 `tdd-executor` agent；明确输入/输出字段、worktree 隔离、真实 `mvn test` / `mvn verify` / `mvn compile` 执行要求。
+- **verify / reviewer / double-check contract**：新增 `verify-contract.md`、`reviewer-verdict-contract.md`、`double-check-model.md`，把 `pass / advisory / block` 的消费语义、`completion-verdict`、reviewer verdict 最小 schema 与 stop/verify 门禁对齐。
+- **恢复提示原语**：新增 `recovery-guidance.mjs`，把 stop 的恢复提示抽成统一业务原语。
+
+### Fixed
+- **TDD 阶段的 skill/agent 边界更清晰**：`/harness-tdd` 明确只做阶段编排与结果消费，执行细节下沉给 `tdd-executor`。
+- **hook / 原语层边界更清晰**：通过 `hook-primitives-boundary-smoke` 等 contract smoke，明确 hook 接缝层消费原语，而不重复定义完整阶段逻辑。
+- **插件 agent 暴露面同步**：`tdd-executor` 已加入 plugin surface，并通过安装面 smoke 验证。
+
+### Tests
+- 新增并通过一组 phase 1 checkpoint smoke：
+  - `tdd-execution-contract-smoke.mjs`
+  - `tdd-executor-agent-smoke.mjs`
+  - `tdd-executor-output-contract-smoke.mjs`
+  - `tdd-skill-boundary-smoke.mjs`
+  - `verify-contract-smoke.mjs`
+  - `verify-verdict-consumption-smoke.mjs`
+  - `reviewer-verdict-contract-smoke.mjs`
+  - `double-check-model-smoke.mjs`
+  - `hook-primitives-boundary-smoke.mjs`
+  - `recovery-guidance-smoke.mjs`
+
 ## [0.1.33]
 
 ### Fixed
