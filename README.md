@@ -230,6 +230,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 如果你想进一步理解当前设计，而不只看安装与使用：
 
+- **Specs 总索引 / 建议阅读顺序**：`harness/specs/README.md`
 - **Claude Code-only phase 1 边界**：`harness/specs/claude-code-only-phase1.md`
 - **Claude Code-only phase 1 重构蓝图**：`harness/specs/claude-code-only-phase1-blueprint.md`
 - **Agent / Skill / Hook / Runtime 分层**：`harness/specs/agent-skill-boundary.md`

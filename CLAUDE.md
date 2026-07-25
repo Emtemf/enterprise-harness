@@ -147,6 +147,8 @@
 
 ## 深入阅读导航
 
+- `harness/specs/README.md` — specs 真相层目录索引与建议阅读顺序
+
 ### 如果你要理解“为什么这样设计”
 - `harness/specs/claude-code-only-phase1.md`
 - `harness/specs/claude-code-only-phase1-blueprint.md`
