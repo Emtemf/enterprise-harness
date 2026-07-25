@@ -440,6 +440,18 @@ export function validateChangeEvidence(root) {
       if (!text.includes('## Stage Gate Summary')) {
         errors.push(`${changeDir}: validation.md missing Stage Gate Summary section`);
       }
+      const commandsMatch = text.match(/## Commands Executed\n([\s\S]*?)(\n## |$)/);
+      if (commandsMatch && !commandsMatch[1].trim()) {
+        errors.push(`${changeDir}: validation.md Commands Executed section is empty`);
+      }
+      const verdictMatch = text.match(/## Final Verdict\n([\s\S]*?)(\n## |$)/);
+      if (verdictMatch && !verdictMatch[1].trim()) {
+        errors.push(`${changeDir}: validation.md Final Verdict section is empty`);
+      }
+      const reviewVerdictsMatch = text.match(/## Review Verdicts\n([\s\S]*?)(\n## |$)/);
+      if (reviewVerdictsMatch && !reviewVerdictsMatch[1].trim()) {
+        errors.push(`${changeDir}: validation.md Review Verdicts section is empty`);
+      }
     }
   }
   return errors;

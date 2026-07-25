@@ -41,7 +41,7 @@ try {
   copyDir(repoRoot, repoCopy);
   const changeDir = path.join(repoCopy, 'harness', 'changes', 'intake-smoke-demo');
   fs.mkdirSync(changeDir, { recursive: true });
-  fs.writeFileSync(path.join(changeDir, 'validation.md'), '# Validation\n\n## Artifact Digest\n', 'utf-8');
+  fs.writeFileSync(path.join(changeDir, 'validation.md'), '# Validation\n\n## Commands Executed\n\n## Review Verdicts\n\n## Stage Gate Summary\n- verify:\n\n## Final Verdict\n', 'utf-8');
 
   const result = spawnSync('node', [verifyPath, '--json'], {
     cwd: repoCopy,
@@ -49,9 +49,9 @@ try {
   });
   const parsed = JSON.parse(result.stdout || '{}');
   const problems = parsed?.contractChecks?.problems || [];
-  const ok = problems.some((p) => p.includes('validation.md missing Commands Executed section'))
-    && problems.some((p) => p.includes('validation.md missing Final Verdict section'))
-    && problems.some((p) => p.includes('validation.md missing Stage Gate Summary section'));
+  const ok = problems.some((p) => p.includes('validation.md Commands Executed section is empty'))
+    && problems.some((p) => p.includes('validation.md Final Verdict section is empty'))
+    && problems.some((p) => p.includes('validation.md Review Verdicts section is empty'));
 
   if (mode === 'red') {
     if (!ok) {
