@@ -10,6 +10,8 @@
 
 ## Commands Executed
 
+- 该 historical change 当前仅保留 validation 骨架，未在本轮重新执行命令；相关验证需以对应历史上下文为准。
+
 ## Clarify / Requirements Confirmation
 
 ## Unit Tests
@@ -28,6 +30,8 @@
 
 ## Review Verdicts
 
+- historical change：review verdict 未在本轮重新回填，需回到该 change 历史上下文核对。
+
 ## Stage Gate Summary
 - clarify:
 - design:
@@ -40,3 +44,5 @@
 ## Failures and Retries
 
 ## Final Verdict
+
+- historical validation skeleton only；当前文件仅补足最低可消费 section，最终结论应以该 change 的历史验证上下文为准。

@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.5]
+
+### Fixed
+- **历史 validation 资产补齐到新 verify 标准**：补齐 `generic-openapi-controller-consistency-checker` 与 `intake-smoke-demo` 的 `validation.md` 最低可消费内容，并按正式 `computeValidationDigest()` 逻辑同步 `state.json.validation.digest`，让新的 verify/prepublish 检查在历史 change 上也成立。
+
+## [0.2.4]
 ## [0.2.4]
 
 ### Fixed
