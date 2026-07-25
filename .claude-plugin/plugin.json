@@ -29,7 +29,8 @@
     "./.claude/agents/design-reviewer.md",
     "./.claude/agents/plan-critic.md",
     "./.claude/agents/api-consistency-reviewer.md",
-    "./.claude/agents/verification-reviewer.md"
+    "./.claude/agents/verification-reviewer.md",
+    "./.claude/agents/tdd-executor.md"
   ],
   "commands": "./.claude-plugin/commands/",
   "mcpServers": "./.mcp.json"

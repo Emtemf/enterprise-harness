@@ -49,7 +49,7 @@ TEST_WRITTEN
 
 具体要求：
 1. **每个 task 使用 `Agent` 工具派遣**，参数必须包含：
-   - `subagent_type`: 使用 `general-purpose` 或项目特定 worker
+   - `subagent_type`: 优先使用专职 `tdd-executor`；若当前仓库尚未落地该 agent，才临时使用 `general-purpose` 或项目特定 worker
    - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
    - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
 2. **Subagent 必须执行真实构建命令**：
