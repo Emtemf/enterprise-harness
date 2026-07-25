@@ -427,6 +427,20 @@ export function validateChangeEvidence(root) {
       const full = path.join(changeDir, rel);
       if (!fs.existsSync(full)) errors.push(`${changeDir}: missing ${rel}`);
     }
+
+    const validationPath = path.join(changeDir, 'validation.md');
+    if (fs.existsSync(validationPath)) {
+      const text = fs.readFileSync(validationPath, 'utf-8');
+      if (!text.includes('## Commands Executed')) {
+        errors.push(`${changeDir}: validation.md missing Commands Executed section`);
+      }
+      if (!text.includes('## Final Verdict')) {
+        errors.push(`${changeDir}: validation.md missing Final Verdict section`);
+      }
+      if (!text.includes('## Stage Gate Summary')) {
+        errors.push(`${changeDir}: validation.md missing Stage Gate Summary section`);
+      }
+    }
   }
   return errors;
 }
