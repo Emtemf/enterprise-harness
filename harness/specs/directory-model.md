@@ -24,8 +24,11 @@ Claude Code 可发现的项目 subagent / reviewer。
 ### `.claude/skills/`
 项目级 skill。
 
+### `harness/plugin/runtime/hooks/`
+Claude Code hook 执行体与完成前门禁脚本。
+
 ### `hooks/`
-本地快速反馈与完成前门禁脚本。
+历史 shell 验证脚本与兼容入口；当前不再作为运行时 hook 真相层。
 
 ### `harness/templates/`
 可复用模板，例如 `requirements.md`、`design.md`、`tasks.md`、`validation.md` 等 staged workflow 资产模板。

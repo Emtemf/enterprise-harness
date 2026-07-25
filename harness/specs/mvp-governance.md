@@ -5,9 +5,9 @@
 Any adopted service repository should visibly provide:
 
 - a root governance entrypoint (`CLAUDE.md`)
-- shared rules under `rules/`
-- reviewer prompts under `agents/`
-- validation scripts under `hooks/`
+- auto-loaded rules under `.claude/rules/`
+- reviewer / worker definitions under `.claude/agents/`
+- hook executors under `harness/plugin/runtime/hooks/`
 - durable artifacts under `harness/`
 - an owned OpenAPI contract for service APIs
 - both unit and local DB-backed integration tests for at least one vertical slice

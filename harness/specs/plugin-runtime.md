@@ -2,12 +2,18 @@
 
 ## 目标
 
+> **边界声明**：本文件面向 maintainer / backend action / hook adapter 视角，描述 `harness/plugin/runtime/` 这层如何为 Claude Code-only phase 1 提供后台动作与接缝能力；它不是普通用户产品前门的主叙事。
+
 把当前以仓库为中心的 harness，拆成：
 
 1. **项目共享契约层**（repo contract）
-2. **机器本地运行层**（portable runtime / plugin adapter）
+2. **Claude Code 后台动作与 hook adapter 层**（位于 `harness/plugin/runtime/`）
 
-这样同一套 harness 才能在 Windows、macOS、Linux 和不同开发机之间“活起来”，而不只是当前 Linux 会话里可用。
+这层的作用不是重新定义第二个编排器，而是承载：
+- hooks 执行体
+- CLI 后台确定性动作
+- 统一业务原语
+- 维护/排障/发布所需的 backend action
 
 ## 两层模型
 
@@ -34,13 +40,16 @@
 
 ## 当前问题
 
-目前仓库虽已有可用骨架，但运行层仍偏向：
+目前仓库虽已有可用骨架，但这层仍存在历史表述与实现边界未完全收口的问题，例如：
 
-- bash-only
-- Linux-friendly
-- 当前会话可用
+- 容易被误读成“portable runtime 主产品层”
+- 容易被误读成“第二编排器”
+- 安装态插件缓存与仓库当前版本可能暂时不同步
 
-这不足以构成跨平台、跨机器的“活插件”。
+在 Claude Code-only phase 1 下，这层的优先目标不是先讲“跨机器的活插件”，而是先保证：
+- `/harness` 前门与阶段编排稳定
+- hook adapter 与原语层边界清晰
+- verify / release / package / doctor / sync 等后台动作可确定性执行
 
 ## 入口分层
 
