@@ -143,7 +143,16 @@ check('F: no active change but has change tracking — exploring business code m
   });
 });
 
-check('G: non-exploration tool must PASS', () => {
+check('G: Bash grep on business code without codegraph evidence must BLOCK', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', { command: 'grep -R "Template" src/main/java' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
+  });
+});
+
+check('H: non-exploration Bash must PASS', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState());
     const result = runPreExplore(tempRoot, 'Bash', { command: 'ls' });

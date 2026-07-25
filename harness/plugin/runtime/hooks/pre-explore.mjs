@@ -1,7 +1,7 @@
 import { projectRoot, hasChangeTracking } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 
-// pre-explore hook: 拦截主 orchestrator 直接用 Grep/Read/Glob 探索代码。
+// pre-explore hook: 拦截主 orchestrator 直接用 Grep/Read/Glob/Bash 探索代码。
 // codegraph-first 要求代码探索必须委托 code-explore subagent。
 // 如果 active change 存在但 tooling.codegraph 还没标记为已用，直接 BLOCK。
 //
@@ -26,13 +26,26 @@ try { event = JSON.parse(raw); } catch { process.exit(0); }
 const toolName = event.tool_name || '';
 const toolInput = event.tool_input || {};
 
+function isExplorationBash(input) {
+  const command = String(input.command || '').toLowerCase();
+  if (!command) return false;
+  return (
+    command.includes('grep ') || command.includes('rg ') || command.includes('find ') ||
+    command.includes('codegraph ') || command.includes('ls src/') || command.includes('ls src/') ||
+    command.includes('src/main/java') || command.includes('src/test/java') || command.includes('openapi/')
+  );
+}
+
 // 只拦截探索性工具
-if (!['Grep', 'Read', 'Glob'].includes(toolName)) {
+if (!['Grep', 'Read', 'Glob', 'Bash'].includes(toolName)) {
+  process.exit(0);
+}
+if (toolName === 'Bash' && !isExplorationBash(toolInput)) {
   process.exit(0);
 }
 
 // 读取工具参数
-const target = toolInput.file_path || toolInput.path || toolInput.pattern || '';
+const target = toolInput.file_path || toolInput.path || toolInput.pattern || toolInput.command || '';
 
 // 例外路径：harness/ 自身、.claude/、docs/、*.md、配置文件 → 放行
 const exemptPatterns = [
