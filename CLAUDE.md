@@ -154,6 +154,7 @@
 - `harness/specs/claude-code-only-phase1-blueprint.md`
 - `harness/specs/upstream-mapping.md`
 - `harness/specs/agent-skill-boundary.md`
+- `harness/specs/hook-adapter-and-primitives.md`
 
 ### 如果你要理解“当前 workflow 怎么跑”
 - `harness/specs/staged-workflow.md`

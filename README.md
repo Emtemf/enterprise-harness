@@ -234,6 +234,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - **Claude Code-only phase 1 边界**：`harness/specs/claude-code-only-phase1.md`
 - **Claude Code-only phase 1 重构蓝图**：`harness/specs/claude-code-only-phase1-blueprint.md`
 - **Agent / Skill / Hook / Runtime 分层**：`harness/specs/agent-skill-boundary.md`
+- **Hook 接缝层 / 统一业务原语层**：`harness/specs/hook-adapter-and-primitives.md`
 - **上游映射（Superpowers / OpenSpec / deep-interview）**：`harness/specs/upstream-mapping.md`
 - **当前 staged workflow 真相层**：`harness/specs/staged-workflow.md`
 - **TDD 专职执行 contract**：`harness/specs/tdd-execution.md`
