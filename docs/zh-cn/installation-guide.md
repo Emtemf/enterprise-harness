@@ -163,7 +163,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - **本地 marketplace 安装/更新路径可用**
 - **安装后唯一工作流入口是 `/harness`**
 
-这份文档不要求你先理解 runtime CLI、hooks、change state 或 reviewer 机制。
+这份文档不要求你先理解 `harness/` 下的动作层、hooks、change state 或 reviewer 机制。
 
 ---
 

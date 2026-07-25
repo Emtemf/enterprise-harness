@@ -27,12 +27,12 @@ Enterprise Harness 是一套围绕 **Claude Code** 的企业后端交付骨架�
 - 项目规则写了很多，但没有真正接进运行时门禁
 - 用户视角下入口太多，SOP 容易被破坏
 
-Enterprise Harness 的思路是把这些问题拆成两层：
+Enterprise Harness 当前 phase 1 的思路是把这些问题拆成两层：
 
-1. **Repo Contract**：团队共享的仓库契约
-2. **Portable Runtime**：每台机器本地适配的运行层
+1. **Claude Code 原生交互与编排层**：前门、skills、agents、hooks 配置入口
+2. **Repo Contract / Durable Assets 层**：`harness/` 下的 specs、templates、changes、archive、动作层与统一业务原语
 
-这样，团队共享的是规则、结构和语义；本地适配的是路径、工具、shell、环境变量和 secrets。
+也就是说，当前版本的重点不是做跨 host 的 portable runtime，而是先把 Claude Code 内部的 staged workflow、探索通道、门禁和恢复能力打透。
 
 ---
 
@@ -51,13 +51,15 @@ Enterprise Harness 的思路是把这些问题拆成两层：
 - `harness/changes/`：活动 change 资产
 - `harness/config.yaml`：能力声明与策略配置
 
-### 2. Portable Runtime（跨平台运行层）
+### 2. `harness/` repo truth / durable assets 层
 
-由每台机器自行适配，主要服务于：
+当前 phase 1 中，`harness/` 继续承载：
 
-- plugin / repo 的后台运行
-- maintainer / operator 的低层控制
-- hooks、doctor、sync、verify 等 runtime contract 消费
+- `specs/`：规范真相层
+- `templates/`：模板层
+- `changes/`：活动 change 资产
+- `archive/`：归档资产
+- `plugin/runtime/`：hook 接缝层、统一业务原语层与确定性动作层
 
 普通用户不把它当成前门；对用户真正暴露的工作流入口仍然是 `/harness`。
 
@@ -163,12 +165,13 @@ sequenceDiagram
 - `harness/explorations/`
 - `harness/ACTIVE_CHANGE`
 
-### 跨平台运行层
+### `harness/` 动作层与原语层
 - `harness/plugin/runtime/cli.mjs`
 - `harness/plugin/runtime/doctor.mjs`
 - `harness/plugin/runtime/sync.mjs`
 - `harness/plugin/runtime/verify.mjs`
 - `harness/plugin/runtime/hooks/*.mjs`
+- `harness/plugin/runtime/lib/*.mjs`
 
 ### Java 参考样板
 - `reference-service/`
@@ -194,7 +197,7 @@ sequenceDiagram
 
 ## 当前状态的最准表述
 
-> **已具备 Claude Code 本地 marketplace 可安装/可更新路径的 repo contract + portable runtime MVP。**
+> **已具备 Claude Code 本地 marketplace 可安装/可更新路径的 Claude Code-only phase 1 repo contract MVP。**
 
 也就是说，它已经不只是一个“clone 后手动跑脚本”的仓库骨架，而是：
 

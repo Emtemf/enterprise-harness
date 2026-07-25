@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.1]
+
+### Fixed
+- **Claude Code-only phase 1 文档口径修正**：移除 README / overview / installation-guide 中残留的“模式 B / 非原生宿主 / Portable Runtime”旧叙事，统一回到当前产品真相：交互与编排收口到 Claude Code，`harness/` 继续承载 repo truth、durable assets、动作层与统一业务原语。
+- **CodeGraph / Context7 亮点补正**：在 phase 1 相关文档中明确 CodeGraph-first 与 Context7-first 是双探索通道和核心亮点，而不是附属工具。
+
 ## [0.2.0]
 
 ### Changed

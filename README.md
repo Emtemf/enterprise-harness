@@ -1,4 +1,4 @@
-# Enterprise Harness (v0.2.0)
+# Enterprise Harness (v0.2.1)
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 
@@ -168,12 +168,14 @@ cd /tmp/eh
 node bin/install.mjs --target /path/to/your/project
 ```
 
-## 使用：两种运行模式，同一套门禁
+## 使用：Claude Code-only Phase 1
 
-harness 的门禁和 TECPC 卡跑在**真实的 Node.js 脚本**上，不依赖宿主环境。
-所以无论你用什么客户端，门禁都生效。区别只在于"谁触发"。
+当前版本的产品形态已经明确收口为 **Claude Code-only phase 1**。
 
-### 模式 A：原生 Claude Code（自动挡）
+这意味着：
+- **用户前门、阶段编排、恢复入口、交互体验** 都收口到 Claude Code 原生机制
+- **普通用户唯一前门** 仍然是 `/harness`
+- `harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语，但不作为普通用户前门暴露
 
 通过 `/plugin install` 安装后，Claude Code 的 PreToolUse/PostToolUse/Stop/SessionStart
 生命周期会**自动执行** harness 的 hook。你只需要打字，门禁在后台兜底。
@@ -192,40 +194,16 @@ harness 的门禁和 TECPC 卡跑在**真实的 Node.js 脚本**上，不依赖�
 - verify → `/harness-verify`
 - archive / 未识别 → `/harness`
 
-### 模式 B：非原生宿主（手动挡）
+### 为什么仍然保留 `harness/` 目录？
 
-如果你的环境**不是原生 Claude Code**——比如 opencode、基于 Claude Code SDK 的二次开发客户端、
-或纯 CI/CD——宿主不会自动触发 hook。这时用 runtime CLI 手动驱动：
+因为 `harness/` 负责 repo truth 与 durable assets：
+- `harness/specs/`
+- `harness/templates/`
+- `harness/changes/`
+- `harness/archive/`
+- `harness/plugin/runtime/`（hook 接缝层与统一业务原语/动作层）
 
-```bash
-node harness/plugin/runtime/cli.mjs start-change my-feature wula L2 "模板硬删除"
-node harness/plugin/runtime/cli.mjs status          # 看当前 TECPC 卡
-node harness/plugin/runtime/cli.mjs verify          # 跑契约检查（含 TECPC 卡）
-node harness/plugin/runtime/cli.mjs lifecycle state my-change SPECIFIED
-node harness/plugin/runtime/cli.mjs doctor          # 环境体检
-```
-
-或用全局 bin：
-
-```bash
-enterprise-harness status
-enterprise-harness verify
-node bin/enterprise-harness.mjs <command>
-```
-
-### 为什么两种模式门禁都生效？
-
-因为门禁逻辑在 `harness/plugin/runtime/hooks/*.mjs`——是纯 Node.js 脚本，
-读的是**项目目录里的 `harness/` 状态文件**（`state.json` / `ACTIVE_CHANGE` / `design.md` 等）。
-
-| 模式 | 谁触发 hook | 读写的状态 | 门禁是否生效 |
-|------|------------|-----------|-------------|
-| A 原生 Claude Code | Claude Code 生命周期（`$CLAUDE_PROJECT_DIR`） | 你的项目 `harness/` | ✅ |
-| B 非原生 / CI | 你手动跑 CLI（`process.cwd()`） | 同一份 `harness/` | ✅ |
-
-两种模式**共享同一份 durable 状态**：
-- 你在会话里建的 change → CLI 的 `status` 能看到
-- 你用 CLI 建的 change → 会话里的 hook 也会读到
+Claude Code-only 的意思是“交互与编排收口到 Claude Code”，而不是“物理删除 `harness/`”。
 
 ### 更新插件
 
