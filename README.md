@@ -236,6 +236,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - **上游映射（Superpowers / OpenSpec / deep-interview）**：`harness/specs/upstream-mapping.md`
 - **当前 staged workflow 真相层**：`harness/specs/staged-workflow.md`
 - **TDD 专职执行 contract**：`harness/specs/tdd-execution.md`
+- **Verify 阶段消费 contract**：`harness/specs/verify-contract.md`
 - **double-check 闭环模型**：`harness/specs/double-check-model.md`
 
 ## 诚实边界
