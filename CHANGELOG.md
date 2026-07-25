@@ -2,6 +2,19 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.3]
+
+### Fixed
+- **CodeGraph-first 绕过修复**：`pre-explore` 现在也会拦截探索型 `Bash` 命令，插件安装态 `hooks/hooks.json` 同步覆盖 `Bash`，不再允许主 orchestrator 用 Bash grep/find 绕过 `code-explore`。
+- **verify 最低可消费内容检查增强**：`validation.md` 现在至少必须包含 `Commands Executed`、`Stage Gate Summary`、`Final Verdict` section，`verify` 不再只做文件存在性检查。
+- **verification-reviewer 消费时机收紧**：进入 `REVIEWED` / `VALIDATED` 前都要求 `verification-reviewer` verdict，不再只在 `VALIDATED` 前强制。
+- **phase 1 contract 与实现进一步对齐**：修复 `/harness` TDD 派发、clarify/route 恢复入口、exploration contract 放松、以及 verify 真实输出 contract 等与设计漂移的问题。
+
+### Added
+- 新增 `verify-validation-content-smoke.mjs`：机械校验 `validation.md` 是否具备最低可消费 section。
+- 新增 `verify-runtime-output-smoke.mjs`：机械校验 `verify.mjs` 已真实输出 `completion-verdict` / `blockers` / `next-step` 等字段。
+
+## [0.2.2]
 ## [0.2.2]
 
 ### Fixed
