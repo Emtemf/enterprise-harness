@@ -22,6 +22,13 @@
 
 ## Review Verdicts
 
+## Stage Gate Summary
+- clarify:
+- design:
+- plan:
+- tdd:
+- verify:
+
 ## Skipped Checks
 
 ## Failures and Retries

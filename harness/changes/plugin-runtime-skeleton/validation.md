@@ -114,6 +114,13 @@ Observed result summary:
 - post-write.mjs 与 stop.mjs 可独立执行
 ```
 
+## Stage Gate Summary
+- clarify: runtime skeleton scope confirmed
+- design: plugin/runtime skeleton approved in current historical context
+- plan: runtime command slices completed in current historical context
+- tdd: not applicable
+- verify: runtime bootstrap/doctor/sync/install checks complete
+
 ## Unit Tests
 
 本轮不涉及 Java 单元测试。
