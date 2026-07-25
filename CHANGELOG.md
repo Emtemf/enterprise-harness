@@ -2,6 +2,12 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [0.2.4]
+
+### Fixed
+- **维护层 spec 口径与 phase 1 对齐**：`plugin-runtime.md`、`mvp-governance.md`、`directory-model.md` 不再混用旧的 portable runtime / legacy `rules/` / `agents/` / `hooks/` 真相层表述，统一回到当前 `.claude/` 自动加载层与 `harness/plugin/runtime/hooks/` hook 执行体模型。
+
+## [0.2.3]
 ## [0.2.3]
 
 ### Fixed
