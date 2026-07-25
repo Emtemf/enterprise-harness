@@ -3,6 +3,7 @@ import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { highSeverityLessons } from '../lib/lessons.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
+import { recommendNextAction } from '../lib/workflow.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -27,8 +28,10 @@ const currentGap = summary.currentGap || '未识别当前缺口';
 const guideReminder = summary.activeChange?.guideReminder || null;
 const recommendedLane = summary.recommendedLane || null;
 const recommendedEntry = summary.recommendedEntry || '/harness';
-const nextAction = summary.activeChange?.present && workflowStage === 'design' && summary.currentGap === 'execution deepening 第一批切片待冻结。'
-  ? `workflow decide ${summary.activeChange.changeId} freeze-slice`
+const nextAction = summary.activeChange?.present
+  ? recommendNextAction(summary.activeChange.changeId, {
+      workflow: { stage: workflowStage, nextEntry: recommendedEntry },
+    }, workflowStage, summary.currentGap)
   : '/harness';
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
 console.log(`[Harness 入口] 普通用户入口: ${userEntry}`);

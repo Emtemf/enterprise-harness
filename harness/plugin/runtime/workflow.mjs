@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction } from './lib/workflow.mjs';
 
 const root = projectRoot();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd（企业目标项目里 cwd 是用户项目根）。
@@ -189,11 +189,7 @@ function buildWorkflowResult(changeId, data) {
   const recommendedLane = recommendExplorationLane(stage, data);
   const currentGap = inferCurrentGap(root, changeId, data, stage);
   const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap);
-  const nextAction = pendingDecision
-    ? (pendingDecision.defaultDecision
-      ? `workflow decide ${changeId} ${pendingDecision.defaultDecision}`
-      : `workflow decide ${changeId} <${pendingDecision.options.join('|')}>`)
-    : nextEntry;
+  const nextAction = recommendNextAction(changeId, data, stage, currentGap, pendingDecision);
   return {
     changeId,
     state: data.state ?? null,

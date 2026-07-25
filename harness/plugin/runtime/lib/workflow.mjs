@@ -65,6 +65,18 @@ export function recommendExplorationLane(stage, data = null) {
   return null;
 }
 
+export function recommendNextAction(changeId, data, stage, currentGap, pendingDecision = null) {
+  if (pendingDecision) {
+    return pendingDecision.defaultDecision
+      ? `workflow decide ${changeId} ${pendingDecision.defaultDecision}`
+      : `workflow decide ${changeId} <${pendingDecision.options.join('|')}>`;
+  }
+  if (changeId && data?.workflow?.stage === 'design' && currentGap === 'execution deepening 第一批切片待冻结。') {
+    return `workflow decide ${changeId} freeze-slice`;
+  }
+  return recommendNextEntry(stage, data);
+}
+
 export function inferCurrentGap(root, changeId, data, workflowStage) {
   if (!changeId || !data || !workflowStage) return '当前没有 active change。';
   const changeDir = path.join(root, 'harness', 'changes', changeId);
