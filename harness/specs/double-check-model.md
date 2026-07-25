@@ -74,13 +74,18 @@ reviewer 输出至少包括：
 
 ### pass
 - 可推进到下一 gate / stage
+- verify 输出中的 `completion-verdict` 应为 `pass`
+- `next-step` 指向 archive / completion gate
 
 ### advisory
 - 不阻断推进，但必须可追溯
+- verify 输出中的 `completion-verdict` 应为 `advisory`
+- `next-step` 应明确“继续推进并记录 advisory”
 
 ### block
 - 阻断推进
 - 必须记录 blocker / 恢复动作 / 下次入口
+- verify 输出中的 `completion-verdict` 应为 `block`
 
 ## 机械消费点
 

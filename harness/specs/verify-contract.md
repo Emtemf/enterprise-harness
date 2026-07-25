@@ -46,10 +46,27 @@
 ## Verify 输出 contract
 
 至少包括：
-- 当前 completion verdict：`pass` / `block` / `advisory`
-- 当前 blocker list
-- consumed evidence summary
-- next-step
+- `completion-verdict`：`pass` / `block` / `advisory`
+- `blockers`
+- `consumed-evidence-summary`
+- `next-step`
+
+### 输出语义
+
+#### `completion-verdict=pass`
+- 表示当前 verify 结论允许推进到 archive / completion gate
+- `blockers` 应为空数组
+- `next-step` 应指向 archive 或最终完成动作
+
+#### `completion-verdict=advisory`
+- 表示当前 verify 不阻断推进，但存在应记录的补强建议
+- `blockers` 可为空
+- `next-step` 应明确是“继续推进但记录 advisory”
+
+#### `completion-verdict=block`
+- 表示当前 verify 明确阻断推进
+- `blockers` 不得为空
+- `next-step` 应明确返回哪一步修订（如补 validation、补 reviewer、返回 tdd 或 plan）
 
 ## 与 double-check 的关系
 
