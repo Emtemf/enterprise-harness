@@ -409,7 +409,8 @@ export function validateReviewVerdicts(root) {
       }
       errors.push(...validateCompletionReviewers(root, entry.name, state));
       const reviewedOrValidated = state.state === 'REVIEWED' || state.state === 'VALIDATED';
-      if (reviewedOrValidated && state.workflow?.tddStatus === 'refactor-verified' && !hasCurrentTaskTddExecutionEvidence(state)) {
+      const isClarifyFirstExecution = (state.schemaVersion ?? 0) >= 3 && Boolean(state.workflow);
+      if (isClarifyFirstExecution && reviewedOrValidated && state.workflow?.tddStatus === 'refactor-verified' && !hasCurrentTaskTddExecutionEvidence(state)) {
         errors.push(`${statePath}: missing TDD execution evidence (worktree + project-native build command + summary + evidence path)`);
       }
     }
@@ -433,7 +434,15 @@ export function validateChangeEvidence(root) {
       if (!fs.existsSync(full)) errors.push(`${changeDir}: missing ${rel}`);
     }
 
-    const ambiguityProblems = validateAmbiguityGate(root, entry.name);
+    let state = null;
+    if (fs.existsSync(statePath)) {
+      try {
+        state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      } catch {
+        state = null;
+      }
+    }
+    const ambiguityProblems = validateAmbiguityGate(root, entry.name, state);
     if (ambiguityProblems.length > 0) {
       errors.push(...ambiguityProblems.map((problem) => `${changeDir}: ${problem}`));
     }

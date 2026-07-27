@@ -93,7 +93,7 @@ if (governedRoot) {
     if (missing.length > 0) {
       blockGoverned(`BLOCK: 当前仍处于 clarify 阶段，缺少: ${missing.join(', ')}。必须先完成需求澄清并获得用户确认，再修改受治理路径。`, data);
     }
-    const ambiguityProblems = validateAmbiguityGate(root, active.changeId);
+    const ambiguityProblems = validateAmbiguityGate(root, active.changeId, state);
     if (ambiguityProblems.length > 0) {
       blockGoverned(`BLOCK: 当前仍处于 clarify 阶段，歧义评分尚未达标。${ambiguityProblems.join(' | ')}`, data);
     }

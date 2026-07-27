@@ -74,8 +74,12 @@ export function requirementsPath(root, changeId) {
 }
 
 // 机械门禁：clarify -> route 之前，评分表必须存在、填满且全部 >= 阈值。
-export function validateAmbiguityGate(root, changeId) {
+export function validateAmbiguityGate(root, changeId, state = null) {
   const errors = [];
+  // 只对 clarify-first 新结构 change 强制；历史/legacy change 不追溯误杀。
+  if (state && ((state.schemaVersion ?? 0) < 3 || !state.workflow)) {
+    return errors;
+  }
   const file = requirementsPath(root, changeId);
   if (!fs.existsSync(file)) {
     errors.push(`${changeId}: 缺少 requirements.md，无法消费歧义评分`);

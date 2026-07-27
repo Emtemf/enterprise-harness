@@ -43,8 +43,13 @@ try {
   const change = 'reference-service-boundary-realignment';
   const statePath = path.join(repoCopy, 'harness', 'changes', change, 'state.json');
   const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  state.schemaVersion = 3;
   state.state = 'REVIEWED';
   state.workflow = state.workflow || {};
+  state.workflow.stage = 'verify';
+  state.workflow.clarifyReady = true;
+  state.workflow.userConfirmedScope = true;
+  state.workflow.planReady = true;
   state.workflow.tddStatus = 'refactor-verified';
   state.validation = state.validation || {};
   state.validation.status = 'fresh';
