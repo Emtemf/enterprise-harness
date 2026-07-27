@@ -2,7 +2,7 @@
 
 感谢你关注 **Enterprise Harness**。
 
-这个仓库当前处于 **可运行的 repo contract + portable runtime MVP** 阶段，欢迎帮助我们把它从“骨架”打磨成“更稳定、更易安装、更适合团队共享”的企业后端交付 Harness。
+这个仓库当前处于 **可运行的 Claude Code-only phase 1 staged workflow 基线** 阶段，欢迎帮助我们把它从“骨架”打磨成“更稳定、更易安装、更适合团队共享”的企业后端交付 Harness。
 
 ---
 
@@ -103,7 +103,7 @@ mvn -f reference-service/pom.xml verify
 
 同时请明确：generated `*MapperImpl` are build artifacts，而不是 hand-authored quality profile 的主要设计面。
 
-如果改动了 portable runtime，建议额外执行：
+如果改动了 动作层，建议额外执行：
 
 ```bash
 node harness/plugin/runtime/cli.mjs bootstrap
@@ -122,7 +122,7 @@ PR 最好说明：
 2. 为什么改
 3. 属于哪一层
    - repo contract
-   - portable runtime
+   - 动作层
    - Java reference-service
 4. 跑了哪些验证
 5. 还有哪些未完成项 / 后续项

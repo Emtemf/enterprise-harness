@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/口径，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # 2026-07-15 交接文档：`session-lifecycle-progress` 已完成，下一步切回 `gate-hardening-semantics`
 
 > 用途：给**新 session** 一个可直接消费的、足够详细的 handoff 文档，让它不用重新考古就能继续后续主线。

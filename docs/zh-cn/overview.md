@@ -32,7 +32,7 @@ Enterprise Harness 当前 phase 1 的思路是把这些问题拆成两层：
 1. **Claude Code 原生交互与编排层**：前门、skills、agents、hooks 配置入口
 2. **Repo Contract / Durable Assets 层**：`harness/` 下的 specs、templates、changes、archive、动作层与统一业务原语
 
-也就是说，当前版本的重点不是做跨 host 的 portable runtime，而是先把 Claude Code 内部的 staged workflow、探索通道、门禁和恢复能力打透。
+也就是说，当前版本的重点不是做跨 host 的 动作层，而是先把 Claude Code 内部的 staged workflow、探索通道、门禁和恢复能力打透。
 
 ---
 

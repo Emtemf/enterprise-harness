@@ -88,7 +88,7 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 
 > **安装插件，然后从 `/harness` 开始。**
 
-更底层的 runtime / maintainer layer、change 资产、hook gate、codegraph-first / Context7-first 等机制则留给仓库治理与维护层。
+更底层的 动作层 / maintainer layer、change 资产、hook gate、codegraph-first / Context7-first 等机制则留给仓库治理与维护层。
 
 ---
 
@@ -105,7 +105,7 @@ For end users, the path is simple:
 
 Most “AI coding workflows” stop at prompts.
 
-**Enterprise Harness** tries to go one layer deeper with shared repo contract, machine-local runtime / maintainer layer, change artifacts in-repo, codegraph-first exploration, and Context7-first docs lookup.
+**Enterprise Harness** tries to go one layer deeper with shared repo contract, machine-local 动作层 / maintainer layer, change artifacts in-repo, codegraph-first exploration, and Context7-first docs lookup.
 
 For regular users, the front door is still just:
 **install, then start from `/harness`**.
@@ -133,7 +133,7 @@ For regular users, the front door is still just:
 1. 安装插件
 2. 从 `/harness` 开始
 
-更底层的 runtime / maintainer layer、change 资产、hook gate 和 reviewer 机制则留给维护层与工程治理层。
+更底层的 动作层 / maintainer layer、change 资产、hook gate 和 reviewer 机制则留给维护层与工程治理层。
 
 ---
 

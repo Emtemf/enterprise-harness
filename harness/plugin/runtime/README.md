@@ -1,4 +1,4 @@
-# Portable Runtime Skeleton
+# Hook Adapter and Workflow Primitives Skeleton
 
 ## 目标
 

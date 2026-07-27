@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/口径，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Session Handoff — runtime installability / docs 收口 + GitHub CI 门禁修复
 
 ## 0. 交接定位

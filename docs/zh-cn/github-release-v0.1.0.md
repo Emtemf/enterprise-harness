@@ -23,7 +23,7 @@
 1. 安装插件
 2. 直接从 `/harness` 开始
 
-更底层的 runtime / maintainer layer 说明保留给维护层文档。
+更底层的 动作层 / maintainer layer 说明保留给维护层文档。
 
 ---
 

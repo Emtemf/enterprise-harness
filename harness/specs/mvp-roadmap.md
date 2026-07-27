@@ -50,7 +50,7 @@
 - `redVerified` gate（生产源码 / OpenAPI 路径）
 - stale validation stop gate
 
-### 5. Portable Runtime Skeleton
+### 5. Hook Adapter and Workflow Primitives Skeleton
 已具备：
 
 - `harness/plugin/manifest.json`

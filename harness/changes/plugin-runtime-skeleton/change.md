@@ -9,7 +9,7 @@
 把现有 repo-scoped harness 明确拆成：
 
 - 项目共享契约层（repo contract）
-- 机器本地运行层（portable runtime / local adapter）
+- 机器本地运行层（动作层 / local adapter）
 
 并提供最小可运行的 runtime 命令：bootstrap、doctor、sync。
 
@@ -23,7 +23,7 @@
 ## 归属服务 / 模块 / 业务域
 
 - service: harness-governance
-- module: portable runtime / plugin layer
+- module: 动作层 / plugin layer
 - domain: enterprise harness runtime
 
 ## 初步路由

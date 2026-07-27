@@ -67,7 +67,7 @@
 这个仓库当前已经具备：
 
 - 统一的 `/harness` 用户入口
-- runtime / maintainer layer
+- 动作层 / maintainer layer
 - local adapter schema 与示例
 - Node 版 hook adapters
 - GitHub Actions 下的 Linux / macOS / Windows smoke matrix
@@ -93,7 +93,7 @@
 - context7-first 文档检索
 - design / TDD / review / validation
 - change 资产落盘
-- 本地 runtime / maintainer layer
+- 本地 动作层 / maintainer layer
 
 收敛成一套可协作、可恢复、可跨机器接入的工程骨架。
 
@@ -113,7 +113,7 @@
 
 我们做了一个叫 **Enterprise Harness** 的骨架项目。
 
-它把仓库共享契约和机器本地运行层拆开，让 codegraph、Context7、change 资产、hook gate 和 runtime / maintainer layer 能放进同一个工作流里。
+它把仓库共享契约和机器本地运行层拆开，让 codegraph、Context7、change 资产、hook gate 和 动作层 / maintainer layer 能放进同一个工作流里。
 
 对普通用户，入口已经尽量收口成：**安装后直接从 `/harness` 开始**。
 
