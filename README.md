@@ -1,4 +1,4 @@
-# Enterprise Harness (v0.2.15)
+# Enterprise Harness (v0.2.16)
 
 一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
 
@@ -228,6 +228,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 - **Verify 阶段消费 contract**：`harness/specs/verify-contract.md`
 - **Reviewer verdict 最小 schema**：`harness/specs/reviewer-verdict-contract.md`
 - **double-check 闭环模型**：`harness/specs/double-check-model.md`
+- **Brief-driven dispatch contract**：`harness/specs/brief-contract.md`
 
 ## 诚实边界
 

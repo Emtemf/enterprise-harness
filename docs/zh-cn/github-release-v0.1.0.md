@@ -1,4 +1,4 @@
-# Enterprise Harness v0.1.0
+# Enterprise Harness Release Positioning（历史说明已更新）
 
 > 这份 release note 主要给仓库维护者、协作者和发布阅读者看。
 >
@@ -14,7 +14,7 @@
 
 它代表的是：
 
-- 一个可运行的 repo contract + portable runtime MVP
+- 一个可运行的 repo contract + Claude Code-only phase 1 staged workflow 基线
 - 一个围绕 Claude Code 的企业后端交付骨架
 - 一个已经开始把 change、validation、review 和 runtime 接进工程流程的系统雏形
 

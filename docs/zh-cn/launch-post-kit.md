@@ -33,7 +33,7 @@
 
 > **Enterprise Harness = 围绕 Claude Code 的企业后端交付骨架**
 >
-> 当前状态：**可运行的 repo contract + portable runtime MVP**
+> 当前状态：**Claude Code-only phase 1 的 staged workflow repo contract 基线**
 >
 > 普通用户入口：**安装插件后直接从 `/harness` 开始**
 

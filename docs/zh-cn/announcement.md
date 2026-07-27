@@ -32,7 +32,7 @@
 当前版本已经具备：
 
 - repo contract
-- portable runtime / maintainer layer
+- Claude Code-only phase 1 的 staged workflow / skills / agents / hooks 接缝层
 - change 生命周期骨架
 - 基于 hooks 的最小治理门禁
 - CodeGraph / Context7 接入策略
@@ -40,7 +40,7 @@
 
 当前最准确的状态是：
 
-> **可运行的 repo contract + portable runtime MVP**
+> **可运行的 repo contract + Claude Code-only phase 1 staged workflow 基线**
 
 同时，对普通用户的使用入口已经收口为：
 
@@ -57,7 +57,7 @@
 在这套骨架里：
 
 - 项目共享约定由 `CLAUDE.md`、`.claude/rules/`、`.claude/agents/`、`harness/specs/`、`harness/templates/` 共同定义
-- 每台机器通过 portable runtime / maintainer layer 自己适配本地路径、工具、shell、环境变量和 secrets
+- 每台机器通过 Claude Code-only phase 1 的动作层 / maintainer layer 自己适配本地路径、工具、shell、环境变量和 secrets
 - 代码探索默认走 **codegraph-first**
 - 外部库与框架文档默认走 **Context7-first**
 - change 会沉淀到 `harness/changes/`，而不是只留在聊天上下文里
@@ -99,7 +99,7 @@
 
 当前状态：
 
-> 可运行的 repo contract + portable runtime MVP
+> 可运行的 repo contract + Claude Code-only phase 1 staged workflow 基线
 
 普通用户入口则收口为：
 
@@ -124,7 +124,7 @@
 ### 建议这样说
 
 - “这是围绕 Claude Code 的企业后端交付骨架”
-- “当前状态是可运行的 repo contract + portable runtime MVP”
+- “当前状态是可运行的 repo contract + Claude Code-only phase 1 staged workflow 基线”
 - “普通用户安装后直接从 `/harness` 开始”
 - “支持按需委托子 agent 做只读分析、规划与评审，但不把并行改代码当默认模式”
 - “项目高层约定保留在 `CLAUDE.md`，探索证据和 change 事实沉淀到 `harness/` 资产”
