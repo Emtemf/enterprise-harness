@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/措辞/阶段判断，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Design
 
 ## Requirement Alignment
@@ -40,7 +42,7 @@
 
 - 风险更低
 - 当前仓库仍未把 registry/package 分发作为默认主路径
-- repo-external smoke 已能显著提升“portable runtime”说法的可信度
+- repo-external smoke 已能显著提升“旧运行层叙事”说法的可信度
 
 ## Rejected Options
 

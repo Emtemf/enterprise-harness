@@ -204,10 +204,10 @@
 
 #### 关键变更片段
 
-Portable Runtime 描述改成：
+旧运行层叙事 描述改成：
 
 ```md
-### 2. Portable Runtime（跨平台运行层）
+### 2. 旧运行层叙事（跨平台运行层）
 
 由每台机器自行适配，主要服务于：
 
@@ -221,7 +221,7 @@ Portable Runtime 描述改成：
 项目状态定义改成：
 
 ```md
-> **已具备 Claude Code 本地 marketplace 可安装/可更新路径、且对用户保持单一入口 `/harness` 的 repo contract + portable runtime MVP。**
+> **已具备 Claude Code 本地 marketplace 可安装/可更新路径、且对用户保持单一入口 `/harness` 的 repo contract + 旧运行层叙事 MVP。**
 ```
 
 #### 影响

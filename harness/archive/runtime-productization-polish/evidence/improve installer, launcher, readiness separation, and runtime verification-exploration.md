@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/措辞/阶段判断，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Exploration
 
 ## Topic
@@ -13,7 +15,7 @@ modify
 L3
 
 ## Owning Module / Domain / Service
-- scope: portable runtime / runtime productization
+- scope: 旧运行层叙事 / runtime productization
 - module: `harness/plugin/runtime/`
 - supporting CI/docs: `.github/workflows/`, `README.md`
 

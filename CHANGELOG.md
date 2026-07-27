@@ -11,7 +11,7 @@
 ## [0.2.4]
 
 ### Fixed
-- **维护层 spec 口径与 phase 1 对齐**：`plugin-runtime.md`、`mvp-governance.md`、`directory-model.md` 不再混用旧的 portable runtime / legacy `rules/` / `agents/` / `hooks/` 真相层表述，统一回到当前 `.claude/` 自动加载层与 `harness/plugin/runtime/hooks/` hook 执行体模型。
+- **维护层 spec 口径与 phase 1 对齐**：`plugin-runtime.md`、`mvp-governance.md`、`directory-model.md` 不再混用旧的 旧运行层叙事 / legacy `rules/` / `agents/` / `hooks/` 真相层表述，统一回到当前 `.claude/` 自动加载层与 `harness/plugin/runtime/hooks/` hook 执行体模型。
 
 ## [0.2.3]
 ## [0.2.3]
@@ -43,7 +43,7 @@
 ## [0.2.1]
 
 ### Fixed
-- **Claude Code-only phase 1 文档口径修正**：移除 README / overview / installation-guide 中残留的“模式 B / 非原生宿主 / Portable Runtime”旧叙事，统一回到当前产品真相：交互与编排收口到 Claude Code，`harness/` 继续承载 repo truth、durable assets、动作层与统一业务原语。
+- **Claude Code-only phase 1 文档口径修正**：移除 README / overview / installation-guide 中残留的“旧多模式叙事中的第二模式 / 旧多宿主叙事 / 旧运行层叙事”旧叙事，统一回到当前产品真相：交互与编排收口到 Claude Code，`harness/` 继续承载 repo truth、durable assets、动作层与统一业务原语。
 - **CodeGraph / Context7 亮点补正**：在 phase 1 相关文档中明确 CodeGraph-first 与 Context7-first 是双探索通道和核心亮点，而不是附属工具。
 
 ## [0.2.0]
@@ -135,7 +135,7 @@
 - **codegraph 证据门禁**（issue #53）：pre-write 新增第 12 道拦截——如果 `state.json` 的 `tooling.codegraph` 仍为 unknown/空，写受治理路径直接 BLOCK。程序级拦截，不依赖模型自觉。
 
 ### Changed
-- **README 统一两种运行模式**：原生 Claude Code（自动挡）vs 非原生宿主/opencode/CI（手动挡），说明为何两种模式门禁都生效。
+- **README 统一两种运行模式**：原生 Claude Code（旧自动模式叙事）vs 旧多宿主叙事/opencode/CI（旧手动模式叙事），说明为何两种模式门禁都生效。
 - **彻底清除 g4c 命名**：文件/函数/测试全部改为 tecp。
 
 ## [0.1.27]

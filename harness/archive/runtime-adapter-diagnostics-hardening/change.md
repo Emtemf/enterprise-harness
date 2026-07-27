@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/措辞/阶段判断，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Change
 
 ## 原始需求
@@ -8,7 +10,7 @@
 
 ## 业务结果
 
-让 portable runtime 的本机接入不再只依赖：
+让 旧运行层叙事 的本机接入不再只依赖：
 - example JSON
 - 宽松存在性检查
 - 模糊 warning
@@ -27,7 +29,7 @@
 
 ## 归属服务 / 模块 / 业务域
 
-- scope: portable runtime / local adapter
+- scope: 旧运行层叙事 / local adapter
 - owning module: `harness/plugin/runtime/`
 - business domain: machine-local adapter contract / installer diagnostics
 

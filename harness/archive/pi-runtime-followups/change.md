@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/措辞/阶段判断，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Change
 
 ## 原始需求
@@ -6,7 +8,7 @@
 
 ## 业务结果
 
-让 Enterprise Harness 的发布/接入验证不只停留在“在源码仓库里运行命令”，而是增加一个从临时目录运行的 source-external smoke 路径，提升“portable runtime / installable”说法的可信度。
+让 Enterprise Harness 的发布/接入验证不只停留在“在源码仓库里运行命令”，而是增加一个从临时目录运行的 source-external smoke 路径，提升“旧运行层叙事 / installable”说法的可信度。
 
 ## 非目标
 
@@ -18,7 +20,7 @@
 
 - scope: runtime productization
 - module: `harness/plugin/runtime/`, `package.json`, `harness/specs/release-readiness.md`
-- domain: release smoke / portable runtime validation
+- domain: release smoke / 旧运行层叙事 validation
 
 ## 初步路由
 

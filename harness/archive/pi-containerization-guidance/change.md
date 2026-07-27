@@ -1,3 +1,5 @@
+> 历史语境说明：本文件记录的是当时的设计/措辞/阶段判断，不自动代表当前产品真相；当前请优先以 README / CLAUDE.md / harness/specs/ 为准。
+
 # Change
 
 ## 原始需求
@@ -33,7 +35,7 @@
 ## 最小探索证据
 
 - pi 提供了稳定的 containerization / sandboxing 文档
-- 当前 Enterprise Harness 已讲清 local adapter 与 portable runtime，但未提供独立的容器化模式说明
+- 当前 Enterprise Harness 已讲清 local adapter 与 旧运行层叙事，但未提供独立的容器化模式说明
 - 当前最合适的第一步是文档/contract 层补齐，而不是直接实现沙箱 runtime
 
 ## 最终路由

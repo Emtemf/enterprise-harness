@@ -109,7 +109,7 @@
 ## 当前阶段
 
 - 当前阶段：session lifecycle / progress surface 已完成最小闭环并通过验证（L3 session-lifecycle-progress）
-- 进度定位：repo contract + portable runtime MVP 已成形；新会话全局状态加载与结束会话 handoff 落点现在已有可验证基线
+- 进度定位：repo contract + 旧运行层叙事 MVP 已成形；新会话全局状态加载与结束会话 handoff 落点现在已有可验证基线
 
 ## 当前 active change
 
