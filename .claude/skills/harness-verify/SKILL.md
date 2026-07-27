@@ -39,7 +39,7 @@ verify 的目标是把工程验证和用户验收收成一个完成声明，而�
 最低要求：
 - 先消费 `validation.md`、reviewer verdict、当前 `state.json`
 - 若证据缺口仍在：先明确需要补哪类命令/哪份 verdict
-- 若需要独立复核完成声明：派 `verification-reviewer`
+- 若需要独立复核完成声明：先按 `harness/specs/brief-contract.md` 生成 verification brief，再派 `verification-reviewer`
 - 返回后只消费 `pass` / `block` / `advisory` 结论、`blockers` 与 `next-step`
 - 最后再决定是否满足 archive / completion gate
 

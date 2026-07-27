@@ -56,7 +56,7 @@ description: >
 
 最低要求：
 - 先消费 `requirements.md` / `change.md` / `CLAUDE.md` / exploration evidence
-- 若接口、数据、调用方或外部行为边界不清：先生成 design brief，再派 `code-explore` / `doc-research`
+- 若接口、数据、调用方或外部行为边界不清：先按 `harness/specs/brief-contract.md` 生成 design exploration brief，再派 `code-explore` / `doc-research`
 - facts 补齐后产出 `design.md`
 - design 成稿后派 `design-reviewer`
 - 涉及 API 时，再补 `api-consistency-reviewer`

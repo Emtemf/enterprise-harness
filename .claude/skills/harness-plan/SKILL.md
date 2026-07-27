@@ -34,7 +34,7 @@ description: >
 
 最低要求：
 - 先消费 `design.md` 与当前 change 上下文
-- 将设计拆为 task brief / touched files / test-first order / RED/GREEN evidence point
+- 先按 `harness/specs/brief-contract.md` 生成 task brief，再将设计拆为 touched files / test-first order / RED/GREEN evidence point
 - 产出 `tasks.md`
 - 然后派 `plan-critic`
 - 返回后只消费 reviewer 的 block / advisory / pass 结论与下一步动作
