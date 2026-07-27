@@ -79,7 +79,7 @@
 
 可以把当前阶段定义为：
 
-> **可运行的 repo contract + portable runtime MVP**
+> **Claude Code-only phase 1 staged workflow 基线**
 
 它已经适合作为团队共享架子和下一阶段强化的起点，但还不应被描述为完整的企业级强门禁平台。
 

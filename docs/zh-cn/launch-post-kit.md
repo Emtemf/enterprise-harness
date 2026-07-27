@@ -43,13 +43,13 @@
 
 ### 中文版
 
-围绕 Claude Code 的企业后端交付骨架：把需求 intake、codegraph-first 探索、Context7-first 文档检索、design / TDD / review / validation、change 资产与 portable runtime / maintainer layer 收敛成一套可落盘、可验证、可跨机器接入的工程流程。
+围绕 Claude Code 的企业后端交付骨架：把需求 intake、codegraph-first 探索、Context7-first 文档检索、design / TDD / review / validation、change 资产与 Claude Code-only phase 1 的动作层 / maintainer layer 收敛成一套可落盘、可验证、可跨机器接入的工程流程。
 
 普通用户使用方式：**安装插件后直接从 `/harness` 开始。**
 
 ### 英文版
 
-An enterprise backend delivery harness for Claude Code: turning intake, codegraph-first exploration, Context7-first docs lookup, design/TDD/review/validation, change artifacts, and a portable runtime / maintainer layer into a durable, verifiable, cross-machine workflow.
+An enterprise backend delivery harness for Claude Code: turning intake, codegraph-first exploration, Context7-first docs lookup, design/TDD/review/validation, change artifacts, and a Claude Code-only phase 1 的动作层 / maintainer layer into a durable, verifiable, cross-machine workflow.
 
 For end users, the entrypoint is simply: **install the plugin, then start from `/harness`**.
 
@@ -67,7 +67,7 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 - 每次变更可以沉淀到 `harness/changes/`，而不是只留在聊天上下文里
 - 代码探索默认走 **codegraph-first**
 - 外部库与框架文档默认走 **Context7-first**
-- 本地运行方式统一到 portable runtime / maintainer layer
+- 本地运行方式统一到 Claude Code-only phase 1 的动作层 / maintainer layer
 - 对受治理路径的修改，开始接入 `active change`、`designApproved`、`redVerified`、stale validation 等最小 gate
 - 对普通用户，唯一工作流前门是 `/harness`
 
@@ -96,7 +96,7 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 
 ### 版本 A（简洁）
 
-I open-sourced the first MVP of **Enterprise Harness** — a repo contract + portable runtime skeleton around Claude Code for enterprise-style backend delivery.
+I open-sourced the first MVP of **Enterprise Harness** — a Claude Code-only phase 1 repo contract around Claude Code for enterprise-style backend delivery.
 
 For end users, the path is simple:
 **install the plugin, then start from `/harness`**.

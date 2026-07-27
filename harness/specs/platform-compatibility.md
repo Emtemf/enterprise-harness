@@ -24,7 +24,7 @@
 ## 当前已消除的主要风险
 
 - 安装者已有统一 runtime CLI 入口，而不是散落 `.mjs` / `.sh`
-- portable runtime 的核心命令已可通过 Node 直接执行
+- 当前动作层的核心命令已可通过 Node 直接执行
 - runtime hook adapters 已开始用 Node 实现，不再完全依赖 bash
 
 ## 当前仍存在的限制
