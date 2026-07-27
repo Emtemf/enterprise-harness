@@ -452,6 +452,20 @@ export function validateChangeEvidence(root) {
       if (reviewVerdictsMatch && !reviewVerdictsMatch[1].trim()) {
         errors.push(`${changeDir}: validation.md Review Verdicts section is empty`);
       }
+      const failuresMatch = text.match(/## Failures and Retries\n([\s\S]*?)(\n## |$)/);
+      const skippedMatch = text.match(/## Skipped Checks\n([\s\S]*?)(\n## |$)/);
+      const verdictText = (verdictMatch?.[1] || '').trim().toLowerCase();
+      const failuresText = (failuresMatch?.[1] || '').trim();
+      const skippedText = (skippedMatch?.[1] || '').trim();
+      const hasFailureDetails = failuresText && !['none', 'n/a', '无', '无失败', '无重试'].includes(failuresText.toLowerCase());
+      const hasSkippedDetails = skippedText && !['none', 'n/a', '无', '无跳过'].includes(skippedText.toLowerCase());
+      const verdictClaimsPass = /pass|success|通过|完成/.test(verdictText);
+      if (hasFailureDetails && verdictClaimsPass) {
+        errors.push(`${changeDir}: validation.md Final Verdict claims pass while Failures and Retries contains unresolved content`);
+      }
+      if (hasSkippedDetails && !/skip|defer|advisory|说明|解释|豁免/.test(verdictText)) {
+        errors.push(`${changeDir}: validation.md Final Verdict does not explain non-empty Skipped Checks`);
+      }
     }
   }
   return errors;
