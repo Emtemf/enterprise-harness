@@ -164,6 +164,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 3. 推荐恢复入口（skill 或 backend command）
 4. 当前为何还不能进入下一阶段
 5. **当前动作顺序**（这一轮会先做什么、再做什么、默认会派哪些 subagent）
+6. **高噪声步骤必须先做任务摘要（task brief / exploration brief），再派 subagent；主对话只消费压缩结论，不堆积实现/探索过程原文**
 
 恢复入口约定：
 - `clarify` / `route` 阶段默认恢复到 `/harness-intake`
