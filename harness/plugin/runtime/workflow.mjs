@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction } from './lib/workflow.mjs';
+import { ensureBrief } from './lib/briefs.mjs';
 
 const root = projectRoot();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd（企业目标项目里 cwd 是用户项目根）。
@@ -298,13 +299,14 @@ const [, , action, ...args] = process.argv;
 
 if (!action || action === '--help' || action === '-h') {
   console.log('Enterprise Harness Workflow');
-  console.log('Usage: node harness/plugin/runtime/workflow.mjs <run|resume|status|decide|note|session-log> [args]');
+  console.log('Usage: node harness/plugin/runtime/workflow.mjs <run|resume|status|decide|note|session-log|brief> [args]');
   console.log('  run <change-id> [owner] [tier] [topic]');
   console.log('  resume [change-id]');
   console.log('  status [change-id] [--json]');
   console.log('  decide <change-id> <decision> [reason]');
   console.log('  note <change-id> <clarify-qa|route-decided> <text>');
   console.log('  session-log [change-id]');
+  console.log('  brief <change-id> <exploration|task> <name>');
   process.exit(0);
 }
 
@@ -410,6 +412,25 @@ switch (action) {
       const suffix = detail ? ` — ${detail}` : '';
       console.log(`- ${ev.timestamp} [${ev.type}] stage=${ev.workflowStage ?? '-'}${suffix}`);
     }
+    process.exit(0);
+  }
+  case 'brief': {
+    const [changeIdRaw, kind, name] = args;
+    const changeId = resolveChangeId(changeIdRaw);
+    if (!kind || !name) {
+      console.error('Usage: workflow brief <change-id> <exploration|task> <name>');
+      process.exit(1);
+    }
+    if (!['exploration', 'task'].includes(kind)) {
+      console.error('brief kind must be exploration or task');
+      process.exit(1);
+    }
+    if (!ensureChangeExists(changeId)) {
+      console.error(`BLOCK: change 不存在：${changeId}`);
+      process.exit(2);
+    }
+    const target = ensureBrief(root, changeId, kind, name);
+    console.log(target);
     process.exit(0);
   }
   default:

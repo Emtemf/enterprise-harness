@@ -50,6 +50,7 @@
 - orchestrator 在派发 subagent 前应优先引用对应 brief，而不是把大段原始上下文直接粘进 prompt
 - orchestrator 在 subagent 返回后只消费：facts / verdict / blockers / next-step / evidence summary
 - brief 若不充分，应补 brief，而不是默认让 subagent 自行猜 scope
+- phase 1 的最小动作层入口为：`node harness/plugin/runtime/cli.mjs workflow brief <change-id> <exploration|task> <name>`
 
 ## 禁止事项
 
