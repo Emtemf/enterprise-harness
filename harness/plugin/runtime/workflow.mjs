@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 
 const root = projectRoot();
@@ -136,79 +136,6 @@ function recordEvent(changeId, data, type, payload = {}) {
   return event;
 }
 
-function inferPendingDecision(changeId, data, stage, currentGap) {
-  if (!stage || !data) return null;
-  if (stage === 'clarify' && !data.workflow?.clarifyReady) {
-    return {
-      kind: 'requirement-clarification',
-      message: currentGap,
-      options: ['answer-next-question', 'narrow-scope', 'stop'],
-      evidence: [`harness/changes/${changeId}/requirements.md`],
-    };
-  }
-  if (stage === 'clarify' && !data.workflow?.userConfirmedScope) {
-    return {
-      kind: 'scope-confirmation',
-      message: '需要用户确认执行范围后才能继续 route。',
-      options: ['confirm-scope', 'revise-scope'],
-      evidence: [`harness/changes/${changeId}/requirements.md`],
-    };
-  }
-  if (stage === 'design' && data.approvals?.design?.status && data.approvals?.design?.status !== 'block' && !data.gates?.designApproved) {
-    if (shouldSuppressExecutionReadiness(changeId, data)) {
-      return null;
-    }
-    return {
-      kind: 'execution-readiness',
-      message: '需要确认 execution deepening 第一批切片是否已冻结，可以进入 plan。',
-      options: ['freeze-slice', 'revise-slice'],
-      defaultDecision: 'freeze-slice',
-      evidence: [`harness/changes/${changeId}/design.md`],
-    };
-  }
-  if (stage === 'design' && !(data.approvals?.design?.status === 'pass' || data.gates?.designApproved)) {
-    return {
-      kind: 'design-approval',
-      message: '需要 design approval 后才能进入 plan。',
-      options: ['approve', 'request-changes', 'reject'],
-      evidence: [`harness/changes/${changeId}/design.md`],
-    };
-  }
-  return null;
-}
-
-function inferRunnerStatus(stage, pendingDecision) {
-  if (stage === 'archive') return 'complete';
-  if (pendingDecision) return 'paused';
-  return 'ready';
-}
-
-function buildWorkflowResult(changeId, data) {
-  ensureWorkflowShape(data);
-  const stage = inferWorkflowStage(changeId, data);
-  const nextEntry = recommendNextEntry(stage, data);
-  const recommendedLane = recommendExplorationLane(stage, data);
-  const currentGap = inferCurrentGap(root, changeId, data, stage);
-  const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap);
-  const nextAction = recommendNextAction(changeId, data, stage, currentGap, pendingDecision);
-  return {
-    changeId,
-    state: data.state ?? null,
-    stage,
-    status: inferRunnerStatus(stage, pendingDecision),
-    nextAction,
-    pendingDecision,
-    recommendedLane,
-    currentGap,
-    blockers: data.blockers ?? [],
-    approvals: data.approvals ?? {},
-    revision: data.revision ?? 1,
-    lastEventId: data.lastEventId ?? null,
-    workflow: data.workflow ?? null,
-    validation: data.validation ?? null,
-  };
-}
-
 function loadChange(changeId) {
   const statePath = statePathFor(changeId);
   if (!fs.existsSync(statePath)) {
@@ -235,7 +162,7 @@ function resolveChangeId(candidate) {
 
 function applyDecision(changeId, decision, reason = null) {
   const data = loadChange(changeId);
-  const result = buildWorkflowResult(changeId, data);
+  const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
   const pending = result.pendingDecision;
   if (!pending) {
     console.error('No pending decision for this change');
@@ -325,7 +252,7 @@ switch (action) {
     const data = loadChange(changeId);
     recordEvent(changeId, data, 'run', { owner, tier, topic });
     saveChange(changeId, data);
-    const result = buildWorkflowResult(changeId, data);
+    const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     process.exit(0);
   }
@@ -335,7 +262,7 @@ switch (action) {
     const data = loadChange(changeId);
     recordEvent(changeId, data, 'resume');
     saveChange(changeId, data);
-    const result = buildWorkflowResult(changeId, data);
+    const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     process.exit(0);
   }
@@ -343,7 +270,7 @@ switch (action) {
     const json = args.includes('--json');
     const changeId = resolveChangeId(args.find((arg) => !arg.startsWith('--')) || null);
     const data = loadChange(changeId);
-    const result = buildWorkflowResult(changeId, data);
+    const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     if (json) {
       process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     } else {
