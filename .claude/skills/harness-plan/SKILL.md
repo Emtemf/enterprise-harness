@@ -28,6 +28,17 @@ description: >
 
 - `harness/changes/<change-id>/tasks.md`
 
+## 当前动作顺序（orchestrator shell 显示要求）
+
+进入 plan 后，主 orchestrator 必须显式说明这一轮的调度顺序。
+
+最低要求：
+- 先消费 `design.md` 与当前 change 上下文
+- 将设计拆为 task brief / touched files / test-first order / RED/GREEN evidence point
+- 产出 `tasks.md`
+- 然后派 `plan-critic`
+- 返回后只消费 reviewer 的 block / advisory / pass 结论与下一步动作
+
 ## plan 必查项
 
 1. touched files

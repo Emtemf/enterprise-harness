@@ -50,6 +50,22 @@ description: >
 - [ ] 风险与回滚策略
 - [ ] P 纠正预案（设计偏差时怎么恢复）
 
+## 当前动作顺序（orchestrator shell 显示要求）
+
+进入 design 后，主 orchestrator 必须显式说明这一轮会如何调度，而不是直接沉入设计正文。
+
+最低要求：
+- 先消费 `requirements.md` / `change.md` / `CLAUDE.md` / exploration evidence
+- 若接口、数据、调用方或外部行为边界不清：先生成 design brief，再派 `code-explore` / `doc-research`
+- facts 补齐后产出 `design.md`
+- design 成稿后派 `design-reviewer`
+- 涉及 API 时，再补 `api-consistency-reviewer`
+
+若这一轮会派 subagent，必须显式说明：
+- 会派哪个 agent
+- brief 的最小上下文是什么
+- 返回后主对话会消费哪些 review / fact 结论
+
 ## 行为要求
 
 - 优先基于 `requirements.md`、`change.md`、目标项目 `CLAUDE.md` 与 exploration evidence 写 design

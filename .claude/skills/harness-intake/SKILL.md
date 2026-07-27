@@ -66,6 +66,22 @@ description: >
 7. 在 clarify-ready 且用户确认后，形成 final route（L0/L1/L2/L3）
 8. 明确下一个 artifact / gate
 
+## 当前动作顺序（orchestrator shell 显示要求）
+
+进入 intake 后，主 orchestrator 必须显式向用户说明这一轮的动作顺序，而不是把调度隐含在长段 reasoning 里。
+
+最低要求：
+- 先判断 request shape
+- 若 repo facts 不足：先生成 exploration brief，再派 `code-explore`
+- 若外部库/版本行为不清：先生成文档调研 brief，再派 `doc-research`
+- 等待压缩 exploration packet 返回后，再更新 ambiguity scoring
+- 最后只问**一个** weakest-dimension 问题
+
+若这一轮会派 subagent，必须显式说明：
+- 会派哪个 agent
+- 这一轮 brief 会包含哪些最小上下文
+- 返回后主对话会消费哪些 facts / uncertainties / suggestedUserQuestion
+
 ## Provisional Triage 最低输出
 
 至少明确记录：
