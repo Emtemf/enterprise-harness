@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { GOVERNANCE_BLOCKLIST } from './gates.mjs';
+import { validateAmbiguityGate } from './ambiguity.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -426,6 +427,11 @@ export function validateChangeEvidence(root) {
     for (const rel of ['state.json','change.md','validation.md', path.join('evidence','tooling.md')]) {
       const full = path.join(changeDir, rel);
       if (!fs.existsSync(full)) errors.push(`${changeDir}: missing ${rel}`);
+    }
+
+    const ambiguityProblems = validateAmbiguityGate(root, entry.name);
+    if (ambiguityProblems.length > 0) {
+      errors.push(...ambiguityProblems.map((problem) => `${changeDir}: ${problem}`));
     }
 
     const validationPath = path.join(changeDir, 'validation.md');
