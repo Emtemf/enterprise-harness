@@ -11,6 +11,18 @@
 ## Touched Files
 - 
 
+## Test-first Order
+- 
+
+## RED Evidence Point
+- 
+
+## GREEN Evidence Point
+- 
+
+## Project-native Build Command
+- 
+
 ## Constraints
 - 
 
@@ -19,7 +31,9 @@
 
 ## Expected Output
 - task-id
-- status / verdict
+- tdd-status / status / verdict
+- command-executed
+- command-output-summary
 - blockers
-- evidence summary
+- evidence-path
 - next-step

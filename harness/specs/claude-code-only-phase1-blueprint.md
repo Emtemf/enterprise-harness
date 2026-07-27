@@ -105,6 +105,7 @@ Claude Code-only phase 1 的目标是把**编排与交互**收口到 Claude Code
 - `doc-research`
 - `design-reviewer`
 - `plan-critic`
+- `api-consistency-reviewer`（`impact.api=yes` 时为 blocking gate）
 - `verification-reviewer`
 - **建议新增：`tdd-executor`**
 
@@ -255,6 +256,18 @@ skill 和 agent 都不应该各自复制这些逻辑；应该由它们共同消�
 - `tdd-executor-contract-smoke`
 - `double-check-consumption-smoke`
 - `spec-projection-consistency-smoke`
+
+## 设计/实现已知差异（当前应显式承认）
+
+### 1. `execution-readiness / freeze-slice` gate
+当前 runtime 已实现一层 design 后、plan 前的 `execution-readiness` 决策（`freeze-slice` / `revise-slice`）。这层 gate 是当前真实工作流的一部分，后续要么：
+- 在 phase 1 设计中正式承认并长期保留；
+- 要么在后续重构中删除它，回归 `design approved -> plan` 的更简状态机。
+
+在删除前，文档层必须承认它存在，避免“设计说没有、实现里却有”。
+
+### 2. `api-consistency-reviewer` 是真实 blocking reviewer
+当前实现中，`api-consistency-reviewer` 已是 `impact.api=yes` 时的 blocking gate，phase 1 蓝图必须显式把它纳入 reviewer/agent 模型，而不应只列 design/plan/verify reviewer。
 
 ---
 

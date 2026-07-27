@@ -24,6 +24,8 @@
 4. 统一 reviewer / verify 消费方式
 5. 统一文档真相层
 
+> 当前真实实现里还存在一层 `execution-readiness / freeze-slice` gate，位于 design 与 plan 之间；在后续删掉或正式保留它之前，phase 1 设计必须显式承认它存在，避免设计/实现漂移。
+
 ## 当前范围
 
 ### 用户前门
