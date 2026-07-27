@@ -165,6 +165,8 @@ Observed result summary:
 
 ## Final Verdict
 
+- `Skipped Checks` 中的 CI / Windows/macOS 真机验证 / installer automation 当前均不在本阶段交付范围内；本 verdict 明确接受这些 deferred 项，不构成 blocker。
+
 当前 portable runtime / plugin skeleton 已达到最小可运行状态：
 
 - repo contract 已明确

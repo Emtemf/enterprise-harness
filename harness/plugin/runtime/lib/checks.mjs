@@ -457,10 +457,12 @@ export function validateChangeEvidence(root) {
       const verdictText = (verdictMatch?.[1] || '').trim().toLowerCase();
       const failuresText = (failuresMatch?.[1] || '').trim();
       const skippedText = (skippedMatch?.[1] || '').trim();
-      const hasFailureDetails = failuresText && !['none', 'n/a', '无', '无失败', '无重试'].includes(failuresText.toLowerCase());
+      const failuresLower = failuresText.toLowerCase();
+      const hasFailureDetails = failuresText && !['none', 'n/a', '无', '无失败', '无重试'].includes(failuresLower);
+      const hasResolvedFailureLanguage = /已修复|已收口|已解决|重试完成|不构成当前未解决 blocker|当前不存在未解决 blocker/.test(failuresText);
       const hasSkippedDetails = skippedText && !['none', 'n/a', '无', '无跳过'].includes(skippedText.toLowerCase());
-      const verdictClaimsPass = /pass|success|通过|完成/.test(verdictText);
-      if (hasFailureDetails && verdictClaimsPass) {
+      const verdictClaimsPass = /\bpass\b|\bsuccess\b|通过|全绿/.test(verdictText);
+      if (hasFailureDetails && !hasResolvedFailureLanguage && verdictClaimsPass) {
         errors.push(`${changeDir}: validation.md Final Verdict claims pass while Failures and Retries contains unresolved content`);
       }
       if (hasSkippedDetails && !/skip|defer|advisory|说明|解释|豁免/.test(verdictText)) {

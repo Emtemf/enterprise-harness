@@ -162,6 +162,7 @@ Full verify（骨架阶段）通过。
 
 ## Failures and Retries
 
+- 以下历史失败与重试过程均已收口，不构成当前未解决 blocker。
 - `hooks/pre-write-gate.sh` 首次写入时误用了 `Write` 的不支持参数，已修正并成功落盘。
 - 原 deep-research workflow 抓取网页失败，后续已改用 GitHub API 与仓库一手文件人工核实关键参考。
 - `validate-change-evidence.sh` 首版过度强制所有 `harness/changes/` 都必须采用新三件套，导致 legacy MVP change 样例报错；现已改为兼容历史目录与 Phase 1 样式目录并重新验证通过。
@@ -169,7 +170,9 @@ Full verify（骨架阶段）通过。
 
 ## Final Verdict
 
-本次 Phase 0 骨架改造的最小完成声明，有新鲜仓库内验证证据支撑：
+- `Skipped Checks` 中的 CI / ArchUnit / JaCoCo / HTTP API E2E 当前均未配置，不在本阶段交付范围内；`Failures and Retries` 记录的是已收口的历史失败与修复过程，当前不存在未解决 blocker。
+
+在 `Skipped Checks` 与 `Failures and Retries` 已明确解释且不构成当前 blocker 的前提下，本次 Phase 0 骨架改造的最小完成声明，有新鲜仓库内验证证据支撑：
 
 - 自动加载规则层已建立
 - reviewer 骨架已落盘

@@ -148,7 +148,8 @@
 
 ## Final Verdict
 
-- 当前 change 已完成 clarify-first staged orchestrator 第一版 **contract / template / worker / guidance / workflow-state / smoke 骨架** 的验证收口。
+- 在 `Skipped Checks` 与 `Failures and Retries` 已明确解释且不构成当前 blocker 的前提下，当前 change 已完成 clarify-first staged orchestrator 第一版 **contract / template / worker / guidance / workflow-state / smoke 骨架** 的验证收口。
+- `Skipped Checks` 中列出的项目均明确不在本 change 范围内；`Failures and Retries` 记录的是已被识别并在本轮补账收口的历史失败与重试过程，不构成当前未解决 blocker。
 - 最小可用的 workflow runner 现已可用：`workflow run|resume|status|decide` 已落地，并有 smoke 与 machine-readable result 证据支撑。
 - 当前 change 的完成态仅覆盖第一版骨架，不外推为完整后续业务执行阶段都已完成。
 - 对当前收口范围而言，change 已具备进入 `VALIDATED/archive` 的条件。

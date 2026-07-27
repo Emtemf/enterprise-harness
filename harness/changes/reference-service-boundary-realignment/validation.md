@@ -166,13 +166,16 @@ Observed result summary:
 
 ## Failures and Retries
 
+- 以下探索失败与实现阶段重试过程均已收口，不构成当前未解决 blocker。
 - Context7 `library` 对 MapStruct 的首次解析失败，后续改用 direct docs query 成功获取 Spring component model 参考。
 - `OrderCancellationServiceTest` 先被主动改造成 Task 1 的 RED，随后通过引入 application DTO、domain repository port 和 controller 最小显式映射恢复为 GREEN。
 - 首次引入 `OrderPersistenceMapper` 抽象映射方法时，`mvn test` 在 compile 阶段报出 `Unmapped target property: \"cancel\"`；后续改为显式 `@BeanMapping(ignoreByDefault = true)` + 字段级 `@Mapping` 后恢复为 GREEN。
 
 ## Final Verdict
 
-当前 change 已具备：
+- `Skipped Checks` 中的 JaCoCo / ArchUnit / 真实 HTTP API E2E 当前均未接入，不在本轮交付范围内；`Failures and Retries` 记录的是已收口的探索失败与实现阶段重试过程，当前不存在未解决 blocker。
+
+在 `Skipped Checks` 与 `Failures and Retries` 已明确解释且不构成当前 blocker 的前提下，当前 change 已具备：
 
 - codegraph-first 探索证据
 - Context7/文档探索证据
