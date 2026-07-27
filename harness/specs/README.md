@@ -27,6 +27,7 @@
 - `ambiguity-scoring.md`
 - `context-packet.md`
 - `exploration-packet.md`
+- `brief-contract.md`
 - `requirement-intake.md`
 
 #### tdd / verify / double-check

@@ -177,6 +177,7 @@
 - `harness/specs/ambiguity-scoring.md`
 - `harness/specs/context-packet.md`
 - `harness/specs/exploration-packet.md`
+- `harness/specs/brief-contract.md`
 
 ### 如果你要理解 TDD 专职执行 contract
 - `harness/specs/tdd-execution.md`

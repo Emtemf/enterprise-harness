@@ -72,8 +72,8 @@ description: >
 
 最低要求：
 - 先判断 request shape
-- 若 repo facts 不足：先生成 exploration brief，再派 `code-explore`
-- 若外部库/版本行为不清：先生成文档调研 brief，再派 `doc-research`
+- 若 repo facts 不足：先按 `harness/specs/brief-contract.md` 生成 exploration brief，再派 `code-explore`
+- 若外部库/版本行为不清：先按 `harness/specs/brief-contract.md` 生成文档调研 brief，再派 `doc-research`
 - 等待压缩 exploration packet 返回后，再更新 ambiguity scoring
 - 最后只问**一个** weakest-dimension 问题
 
