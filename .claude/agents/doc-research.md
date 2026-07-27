@@ -22,6 +22,10 @@ model: sonnet
 - 结论必须标注 library / version / query / source
 - 不返回大段原文给主 orchestrator
 
+## 输入期待
+
+你通常会收到一个 exploration brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声文档调研，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
+
 ## 返回结构
 
 至少返回：
