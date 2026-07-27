@@ -31,6 +31,12 @@
     "redEvidenceRef": null
   },
   "currentTask": null,
+  "tddEvidence": {
+    "worktreeUsed": false,
+    "commandExecuted": null,
+    "commandOutputSummary": null,
+    "evidencePath": null
+  },
   "goal": null,
   "successCriteria": [],
   "routingReason": null,

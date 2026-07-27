@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { GOVERNANCE_BLOCKLIST } from './gates.mjs';
+import { GOVERNANCE_BLOCKLIST, hasCurrentTaskTddExecutionEvidence } from './gates.mjs';
 import { validateAmbiguityGate } from './ambiguity.mjs';
 
 export function projectRoot() {
@@ -408,6 +408,10 @@ export function validateReviewVerdicts(root) {
         continue;
       }
       errors.push(...validateCompletionReviewers(root, entry.name, state));
+      const reviewedOrValidated = state.state === 'REVIEWED' || state.state === 'VALIDATED';
+      if (reviewedOrValidated && state.workflow?.tddStatus === 'refactor-verified' && !hasCurrentTaskTddExecutionEvidence(state)) {
+        errors.push(`${statePath}: missing TDD execution evidence (worktree + project-native build command + summary + evidence path)`);
+      }
     }
   }
   return errors;

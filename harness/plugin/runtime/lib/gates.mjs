@@ -79,3 +79,13 @@ export function hasCurrentTaskRedVerification(state) {
     && gates.redEvidenceRef.trim().length > 0
   );
 }
+
+export function hasCurrentTaskTddExecutionEvidence(state) {
+  const tddEvidence = state?.tddEvidence || {};
+  const cmd = typeof tddEvidence.commandExecuted === 'string' ? tddEvidence.commandExecuted.trim() : '';
+  const summary = typeof tddEvidence.commandOutputSummary === 'string' ? tddEvidence.commandOutputSummary.trim() : '';
+  const evidencePath = typeof tddEvidence.evidencePath === 'string' ? tddEvidence.evidencePath.trim() : '';
+  const worktreeUsed = tddEvidence.worktreeUsed === true;
+  const ranProjectNativeBuild = /mvn\s+(test|verify|compile)\b/.test(cmd);
+  return Boolean(worktreeUsed && ranProjectNativeBuild && summary && evidencePath);
+}
