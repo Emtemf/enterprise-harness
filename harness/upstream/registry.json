@@ -9,7 +9,9 @@
         "Do not auto-sync runtime behavior from the upstream plugin."
       ],
       "lastReviewed": "2026-07-13",
-      "observedVersions": ["6.1.1"]
+      "observedVersions": [
+        "6.1.1"
+      ]
     },
     {
       "name": "OpenSpec",
@@ -20,7 +22,9 @@
         "Do not auto-sync OPSX command surface into this project."
       ],
       "lastReviewed": "2026-07-14",
-      "observedVersions": ["repo-main"]
+      "observedVersions": [
+        "repo-main"
+      ]
     },
     {
       "name": "deep-interview",
@@ -31,7 +35,9 @@
         "Informs harness-intake clarify stage; do not import the skill verbatim."
       ],
       "lastReviewed": "2026-07-21",
-      "observedVersions": ["repo-main"]
+      "observedVersions": [
+        "repo-main"
+      ]
     },
     {
       "name": "gump-agent-workspace",
@@ -42,7 +48,9 @@
         "Informs durable state.json + workflow.stage recovery design."
       ],
       "lastReviewed": "2026-07-21",
-      "observedVersions": ["blog-article"]
+      "observedVersions": [
+        "blog-article"
+      ]
     },
     {
       "name": "role-workbench",
@@ -53,7 +61,9 @@
         "Currently a draft (role-guided-staged-workflow.md); not yet wired into runtime."
       ],
       "lastReviewed": "2026-07-21",
-      "observedVersions": ["master"]
+      "observedVersions": [
+        "master"
+      ]
     }
   ],
   "runtimeUpstreams": [
@@ -73,8 +83,8 @@
       "name": "Context7",
       "source": "https://github.com/upstash/context7",
       "status": "runtime",
-      "currentValidatedVersion": "0.5.5",
-      "lastReviewed": "2026-07-14",
+      "currentValidatedVersion": "0.5.6",
+      "lastReviewed": "2026-07-25",
       "requiredChecks": [
         "ctx7 --version",
         "context7 CLI wrapper query",
