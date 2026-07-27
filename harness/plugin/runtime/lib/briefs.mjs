@@ -18,12 +18,14 @@ export function briefFileName(kind, name) {
   const slug = slugify(name);
   if (kind === 'exploration') return `exploration-${slug}.md`;
   if (kind === 'task') return `task-${slug}.md`;
+  if (kind === 'verification') return `verification-${slug}.md`;
   throw new Error(`Unsupported brief kind: ${kind}`);
 }
 
 export function briefTemplatePath(root, kind) {
   if (kind === 'exploration') return path.join(root, 'harness', 'templates', 'exploration-brief.md');
   if (kind === 'task') return path.join(root, 'harness', 'templates', 'task-brief.md');
+  if (kind === 'verification') return path.join(root, 'harness', 'templates', 'verification-brief.md');
   throw new Error(`Unsupported brief kind: ${kind}`);
 }
 

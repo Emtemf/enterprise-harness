@@ -17,10 +17,15 @@ model: sonnet
 
 确认下游较弱模型或工程师能够在不猜测的前提下执行计划。
 
+## 输入期待
+
+你通常会收到一个 task brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声计划审查，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
+
 ## 输入重点
 
 优先阅读：
 
+- task brief
 - `tasks.md` / `plan.md`
 - 对应 `design.md`
 - 对应 `spec.md`

@@ -306,7 +306,7 @@ if (!action || action === '--help' || action === '-h') {
   console.log('  decide <change-id> <decision> [reason]');
   console.log('  note <change-id> <clarify-qa|route-decided> <text>');
   console.log('  session-log [change-id]');
-  console.log('  brief <change-id> <exploration|task> <name>');
+  console.log('  brief <change-id> <exploration|task|verification> <name>');
   process.exit(0);
 }
 
@@ -418,11 +418,11 @@ switch (action) {
     const [changeIdRaw, kind, name] = args;
     const changeId = resolveChangeId(changeIdRaw);
     if (!kind || !name) {
-      console.error('Usage: workflow brief <change-id> <exploration|task> <name>');
+      console.error('Usage: workflow brief <change-id> <exploration|task|verification> <name>');
       process.exit(1);
     }
-    if (!['exploration', 'task'].includes(kind)) {
-      console.error('brief kind must be exploration or task');
+    if (!['exploration', 'task', 'verification'].includes(kind)) {
+      console.error('brief kind must be exploration, task, or verification');
       process.exit(1);
     }
     if (!ensureChangeExists(changeId)) {

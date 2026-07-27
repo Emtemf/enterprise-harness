@@ -33,7 +33,7 @@
 - `expected-output`
 
 ### 2. Task Brief
-用于 `tdd-executor` / reviewer / critic。
+用于 `tdd-executor` / `plan-critic` 等 task-scoped 执行或审查。
 
 最小字段：
 - `change-id`
@@ -43,6 +43,18 @@
 - `touched-files`
 - `constraints`
 - `acceptance-checks`
+- `expected-output`
+
+### 3. Verification Brief
+用于 `verification-reviewer` 等完成态/验证态复核。
+
+最小字段：
+- `change-id`
+- `goal`
+- `scope`
+- `validation-artifacts`
+- `review-verdicts`
+- `open-risks`
 - `expected-output`
 
 ## 消费规则

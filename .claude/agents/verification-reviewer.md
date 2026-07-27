@@ -17,10 +17,15 @@ model: sonnet
 
 确认“完成、修复、通过”这类声明是否有足够的新鲜证据支撑。
 
+## 输入期待
+
+你通常会收到一个 verification brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声验证复核，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
+
 ## 输入重点
 
 优先阅读：
 
+- verification brief
 - `validation.md`
 - `result.md`
 - review verdict
