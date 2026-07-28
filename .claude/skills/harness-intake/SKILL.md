@@ -8,6 +8,19 @@ description: >
 
 plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
 
+plugin-installed skill 的 backend 命令必须使用同一段确定性 Bash：
+
+```bash
+if command -v enterprise-harness >/dev/null 2>&1; then
+  enterprise-harness <subcommand> [args...]
+elif test -f harness/plugin/runtime/cli.mjs; then
+  node harness/plugin/runtime/cli.mjs <subcommand> [args...]
+else
+  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2
+  exit 2
+fi
+```
+
 ## 角色定位
 
 本阶段默认以 **Product Owner 视角**主导，但必须保留当前 clarify-first 方法论：
@@ -74,7 +87,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 
 最低要求：
 - 先判断 request shape
-- 若 repo facts 不足：先按 `harness/specs/brief-contract.md` 生成 exploration brief，再派 `code-explore`
+- 若 repo facts 不足：先按 `harness/specs/brief-contract.md` 生成 exploration brief，再派 `enterprise-harness:code-explore`
 - 若外部库/版本行为不清：先按 `harness/specs/brief-contract.md` 生成文档调研 brief，再派 `enterprise-harness:doc-research`
 - 等待压缩 exploration packet 返回后，再更新 ambiguity scoring
 - 最后只问**一个** weakest-dimension 问题
@@ -128,7 +141,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 - clarify 结束前必须达到 clarify-ready，并获得用户确认
 - 未达 clarify-ready 时，不得建议“跳过 clarify 直接进入 design/plan”
 - 每轮有价值的澄清问答，应记录到可复盘的 session log：
-  `node harness/plugin/runtime/cli.mjs workflow note <change-id> clarify-qa "<问题与用户选择摘要>"`
+  `enterprise-harness workflow note <change-id> clarify-qa "<问题与用户选择摘要>"`
 
 ## Ambiguity Scoring 最低要求
 
@@ -167,7 +180,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 `change-id` 应采用简短 kebab-case，并能表达这次需求的主语义。若需求后续被拆分为多个 slice，应在 `change.md` 中明确拆分原因与边界。
 
 形成 final route 后，应记录一条 route 决策事件，供后续复盘：
-`node harness/plugin/runtime/cli.mjs workflow note <change-id> route-decided "tier=<L?> 因为 <理由>"`
+`enterprise-harness workflow note <change-id> route-decided "tier=<L?> 因为 <理由>"`
 
 会话恢复或复盘时，可用 `node harness/plugin/runtime/cli.mjs workflow session-log <change-id>` 查看该 change 的决策时间线。
 
@@ -268,7 +281,7 @@ bash harness/bin/set-active-change.sh <change-id>
 - 不得在关键未知项未澄清时假装 final route 已确认
 - 不得把聊天上下文当成唯一状态来源
 - 文档说明用中文；代码标识符保持英文
-- **不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` subagent**
+- **不得自己直接用 grep/Read 搜索代码做探索——必须委托 `enterprise-harness:code-explore` subagent**
 - **发起 subagent 探索时，必须使用 `subagent_type: enterprise-harness:code-explore`，不得使用任何通用 fallback 做代码探索**
 - **发起 subagent 探索时，禁止把标题/任务描述硬编码为 harness 仓库或 `enterprise-harness`，必须对准当前用户需求与目标项目**
 - **收到 subagent 探索结论后，不得无视结论并重新探索同一问题；必须消费结论，只在存在新缺口时再发起补盲探索**

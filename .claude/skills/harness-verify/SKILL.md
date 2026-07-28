@@ -8,6 +8,19 @@ description: >
 
 plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
 
+plugin-installed skill 的 backend 命令必须使用同一段确定性 Bash：
+
+```bash
+if command -v enterprise-harness >/dev/null 2>&1; then
+  enterprise-harness <subcommand> [args...]
+elif test -f harness/plugin/runtime/cli.mjs; then
+  node harness/plugin/runtime/cli.mjs <subcommand> [args...]
+else
+  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2
+  exit 2
+fi
+```
+
 ## 目标
 
 本阶段默认以 **Quality Engineer 视角**主导。
@@ -62,7 +75,7 @@ verify 的目标是把工程验证和用户验收收成一个完成声明，而�
 - 失败/重试/跳过项必须显式写入
 - Stop hook 只是兜底；主 verify 阶段应先完成自我收口
 - 若本次踩到值得沉淀的新坑（非一次性、后续可能重复），收尾时用
-  `node harness/plugin/runtime/lifecycle.mjs lesson-add <slug> <severity> <tags> <changeId>`
+  `enterprise-harness lesson-add <slug> <severity> <tags> <changeId>`
   记录到跨 change 经验库，避免同样问题在未来重复发生
 
 ## 退出条件

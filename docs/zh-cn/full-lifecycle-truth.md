@@ -132,7 +132,7 @@ graph TD
 - `harness/changes/<id>/evidence/tooling.md`（记录 codegraph 查询和发现）
 
 ### 预期行为
-1. Claude 通过 **Agent 工具**派遣 `code-explore` subagent
+1. Claude 通过 **Agent 工具**派遣代码探索 subagent；plugin-facing surface 必须使用 `enterprise-harness:code-explore`，standalone source checkout 的逻辑 lane 名仍是 `code-explore`
 2. subagent 的任务标题必须指向当前用户项目与具体探索主题，不得写成 `Explore enterprise-harness`
 3. subagent 使用 `codegraph_explore` / `codegraph_search` 探索
 4. subagent 返回结论后，主 orchestrator 应消费结论并基于事实继续推进，不得忽略结论后重新发起相同探索

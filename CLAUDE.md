@@ -51,6 +51,8 @@
 - **CodeGraph-first**：代码探索默认走 `code-explore`
 - **Context7-first**：文档探索默认走 `doc-research`
 - 这两条探索 lane 是本项目 phase 1 的核心亮点，不是附属工具
+- 代码探索必须委托 subagent，并消费 subagent 返回结论后再继续，不得忽略结论后重复探索同一问题
+- 歧义度评分必须在 clarify 阶段显式展示，并保持一次只问一个问题
 
 ### 阶段恢复入口
 - `clarify` / `route` → `/harness-intake`

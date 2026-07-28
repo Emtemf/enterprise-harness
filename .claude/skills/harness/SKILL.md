@@ -45,9 +45,7 @@ fi
 **【强制】等待 subagent / 后台任务时禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 已能自动通知完成的任务已经启动后，主 orchestrator 不得再用 `sleep`、倒计时、循环“继续等待”、反复状态播报或伪进展输出来占用对话。默认做法是：启动任务后立即停手，等待 Claude Code 的完成通知或用户下一条真实消息。只有通知机制覆盖不到的外部系统，才允许设置单次兜底等待；即便如此，也不得在等待期间持续骚扰用户。
 
 ### 第 0 步：建立 change（如果还没有）
-```
-node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<一句话目标>"
-```
+plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness start-change <change-id> [owner] [tier] "<一句话目标>"`；standalone source checkout 才走本地 `node harness/plugin/runtime/cli.mjs ...` fallback。
 这会创建 `harness/changes/<id>/state.json` 并设置 `goal`。
 
 ### 第 1 步：clarify（需求澄清）
@@ -138,9 +136,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
 4. 更新 `state.json`：`validation.status=fresh`
 
 ### 第 7 步：archive（归档）
-```
-node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
-```
+plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness lifecycle archive <change-id>`；standalone source checkout 才走本地 `node harness/plugin/runtime/cli.mjs ...` fallback。
 
 ## TECPC 检查（每个阶段都要过）
 
@@ -154,7 +150,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 ## 硬约束（程序级门禁会拦截）
 
 - 写 `src/main/java` 前：必须已完成 clarify + route + design + plan + codegraph 证据
-- 主 orchestrator 不得直接 Grep/Read/Glob 探索业务代码——必须委托 `code-explore` subagent
+- 主 orchestrator 不得直接 Grep/Read/Glob 探索业务代码——必须委托 `enterprise-harness:code-explore` subagent
 - 跳过任何阶段都会被 pre-write hook BLOCK（12 道拦截）
 - 探索业务代码会被 pre-explore hook BLOCK（除非已记录 codegraph 证据）
 
@@ -195,7 +191,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 ## Exploration Lane（补事实的通道）
 
 clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
-- 代码事实 / 调用链 / 影响面不清 → `code-explore`（codegraph 一套搞定定位+传播）
+- 代码事实 / 调用链 / 影响面不清 → `enterprise-harness:code-explore`（codegraph 一套搞定定位+传播）
 - 外部库/框架/SDK 版本行为不清 → `enterprise-harness:doc-research`
 
 ## 当前动作顺序（orchestrator shell 显示要求）
@@ -207,7 +203,7 @@ clarify 阶段应优先补事实再问用户，不得先问用户去替系统做
 - route：先消费 clarify 结果，再决定 tier / impact / route 结论
 - design：先消费 requirements / exploration，再产出 design，再派 `enterprise-harness:design-reviewer`
 - plan：先消费 design，再产出 tasks，再派 `enterprise-harness:plan-critic`
-- tdd：先派 `tdd-executor`，再消费 RED/GREEN/REFACTOR 摘要并推进子状态
+- tdd：先派 `enterprise-harness:tdd-executor`，再消费 RED/GREEN/REFACTOR 摘要并推进子状态
 - verify：先消费 `validation.md` / reviewer verdict，再派 `enterprise-harness:verification-reviewer` 或直接统一消费完成态证据
 
 若某一轮会派 subagent，必须显式说明：
@@ -220,7 +216,7 @@ clarify 阶段应优先补事实再问用户，不得先问用户去替系统做
 - reviewer 返回 block，不得进入下一阶段
 - 不得跳过任何阶段
 - 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: enterprise-harness:code-explore`，不得使用任何通用 fallback 做代码探索
-- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` subagent
+- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `enterprise-harness:code-explore` subagent
 - Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
 - 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
 - 不得在已启动可通知任务后通过 `sleep`、倒计时、循环“继续等待”或反复状态播报来刷屏

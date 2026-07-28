@@ -9,12 +9,26 @@ const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const mode = process.argv[2];
 const launcherModulePath = path.join(repoRoot, 'bin', 'enterprise-harness.mjs');
 const launcherExecutablePath = path.join(repoRoot, 'bin', 'enterprise-harness');
-const harnessSkill = fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'), 'utf-8');
+const pluginFacingSkills = [
+  ['.claude/skills/harness/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'), 'utf-8')],
+  ['.claude/skills/harness-intake/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'), 'utf-8')],
+  ['.claude/skills/harness-verify/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-verify', 'SKILL.md'), 'utf-8')],
+];
 const literalShell = [
   'if command -v enterprise-harness >/dev/null 2>&1; then',
   '  enterprise-harness "$@"',
   'elif test -f harness/plugin/runtime/cli.mjs; then',
   '  node harness/plugin/runtime/cli.mjs "$@"',
+  'else',
+  '  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2',
+  '  exit 2',
+  'fi',
+].join('\n');
+const documentedPortableSnippet = [
+  'if command -v enterprise-harness >/dev/null 2>&1; then',
+  '  enterprise-harness <subcommand> [args...]',
+  'elif test -f harness/plugin/runtime/cli.mjs; then',
+  '  node harness/plugin/runtime/cli.mjs <subcommand> [args...]',
   'else',
   '  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2',
   '  exit 2',
@@ -46,7 +60,7 @@ function runCommand(command, args, cwd, env = {}) {
 function runLiteralLauncher(args, cwd, env = {}) {
   const scriptPath = path.join(cwd, 'run-literal-launcher.sh');
   fs.writeFileSync(scriptPath, `#!/usr/bin/env bash\nset -euo pipefail\n${literalShell}\n`, { mode: 0o755 });
-  return spawnSync('bash', [scriptPath, ...args], {
+  return spawnSync('bash', ['--noprofile', '--norc', scriptPath, ...args], {
     cwd,
     encoding: 'utf-8',
     env: {
@@ -70,6 +84,10 @@ function isExecutable(filePath) {
   return (stat.mode & 0o111) !== 0;
 }
 
+function stripCodeBlocks(text) {
+  return text.replace(/```[\s\S]*?```/gu, '');
+}
+
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node harness/plugin/runtime/test/portable-launcher-smoke.mjs <red|green|verify>');
   process.exit(1);
@@ -82,7 +100,7 @@ fs.mkdirSync(targetRoot, { recursive: true });
 
 try {
   const pathEnv = `${path.join(repoRoot, 'bin')}${path.delimiter}${process.env.PATH || ''}`;
-  const commandProbe = runCommand('bash', ['-lc', 'command -v enterprise-harness'], targetRoot, {
+  const commandProbe = runCommand('bash', ['--noprofile', '--norc', '-c', 'command -v enterprise-harness'], targetRoot, {
     PATH: pathEnv,
   });
   const withLauncherPath = runCommand('enterprise-harness', ['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
@@ -98,8 +116,9 @@ try {
 
   const outsideTarget = path.join(tempRoot, 'outside-target');
   fs.mkdirSync(outsideTarget, { recursive: true });
+  const deterministicMissingPath = ['/usr/bin', '/bin'].filter((entry) => fs.existsSync(entry)).join(path.delimiter);
   const missingLauncherAndFallback = runLiteralLauncher(['status'], outsideTarget, {
-    PATH: removePathEntry(process.env.PATH || '', path.join(repoRoot, 'bin')),
+    PATH: deterministicMissingPath,
   });
 
   const failures = [];
@@ -111,9 +130,14 @@ try {
   if (!/import\.meta\.url/u.test(fs.readFileSync(launcherModulePath, 'utf-8'))) {
     failures.push('portable launcher module must locate runtime relative to import.meta.url');
   }
-  if (!harnessSkill.includes('command -v enterprise-harness')
-      || !harnessSkill.includes('enterprise-harness launcher unavailable')) {
-    failures.push('harness skill must embed the literal launcher probe/fallback shell snippet');
+  for (const [relativePath, skillContent] of pluginFacingSkills) {
+    if (!skillContent.includes(documentedPortableSnippet)) {
+      failures.push(`${relativePath} must embed the literal enterprise-harness-first / local cli fallback / BLOCK launcher snippet`);
+    }
+    const proseOutsideSnippet = stripCodeBlocks(skillContent);
+    if (/(^|\s)node harness\/plugin\/runtime\/cli\.mjs(\s|$)/u.test(proseOutsideSnippet)) {
+      failures.push(`${relativePath} must not show direct target-cwd node harness/plugin/runtime examples outside the portable fallback snippet`);
+    }
   }
   if (commandProbe.status !== 0) {
     failures.push(`command -v enterprise-harness failed under PATH: exit=${commandProbe.status} stderr=${String(commandProbe.stderr || '').trim()}`);

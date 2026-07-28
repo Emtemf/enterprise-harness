@@ -11,6 +11,7 @@
 | Claude 没用 codegraph 就写代码 | 弱模型跳过了 codegraph-first | ❌ 提 issue |
 | subagent 标题写成 `enterprise-harness` | 主 orchestrator prompt 编排 bug——subagent 的任务标题应该指向**当前用户项目**或具体探索主题，而不是写成 `Explore enterprise-harness codebase` | ❌ 提 issue |
 | 主 agent 忽略 subagent 结果又自己探索 | subagent 通信/消费契约 bug——subagent 完成后，主 agent 应基于 subagent 结论继续，而不是忽略它并重新探索相同问题 | ❌ 提 issue |
+| plugin-only 环境仍显示 bare `code-explore` 派发 | plugin-facing subtype 约束失效；plugin-facing surface 应使用 `enterprise-harness:code-explore`，standalone source checkout 才保留逻辑 lane 名 `code-explore` | ❌ 提 issue |
 | Claude 写 `src/main/java` 没被拦截 | pre-write hook 没触发 | ❌ 提 issue |
 | BLOCK 信息里有"reference-service" | 插件版本太旧（< 0.1.12） | ❌ 更新插件 |
 | 没有 `[Harness 启动检查]` 输出 | 插件没正确安装 | ❌ 重新安装 |

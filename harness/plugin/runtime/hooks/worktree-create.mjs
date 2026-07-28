@@ -5,6 +5,9 @@ import { spawnSync } from 'node:child_process';
 const SAFE_NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const SAFE_CHANGE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 const OVERRIDE_HEAD_AFTER_ADD = process.env.HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_HEAD_AFTER_ADD || null;
+const INJECT_ACTIVE_CHANGE_COLLISION = process.env.HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_COLLISION || null;
+const INJECT_ACTIVE_CHANGE_SYMLINK_TARGET = process.env.HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_SYMLINK_TARGET || null;
+const INJECT_BRANCH_HEAD_AFTER_ADD = process.env.HARNESS_WORKTREE_CREATE_TEST_BRANCH_HEAD_AFTER_ADD || null;
 
 function exitWithError(message) {
   console.error(message);
@@ -52,8 +55,12 @@ function readEvent() {
   });
 }
 
+function lstatEntry(absolutePath) {
+  return fs.lstatSync(absolutePath, { throwIfNoEntry: false });
+}
+
 function ensureRealDirectory(absolutePath, label) {
-  const stat = fs.lstatSync(absolutePath, { throwIfNoEntry: false });
+  const stat = lstatEntry(absolutePath);
   if (!stat) return;
   if (stat.isSymbolicLink()) throw new Error(`${label} must not be a symlink: ${absolutePath}`);
   if (!stat.isDirectory()) throw new Error(`${label} must be a directory: ${absolutePath}`);
@@ -62,17 +69,17 @@ function ensureRealDirectory(absolutePath, label) {
 function ensureDirectoryHierarchy(repoRoot) {
   ensureRealDirectory(repoRoot, 'repo root');
   const claudeDir = path.join(repoRoot, '.claude');
-  if (fs.existsSync(claudeDir)) ensureRealDirectory(claudeDir, '.claude');
+  if (lstatEntry(claudeDir)) ensureRealDirectory(claudeDir, '.claude');
   else fs.mkdirSync(claudeDir, { recursive: true });
   const worktreesDir = path.join(claudeDir, 'worktrees');
-  if (fs.existsSync(worktreesDir)) ensureRealDirectory(worktreesDir, '.claude/worktrees');
+  if (lstatEntry(worktreesDir)) ensureRealDirectory(worktreesDir, '.claude/worktrees');
   else fs.mkdirSync(worktreesDir, { recursive: true });
   const repoReal = fs.realpathSync(repoRoot);
   const parentReal = fs.realpathSync(worktreesDir);
   if (!parentReal.startsWith(`${repoReal}${path.sep}`)) {
     throw new Error('.claude/worktrees escapes the repository root');
   }
-  return { claudeDir, worktreesDir, repoReal, parentReal };
+  return { worktreesDir, repoReal, parentReal };
 }
 
 function ensureContainedCanonicalPath(expectedPath, canonicalParent) {
@@ -87,13 +94,22 @@ function ensureContainedCanonicalPath(expectedPath, canonicalParent) {
 
 function safeActiveChange(parentRepo, parentHead) {
   const activePath = path.join(parentRepo, 'harness', 'ACTIVE_CHANGE');
-  if (!fs.existsSync(activePath)) return null;
+  if (!lstatEntry(activePath)) return null;
   const value = fs.readFileSync(activePath, 'utf-8').trim();
   if (!SAFE_CHANGE_ID.test(value)) throw new Error(`ACTIVE_CHANGE is unsafe: ${value}`);
   const stateRel = path.posix.join('harness', 'changes', value, 'state.json');
   const cat = runGit(parentRepo, ['-C', parentRepo, 'cat-file', '-e', `${parentHead}:${stateRel}`]);
   if (cat.status !== 0) throw new Error(`ACTIVE_CHANGE state.json is unavailable at parent HEAD: ${value}`);
   return value;
+}
+
+function injectPublishFailure(childHarness, activePath) {
+  if (INJECT_ACTIVE_CHANGE_COLLISION !== null) {
+    fs.writeFileSync(activePath, INJECT_ACTIVE_CHANGE_COLLISION, { flag: 'wx' });
+  }
+  if (INJECT_ACTIVE_CHANGE_SYMLINK_TARGET !== null) {
+    fs.symlinkSync(INJECT_ACTIVE_CHANGE_SYMLINK_TARGET, activePath);
+  }
 }
 
 function publishActiveChange(parentRepo, childRoot, changeId, canonicalParent) {
@@ -106,6 +122,7 @@ function publishActiveChange(parentRepo, childRoot, changeId, canonicalParent) {
   ensureContainedCanonicalPath(childRoot, canonicalParent);
   const activePath = path.join(childHarness, 'ACTIVE_CHANGE');
   const tempPath = path.join(childHarness, `.ACTIVE_CHANGE.${process.pid}.${Date.now()}.tmp`);
+  injectPublishFailure(childHarness, activePath);
   fs.writeFileSync(tempPath, `${changeId}\n`, { flag: 'wx' });
   try {
     fs.linkSync(tempPath, activePath);
@@ -133,12 +150,11 @@ function parseWorktreePorcelain(repoRoot) {
     });
 }
 
-function findOwnedRegistration(repoRoot, worktreePath, branchName, expectedHead) {
+function findOwnedRegistration(repoRoot, worktreePath, branchName) {
   const expectedBranch = `refs/heads/${branchName}`;
   return parseWorktreePorcelain(repoRoot).find((entry) => (
     path.resolve(entry.worktree || '') === path.resolve(worktreePath)
     && entry.branch === expectedBranch
-    && entry.HEAD === expectedHead
   )) || null;
 }
 
@@ -160,11 +176,19 @@ function readBranchHead(repoRoot, branchName) {
 }
 
 function cleanupCreatedWorktree(repoRoot, worktreePath, branchName, expectedHead) {
-  const ownedRegistration = findOwnedRegistration(repoRoot, worktreePath, branchName, expectedHead);
-  if (!ownedRegistration) {
+  if (INJECT_BRANCH_HEAD_AFTER_ADD) {
+    const update = runGit(repoRoot, ['-C', repoRoot, 'update-ref', `refs/heads/${branchName}`, INJECT_BRANCH_HEAD_AFTER_ADD]);
+    if (update.status !== 0) {
+      throw new Error(`test injection failed updating branch ${branchName} to ${INJECT_BRANCH_HEAD_AFTER_ADD}`);
+    }
+  }
+  const branchHead = readBranchHead(repoRoot, branchName);
+  const ownedRegistration = findOwnedRegistration(repoRoot, worktreePath, branchName);
+  if (!ownedRegistration || branchHead !== expectedHead) {
     throw new Error(
       `compensation cannot prove ownership for path=${worktreePath} branch=${branchName} head=${expectedHead}; `
-      + `recover manually with: git -C ${repoRoot} worktree list --porcelain && git -C ${repoRoot} branch --list ${branchName}`,
+      + `detected branchHead=${branchHead || 'missing'}. Preserve resources and recover manually with: `
+      + `git -C ${repoRoot} worktree list --porcelain && git -C ${repoRoot} branch --list ${branchName}`,
     );
   }
 
@@ -175,7 +199,7 @@ function cleanupCreatedWorktree(repoRoot, worktreePath, branchName, expectedHead
   if (findWorktreeByPath(repoRoot, worktreePath)) {
     throw new Error(`compensation removed ${worktreePath} but registration still exists; inspect git -C ${repoRoot} worktree list --porcelain`);
   }
-  if (fs.existsSync(worktreePath)) {
+  if (lstatEntry(worktreePath)) {
     throw new Error(`compensation removed registration but path still exists: ${worktreePath}`);
   }
 
@@ -184,13 +208,13 @@ function cleanupCreatedWorktree(repoRoot, worktreePath, branchName, expectedHead
     throw new Error(`compensation stopped before deleting branch ${branchName}; branch remains attached to ${branchRegistration.worktree}`);
   }
 
-  const branchHead = readBranchHead(repoRoot, branchName);
-  if (!branchHead) {
+  const branchHeadAfterRemove = readBranchHead(repoRoot, branchName);
+  if (!branchHeadAfterRemove) {
     return;
   }
-  if (branchHead !== expectedHead) {
+  if (branchHeadAfterRemove !== expectedHead) {
     throw new Error(
-      `compensation stopped before deleting branch ${branchName}; expected HEAD ${expectedHead} but found ${branchHead}. `
+      `compensation stopped before deleting branch ${branchName}; expected HEAD ${expectedHead} but found ${branchHeadAfterRemove}. `
       + `Recover manually after inspection: git -C ${repoRoot} branch --list ${branchName}`,
     );
   }
@@ -209,7 +233,7 @@ try {
   if (event.hook_event_name !== 'WorktreeCreate') throw new Error('hook_event_name must be WorktreeCreate');
   const cwd = String(event.cwd || '').trim();
   const name = String(event.name || '').trim();
-  if (!path.isAbsolute(cwd) || !fs.existsSync(cwd)) throw new Error('cwd must be an existing absolute path');
+  if (!path.isAbsolute(cwd) || !lstatEntry(cwd)) throw new Error('cwd must be an existing absolute path');
   if (!SAFE_NAME.test(name)) throw new Error(`name must match ${SAFE_NAME}`);
 
   const repoRoot = git(cwd, ['rev-parse', '--show-toplevel']);
@@ -218,7 +242,7 @@ try {
   const { parentReal } = ensureDirectoryHierarchy(repoRoot);
   const worktreePath = path.join(repoRoot, '.claude', 'worktrees', name);
   const branchName = `enterprise-harness/${name}`;
-  if (fs.existsSync(worktreePath)) throw new Error(`worktree path already exists: ${worktreePath}`);
+  if (lstatEntry(worktreePath)) throw new Error(`worktree path already exists: ${worktreePath}`);
   if (String(runGit(repoRoot, ['-C', repoRoot, 'branch', '--list', branchName]).stdout || '').trim()) {
     throw new Error(`worktree branch already exists: ${branchName}`);
   }
@@ -241,7 +265,11 @@ try {
     process.exit(0);
   } catch (error) {
     if (created) {
-      cleanupCreatedWorktree(repoRoot, worktreePath, branchName, parentHead);
+      try {
+        cleanupCreatedWorktree(repoRoot, worktreePath, branchName, parentHead);
+      } catch (cleanupError) {
+        throw new Error(`${error.message}\n${cleanupError.message}`);
+      }
     }
     throw error;
   }

@@ -20,6 +20,41 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf-8');
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function collectBareDispatchMentions(content, logicalAgent) {
+  const bareToken = `\`${logicalAgent}\``;
+  const scopedToken = `\`enterprise-harness:${logicalAgent}\``;
+  const results = [];
+  const dispatchContexts = [
+    'subagent_type',
+    'Agent',
+    'agent',
+    '派',
+    '再派',
+    '先派',
+    '补',
+    '委托',
+    '使用',
+    '通过',
+    '调用',
+    '会派',
+    '默认走',
+    '返回到',
+    '恢复到',
+    '→',
+  ];
+  for (const line of content.split(/\r?\n/u)) {
+    if (!line.includes(bareToken)) continue;
+    if (line.includes(scopedToken)) continue;
+    if (!dispatchContexts.some((context) => line.includes(context))) continue;
+    results.push(line.trim());
+  }
+  return results;
+}
+
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs <red|green|verify>');
   process.exit(1);
@@ -54,6 +89,15 @@ const touchedTextFiles = [
   content: read(relativePath),
 }));
 const pluginStageSkills = touchedTextFiles.filter((entry) => entry.relativePath.startsWith('.claude/skills/'));
+const knownLogicalAgents = [
+  'code-explore',
+  'doc-research',
+  'design-reviewer',
+  'api-consistency-reviewer',
+  'plan-critic',
+  'tdd-executor',
+  'verification-reviewer',
+];
 
 const requiredScopedDispatch = [
   {
@@ -65,13 +109,8 @@ const requiredScopedDispatch = [
       'enterprise-harness:doc-research',
       'enterprise-harness:design-reviewer',
       'enterprise-harness:plan-critic',
+      'enterprise-harness:tdd-executor',
       'enterprise-harness:verification-reviewer',
-    ],
-    forbidden: [
-      '→ `doc-research`',
-      '派 `design-reviewer`',
-      '派 `plan-critic`',
-      '派 `verification-reviewer`',
     ],
   },
   {
@@ -81,9 +120,6 @@ const requiredScopedDispatch = [
       '/enterprise-harness:harness',
       'enterprise-harness:code-explore',
       'enterprise-harness:doc-research',
-    ],
-    forbidden: [
-      '再派 `doc-research`',
     ],
   },
   {
@@ -96,12 +132,6 @@ const requiredScopedDispatch = [
       'enterprise-harness:design-reviewer',
       'enterprise-harness:api-consistency-reviewer',
     ],
-    forbidden: [
-      '再派 `code-explore` / `doc-research`',
-      '派 `design-reviewer`',
-      '补 `api-consistency-reviewer`',
-      '为 `api-consistency-reviewer` 留出可评审输入',
-    ],
   },
   {
     file: '.claude/skills/harness-plan/SKILL.md',
@@ -109,9 +139,6 @@ const requiredScopedDispatch = [
     required: [
       '/enterprise-harness:harness',
       'enterprise-harness:plan-critic',
-    ],
-    forbidden: [
-      '派 `plan-critic`',
     ],
   },
   {
@@ -121,7 +148,6 @@ const requiredScopedDispatch = [
       '/enterprise-harness:harness',
       'enterprise-harness:tdd-executor',
     ],
-    forbidden: [],
   },
   {
     file: '.claude/skills/harness-verify/SKILL.md',
@@ -129,9 +155,6 @@ const requiredScopedDispatch = [
     required: [
       '/enterprise-harness:harness',
       'enterprise-harness:verification-reviewer',
-    ],
-    forbidden: [
-      '派 `verification-reviewer`',
     ],
   },
 ];
@@ -144,15 +167,10 @@ if (Object.hasOwn(pluginJson, 'commands')) {
 if (fs.existsSync(pluginCommandPath)) {
   failures.push('.claude-plugin/commands/harness.md must be removed to avoid command/skill collision');
 }
-for (const { file, content, required, forbidden } of requiredScopedDispatch) {
+for (const { file, content, required } of requiredScopedDispatch) {
   for (const token of required) {
     if (!content.includes(token)) {
       failures.push(`${file} must include ${token}`);
-    }
-  }
-  for (const token of forbidden) {
-    if (content.includes(token)) {
-      failures.push(`${file} still contains bare plugin-facing dispatch prose: ${token}`);
     }
   }
 }
@@ -165,14 +183,22 @@ if (!codeAnalysisRule.includes('enterprise-harness:code-explore')) {
   failures.push('10-code-analysis.md must name enterprise-harness:code-explore explicitly');
 }
 for (const { relativePath, content } of touchedTextFiles) {
-  if (/subagent_type\s*:\s*`?code-explore`?/u.test(content)) {
-    failures.push(`${relativePath} still references bare code-explore instead of enterprise-harness:code-explore`);
-  }
-  if (/subagent_type\s*:\s*`?tdd-executor`?/u.test(content)) {
-    failures.push(`${relativePath} still references bare tdd-executor instead of enterprise-harness:tdd-executor`);
-  }
   if (/回退到\s*`general-purpose`|临时使用\s*`general-purpose`|fallback\s+to\s+`general-purpose`/u.test(content)) {
     failures.push(`${relativePath} still advertises a general-purpose fallback`);
+  }
+  for (const logicalAgent of knownLogicalAgents) {
+    const bareMentions = collectBareDispatchMentions(content, logicalAgent);
+    for (const mention of bareMentions) {
+      failures.push(`${relativePath} still contains bare plugin-facing dispatch prose for ${logicalAgent}: ${mention}`);
+    }
+  }
+  const bareSubtype = new RegExp(`subagent_type\\s*:\\s*` + '`?' + `${escapeRegExp('code-explore')}` + '`?', 'u');
+  if (bareSubtype.test(content)) {
+    failures.push(`${relativePath} still references bare code-explore instead of enterprise-harness:code-explore`);
+  }
+  const bareExecutorSubtype = new RegExp(`subagent_type\\s*:\\s*` + '`?' + `${escapeRegExp('tdd-executor')}` + '`?', 'u');
+  if (bareExecutorSubtype.test(content)) {
+    failures.push(`${relativePath} still references bare tdd-executor instead of enterprise-harness:tdd-executor`);
   }
 }
 if (!/^name:\s*tdd-executor$/m.test(executorAgent)) {
@@ -192,10 +218,10 @@ const logicalReviewerIdChecks = [
   ['verification-reviewer', reviewerAgents.verificationReviewer],
 ];
 for (const [logicalName, content] of logicalReviewerIdChecks) {
-  if (!new RegExp(`^name:\\s*${logicalName}$`, 'm').test(content)) {
+  if (!new RegExp(`^name:\\s*${escapeRegExp(logicalName)}$`, 'm').test(content)) {
     failures.push(`${logicalName} agent logical id must remain name: ${logicalName}`);
   }
-  if (new RegExp(`^name:\\s*enterprise-harness:${logicalName}$`, 'm').test(content)) {
+  if (new RegExp(`^name:\\s*enterprise-harness:${escapeRegExp(logicalName)}$`, 'm').test(content)) {
     failures.push(`${logicalName} agent frontmatter must keep the logical id, not a scoped plugin id`);
   }
 }

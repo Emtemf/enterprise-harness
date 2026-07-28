@@ -9,8 +9,11 @@ const mode = process.argv[2];
 const files = {
   harnessSkill: path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'),
   intakeSkill: path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'),
+  claudeMd: path.join(repoRoot, 'CLAUDE.md'),
   codeAnalysisRule: path.join(repoRoot, '.claude', 'rules', '10-code-analysis.md'),
   codeExploreAgent: path.join(repoRoot, '.claude', 'agents', 'code-explore.md'),
+  expectedBehavior: path.join(repoRoot, 'docs', 'zh-cn', 'expected-behavior-checklist.md'),
+  lifecycleTruth: path.join(repoRoot, 'docs', 'zh-cn', 'full-lifecycle-truth.md'),
 };
 
 const expected = {
@@ -30,13 +33,29 @@ const expected = {
     '不得使用任何通用 fallback 做代码探索',
     '代码探索必须委托 subagent',
   ],
+  claudeMd: [
+    '代码探索必须委托 subagent',
+    '一次只问一个问题',
+    '歧义度评分',
+  ],
   codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: enterprise-harness:code-explore'],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
+  expectedBehavior: [
+    'subagent 的任务标题应该指向**当前用户项目**或具体探索主题，而不是写成 `Explore enterprise-harness codebase`',
+    'subagent 完成后，主 agent 应基于 subagent 结论继续，而不是忽略它并重新探索相同问题',
+    '主 agent 忽略 subagent 结果又自己探索',
+  ],
+  lifecycleTruth: [
+    'subagent 的任务标题必须指向当前用户项目与具体探索主题，不得写成 `Explore enterprise-harness`',
+    'subagent 返回结论后，主 orchestrator 应消费结论并基于事实继续推进，不得忽略结论后重新发起相同探索',
+    'subagent 已返回结论但主 agent 忽略结论并重新探索',
+  ],
 };
 
 const forbidden = {
   harnessSkill: ['subagent_type: code-explore', 'general-purpose 做代码探索'],
   intakeSkill: ['subagent_type: code-explore', 'general-purpose 做代码探索'],
+  claudeMd: ['subagent_type: code-explore'],
   codeAnalysisRule: ['subagent_type: code-explore'],
 };
 
