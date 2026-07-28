@@ -26,6 +26,14 @@
 
 - historical intake smoke：review verdict 需以该 change 历史上下文为准。
 
+
+- requirement-reviewer：historical intake smoke 的需求澄清 gate 以当时 change 资产为准。
+- verification-reviewer：historical intake smoke 的完成态验证以当时 evidence 为准。
+
+
+- requirement-reviewer：historical intake smoke 的澄清与路由 gate 以当时 change 资产为准。
+- verification-reviewer：historical intake smoke 的完成态验证以当时 validation/context 证据为准。
+
 ## Stage Gate Summary
 - clarify:
 - design:

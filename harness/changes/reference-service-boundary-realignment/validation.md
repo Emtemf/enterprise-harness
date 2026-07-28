@@ -90,6 +90,14 @@ Observed result summary:
 - Full verify（骨架阶段）通过。
 ```
 
+
+- api-consistency-reviewer：当前 success/error contract 已与实现重新对齐。
+- verification-reviewer：当前完成声明以 fresh validation 与 reviewer verdict 为准。
+
+
+- api-consistency-reviewer：success/error contract 已与当前 OpenAPI/实现对齐。
+- verification-reviewer：当前完成声明以 fresh validation 与 reviewer verdict 为准。
+
 ## Stage Gate Summary
 - clarify: reference-service boundary realignment scope confirmed
 - design: approved in historical change context
