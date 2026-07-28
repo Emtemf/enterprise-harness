@@ -1,0 +1,49 @@
+{
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "reviewerId": "code-reviewer-task2",
+  "verdict": "block",
+  "findings": [
+    {
+      "id": "TASK2-LAUNCHER-001",
+      "severity": "critical",
+      "summary": "plugin PATH does not expose an executable named enterprise-harness",
+      "evidence": "bin/enterprise-harness.mjs is mode 100644 and portable-launcher-smoke invokes node by absolute path instead of the PATH command"
+    },
+    {
+      "id": "TASK2-SCOPED-DISPATCH-002",
+      "severity": "high",
+      "summary": "plugin-facing reviewer and documentation agents are not all expressed as scoped subagent_type values",
+      "evidence": "harness design/intake/plan/verify skills and the main harness still use bare doc-research/design-reviewer/api-consistency-reviewer/plan-critic/verification-reviewer dispatch prose"
+    },
+    {
+      "id": "TASK2-WORKTREE-COMPENSATION-003",
+      "severity": "high",
+      "summary": "post-add failures can bypass compensation and cleanup does not prove path, branch and captured HEAD ownership",
+      "evidence": "publishActiveChange calls process-exiting fail after git worktree add; cleanup uses cross-stanza substring matching and deletes a branch without revalidating captured HEAD"
+    },
+    {
+      "id": "TASK2-FIXTURE-LEAK-004",
+      "severity": "medium",
+      "summary": "worktree smoke leaves most temporary repositories and the compensation retry worktree behind",
+      "evidence": "only two fixture results enter the final cleanup list"
+    },
+    {
+      "id": "TASK2-REGRESSION-005",
+      "severity": "high",
+      "summary": "existing subagent-contract smoke fails and is absent from the Task 2 aggregate",
+      "evidence": "subagent-contract-smoke.mjs still asserts bare subtype and general-purpose wording"
+    }
+  ],
+  "evidence": [
+    "reviewedMainCommit:8d067040c0b5e4a85acf54b80fe026801d9c4df0",
+    "executorCommit:6e2251cd5bbed39e224a9582ec3571ebab9b2c44",
+    "receiptDigest:13dd6bb40a6c5305303697f224aa9dd39338d35b1d595a8206045b42b9c75841",
+    "node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/subagent-contract-smoke.mjs verify => fail",
+    "clean PATH command-v/exec probe => exit 1/127"
+  ],
+  "implementationCommit": "8d067040c0b5e4a85acf54b80fe026801d9c4df0",
+  "executorCommit": "6e2251cd5bbed39e224a9582ec3571ebab9b2c44",
+  "receiptDigest": "13dd6bb40a6c5305303697f224aa9dd39338d35b1d595a8206045b42b9c75841",
+  "reviewedAt": "2026-07-28"
+}

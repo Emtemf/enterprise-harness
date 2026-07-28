@@ -9,7 +9,7 @@
     "/tmp/sdd-worktree-bootstrap-hLpSaA/create-current-head-worktree.sh"
   ],
   "controlCheckout": "/tmp/sdd-task2-control-7MAwIS",
-  "controlHead": "5045be5",
+  "controlHead": "61c2a895632180f0cb6ffd1b08ca378fcb5b9d1e",
   "review": {
     "reviewerId": "bootstrap-security-reviewer",
     "verdict": "pass",
@@ -33,11 +33,22 @@
       "tddReceiptCreated": false,
       "implementationCommitCreated": false,
       "agentStartReceiptCreated": false
+    },
+    "authenticatedHostAttempt3": {
+      "status": "pass",
+      "agentId": "a223a4913c11e869a",
+      "agentType": "enterprise-harness:tdd-executor",
+      "worktree": "/tmp/sdd-task2-control-7MAwIS/.claude/worktrees/agent-a223a4913c11e869a",
+      "worktreeHeadAtStart": "61c2a895632180f0cb6ffd1b08ca378fcb5b9d1e",
+      "implementationCommit": "6e2251cd5bbed39e224a9582ec3571ebab9b2c44",
+      "mainCommit": "8d067040c0b5e4a85acf54b80fe026801d9c4df0",
+      "agentLifecycleEvidence": "dispatch/start/stop/dispatch-binding",
+      "tddReceiptSha256": "13dd6bb40a6c5305303697f224aa9dd39338d35b1d595a8206045b42b9c75841"
     }
   },
   "cleanup": {
-    "status": "pending",
-    "scriptRemoved": false,
-    "temporaryRegistrationRemoved": false
+    "status": "complete",
+    "scriptRemoved": true,
+    "temporaryRegistrationRemoved": true
   }
 }
