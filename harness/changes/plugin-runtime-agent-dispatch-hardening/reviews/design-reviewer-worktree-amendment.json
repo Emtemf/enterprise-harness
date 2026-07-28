@@ -1,0 +1,21 @@
+{
+  "reviewerId": "design-reviewer",
+  "reviewedAt": "2026-07-28",
+  "scope": "parent-HEAD WorktreeCreate design and Task 2 self-host boundary",
+  "firstVerdict": "block",
+  "resolvedBlockingFindings": [
+    "WT-SELF-HOST-001",
+    "WT-PATH-002",
+    "WT-ATOMIC-003"
+  ],
+  "verdict": "pass",
+  "blockingFindings": [],
+  "approvedRequirementsDigest": "199e490f05074c0c1c1c0a7a03eab615aad76a1be5b64595ede32e231784981a",
+  "approvedDesignDigest": "b46c536b263b724743599923837a67c0ea2abd0c132b850ef9d0d3e51c3e6273",
+  "approvedTasksDigest": "45f27912f0c99f9c8343738f279799ea6ff00c1bb897b852dd242967e5e04717",
+  "notes": [
+    "repo-external bootstrap is independently reviewed and cannot replace Task 2 TDD evidence",
+    "canonical containment rejects symlink escape",
+    "post-add validation failures compensate only resources created by the current invocation"
+  ]
+}

@@ -42,6 +42,15 @@ worktree 预写 pass；主 orchestrator 只能持久化 reviewer 的原样结论
 任一命令或 verdict 失败：停止，不派下一个 task，不手写 receipt。executor worktree基于
 “上一个 task 已完成 main evidence/review commit 的 HEAD”创建；不得从旧 default branch 猜基线。
 
+`isolation: worktree` 的默认 base 是 default branch，不是 parent `HEAD`。Task 2 起必须通过
+受控 `WorktreeCreate` hook 从派发 cwd 的已提交 `HEAD` 建 worktree；executor 不允许在启动后
+自行 checkout/cherry-pick 来猜测基线。Task 2 的 self-host 边界只允许 repo 外一次性 bootstrap
+脚本创建正确基线；该脚本不得复制/import 正式产品实现，也不得进入 executor worktree。派发前
+必须记录 bootstrap absolute path、sha256、literal argv、独立只读审查 verdict；control plugin
+只临时注册该外部脚本。Task 2 RED 必须证明正式 `worktree-create.mjs` 尚不存在或正式 contract
+smoke 失败，然后 executor 按测试自行实现。派发结束后删除外部脚本和 control registration，
+记录清理结果。bootstrap 不生成、不替代、不修改 TDD receipt。
+
 ### Runner bootstrap 规则（只允许 Task 1）
 
 Task 1 创建 authoritative runner 本身，存在不可消除的 self-hosting 边界。它必须先创建
@@ -182,6 +191,10 @@ node harness/plugin/runtime/test/support/bootstrap-tdd-run.mjs \
 - Modify: `.claude/skills/harness-verify/SKILL.md`
 - Modify: `.claude/rules/10-code-analysis.md`
 - Modify: `.claude/agents/tdd-executor.md`
+- Modify: `hooks/hooks.json`
+- Modify: `.claude/settings.json`
+- Create: `harness/plugin/runtime/hooks/worktree-create.mjs`
+- Create: `harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs`
 - Create: `harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs`
 - Create: `harness/plugin/runtime/test/portable-launcher-smoke.mjs`
 - Create: `harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs`
@@ -196,6 +209,7 @@ node harness/plugin/runtime/test/support/bootstrap-tdd-run.mjs \
 - plugin skill 唯一入口
 - known Agent tool scoped subtype，无 general-purpose fallback
 - executor `isolation: worktree`
+- 从 parent session 已提交 HEAD 创建的确定性 worktree，不再落到旧 default branch
 - 从 plugin install root 定位 runtime、以 target cwd 执行的 launcher
 
 **Literal launcher interface**
@@ -241,6 +255,11 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 - [ ] plugin canonical `/enterprise-harness:harness`，standalone `/harness`
 - [ ] Agent dispatch 全 scoped，logical lane/reviewer id 不变
 - [ ] 无 `general-purpose` fallback
+- [ ] default branch 落后 parent HEAD 的 fixture 中，WorktreeCreate 仍精确复制 parent HEAD
+- [ ] WorktreeCreate 拒绝非法 name、已有 branch/path、非 git cwd，stdout 只有最终绝对路径
+- [ ] `.claude`/`worktrees` symlink escape 被拒绝，仓库外无目录、branch、registration 副作用
+- [ ] HEAD 后验故障注入后仅清理本次新建 path/registration/branch，可在同 name 下安全重试
+- [ ] repo 外 bootstrap 有 sha256 + 独立 review + literal argv + 销毁证据，且 Task 2 RED 时正式脚本不存在
 - [ ] launcher script path 相对 `import.meta.url`，target state 相对调用 cwd
 - [ ] plugin skill 先 `command -v enterprise-harness`，缺失时 BLOCK；standalone 才走本地 Node fallback
 

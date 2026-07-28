@@ -47,7 +47,13 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
   - plugin subagent 的 Start/Stop `agent_type` 是 scoped identifier；
   - 通用 hook 只在 subagent 内携带 `agent_id`；
   - `SubagentStart` 不可阻断，`SubagentStop` 可以 block malformed result；
-  - `isolation: worktree` 让 subagent 命令在临时 worktree 执行。
+  - `isolation: worktree` 让 subagent 命令在临时 worktree 执行，但默认从 default branch
+    而不是 parent session `HEAD` 分支；
+  - `WorktreeCreate` hook 会替换默认 git 行为，输入含 `cwd`/`name`，command hook 必须把
+    worktree 路径作为 stdout 最后一个非空行返回。
+- authenticated live probe 已观察到 executor 初始 worktree 位于
+  `ef4406821a626f22b9880ac4e63eb6bba8abcc3d`（`origin/main`），而派发基线为
+  `fad5224de455d4ae2e33e3fe63e9bf24bde9db06`；旧基线缺少当前 tasks 与 Task 1 runner。
 
 ### 影响矩阵
 
@@ -87,7 +93,7 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
 | 删除同名 flat command，以 skill 为唯一 plugin 入口 | Claude Plugins docs；live baseline | 高 |
 | Agent tool 使用 scoped subtype，逻辑 id 不变 | Claude Subagents docs；plugin-only probe | 高 |
 | 用 `agent_id` 将通用 tool hook 回查到 Start receipt | Claude Hooks common fields + SubagentStart/Stop | 高 |
-| 不注册 WorktreeCreate，只给 executor 声明 isolation | Claude WorktreeCreate 会替换默认 git 行为 | 高 |
+| 注册受控 WorktreeCreate，并从事件 cwd 的 HEAD 建分支 | 官方默认从 default branch；live probe 已复现旧基线 | 高 |
 | runtime 自己 spawn 命令并写 receipt | Bash hook response 不能可靠替代进程 exit code | 高 |
 | 新 change strict、旧 change legacy | 全仓历史 state 兼容与本轮非目标 | 高 |
 | completion predicate 被 verify/archive 复用 | CodeGraph callers/impact of checks/lifecycle | 高 |
@@ -145,6 +151,43 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
   - tdd-executor 必须包含 task/worktree/commands/receipt refs；
   - malformed 且 `stop_hook_active=false` 返回 `decision=block`；
   - `stop_hook_active=true` 时记录 violation 后放行，避免无限循环。
+
+#### 1a. Parent-HEAD worktree creation
+
+新增 `harness/plugin/runtime/hooks/worktree-create.mjs`，由 plugin `hooks/hooks.json` 与
+standalone `.claude/settings.json` 的 `WorktreeCreate` 事件调用：
+
+- 只接受 `hook_event_name=WorktreeCreate`、存在的绝对 `cwd` 和
+  `^[a-z0-9][a-z0-9-]{0,62}$` name；
+- 用 `git -C <cwd> rev-parse --show-toplevel` 与 `git -C <cwd> rev-parse HEAD` 获取事件发生
+  时的仓库与已提交基线，不读取 remote default branch；
+- 目标固定为 `<repo>/.claude/worktrees/<name>`，branch 固定为
+  `enterprise-harness/<name>`；目标或 branch 已存在即失败，不覆盖、不复用。repo root、
+  `.claude`、`.claude/worktrees` 逐级 `lstat`，任一既有组件是 symlink 即拒绝；创建父目录后
+  用 `realpath` 证明 canonical parent 仍在 canonical repo root 内，不能靠词法 prefix；
+- 使用 argv 形式 `git worktree add -b <branch> <absolute-path> <head>`，`shell:false`；
+- git 输出只写 stderr；成功后校验 worktree `HEAD` 精确等于捕获的 parent HEAD，再把规范化
+  absolute path 作为 stdout 最后一个非空行；
+- `git worktree add` 成功后的任何校验失败都进入补偿：先从
+  `git worktree list --porcelain` 精确确认 branch/path 是本次调用创建的 registration，再依次
+  `git worktree remove --force <exact-path>`、确认 registration/path 消失、
+  `git branch -D <exact-branch>`；每一步仍使用 argv + `shell:false`。只清理本次创建且精确
+  匹配的资源，绝不清理预先存在目标。补偿失败时非零退出并把 exact path/branch 与人工恢复
+  命令写 stderr；
+- 任何失败非零退出，不回退 Claude 默认行为，也不让 worker 自行 checkout 纠偏。
+
+Claude 对 git worktree 会继续自动 `git worktree remove`；本轮不注册自定义
+`WorktreeRemove`。deterministic smoke 必须在 default branch 落后 parent HEAD 的 fixture 中
+证明生成 worktree 仍等于 parent HEAD；authenticated live probe 再证明 subagent 首个命令能
+看到当前 `tasks.md` 与正式 `tdd-run`。
+
+Task 2 的首次派发存在 worktree hook self-host 边界。bootstrap 只能是 repo 外的一次性控制
+脚本，不能复制或 import 正式 `worktree-create.mjs`，也不能进入 executor worktree。主
+orchestrator 在派发前记录脚本 absolute path、sha256、literal argv、独立只读审查 verdict，
+临时 control hook registration 只引用该外部脚本；Task 2 RED 必须证明仓库中的正式脚本尚不
+存在或正式 contract smoke 失败。executor 自己按测试实现产品脚本。派发完成后删除外部脚本与
+临时 registration，并记录清理结果；bootstrap 只解决“进入正确基线”，不产生或替代任何
+RED/GREEN/REFACTOR receipt。
 
 #### 2. Authoritative TDD receipt
 
@@ -319,7 +362,7 @@ HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs v
 ### 最终方案与实施顺序
 
 1. 先写六组 deterministic RED smoke。
-2. 修入口、scoped subtype 与 executor worktree frontmatter。
+2. 修入口、scoped subtype、executor worktree frontmatter 与 parent-HEAD WorktreeCreate。
 3. 实现 agent lifecycle receipt/hooks，再改 explore/write gate。
 4. 实现 authoritative `tdd-run` 与 receipt validator。
 5. 让 verify/stop/archive 消费 shared completion predicate。
@@ -341,6 +384,10 @@ HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs v
   - 缓解：Post snapshot/violation；首版不宣称 OS 级安全边界。
 - 风险：Claude 旧 session 使用旧 plugin cache。
   - 缓解：验收使用 `--plugin-dir` clean session；安装更新后要求 reload/new session。
+- 风险：自定义 WorktreeCreate 输出污染或路径/branch 冲突导致隔离启动失败。
+  - 缓解：安全 slug、canonical containment + symlink 拒绝、branch/path exclusive create、
+    HEAD 后验一致性与精确补偿清理；stdout 只输出最终绝对路径，全部诊断走 stderr，任何异常
+    fail closed。
 - 风险：live E2E 认证/费用。
   - 处理：本机已认证则必跑；CI 无凭据明确 skip，deterministic gate 仍 blocking。
 
@@ -348,8 +395,8 @@ HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs v
 
 - 若 Agent hook 的官方实际 payload 与文档不符：保存 sanitized event fixture，收缩 matcher，
   不以猜测字段放行。
-- 若 worktree receipt 无法从事件绑定：保留 `isolation: worktree`，以 hook cwd + git common-dir
-  验证；仍无法证明则 BLOCK，不回退文本自报。
+- 若 WorktreeCreate 无法从 parent cwd 的 HEAD 建立并复核：BLOCK 派发，不回退 default branch，
+  不允许 executor 通过 checkout 猜测修复基线。
 - 若全仓 regression 发现 legacy break：只修 compatibility adapter，不降低 strict 新 change gate。
 - 回退条件：live plugin-only 无法加载 skill、Agent start/stop 无法关联、或 archive predicate
   产生数据损坏风险。

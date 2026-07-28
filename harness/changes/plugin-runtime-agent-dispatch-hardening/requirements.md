@@ -32,9 +32,12 @@
    - subagent 内部工具事件用 `agent_id` 回查已登记身份，不假设通用工具事件含 `agent_type`；
    - `SubagentStop` 校验 `agent_id`、scoped `agent_type`、`agent_transcript_path` 与结构化结果，
      malformed packet 通过 `decision=block` 反馈给 subagent，且尊重 `stop_hook_active` 防循环；
-   - `tdd-executor` agent frontmatter 必须声明 `isolation: worktree`。Claude 默认 worktree
-     创建行为不应被自定义 `WorktreeCreate` hook 替换；receipt 以 start/stop cwd、git HEAD
-     与真实 runner 输出证明 worktree，而不是相信 worker 文本。
+   - `tdd-executor` agent frontmatter 必须声明 `isolation: worktree`。Claude 官方默认行为会从
+     default branch 而不是 parent session `HEAD` 创建 worktree；本仓 live probe 已证明这会让
+     executor 落到旧 `origin/main`、看不到当前 change。因此必须由受控 `WorktreeCreate` hook
+     从事件 `cwd` 的当前 `HEAD` 创建 git worktree，并把规范化绝对路径作为 stdout 最后一个
+     非空行返回。receipt 继续以 start/stop cwd、git HEAD 与真实 runner 输出证明 worktree，
+     不能相信 worker 文本。
 
 ### 成功标准
 
@@ -64,6 +67,9 @@ Agent subtype，且多个 gate 接受可手填的 projection。企业使用者�
 - plugin skill/agent canonical name 使用 `enterprise-harness:` namespace。
 - `SubagentStart/Stop.agent_type` 对 plugin agent 是 scoped identifier；通用 hook 事件只有在
   subagent 内运行时携带 `agent_id`。运行时必须通过持久 receipt 将两者关联。
+- `isolation: worktree` 默认从 default branch 分支，而不是 parent session `HEAD`；本项目
+  必须用 `WorktreeCreate` hook 固定到派发时已提交的本地基线，且只允许安全 slug、git 仓库
+  内 `.claude/worktrees/` 目标和新建 branch/path。
 - CodeGraph CLI/MCP 与索引当前健康；Markdown/frontmatter 不在 CodeGraph 主要语义覆盖内，
   允许记录范围后 fallback 到 `rg`/Read。
 - 不新增 fat runtime orchestrator：skill 仍负责 Agent 编排，runtime/hook 负责状态原语、证据和阻断。

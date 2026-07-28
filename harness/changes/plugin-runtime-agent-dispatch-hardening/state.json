@@ -45,19 +45,19 @@
       "status": "pass",
       "reviewerId": "requirement-reviewer",
       "reviewedAt": "2026-07-28",
-      "digest": "0b44f79802a94352ac400d4bf7344f584d1b9f9c17b21c2ab4399c213f17d59f"
+      "digest": "199e490f05074c0c1c1c0a7a03eab615aad76a1be5b64595ede32e231784981a"
     },
     "design": {
       "status": "pass",
       "reviewerId": "design-reviewer",
       "reviewedAt": "2026-07-28",
-      "digest": "3c011e63b7fbc35f4a79606c263dd727374f269800ba60e0e9189addb9357c2d"
+      "digest": "b46c536b263b724743599923837a67c0ea2abd0c132b850ef9d0d3e51c3e6273"
     },
     "plan": {
       "status": "pass",
       "reviewerId": "plan-critic",
       "reviewedAt": "2026-07-28",
-      "digest": "9494c3feb4af7fbfb645d35db9b9196d25895522a5cb5e6547dff0c229afb8ba"
+      "digest": "45f27912f0c99f9c8343738f279799ea6ff00c1bb897b852dd242967e5e04717"
     },
     "task1Review": {
       "status": "pass",
@@ -102,6 +102,6 @@
     "digest": null,
     "validatedAt": null
   },
-  "revision": 2,
+  "revision": 3,
   "lastEventId": "wf_a1e4e669-d5b8-476d-9ab0-f63e9e4e947f"
 }
