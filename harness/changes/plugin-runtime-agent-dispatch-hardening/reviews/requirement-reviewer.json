@@ -1,0 +1,14 @@
+{
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "reviewerId": "requirement-reviewer",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    "requirements.md sha256:0b44f79802a94352ac400d4bf7344f584d1b9f9c17b21c2ab4399c213f17d59f",
+    "Canonical standalone/plugin entry semantics are explicit",
+    "Agent lifecycle, worktree and live E2E acceptance semantics are mechanically stated",
+    "Independent re-review result: PASS"
+  ],
+  "digest": "0b44f79802a94352ac400d4bf7344f584d1b9f9c17b21c2ab4399c213f17d59f",
+  "reviewedAt": "2026-07-28"
+}

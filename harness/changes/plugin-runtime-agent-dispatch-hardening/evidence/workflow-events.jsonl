@@ -1,0 +1,1 @@
+{"eventId":"wf_a1e4e669-d5b8-476d-9ab0-f63e9e4e947f","type":"decision","changeId":"plugin-runtime-agent-dispatch-hardening","actor":"workflow-runner","timestamp":"2026-07-28T08:53:13.885Z","state":"DESIGN_APPROVED","workflowStage":"plan","payload":{"decision":"freeze-slice","reason":"design-reviewer pass; P0 execution slice frozen","kind":"execution-readiness"}}

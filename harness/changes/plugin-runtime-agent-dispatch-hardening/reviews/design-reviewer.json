@@ -1,0 +1,16 @@
+{
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "reviewerId": "design-reviewer",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    "design.md sha256:3c011e63b7fbc35f4a79606c263dd727374f269800ba60e0e9189addb9357c2d",
+    "Agent dispatch binding uses Agent PostToolUse.tool_response.agentId",
+    "Worktree receipts use git-common-dir spool and atomic evidence import",
+    "Strict/legacy policy uses sealed one-time baseline migration",
+    "Portable launcher and runner-bootstrap amendments independently re-reviewed: PASS",
+    "Independent design re-review result: PASS"
+  ],
+  "digest": "3c011e63b7fbc35f4a79606c263dd727374f269800ba60e0e9189addb9357c2d",
+  "reviewedAt": "2026-07-28"
+}

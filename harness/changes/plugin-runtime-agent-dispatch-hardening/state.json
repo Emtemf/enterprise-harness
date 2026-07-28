@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 3,
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "tier": "L3",
+  "state": "TASKED",
+  "owner": "codex",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "available",
+      "queries": [
+        "status",
+        "query/callers/impact recommendExplorationLane",
+        "query/impact buildWorkflowResult",
+        "query loadActiveChange",
+        "query isGovernedTarget",
+        "query validateCompletionReviewers",
+        "query cmdArchive"
+      ],
+      "fallbackReason": "Markdown/frontmatter exact strings supplemented with rg/Read"
+    },
+    "documentation": {
+      "status": "official-docs",
+      "libraries": [
+        {
+          "name": "Claude Code",
+          "version": "2.1.220",
+          "source": "https://code.claude.com/docs"
+        }
+      ]
+    }
+  },
+  "decisions": [
+    "P0 scope frozen to canonical plugin entry, scoped dispatch, agent lifecycle hooks, agent-aware cumulative gates, trustworthy TDD receipt, completion/archive and release acceptance",
+    "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives"
+  ],
+  "blockers": [],
+  "approvals": {
+    "requirements": {
+      "status": "pass",
+      "reviewerId": "requirement-reviewer",
+      "reviewedAt": "2026-07-28",
+      "digest": "0b44f79802a94352ac400d4bf7344f584d1b9f9c17b21c2ab4399c213f17d59f"
+    },
+    "design": {
+      "status": "pass",
+      "reviewerId": "design-reviewer",
+      "reviewedAt": "2026-07-28",
+      "digest": "3c011e63b7fbc35f4a79606c263dd727374f269800ba60e0e9189addb9357c2d"
+    },
+    "plan": {
+      "status": "pass",
+      "reviewerId": "plan-critic",
+      "reviewedAt": "2026-07-28",
+      "digest": "9494c3feb4af7fbfb645d35db9b9196d25895522a5cb5e6547dff0c229afb8ba"
+    }
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "tddEvidence": {
+    "worktreeUsed": false,
+    "commandExecuted": null,
+    "commandOutputSummary": null,
+    "evidencePath": null
+  },
+  "goal": "修复 Claude Code 插件入口、subagent 派发、agent-aware hooks、权威执行证据与发布验收",
+  "successCriteria": [
+    "plugin-only /enterprise-harness:harness entry loads orchestrator and standalone /harness remains available",
+    "scoped agents dispatch deterministically",
+    "main-thread exploration and governed writes are blocked",
+    "forged TDD evidence and incomplete archive are rejected",
+    "plugin validation and deterministic/live E2E pass"
+  ],
+  "routingReason": "L3: plugin entry, skills, agents, hooks, runtime evidence, completion and release CI are cross-cutting governance surfaces",
+  "workflow": {
+    "stage": "tdd",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "planReady": true,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-tdd"
+  },
+  "validation": {
+    "status": "missing",
+    "digest": null,
+    "validatedAt": null
+  },
+  "revision": 2,
+  "lastEventId": "wf_a1e4e669-d5b8-476d-9ab0-f63e9e4e947f"
+}
