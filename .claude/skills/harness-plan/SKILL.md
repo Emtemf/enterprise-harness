@@ -38,7 +38,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 - 先消费 `design.md` 与当前 change 上下文
 - 先按 `harness/specs/brief-contract.md` 生成 task brief，再将设计拆为 touched files / test-first order / RED/GREEN evidence point
 - 产出 `tasks.md`
-- 然后派 `plan-critic`
+- 然后派 `enterprise-harness:plan-critic`
 - 返回后只消费 reviewer 的 block / advisory / pass 结论与下一步动作
 
 ## plan 必查项
@@ -58,7 +58,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 - 先明确文件和顺序，再谈实现细节
 - 不允许”实现时再想”的占位表述
 - 必须显式给出 RED/GREEN 验证点
-- 任务粒度要让 `plan-critic` 可以无猜测评审
+- 任务粒度要让 `enterprise-harness:plan-critic` 可以无猜测评审
 
 ## 【硬约束】必须创建 tasks.md
 
@@ -75,7 +75,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 ## Gate Discipline
 
 - plan/任务阶段同样不允许通过“继续”绕过 reviewer/gate
-- 若 `plan-critic` 未通过或 plan 仍为 draft，不得直接进入 TDD
+- 若 `enterprise-harness:plan-critic` 未通过或 plan 仍为 draft，不得直接进入 TDD
 
 ## 退出条件
 

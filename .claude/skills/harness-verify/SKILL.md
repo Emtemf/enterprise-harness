@@ -15,7 +15,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 参与角色通常包括：
 - Fullstack Developer（补实现/命令证据）
 - Principal Architect（必要时确认架构与设计一致性）
-- `verification-reviewer`（独立审查完成声明与 fresh evidence）
+- `enterprise-harness:verification-reviewer`（独立审查完成声明与 fresh evidence）
 - Human User（最终业务验收）
 
 verify 的目标是把工程验证和用户验收收成一个完成声明，而不是只跑几个命令。
@@ -41,7 +41,7 @@ verify 的目标是把工程验证和用户验收收成一个完成声明，而�
 最低要求：
 - 先消费 `validation.md`、reviewer verdict、当前 `state.json`
 - 若证据缺口仍在：先明确需要补哪类命令/哪份 verdict
-- 若需要独立复核完成声明：先按 `harness/specs/brief-contract.md` 生成 verification brief，再派 `verification-reviewer`
+- 若需要独立复核完成声明：先按 `harness/specs/brief-contract.md` 生成 verification brief，再派 `enterprise-harness:verification-reviewer`
 - 返回后只消费 `pass` / `block` / `advisory` 结论、`blockers` 与 `next-step`
 - 最后再决定是否满足 archive / completion gate
 

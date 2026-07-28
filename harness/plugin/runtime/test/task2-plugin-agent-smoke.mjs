@@ -10,6 +10,7 @@ const requiredRuntime = [
   'test/worktree-create-current-head-smoke.mjs',
   'test/plugin-entry-agent-contract-smoke.mjs',
   'test/portable-launcher-smoke.mjs',
+  'test/subagent-contract-smoke.mjs',
 ];
 for (const relative of requiredRuntime) {
   if (!fs.existsSync(path.join(root, 'harness/plugin/runtime', relative))) {
@@ -21,6 +22,7 @@ const components = [
   'plugin-entry-agent-contract-smoke.mjs',
   'portable-launcher-smoke.mjs',
   'worktree-create-current-head-smoke.mjs',
+  'subagent-contract-smoke.mjs',
   'agent-lifecycle-hook-smoke.mjs',
 ];
 let failed = false;

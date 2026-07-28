@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const mode = process.argv[2];
-const launcherPath = path.join(repoRoot, 'bin', 'enterprise-harness.mjs');
+const launcherModulePath = path.join(repoRoot, 'bin', 'enterprise-harness.mjs');
+const launcherExecutablePath = path.join(repoRoot, 'bin', 'enterprise-harness');
 const harnessSkill = fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'), 'utf-8');
 const literalShell = [
   'if command -v enterprise-harness >/dev/null 2>&1; then',
@@ -30,8 +31,8 @@ function pass(message) {
   process.exit(0);
 }
 
-function runNode(scriptPath, args, cwd, env = {}) {
-  return spawnSync('node', [scriptPath, ...args], {
+function runCommand(command, args, cwd, env = {}) {
+  return spawnSync(command, args, {
     cwd,
     encoding: 'utf-8',
     shell: false,
@@ -63,6 +64,12 @@ function removePathEntry(value, entry) {
     .join(path.delimiter);
 }
 
+function isExecutable(filePath) {
+  const stat = fs.statSync(filePath, { throwIfNoEntry: false });
+  if (!stat || !stat.isFile()) return false;
+  return (stat.mode & 0o111) !== 0;
+}
+
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node harness/plugin/runtime/test/portable-launcher-smoke.mjs <red|green|verify>');
   process.exit(1);
@@ -75,7 +82,10 @@ fs.mkdirSync(targetRoot, { recursive: true });
 
 try {
   const pathEnv = `${path.join(repoRoot, 'bin')}${path.delimiter}${process.env.PATH || ''}`;
-  const withLauncherPath = runNode(launcherPath, ['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
+  const commandProbe = runCommand('bash', ['-lc', 'command -v enterprise-harness'], targetRoot, {
+    PATH: pathEnv,
+  });
+  const withLauncherPath = runCommand('enterprise-harness', ['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
     PATH: pathEnv,
   });
 
@@ -93,12 +103,23 @@ try {
   });
 
   const failures = [];
-  if (!/import\.meta\.url/u.test(fs.readFileSync(launcherPath, 'utf-8'))) {
-    failures.push('portable launcher must locate runtime relative to import.meta.url');
+  if (!fs.existsSync(launcherExecutablePath)) {
+    failures.push('portable launcher must install a true extensionless executable bin/enterprise-harness');
+  } else if (!isExecutable(launcherExecutablePath)) {
+    failures.push('bin/enterprise-harness must be executable (mode 100755 or equivalent)');
+  }
+  if (!/import\.meta\.url/u.test(fs.readFileSync(launcherModulePath, 'utf-8'))) {
+    failures.push('portable launcher module must locate runtime relative to import.meta.url');
   }
   if (!harnessSkill.includes('command -v enterprise-harness')
       || !harnessSkill.includes('enterprise-harness launcher unavailable')) {
     failures.push('harness skill must embed the literal launcher probe/fallback shell snippet');
+  }
+  if (commandProbe.status !== 0) {
+    failures.push(`command -v enterprise-harness failed under PATH: exit=${commandProbe.status} stderr=${String(commandProbe.stderr || '').trim()}`);
+  }
+  if (!String(commandProbe.stdout || '').trim().endsWith('/bin/enterprise-harness')) {
+    failures.push(`command -v enterprise-harness must resolve the extensionless executable, got ${JSON.stringify(String(commandProbe.stdout || '').trim())}`);
   }
   if (withLauncherPath.status !== 0) {
     failures.push(`PATH-backed launcher start-change failed: exit=${withLauncherPath.status} stderr=${String(withLauncherPath.stderr || '').trim()}`);

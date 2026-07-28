@@ -28,9 +28,19 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const pluginJson = JSON.parse(read('.claude-plugin/plugin.json'));
 const harnessSkill = read('.claude/skills/harness/SKILL.md');
 const intakeSkill = read('.claude/skills/harness-intake/SKILL.md');
+const designSkill = read('.claude/skills/harness-design/SKILL.md');
+const planSkill = read('.claude/skills/harness-plan/SKILL.md');
+const verifySkill = read('.claude/skills/harness-verify/SKILL.md');
 const tddSkill = read('.claude/skills/harness-tdd/SKILL.md');
 const codeAnalysisRule = read('.claude/rules/10-code-analysis.md');
 const executorAgent = read('.claude/agents/tdd-executor.md');
+const reviewerAgents = {
+  docResearch: read('.claude/agents/doc-research.md'),
+  designReviewer: read('.claude/agents/design-reviewer.md'),
+  apiConsistencyReviewer: read('.claude/agents/api-consistency-reviewer.md'),
+  planCritic: read('.claude/agents/plan-critic.md'),
+  verificationReviewer: read('.claude/agents/verification-reviewer.md'),
+};
 const touchedTextFiles = [
   '.claude/skills/harness/SKILL.md',
   '.claude/skills/harness-intake/SKILL.md',
@@ -45,6 +55,87 @@ const touchedTextFiles = [
 }));
 const pluginStageSkills = touchedTextFiles.filter((entry) => entry.relativePath.startsWith('.claude/skills/'));
 
+const requiredScopedDispatch = [
+  {
+    file: '.claude/skills/harness/SKILL.md',
+    content: harnessSkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:code-explore',
+      'enterprise-harness:doc-research',
+      'enterprise-harness:design-reviewer',
+      'enterprise-harness:plan-critic',
+      'enterprise-harness:verification-reviewer',
+    ],
+    forbidden: [
+      '→ `doc-research`',
+      '派 `design-reviewer`',
+      '派 `plan-critic`',
+      '派 `verification-reviewer`',
+    ],
+  },
+  {
+    file: '.claude/skills/harness-intake/SKILL.md',
+    content: intakeSkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:code-explore',
+      'enterprise-harness:doc-research',
+    ],
+    forbidden: [
+      '再派 `doc-research`',
+    ],
+  },
+  {
+    file: '.claude/skills/harness-design/SKILL.md',
+    content: designSkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:code-explore',
+      'enterprise-harness:doc-research',
+      'enterprise-harness:design-reviewer',
+      'enterprise-harness:api-consistency-reviewer',
+    ],
+    forbidden: [
+      '再派 `code-explore` / `doc-research`',
+      '派 `design-reviewer`',
+      '补 `api-consistency-reviewer`',
+      '为 `api-consistency-reviewer` 留出可评审输入',
+    ],
+  },
+  {
+    file: '.claude/skills/harness-plan/SKILL.md',
+    content: planSkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:plan-critic',
+    ],
+    forbidden: [
+      '派 `plan-critic`',
+    ],
+  },
+  {
+    file: '.claude/skills/harness-tdd/SKILL.md',
+    content: tddSkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:tdd-executor',
+    ],
+    forbidden: [],
+  },
+  {
+    file: '.claude/skills/harness-verify/SKILL.md',
+    content: verifySkill,
+    required: [
+      '/enterprise-harness:harness',
+      'enterprise-harness:verification-reviewer',
+    ],
+    forbidden: [
+      '派 `verification-reviewer`',
+    ],
+  },
+];
+
 const failures = [];
 const pluginCommandPath = path.join(repoRoot, '.claude-plugin/commands/harness.md');
 if (Object.hasOwn(pluginJson, 'commands')) {
@@ -53,28 +144,22 @@ if (Object.hasOwn(pluginJson, 'commands')) {
 if (fs.existsSync(pluginCommandPath)) {
   failures.push('.claude-plugin/commands/harness.md must be removed to avoid command/skill collision');
 }
-if (!harnessSkill.includes('/enterprise-harness:harness')) {
-  failures.push('harness skill must document /enterprise-harness:harness as the plugin canonical entry');
-}
-if (!harnessSkill.includes('standalone') || !harnessSkill.includes('/harness')) {
-  failures.push('harness skill must preserve /harness for standalone source checkouts');
-}
-if (!intakeSkill.includes('/enterprise-harness:harness')) {
-  failures.push('harness-intake skill must reference the namespaced plugin entry');
+for (const { file, content, required, forbidden } of requiredScopedDispatch) {
+  for (const token of required) {
+    if (!content.includes(token)) {
+      failures.push(`${file} must include ${token}`);
+    }
+  }
+  for (const token of forbidden) {
+    if (content.includes(token)) {
+      failures.push(`${file} still contains bare plugin-facing dispatch prose: ${token}`);
+    }
+  }
 }
 for (const { relativePath, content } of pluginStageSkills) {
   if (!content.includes('/enterprise-harness:harness')) {
     failures.push(`${relativePath} must acknowledge /enterprise-harness:harness as the plugin entry`);
   }
-}
-if (!tddSkill.includes('enterprise-harness:tdd-executor')) {
-  failures.push('harness-tdd skill must dispatch enterprise-harness:tdd-executor');
-}
-if (!harnessSkill.includes('enterprise-harness:code-explore')) {
-  failures.push('harness skill must dispatch enterprise-harness:code-explore');
-}
-if (!intakeSkill.includes('enterprise-harness:code-explore')) {
-  failures.push('harness-intake skill must dispatch enterprise-harness:code-explore');
 }
 if (!codeAnalysisRule.includes('enterprise-harness:code-explore')) {
   failures.push('10-code-analysis.md must name enterprise-harness:code-explore explicitly');
@@ -98,6 +183,21 @@ if (/^name:\s*enterprise-harness:tdd-executor$/m.test(executorAgent)) {
 }
 if (!/^isolation:\s*worktree$/m.test(executorAgent)) {
   failures.push('tdd-executor frontmatter must declare isolation: worktree');
+}
+const logicalReviewerIdChecks = [
+  ['doc-research', reviewerAgents.docResearch],
+  ['design-reviewer', reviewerAgents.designReviewer],
+  ['api-consistency-reviewer', reviewerAgents.apiConsistencyReviewer],
+  ['plan-critic', reviewerAgents.planCritic],
+  ['verification-reviewer', reviewerAgents.verificationReviewer],
+];
+for (const [logicalName, content] of logicalReviewerIdChecks) {
+  if (!new RegExp(`^name:\\s*${logicalName}$`, 'm').test(content)) {
+    failures.push(`${logicalName} agent logical id must remain name: ${logicalName}`);
+  }
+  if (new RegExp(`^name:\\s*enterprise-harness:${logicalName}$`, 'm').test(content)) {
+    failures.push(`${logicalName} agent frontmatter must keep the logical id, not a scoped plugin id`);
+  }
 }
 
 const ok = failures.length === 0;

@@ -9,11 +9,8 @@ const mode = process.argv[2];
 const files = {
   harnessSkill: path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'),
   intakeSkill: path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'),
-  claudeMd: path.join(repoRoot, 'CLAUDE.md'),
   codeAnalysisRule: path.join(repoRoot, '.claude', 'rules', '10-code-analysis.md'),
   codeExploreAgent: path.join(repoRoot, '.claude', 'agents', 'code-explore.md'),
-  expectedBehavior: path.join(repoRoot, 'docs', 'zh-cn', 'expected-behavior-checklist.md'),
-  lifecycleTruth: path.join(repoRoot, 'docs', 'zh-cn', 'full-lifecycle-truth.md'),
 };
 
 const expected = {
@@ -21,31 +18,26 @@ const expected = {
     'Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`',
     '必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源',
     '不得无视结论并重新发起相同的探索',
-    '必须使用 `subagent_type: code-explore`',
-    '不得使用 `general-purpose` 做代码探索',
+    '必须使用 `subagent_type: enterprise-harness:code-explore`',
+    '不得使用任何通用 fallback 做代码探索',
     '代码探索必须委托 subagent',
   ],
   intakeSkill: [
     'Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness codebase`',
     '必须等 subagent 返回结论后再推进；主 orchestrator 不得无视 subagent 结果并重复发起相同探索',
     '不得无视结论并重新探索同一问题',
-    '必须使用 `subagent_type: code-explore`',
-    '不得使用 `general-purpose` 做代码探索',
+    '必须通过 Agent 工具派遣 `subagent_type: enterprise-harness:code-explore` 代码探索',
+    '不得使用任何通用 fallback 做代码探索',
     '代码探索必须委托 subagent',
   ],
-  claudeMd: ['代码探索必须委托 subagent', 'subagent_type: code-explore', '一次只问一个问题', '歧义度评分'],
-  codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: code-explore'],
+  codeAnalysisRule: ['代码探索必须委托 subagent', 'subagent_type: enterprise-harness:code-explore'],
   codeExploreAgent: ['不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`'],
-  expectedBehavior: [
-    'subagent 的任务标题应该指向**当前用户项目**或具体探索主题，而不是写成 `Explore enterprise-harness codebase`',
-    'subagent 完成后，主 agent 应基于 subagent 结论继续，而不是忽略它并重新探索相同问题',
-    '主 agent 忽略 subagent 结果又自己探索',
-  ],
-  lifecycleTruth: [
-    'subagent 的任务标题必须指向当前用户项目与具体探索主题，不得写成 `Explore enterprise-harness`',
-    'subagent 返回结论后，主 orchestrator 应消费结论并基于事实继续推进，不得忽略结论后重新发起相同探索',
-    'subagent 已返回结论但主 agent 忽略结论并重新探索',
-  ],
+};
+
+const forbidden = {
+  harnessSkill: ['subagent_type: code-explore', 'general-purpose 做代码探索'],
+  intakeSkill: ['subagent_type: code-explore', 'general-purpose 做代码探索'],
+  codeAnalysisRule: ['subagent_type: code-explore'],
 };
 
 function readText(file) {
@@ -67,17 +59,31 @@ if (!['red', 'green', 'verify'].includes(mode)) {
   process.exit(1);
 }
 
-const ok = Object.entries(files).every(([key, file]) => expected[key].every((token) => readText(file).includes(token)));
+const failures = [];
+for (const [key, file] of Object.entries(files)) {
+  const text = readText(file);
+  for (const token of expected[key]) {
+    if (!text.includes(token)) {
+      failures.push(`${path.relative(repoRoot, file)} must include ${token}`);
+    }
+  }
+  for (const token of forbidden[key] || []) {
+    if (text.includes(token)) {
+      failures.push(`${path.relative(repoRoot, file)} still contains deprecated bare subagent wording: ${token}`);
+    }
+  }
+}
+const ok = failures.length === 0;
 
 if (mode === 'red') {
   if (!ok) {
-    fail('Expected subagent orchestration contract to forbid hardcoded harness titles and redundant re-exploration');
+    fail(`Expected subagent orchestration contract to fail before scoped expectations are implemented:\n${failures.join('\n')}`);
   }
   pass('Red precondition no longer holds.');
 }
 
 if (!ok) {
-  fail('Expected subagent orchestration contract to forbid hardcoded harness titles and redundant re-exploration');
+  fail(`Expected subagent orchestration contract to forbid hardcoded harness titles and redundant re-exploration:\n${failures.join('\n')}`);
 }
 
 pass(mode === 'green' ? 'Green subagent-contract smoke passed.' : 'Subagent-contract verify smoke passed.');

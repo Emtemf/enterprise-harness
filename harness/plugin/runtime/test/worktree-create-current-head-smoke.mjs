@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const mode = process.argv[2] || 'verify';
 const hookPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'hooks', 'worktree-create.mjs');
+const hookSource = fs.readFileSync(hookPath, 'utf-8');
 
 function run(command, args, cwd, options = {}) {
   return spawnSync(command, args, {
@@ -52,9 +53,34 @@ function createRepo(name) {
   return root;
 }
 
-function assertNoRegisteredWorktree(root, worktreePath) {
+function fixtureBranchName(name) {
+  return `enterprise-harness/${name}`;
+}
+
+function fixtureWorktreePath(root, name) {
+  return path.join(root, '.claude', 'worktrees', name);
+}
+
+function listTrackedWorktrees(root) {
   const listed = git(root, 'worktree', 'list', '--porcelain');
-  assert.equal(listed.includes(path.resolve(worktreePath)), false, `unexpected worktree registration for ${worktreePath}`);
+  const stanzas = String(listed || '')
+    .split(/\n\n+/u)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  return stanzas.map((stanza) => {
+    const entry = {};
+    for (const line of stanza.split(/\n/u)) {
+      const [key, ...rest] = line.split(' ');
+      entry[key] = rest.join(' ');
+    }
+    return entry;
+  });
+}
+
+function assertNoRegisteredWorktree(root, worktreePath) {
+  const expected = path.resolve(worktreePath);
+  const listed = listTrackedWorktrees(root).some((entry) => path.resolve(entry.worktree || '') === expected);
+  assert.equal(listed, false, `unexpected worktree registration for ${worktreePath}`);
 }
 
 function assertNoBranch(root, branchName) {
@@ -63,44 +89,48 @@ function assertNoBranch(root, branchName) {
   assert.equal(String(result.stdout || '').trim(), '', `unexpected branch ${branchName}`);
 }
 
-function verifySuccessScenario() {
-  const root = createRepo('worktree-create-success');
+function verifyStaticCompensationContract() {
+  assert.equal(/function publishActiveChange[\s\S]*?fail\(/u.test(hookSource), false, 'publishActiveChange must not exit the process during post-add validation');
+  assert.equal(hookSource.includes("listed.includes(`worktree ${worktreePath}`)"), false, 'worktree ownership checks must not use substring matching');
+  assert.equal(hookSource.includes("listed.includes(`branch refs/heads/${branchName}`)"), false, 'branch ownership checks must not use cross-stanza substring matching');
+  assert.equal(/branch\s+-D\s+\$\{branchName\}/u.test(hookSource), false, 'cleanup must not delete a branch without exact ownership revalidation');
+}
+
+function verifySuccessScenario(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'task-probe\n');
   fs.writeFileSync(path.join(root, 'README.md'), 'base\nparent-head\n');
   git(root, 'add', 'README.md');
   git(root, 'commit', '-qm', 'parent head');
   const parentHead = git(root, 'rev-parse', 'HEAD');
+  const name = 'task-2-current-head';
 
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
-    name: 'task-2-current-head',
+    name,
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(String(result.stdout || '').trim(), stdoutLastNonEmptyLine(result), 'stdout must contain only the final absolute path');
   const worktreePath = stdoutLastNonEmptyLine(result);
   assert.equal(path.isAbsolute(worktreePath), true, 'worktree path must be absolute');
-  assert.equal(path.normalize(worktreePath), path.join(root, '.claude', 'worktrees', 'task-2-current-head'));
+  assert.equal(path.normalize(worktreePath), fixtureWorktreePath(root, name));
   assert.equal(git(worktreePath, 'rev-parse', 'HEAD'), parentHead, 'child worktree must match parent HEAD');
   assert.equal(fs.readFileSync(path.join(worktreePath, 'harness', 'ACTIVE_CHANGE'), 'utf-8'), 'task-probe\n');
-  return { root, worktreePath };
 }
 
-function verifyMissingActiveChangeCompatibility() {
-  const root = createRepo('worktree-create-no-active-change');
+function verifyMissingActiveChangeCompatibility(root) {
+  const name = 'task-2-no-active-change';
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
-    name: 'task-2-no-active-change',
+    name,
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const worktreePath = stdoutLastNonEmptyLine(result);
   assert.equal(fs.existsSync(path.join(worktreePath, 'harness', 'ACTIVE_CHANGE')), false, 'missing parent ACTIVE_CHANGE must not seed child ACTIVE_CHANGE');
-  return { root, worktreePath };
 }
 
-function verifyInvalidInputs() {
-  const root = createRepo('worktree-create-invalid');
+function verifyInvalidInputs(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'task-probe\n');
 
   const badName = runHook(root, {
@@ -125,21 +155,19 @@ function verifyInvalidInputs() {
   assert.notEqual(wrongEvent.status, 0);
 }
 
-function verifyBranchAndPathExclusion() {
-  const root = createRepo('worktree-create-exclusive');
+function verifyBranchAndPathExclusion(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'task-probe\n');
-  git(root, 'branch', 'enterprise-harness/task-2-conflict');
+  git(root, 'branch', fixtureBranchName('task-2-conflict'));
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
     name: 'task-2-conflict',
   });
   assert.notEqual(result.status, 0);
-  assertNoRegisteredWorktree(root, path.join(root, '.claude', 'worktrees', 'task-2-conflict'));
+  assertNoRegisteredWorktree(root, fixtureWorktreePath(root, 'task-2-conflict'));
 }
 
-function verifyInvalidActiveChangeFailsClosed() {
-  const root = createRepo('worktree-create-invalid-active');
+function verifyInvalidActiveChangeFailsClosed(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), '../escape\n');
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
@@ -149,8 +177,7 @@ function verifyInvalidActiveChangeFailsClosed() {
   assert.notEqual(result.status, 0);
 }
 
-function verifyMissingStateAtHeadFailsClosed() {
-  const root = createRepo('worktree-create-missing-state');
+function verifyMissingStateAtHeadFailsClosed(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'missing-change\n');
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
@@ -160,8 +187,7 @@ function verifyMissingStateAtHeadFailsClosed() {
   assert.notEqual(result.status, 0);
 }
 
-function verifySymlinkEscapeRejection() {
-  const root = createRepo('worktree-create-symlink');
+function verifySymlinkEscapeRejection(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'task-probe\n');
   fs.rmSync(path.join(root, '.claude'), { recursive: true, force: true });
   fs.symlinkSync(path.join(os.tmpdir(), 'outside-claude-target'), path.join(root, '.claude'));
@@ -171,44 +197,67 @@ function verifySymlinkEscapeRejection() {
     name: 'task-2-symlink',
   });
   assert.notEqual(result.status, 0);
-  assertNoBranch(root, 'enterprise-harness/task-2-symlink');
+  assertNoBranch(root, fixtureBranchName('task-2-symlink'));
 }
 
-function verifyCompensationOnHeadMismatch() {
-  const root = createRepo('worktree-create-compensate');
+function verifyCompensationOnHeadMismatch(root) {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), 'task-probe\n');
+  const name = 'task-2-compensate';
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
-    name: 'task-2-compensate',
+    name,
   }, {
     HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_HEAD_AFTER_ADD: 'f'.repeat(40),
   });
   assert.notEqual(result.status, 0);
-  const worktreePath = path.join(root, '.claude', 'worktrees', 'task-2-compensate');
+  const worktreePath = fixtureWorktreePath(root, name);
   assert.equal(fs.existsSync(worktreePath), false, 'compensation must remove the created worktree path');
   assertNoRegisteredWorktree(root, worktreePath);
-  assertNoBranch(root, 'enterprise-harness/task-2-compensate');
+  assertNoBranch(root, fixtureBranchName(name));
 
   const retry = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
-    name: 'task-2-compensate',
+    name,
   });
   assert.equal(retry.status, 0, retry.stderr || retry.stdout);
 }
 
-const expectations = [
-  () => fs.existsSync(hookPath),
-];
-const formalScriptPresent = expectations.every((check) => check());
+function cleanupRepo(root) {
+  if (!root || !fs.existsSync(root)) return;
+  for (const entry of listTrackedWorktrees(root)) {
+    const worktreePath = entry.worktree;
+    if (worktreePath && path.resolve(worktreePath).startsWith(path.resolve(path.join(root, '.claude', 'worktrees')))) {
+      run('git', ['worktree', 'remove', '--force', worktreePath], root);
+    }
+  }
+  const branchList = run('git', ['for-each-ref', '--format=%(refname:short)', 'refs/heads/enterprise-harness/'], root);
+  if (branchList.status === 0) {
+    for (const branchName of String(branchList.stdout || '').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean)) {
+      run('git', ['branch', '-D', branchName], root);
+    }
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+}
+
+const formalScriptPresent = fs.existsSync(hookPath);
 
 if (mode === 'red') {
-  if (formalScriptPresent) {
-    console.error('Expected formal worktree-create hook to be absent before implementation.');
+  const failures = [];
+  if (!formalScriptPresent) {
+    failures.push('Missing harness/plugin/runtime/hooks/worktree-create.mjs');
+  }
+  try {
+    verifyStaticCompensationContract();
+  } catch (error) {
+    failures.push(error.message);
+  }
+  if (failures.length > 0) {
+    console.error(`Expected worktree-create contract to fail before implementation:\n${failures.join('\n')}`);
     process.exit(1);
   }
-  console.log('PASS worktree-create-current-head red');
+  console.log('Red precondition no longer holds.');
   process.exit(0);
 }
 
@@ -217,24 +266,52 @@ if (!formalScriptPresent) {
   process.exit(1);
 }
 
-const created = [];
+const fixtureRoots = [];
 try {
-  created.push(verifySuccessScenario());
-  created.push(verifyMissingActiveChangeCompatibility());
-  verifyInvalidInputs();
-  verifyBranchAndPathExclusion();
-  verifyInvalidActiveChangeFailsClosed();
-  verifyMissingStateAtHeadFailsClosed();
-  verifySymlinkEscapeRejection();
-  verifyCompensationOnHeadMismatch();
+  verifyStaticCompensationContract();
+  {
+    const root = createRepo('worktree-create-success');
+    fixtureRoots.push(root);
+    verifySuccessScenario(root);
+  }
+  {
+    const root = createRepo('worktree-create-no-active-change');
+    fixtureRoots.push(root);
+    verifyMissingActiveChangeCompatibility(root);
+  }
+  {
+    const root = createRepo('worktree-create-invalid');
+    fixtureRoots.push(root);
+    verifyInvalidInputs(root);
+  }
+  {
+    const root = createRepo('worktree-create-exclusive');
+    fixtureRoots.push(root);
+    verifyBranchAndPathExclusion(root);
+  }
+  {
+    const root = createRepo('worktree-create-invalid-active');
+    fixtureRoots.push(root);
+    verifyInvalidActiveChangeFailsClosed(root);
+  }
+  {
+    const root = createRepo('worktree-create-missing-state');
+    fixtureRoots.push(root);
+    verifyMissingStateAtHeadFailsClosed(root);
+  }
+  {
+    const root = createRepo('worktree-create-symlink');
+    fixtureRoots.push(root);
+    verifySymlinkEscapeRejection(root);
+  }
+  {
+    const root = createRepo('worktree-create-compensate');
+    fixtureRoots.push(root);
+    verifyCompensationOnHeadMismatch(root);
+  }
   console.log(`PASS worktree-create-current-head ${mode}`);
 } finally {
-  for (const entry of created) {
-    if (entry?.worktreePath) {
-      run('git', ['worktree', 'remove', '--force', entry.worktreePath], entry.root);
-    }
-    if (entry?.root) {
-      fs.rmSync(entry.root, { recursive: true, force: true });
-    }
+  for (const root of fixtureRoots) {
+    cleanupRepo(root);
   }
 }

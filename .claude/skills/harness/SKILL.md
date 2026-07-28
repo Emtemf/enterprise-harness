@@ -85,7 +85,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
      - **C 上下文**：探索事实（引用具体文件）+ 影响矩阵
      - **E 证据**：每个决策的证据来源 + 测试策略 + 验证命令
      - **P 路径**：方案对比表 + 接口/数据/架构设计 + 风险回滚 + **纠正预案**
-3. 跑 `design-reviewer`，获得 pass verdict
+3. 跑 `enterprise-harness:design-reviewer`，获得 pass verdict
 4. 更新 `state.json`：`gates.designApproved=true`、`workflow.stage='design'`
 5. **不得在 design.md 不存在时进入 plan**
 
@@ -101,7 +101,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
      - **RED evidence point**（哪个测试先失败 + 对应 mvn 命令）
      - **GREEN evidence point**（哪个测试后通过 + 对应 mvn 命令）
      - Acceptance checks
-2. 跑 `plan-critic`，获得 pass verdict
+2. 跑 `enterprise-harness:plan-critic`，获得 pass verdict
 3. 更新 `state.json`：`workflow.planReady=true`、`workflow.stage='plan'`
 4. **不得在 tasks.md 不存在时进入 tdd
 
@@ -134,7 +134,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
 
 1. 更新 `validation.md`（运行了什么命令、结果是什么）
 2. 跑 `cli.mjs verify`（必须 OK）
-3. 跑 `verification-reviewer`（必须 pass）
+3. 跑 `enterprise-harness:verification-reviewer`（必须 pass）
 4. 更新 `state.json`：`validation.status=fresh`
 
 ### 第 7 步：archive（归档）
@@ -196,7 +196,7 @@ node harness/plugin/runtime/cli.mjs lifecycle archive <change-id>
 
 clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
 - 代码事实 / 调用链 / 影响面不清 → `code-explore`（codegraph 一套搞定定位+传播）
-- 外部库/框架/SDK 版本行为不清 → `doc-research`
+- 外部库/框架/SDK 版本行为不清 → `enterprise-harness:doc-research`
 
 ## 当前动作顺序（orchestrator shell 显示要求）
 
@@ -205,10 +205,10 @@ clarify 阶段应优先补事实再问用户，不得先问用户去替系统做
 最低要求：
 - clarify：先补 repo/documentation facts，再做 ambiguity scoring，再问一个 weakest-dimension 问题
 - route：先消费 clarify 结果，再决定 tier / impact / route 结论
-- design：先消费 requirements / exploration，再产出 design，再派 `design-reviewer`
-- plan：先消费 design，再产出 tasks，再派 `plan-critic`
+- design：先消费 requirements / exploration，再产出 design，再派 `enterprise-harness:design-reviewer`
+- plan：先消费 design，再产出 tasks，再派 `enterprise-harness:plan-critic`
 - tdd：先派 `tdd-executor`，再消费 RED/GREEN/REFACTOR 摘要并推进子状态
-- verify：先消费 `validation.md` / reviewer verdict，再派 `verification-reviewer` 或直接统一消费完成态证据
+- verify：先消费 `validation.md` / reviewer verdict，再派 `enterprise-harness:verification-reviewer` 或直接统一消费完成态证据
 
 若某一轮会派 subagent，必须显式说明：
 - 会派哪个 agent

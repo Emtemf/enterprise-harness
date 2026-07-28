@@ -58,10 +58,10 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 
 最低要求：
 - 先消费 `requirements.md` / `change.md` / `CLAUDE.md` / exploration evidence
-- 若接口、数据、调用方或外部行为边界不清：先按 `harness/specs/brief-contract.md` 生成 design exploration brief，再派 `code-explore` / `doc-research`
+- 若接口、数据、调用方或外部行为边界不清：先按 `harness/specs/brief-contract.md` 生成 design exploration brief，再派 `enterprise-harness:code-explore` / `enterprise-harness:doc-research`
 - facts 补齐后产出 `design.md`
-- design 成稿后派 `design-reviewer`
-- 涉及 API 时，再补 `api-consistency-reviewer`
+- design 成稿后派 `enterprise-harness:design-reviewer`
+- 涉及 API 时，再补 `enterprise-harness:api-consistency-reviewer`
 
 若这一轮会派 subagent，必须显式说明：
 - 会派哪个 agent
@@ -73,7 +73,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 - 优先基于 `requirements.md`、`change.md`、目标项目 `CLAUDE.md` 与 exploration evidence 写 design
 - 若仓库事实不足，先触发代码/文档探索，再补设计
 - 设计不完整时不得直接跳到实现建议
-- 需要 API 一致性时，应为 `api-consistency-reviewer` 留出可评审输入
+- 需要 API 一致性时，应为 `enterprise-harness:api-consistency-reviewer` 留出可评审输入
 - **每个设计决策必须标注证据来源**，不得出现"我觉得这样好"而无支撑
 
 ## 【硬约束】必须创建 design.md
@@ -90,9 +90,9 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 
 ## Gate Discipline
 
-- `design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
+- `enterprise-harness:design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
 - 若 design review 发现 blocker，必须停留在 design 阶段修正，而不是靠聊天确认跳过
-- design-reviewer 必须检查 TECPC 五维是否都有实质内容（不是占位符）
+- `enterprise-harness:design-reviewer` 必须检查 TECPC 五维是否都有实质内容（不是占位符）
 
 ## 退出条件
 
