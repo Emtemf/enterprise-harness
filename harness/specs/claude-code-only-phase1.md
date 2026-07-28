@@ -22,7 +22,8 @@
 2. 统一阶段语义
 3. 统一恢复入口
 4. 统一 reviewer / verify 消费方式
-5. 统一文档真相层
+5. 统一 route 评分与 tier 判定说明
+6. 统一文档真相层
 
 > 当前真实实现里还存在一层 `execution-readiness / freeze-slice` gate，位于 design 与 plan 之间；在后续删掉或正式保留它之前，phase 1 设计必须显式承认它存在，避免设计/实现漂移。
 
