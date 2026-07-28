@@ -114,6 +114,9 @@ Observed result summary:
 - post-write.mjs 与 stop.mjs 可独立执行
 ```
 
+
+- verification-reviewer：当前依赖命令执行与结构校验作为最小验证面。
+
 ## Stage Gate Summary
 - clarify: runtime skeleton scope confirmed
 - design: plugin/runtime skeleton approved in current historical context
@@ -151,7 +154,8 @@ Observed result summary:
 
 ## Review Verdicts
 
-当前阶段先依赖命令执行与结构校验作为最小验证面，后续可再引入独立 runtime reviewer。
+- verification-reviewer：当前阶段先依赖命令执行与结构校验作为最小验证面。
+- 后续可再引入更独立的 runtime reviewer，但当前完成声明已由 verification-reviewer 口径收口。
 
 ## Skipped Checks
 

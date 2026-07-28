@@ -492,8 +492,23 @@ export function validateChangeEvidence(root) {
             .map((name) => name.replace(/\.json$/, ''));
         }
         const mustMention = new Set([...requiredReviewers, ...reviewFiles]);
+        function normalizeReviewerMention(text) {
+          return String(text || '')
+            .toLowerCase()
+            .replace(/`/g, '')
+            .replace(/：/g, ':')
+            .replace(/\btask\s+/g, 'task')
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+        const normalizedReviewText = normalizeReviewerMention(reviewVerdictsText);
         for (const reviewerId of mustMention) {
-          if (!reviewVerdictsText.includes(reviewerId)) {
+          const normalizedReviewerId = normalizeReviewerMention(reviewerId);
+          const reviewerIdWithTaskSpacing = normalizedReviewerId.replace(/-task([0-9a-z]+)/g, ' task$1');
+          const reviewerIdWithSpaces = normalizedReviewerId.replace(/-/g, ' ');
+          if (!normalizedReviewText.includes(normalizedReviewerId)
+            && !normalizedReviewText.includes(reviewerIdWithTaskSpacing)
+            && !normalizedReviewText.includes(reviewerIdWithSpaces)) {
             errors.push(`${changeDir}: validation.md Review Verdicts section does not mention required reviewer ${reviewerId}`);
           }
         }
