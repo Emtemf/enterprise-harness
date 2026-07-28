@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {
   changedWorktreePaths,
+  changedPathsBetween,
   headSnapshotDigest,
   runGit as runGitEvidence,
   worktreeSnapshotDigest,
@@ -94,11 +95,13 @@ if (refreshMetadata) {
     ...receipt.worktree,
     path: cwd,
     gitCommonDir,
-    headAfter: runGit(['rev-parse', 'HEAD'], cwd),
-    treeDigestBefore: headSnapshotDigest(cwd),
+    treeDigestBefore: headSnapshotDigest(cwd, receipt.worktree.headBefore),
     treeDigestAfter: worktreeSnapshotDigest(cwd),
   };
-  receipt.changedPaths = changedWorktreePaths(cwd);
+  receipt.changedPaths = [...new Set([
+    ...changedPathsBetween(cwd, receipt.worktree.headBefore),
+    ...changedWorktreePaths(cwd),
+  ])].sort();
   atomicWriteJson(receiptPath, receipt);
   console.log(`BOOTSTRAP_RECEIPT=${receiptPath}`);
   process.exit(0);
@@ -178,7 +181,10 @@ receipt.executions = [
   execution,
 ].sort((left, right) => ['RED', 'GREEN', 'REFACTOR'].indexOf(left.phase)
   - ['RED', 'GREEN', 'REFACTOR'].indexOf(right.phase));
-receipt.changedPaths = changedWorktreePaths(cwd);
+receipt.changedPaths = [...new Set([
+  ...changedPathsBetween(cwd, receipt.worktree.headBefore),
+  ...changedWorktreePaths(cwd),
+])].sort();
 atomicWriteJson(receiptPath, receipt);
 console.log(`BOOTSTRAP_RECEIPT=${receiptPath}`);
 process.exit(child.status ?? 1);

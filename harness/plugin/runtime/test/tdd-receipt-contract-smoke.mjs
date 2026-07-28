@@ -12,6 +12,7 @@ import {
 } from '../lib/tdd-receipts.mjs';
 import {
   changedWorktreePaths,
+  changedPathsBetween,
   headSnapshotDigest,
   worktreeSnapshotDigest,
 } from '../lib/git-evidence.mjs';
@@ -31,6 +32,11 @@ git('config', 'user.email', 'harness@example.invalid');
 git('config', 'user.name', 'Harness Smoke');
 git('add', '.');
 git('commit', '-qm', 'baseline');
+const baselineHead = spawnSync('git', ['rev-parse', 'HEAD'], {
+  cwd: root,
+  encoding: 'utf-8',
+  shell: false,
+}).stdout.trim();
 const cleanDigest = worktreeSnapshotDigest(root);
 assert.equal(cleanDigest, headSnapshotDigest(root), 'clean worktree and HEAD inventories must match');
 fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
@@ -41,6 +47,9 @@ assert.notEqual(
   cleanDigest,
   'untracked path and content must change the canonical worktree digest',
 );
+git('add', '.claude/settings.json');
+git('commit', '-qm', 'hidden path');
+assert.deepEqual(changedPathsBetween(root, baselineHead), ['.claude/settings.json']);
 const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const command = (phase) => allowedTaskCommand('task-1', phase);
 const base = {

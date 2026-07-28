@@ -52,6 +52,17 @@ export function changedWorktreePaths(cwd) {
   return [...new Set(paths)].sort();
 }
 
+export function changedPathsBetween(cwd, fromRef, toRef = 'HEAD') {
+  return nulRecords(runGit([
+    'diff',
+    '--name-only',
+    '-z',
+    fromRef,
+    toRef,
+    '--',
+  ], cwd)).sort();
+}
+
 export function worktreeSnapshotDigest(cwd) {
   const tracked = nulRecords(runGit(['ls-files', '-z'], cwd));
   const untracked = nulRecords(runGit(
