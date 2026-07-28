@@ -473,8 +473,30 @@ export function validateChangeEvidence(root) {
         errors.push(`${changeDir}: validation.md Final Verdict section is empty`);
       }
       const reviewVerdictsMatch = text.match(/## Review Verdicts\n([\s\S]*?)(\n## |$)/);
-      if (reviewVerdictsMatch && !reviewVerdictsMatch[1].trim()) {
+      const reviewVerdictsText = (reviewVerdictsMatch?.[1] || '').trim();
+      if (reviewVerdictsMatch && !reviewVerdictsText) {
         errors.push(`${changeDir}: validation.md Review Verdicts section is empty`);
+      }
+      if (reviewVerdictsText && state) {
+        const requiredReviewers = validateCompletionReviewers(root, entry.name, state)
+          .map((problem) => {
+            const match = problem.match(/required reviewer ([a-z-]+)/i);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean);
+        const reviewFilesDir = path.join(changeDir, 'reviews');
+        let reviewFiles = [];
+        if (fs.existsSync(reviewFilesDir)) {
+          reviewFiles = fs.readdirSync(reviewFilesDir)
+            .filter((name) => name.endsWith('.json'))
+            .map((name) => name.replace(/\.json$/, ''));
+        }
+        const mustMention = new Set([...requiredReviewers, ...reviewFiles]);
+        for (const reviewerId of mustMention) {
+          if (!reviewVerdictsText.includes(reviewerId)) {
+            errors.push(`${changeDir}: validation.md Review Verdicts section does not mention required reviewer ${reviewerId}`);
+          }
+        }
       }
       const failuresMatch = text.match(/## Failures and Retries\n([\s\S]*?)(\n## |$)/);
       const skippedMatch = text.match(/## Skipped Checks\n([\s\S]*?)(\n## |$)/);
