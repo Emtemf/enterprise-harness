@@ -46,15 +46,28 @@ try {
 
   const exploration = spawnSync('node', [workflowPath, 'brief', changeId, 'exploration', 'repo-facts'], { cwd: repoCopy, encoding: 'utf-8' });
   const task = spawnSync('node', [workflowPath, 'brief', changeId, 'task', 'cancel-order'], { cwd: repoCopy, encoding: 'utf-8' });
+  const verification = spawnSync('node', [workflowPath, 'brief', changeId, 'verification', 'release-readiness'], { cwd: repoCopy, encoding: 'utf-8' });
 
   const explorationFile = path.join(changeDir, 'briefs', 'exploration-repo-facts.md');
   const taskFile = path.join(changeDir, 'briefs', 'task-cancel-order.md');
+  const verificationFile = path.join(changeDir, 'briefs', 'verification-release-readiness.md');
+  const explorationText = fs.readFileSync(explorationFile, 'utf-8');
+  const taskText = fs.readFileSync(taskFile, 'utf-8');
+  const verificationText = fs.readFileSync(verificationFile, 'utf-8');
   const ok = exploration.status === 0
     && task.status === 0
+    && verification.status === 0
     && fs.existsSync(explorationFile)
     && fs.existsSync(taskFile)
-    && fs.readFileSync(explorationFile, 'utf-8').includes('# Exploration Brief')
-    && fs.readFileSync(taskFile, 'utf-8').includes('# Task Brief');
+    && fs.existsSync(verificationFile)
+    && explorationText.includes('# Exploration Brief')
+    && explorationText.includes('repo-facts')
+    && taskText.includes('# Task Brief')
+    && taskText.includes(changeId)
+    && taskText.includes('cancel-order')
+    && verificationText.includes('# Verification Brief')
+    && verificationText.includes(changeId)
+    && verificationText.includes('release-readiness');
 
   if (mode === 'red') {
     if (!ok) {

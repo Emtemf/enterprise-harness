@@ -29,13 +29,36 @@ export function briefTemplatePath(root, kind) {
   throw new Error(`Unsupported brief kind: ${kind}`);
 }
 
+function applyTemplateMetadata(template, changeId, kind, name) {
+  const title = String(name || '').trim();
+  if (!title) return template;
+  if (kind === 'exploration') {
+    return template
+      .replace('## Question\n', `## Question\n${title}\n\n`)
+      .replace('## Scope\n', `## Scope\n- change-id: ${changeId}\n- brief-name: ${title}\n\n`);
+  }
+  if (kind === 'task') {
+    return template
+      .replace('## Change ID\n', `## Change ID\n${changeId}\n\n`)
+      .replace('## Task ID\n', `## Task ID\n${title}\n\n`)
+      .replace('## Goal\n', `## Goal\n${title}\n\n`);
+  }
+  if (kind === 'verification') {
+    return template
+      .replace('## Change ID\n', `## Change ID\n${changeId}\n\n`)
+      .replace('## Goal\n', `## Goal\n${title}\n\n`)
+      .replace('## Scope\n', `## Scope\n- verification-target: ${title}\n\n`);
+  }
+  return template;
+}
+
 export function ensureBrief(root, changeId, kind, name) {
   const dir = briefDir(root, changeId);
   fs.mkdirSync(dir, { recursive: true });
   const target = path.join(dir, briefFileName(kind, name));
   if (!fs.existsSync(target)) {
     const template = fs.readFileSync(briefTemplatePath(root, kind), 'utf-8');
-    fs.writeFileSync(target, template, 'utf-8');
+    fs.writeFileSync(target, applyTemplateMetadata(template, changeId, kind, name), 'utf-8');
   }
   return target;
 }
