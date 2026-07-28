@@ -2,48 +2,79 @@
   "changeId": "plugin-runtime-agent-dispatch-hardening",
   "reviewerId": "code-reviewer-task2",
   "verdict": "block",
+  "implementationCommit": "ab3603dd45249646e0366d7b74a7dd1b278378a3",
+  "receiptDigest": "92bc7607c0311a5f9c0fa5461e7803f0e62de284791829052efd37ac8783b7b8",
   "findings": [
     {
-      "id": "TASK2-LAUNCHER-001",
-      "severity": "critical",
-      "summary": "plugin PATH does not expose an executable named enterprise-harness",
-      "evidence": "bin/enterprise-harness.mjs is mode 100644 and portable-launcher-smoke invokes node by absolute path instead of the PATH command"
-    },
-    {
-      "id": "TASK2-SCOPED-DISPATCH-002",
       "severity": "high",
-      "summary": "plugin-facing reviewer and documentation agents are not all expressed as scoped subagent_type values",
-      "evidence": "harness design/intake/plan/verify skills and the main harness still use bare doc-research/design-reviewer/api-consistency-reviewer/plan-critic/verification-reviewer dispatch prose"
+      "path": ".claude/skills/harness-intake/SKILL.md; .claude/skills/harness/SKILL.md",
+      "line": "77; 198,210",
+      "problem": "Plugin-facing dispatch仍残留bare code-explore和tdd-executor。新增contract smoke未匹配这些措辞，因此在违反全scoped subtype要求时仍然通过。",
+      "minimalFix": "将三处改为enterprise-harness:code-explore和enterprise-harness:tdd-executor，并让测试识别所有已知逻辑agent在派发语境中的bare引用。"
     },
     {
-      "id": "TASK2-WORKTREE-COMPENSATION-003",
       "severity": "high",
-      "summary": "post-add failures can bypass compensation and cleanup does not prove path, branch and captured HEAD ownership",
-      "evidence": "publishActiveChange calls process-exiting fail after git worktree add; cleanup uses cross-stanza substring matching and deletes a branch without revalidating captured HEAD"
+      "path": "harness/plugin/runtime/test/subagent-contract-smoke.mjs",
+      "line": "9-14,16-41",
+      "problem": "修复通过删除CLAUDE.md、expected-behavior-checklist.md和full-lifecycle-truth.md的旧断言来让回归变绿，削弱了任务标题、结果消费和重复探索契约覆盖。",
+      "minimalFix": "恢复三个文件及原有行为断言；仅按standalone/plugin语义更新 subtype 期望，并继续断言原有标题和结果消费约束。"
     },
     {
-      "id": "TASK2-FIXTURE-LEAK-004",
+      "severity": "high",
+      "path": ".claude/skills/harness/SKILL.md; .claude/skills/harness-intake/SKILL.md; .claude/skills/harness-verify/SKILL.md",
+      "line": "49,142; 102,131,170,172; 65",
+      "problem": "Skills仍直接展示node harness/plugin/runtime命令。在clean plugin-only目标中这些路径不存在，与要求所有plugin backend动作使用portable launcher分支的合同冲突。",
+      "minimalFix": "将实际backend示例统一改为enterprise-harness优先、standalone本地runtime回退、否则BLOCK的确定性分支，并新增测试禁止回退分支之外的裸目标cwd runtime命令。"
+    },
+    {
       "severity": "medium",
-      "summary": "worktree smoke leaves most temporary repositories and the compensation retry worktree behind",
-      "evidence": "only two fixture results enter the final cleanup list"
+      "path": "harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs",
+      "line": "92-97,203-225",
+      "problem": "真实补偿测试只覆盖环境变量伪造的observed HEAD mismatch；上一轮关键的publishActiveChange失败和ownership变化仅靠静态源码字符串检查，没有行为覆盖。",
+      "minimalFix": "用真实post-checkout hook分别制造child ACTIVE_CHANGE碰撞或symlink以及branch HEAD变化；断言自有资源被补偿、所有权变化时资源被保留且明确要求人工恢复。"
     },
     {
-      "id": "TASK2-REGRESSION-005",
-      "severity": "high",
-      "summary": "existing subagent-contract smoke fails and is absent from the Task 2 aggregate",
-      "evidence": "subagent-contract-smoke.mjs still asserts bare subtype and general-purpose wording"
+      "severity": "medium",
+      "path": "harness/plugin/runtime/test/portable-launcher-smoke.mjs",
+      "line": "85",
+      "problem": "command-v探针使用bash -lc，登录启动文件可以重写PATH，使确定性测试产生环境相关结果。直接spawn确实验证了launcher，但该探针本身仍不稳定。",
+      "minimalFix": "改用bash --noprofile --norc -c或非login shell，并继续使用受控PATH断言解析到extensionless executable。"
+    },
+    {
+      "severity": "medium",
+      "path": "harness/plugin/runtime/hooks/worktree-create.mjs",
+      "line": "178,221",
+      "problem": "目标路径存在性和补偿后消失检查使用fs.existsSync，会把dangling symlink当作不存在，不满足既有目标必须拒绝及补偿后路径确实消失的严格契约。",
+      "minimalFix": "使用lstatSync(..., {throwIfNoEntry:false})判断目录项存在，并增加预置及补偿后dangling symlink行为测试。"
     }
   ],
   "evidence": [
-    "reviewedMainCommit:8d067040c0b5e4a85acf54b80fe026801d9c4df0",
-    "executorCommit:6e2251cd5bbed39e224a9582ec3571ebab9b2c44",
-    "receiptDigest:13dd6bb40a6c5305303697f224aa9dd39338d35b1d595a8206045b42b9c75841",
+    "sha256sum authoritative receipt => 92bc7607c0311a5f9c0fa5461e7803f0e62de284791829052efd37ac8783b7b8",
     "node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify => pass",
-    "node harness/plugin/runtime/test/subagent-contract-smoke.mjs verify => fail",
-    "clean PATH command-v/exec probe => exit 1/127"
+    "node harness/plugin/runtime/test/subagent-contract-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/portable-launcher-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs verify => pass despite remaining bare dispatches",
+    "PATH=<repo>/bin:/usr/bin:/bin enterprise-harness --help => pass",
+    "stat/git tree mode bin/enterprise-harness => extensionless executable 100755",
+    "before/after /tmp worktree-create-* fixture set comparison => unchanged",
+    "git diff --check e1c5cbbd..ab3603dd => pass",
+    "bash -n bin/enterprise-harness => pass",
+    "git status --short after tests => clean"
   ],
-  "implementationCommit": "8d067040c0b5e4a85acf54b80fe026801d9c4df0",
-  "executorCommit": "6e2251cd5bbed39e224a9582ec3571ebab9b2c44",
-  "receiptDigest": "13dd6bb40a6c5305303697f224aa9dd39338d35b1d595a8206045b42b9c75841",
+  "testsRun": [
+    "sha256sum authoritative receipt => 92bc7607c0311a5f9c0fa5461e7803f0e62de284791829052efd37ac8783b7b8",
+    "node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/subagent-contract-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/portable-launcher-smoke.mjs verify => pass",
+    "node harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs verify => pass despite remaining bare dispatches",
+    "PATH=<repo>/bin:/usr/bin:/bin enterprise-harness --help => pass",
+    "stat/git tree mode bin/enterprise-harness => extensionless executable 100755",
+    "before/after /tmp worktree-create-* fixture set comparison => unchanged",
+    "git diff --check e1c5cbbd..ab3603dd => pass",
+    "bash -n bin/enterprise-harness => pass",
+    "git status --short after tests => clean"
+  ],
   "reviewedAt": "2026-07-28"
 }

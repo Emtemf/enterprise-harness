@@ -1,4 +1,5 @@
 {
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
   "reviewerId": "design-reviewer",
   "reviewedAt": "2026-07-28",
   "scope": "parent-HEAD WorktreeCreate design and Task 2 self-host boundary",
@@ -11,6 +12,12 @@
     "WT-GLOBAL-MISSING-002"
   ],
   "verdict": "pass",
+  "findings": [],
+  "evidence": [
+    "approvedRequirementsDigest:199e490f05074c0c1c1c0a7a03eab615aad76a1be5b64595ede32e231784981a",
+    "approvedDesignDigest:2561ee2d18a3ea6d895e79af318fab881cf903b23a34cd0291d9f88937d6fa30",
+    "approvedTasksDigest:87ff225d6a7f24f6dcdf7aeb1e995eca6b4e9650696ffe7d0e2bee29fc61daf7"
+  ],
   "blockingFindings": [],
   "approvedRequirementsDigest": "199e490f05074c0c1c1c0a7a03eab615aad76a1be5b64595ede32e231784981a",
   "approvedDesignDigest": "2561ee2d18a3ea6d895e79af318fab881cf903b23a34cd0291d9f88937d6fa30",
