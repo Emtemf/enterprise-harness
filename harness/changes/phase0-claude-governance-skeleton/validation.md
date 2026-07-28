@@ -113,6 +113,9 @@ Change evidence validation passed.
 Full verify（骨架阶段）通过。
 ```
 
+
+- verification-reviewer：已基于当前 active change 下的 validation artifact 重新审查完成声明。
+
 ## Stage Gate Summary
 - clarify: skeleton stage only
 - design: not applicable
