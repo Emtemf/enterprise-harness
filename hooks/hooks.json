@@ -14,6 +14,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/pre-agent.mjs\"",
+            "timeout": 10,
+            "statusMessage": "校验 scoped Agent 派发"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -38,6 +49,17 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/post-agent.mjs\"",
+            "timeout": 10,
+            "statusMessage": "绑定 Agent 派发证据"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -45,6 +67,30 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/post-write.mjs\"",
             "timeout": 60,
             "statusMessage": "执行写入后治理检查"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/subagent-start.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 subagent 启动证据"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/harness/plugin/runtime/hooks/subagent-stop.mjs\"",
+            "timeout": 10,
+            "statusMessage": "校验 subagent 完成证据"
           }
         ]
       }

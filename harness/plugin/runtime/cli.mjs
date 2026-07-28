@@ -27,6 +27,9 @@ const commands = {
   lifecycle: ['lifecycle.mjs'],
   workflow: ['workflow.mjs'],
   context7: ['context7.mjs'],
+  'tdd-run': ['tdd-run.mjs'],
+  'evidence-import': ['evidence-import.mjs'],
+  'migrate-evidence-policy': ['migrate-evidence-policy.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {

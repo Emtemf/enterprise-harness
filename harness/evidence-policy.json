@@ -1,0 +1,15 @@
+{
+  "policyVersion": 1,
+  "strictByDefault": true,
+  "sealed": true,
+  "legacyBaselineCommit": "ab5626f8648ac28c420209eb9f2b8dfef9b103d6",
+  "legacyChangeIds": [
+    "clarify-first-staged-orchestrator",
+    "generic-openapi-controller-consistency-checker",
+    "intake-smoke-demo",
+    "phase0-claude-governance-skeleton",
+    "plugin-runtime-skeleton",
+    "reference-service-boundary-realignment"
+  ],
+  "contentDigest": "2aeb9889597eeb3e52bdc5ca422f9957eee4ed0b0bb4347fd86a4b46792846e3"
+}

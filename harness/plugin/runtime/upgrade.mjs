@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { migrateEvidencePolicy } from './migrate-evidence-policy.mjs';
 
 const help = process.argv.includes('--help') || process.argv.includes('-h');
 const repoRoot = process.cwd();
@@ -16,6 +17,15 @@ if (help) {
 
 console.log('Enterprise Harness Upgrade');
 console.log(`Target runtime version: ${manifest.version}`);
+try {
+  const policy = migrateEvidencePolicy(repoRoot, { write: true });
+  console.log(policy.created
+    ? `Created sealed evidence policy: ${policy.path}`
+    : `Evidence policy valid: ${policy.path}`);
+} catch (error) {
+  console.error(`BLOCK: ${error.message}`);
+  process.exit(2);
+}
 console.log('当前阶段仅提供升级骨架，不自动修改本机 secrets 或 shell 配置。');
 console.log('建议步骤:');
 console.log('- 运行 node harness/plugin/runtime/sync.mjs');
