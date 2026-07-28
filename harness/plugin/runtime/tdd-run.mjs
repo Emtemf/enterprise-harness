@@ -16,6 +16,7 @@ import {
 } from './lib/tdd-receipts.mjs';
 import {
   changedWorktreePaths,
+  headSnapshotDigest,
   worktreeSnapshotDigest,
 } from './lib/git-evidence.mjs';
 
@@ -115,7 +116,7 @@ if (['RED', 'GREEN', 'REFACTOR'][expectedIndex] !== phase) {
 }
 
 const headBefore = git(['rev-parse', 'HEAD'], root);
-const beforeDigest = treeDigest(root);
+const beforeDigest = headSnapshotDigest(root, headBefore);
 const startedAt = new Date().toISOString();
 const child = spawnSync(childArgv[0], childArgv.slice(1), {
   cwd: root,
