@@ -1,0 +1,88 @@
+{
+  "receiptVersion": 1,
+  "provenance": "runner-bootstrap",
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "taskId": "task-1",
+  "agent": {
+    "id": "bootstrap-tdd-executor",
+    "type": "enterprise-harness:tdd-executor"
+  },
+  "bootstrap": {
+    "scriptPath": "harness/plugin/runtime/test/support/bootstrap-tdd-run.mjs",
+    "scriptSha256": "4cd8eff38c6954327236ac3f5e536afe168e70f2fbc7c4f91d18e07c2f89acb3",
+    "nodeVersion": "v22.22.1"
+  },
+  "worktree": {
+    "path": "/tmp/sdd-task1-fix-Jwd6Qw",
+    "gitCommonDir": "/home/wula/IdeaProjects/sdd/.git",
+    "headBefore": "7378b4ffa0fd7f4e0a8f091e9db7ecdf47d7ba7a",
+    "headAfter": "5652bff89985e851de59bfbb3da4ab770d36ba08",
+    "treeDigestBefore": "fd3ef8167093fe87819cfafe175fc8097963c3511aa69979ea0249bbeae9ecb9",
+    "treeDigestAfter": "845adde06aaef7cdcac07ce845b6c60cb8c3e2918246bc1ed2b1da444178d336"
+  },
+  "changedPaths": [
+    "harness/plugin/runtime/evidence-import.mjs",
+    "harness/plugin/runtime/lib/agent-evidence.mjs",
+    "harness/plugin/runtime/lib/evidence-policy.mjs",
+    "harness/plugin/runtime/lib/git-evidence.mjs",
+    "harness/plugin/runtime/lib/import-validation.mjs",
+    "harness/plugin/runtime/lib/tdd-receipts.mjs",
+    "harness/plugin/runtime/tdd-run.mjs",
+    "harness/plugin/runtime/test/agent-lifecycle-hook-smoke.mjs",
+    "harness/plugin/runtime/test/evidence-import-adversarial-smoke.mjs",
+    "harness/plugin/runtime/test/evidence-policy-contract-smoke.mjs",
+    "harness/plugin/runtime/test/support/bootstrap-tdd-run.mjs",
+    "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+    "harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs"
+  ],
+  "executions": [
+    {
+      "phase": "RED",
+      "argv": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "red"
+      ],
+      "exitCode": 1,
+      "signal": null,
+      "startedAt": "2026-07-28T09:42:55.686Z",
+      "finishedAt": "2026-07-28T09:42:55.874Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "e5588371fa1a85cbd9194aeed0536b0fc6ee45f811352fec25ddb0b723deef2b"
+    },
+    {
+      "phase": "GREEN",
+      "argv": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "green"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "startedAt": "2026-07-28T09:46:03.593Z",
+      "finishedAt": "2026-07-28T09:46:04.533Z",
+      "stdoutDigest": "dee504a36e0f4b067a236f699e639cb7705268f66c7b2f0fff25853ae6eaa97f",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "REFACTOR",
+      "argv": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "verify"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "startedAt": "2026-07-28T09:51:18.419Z",
+      "finishedAt": "2026-07-28T09:51:19.409Z",
+      "stdoutDigest": "9a180d4bbc4edfb99d00177b015b9d6c61d331cecae0b89df676219a775c6365",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "import": {
+    "sourceSpoolDigest": "72afdc1779673a3dc7c4458036ec210356627274fb44aafe6775dd8d30ec1813",
+    "sourceWorktreeHead": "5652bff89985e851de59bfbb3da4ab770d36ba08",
+    "integrationHead": "3996796832afe2ed91f5bdcc8219b46474cd5387",
+    "importedAt": "2026-07-28T09:55:54.642Z"
+  }
+}

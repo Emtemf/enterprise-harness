@@ -39,9 +39,7 @@
     "P0 scope frozen to canonical plugin entry, scoped dispatch, agent lifecycle hooks, agent-aware cumulative gates, trustworthy TDD receipt, completion/archive and release acceptance",
     "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives"
   ],
-  "blockers": [
-    "Task 1 code review BLOCK: agent binding timing, forged/path-traversal import, policy downgrade and overwrite gaps"
-  ],
+  "blockers": [],
   "approvals": {
     "requirements": {
       "status": "pass",
@@ -62,10 +60,11 @@
       "digest": "9494c3feb4af7fbfb645d35db9b9196d25895522a5cb5e6547dff0c229afb8ba"
     },
     "task1Review": {
-      "status": "block",
+      "status": "pass",
       "reviewerId": "code-reviewer-task1",
       "reviewedAt": "2026-07-28",
-      "digest": "16c7568"
+      "digest": "72afdc1779673a3dc7c4458036ec210356627274fb44aafe6775dd8d30ec1813",
+      "implementationCommit": "3996796832afe2ed91f5bdcc8219b46474cd5387"
     }
   },
   "gates": {
