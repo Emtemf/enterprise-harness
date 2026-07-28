@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "changeId": "plugin-runtime-agent-dispatch-hardening",
   "tier": "L3",
-  "state": "TASKED",
+  "state": "EXECUTING",
   "owner": "codex",
   "impact": {
     "api": "no",
@@ -39,7 +39,9 @@
     "P0 scope frozen to canonical plugin entry, scoped dispatch, agent lifecycle hooks, agent-aware cumulative gates, trustworthy TDD receipt, completion/archive and release acceptance",
     "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives"
   ],
-  "blockers": [],
+  "blockers": [
+    "Task 1 code review BLOCK: agent binding timing, forged/path-traversal import, policy downgrade and overwrite gaps"
+  ],
   "approvals": {
     "requirements": {
       "status": "pass",
@@ -58,6 +60,12 @@
       "reviewerId": "plan-critic",
       "reviewedAt": "2026-07-28",
       "digest": "9494c3feb4af7fbfb645d35db9b9196d25895522a5cb5e6547dff0c229afb8ba"
+    },
+    "task1Review": {
+      "status": "block",
+      "reviewerId": "code-reviewer-task1",
+      "reviewedAt": "2026-07-28",
+      "digest": "16c7568"
     }
   },
   "gates": {
@@ -66,7 +74,7 @@
     "redTask": null,
     "redEvidenceRef": null
   },
-  "currentTask": null,
+  "currentTask": "task-1",
   "tddEvidence": {
     "worktreeUsed": false,
     "commandExecuted": null,

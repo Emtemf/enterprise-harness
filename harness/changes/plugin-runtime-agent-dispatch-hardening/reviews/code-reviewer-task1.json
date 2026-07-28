@@ -1,0 +1,19 @@
+{
+  "changeId": "plugin-runtime-agent-dispatch-hardening",
+  "reviewerId": "code-reviewer-task1",
+  "verdict": "block",
+  "findings": [
+    "Formal tdd-run requires post-Agent dispatch binding that cannot exist while a foreground subagent is still running",
+    "Importer accepts forged receipt fields without ledger/head/tree/changed-path provenance validation",
+    "Unsafe changeId permits evidence-import path traversal outside the change directory",
+    "Self-contained policy digest can be recomputed to downgrade a strict change",
+    "Durable receipt can be overwritten and bootstrap review is not bound to reviewed commit/digest"
+  ],
+  "evidence": [
+    "commit:16c7568",
+    "Task1 aggregate and component smokes passed but adversarial fixtures reproduced all findings",
+    "Independent review verdict: BLOCK"
+  ],
+  "digest": "16c7568",
+  "reviewedAt": "2026-07-28"
+}
