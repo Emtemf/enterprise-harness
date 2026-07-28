@@ -257,9 +257,11 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 - [ ] 无 `general-purpose` fallback
 - [ ] default branch 落后 parent HEAD 的 fixture 中，WorktreeCreate 仍精确复制 parent HEAD
 - [ ] WorktreeCreate 拒绝非法 name、已有 branch/path、非 git cwd，stdout 只有最终绝对路径
+- [ ] child 只播种 parent 的 safe ACTIVE_CHANGE；缺失时兼容创建但不播种，非法或 HEAD 中无对应 state 才 fail closed
+- [ ] live SubagentStart 在第一条 worker Bash 前已有 active change 并写入 start receipt
 - [ ] `.claude`/`worktrees` symlink escape 被拒绝，仓库外无目录、branch、registration 副作用
 - [ ] HEAD 后验故障注入后仅清理本次新建 path/registration/branch，可在同 name 下安全重试
-- [ ] repo 外 bootstrap 有 sha256 + 独立 review + literal argv + 销毁证据，且 Task 2 RED 时正式脚本不存在
+- [ ] repo 外 bootstrap 的 parent-HEAD + ACTIVE_CHANGE 播种均有 sha256 + 独立 review + literal argv + 销毁证据，且 Task 2 RED 时正式脚本不存在
 - [ ] launcher script path 相对 `import.meta.url`，target state 相对调用 cwd
 - [ ] plugin skill 先 `command -v enterprise-harness`，缺失时 BLOCK；standalone 才走本地 Node fallback
 

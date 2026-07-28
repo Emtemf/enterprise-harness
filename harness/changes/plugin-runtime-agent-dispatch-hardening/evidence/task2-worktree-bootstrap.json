@@ -1,0 +1,43 @@
+{
+  "evidenceVersion": 1,
+  "purpose": "repo-external one-time bootstrap for the first Task 2 parent-HEAD worktree",
+  "productImplementation": false,
+  "createsTddReceipt": false,
+  "scriptPath": "/tmp/sdd-worktree-bootstrap-hLpSaA/create-current-head-worktree.sh",
+  "scriptSha256": "ea192b8e7bc594a3a11bc226f9bbcd4a96d2d303d475f9a41ba4868d5ee99a9d",
+  "literalCommand": [
+    "/tmp/sdd-worktree-bootstrap-hLpSaA/create-current-head-worktree.sh"
+  ],
+  "controlCheckout": "/tmp/sdd-task2-control-7MAwIS",
+  "controlHead": "5045be5",
+  "review": {
+    "reviewerId": "bootstrap-security-reviewer",
+    "verdict": "pass",
+    "blockingFindings": [],
+    "reviewedDigest": "ea192b8e7bc594a3a11bc226f9bbcd4a96d2d303d475f9a41ba4868d5ee99a9d"
+  },
+  "preDispatchChecks": {
+    "bashSyntax": "pass",
+    "disposableFixtureParentHead": "pass",
+    "repositoryProductScriptExists": false,
+    "activePointerFixture": "pass",
+    "authenticatedHostAttempt1": {
+      "status": "blocked-before-subagent-start",
+      "reason": "Claude hook stdin could not be reopened through /dev/stdin",
+      "tddReceiptCreated": false,
+      "implementationCommitCreated": false
+    },
+    "authenticatedHostAttempt2": {
+      "status": "stopped-before-red",
+      "reason": "dispatch brief expanded REFACTOR child mode incorrectly; inspection also proved SubagentStart ran before gitignored ACTIVE_CHANGE existed in child",
+      "tddReceiptCreated": false,
+      "implementationCommitCreated": false,
+      "agentStartReceiptCreated": false
+    }
+  },
+  "cleanup": {
+    "status": "pending",
+    "scriptRemoved": false,
+    "temporaryRegistrationRemoved": false
+  }
+}

@@ -6,16 +6,20 @@
   "resolvedBlockingFindings": [
     "WT-SELF-HOST-001",
     "WT-PATH-002",
-    "WT-ATOMIC-003"
+    "WT-ATOMIC-003",
+    "WT-BOOTSTRAP-ACTIVE-001",
+    "WT-GLOBAL-MISSING-002"
   ],
   "verdict": "pass",
   "blockingFindings": [],
   "approvedRequirementsDigest": "199e490f05074c0c1c1c0a7a03eab615aad76a1be5b64595ede32e231784981a",
-  "approvedDesignDigest": "b46c536b263b724743599923837a67c0ea2abd0c132b850ef9d0d3e51c3e6273",
-  "approvedTasksDigest": "45f27912f0c99f9c8343738f279799ea6ff00c1bb897b852dd242967e5e04717",
+  "approvedDesignDigest": "2561ee2d18a3ea6d895e79af318fab881cf903b23a34cd0291d9f88937d6fa30",
+  "approvedTasksDigest": "87ff225d6a7f24f6dcdf7aeb1e995eca6b4e9650696ffe7d0e2bee29fc61daf7",
   "notes": [
     "repo-external bootstrap is independently reviewed and cannot replace Task 2 TDD evidence",
     "canonical containment rejects symlink escape",
-    "post-add validation failures compensate only resources created by the current invocation"
+    "post-add validation failures compensate only resources created by the current invocation",
+    "safe ACTIVE_CHANGE is seeded before SubagentStart while missing pointers remain compatible for unrelated worktrees",
+    "post-checkout root and harness containment plus no-clobber publish prevent symlink escape"
   ]
 }

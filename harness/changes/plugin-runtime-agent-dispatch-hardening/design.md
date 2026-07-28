@@ -166,8 +166,19 @@ standalone `.claude/settings.json` 的 `WorktreeCreate` 事件调用：
   `.claude`、`.claude/worktrees` 逐级 `lstat`，任一既有组件是 symlink 即拒绝；创建父目录后
   用 `realpath` 证明 canonical parent 仍在 canonical repo root 内，不能靠词法 prefix；
 - 使用 argv 形式 `git worktree add -b <branch> <absolute-path> <head>`，`shell:false`；
-- git 输出只写 stderr；成功后校验 worktree `HEAD` 精确等于捕获的 parent HEAD，再把规范化
-  absolute path 作为 stdout 最后一个非空行；
+- git 输出只写 stderr；成功后校验 worktree `HEAD` 精确等于捕获的 parent HEAD；
+- `SubagentStart` 在 worker 第一条 Bash 前发生，而 gitignored `harness/ACTIVE_CHANGE` 不会随
+  checkout 出现。hook 在 HEAD 校验后检查 parent repo 的 `harness/ACTIVE_CHANGE`：缺失时按
+  全局 hook 兼容性正常创建 worktree 但不播种 pointer；存在时只接受 safe change id，且要求
+  对应 `harness/changes/<id>/state.json` 已存在于捕获 HEAD，否则 fail closed。合法时用
+  exclusive temp + hard-link no-clobber publish 把这一行写入 child 的
+  `harness/ACTIVE_CHANGE`。写入前重新 `lstat`/`realpath` 证明 parent/child `harness` 目录
+  分别仍在 canonical repo/worktree 内且不是 symlink；任何 `git -C child` 或写入前还要证明
+  child root 本身不是 symlink 且 realpath 精确等于 canonical parent/name，避免 checkout hook
+  后的路径替换。hard-link 使用 no-target-directory 语义，目标碰撞必须原子失败。不复制其他
+  ignored 或未提交文件。写入失败视为 worktree 创建失败并进入精确补偿；tdd-executor 必须有
+  active change 的约束仍由 Agent PreToolUse gate 保证；
+- ACTIVE_CHANGE 播种后才把规范化 absolute path 作为 stdout 最后一个非空行；
 - `git worktree add` 成功后的任何校验失败都进入补偿：先从
   `git worktree list --porcelain` 精确确认 branch/path 是本次调用创建的 registration，再依次
   `git worktree remove --force <exact-path>`、确认 registration/path 消失、
@@ -178,16 +189,19 @@ standalone `.claude/settings.json` 的 `WorktreeCreate` 事件调用：
 
 Claude 对 git worktree 会继续自动 `git worktree remove`；本轮不注册自定义
 `WorktreeRemove`。deterministic smoke 必须在 default branch 落后 parent HEAD 的 fixture 中
-证明生成 worktree 仍等于 parent HEAD；authenticated live probe 再证明 subagent 首个命令能
-看到当前 `tasks.md` 与正式 `tdd-run`。
+证明生成 worktree 仍等于 parent HEAD、只播种合法 active pointer；authenticated live probe
+再证明 `SubagentStart` receipt 已在 worker 第一条命令前写入，且 subagent 首个命令能看到当前
+`tasks.md` 与正式 `tdd-run`。
 
 Task 2 的首次派发存在 worktree hook self-host 边界。bootstrap 只能是 repo 外的一次性控制
 脚本，不能复制或 import 正式 `worktree-create.mjs`，也不能进入 executor worktree。主
 orchestrator 在派发前记录脚本 absolute path、sha256、literal argv、独立只读审查 verdict，
-临时 control hook registration 只引用该外部脚本；Task 2 RED 必须证明仓库中的正式脚本尚不
-存在或正式 contract smoke 失败。executor 自己按测试实现产品脚本。派发完成后删除外部脚本与
-临时 registration，并记录清理结果；bootstrap 只解决“进入正确基线”，不产生或替代任何
-RED/GREEN/REFACTOR receipt。
+临时 control hook registration 只引用该外部脚本。这个独立实现还必须在返回 path 前读取
+parent safe ACTIVE_CHANGE、用 captured HEAD 验证对应 state、只播种 child pointer，并由它
+自己的 digest/review 覆盖；live 断言必须观察到 Task 2 的 SubagentStart receipt。Task 2 RED
+必须证明仓库中的正式脚本尚不存在或正式 contract smoke 失败。executor 自己按测试实现产品
+脚本。派发完成后删除外部脚本与临时 registration，并记录清理结果；bootstrap 只解决“进入
+正确基线并携带 runtime pointer”，不产生或替代任何 RED/GREEN/REFACTOR receipt。
 
 #### 2. Authoritative TDD receipt
 

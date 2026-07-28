@@ -51,13 +51,13 @@
       "status": "pass",
       "reviewerId": "design-reviewer",
       "reviewedAt": "2026-07-28",
-      "digest": "b46c536b263b724743599923837a67c0ea2abd0c132b850ef9d0d3e51c3e6273"
+      "digest": "2561ee2d18a3ea6d895e79af318fab881cf903b23a34cd0291d9f88937d6fa30"
     },
     "plan": {
       "status": "pass",
       "reviewerId": "plan-critic",
       "reviewedAt": "2026-07-28",
-      "digest": "45f27912f0c99f9c8343738f279799ea6ff00c1bb897b852dd242967e5e04717"
+      "digest": "87ff225d6a7f24f6dcdf7aeb1e995eca6b4e9650696ffe7d0e2bee29fc61daf7"
     },
     "task1Review": {
       "status": "pass",
@@ -102,6 +102,6 @@
     "digest": null,
     "validatedAt": null
   },
-  "revision": 3,
+  "revision": 4,
   "lastEventId": "wf_a1e4e669-d5b8-476d-9ab0-f63e9e4e947f"
 }
