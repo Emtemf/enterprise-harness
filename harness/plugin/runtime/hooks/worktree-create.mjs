@@ -8,6 +8,7 @@ const OVERRIDE_HEAD_AFTER_ADD = process.env.HARNESS_WORKTREE_CREATE_TEST_OVERRID
 const INJECT_ACTIVE_CHANGE_COLLISION = process.env.HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_COLLISION || null;
 const INJECT_ACTIVE_CHANGE_SYMLINK_TARGET = process.env.HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_SYMLINK_TARGET || null;
 const INJECT_BRANCH_HEAD_AFTER_ADD = process.env.HARNESS_WORKTREE_CREATE_TEST_BRANCH_HEAD_AFTER_ADD || null;
+const OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP = process.env.HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP || null;
 
 function exitWithError(message) {
   console.error(message);
@@ -150,12 +151,27 @@ function parseWorktreePorcelain(repoRoot) {
     });
 }
 
-function findOwnedRegistration(repoRoot, worktreePath, branchName) {
+function applyTestRegistrationHeadOverride(entry) {
+  if (!entry || !OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP) return entry;
+  if (path.resolve(entry.worktree || '') !== path.resolve(OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.split(':', 2)[0] || '')) {
+    return entry;
+  }
+  const [, overrideHead] = OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.split(':', 2);
+  if (!overrideHead) return entry;
+  return {
+    ...entry,
+    HEAD: overrideHead,
+  };
+}
+
+function findOwnedRegistration(entries, worktreePath, branchName, expectedHead) {
   const expectedBranch = `refs/heads/${branchName}`;
-  return parseWorktreePorcelain(repoRoot).find((entry) => (
-    path.resolve(entry.worktree || '') === path.resolve(worktreePath)
-    && entry.branch === expectedBranch
-  )) || null;
+  return entries.find((rawEntry) => {
+    const entry = applyTestRegistrationHeadOverride(rawEntry);
+    return path.resolve(entry.worktree || '') === path.resolve(worktreePath)
+      && entry.branch === expectedBranch
+      && entry.HEAD === expectedHead;
+  }) || null;
 }
 
 function findWorktreeByPath(repoRoot, worktreePath) {
@@ -183,7 +199,8 @@ function cleanupCreatedWorktree(repoRoot, worktreePath, branchName, expectedHead
     }
   }
   const branchHead = readBranchHead(repoRoot, branchName);
-  const ownedRegistration = findOwnedRegistration(repoRoot, worktreePath, branchName);
+  const snapshot = parseWorktreePorcelain(repoRoot);
+  const ownedRegistration = findOwnedRegistration(snapshot, worktreePath, branchName, expectedHead);
   if (!ownedRegistration || branchHead !== expectedHead) {
     throw new Error(
       `compensation cannot prove ownership for path=${worktreePath} branch=${branchName} head=${expectedHead}; `

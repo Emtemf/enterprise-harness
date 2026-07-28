@@ -14,6 +14,20 @@ const pluginFacingSkills = [
   ['.claude/skills/harness-intake/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'), 'utf-8')],
   ['.claude/skills/harness-verify/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-verify', 'SKILL.md'), 'utf-8')],
 ];
+const documentedCommandProbes = [
+  {
+    label: 'enterprise-harness lifecycle lesson-list',
+    args: ['lifecycle', 'lesson-list', 'validation'],
+  },
+  {
+    label: 'enterprise-harness workflow session-log',
+    args: ['workflow', 'session-log', 'missing-change'],
+  },
+  {
+    label: 'enterprise-harness lifecycle lesson-add',
+    args: ['lifecycle', 'lesson-add', 'probe-entry', 'low', 'testing', 'change-probe'],
+  },
+];
 const literalShell = [
   'if command -v enterprise-harness >/dev/null 2>&1; then',
   '  enterprise-harness "$@"',
@@ -84,8 +98,17 @@ function isExecutable(filePath) {
   return (stat.mode & 0o111) !== 0;
 }
 
-function stripCodeBlocks(text) {
-  return text.replace(/```[\s\S]*?```/gu, '');
+function stripExactPortableSnippet(text) {
+  const exactSnippets = [
+    documentedPortableSnippet,
+    `\`\`\`bash\n${documentedPortableSnippet}\n\`\`\``,
+    `\`\`\`\n${documentedPortableSnippet}\n\`\`\``,
+  ];
+  return exactSnippets.reduce((current, snippet) => current.split(snippet).join(''), text);
+}
+
+function normalizeMarkdownCommandSurface(text) {
+  return stripExactPortableSnippet(text).replace(/`/gu, '');
 }
 
 if (!['red', 'green', 'verify'].includes(mode)) {
@@ -106,6 +129,10 @@ try {
   const withLauncherPath = runCommand('enterprise-harness', ['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
     PATH: pathEnv,
   });
+  const documentationCommandResults = documentedCommandProbes.map((probe) => ({
+    ...probe,
+    result: runCommand('enterprise-harness', probe.args, targetRoot, { PATH: pathEnv }),
+  }));
 
   const standaloneRuntimeDir = path.join(targetRoot, 'harness', 'plugin', 'runtime');
   fs.mkdirSync(path.dirname(standaloneRuntimeDir), { recursive: true });
@@ -134,9 +161,9 @@ try {
     if (!skillContent.includes(documentedPortableSnippet)) {
       failures.push(`${relativePath} must embed the literal enterprise-harness-first / local cli fallback / BLOCK launcher snippet`);
     }
-    const proseOutsideSnippet = stripCodeBlocks(skillContent);
-    if (/(^|\s)node harness\/plugin\/runtime\/cli\.mjs(\s|$)/u.test(proseOutsideSnippet)) {
-      failures.push(`${relativePath} must not show direct target-cwd node harness/plugin/runtime examples outside the portable fallback snippet`);
+    const commandSurface = normalizeMarkdownCommandSurface(skillContent);
+    if (/node\s+harness\/plugin\/runtime\/(?:cli|lifecycle)\.mjs(?:\s|$)/u.test(commandSurface)) {
+      failures.push(`${relativePath} must not show direct target-cwd node harness/plugin/runtime cli or lifecycle commands outside the exact portable fallback snippet`);
     }
   }
   if (commandProbe.status !== 0) {
@@ -153,6 +180,16 @@ try {
   }
   if (fs.existsSync(outsideSourceWrite)) {
     failures.push('portable launcher must not create change assets inside the source plugin tree');
+  }
+  for (const probe of documentationCommandResults) {
+    const stdout = String(probe.result.stdout || '').trim();
+    const stderr = String(probe.result.stderr || '').trim();
+    if (/Unknown command/u.test(`${stdout}\n${stderr}`)) {
+      failures.push(`${probe.label} must route to a valid CLI command, got Unknown command with exit=${probe.result.status}`);
+    }
+    if (probe.result.status === null) {
+      failures.push(`${probe.label} must produce an exit status`);
+    }
   }
   if (!(withoutLauncherPath.status === 0 && String(withoutLauncherPath.stdout || '').includes('Enterprise Harness Status'))) {
     failures.push(`standalone fallback failed: exit=${withoutLauncherPath.status} stdout=${JSON.stringify(String(withoutLauncherPath.stdout || '').trim())} stderr=${JSON.stringify(String(withoutLauncherPath.stderr || '').trim())}`);

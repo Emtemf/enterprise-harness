@@ -75,7 +75,7 @@ verify 的目标是把工程验证和用户验收收成一个完成声明，而�
 - 失败/重试/跳过项必须显式写入
 - Stop hook 只是兜底；主 verify 阶段应先完成自我收口
 - 若本次踩到值得沉淀的新坑（非一次性、后续可能重复），收尾时用
-  `enterprise-harness lesson-add <slug> <severity> <tags> <changeId>`
+  `enterprise-harness lifecycle lesson-add <slug> <severity> <tags> <changeId>`
   记录到跨 change 经验库，避免同样问题在未来重复发生
 
 ## 退出条件

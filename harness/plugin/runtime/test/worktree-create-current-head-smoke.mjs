@@ -62,8 +62,7 @@ function fixtureWorktreePath(root, name) {
   return path.join(root, '.claude', 'worktrees', name);
 }
 
-function listTrackedWorktrees(root) {
-  const listed = git(root, 'worktree', 'list', '--porcelain');
+function parsePorcelainStanzas(listed) {
   const stanzas = String(listed || '')
     .split(/\n\n+/u)
     .map((chunk) => chunk.trim())
@@ -76,6 +75,14 @@ function listTrackedWorktrees(root) {
     }
     return entry;
   });
+}
+
+function listTrackedWorktrees(root) {
+  return parsePorcelainStanzas(git(root, 'worktree', 'list', '--porcelain'));
+}
+
+function findTrackedWorktree(root, worktreePath) {
+  return listTrackedWorktrees(root).find((entry) => path.resolve(entry.worktree || '') === path.resolve(worktreePath)) || null;
 }
 
 function assertNoRegisteredWorktree(root, worktreePath) {
@@ -275,6 +282,7 @@ function verifyOwnershipLossPreservesResources(root) {
   assert.notEqual(staleHead, currentHead, 'ownership-loss fixture must mutate branch HEAD to a different commit');
   const name = 'task-2-ownership-loss';
   const branchName = fixtureBranchName(name);
+  const worktreePath = fixtureWorktreePath(root, name);
   const result = runHook(root, {
     hook_event_name: 'WorktreeCreate',
     cwd: root,
@@ -285,10 +293,13 @@ function verifyOwnershipLossPreservesResources(root) {
   });
   assert.notEqual(result.status, 0);
   assert.match(String(result.stderr || ''), /manual recovery|Recover manually|recover manually|recover manually with/u);
-  const worktreePath = fixtureWorktreePath(root, name);
   assert.notEqual(fs.lstatSync(worktreePath, { throwIfNoEntry: false }), undefined, 'ownership loss must preserve worktree resources for manual recovery');
-  assert.notEqual(readBranchHead(root, branchName), null, 'ownership loss must preserve branch for manual recovery');
-  assert.notEqual(listTrackedWorktrees(root).find((entry) => path.resolve(entry.worktree || '') === path.resolve(worktreePath)), undefined, 'ownership loss must preserve worktree registration');
+  assert.equal(readBranchHead(root, branchName), staleHead, 'ownership-loss fixture must preserve the exact injected stale branch HEAD');
+  const preservedEntry = findTrackedWorktree(root, worktreePath);
+  assert.notEqual(preservedEntry, null, 'ownership loss must preserve worktree registration');
+  assert.equal(path.resolve(preservedEntry.worktree || ''), path.resolve(worktreePath), 'preserved stanza must keep the exact worktree path');
+  assert.equal(preservedEntry.branch, `refs/heads/${branchName}`, 'preserved stanza must keep the exact branch ref');
+  assert.equal(preservedEntry.HEAD, staleHead, 'preserved stanza must keep the exact injected stale branch HEAD');
 }
 
 function verifyCompensationOnHeadMismatch(root) {
@@ -313,6 +324,36 @@ function verifyCompensationOnHeadMismatch(root) {
     name,
   });
   assert.equal(retry.status, 0, retry.stderr || retry.stdout);
+}
+
+function verifyRegistrationHeadMismatchPreservesResources(root) {
+  seedActiveChange(root);
+  fs.writeFileSync(path.join(root, 'registration-head-mismatch.txt'), 'mutate-head-before-create\n');
+  git(root, 'add', 'registration-head-mismatch.txt');
+  git(root, 'commit', '-qm', 'registration head mismatch marker');
+  const capturedHead = git(root, 'rev-parse', 'HEAD');
+  const mismatchedEntryHead = fs.readFileSync(path.join(root, 'baseline-head.txt'), 'utf-8').trim();
+  assert.notEqual(mismatchedEntryHead, capturedHead, 'registration-head-mismatch fixture must use a HEAD different from the captured parent HEAD');
+  const name = 'task-2-registration-head-mismatch';
+  const branchName = fixtureBranchName(name);
+  const worktreePath = fixtureWorktreePath(root, name);
+  const result = runHook(root, {
+    hook_event_name: 'WorktreeCreate',
+    cwd: root,
+    name,
+  }, {
+    HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_COLLISION: 'existing-line\n',
+    HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP: `${worktreePath}:${mismatchedEntryHead}`,
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(String(result.stderr || ''), /manual recovery|Recover manually|recover manually|recover manually with/u);
+  assert.notEqual(fs.lstatSync(worktreePath, { throwIfNoEntry: false }), undefined, 'registration HEAD mismatch must preserve worktree resources for manual recovery');
+  assert.equal(readBranchHead(root, branchName), capturedHead, 'registration HEAD mismatch counterexample must keep the exact captured branch HEAD');
+  const preservedEntry = findTrackedWorktree(root, worktreePath);
+  assert.notEqual(preservedEntry, null, 'registration HEAD mismatch must preserve worktree registration');
+  assert.equal(path.resolve(preservedEntry.worktree || ''), path.resolve(worktreePath), 'registration HEAD mismatch must preserve exact stanza path');
+  assert.equal(preservedEntry.branch, `refs/heads/${branchName}`, 'registration HEAD mismatch must preserve exact stanza branch');
+  assert.equal(preservedEntry.HEAD, capturedHead, 'registration HEAD mismatch must preserve the original registration HEAD from git porcelain');
 }
 
 function cleanupRepo(root) {
@@ -363,6 +404,7 @@ if (mode === 'red') {
       ['active-change-symlink', verifyCompensationOnActiveChangeSymlink],
       ['ownership-loss', verifyOwnershipLossPreservesResources],
       ['head-mismatch', verifyCompensationOnHeadMismatch],
+      ['registration-head-mismatch', verifyRegistrationHeadMismatchPreservesResources],
     ]) {
       const root = createRepo(`worktree-create-red-${label}`);
       fixtureRoots.push(root);
@@ -452,6 +494,11 @@ try {
     const root = createRepo('worktree-create-compensate');
     fixtureRoots.push(root);
     verifyCompensationOnHeadMismatch(root);
+  }
+  {
+    const root = createRepo('worktree-create-registration-head-mismatch');
+    fixtureRoots.push(root);
+    verifyRegistrationHeadMismatchPreservesResources(root);
   }
   console.log(`PASS worktree-create-current-head ${mode}`);
 } finally {

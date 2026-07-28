@@ -112,8 +112,8 @@ fi
 ## Minimum Discovery 最低要求
 
 ### 经验库先行（避免重复踩坑）
-- 进入正式澄清前，先检索跨 change 经验库：`node harness/plugin/runtime/lifecycle.mjs lesson-list`
-- 若当前需求涉及某类主题（如 validation / digest / api / state），用 `lesson-list <tag>` 过滤
+- 进入正式澄清前，先检索跨 change 经验库：`enterprise-harness lifecycle lesson-list`
+- 若当前需求涉及某类主题（如 validation / digest / api / state），用 `enterprise-harness lifecycle lesson-list <tag>` 过滤
 - 命中相关教训时，必须在澄清或设计中主动提示该坑与既有规避方式，不得让同样问题重复发生
 - 经验库为空或无匹配时，直接继续，不因此 block
 
@@ -182,7 +182,7 @@ fi
 形成 final route 后，应记录一条 route 决策事件，供后续复盘：
 `enterprise-harness workflow note <change-id> route-decided "tier=<L?> 因为 <理由>"`
 
-会话恢复或复盘时，可用 `node harness/plugin/runtime/cli.mjs workflow session-log <change-id>` 查看该 change 的决策时间线。
+会话恢复或复盘时，可用 `enterprise-harness workflow session-log <change-id>` 查看该 change 的决策时间线。
 
 ## 产物落点
 

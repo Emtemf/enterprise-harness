@@ -45,7 +45,7 @@ fi
 **【强制】等待 subagent / 后台任务时禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 已能自动通知完成的任务已经启动后，主 orchestrator 不得再用 `sleep`、倒计时、循环“继续等待”、反复状态播报或伪进展输出来占用对话。默认做法是：启动任务后立即停手，等待 Claude Code 的完成通知或用户下一条真实消息。只有通知机制覆盖不到的外部系统，才允许设置单次兜底等待；即便如此，也不得在等待期间持续骚扰用户。
 
 ### 第 0 步：建立 change（如果还没有）
-plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness start-change <change-id> [owner] [tier] "<一句话目标>"`；standalone source checkout 才走本地 `node harness/plugin/runtime/cli.mjs ...` fallback。
+plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness start-change <change-id> [owner] [tier] "<一句话目标>"`；standalone source checkout 才走上面的本地 CLI fallback。
 这会创建 `harness/changes/<id>/state.json` 并设置 `goal`。
 
 ### 第 1 步：clarify（需求澄清）
@@ -136,7 +136,7 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 4. 更新 `state.json`：`validation.status=fresh`
 
 ### 第 7 步：archive（归档）
-plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness lifecycle archive <change-id>`；standalone source checkout 才走本地 `node harness/plugin/runtime/cli.mjs ...` fallback。
+plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness lifecycle archive <change-id>`；standalone source checkout 才走上面的本地 CLI fallback。
 
 ## TECPC 检查（每个阶段都要过）
 
