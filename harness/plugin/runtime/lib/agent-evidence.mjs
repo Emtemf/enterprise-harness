@@ -112,3 +112,42 @@ export function boundHarnessAgent(root, changeId, agentId, expectedType = null) 
     ? { binding, start }
     : null;
 }
+
+export function startedHarnessAgent(root, changeId, agentId, expectedType = null) {
+  const normalizedExpected = expectedType ? normalizeAgentType(expectedType) : null;
+  const events = readAgentEvents(root, changeId);
+  const start = [...events].reverse().find((event) => (
+    event.kind === 'start'
+    && event.agentId === agentId
+    && (!normalizedExpected || event.observedAgentType === normalizedExpected)
+  ));
+  if (!start) return null;
+  const laterStop = events.find((event) => (
+    event.kind === 'stop'
+    && event.agentId === agentId
+    && Date.parse(event.issuedAt) >= Date.parse(start.issuedAt)
+  ));
+  return laterStop ? null : start;
+}
+
+export function completedHarnessAgent(root, changeId, agentId, expectedType = null) {
+  const normalizedExpected = expectedType ? normalizeAgentType(expectedType) : null;
+  const events = readAgentEvents(root, changeId);
+  const start = events.find((event) => (
+    event.kind === 'start'
+    && event.agentId === agentId
+    && (!normalizedExpected || event.observedAgentType === normalizedExpected)
+  ));
+  const binding = events.find((event) => (
+    event.kind === 'dispatch-binding'
+    && event.agentId === agentId
+    && (!normalizedExpected || event.requestedAgentType === normalizedExpected)
+  ));
+  const stop = events.find((event) => (
+    event.kind === 'stop'
+    && event.agentId === agentId
+    && (!normalizedExpected || event.observedAgentType === normalizedExpected)
+    && (!start || Date.parse(event.issuedAt) >= Date.parse(start.issuedAt))
+  ));
+  return start && binding && stop ? { start, binding, stop } : null;
+}

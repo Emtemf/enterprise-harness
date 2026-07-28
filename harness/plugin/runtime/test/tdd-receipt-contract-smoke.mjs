@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import {
   allowedTaskCommand,
+  isSafeEvidenceId,
   readAndValidateTddReceipt,
   validateTddReceipt,
 } from '../lib/tdd-receipts.mjs';
@@ -76,6 +77,9 @@ const options = {
   requireComplete: true,
 };
 assert.deepEqual(validateTddReceipt(base, options), []);
+assert.equal(isSafeEvidenceId('task-1'), true);
+assert.equal(isSafeEvidenceId('../task-1'), false);
+assert.equal(isSafeEvidenceId('change/../../escape'), false);
 assert.notDeepEqual(
   validateTddReceipt(base, { ...options, allowBootstrap: false }),
   [],

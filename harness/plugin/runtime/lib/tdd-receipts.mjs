@@ -24,12 +24,14 @@ const TASK1_BOOTSTRAP_PATHS = new Set([
   'harness/plugin/runtime/lib/agent-evidence.mjs',
   'harness/plugin/runtime/lib/evidence-policy.mjs',
   'harness/plugin/runtime/lib/git-evidence.mjs',
+  'harness/plugin/runtime/lib/import-validation.mjs',
   'harness/plugin/runtime/lib/tdd-receipts.mjs',
   'harness/plugin/runtime/migrate-evidence-policy.mjs',
   'harness/plugin/runtime/migrate.mjs',
   'harness/plugin/runtime/tdd-run.mjs',
   'harness/plugin/runtime/test/agent-lifecycle-hook-smoke.mjs',
   'harness/plugin/runtime/test/evidence-policy-contract-smoke.mjs',
+  'harness/plugin/runtime/test/evidence-import-adversarial-smoke.mjs',
   'harness/plugin/runtime/test/support/bootstrap-tdd-run.mjs',
   'harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs',
   'harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs',
@@ -61,6 +63,10 @@ export function receiptDigest(receipt) {
   return crypto.createHash('sha256').update(JSON.stringify(receipt)).digest('hex');
 }
 
+export function isSafeEvidenceId(value) {
+  return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(value);
+}
+
 function isSafeRelative(value) {
   return typeof value === 'string'
     && value.length > 0
@@ -79,6 +85,8 @@ export function validateTddReceipt(receipt, options = {}) {
   const problems = [];
   if (!receipt || typeof receipt !== 'object') return ['receipt is not an object'];
   if (receipt.receiptVersion !== 1) problems.push('receiptVersion must be 1');
+  if (!isSafeEvidenceId(receipt.changeId)) problems.push('changeId is unsafe');
+  if (!isSafeEvidenceId(receipt.taskId)) problems.push('taskId is unsafe');
   if (changeId && receipt.changeId !== changeId) problems.push('changeId mismatch');
   if (taskId && receipt.taskId !== taskId) problems.push('taskId mismatch');
   if (!COMMANDS[receipt.taskId]) problems.push('unknown task id');

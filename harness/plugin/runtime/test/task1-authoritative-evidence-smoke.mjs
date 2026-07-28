@@ -28,6 +28,7 @@ const components = [
   'tdd-receipt-contract-smoke.mjs',
   'evidence-policy-contract-smoke.mjs',
   'agent-lifecycle-hook-smoke.mjs',
+  'evidence-import-adversarial-smoke.mjs',
 ];
 let failed = false;
 for (const component of components) {

@@ -5,11 +5,12 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import {
   activeChangeId,
-  boundHarnessAgent,
+  startedHarnessAgent,
   readAgentEvents,
 } from './lib/agent-evidence.mjs';
 import {
   allowedTaskCommand,
+  isSafeEvidenceId,
   tddReceiptSpoolPath,
   validateTddReceipt,
 } from './lib/tdd-receipts.mjs';
@@ -60,6 +61,9 @@ const phase = String(phaseRaw || '').toUpperCase();
 if (!changeId || !taskId || !phaseRaw || childArgv.length === 0) {
   fail('usage: tdd-run <change-id> <task-id> <red|green|refactor> -- <command> [args]');
 }
+if (!isSafeEvidenceId(changeId) || !isSafeEvidenceId(taskId)) {
+  fail('change-id and task-id must be safe evidence identifiers');
+}
 const expected = allowedTaskCommand(taskId, phase);
 if (!expected || JSON.stringify(childArgv) !== JSON.stringify(expected)) {
   fail(`child argv is outside the sealed task allowlist: ${JSON.stringify(childArgv)}`);
@@ -69,7 +73,7 @@ const root = process.cwd();
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 const agentId = process.env.CLAUDE_AGENT_ID || process.env.HARNESS_TDD_EXECUTOR_ID;
 let binding = agentId
-  ? boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')
+  ? startedHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')
   : null;
 if (!binding) {
   const events = readAgentEvents(root, changeId);
@@ -80,9 +84,9 @@ if (!binding) {
       && path.resolve(event.cwd) === root
     ))
     .map((event) => event.agentId))]
-    .filter((id) => boundHarnessAgent(root, changeId, id, 'enterprise-harness:tdd-executor'));
+    .filter((id) => startedHarnessAgent(root, changeId, id, 'enterprise-harness:tdd-executor'));
   if (activeIds.length === 1) {
-    binding = boundHarnessAgent(
+    binding = startedHarnessAgent(
       root,
       changeId,
       activeIds[0],
@@ -101,7 +105,7 @@ if (fs.existsSync(receiptPath)) {
   if (receipt.provenance !== 'tdd-run'
       || receipt.changeId !== changeId
       || receipt.taskId !== taskId
-      || receipt.agent?.id !== binding.start.agentId) {
+      || receipt.agent?.id !== binding.agentId) {
     fail('existing TDD receipt belongs to another execution');
   }
 }
@@ -132,7 +136,7 @@ if (!receipt) {
     changeId,
     taskId,
     agent: {
-      id: binding.start.agentId,
+      id: binding.agentId,
       type: 'enterprise-harness:tdd-executor',
     },
     worktree: {

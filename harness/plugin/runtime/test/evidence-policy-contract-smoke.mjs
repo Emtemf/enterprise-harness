@@ -5,6 +5,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import {
   createEvidencePolicy,
+  evidencePolicyDigest,
+  evidencePolicySealPath,
   readEvidencePolicy,
   validateEvidencePolicy,
 } from '../lib/evidence-policy.mjs';
@@ -32,8 +34,11 @@ assert.equal(created.created, true);
 assert.deepEqual(created.policy.legacyChangeIds, ['legacy-change']);
 assert.equal(created.policy.strictByDefault, true);
 assert.equal(created.policy.sealed, true);
+assert.equal(fs.existsSync(evidencePolicySealPath(root)), true);
 assert.deepEqual(validateEvidencePolicy(root, created.policy), []);
 assert.equal(readEvidencePolicy(root).ok, true);
+git('add', 'harness/evidence-policy.json');
+git('commit', '-qm', 'seal evidence policy');
 assert.throws(() => createEvidencePolicy(root), /sealed|already exists/i, 'registry is create-once');
 
 const injected = {
@@ -55,4 +60,18 @@ fs.writeFileSync(
   `${JSON.stringify(tampered, null, 2)}\n`,
 );
 assert.equal(readEvidencePolicy(root).ok, false, 'reader must not bless a tampered registry');
+const resealed = JSON.parse(fs.readFileSync(path.join(root, 'harness/evidence-policy.json'), 'utf-8'));
+resealed.strictByDefault = true;
+resealed.legacyChangeIds.push('current-change');
+resealed.legacyChangeIds.sort();
+resealed.contentDigest = evidencePolicyDigest(resealed);
+fs.writeFileSync(
+  path.join(root, 'harness/evidence-policy.json'),
+  `${JSON.stringify(resealed, null, 2)}\n`,
+);
+assert.equal(
+  readEvidencePolicy(root).ok,
+  false,
+  'recomputing the self-contained digest must not downgrade a strict change',
+);
 console.log(`PASS evidence-policy-contract ${process.argv[2] || 'verify'}`);
