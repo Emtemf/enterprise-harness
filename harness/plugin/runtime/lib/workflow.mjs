@@ -150,6 +150,46 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   };
 }
 
+export function applyScopeConfirmationDecision(data, decision) {
+  if (decision === 'confirm-scope') {
+    data.workflow.userConfirmedScope = true;
+    if (data.workflow.clarifyReady) {
+      data.workflow.stage = 'route';
+      data.workflow.nextEntry = '/harness-intake';
+    }
+  }
+  if (decision === 'revise-scope') {
+    data.workflow.userConfirmedScope = false;
+    data.workflow.stage = 'clarify';
+    data.workflow.nextEntry = '/harness-intake';
+  }
+  return data;
+}
+
+export function applyExecutionReadinessDecision(data, decision, baselineDesignSha256 = null) {
+  if (decision === 'freeze-slice') {
+    data.gates = data.gates || {};
+    data.gates.designApproved = true;
+    data.state = 'DESIGN_APPROVED';
+    data.workflow.stage = 'plan';
+    data.workflow.nextEntry = '/harness-plan';
+    data.workflow.planReady = false;
+    delete data.workflow.suppressionBaseline;
+  }
+  if (decision === 'revise-slice') {
+    data.gates = data.gates || {};
+    data.gates.designApproved = false;
+    data.state = 'DISCOVERED';
+    data.workflow.stage = 'design';
+    data.workflow.nextEntry = '/harness-design';
+    data.workflow.planReady = false;
+    data.workflow.suppressionBaseline = {
+      designMdSha256: baselineDesignSha256,
+    };
+  }
+  return data;
+}
+
 export function inferCurrentGap(root, changeId, data, workflowStage) {
   if (!changeId || !data || !workflowStage) return '当前没有 active change。';
   const changeDir = path.join(root, 'harness', 'changes', changeId);

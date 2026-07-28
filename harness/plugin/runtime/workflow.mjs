@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyExecutionReadinessDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 
 const root = projectRoot();
@@ -174,52 +174,23 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'scope-confirmation') {
-    if (decision === 'confirm-scope') {
-      data.workflow.userConfirmedScope = true;
-      if (data.workflow.clarifyReady) {
-        data.workflow.stage = 'route';
-        data.workflow.nextEntry = '/harness-intake';
-      }
-    }
-    if (decision === 'revise-scope') {
-      data.workflow.userConfirmedScope = false;
-      data.workflow.stage = 'clarify';
-      data.workflow.nextEntry = '/harness-intake';
-    }
+    applyScopeConfirmationDecision(data, decision);
   }
 
   if (pending.kind === 'execution-readiness') {
     const consistency = designProjectionMatchesArtifact(changeId, data);
-    if (decision === 'freeze-slice') {
-      if (!consistency.ok) {
-        console.error(`Execution readiness gate failed: ${consistency.reason}`);
-        process.exit(2);
-      }
-      data.gates = data.gates || {};
-      data.gates.designApproved = true;
-      data.state = 'DESIGN_APPROVED';
-      data.workflow.stage = 'plan';
-      data.workflow.nextEntry = '/harness-plan';
-      data.workflow.planReady = false;
-      delete data.workflow.suppressionBaseline;
+    if (decision === 'freeze-slice' && !consistency.ok) {
+      console.error(`Execution readiness gate failed: ${consistency.reason}`);
+      process.exit(2);
     }
-    if (decision === 'revise-slice') {
-      data.gates = data.gates || {};
-      data.gates.designApproved = false;
-      data.state = 'DISCOVERED';
-      data.workflow.stage = 'design';
-      data.workflow.nextEntry = '/harness-design';
-      data.workflow.planReady = false;
-      const designPath = designFilePath(changeId);
-      data.workflow.suppressionBaseline = {
-        designMdSha256: fs.existsSync(designPath) ? computeFileSha256(designPath) : null,
-      };
-    }
+    const designPath = designFilePath(changeId);
+    const baselineSha = fs.existsSync(designPath) ? computeFileSha256(designPath) : null;
+    applyExecutionReadinessDecision(data, decision, baselineSha);
   }
 
   recordEvent(changeId, data, 'decision', { decision, reason, kind: pending.kind });
   saveChange(changeId, data);
-  return buildWorkflowResult(changeId, data);
+  return buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
 }
 
 const [, , action, ...args] = process.argv;
