@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { GOVERNANCE_BLOCKLIST, hasCurrentTaskTddExecutionEvidence } from './gates.mjs';
 import { validateAmbiguityGate } from './ambiguity.mjs';
+import { validateRouterScore } from './router-score.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -445,6 +446,10 @@ export function validateChangeEvidence(root) {
     const ambiguityProblems = validateAmbiguityGate(root, entry.name, state);
     if (ambiguityProblems.length > 0) {
       errors.push(...ambiguityProblems.map((problem) => `${changeDir}: ${problem}`));
+    }
+    const routerProblems = validateRouterScore(root, entry.name, state);
+    if (routerProblems.length > 0) {
+      errors.push(...routerProblems.map((problem) => `${changeDir}: ${problem}`));
     }
 
     const validationPath = path.join(changeDir, 'validation.md');

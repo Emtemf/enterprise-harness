@@ -5,6 +5,7 @@ import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requ
 import { inferWorkflowStage } from '../lib/workflow.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { validateAmbiguityGate } from '../lib/ambiguity.mjs';
+import { validateRouterScore } from '../lib/router-score.mjs';
 
 const root = projectRoot();
 
@@ -102,6 +103,10 @@ if (governedRoot) {
   if (stage === 'route') {
     if (!state.tier || !['L0', 'L1', 'L2', 'L3'].includes(state.tier)) {
       blockGoverned('BLOCK: 当前仍处于 route 阶段，tier 未设置。必须先完成路由决策，再修改受治理路径。', data);
+    }
+    const routerProblems = validateRouterScore(root, active.changeId, state);
+    if (routerProblems.length > 0) {
+      blockGoverned(`BLOCK: 当前仍处于 route 阶段，route 评分尚未完整。${routerProblems.join(' | ')}`, data);
     }
   }
 
