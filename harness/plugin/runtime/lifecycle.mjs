@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { computeValidationDigest } from './lib/checks.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
 
 const repoRoot = process.cwd();
-const templatesDir = path.join(repoRoot, 'harness', 'templates');
+const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
+const templatesDir = path.join(runtimeDir, '..', '..', 'templates');
 const changesDir = path.join(repoRoot, 'harness', 'changes');
 const activeFile = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');
 

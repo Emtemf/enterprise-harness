@@ -6,6 +6,8 @@ description: >
 
 # Harness Design（闭环五检驱动）
 
+plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
+
 ## 目标
 
 本阶段默认以 **Principal Architect 视角**主导。

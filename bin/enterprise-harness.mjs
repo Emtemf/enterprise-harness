@@ -1,11 +1,16 @@
 #!/usr/bin/env node
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 const args = process.argv.slice(2);
-const child = spawnSync('node', ['harness/plugin/runtime/cli.mjs', ...args], {
+const installRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const runtimeCli = path.join(installRoot, 'harness', 'plugin', 'runtime', 'cli.mjs');
+const child = spawnSync('node', [runtimeCli, ...args], {
   cwd: process.cwd(),
   encoding: 'utf-8',
+  shell: false,
 });
 process.stdout.write(child.stdout || '');
 process.stderr.write(child.stderr || '');

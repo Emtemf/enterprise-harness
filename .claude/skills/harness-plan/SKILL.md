@@ -6,6 +6,8 @@ description: >
 
 # Harness Plan
 
+plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
+
 ## 目标
 
 本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与确认可测性与验收边界。

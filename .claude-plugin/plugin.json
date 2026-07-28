@@ -32,6 +32,5 @@
     "./.claude/agents/verification-reviewer.md",
     "./.claude/agents/tdd-executor.md"
   ],
-  "commands": "./.claude-plugin/commands/",
   "mcpServers": "./.mcp.json"
 }

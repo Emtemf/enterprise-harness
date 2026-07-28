@@ -95,6 +95,18 @@
         ]
       }
     ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/worktree-create.mjs\"",
+            "timeout": 30,
+            "statusMessage": "从父会话 HEAD 创建受控 worktree"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

@@ -6,6 +6,8 @@ description: >
 
 # Harness TDD
 
+plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
+
 ## 目标
 
 本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与验证 RED/GREEN/REFACTOR 证据。
@@ -50,7 +52,7 @@ TEST_WRITTEN
 
 具体要求：
 1. **每个 task 使用 `Agent` 工具派遣**，参数必须包含：
-   - `subagent_type`: 优先使用专职 `tdd-executor`；若当前仓库尚未落地该 agent，才临时使用 `general-purpose` 或项目特定 worker
+   - `subagent_type`: 必须使用 scoped 专职 `enterprise-harness:tdd-executor`，不得回退到任何通用 worker
    - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
    - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
 2. **Subagent 必须执行真实构建命令**：

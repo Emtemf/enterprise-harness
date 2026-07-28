@@ -7,6 +7,7 @@ tools:
   - Edit
   - Write
 model: sonnet
+isolation: worktree
 ---
 
 # TDD Executor

@@ -8,10 +8,23 @@ description: >
 
 ## 这个 skill 做什么
 
-你是 harness 工作流的**统一流程入口与阶段编排器**。用户的每个需求都从这里进入，按 7 个阶段顺序推进。
+你是 harness 工作流的**统一流程入口与阶段编排器**。plugin-only 环境的 canonical 入口是 `/enterprise-harness:harness`；源码仓库作为 standalone `.claude/` 使用时保留裸 `/harness`。用户的每个需求都从这里进入，按 7 个阶段顺序推进。
 每个阶段都要过**闭环五检 (TECPC)**，不达标不能进下一步。
 
 这是 clarify-first staged workflow：`clarify / route / design / plan / tdd / verify / archive`。
+
+plugin-installed skill 的 backend 命令必须使用同一段确定性 Bash：
+
+```bash
+if command -v enterprise-harness >/dev/null 2>&1; then
+  enterprise-harness <subcommand> [args...]
+elif test -f harness/plugin/runtime/cli.mjs; then
+  node harness/plugin/runtime/cli.mjs <subcommand> [args...]
+else
+  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2
+  exit 2
+fi
+```
 
 ### 实现前 orchestration guardrail（硬约束）
 
@@ -42,7 +55,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
 
 1. **先委托探索**（不得自己做）：
    - 【硬约束】代码探索必须委托 subagent
-   - 派遣 `subagent_type: code-explore` 探索代码，不得使用 `general-purpose` 做代码探索
+   - 派遣 `subagent_type: enterprise-harness:code-explore` 探索代码，不得使用任何通用 fallback 做代码探索
    - subagent prompt 开头写"先用 codegraph_explore / codegraph_search"
    - Agent 标题写用户的项目名 + 具体主题（禁止写 `enterprise-harness`）
 2. **一次只问一个问题**（选项式 A/B/C + 其他）
@@ -98,7 +111,7 @@ node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] "<�
 **【强制】TDD 必须通过 subagent 执行，不得在主对话中直接写代码。**
 
 1. **派遣 subagent**：
-   - 使用 `Agent` 工具，`subagent_type: tdd-executor`（若当前仓库尚未暴露该 agent，再临时回退到 `general-purpose`）
+   - 使用 `Agent` 工具，`subagent_type: enterprise-harness:tdd-executor`（必须使用 scoped `enterprise-harness:tdd-executor`，不得回退到任何通用 worker）
    - `isolation: "worktree"`（每个 task 在独立 worktree 中执行）
    - prompt 包含：task 描述、touched files、RED/GREEN evidence point、目标项目构建命令
 2. **Subagent 必须执行真实构建命令**：
@@ -206,7 +219,7 @@ clarify 阶段应优先补事实再问用户，不得先问用户去替系统做
 
 - reviewer 返回 block，不得进入下一阶段
 - 不得跳过任何阶段
-- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: code-explore`，不得使用 `general-purpose` 做代码探索
+- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: enterprise-harness:code-explore`，不得使用任何通用 fallback 做代码探索
 - 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `code-explore` subagent
 - Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
 - 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
