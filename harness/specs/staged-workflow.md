@@ -4,7 +4,7 @@
 
 把当前 Enterprise Harness 收敛成一个 **Claude Code-only 的 clarify-first staged orchestrator**：
 
-- 用户从单一入口 `/harness` 进入
+- 用户从当前运行面的单一 canonical skill 进入
 - workflow 按阶段推进，而不是靠聊天自由漂移
 - 每个阶段都有 durable artifact、gate 与 reviewer/verification 消费点
 - 高噪声探索默认下沉到 read-only subagent，主 orchestrator 只保留压缩后的业务上下文与阶段状态
@@ -16,20 +16,16 @@
 ## 单一入口原则
 
 ### 用户入口
-Claude Code 会话中，统一从：
-
-- `/harness`
-
-进入。
+plugin install 从 `/enterprise-harness:harness` 进入；standalone checkout 从 `/harness` 进入。阶段 skill 同样分别使用 namespaced 与裸名。
 
 这是**唯一的主用户入口**。阶段 skill（如 `harness-intake`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify`）属于 subordinate stage entry：
 - 可由 `/harness` 在当前阶段作为恢复入口推荐
 - 也可由熟悉仓库 contract 的高级用户直接使用
-- 普通用户第一次进入时，repo-facing 文档应始终优先指向 `/harness`
-- 进入 staged workflow 之后，SessionStart / status / Stop 等恢复提示应指向**当前阶段对应 skill**：`clarify` / `route` → `/harness-intake`，`design` → `/harness-design`，`plan` → `/harness-plan`，`tdd` → `/harness-tdd`，`verify` → `/harness-verify`
+- 普通用户第一次进入时，repo-facing 文档必须先区分 plugin 与 standalone 运行面
+- plugin 恢复入口使用 `/enterprise-harness:harness-*`；standalone 使用 `/harness-*`
 
 ### 入口职责
-`/harness` 不是单纯的说明 skill，而是阶段编排器，负责：
+canonical harness skill 不是说明页，而是阶段编排器，负责：
 
 > 角色协作版本的补充草案见：`harness/specs/role-guided-staged-workflow.md`
 
@@ -105,8 +101,8 @@ durable artifact：
 目标：按 RED → GREEN → REFACTOR 执行，而不是先改生产代码再补测试。
 
 最低要求：
-- 通过 Agent 工具派遣 subagent 执行，使用 `isolation: "worktree"`
-- subagent 必须执行目标项目真实构建命令（如 `mvn test` / `mvn verify`），不得跳过
+- plugin 通过 `enterprise-harness:tdd-executor` 派发，使用 `isolation: "worktree"` 与受控 parent-HEAD WorktreeCreate
+- subagent 必须通过 `tdd-run` 执行 tasks.md 冻结的真实 argv；receipt 绑定 agent/worktree/HEAD/argv/exit/time
 - 主 orchestrator 不得直接在主对话中写生产代码
 - `TEST_WRITTEN`
 - `RED_VERIFIED`
@@ -150,16 +146,16 @@ durable artifact：
 ### TDD gate
 在以下条件全部满足前，不得进入 `verify`：
 
-- 已观察到 RED
-- 已观察到 GREEN
-- 已在全绿后完成 REFACTOR 验证
+- durable imported receipt 中 RED 非零、GREEN/REFACTOR 为零且顺序/身份/基线均有效
+- implementation commit 已集成并有独立 task review
 
 ### Verify gate
 在以下条件全部满足前，不得进入 `archive` / 宣称完成：
 
 - reviewer verdict 已落盘且 blocking reviewer 不为 `block`
 - `validation.md` 存在
-- `validation.status=fresh`
+- `validation.status=fresh` 且 digest current
+- strict change 的每个 task receipt 完整，agent ledger 无未结束 agent 或 unresolved violation
 
 ## Subagent Exploration 原则
 
@@ -244,16 +240,21 @@ clarify 完成后，主 orchestrator 应生成一个 compact context packet，�
 
 ### PreToolUse / PostToolUse
 负责：
-- 写入门禁
+- Agent Pre/Post dispatch binding
+- 主线程业务探索拒绝、同 agent CodeGraph-first/fallback
+- Write/Edit/NotebookEdit/Bash 的 stage-independent 累计写入门禁
 - freshness 标脏
-- 阶段就绪提示
+- 无法解析但实际写入受治理路径时记录 violation
 
 不负责：
 - 作为主交互入口
 
+### SubagentStart / SubagentStop / WorktreeCreate
+负责 scoped agent 身份、结构化结果与 parent-HEAD worktree 证据。
+
 ### Stop
 负责：
-- freshness / completion protection
+- 与 verify/archive 共享 completion predicate
 - durable handoff guidance
 - 当前停留阶段与恢复提示
 
@@ -269,7 +270,7 @@ clarify 完成后，主 orchestrator 应生成一个 compact context packet，�
 - `userConfirmedScope`: 用户是否已确认执行范围
 - `planReady`: 当前 plan 是否已可消费
 - `tddStatus`: `not-started | test-written | red-verified | green-verified | refactor-verified`
-- `nextEntry`: 推荐恢复入口（如 `/harness` / `/harness-design` / `/harness-plan` / `/harness-tdd` / `/harness-verify`）
+- `nextEntry`: 当前运行面的推荐恢复入口；plugin 必须带 `enterprise-harness:` namespace
 
 要求：
 - 新的 staged orchestrator 逻辑优先读取 `workflow.*`；若缺失，再回退到 legacy 字段推断

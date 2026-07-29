@@ -28,7 +28,10 @@ Claude Code 可发现的项目 subagent / reviewer。
 Claude Code hook 执行体与完成前门禁脚本。
 
 ### `hooks/`
-历史 shell 验证脚本与兼容入口；当前不再作为运行时 hook 真相层。
+plugin-installed hook manifest：`hooks/hooks.json` 使用 `${CLAUDE_PLUGIN_ROOT}` 定位执行体。
+
+### `.claude/settings.json`
+standalone checkout hook manifest：使用 `$CLAUDE_PROJECT_DIR` 定位执行体。两个 manifest 调用同一组 `harness/plugin/runtime/hooks/*.mjs`，行为必须保持一致。
 
 ### `harness/templates/`
 可复用模板，例如 `requirements.md`、`design.md`、`tasks.md`、`validation.md` 等 staged workflow 资产模板。

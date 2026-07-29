@@ -47,7 +47,7 @@
 - 安装态插件缓存与仓库当前版本可能暂时不同步
 
 在 Claude Code-only phase 1 下，这层的优先目标不是先讲“跨机器的活插件”，而是先保证：
-- `/harness` 前门与阶段编排稳定
+- plugin `/enterprise-harness:harness` 与 standalone `/harness` 各自稳定且不冲突
 - hook adapter 与原语层边界清晰
 - verify / release / package / doctor / sync 等后台动作可确定性执行
 
@@ -56,10 +56,10 @@
 当前推荐把入口显式分成三层：
 
 ### 1. Skill 入口
-在 Claude Code 会话中，优先从 `/harness` 开始；它是对用户的唯一前门，负责把需求接入 intake / route / design / validation 等工作流。
+plugin install 从 `/enterprise-harness:harness` 开始；standalone checkout 从 `/harness` 开始。两者行为同源，但 namespace 不能混写。
 
 ### 2. Command 后台动作
-在本机/runtime 场景中，优先使用：
+plugin 安装态优先使用 `enterprise-harness <command>`。standalone fallback 使用：
 
 - `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
 - `node harness/plugin/runtime/cli.mjs bootstrap`
@@ -67,10 +67,10 @@
 - `node harness/plugin/runtime/cli.mjs sync`
 - `node harness/plugin/runtime/cli.mjs verify`
 
-这些命令服务于 `/harness` 的后台确定性动作，不应被描述成与 `/harness` 并列的多个用户入口。
+这些命令服务于 canonical skill 的后台确定性动作，不是并列用户入口。
 
 ### 3. Hooks 自动门禁
-SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、校验，不承载长链路总编排。
+SessionStart、Agent Pre/Post、SubagentStart/Stop、WorktreeCreate、Write/Edit/NotebookEdit/Bash Pre/Post 与 Stop 负责自动提醒、身份/基线证据、累计阻断和统一 completion；不承载长链路总编排。
 
 ## 插件最小能力
 
@@ -78,7 +78,7 @@ SessionStart / PreToolUse / PostToolUse / Stop 负责自动提醒、阻断、校
 对安装者暴露单一命令面，例如：
 
 ```bash
-node harness/plugin/runtime/cli.mjs <command>
+enterprise-harness <command>
 ```
 
 当前应至少收拢：

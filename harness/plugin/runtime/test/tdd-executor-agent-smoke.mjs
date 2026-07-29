@@ -34,9 +34,10 @@ const skill = readText(skillPath);
 const ok = agent.includes('name: tdd-executor')
   && agent.includes('TDD 专职执行 worker')
   && agent.includes('Java / Maven 项目必须执行 `mvn test` / `mvn verify` / `mvn compile`')
-  && agent.includes('返回结构')
+  && agent.includes('receipt refs')
+  && agent.includes('isolation: worktree')
   && spec.includes('tdd-executor')
-  && skill.includes('优先使用专职 `tdd-executor`');
+  && skill.includes('enterprise-harness:tdd-executor');
 
 if (mode === 'red') {
   if (!ok) {

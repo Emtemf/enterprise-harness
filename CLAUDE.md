@@ -45,7 +45,8 @@
 ## 当前分层模型
 
 ### 用户前门
-- **唯一前门**：`/harness`
+- plugin install：`/enterprise-harness:harness`
+- standalone checkout：`/harness`
 
 ### 核心探索能力
 - **CodeGraph-first**：代码探索默认走 `code-explore`
@@ -55,12 +56,8 @@
 - 歧义度评分必须在 clarify 阶段显式展示，并保持一次只问一个问题
 
 ### 阶段恢复入口
-- `clarify` / `route` → `/harness-intake`
-- `design` → `/harness-design`
-- `plan` → `/harness-plan`
-- `tdd` → `/harness-tdd`
-- `verify` → `/harness-verify`
-- `archive` / 未识别 → `/harness`
+- plugin 使用 `/enterprise-harness:harness-intake|design|plan|tdd|verify`
+- standalone 使用 `/harness-intake|design|plan|tdd|verify`
 
 ### 职责边界
 - **skill**：阶段方法论、TECPC 检查、用户可见引导
@@ -117,12 +114,13 @@
 ### 4. TDD 执行
 - **TDD 必须通过 subagent 执行**
 - **必须使用 `isolation: "worktree"`**
-- **必须执行真实构建命令**：如 `mvn test` / `mvn verify`
+- **必须通过 `tdd-run` 执行真实项目命令**：如 tasks 冻结的 `mvn test` / `mvn verify`
+- worker 文本不构成完成证据；必须有 runtime receipt、`evidence-import` 与独立 review
 - 主对话禁止直接写生产代码
 
 ### 5. 实现前门禁
 在进入实现前，至少必须满足：
-- 已通过 `/harness` 建立当前 change
+- 已通过当前运行面的 canonical harness skill 建立 current change
 - 已完成 `clarify`（或至少 clarify-ready 并获得用户确认）
 - 已完成 `route`
 

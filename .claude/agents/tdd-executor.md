@@ -22,18 +22,19 @@ isolation: worktree
 
 1. 读取当前 task 的 touched files / RED evidence point / GREEN evidence point
 2. 写失败测试
-3. 执行真实构建/测试命令，观察 RED
+3. 通过 `enterprise-harness tdd-run <change-id> <task-id> red -- <literal argv>` 执行真实命令，观察 RED
 4. 写最小 GREEN 实现
-5. 重新执行真实构建/测试命令，观察 GREEN
+5. 通过同一 runner 执行 GREEN
 6. 在全绿后做 REFACTOR
-7. 返回结构化结果摘要
+7. 执行 REFACTOR、提交 implementation commit，并返回 receipt refs
 
 ## 强约束
 
 - 你不是总编排器；只负责单个 task 的 TDD 执行
 - 你必须使用目标项目真实构建命令，不得用 harness 仓库自己的验证命令冒充
 - Java / Maven 项目必须执行 `mvn test` / `mvn verify` / `mvn compile` 这类项目原生命令
-- 没有看到实际命令输出，不得声称 RED / GREEN / REFACTOR 完成
+- 没有 runtime receipt 不得声称 RED / GREEN / REFACTOR 完成；worker 自报命令不构成证据
+- 不得自行 checkout/cherry-pick 猜测 worktree 基线
 - 主返回值必须是压缩摘要，不得把整段构建日志原样倾倒给主上下文
 - 若缺少必要输入（task 描述、命令、scope），应明确返回 blocker，而不是猜测继续
 
@@ -57,14 +58,7 @@ isolation: worktree
 
 ## 返回结构
 
-至少返回：
-- `task-id`
-- `tdd-status`
-- `command-executed`
-- `command-output-summary`
-- `evidence-path`
-- `next-step`
-- `blockers`
+至少返回：task-id、agent-id/type、worktree absolute path、git common dir、RED/GREEN/REFACTOR receipt refs、implementation commit、changed paths、各命令 exit summary、next-step 与 blockers。
 
 ## 约束
 

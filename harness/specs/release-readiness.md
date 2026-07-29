@@ -1,57 +1,29 @@
-# 发布准备说明
+# 发布准备与验收
 
-## 目标
+## 当前发布投影
 
-明确什么时候可以把当前 Enterprise Harness 从“公开 skeleton 仓库”推进到“更正式的可安装插件资产”。
+以下版本必须完全一致：`package.json`、`harness/plugin/manifest.json`、`.claude-plugin/plugin.json`、marketplace root、marketplace plugin entry，以及 README 标题。当前版本为 `0.2.29`。
 
-## 当前已具备
+## 阻断式 prepublish
 
-- root `package.json`
-- `bin/enterprise-harness.mjs`
-- runtime `cli.mjs`
-- `doctor` / `sync` / `verify` / `install` / `upgrade` / `migrate`
-- `release-local` source-external 本地 smoke 路径
-- local adapter schema 与 setup
-- 上游升级治理
-- README / CONTRIBUTING / issue templates
-- GitHub Actions `platform-smoke` 已跑通 Linux / macOS / Windows 当前 runtime smoke matrix
-- 面向团队说明的中文概览 / 公告 / 安装文档
+任何版本文件写入、release commit、tag、package、push 前必须先运行：
 
-## 当前还缺
+```bash
+npm run prepublish-check
+```
 
-### 1. 发布路径
-- npm 包名最终确认
-- 是否使用 scope（例如 `@org/enterprise-harness`）
-- 版本策略（semver）
+它至少消费 Task 1–3 P0 aggregate、release/version acceptance、runtime doctor/sync/verify/upstream-check，以及 `claude plugin validate .` 零 warning。platform 与 release workflow 都必须把它作为 blocking step。
 
-### 2. prepublish 检查
-- package metadata 完整性
-- runtime CLI 自检
-- doctor / sync / verify / upstream-check 通过
-- source-external `release-local` smoke 通过
-- 平台矩阵状态说明
+## Live E2E
 
-### 3. 安装体验
-- `npm install -g` / `npx` 路径说明
-- 安装者失败时的清晰诊断
+确定性 CI 不依赖账户凭据。已认证本机通过以下显式开关执行 clean-target plugin-only E2E：
 
-## 当前建议的发布顺序
+```bash
+HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs verify
+```
 
-1. 保持 `doctor` / `sync` / `verify` / `upstream-check` 稳定
-2. 运行 source-external `release-local` smoke
-3. 保持 Linux / macOS / Windows CI smoke 持续稳定
-4. 补更广泛的本地开发机 / 真机 smoke test 结果
-5. 确认 package 命名与发布策略
-6. 再做正式对外发布
+未设置开关只能明确输出 SKIP，不能写 pass evidence；设置后 Claude 缺失、认证/容量失败、canonical skill、portable PATH、scoped Agent 或 ledger binding 任一失败都必须非零退出。
 
-## 不应提前宣称的内容
+## 发布边界
 
-- 不应宣称“全平台已正式支持”
-- 不应宣称“插件市场一键安装已稳定”
-- 不应宣称“上游升级已完全自动兼容”
-
-## 结论
-
-当前更适合表述为：
-
-> 已具备发布前骨架、统一命令面和跨平台 CI smoke matrix，正在继续补更广泛真机验证与正式发布路径。
+本规范只定义验收，不授权自动 push、tag 或创建 GitHub Release。维护者必须单独明确执行发布动作。

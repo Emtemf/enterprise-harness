@@ -3,7 +3,7 @@
 > **普通用户 30 秒开始：**
 > 1. 安装 `enterprise-harness`
 > 2. 打开 Claude Code
-> 3. 输入 `/harness`
+> 3. 输入 `/enterprise-harness:harness`
 >
 > 这就是普通用户路径；其余 runtime / maintainer 内容都不是普通用户前门。
 
@@ -13,7 +13,7 @@
 >
 > - [`installation-guide.md`](./installation-guide.md)
 >
-> 普通用户只需要记住：**安装插件，然后从 `/harness` 开始。**
+> 普通用户只需要记住：**安装插件，然后从 `/enterprise-harness:harness` 开始。**
 
 ## 使用说明
 
@@ -35,7 +35,7 @@
 >
 > 当前状态：**Claude Code-only phase 1 的 staged workflow repo contract 基线**
 >
-> 普通用户入口：**安装插件后直接从 `/harness` 开始**
+> 普通用户入口：**安装插件后直接从 `/enterprise-harness:harness` 开始**
 
 ---
 
@@ -45,13 +45,13 @@
 
 围绕 Claude Code 的企业后端交付骨架：把需求 intake、codegraph-first 探索、Context7-first 文档检索、design / TDD / review / validation、change 资产与 Claude Code-only phase 1 的动作层 / maintainer layer 收敛成一套可落盘、可验证、可跨机器接入的工程流程。
 
-普通用户使用方式：**安装插件后直接从 `/harness` 开始。**
+普通用户使用方式：**安装插件后直接从 `/enterprise-harness:harness` 开始。**
 
 ### 英文版
 
 An enterprise backend delivery harness for Claude Code: turning intake, codegraph-first exploration, Context7-first docs lookup, design/TDD/review/validation, change artifacts, and a Claude Code-only phase 1 的动作层 / maintainer layer into a durable, verifiable, cross-machine workflow.
 
-For end users, the entrypoint is simply: **install the plugin, then start from `/harness`**.
+For plugin users, the entrypoint is: **install the plugin, then start from `/enterprise-harness:harness`**.
 
 ---
 
@@ -69,12 +69,12 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 - 外部库与框架文档默认走 **Context7-first**
 - 本地运行方式统一到 Claude Code-only phase 1 的动作层 / maintainer layer
 - 对受治理路径的修改，开始接入 `active change`、`designApproved`、`redVerified`、stale validation 等最小 gate
-- 对普通用户，唯一工作流前门是 `/harness`
+- 对 plugin 用户，唯一工作流前门是 `/enterprise-harness:harness`
 
 如果你要向普通用户解释怎么开始，只需要两步：
 
 1. 安装插件
-2. 从 `/harness` 开始
+2. 从 `/enterprise-harness:harness` 开始
 
 ---
 
@@ -86,7 +86,7 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 
 对普通用户，入口已经尽量收口成：
 
-> **安装插件，然后从 `/harness` 开始。**
+> **安装插件，然后从 `/enterprise-harness:harness` 开始。**
 
 更底层的 动作层 / maintainer layer、change 资产、hook gate、codegraph-first / Context7-first 等机制则留给仓库治理与维护层。
 
@@ -99,7 +99,7 @@ For end users, the entrypoint is simply: **install the plugin, then start from `
 I open-sourced the first MVP of **Enterprise Harness** — a Claude Code-only phase 1 repo contract around Claude Code for enterprise-style backend delivery.
 
 For end users, the path is simple:
-**install the plugin, then start from `/harness`**.
+**install the plugin, then start from `/enterprise-harness:harness`**.
 
 ### 版本 B（更解释型）
 
@@ -108,7 +108,7 @@ Most “AI coding workflows” stop at prompts.
 **Enterprise Harness** tries to go one layer deeper with shared repo contract, machine-local 动作层 / maintainer layer, change artifacts in-repo, codegraph-first exploration, and Context7-first docs lookup.
 
 For regular users, the front door is still just:
-**install, then start from `/harness`**.
+**install, then start from `/enterprise-harness:harness`**.
 
 ---
 
@@ -131,7 +131,7 @@ For regular users, the front door is still just:
 但对普通用户，它尽量不要求先理解这么多东西；普通用户只需要：
 
 1. 安装插件
-2. 从 `/harness` 开始
+2. 从 `/enterprise-harness:harness` 开始
 
 更底层的 动作层 / maintainer layer、change 资产、hook gate 和 reviewer 机制则留给维护层与工程治理层。
 
@@ -145,7 +145,7 @@ For regular users, the front door is still just:
 
 但对普通用户，入口已经尽量收口得很简单：
 
-> **安装插件后直接从 `/harness` 开始。**
+> **安装插件后直接从 `/enterprise-harness:harness` 开始。**
 
 ---
 

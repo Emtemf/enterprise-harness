@@ -1,5 +1,7 @@
 # Enterprise Harness v0.1.1
 
+> 历史发布记录：正文保留当时行为，不代表当前入口。当前 plugin canonical 入口是 `/enterprise-harness:harness`；裸 `/harness` 仅用于 standalone checkout。
+
 > 这份 release note 主要给仓库维护者、协作者和发布阅读者看。
 >
 > 如果你是普通用户，请直接看安装教程：

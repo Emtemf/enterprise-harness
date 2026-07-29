@@ -18,12 +18,12 @@
 对普通用户来说，只需要记住两件事：
 
 1. **安装 `enterprise-harness` 插件**
-2. **进入 Claude Code 会话后，直接从 `/harness` 开始**
+2. **进入 Claude Code 会话后，从 `/enterprise-harness:harness` 开始**
 
 也就是说：
 
 - plugin marketplace 是**安装方式**
-- `/harness` 是**唯一工作流入口**
+- plugin 安装态 `/enterprise-harness:harness` 是唯一工作流入口；裸 `/harness` 仅用于 standalone checkout
 - `bootstrap` / `doctor` / `sync` / `verify` / `start-change` 这些都不是普通用户前门
 
 ---
@@ -93,7 +93,7 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 安装完成后，对普通用户来说只需要这样做：
 
 1. 打开 Claude Code 会话
-2. 输入 `/harness`
+2. 输入 `/enterprise-harness:harness`
 
 后续流程由系统负责继续带你往下走：
 
@@ -106,9 +106,9 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 - `archive`
 
 如中途恢复：
-- `clarify` / `route` 默认恢复到 `/harness-intake`
+- `clarify` / `route` 默认恢复到 `/enterprise-harness:harness-intake`
 - `design` / `plan` / `tdd` / `verify` 分别恢复到对应阶段 skill
-- 普通用户第一次进入仍然始终从 `/harness` 开始
+- 普通用户第一次进入始终从 `/enterprise-harness:harness` 开始
 
 你不需要先理解这些阶段的内部实现，也不需要手动挑 backend 命令。
 
@@ -138,9 +138,9 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 - 安装插件
 - 打开 Claude Code
-- 输入 `/harness`
+- 输入 `/enterprise-harness:harness`
 
-普通用户不需要先初始化 `.harness/`、bootstrap marker 或本机 adapter，缺这些也不应阻止继续通过 `/harness` 澄清需求。
+普通用户不需要先初始化 `.harness/`、bootstrap marker 或本机 adapter，缺这些也不应阻止继续通过 canonical skill 澄清需求。
 
 如果你需要：
 
@@ -161,7 +161,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 当前对普通用户最准确的结论是：
 
 - **本地 marketplace 安装/更新路径可用**
-- **安装后唯一工作流入口是 `/harness`**
+- **安装后唯一工作流入口是 `/enterprise-harness:harness`**
 
 这份文档不要求你先理解 `harness/` 下的动作层、hooks、change state 或 reviewer 机制。
 

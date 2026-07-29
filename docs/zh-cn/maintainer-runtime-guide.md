@@ -2,7 +2,7 @@
 
 > 这份文档只给 maintainer / operator / 排障者看。
 >
-> 普通用户请返回安装教程，并直接按 `/harness` 使用：
+> plugin 普通用户请返回安装教程，并从 `/enterprise-harness:harness` 开始；裸 `/harness` 仅用于 standalone checkout：
 >
 > - [`installation-guide.md`](./installation-guide.md)
 

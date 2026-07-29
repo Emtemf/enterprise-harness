@@ -8,7 +8,11 @@
 
 ### Supported entry shape
 
-- `node <repo>/harness/plugin/runtime/cli.mjs <command> [args]`
+1. plugin install：`enterprise-harness <command> [args]`
+2. standalone checkout fallback：`node harness/plugin/runtime/cli.mjs <command> [args]`
+3. launcher 开发诊断：`./bin/enterprise-harness <command> [args]`
+
+`node bin/enterprise-harness.mjs` 只是实现级调试入口，不是面向用户的 canonical executable。
 
 ### Required behavior
 

@@ -18,7 +18,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 
 - 只要目标项目存在真实构建/测试命令，TDD 默认应下沉给专职 worker / subagent 执行 RED/GREEN/REFACTOR，而不是把所有执行细节堆在主对话里
 - `/harness-tdd` 的职责是阶段编排与结果消费，不是替代 executor 承担完整执行细节
-- 主上下文应保留：当前 task、当前构建命令、RED/GREEN 证据摘要、失败原因与下一步决策
+- 主上下文只保留 receipt refs、implementation commit、review verdict、失败原因与下一步决策
 
 
 ## 前置条件
@@ -55,14 +55,16 @@ TEST_WRITTEN
    - `subagent_type`: 必须使用 scoped 专职 `enterprise-harness:tdd-executor`，不得回退到任何通用 worker
    - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
    - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
-2. **Subagent 必须执行真实构建命令**：
+2. **Subagent 必须通过 `enterprise-harness tdd-run ... -- <literal argv>` 执行真实构建命令**：
    - Java/Maven 项目：必须执行 `mvn test` / `mvn verify` / `mvn compile`
    - 不得跳过构建命令，不得只写代码不验证
    - RED 阶段：执行测试 → 必须失败 → 记录失败输出
    - GREEN 阶段：执行测试 → 必须通过 → 记录通过输出
    - REFACTOR 阶段：执行测试 → 必须全绿 → 记录通过输出
-3. **主 orchestrator 只保留结果摘要**：
-   - Subagent 返回：RED 失败输出摘要 / GREEN 通过输出摘要 / 当前状态
+3. **主 orchestrator 只消费权威 receipt**：
+   - worker 文本只用于导航，不是 completion evidence
+   - receipt 必须绑定 agent_id、worktree、HEAD/tree digest、exact argv、exit code、时间与 RED→GREEN→REFACTOR 顺序
+   - 集成 implementation commit 与独立 review 后运行 `enterprise-harness evidence-import <change-id> <task-id>`
    - 主上下文不堆积整段构建输出
 4. **禁止在主对话中直接 Write/Edit 生产代码**：
    - TDD 阶段的所有代码修改必须由 subagent 在 worktree 中完成
@@ -80,15 +82,10 @@ TEST_WRITTEN
 - 必须使用 worker / subagent 执行这些真实构建命令；主上下文只保留结果摘要
 - GREEN 仅做最小实现
 - REFACTOR 后必须重新确认全绿
-- 每个 task 的 subagent 返回结果必须包含：
-  - `task-id`
-  - `tdd-status`: `test-written` / `red-verified` / `green-verified` / `refactor-verified`
-  - `command-executed`: 实际执行的 mvn/gradle 命令
-  - `command-output-summary`: 构建输出摘要（失败时的关键错误信息）
-  - `evidence-path`: 证据文件路径
+- 每个 task 的 subagent 返回结果必须包含 task-id、agent-id/type、worktree/git common dir、三个 receipt refs、implementation commit、changed paths 与 exit summary；runtime 重新校验这些字段，不能信任文本本身
 
 ## 退出条件
 
 - 已达到 `REFACTOR_VERIFIED`
-- 当前 task 的验证证据可被 `verify` 阶段消费
+- 当前 task 的 durable imported receipt 与独立 review 可被 `verify` 阶段消费
 - 未完成项或失败项已显式记录

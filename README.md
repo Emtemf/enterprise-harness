@@ -22,7 +22,7 @@
 
 ```mermaid
 graph TD
-    U["/harness 你的需求"] --> S["Session Start<br/>输出 闭环五检 (TECPC) 卡"]
+    U["plugin: /enterprise-harness:harness<br/>standalone: /harness"] --> S["Session Start<br/>输出 闭环五检 (TECPC) 卡"]
     S --> E["代码探索<br/>委托 subagent"]
     E --> C["澄清<br/>一次问一个问题"]
     C --> R["路由<br/>L0/L1/L2/L3"]
@@ -50,13 +50,13 @@ graph TD
 | 步骤 | T 目标 | E 证据 / P 纠正（你应该看到） | 门禁级别 |
 |------|------|-------------------------|---------|
 | **Session Start** | 知道当前状态 | `[Harness 进度卡]` 含 ✓/▸/○ 阶梯 | 程序强制 |
-| **代码探索** | 了解项目结构 | 通过 `code-explore` subagent 探索 | prompt 约束 |
+| **代码探索** | 了解项目结构 | scoped `code-explore` + agent-bound CodeGraph attempt | 程序强制 |
 | **澄清** | 把需求变明确 | Claude 一次问你一个问题 | prompt 约束 |
 | **路由** | 确定复杂度 tier | `state.json` 中 tier 有值 | prompt 约束 |
 | **设计** | TECPC 驱动的完整设计 | `design.md` 含 T/E/C/P/C 五维 + reviewer pass | 程序强制 |
 | **计划** | 拆成可执行任务 | `tasks.md` 存在 + plan critic pass | 程序强制 |
-| **RED** | 证明问题存在 | 测试先失败（RED 证据） | prompt 约束 |
-| **GREEN** | 最小实现通过 | 测试通过（GREEN 证据） | prompt 约束 |
+| **RED** | 证明问题存在 | `tdd-run` 真实执行并生成失败 receipt | 程序强制 |
+| **GREEN** | 最小实现通过 | 同一 receipt 记录真实成功命令 | 程序强制 |
 | **验证** | 确认无回归 | `cli.mjs verify` OK + validation fresh | 程序强制 |
 | **归档** | 结束 change | change 移入 `harness/archive/` | 程序强制 |
 
@@ -91,9 +91,10 @@ graph TD
 
 ### pre-explore hook（探索代码前）
 
-主 orchestrator 直接用 Grep/Read/Glob 探索业务代码时：
-- 无 active change 但有 change tracking → **BLOCK**（必须委托 code-explore subagent）
-- 已有 codegraph 证据 → 放行
+主 orchestrator 直接用 Grep/Read/Glob/Bash 探索业务代码时：
+- 无 active change 或无 `agent_id` → **BLOCK**
+- 只有 active `enterprise-harness:code-explore` 才能探索；fallback 前必须由同一 agent 留下 CodeGraph attempt
+- 手填 `state.tooling.codegraph` 永远不能解锁主线程
 - 读 harness/ 内部文件、CLAUDE.md、docs、配置 → 放行（豁免）
 
 ### CodeGraph / Context7：phase 1 的双探索亮点
@@ -111,7 +112,7 @@ graph TD
 
 ### pre-write hook（写代码前）
 
-12 道拦截，按顺序检查：
+门禁不再按可伪造的单一 stage 分支，而是对每次 Write/Edit/NotebookEdit/常见 Bash 写入累计检查：
 
 | # | 检查 | 触发条件 |
 |---|------|---------|
@@ -124,11 +125,11 @@ graph TD
 | 7 | **route 产物** | `tier` 未设置 |
 | 8 | **design 产物** | `design.md` 不存在 |
 | 9 | **plan 产物** | `tasks.md` 不存在 |
-| 10 | **codegraph 证据** | `tooling.codegraph` 仍为 unknown/空 |
+| 10 | **CodeGraph 证据** | 缺少 agent-bound CodeGraph attempt |
 | 11 | designApproved | 设计未批准 |
-| 12 | RED 证据 | 测试未先失败 |
+| 12 | RED 证据 | 当前 task 缺少由 `tdd-run` 生成的失败 receipt |
 
-**模型跳过任何阶段、或未记录 codegraph 使用都会被程序级 BLOCK**，不依赖模型自觉。
+受治理写入还必须来自 active `enterprise-harness:tdd-executor`。PostToolUse 会把无法静态解析但实际改动受治理文件的 Bash 写入记录为 violation；verify、Stop 与 archive 共同消费统一 completion predicate。
 
 ### post-write hook（写代码后）
 
@@ -139,8 +140,8 @@ graph TD
 
 ### stop hook（会话结束前）
 
-- validation stale → BLOCK
-- reviewer verdict 未满足 → BLOCK
+- validation stale/current digest 不一致 → BLOCK
+- reviewer、完整 task receipt、agent ledger 或 impact 未满足 → BLOCK
 - 输出 闭环五检 (TECPC) 卡（v0.1.19+）
 
 ## 安装
@@ -175,25 +176,22 @@ node bin/install.mjs --target /path/to/your/project
 
 这意味着：
 - **用户前门、阶段编排、恢复入口、交互体验** 都收口到 Claude Code 原生机制
-- **普通用户唯一前门** 仍然是 `/harness`
+- plugin 安装态唯一前门是 `/enterprise-harness:harness`；standalone checkout 才使用 `/harness`
 - `harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语，但不作为普通用户前门暴露
 
 通过 `/plugin install` 安装后，Claude Code 的 PreToolUse/PostToolUse/Stop/SessionStart
 生命周期会**自动执行** harness 的 hook。你只需要打字，门禁在后台兜底。
 
-- 写代码前 → 12 道拦截自动检查
+- 写代码前 → agent-aware 累计前置条件自动检查
 - 被拦 → 看到 BLOCK + TECPC 卡
 - 会话开头 → 自动输出 TECPC 卡
 
-**用户唯一前门**：`/harness`
+| 运行面 | 主入口 | 阶段恢复入口 | Agent subtype |
+|---|---|---|---|
+| plugin install | `/enterprise-harness:harness` | `/enterprise-harness:harness-*` | `enterprise-harness:<agent>` |
+| standalone checkout | `/harness` | `/harness-*` | 项目本地 logical name |
 
-**阶段恢复入口**：
-- clarify / route → `/harness-intake`
-- design → `/harness-design`
-- plan → `/harness-plan`
-- tdd → `/harness-tdd`
-- verify → `/harness-verify`
-- archive / 未识别 → `/harness`
+plugin 阶段恢复依次是 `/enterprise-harness:harness-intake`、`/enterprise-harness:harness-design`、`/enterprise-harness:harness-plan`、`/enterprise-harness:harness-tdd`、`/enterprise-harness:harness-verify`。裸入口只属于 standalone source checkout。
 
 ### 为什么仍然保留 `harness/` 目录？
 
@@ -235,7 +233,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 ### 什么是真正强制的（程序拦截）
 
 - 探索业务代码时被 pre-explore hook BLOCK（除非已委托 subagent 或有 codegraph 证据）
-- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 **12 道写入前检查**（含 codegraph 证据门禁）
+- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 **agent-aware 累计写入检查**（含 CodeGraph attempt 与 task RED receipt）
 - 变更资产完整性检查
 - OpenAPI ↔ Controller 一致性检查
 - 验证新鲜度检查

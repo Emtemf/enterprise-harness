@@ -33,8 +33,9 @@ const spec = readText(specPath);
 const agent = readText(agentPath);
 const ok = skill.includes('TDD 默认应下沉给专职 worker / subagent 执行 RED/GREEN/REFACTOR')
   && skill.includes('只负责派遣 executor、消费结果、推进子状态')
-  && spec.includes('### `/harness-tdd` skill')
-  && spec.includes('### `tdd-executor` agent')
+  && spec.includes('plugin 阶段入口')
+  && spec.includes('plugin executor subtype')
+  && spec.includes('主 orchestrator')
   && agent.includes('你不是总编排器；只负责单个 task 的 TDD 执行');
 
 if (mode === 'red') {

@@ -31,13 +31,13 @@ const spec = readText(specPath);
 const skill = readText(skillPath);
 const ok = spec.includes('TDD Execution Contract')
   && spec.includes('tdd-executor')
-  && (spec.includes('isolation: "worktree"') || spec.includes('`isolation: "worktree"`') || spec.includes('必须使用 worktree'))
+  && spec.includes('isolation: worktree')
   && spec.includes('mvn test')
-  && spec.includes('主 orchestrator 不堆积整段构建输出')
-  && spec.includes('Executor 输出 contract')
+  && spec.includes('tdd-run')
+  && spec.includes('evidence-import')
+  && spec.includes('RED 必须非零')
   && skill.includes('必须使用 subagent 执行 TDD')
-  && (skill.includes('Java / Maven 项目：必须执行 `mvn test` / `mvn verify` / `mvn compile`')
-    || skill.includes('Java/Maven 项目：必须执行 `mvn test` / `mvn verify` / `mvn compile`'));
+  && skill.includes('权威 receipt');
 
 if (mode === 'red') {
   if (!ok) {

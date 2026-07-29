@@ -30,11 +30,12 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const agent = readText(agentPath);
 const spec = readText(specPath);
 const requiredInput = ['change-id', 'task-id', 'touched-files', 'test-first-order', 'red-evidence-point', 'green-evidence-point', 'project-native-build-command', 'scope'];
-const requiredOutput = ['task-id', 'tdd-status', 'command-executed', 'command-output-summary', 'evidence-path', 'next-step', 'blockers'];
-const ok = requiredInput.every((token) => agent.includes(`\`${token}\``) && spec.includes(`\`${token}\``))
-  && requiredOutput.every((token) => agent.includes(`\`${token}\``) && spec.includes(`\`${token}\``))
+const requiredOutput = ['task-id', 'agent-id', 'worktree', 'receipt refs', 'implementation commit', 'changed paths', 'blockers'];
+const ok = requiredInput.every((token) => agent.includes(`\`${token}\``))
+  && requiredOutput.every((token) => agent.includes(token) || spec.includes(token))
+  && spec.includes('worker 文本')
   && agent.includes('必须返回 blocker')
-  && spec.includes('必须返回 blocker');
+  && spec.includes('不接受 worker 自报');
 
 if (mode === 'red') {
   if (!ok) {

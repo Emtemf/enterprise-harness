@@ -107,9 +107,9 @@ Claude Code-only phase 1 的目标是把**编排与交互**收口到 Claude Code
 - `plan-critic`
 - `api-consistency-reviewer`（`impact.api=yes` 时为 blocking gate）
 - `verification-reviewer`
-- **建议新增：`tdd-executor`**
+- **已落地：`tdd-executor` 权威专职执行器**
 
-### 为什么建议新增 `tdd-executor`
+### 为什么必须使用 `tdd-executor`
 当前 TDD 是最关键、也最容易漂移的阶段之一。它已经具备独立角色特征：
 - worktree 隔离
 - 真实构建命令（如 `mvn test` / `mvn verify`）

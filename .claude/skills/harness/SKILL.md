@@ -112,20 +112,15 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
    - 使用 `Agent` 工具，`subagent_type: enterprise-harness:tdd-executor`（必须使用 scoped `enterprise-harness:tdd-executor`，不得回退到任何通用 worker）
    - `isolation: "worktree"`（每个 task 在独立 worktree 中执行）
    - prompt 包含：task 描述、touched files、RED/GREEN evidence point、目标项目构建命令
-2. **Subagent 必须执行真实构建命令**：
+2. **Subagent 必须通过 `tdd-run` 执行 tasks.md 冻结的真实 literal argv**：
    - Java/Maven：`mvn test` / `mvn verify` / `mvn compile`
    - 不得跳过构建命令
    - RED：执行测试 → 必须失败 → 记录失败输出
    - GREEN：执行测试 → 必须通过 → 记录通过输出
    - REFACTOR：执行测试 → 必须全绿 → 记录通过输出
-3. **Subagent 返回结果必须包含**：
-   - `task-id`
-   - `tdd-status`: `test-written` / `red-verified` / `green-verified` / `refactor-verified`
-   - `command-executed`: 实际执行的 mvn 命令
-   - `command-output-summary`: 构建输出摘要
-   - `evidence-path`: 证据文件路径
-4. **主 orchestrator 只保留结果摘要**，不堆积整段构建输出
-5. 更新 `state.json`：`workflow.tddStatus` 逐步推进
+3. **完成证据必须来自 runtime receipt**：绑定 task、scoped agent_id、worktree、HEAD/tree digest、exact argv、exit code、时间和 RED→GREEN→REFACTOR 顺序；worker 文本不是证据
+4. executor commit 集成后先独立 review，再运行 `enterprise-harness evidence-import <change-id> <task-id>`
+5. 主 orchestrator 只保留 receipt refs / commit / verdict，不堆积整段构建输出
 
 ### 第 6 步：verify（验证收口）
 **目标**：用新鲜证据确认完成。
@@ -151,7 +146,7 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 
 - 写 `src/main/java` 前：必须已完成 clarify + route + design + plan + codegraph 证据
 - 主 orchestrator 不得直接 Grep/Read/Glob 探索业务代码——必须委托 `enterprise-harness:code-explore` subagent
-- 跳过任何阶段都会被 pre-write hook BLOCK（12 道拦截）
+- 跳过任何累计前置条件都会被 pre-write hook BLOCK；单改 workflow.stage 或 state projection 无法绕过
 - 探索业务代码会被 pre-explore hook BLOCK（除非已记录 codegraph 证据）
 
 ## 阶段判定（怎么知道当前在哪步）

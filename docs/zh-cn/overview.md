@@ -9,10 +9,10 @@ Enterprise Harness 是一套围绕 **Claude Code** 的企业后端交付骨架�
 > **普通用户 30 秒开始：**
 > 1. 安装 `enterprise-harness`
 > 2. 打开 Claude Code
-> 3. 输入 `/harness`
+> 3. 输入 `/enterprise-harness:harness`
 >
 > 其余 runtime / maintainer 能力都不是普通用户前门。
-> clarify / route 的恢复入口是 `/harness-intake`；design / plan / tdd / verify 则各自恢复到对应阶段 skill。
+> plugin 恢复入口统一使用 `/enterprise-harness:harness-*`；裸 `/harness-*` 仅属于 standalone checkout。
 
 ---
 
@@ -61,7 +61,7 @@ Enterprise Harness 当前 phase 1 的思路是把这些问题拆成两层：
 - `archive/`：归档资产
 - `plugin/runtime/`：hook 接缝层、统一业务原语层与确定性动作层
 
-普通用户不把它当成前门；对用户真正暴露的工作流入口仍然是 `/harness`。
+普通用户不把 runtime CLI 当成前门；plugin 用户入口是 `/enterprise-harness:harness`，standalone 用户入口是 `/harness`。
 
 ---
 
@@ -202,7 +202,7 @@ sequenceDiagram
 也就是说，它已经不只是一个“clone 后手动跑脚本”的仓库骨架，而是：
 
 - 可以通过 Claude Code plugin marketplace add / install / update 走本地 marketplace 安装路径
-- 对用户的正常工作流入口严格收口为**唯一前门 `/harness`**
+- 对 plugin 用户收口为 `/enterprise-harness:harness`，对 standalone 用户收口为 `/harness`
 - clone + direct CLI 只保留为 fallback / development path
 - 但还不是已经公开发布到官方/公共 marketplace 的终态产品
 

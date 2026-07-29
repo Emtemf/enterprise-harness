@@ -32,12 +32,13 @@
   - `claude plugin marketplace update enterprise-harness`
   - `claude plugin update enterprise-harness@enterprise-harness --scope local`
 
-这条路径更接近 superpowers 的安装/更新体验；但对普通用户真正需要记住的工作流前门仍然只有 `/harness`。
+这条路径更接近 superpowers 的安装/更新体验。插件安装态的 canonical 前门是 `/enterprise-harness:harness`；裸 `/harness` 仅用于 standalone checkout。
 
 ### 1. Claude Code 会话唯一前门
 优先从：
 
-- `/harness`
+- plugin：`/enterprise-harness:harness`
+- standalone：`/harness`
 
 开始。它负责：
 
@@ -56,7 +57,7 @@
 - `node harness/plugin/runtime/cli.mjs sync`
 - `node harness/plugin/runtime/cli.mjs verify`
 
-这些命令是 `/harness` 背后的确定性 backend 动作，不是与 `/harness` 平级的第二个用户入口；普通用户按 SOP 使用时不需要先记住它们。维护者只在需要低层控制时再使用。
+plugin 安装态优先使用 `enterprise-harness <command>`；standalone 才使用上述 Node fallback。它们是 canonical skill 背后的确定性 backend，不是第二套用户工作流。
 
 ### 3. 自动门禁层
 自动发生但不是总入口：
@@ -142,7 +143,8 @@ clarify
 
 - `harness/ACTIVE_CHANGE` 有效
 - 相应 design / RED gate 已满足
-- `tooling.codegraph` 已有使用证据（否则被 codegraph 证据门禁 BLOCK）
+- 当前事件绑定 active scoped executor，且 ledger 中已有 code-explore agent 的 CodeGraph attempt
+- 生产/OpenAPI 写入已有当前 task 的真实 RED receipt；手填 state projection 不算证据
 
 ## 结论
 

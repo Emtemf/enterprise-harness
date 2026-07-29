@@ -3,7 +3,7 @@
 > **普通用户 30 秒开始：**
 > 1. 安装 `enterprise-harness`
 > 2. 打开 Claude Code
-> 3. 输入 `/harness`
+> 3. 输入 `/enterprise-harness:harness`
 >
 > 这就是普通用户路径；其余 runtime / maintainer 内容都不是普通用户前门。
 
@@ -13,7 +13,7 @@
 >
 > - [`installation-guide.md`](./installation-guide.md)
 >
-> 普通用户只需要记住：**安装插件，然后从 `/harness` 开始。**
+> 普通用户只需要记住：**安装插件，然后从 `/enterprise-harness:harness` 开始。**
 
 本文提供三种可直接使用的对外文案：
 
@@ -44,7 +44,7 @@
 
 同时，对普通用户的使用入口已经收口为：
 
-> **安装插件，然后从 `/harness` 开始。**
+> **安装插件，然后从 `/enterprise-harness:harness` 开始。**
 
 ---
 
@@ -62,11 +62,11 @@
 - 外部库与框架文档默认走 **Context7-first**
 - change 会沉淀到 `harness/changes/`，而不是只留在聊天上下文里
 - 对受治理路径的修改，已经开始接入 `designApproved`、`redVerified`、stale validation 等运行时 gate
-- 对普通用户，唯一工作流前门已经收口为 `/harness`
+- 对 plugin 用户，唯一工作流前门已经收口为 `/enterprise-harness:harness`
 
 这个仓库当前已经具备：
 
-- 统一的 `/harness` 用户入口
+- 统一的 `/enterprise-harness:harness` plugin 用户入口
 - 动作层 / maintainer layer
 - local adapter schema 与示例
 - Node 版 hook adapters
@@ -76,7 +76,7 @@
 
 1. 安装 `enterprise-harness`
 2. 进入 Claude Code 会话
-3. 直接从 `/harness` 开始
+3. 直接从 `/enterprise-harness:harness` 开始
 
 ---
 
@@ -103,7 +103,7 @@
 
 普通用户入口则收口为：
 
-> **安装插件，然后从 `/harness` 开始。**
+> **安装插件，然后从 `/enterprise-harness:harness` 开始。**
 
 ### 版本 B
 
@@ -115,7 +115,7 @@
 
 它把仓库共享契约和机器本地运行层拆开，让 codegraph、Context7、change 资产、hook gate 和 动作层 / maintainer layer 能放进同一个工作流里。
 
-对普通用户，入口已经尽量收口成：**安装后直接从 `/harness` 开始**。
+对普通用户，入口已经收口成：**安装后直接从 `/enterprise-harness:harness` 开始**。
 
 ---
 
@@ -125,7 +125,7 @@
 
 - “这是围绕 Claude Code 的企业后端交付骨架”
 - “当前状态是可运行的 repo contract + Claude Code-only phase 1 staged workflow 基线”
-- “普通用户安装后直接从 `/harness` 开始”
+- “普通用户安装后直接从 `/enterprise-harness:harness` 开始”
 - “支持按需委托子 agent 做只读分析、规划与评审，但不把并行改代码当默认模式”
 - “项目高层约定保留在 `CLAUDE.md`，探索证据和 change 事实沉淀到 `harness/` 资产”
 

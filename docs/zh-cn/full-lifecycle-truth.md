@@ -2,13 +2,15 @@
 
 > **用途**：本文档是 harness 的唯一时序真相。每一步标明：TECPC 维度、涉及文件、产出文件、预期输出、异常检测。**如果实际行为与本文档不符，就是 bug，应该提 issue。**
 
+> **入口矩阵**：plugin install 使用 `/enterprise-harness:harness` 与 `/enterprise-harness:harness-*`；standalone checkout 才使用裸 `/harness` 与 `/harness-*`。下文裸名示例表示 standalone。
+
 ---
 
 ## 时序总览
 
 ```mermaid
 graph TD
-    A["1. Session Start<br/>session-start.mjs"] --> B["2. /harness<br/>skill 加载"]
+    A["1. Session Start<br/>session-start.mjs"] --> B["2. canonical harness skill<br/>plugin namespaced / standalone bare"]
     B --> C["3. 代码探索<br/>委托 code-explore subagent"]
     C --> D["4. 需求澄清<br/>歧义评分 + 一问一答"]
     D --> E["5. 路由决策<br/>L0/L1/L2/L3"]
@@ -384,14 +386,14 @@ design.md 必须包含以下 TECPC section：
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/plugin/runtime/hooks/pre-write.mjs` | 12 道拦截 |
+| `harness/plugin/runtime/hooks/pre-write.mjs` | agent-aware 累计门禁 |
 | `harness/plugin/runtime/lib/gates.mjs` | gate 检查逻辑 |
 | `harness/plugin/runtime/lib/tecp-card.mjs` | BLOCK 时渲染 TECPC 卡 |
 
 ### 产出文件
 无（拦截时不写文件）
 
-### 12 道拦截（按顺序）
+### 累计拦截（不信任单一 workflow.stage）
 | # | 检查 | BLOCK 消息关键词 |
 |---|------|-----------------|
 | 1 | 写 legacy 目录 | `请不要继续把运行时规范写入历史目录` |
@@ -403,9 +405,9 @@ design.md 必须包含以下 TECPC section：
 | 7 | route 缺 tier | `处于 route 阶段，tier 未设置` |
 | 8 | design 缺 design.md | `处于 design 阶段，design.md 不存在` |
 | 9 | plan 缺 tasks.md | `处于 plan 阶段，tasks.md 不存在` |
-| 10 | codegraph 证据缺失 | `tooling.codegraph 仍为 unknown/空` |
+| 10 | CodeGraph 证据缺失 | 缺少 code-explore agent-bound attempt |
 | 11 | designApproved=false | `需要 designApproved=true` |
-| 12 | RED 证据不足 | `需要 currentTask-scoped red verification` |
+| 12 | RED 证据不足 | 当前 task 缺少真实失败 receipt |
 
 ### 预期行为
 - BLOCK 时：stderr 输出 BLOCK 消息 + TECPC 卡
@@ -428,7 +430,7 @@ design.md 必须包含以下 TECPC section：
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/plugin/runtime/hooks/post-write.mjs` | 写后检查 |
+| `harness/plugin/runtime/hooks/post-write.mjs` | 写后 freshness + 未解析 Bash violation |
 | `harness/plugin/runtime/lib/checks.mjs` | 检查逻辑 |
 
 ### 检查内容
@@ -510,11 +512,11 @@ design.md 必须包含以下 TECPC section：
 ### 涉及文件
 | 文件 | 角色 |
 |------|------|
-| `harness/plugin/runtime/hooks/stop.mjs` | 停止前检查 |
+| `harness/plugin/runtime/hooks/stop.mjs` | 与 verify/archive 共享 completion predicate |
 | `harness/plugin/runtime/lib/tecp-card.mjs` | TECPC 卡 |
 
 ### 预期行为
-- validation stale + state=VALIDATED/REVIEWED → BLOCK + TECPC 卡
+- VALIDATED 但 validation/digest/reviewer/task receipt/agent ledger/impact 任一不完整 → BLOCK + TECPC 卡
 - 正常放行 → stdout `{}`
 
 ### 异常检测

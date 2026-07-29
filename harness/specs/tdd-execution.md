@@ -2,108 +2,69 @@
 
 ## 目标
 
-把 TDD 阶段从“主对话里顺手写点测试/代码”的松散行为，收敛为可机械消费的执行 contract。
+TDD 是由 Claude Code 专职 subagent 执行、由 runtime receipt 证明的机械流程，不接受 worker 自报的命令字符串作为证据。
 
-本 contract 的核心要求：
-- TDD 是一个**专职执行面**
-- 执行默认由专职 executor agent 承担
-- Java / Maven 项目必须执行真实构建命令
-- 主 orchestrator 只保留阶段状态与结果摘要
+## 角色与入口
 
-## 角色划分
+- plugin 阶段入口：`/enterprise-harness:harness-tdd`
+- standalone 阶段入口：`/harness-tdd`
+- plugin executor subtype：`enterprise-harness:tdd-executor`
+- executor frontmatter：logical `name: tdd-executor`，并声明 `isolation: worktree`
+- 主 orchestrator：只负责串行派发、集成 implementation commit、独立 review、`evidence-import` 与集成复验
 
-### `/harness-tdd` skill
-负责：
-- 向用户展示当前 task 的 TDD 目标
-- 明确当前 RED / GREEN / REFACTOR 子状态
-- 指挥是否派发 executor
-- 消费 executor 返回结果
+主对话不得直接修改生产代码，也不得把自己的 Bash 输出包装成 executor evidence。
 
-### `tdd-executor` agent（建议新增）
-负责：
-- 在隔离上下文/工作目录中执行 TDD
-- 写测试
-- 跑 RED
-- 实现最小 GREEN
-- 在全绿后做 REFACTOR
-- 返回结构化执行摘要
+## worktree 基线
 
-### hook / primitives
-负责：
-- 阻止主对话直接写生产代码
-- 阻止缺少 RED 证据就改受治理路径
-- 记录当前 task / currentTask-scoped red verification
+Claude Code 默认隔离 worktree 可能从 default branch 创建。本项目注册受控 `WorktreeCreate` hook，必须从派发 cwd 的已提交 `HEAD` 创建新 branch/worktree，并精确校验 path、完整 branch ref、registration HEAD 与 captured parent HEAD。无法证明所有权时保留资源供人工恢复，不猜测清理。
 
-## 强约束
+## 权威执行命令
 
-### 1. 必须使用 subagent 执行
-TDD 默认由专职 executor agent 执行，不应在主对话中直接 Write/Edit 生产代码。
+每个 task 在 `tasks.md` 冻结 RED/GREEN/REFACTOR 的 literal argv。executor 必须调用：
 
-### 2. 必须使用 worktree
-执行隔离默认要求：
-- `isolation: "worktree"`
-
-### 3. 必须执行真实构建命令
-对 Java / Maven 项目，至少执行：
-- `mvn test`
-- `mvn verify`
-- `mvn compile`
-
-没有实际命令输出，不得声称 RED / GREEN / REFACTOR 已完成。
-
-### 4. 主对话只保留摘要
-主 orchestrator 不堆积整段构建输出，只保留：
-- 当前 task-id
-- 当前 tdd-status
-- command executed
-- command output summary
-- evidence path
-- 下一步决策
-
-## 执行子状态
-
-```text
-TEST_WRITTEN
-→ RED_VERIFIED
-→ GREEN_VERIFIED
-→ REFACTOR_VERIFIED
+```bash
+enterprise-harness tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
 ```
 
-## Executor 输入 contract
+standalone source checkout 的等价 fallback 是：
 
-至少包括：
-- `change-id`
-- `task-id`
-- `touched-files`
-- `test-first-order`
-- `red-evidence-point`
-- `green-evidence-point`
-- `project-native-build-command`
-- `scope`
+```bash
+node harness/plugin/runtime/cli.mjs tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
+```
 
-若输入不足，executor 必须返回 blocker，而不是自行猜测 task scope 或命令。
+runner 以 `spawnSync(command, args, { shell: false })` 真实执行命令。Java/Maven task 必须在 tasks 中冻结并实际执行 `mvn test`、`mvn verify` 或项目 wrapper；不存在“文字声明已执行”的降级路径。
 
-## Executor 输出 contract
+## Receipt contract
 
-至少包括：
-- `task-id`
-- `tdd-status`
-- `command-executed`
-- `command-output-summary`
-- `evidence-path`
-- `next-step`
-- `blockers`
+receipt 写入 git common-dir spool，绑定：
 
-## Double-check 入口
+- change/task 与 scoped executor `agent_id`
+- worktree absolute path、git common dir、HEAD before/after、tree digest before/after
+- exact argv、exit code、开始/结束时间、stdout/stderr digest
+- 严格 RED → GREEN → REFACTOR 顺序
 
-TDD 不是只要 executor 说“做完了”就算完成。至少需要：
-- 当前 task evidence 可进入 `verify`
-- validation freshness 可由 verify 阶段消费
-- 主 orchestrator 将结果压缩回阶段上下文
+RED 必须非零；GREEN 与 REFACTOR 必须为零。receipt 必须同时存在 dispatch binding、Start、Stop 与合法 agent result，且不能来自未绑定或已结束的 agent。
+
+## 集成与导入
+
+executor 提交实现后，主 orchestrator 先把 implementation commit 集成到当前分支并完成独立 task review，然后执行：
+
+```bash
+enterprise-harness evidence-import <change-id> <task-id>
+```
+
+standalone fallback：
+
+```bash
+node harness/plugin/runtime/cli.mjs evidence-import <change-id> <task-id>
+```
+
+importer 校验 spool、agent 生命周期、worktree/git common dir、implementation patch 与 integration HEAD，再原子写入 `harness/changes/<change-id>/evidence/tdd/<task-id>.json`。verify、Stop 与 archive 只消费 durable imported evidence，不相信 worker 文本中的 `command-executed`、`summary` 或 `evidence-path`。
 
 ## 禁止事项
 
-- 不得只写测试文件而不运行构建命令
-- 不得只改代码而不观察 RED
-- 不得在主对话中直接承担完整 TDD 执行
-- 不得把旧构建输出冒充当前证据
+- 不运行真实命令就声称 RED/GREEN/REFACTOR
+- 用手填 `state.gates.redVerified` 替代 receipt
+- executor 自行 checkout/cherry-pick 猜测基线
+- 并行执行会互相覆盖 receipt 的 task
+- 缺独立 review 或 import 就进入 completion

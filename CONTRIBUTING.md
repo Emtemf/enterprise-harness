@@ -84,16 +84,15 @@
 
 ## 4. 本地验证
 
-当前最小验证命令：
+当前最小验证按变更面选择：
 
 ```bash
-bash harness/plugin/runtime/verify-scripts/validate-spec-structure.sh
-bash harness/plugin/runtime/verify-scripts/full-verify.sh
+node harness/plugin/runtime/test/<task-aggregate-smoke>.mjs verify
+node harness/plugin/runtime/cli.mjs verify
+claude plugin validate .
 ```
 
-当前 repo-level full-verify.sh 仍不是 Java quality gate；reference-service 应单独运行 Maven verify。
-后续 CI should reuse the same Maven verify command，而不是重新定义另一套绿灯含义。
-later CI should reuse the same Maven verify command.
+入口、Agent、portable launcher、worktree、累计 gate、completion 或 release 改动还应运行对应 P0 aggregate。发布面改动必须运行 `npm run prepublish-check`；已认证的本机 release acceptance 还应显式运行 live E2E。
 
 如果改动了 `reference-service/`，当前建议执行：
 
@@ -103,7 +102,7 @@ mvn -f reference-service/pom.xml verify
 
 同时请明确：generated `*MapperImpl` are build artifacts，而不是 hand-authored quality profile 的主要设计面。
 
-如果改动了 动作层，建议额外执行：
+如果改动了 runtime，至少执行：
 
 ```bash
 node harness/plugin/runtime/cli.mjs bootstrap
@@ -111,6 +110,8 @@ node harness/plugin/runtime/cli.mjs doctor
 node harness/plugin/runtime/cli.mjs sync
 node harness/plugin/runtime/cli.mjs verify
 ```
+
+TDD 命令必须通过 change 中冻结的 `tdd-run` argv 真实执行并导入 receipt；聊天摘要不能替代证据。
 
 ---
 

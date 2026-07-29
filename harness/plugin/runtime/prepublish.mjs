@@ -7,6 +7,7 @@ const commands = [
   ['harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs', 'verify'],
   ['harness/plugin/runtime/test/task3-gate-completion-smoke.mjs', 'verify'],
   ['harness/plugin/runtime/test/release-version-acceptance-smoke.mjs', 'verify'],
+  ['harness/plugin/runtime/test/current-doc-surface-smoke.mjs', 'verify'],
   ['harness/plugin/runtime/cli.mjs', 'doctor', '--json'],
   ['harness/plugin/runtime/cli.mjs', 'sync', '--json'],
   ['harness/plugin/runtime/cli.mjs', 'verify'],
