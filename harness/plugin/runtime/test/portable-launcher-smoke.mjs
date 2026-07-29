@@ -9,6 +9,8 @@ const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const mode = process.argv[2];
 const launcherModulePath = path.join(repoRoot, 'bin', 'enterprise-harness.mjs');
 const launcherExecutablePath = path.join(repoRoot, 'bin', 'enterprise-harness');
+const windowsLauncherPath = path.join(repoRoot, 'bin', 'enterprise-harness.cmd');
+const isWindows = process.platform === 'win32';
 const pluginFacingSkills = [
   ['.claude/skills/harness/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'), 'utf-8')],
   ['.claude/skills/harness-intake/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'), 'utf-8')],
@@ -71,10 +73,40 @@ function runCommand(command, args, cwd, env = {}) {
   });
 }
 
+function runPortableLauncher(args, cwd, env = {}) {
+  if (!isWindows) {
+    return runCommand('enterprise-harness', args, cwd, env);
+  }
+  return spawnSync(process.env.ComSpec || 'cmd.exe', [
+    '/d',
+    '/s',
+    '/c',
+    `"${windowsLauncherPath}" ${args.map((arg) => `"${String(arg).replaceAll('"', '""')}"`).join(' ')}`,
+  ], {
+    cwd,
+    encoding: 'utf-8',
+    env: {
+      ...process.env,
+      ...env,
+    },
+  });
+}
+
+function resolveBashPath() {
+  if (!isWindows) return 'bash';
+  const candidates = [
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Git', 'bin', 'bash.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Git', 'bin', 'bash.exe'),
+  ];
+  const discovered = runCommand('where.exe', ['bash.exe'], repoRoot);
+  candidates.push(...String(discovered.stdout || '').split(/\r?\n/u).filter(Boolean));
+  return candidates.find((candidate) => fs.existsSync(candidate)) || 'bash';
+}
+
 function runLiteralLauncher(args, cwd, env = {}) {
   const scriptPath = path.join(cwd, 'run-literal-launcher.sh');
   fs.writeFileSync(scriptPath, `#!/usr/bin/env bash\nset -euo pipefail\n${literalShell}\n`, { mode: 0o755 });
-  return spawnSync('bash', ['--noprofile', '--norc', scriptPath, ...args], {
+  return spawnSync(resolveBashPath(), ['--noprofile', '--norc', scriptPath, ...args], {
     cwd,
     encoding: 'utf-8',
     env: {
@@ -95,7 +127,15 @@ function removePathEntry(value, entry) {
 function isExecutable(filePath) {
   const stat = fs.statSync(filePath, { throwIfNoEntry: false });
   if (!stat || !stat.isFile()) return false;
+  if (isWindows) {
+    const indexed = runCommand('git', ['ls-files', '--stage', '--', path.relative(repoRoot, filePath)], repoRoot);
+    return indexed.status === 0 && /^100755\s/u.test(String(indexed.stdout || ''));
+  }
   return (stat.mode & 0o111) !== 0;
+}
+
+function normalizeNewlines(text) {
+  return String(text || '').replace(/\r\n?/gu, '\n');
 }
 
 function stripExactPortableSnippet(text) {
@@ -104,7 +144,7 @@ function stripExactPortableSnippet(text) {
     `\`\`\`bash\n${documentedPortableSnippet}\n\`\`\``,
     `\`\`\`\n${documentedPortableSnippet}\n\`\`\``,
   ];
-  return exactSnippets.reduce((current, snippet) => current.split(snippet).join(''), text);
+  return exactSnippets.reduce((current, snippet) => current.split(snippet).join(''), normalizeNewlines(text));
 }
 
 function normalizeMarkdownCommandSurface(text) {
@@ -123,15 +163,15 @@ fs.mkdirSync(targetRoot, { recursive: true });
 
 try {
   const pathEnv = `${path.join(repoRoot, 'bin')}${path.delimiter}${process.env.PATH || ''}`;
-  const commandProbe = runCommand('bash', ['--noprofile', '--norc', '-c', 'command -v enterprise-harness'], targetRoot, {
-    PATH: pathEnv,
-  });
-  const withLauncherPath = runCommand('enterprise-harness', ['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
+  const commandProbe = isWindows
+    ? runCommand('where.exe', ['enterprise-harness.cmd'], targetRoot, { PATH: pathEnv })
+    : runCommand('bash', ['--noprofile', '--norc', '-c', 'command -v enterprise-harness'], targetRoot, { PATH: pathEnv });
+  const withLauncherPath = runPortableLauncher(['start-change', 'launcher-probe', 'codex', 'L1', 'launcher probe'], targetRoot, {
     PATH: pathEnv,
   });
   const documentationCommandResults = documentedCommandProbes.map((probe) => ({
     ...probe,
-    result: runCommand('enterprise-harness', probe.args, targetRoot, { PATH: pathEnv }),
+    result: runPortableLauncher(probe.args, targetRoot, { PATH: pathEnv }),
   }));
 
   const standaloneRuntimeDir = path.join(targetRoot, 'harness', 'plugin', 'runtime');
@@ -154,11 +194,14 @@ try {
   } else if (!isExecutable(launcherExecutablePath)) {
     failures.push('bin/enterprise-harness must be executable (mode 100755 or equivalent)');
   }
+  if (isWindows && !fs.existsSync(windowsLauncherPath)) {
+    failures.push('portable launcher must install bin/enterprise-harness.cmd for native Windows PATH dispatch');
+  }
   if (!/import\.meta\.url/u.test(fs.readFileSync(launcherModulePath, 'utf-8'))) {
     failures.push('portable launcher module must locate runtime relative to import.meta.url');
   }
   for (const [relativePath, skillContent] of pluginFacingSkills) {
-    if (!skillContent.includes(documentedPortableSnippet)) {
+    if (!normalizeNewlines(skillContent).includes(documentedPortableSnippet)) {
       failures.push(`${relativePath} must embed the literal enterprise-harness-first / local cli fallback / BLOCK launcher snippet`);
     }
     const commandSurface = normalizeMarkdownCommandSurface(skillContent);
@@ -169,8 +212,10 @@ try {
   if (commandProbe.status !== 0) {
     failures.push(`command -v enterprise-harness failed under PATH: exit=${commandProbe.status} stderr=${String(commandProbe.stderr || '').trim()}`);
   }
-  if (!String(commandProbe.stdout || '').trim().endsWith('/bin/enterprise-harness')) {
-    failures.push(`command -v enterprise-harness must resolve the extensionless executable, got ${JSON.stringify(String(commandProbe.stdout || '').trim())}`);
+  const resolvedCommand = path.normalize(String(commandProbe.stdout || '').trim().split(/\r?\n/u)[0] || '');
+  const expectedCommand = path.normalize(isWindows ? windowsLauncherPath : launcherExecutablePath);
+  if (resolvedCommand.toLowerCase() !== expectedCommand.toLowerCase()) {
+    failures.push(`enterprise-harness command probe must resolve the platform launcher, expected=${JSON.stringify(expectedCommand)} got=${JSON.stringify(resolvedCommand)}`);
   }
   if (withLauncherPath.status !== 0) {
     failures.push(`PATH-backed launcher start-change failed: exit=${withLauncherPath.status} stderr=${String(withLauncherPath.stderr || '').trim()}`);

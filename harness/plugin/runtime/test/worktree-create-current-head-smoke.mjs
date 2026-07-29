@@ -62,6 +62,29 @@ function fixtureWorktreePath(root, name) {
   return path.join(root, '.claude', 'worktrees', name);
 }
 
+function canonicalPath(targetPath) {
+  const resolved = path.resolve(targetPath);
+  let canonical = resolved;
+  try {
+    canonical = fs.realpathSync.native(resolved);
+  } catch {
+    // Missing paths cannot be realpathed. Keeping the absolute spelling is
+    // sufficient for negative assertions and cleanup.
+  }
+  const normalized = path.normalize(canonical);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function samePath(left, right) {
+  return canonicalPath(left) === canonicalPath(right);
+}
+
+function pathIsWithin(targetPath, parentPath) {
+  const target = canonicalPath(targetPath);
+  const parent = canonicalPath(parentPath);
+  return target === parent || target.startsWith(`${parent}${path.sep}`);
+}
+
 function parsePorcelainStanzas(listed) {
   const stanzas = String(listed || '')
     .split(/\n\n+/u)
@@ -82,12 +105,11 @@ function listTrackedWorktrees(root) {
 }
 
 function findTrackedWorktree(root, worktreePath) {
-  return listTrackedWorktrees(root).find((entry) => path.resolve(entry.worktree || '') === path.resolve(worktreePath)) || null;
+  return listTrackedWorktrees(root).find((entry) => samePath(entry.worktree || '', worktreePath)) || null;
 }
 
 function assertNoRegisteredWorktree(root, worktreePath) {
-  const expected = path.resolve(worktreePath);
-  const listed = listTrackedWorktrees(root).some((entry) => path.resolve(entry.worktree || '') === expected);
+  const listed = listTrackedWorktrees(root).some((entry) => samePath(entry.worktree || '', worktreePath));
   assert.equal(listed, false, `unexpected worktree registration for ${worktreePath}`);
 }
 
@@ -133,7 +155,7 @@ function verifySuccessScenario(root) {
   assert.equal(String(result.stdout || '').trim(), stdoutLastNonEmptyLine(result), 'stdout must contain only the final absolute path');
   const worktreePath = stdoutLastNonEmptyLine(result);
   assert.equal(path.isAbsolute(worktreePath), true, 'worktree path must be absolute');
-  assert.equal(path.normalize(worktreePath), fixtureWorktreePath(root, name));
+  assert.equal(samePath(worktreePath, fixtureWorktreePath(root, name)), true, 'worktree output must identify the requested path');
   assert.equal(git(worktreePath, 'rev-parse', 'HEAD'), parentHead, 'child worktree must match parent HEAD');
   assert.equal(fs.readFileSync(path.join(worktreePath, 'harness', 'ACTIVE_CHANGE'), 'utf-8'), 'task-probe\n');
 }
@@ -297,7 +319,7 @@ function verifyOwnershipLossPreservesResources(root) {
   assert.equal(readBranchHead(root, branchName), staleHead, 'ownership-loss fixture must preserve the exact injected stale branch HEAD');
   const preservedEntry = findTrackedWorktree(root, worktreePath);
   assert.notEqual(preservedEntry, null, 'ownership loss must preserve worktree registration');
-  assert.equal(path.resolve(preservedEntry.worktree || ''), path.resolve(worktreePath), 'preserved stanza must keep the exact worktree path');
+  assert.equal(samePath(preservedEntry.worktree || '', worktreePath), true, 'preserved stanza must keep the same worktree path');
   assert.equal(preservedEntry.branch, `refs/heads/${branchName}`, 'preserved stanza must keep the exact branch ref');
   assert.equal(preservedEntry.HEAD, staleHead, 'preserved stanza must keep the exact injected stale branch HEAD');
 }
@@ -351,7 +373,7 @@ function verifyRegistrationHeadMismatchPreservesResources(root) {
   assert.equal(readBranchHead(root, branchName), capturedHead, 'registration HEAD mismatch counterexample must keep the exact captured branch HEAD');
   const preservedEntry = findTrackedWorktree(root, worktreePath);
   assert.notEqual(preservedEntry, null, 'registration HEAD mismatch must preserve worktree registration');
-  assert.equal(path.resolve(preservedEntry.worktree || ''), path.resolve(worktreePath), 'registration HEAD mismatch must preserve exact stanza path');
+  assert.equal(samePath(preservedEntry.worktree || '', worktreePath), true, 'registration HEAD mismatch must preserve the same stanza path');
   assert.equal(preservedEntry.branch, `refs/heads/${branchName}`, 'registration HEAD mismatch must preserve exact stanza branch');
   assert.equal(preservedEntry.HEAD, capturedHead, 'registration HEAD mismatch must preserve the original registration HEAD from git porcelain');
 }
@@ -360,7 +382,7 @@ function cleanupRepo(root) {
   if (!root || !fs.existsSync(root)) return;
   for (const entry of listTrackedWorktrees(root)) {
     const worktreePath = entry.worktree;
-    if (worktreePath && path.resolve(worktreePath).startsWith(path.resolve(path.join(root, '.claude', 'worktrees')))) {
+    if (worktreePath && pathIsWithin(worktreePath, path.join(root, '.claude', 'worktrees'))) {
       run('git', ['worktree', 'remove', '--force', worktreePath], root);
     }
   }

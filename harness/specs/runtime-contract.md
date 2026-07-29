@@ -10,9 +10,16 @@
 
 1. plugin install：`enterprise-harness <command> [args]`
 2. standalone checkout fallback：`node harness/plugin/runtime/cli.mjs <command> [args]`
-3. launcher 开发诊断：`./bin/enterprise-harness <command> [args]`
+3. launcher 开发诊断：
+   - Linux / macOS：`./bin/enterprise-harness <command> [args]`
+   - Windows：`bin\enterprise-harness.cmd <command> [args]`
 
 `node bin/enterprise-harness.mjs` 只是实现级调试入口，不是面向用户的 canonical executable。
+
+分发包必须同时携带 POSIX extensionless launcher 与 Windows `.cmd` launcher。两者只负责从
+plugin install root 定位同一个 `bin/enterprise-harness.mjs`，不得形成第二套 runtime 或工作流。
+跨平台验收比较文件系统对象时必须使用 canonical real path；不得把 macOS `/var` 与
+`/private/var`、Windows 8.3 short path、盘符大小写等路径拼写差异误判为资源越界。
 
 ### Required behavior
 
