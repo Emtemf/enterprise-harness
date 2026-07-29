@@ -15,10 +15,12 @@
 
 ### 2. 再理解结构边界
 - `agent-skill-boundary.md` — skill / agent / hook 接缝层 / 业务原语层边界
+- `handoff-scheme.md` — executor/checker 上下文隔离、TECPC envelope、hook 与诊断合同
 - `upstream-mapping.md` — Superpowers / OpenSpec / deep-interview / Claude Code 官方建议映射
 
 ### 3. 再理解 staged workflow 主合同
 - `staged-workflow.md` — clarify → route → design → plan → tdd → verify → archive 的总 contract
+- `handoff-scheme.md` — 每个阶段如何隔离执行、独立检查并接力
 - `session-lifecycle.md` — session-start / status / stop 等恢复相关 contract
 - `plugin-runtime.md` — 当前 Claude Code 接缝层与动作层说明
 

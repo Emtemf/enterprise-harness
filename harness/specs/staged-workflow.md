@@ -8,6 +8,7 @@
 - workflow 按阶段推进，而不是靠聊天自由漂移
 - 每个阶段都有 durable artifact、gate 与 reviewer/verification 消费点
 - 高噪声探索默认下沉到 read-only subagent，主 orchestrator 只保留压缩后的业务上下文与阶段状态
+- 所有受治理阶段行为使用 executor/checker 两个隔离 subagent 接力，完整协议见 `handoff-scheme.md`
 
 ## 适用范围
 
@@ -72,6 +73,12 @@ clarify
 durable artifact：
 - `requirements.md`
 
+交互边界：
+- 一次一问与用户确认留在主 orchestrator
+- repo/document facts 由 explorer subagent 获取
+- 每轮回答由 `clarify-synthesizer` 在隔离上下文整理
+- `requirement-reviewer` 在另一个隔离上下文检查评分、范围和 route
+
 ### route
 目标：把澄清后的需求映射成 tier / owner / scope / impact / next gate。
 
@@ -88,6 +95,7 @@ durable artifact：
 - 覆盖接口、SQL/数据、架构边界、测试策略、纠正预案
 - `design-reviewer` 可评审（检查 TECPC 完整性）
 - 涉及 API 时，`api-consistency-reviewer` 可评审
+- `design-executor` 产出，`design-reviewer` 独立检查；两者不得共享上下文
 
 ### plan
 目标：把 design 拆成可机械执行的实现计划。
@@ -96,6 +104,7 @@ durable artifact：
 - `tasks.md` 完整
 - touched files / test-first order / RED point / GREEN point / acceptance checks 明确
 - `plan-critic` 可无猜测执行
+- `plan-executor` 产出，`plan-critic` 独立检查
 
 ### tdd
 目标：按 RED → GREEN → REFACTOR 执行，而不是先改生产代码再补测试。
@@ -108,6 +117,7 @@ durable artifact：
 - `RED_VERIFIED`
 - `GREEN_VERIFIED`
 - `REFACTOR_VERIFIED`
+- executor 完成后必须由 `implementation-reviewer` 独立检查当前 task
 
 ### verify
 目标：在宣称完成前，统一消费 reviewer verdict、命令证据与 validation freshness。
@@ -116,6 +126,7 @@ durable artifact：
 - `validation.md` 补齐
 - reviewer verdict 落盘
 - stale validation 不得宣称完成
+- `verification-executor` 收集证据，`verification-reviewer` 独立给出完成态 verdict
 
 ### archive
 目标：在 durable artifacts 完整且 validation fresh 时结束当前 change。
@@ -250,7 +261,9 @@ clarify 完成后，主 orchestrator 应生成一个 compact context packet，�
 - 作为主交互入口
 
 ### SubagentStart / SubagentStop / WorktreeCreate
-负责 scoped agent 身份、结构化结果与 parent-HEAD worktree 证据。
+负责 scoped agent 身份、TECPC handoff 结构化结果与 parent-HEAD worktree 证据。`TaskCompleted` 额外校验最近一次执行已经由独立 checker 接受。
+
+plugin agent frontmatter 中的 hooks 不作为关键门禁来源；关键生命周期 hook 统一配置在 plugin hook manifest。
 
 ### Stop
 负责：

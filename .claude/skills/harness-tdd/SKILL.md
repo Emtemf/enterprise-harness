@@ -55,6 +55,7 @@ TEST_WRITTEN
    - `subagent_type`: 必须使用 scoped 专职 `enterprise-harness:tdd-executor`，不得回退到任何通用 worker
    - `isolation`: 使用 `"worktree"` 实现隔离（防止并发写冲突）
    - `prompt`: 包含完整的 task 描述、touched files、RED/GREEN evidence point
+   - prompt 第一段必须包含 `handoff create ... tdd.execute-task execute` 返回的 `HANDOFF_INPUT`
 2. **Subagent 必须通过 `enterprise-harness tdd-run ... -- <literal argv>` 执行真实构建命令**：
    - Java/Maven 项目：必须执行 `mvn test` / `mvn verify` / `mvn compile`
    - 不得跳过构建命令，不得只写代码不验证
@@ -64,7 +65,8 @@ TEST_WRITTEN
 3. **主 orchestrator 只消费权威 receipt**：
    - worker 文本只用于导航，不是 completion evidence
    - receipt 必须绑定 agent_id、worktree、HEAD/tree digest、exact argv、exit code、时间与 RED→GREEN→REFACTOR 顺序
-   - 集成 implementation commit 与独立 review 后运行 `enterprise-harness evidence-import <change-id> <task-id>`
+   - executor 返回后，以 executor runId 创建 role=check handoff，派 `enterprise-harness:implementation-reviewer`
+   - 集成 implementation commit 与独立 checker pass 后运行 `enterprise-harness evidence-import <change-id> <task-id>`
    - 主上下文不堆积整段构建输出
 4. **禁止在主对话中直接 Write/Edit 生产代码**：
    - TDD 阶段的所有代码修改必须由 subagent 在 worktree 中完成

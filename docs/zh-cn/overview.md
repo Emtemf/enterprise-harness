@@ -32,6 +32,8 @@ Enterprise Harness 当前 phase 1 的思路是把这些问题拆成两层：
 1. **Claude Code 原生交互与编排层**：前门、skills、agents、hooks 配置入口
 2. **Repo Contract / Durable Assets 层**：`harness/` 下的 specs、templates、changes、archive、动作层与统一业务原语
 
+其中受治理行为统一采用“主编排 → 隔离 executor → 落盘 handoff → 隔离 checker → hook gate”的接力模型。executor 与 checker 分别预加载专用 Skill，不共享上下文；完整时序以 `harness/specs/handoff-scheme.md` 为准。
+
 也就是说，当前版本的重点不是做跨 host 的 动作层，而是先把 Claude Code 内部的 staged workflow、探索通道、门禁和恢复能力打透。
 
 ---
@@ -74,7 +76,9 @@ sequenceDiagram
     participant U as 用户
     participant C as Claude Code 会话
     participant S as SessionStart Hook
-    participant M as 主 Agent
+    participant M as 主 Orchestrator
+    participant E as Executor Subagent
+    participant R as Checker Subagent
     participant X as CodeGraph / Context7
     participant A as Change 资产
     participant G as Pre-Write Gate
@@ -88,8 +92,11 @@ sequenceDiagram
     S-->>C: 检查 .claude/ / harness/ 骨架是否存在
     C->>M: 进入主流程
     M->>M: 判断 request shape 与候选 tier
-    M->>X: codegraph-first 探索代码
-    M->>X: context7-first 查询外部库/框架文档（如需要）
+    M->>E: HANDOFF_INPUT + 预加载 Executor Skill
+    E->>X: codegraph-first / Context7-first 探索
+    E-->>M: durable result.json
+    M->>R: check handoff + 预加载 Checker Skill
+    R-->>M: check.json verdict
     M->>A: 为 L1+ change 落盘 state/change/validation/evidence
     M->>M: 决定 route、design、plan、TDD、review 路径
     M->>G: 发起 Write/Edit 前检查

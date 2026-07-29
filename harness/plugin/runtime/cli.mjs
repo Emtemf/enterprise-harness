@@ -29,6 +29,8 @@ const commands = {
   context7: ['context7.mjs'],
   'tdd-run': ['tdd-run.mjs'],
   'evidence-import': ['evidence-import.mjs'],
+  handoff: ['handoff.mjs'],
+  trace: ['trace.mjs'],
   'migrate-evidence-policy': ['migrate-evidence-policy.mjs'],
 };
 

@@ -16,8 +16,9 @@
 4. `CLAUDE.md`：Claude Code 专用高层操作合同
 5. `harness/specs/session-lifecycle.md`：会话打开/结束与 handoff 规则
 6. `harness/specs/staged-workflow.md`：clarify-first staged workflow 与阶段 gate 规则
-7. `harness/specs/`：长期稳定规范
-7. `CONTRIBUTING.md`：贡献与提交约定
+7. `harness/specs/handoff-scheme.md`：隔离 executor/checker、TECPC handoff 与 hook 规则
+8. `harness/specs/`：长期稳定规范
+9. `CONTRIBUTING.md`：贡献与提交约定
 
 ## 入口模型
 
@@ -90,6 +91,17 @@ clarify
 - `clarify` 是强制第一阶段，优先通过代码/文档探索拿事实，再进行一问一答澄清与用户确认
 - `verify` 吸收 reviewer verdict、validation freshness 与 completion evidence 的统一消费职责
 - exploration 在高噪声场景下默认下沉为 read-only subagent，主 orchestrator 只消费压缩结论
+
+所有受治理阶段行为都由主 orchestrator 接力：
+
+```text
+executor subagent（预加载 executor Skill）
+→ durable TECPC handoff
+→ independent checker subagent（预加载 checker Skill）
+→ hook gate
+```
+
+executor 与 checker 必须是不同的新上下文；subagent 不继续派生 subagent。
 
 ## 仓库约定
 

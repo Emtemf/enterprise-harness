@@ -71,6 +71,19 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/agent-failure.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 Agent 失败与恢复入口"
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "hooks": [
@@ -103,6 +116,18 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/worktree-create.mjs\"",
             "timeout": 30,
             "statusMessage": "从父会话 HEAD 创建受控 worktree"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/plugin/runtime/hooks/task-completed.mjs\"",
+            "timeout": 10,
+            "statusMessage": "校验执行与独立检查接力"
           }
         ]
       }

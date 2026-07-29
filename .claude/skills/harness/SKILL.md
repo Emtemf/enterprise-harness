@@ -13,6 +13,36 @@ description: >
 
 这是 clarify-first staged workflow：`clarify / route / design / plan / tdd / verify / archive`。
 
+## 隔离接力不变量
+
+主 orchestrator 必须保持轻量，只负责人机交互、状态推进和接力，不直接承担受治理阶段产出。
+
+```text
+main harness skill
+→ handoff create (role=execute)
+→ scoped executor subagent（预加载 harness-stage-executor，新上下文）
+→ SubagentStop 持久化 result.json
+→ handoff create (role=check, parentRunId=<executor run>)
+→ 不同的 checker subagent（预加载 harness-stage-checker，新上下文）
+→ hooks 校验 verdict
+→ main 推进下一阶段
+```
+
+- subagent 不能再派生 subagent；executor 与 checker 必须都由 main 依次派发。
+- `isolation: worktree` 是文件/分支隔离，只在 TDD 写代码时强制；每个 subagent 本身已经提供上下文隔离。
+- agent frontmatter 的 `skills:` 必须预加载执行/检查合同，不依赖 worker 临时决定是否调用 Skill。
+- handoff 是 durable protocol，hook 是协议各条边的授权、校验、记录与阻断，不得把 handoff 退化为聊天摘要。
+- 每个 Agent prompt 必须含 runtime 输出的 `HANDOFF_INPUT=...`，不得手工伪造 runId。
+
+创建接力输入：
+
+```bash
+enterprise-harness handoff create <change-id> <stage> <behavior> execute --input-ref <brief-path> --target "<目标>"
+enterprise-harness handoff create <change-id> <stage> <behavior> check <executor-run-id>
+```
+
+行为到 executor/checker 的唯一映射见 `harness/behavior-checks.json`。
+
 plugin-installed skill 的 backend 命令必须使用同一段确定性 Bash：
 
 ```bash
@@ -51,7 +81,7 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 ### 第 1 步：clarify（需求澄清）
 **目标**：把模糊需求变成明确的、可执行的、用户确认的需求。先进入 `clarify`。
 
-1. **先委托探索**（不得自己做）：
+1. **先创建 handoff 并委托探索**（不得自己做）：
    - 【硬约束】代码探索必须委托 subagent
    - 派遣 `subagent_type: enterprise-harness:code-explore` 探索代码，不得使用任何通用 fallback 做代码探索
    - subagent prompt 开头写"先用 codegraph_explore / codegraph_search"
@@ -59,39 +89,37 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 2. **一次只问一个问题**（选项式 A/B/C + 其他）
 3. **每轮展示歧义评分**：7 维度 × 0-5 分 + overall + weakest + 评分依据
 4. **用户有权修正评分**——接受并调整
-5. **产出**：`requirements.md`（TECPC 五维：T 目标 / E 证据 / C 上下文 / P 路由 / C 纠正）
+5. 主线程完成一问一答后，派 `clarify-synthesizer` 整理 `requirements.md`，再由不同上下文的 `requirement-reviewer` 检查
 6. **达标条件**：所有维度 ≥ 4 + 用户确认执行范围
 7. 更新 `state.json`：`workflow.clarifyReady=true`、`workflow.userConfirmedScope=true`
 
 ### 第 2 步：route（路由决策）
 **目标**：确定变更复杂度 tier。
 
-1. 基于 clarify 结果判断 L0/L1/L2/L3
+1. 由 `clarify-synthesizer` 基于已确认 clarify 结果形成 L0/L1/L2/L3 route
 2. 记录 `routingReason`（为什么选这个 tier）
 3. 更新 `state.json`：`tier`、`goal`
-4. 产出：`change.md` 记录路由决策
+4. 产出：`change.md`，再由独立 `requirement-reviewer` 检查 route
 
 ### 第 3 步：design（TECPC 驱动设计）
 **目标**：产出可评审的、有证据支撑的设计。
 
-1. 读 `requirements.md` 和探索证据
-2. **【强制】创建 `design.md`**：
-   - 使用 `Write` 工具创建 `harness/changes/<change-id>/design.md`
+1. 创建 `design.produce` execute handoff，派 `design-executor`
+2. **【强制】由隔离 executor 创建 `design.md`**：
    - 基于 `harness/templates/design.md` 模板
    - 必须包含 TECPC 五维：
      - **T 目标**：业务目标 + 成功标准
      - **C 上下文**：探索事实（引用具体文件）+ 影响矩阵
      - **E 证据**：每个决策的证据来源 + 测试策略 + 验证命令
      - **P 路径**：方案对比表 + 接口/数据/架构设计 + 风险回滚 + **纠正预案**
-3. 跑 `enterprise-harness:design-reviewer`，获得 pass verdict
+3. 以 executor runId 创建 check handoff，派不同上下文的 `enterprise-harness:design-reviewer`
 4. 更新 `state.json`：`gates.designApproved=true`、`workflow.stage='design'`
 5. **不得在 design.md 不存在时进入 plan**
 
 ### 第 4 步：plan（任务拆分）
 **目标**：把设计拆成可机械执行的任务。
 
-1. **【强制】创建 `tasks.md`**：
-   - 使用 `Write` 工具创建 `harness/changes/<change-id>/tasks.md`
+1. **【强制】创建 `plan.produce` handoff 并派 `plan-executor` 创建 `tasks.md`**：
    - 基于 `harness/templates/tasks.md` 模板
    - 每个 task 必须有：
      - Touched files（完整路径）
@@ -99,7 +127,7 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
      - **RED evidence point**（哪个测试先失败 + 对应 mvn 命令）
      - **GREEN evidence point**（哪个测试后通过 + 对应 mvn 命令）
      - Acceptance checks
-2. 跑 `enterprise-harness:plan-critic`，获得 pass verdict
+2. 以 executor runId 派独立 `enterprise-harness:plan-critic`，获得 pass verdict
 3. 更新 `state.json`：`workflow.planReady=true`、`workflow.stage='plan'`
 4. **不得在 tasks.md 不存在时进入 tdd
 
@@ -125,9 +153,9 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 ### 第 6 步：verify（验证收口）
 **目标**：用新鲜证据确认完成。
 
-1. 更新 `validation.md`（运行了什么命令、结果是什么）
-2. 跑 `cli.mjs verify`（必须 OK）
-3. 跑 `enterprise-harness:verification-reviewer`（必须 pass）
+1. 派 `verification-executor` 执行真实验证并更新 `validation.md`
+2. executor 必须跑 `cli.mjs verify` 并如实记录结果
+3. 以 executor runId 派独立 `enterprise-harness:verification-reviewer`（必须 pass）
 4. 更新 `state.json`：`validation.status=fresh`
 
 ### 第 7 步：archive（归档）
@@ -138,9 +166,10 @@ plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harnes
 | 维度 | 每阶段必须回答 |
 |------|--------------|
 | **T 目标** | 这一步要达成什么？产出物是什么？ |
-| **C 上下文** | 基于什么事实/证据？引用具体文件 |
 | **E 证据** | 用什么证明这步做对了？（测试/reviewer/命令输出） |
-| **P 路径** | 为什么这么做？错了怎么恢复？ |
+| **C 上下文** | 基于什么最小事实包？引用具体文件 |
+| **P 路径** | 为什么这么做？下一棒是谁？ |
+| **C 纠正** | 错误码、blocker 和恢复动作是什么？ |
 
 ## 硬约束（程序级门禁会拦截）
 

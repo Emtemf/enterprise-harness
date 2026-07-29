@@ -37,8 +37,8 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 最低要求：
 - 先消费 `design.md` 与当前 change 上下文
 - 先按 `harness/specs/brief-contract.md` 生成 task brief，再将设计拆为 touched files / test-first order / RED/GREEN evidence point
-- 产出 `tasks.md`
-- 然后派 `enterprise-harness:plan-critic`
+- 创建 `plan.produce` execute handoff，派预加载 executor Skill 的 `enterprise-harness:plan-executor` 产出 `tasks.md`
+- 以 executor runId 创建 check handoff，再派预加载 checker Skill 的 `enterprise-harness:plan-critic`
 - 返回后只消费 reviewer 的 block / advisory / pass 结论与下一步动作
 
 ## plan 必查项
@@ -65,7 +65,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 **【强制】进入 plan 阶段后，必须在进入 tdd 前创建 `harness/changes/<change-id>/tasks.md`。**
 
 具体要求：
-1. 使用 `Write` 工具创建 `harness/changes/<change-id>/tasks.md`，基于 `harness/templates/tasks.md` 模板
+1. 由 `plan-executor` 创建 `harness/changes/<change-id>/tasks.md`，基于 `harness/templates/tasks.md` 模板
 2. 每个 task 必须包含：touched files / implementation order / test-first order / RED evidence point / GREEN evidence point / acceptance checks
 3. 创建完成后，更新 `state.json` 的 `workflow.planReady = true`
 4. **不得跳过 tasks.md 创建直接进入 tdd 阶段**

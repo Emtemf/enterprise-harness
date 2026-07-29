@@ -50,17 +50,19 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 - [ ] 方案对比表完整（选了什么、为什么不选其他的）
 - [ ] 接口 / 数据 / 架构边界设计完整
 - [ ] 风险与回滚策略
-- [ ] P 纠正预案（设计偏差时怎么恢复）
+- [ ] C 纠正预案（设计偏差时怎么恢复）
 
 ## 当前动作顺序（orchestrator shell 显示要求）
 
-进入 design 后，主 orchestrator 必须显式说明这一轮会如何调度，而不是直接沉入设计正文。
+进入 design 后，主 orchestrator 必须显式说明隔离接力，不得在主上下文直接撰写设计正文。
 
 最低要求：
 - 先消费 `requirements.md` / `change.md` / `CLAUDE.md` / exploration evidence
 - 若接口、数据、调用方或外部行为边界不清：先按 `harness/specs/brief-contract.md` 生成 design exploration brief，再派 `enterprise-harness:code-explore` / `enterprise-harness:doc-research`
-- facts 补齐后产出 `design.md`
-- design 成稿后派 `enterprise-harness:design-reviewer`
+- facts 完整后先生成最小 design brief，作为 execute handoff 的 `inputRefs`
+- 运行 `handoff create <change-id> design design.produce execute`，派预加载 `harness-stage-executor` 的 `enterprise-harness:design-executor`
+- executor 返回并持久化 `result.json` 后，以其 runId 创建 role=check handoff
+- 派预加载 `harness-stage-checker` 的 `enterprise-harness:design-reviewer`
 - 涉及 API 时，再补 `enterprise-harness:api-consistency-reviewer`
 
 若这一轮会派 subagent，必须显式说明：
@@ -81,7 +83,7 @@ plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶�
 **【强制】进入 design 阶段后，必须在进入 plan 前创建 `harness/changes/<change-id>/design.md`。**
 
 具体要求：
-1. 使用 `Write` 工具创建 `harness/changes/<change-id>/design.md`，基于 `harness/templates/design.md` 模板
+1. 由 `design-executor` 使用写工具创建 `harness/changes/<change-id>/design.md`，基于 `harness/templates/design.md` 模板
 2. 填写 TECPC 五维内容（T 目标 / E 证据 / C 上下文 / P 路径 / C 纠正）
 3. 创建完成后，更新 `state.json` 的 `workflow.stage = 'design'`
 4. **不得跳过 design.md 创建直接进入 plan 阶段**

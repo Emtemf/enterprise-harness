@@ -237,9 +237,8 @@ fi
   `enterprise-harness start-change launcher-probe codex L1 launcher-probe`，断言 change
   只创建于 temp target，source plugin tree 未被写入；再移除 PATH 验证 standalone fallback。
   该 smoke 只验证 launcher 自身，不冒充宿主 PATH 证明。
-- 宿主 PATH 由 Task 4 authenticated plugin-only E2E 验收：不得为 enterprise-harness 手工
-  注入 PATH；进入 skill 后首个 backend probe 必须执行
-  `command -v enterprise-harness && enterprise-harness --help`，任一失败则 live E2E 非零退出。
+- 宿主 PATH 由 clean-target deterministic install/launcher fixture 验收；插件验收不得读取
+  Claude 账户、认证、订阅、配额或服务容量。
 
 **Exact phase commands**
 
@@ -323,7 +322,7 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 
 - `reviews/code-reviewer-task3.json`
 
-## Task 4: version/release acceptance 与 clean-target live E2E
+## Task 4: version/release acceptance 与 clean-target deterministic fixture
 
 **Files**
 
@@ -335,7 +334,7 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 - Modify: `.github/workflows/release.yml`
 - Modify: `package.json`
 - Create: `harness/plugin/runtime/test/release-version-acceptance-smoke.mjs`
-- Create: `harness/plugin/runtime/test/claude-plugin-live-e2e.mjs`
+- Create: `harness/plugin/runtime/test/handoff-contract-smoke.mjs`
 - Create: `harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs`
 
 **Consumes**
@@ -347,7 +346,7 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 
 - package/manifest/plugin/marketplace root+entry 一致版本
 - prepublish/release blocking P0 smoke
-- authenticated clean-target live proof
+- clean-target deterministic plugin proof
 
 **Exact phase commands**
 
@@ -357,7 +356,7 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-hardening task-4 refactor -- node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
-**Clean-target live fixture**
+**Clean-target deterministic fixture**
 
 1. `mkdtemp` + `git init`，创建最小 `src/main/java/demo/App.java`。
 2. 用绝对 source CLI 在 temp cwd 执行：
@@ -366,19 +365,9 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
    `.claude/agents` 或 runtime。
 4. temp `PATH` 只追加返回 unavailable 的可控 `codegraph` fixture，不得追加 source plugin
    `bin/`；enterprise-harness 必须完全由 Claude plugin host 注入。
-5. 从 temp cwd 执行 `claude --plugin-dir <repo> -p <prompt> --output-format stream-json --verbose`，
-   prompt 显式调用 `/enterprise-harness:harness` 并派
-   `enterprise-harness:code-explore`。
-6. 断言 `command -v enterprise-harness` 成功、portable `--help` 成功、stream-json Skill/Agent、
-   target git-common-dir ledger scoped Start/Stop/agentId binding。
-7. 将 sanitized summary 写到
-   `harness/changes/plugin-runtime-agent-dispatch-hardening/evidence/live-e2e.json`。
-
-环境语义：
-
-- `HARNESS_LIVE_E2E` 未设置：输出 `SKIP ...`，exit=0；不写 pass evidence。
-- `HARNESS_LIVE_E2E=1`：Claude 缺失、未认证、Skill/Agent/ledger 任一断言失败均 exit≠0。
-- 本机最终 verify 必须以 `HARNESS_LIVE_E2E=1` 运行；CI 无凭据只允许明确 SKIP。
+5. 通过本地 hook fixture 构造 Agent/Start/Stop/PostToolUse payload，断言 scoped identity、
+   HANDOFF_INPUT、result/check、runId binding 与 target git-common-dir ledger。
+6. 通过 plugin install/package smoke 断言 canonical Skill/Agent/launcher surface。
 
 **Acceptance Checks**
 
@@ -387,12 +376,65 @@ node harness/plugin/runtime/cli.mjs tdd-run plugin-runtime-agent-dispatch-harden
 - [ ] release 在 commit/tag/package/push 前运行 prepublish
 - [ ] `claude plugin validate .` 零 warning
 - [ ] deterministic P0 在 platform/release workflow blocking
-- [ ] authenticated local live E2E 有 durable sanitized evidence
+- [ ] clean-target deterministic plugin fixture 有 durable evidence
 - [ ] 不执行 release/tag/push
 
 **Review Target**
 
 - `reviews/code-reviewer-task4.json`
+
+## Task 5: TECPC isolated handoff、独立 checker 与诊断合同
+
+**Files**
+
+- Create: `harness/behavior-checks.json`
+- Create: `harness/plugin/runtime/lib/handoff.mjs`
+- Create: `harness/plugin/runtime/lib/diagnostics.mjs`
+- Create: `harness/plugin/runtime/handoff.mjs`
+- Create: `harness/plugin/runtime/trace.mjs`
+- Create: `.claude/skills/harness-stage-executor/SKILL.md`
+- Create: `.claude/skills/harness-stage-checker/SKILL.md`
+- Create: `.claude/agents/clarify-synthesizer.md`
+- Create: `.claude/agents/design-executor.md`
+- Create: `.claude/agents/plan-executor.md`
+- Create: `.claude/agents/implementation-reviewer.md`
+- Create: `.claude/agents/verification-executor.md`
+- Modify: Agent lifecycle hooks、plugin/local hook manifests、stage skills、README/CLAUDE/specs/docs
+
+**Consumes**
+
+- Claude Code fresh subagent context 与 agent `skills:` preload
+- Existing brief、agent ledger、TDD receipt、review/validation gates
+
+**Produces**
+
+- execute/check TECPC envelope 与 durable run directory
+- executor/checker 的不同上下文接力
+- `TaskCompleted` independent-check gate
+- 稳定 error code、`handoff explain` 与 `trace`
+- 不依赖 Claude 账户的 deterministic acceptance
+
+**Acceptance Checks**
+
+- [ ] 每个 registry behavior 的 executor 与 checker 不同
+- [ ] 每个 agent 预加载正确 executor/checker Skill
+- [ ] 缺 `HANDOFF_INPUT` 的 scoped Agent 被稳定错误码阻断
+- [ ] malformed SubagentStop 无法落盘完成证据
+- [ ] executor 完成但 checker 未通过时 TaskCompleted 被阻断
+- [ ] 七维评分完整、0-5 整数、Overall 与平均值一致且每项有依据
+- [ ] 用户凭 error code + changeId + runId 可定位
+- [ ] release/doctor/completion 不读取账户、认证、配额或容量
+
+**Verification Commands**
+
+```bash
+node harness/plugin/runtime/test/handoff-contract-smoke.mjs verify
+node harness/plugin/runtime/test/isolated-stage-contract-smoke.mjs verify
+node harness/plugin/runtime/test/behavior-hook-registry-smoke.mjs verify
+node harness/plugin/runtime/test/agent-lifecycle-hook-smoke.mjs verify
+node harness/plugin/runtime/test/ambiguity-scoring-contract-smoke.mjs verify
+claude plugin validate .
+```
 
 ## Plan Exit Criteria
 

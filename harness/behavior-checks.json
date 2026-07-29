@@ -1,0 +1,87 @@
+{
+  "contractVersion": 1,
+  "description": "Governed behavior registry. The main harness orchestrator dispatches executors and independent checkers; hooks enforce every handoff edge.",
+  "lifecycleHooks": [
+    "PreToolUse:Agent",
+    "SubagentStart",
+    "SubagentStop",
+    "PostToolUse:Agent",
+    "PostToolUseFailure:Agent",
+    "TaskCompleted",
+    "Stop"
+  ],
+  "behaviors": {
+    "clarify.explore-code": {
+      "stage": "clarify",
+      "executor": "enterprise-harness:code-explore",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:requirement-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/*-exploration.md"
+    },
+    "clarify.research-docs": {
+      "stage": "clarify",
+      "executor": "enterprise-harness:doc-research",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:requirement-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/tooling.md"
+    },
+    "clarify.synthesize": {
+      "stage": "clarify",
+      "executor": "enterprise-harness:clarify-synthesizer",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:requirement-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "requirements.md"
+    },
+    "route.decide": {
+      "stage": "route",
+      "executor": "enterprise-harness:clarify-synthesizer",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:requirement-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "change.md"
+    },
+    "design.produce": {
+      "stage": "design",
+      "executor": "enterprise-harness:design-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:design-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "design.md"
+    },
+    "design.check-api": {
+      "stage": "design",
+      "executor": "enterprise-harness:design-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:api-consistency-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "reviews/api-consistency-reviewer.json"
+    },
+    "plan.produce": {
+      "stage": "plan",
+      "executor": "enterprise-harness:plan-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:plan-critic",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "tasks.md"
+    },
+    "tdd.execute-task": {
+      "stage": "tdd",
+      "executor": "enterprise-harness:tdd-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:implementation-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/tdd-*.json"
+    },
+    "verify.collect": {
+      "stage": "verify",
+      "executor": "enterprise-harness:verification-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:verification-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "validation.md"
+    }
+  }
+}

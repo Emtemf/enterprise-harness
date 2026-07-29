@@ -6,6 +6,18 @@
 
 > 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
 
+## 最终执行模型：隔离执行，隔离检查
+
+主 `/enterprise-harness:harness` Skill 是轻量 orchestrator。每个受治理行为先派一个预加载 executor Skill 的 subagent，再派另一个预加载 checker Skill 的 subagent；两者拥有不同的新上下文。主线程只消费落盘 handoff 和压缩结论。
+
+```text
+main → HANDOFF_INPUT → executor subagent → result.json
+main → check handoff → independent checker subagent → check.json
+hooks → 校验身份、schema、receipt、digest、verdict 与完成态
+```
+
+`isolation: worktree` 只解决文件/分支隔离，TDD executor 强制使用；上下文隔离来自 subagent 本身。完整合同见 [handoff-scheme](harness/specs/handoff-scheme.md)。
+
 ## 闭环五检 (TECPC)：这个项目是怎么工作的
 
 闭环五检 (TECPC) 是本项目的核心方法论——五个维度，缺一不可：
@@ -23,14 +35,14 @@
 ```mermaid
 graph TD
     U["plugin: /enterprise-harness:harness<br/>standalone: /harness"] --> S["Session Start<br/>输出 闭环五检 (TECPC) 卡"]
-    S --> E["代码探索<br/>委托 subagent"]
+    S --> E["代码探索<br/>隔离 executor"]
     E --> C["澄清<br/>一次问一个问题"]
     C --> R["路由<br/>L0/L1/L2/L3"]
-    R --> D["设计<br/>design.md"]
-    D --> T["计划<br/>tasks.md"]
+    R --> D["设计<br/>executor + checker"]
+    D --> T["计划<br/>executor + checker"]
     T --> RED["RED<br/>写失败测试"]
     RED --> GREEN["GREEN<br/>写最小实现"]
-    GREEN --> V["验证<br/>cli verify"]
+    GREEN --> V["验证<br/>executor + checker"]
     V --> A["归档<br/>lifecycle archive"]
 
     style S fill:#4ecdc4,color:#fff
@@ -47,12 +59,12 @@ graph TD
 
 ### 每一步的 闭环五检 (TECPC) 验收
 
-| 步骤 | T 目标 | E 证据 / P 纠正（你应该看到） | 门禁级别 |
+| 步骤 | T 目标 | E 证据 / C 纠正（你应该看到） | 门禁级别 |
 |------|------|-------------------------|---------|
 | **Session Start** | 知道当前状态 | `[Harness 进度卡]` 含 ✓/▸/○ 阶梯 | 程序强制 |
 | **代码探索** | 了解项目结构 | scoped `code-explore` + agent-bound CodeGraph attempt | 程序强制 |
-| **澄清** | 把需求变明确 | Claude 一次问你一个问题 | prompt 约束 |
-| **路由** | 确定复杂度 tier | `state.json` 中 tier 有值 | prompt 约束 |
+| **澄清** | 把需求变明确 | 一次一问 + 七维评分 + Overall/依据 gate | 程序 + 独立检查 |
+| **路由** | 确定复杂度 tier | synthesizer 产出 + requirement reviewer | 程序 + 独立检查 |
 | **设计** | TECPC 驱动的完整设计 | `design.md` 含 T/E/C/P/C 五维 + reviewer pass | 程序强制 |
 | **计划** | 拆成可执行任务 | `tasks.md` 存在 + plan critic pass | 程序强制 |
 | **RED** | 证明问题存在 | `tdd-run` 真实执行并生成失败 receipt | 程序强制 |
@@ -60,8 +72,7 @@ graph TD
 | **验证** | 确认无回归 | `cli.mjs verify` OK + validation fresh | 程序强制 |
 | **归档** | 结束 change | change 移入 `harness/archive/` | 程序强制 |
 
-**程序强制** = Node.js hook 拦截，不管模型多弱都生效  
-**prompt 约束** = SKILL.md 文字指令，强模型遵守，弱模型可能跳过
+**程序强制**负责可确定的 schema、身份、证据和阶段 gate；**独立检查**负责设计/计划/实现等语义判断。Hook 不冒充 reviewer。
 
 ### 闭环五检 (TECPC) 进度卡
 

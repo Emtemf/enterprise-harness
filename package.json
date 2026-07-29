@@ -23,6 +23,8 @@
     "migrate": "node harness/plugin/runtime/cli.mjs migrate",
     "upstream-check": "node harness/plugin/runtime/cli.mjs upstream-check",
     "workflow": "node harness/plugin/runtime/cli.mjs workflow",
+    "handoff": "node harness/plugin/runtime/cli.mjs handoff",
+    "trace": "node harness/plugin/runtime/cli.mjs trace",
     "prepublish-check": "node harness/plugin/runtime/prepublish.mjs",
     "pack": "node bin/package.mjs",
     "release": "node bin/release.mjs",

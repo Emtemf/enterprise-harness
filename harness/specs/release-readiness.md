@@ -14,15 +14,16 @@ npm run prepublish-check
 
 它至少消费 Task 1–3 P0 aggregate、release/version acceptance、runtime doctor/sync/verify/upstream-check，以及 `claude plugin validate .` 零 warning。platform 与 release workflow 都必须把它作为 blocking step。
 
-## Live E2E
+## 插件验收边界
 
-确定性 CI 不依赖账户凭据。已认证本机通过以下显式开关执行 clean-target plugin-only E2E：
+发布验收只检查仓库能够提供和确定性观察的内容：
 
-```bash
-HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs verify
-```
+- plugin manifest / marketplace / package 投影
+- `claude plugin validate .` 的静态结构检查
+- clean temporary target 的安装、launcher、hooks 和资产 smoke
+- handoff/agent lifecycle 的本地 fixture
 
-未设置开关只能明确输出 SKIP，不能写 pass evidence；设置后 Claude 缺失、认证/容量失败、canonical skill、portable PATH、scoped Agent 或 ledger binding 任一失败都必须非零退出。
+不得把 Claude 账户、认证状态、订阅配额或服务容量作为插件 release gate。需要真实账户的人工试用只能作为可选观察，不得写入完成态 predicate。
 
 ## 发布边界
 

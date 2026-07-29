@@ -27,7 +27,7 @@ L3。
 | Impact breadth | 5 | 影响所有安装后的 staged workflow |
 | Unknowns / ambiguity | 3 | 官方事件字段明确，live/cache 行为需 E2E |
 | API / data risk | 2 | 无业务 API/数据变化，但有插件运行接口兼容风险 |
-| Test / rollback complexity | 5 | 需要 deterministic fixtures 与 authenticated clean-target E2E |
+| Test / rollback complexity | 5 | 需要 deterministic clean-target、handoff 与 hook fixtures |
 | **Overall** | 4.0 | L3，且 architecture/rule hard signal 均为 yes |
 
 ## 最小探索证据
@@ -52,12 +52,12 @@ completion/archive 与 release acceptance。
 - Claude Code 2.1.220 作为当前兼容基线。
 - standalone source checkout 的入口是 `/harness`；plugin-only canonical 入口是
   `/enterprise-harness:harness`，不为 plugin 制造非官方裸 alias。
-- 本机 Claude 已安装且已认证时 live E2E 必跑；CI 中无凭据时不冒充执行。
+- 插件验收只消费 deterministic plugin/hook fixtures，不读取 Claude 账户或认证状态。
 - archive/release acceptance 属于用户所要求“自动跑且可自检”的完成闭环，不包含发布或 push。
 
 ## Waiver
 无。
 
 ## Requirement Review
-首轮 verdict=block；按入口契约、事件语义、live E2E 与资产一致性 findings 修订后，
+首轮 verdict=block；按入口契约、事件语义、deterministic fixture 与资产一致性 findings 修订后，
 `requirement-reviewer` 独立复核 verdict=pass。

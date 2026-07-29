@@ -52,9 +52,10 @@ verify 的目标是把工程验证和用户验收收成一个完成声明，而�
 进入 verify 后，主 orchestrator 必须显式说明这一轮的调度顺序。
 
 最低要求：
-- 先消费 `validation.md`、reviewer verdict、当前 `state.json`
+- 创建 `verify.collect` execute handoff，派预加载 executor Skill 的 `enterprise-harness:verification-executor`
+- 派发前先按 `harness/specs/brief-contract.md` 生成 verification brief，并把它列入 handoff `inputRefs`
 - 若证据缺口仍在：先明确需要补哪类命令/哪份 verdict
-- 若需要独立复核完成声明：先按 `harness/specs/brief-contract.md` 生成 verification brief，再派 `enterprise-harness:verification-reviewer`
+- executor result 落盘后，以其 runId 创建 check handoff，再派预加载 checker Skill 的 `enterprise-harness:verification-reviewer`
 - 返回后只消费 `pass` / `block` / `advisory` 结论、`blockers` 与 `next-step`
 - 最后再决定是否满足 archive / completion gate
 

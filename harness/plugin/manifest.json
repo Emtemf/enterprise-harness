@@ -37,7 +37,9 @@
     "upstreamCheck": "node harness/plugin/runtime/upstream-check.mjs",
     "lifecycle": "node harness/plugin/runtime/cli.mjs lifecycle",
     "workflow": "node harness/plugin/runtime/cli.mjs workflow",
-    "context7": "node harness/plugin/runtime/cli.mjs context7"
+    "context7": "node harness/plugin/runtime/cli.mjs context7",
+    "handoff": "node harness/plugin/runtime/cli.mjs handoff",
+    "trace": "node harness/plugin/runtime/cli.mjs trace <run-id> [change-id]"
   },
   "requiredEnvVars": [],
   "notes": [

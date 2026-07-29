@@ -20,17 +20,24 @@
     "./.claude/skills/harness-design/",
     "./.claude/skills/harness-plan/",
     "./.claude/skills/harness-tdd/",
-    "./.claude/skills/harness-verify/"
+    "./.claude/skills/harness-verify/",
+    "./.claude/skills/harness-stage-executor/",
+    "./.claude/skills/harness-stage-checker/"
   ],
   "agents": [
     "./.claude/agents/code-explore.md",
     "./.claude/agents/doc-research.md",
+    "./.claude/agents/clarify-synthesizer.md",
+    "./.claude/agents/design-executor.md",
+    "./.claude/agents/plan-executor.md",
     "./.claude/agents/requirement-reviewer.md",
     "./.claude/agents/design-reviewer.md",
     "./.claude/agents/plan-critic.md",
     "./.claude/agents/api-consistency-reviewer.md",
     "./.claude/agents/verification-reviewer.md",
-    "./.claude/agents/tdd-executor.md"
+    "./.claude/agents/tdd-executor.md",
+    "./.claude/agents/implementation-reviewer.md",
+    "./.claude/agents/verification-executor.md"
   ],
   "mcpServers": "./.mcp.json"
 }

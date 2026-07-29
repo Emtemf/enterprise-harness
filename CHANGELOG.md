@@ -2,6 +2,22 @@
 
 本文件记录 enterprise-harness 各版本的重要变化。版本遵循语义化版本约定。
 
+## [Unreleased]
+
+### Changed
+
+- 受治理阶段统一为 `main orchestrator → isolated executor → durable TECPC handoff → independent checker → hook gate`。
+- executor/checker 通过 agent `skills:` 确定性预加载专用 Skill；TDD 继续额外使用 worktree 文件隔离。
+- clarify 每轮评分增加 0-5 整数、评分依据、Overall 平均值与 weakest dimension 的机械合同。
+- release/completion 不再依赖 Claude 账户、认证、订阅、配额或服务容量。
+
+### Added
+
+- `harness/behavior-checks.json`、统一 handoff runtime、durable `runs/<run-id>/` 资产。
+- `EH-*` 稳定错误码、`enterprise-harness handoff explain` 与 `enterprise-harness trace`。
+- design/plan/verification executors、clarify synthesizer 与 implementation reviewer。
+- handoff、隔离接力、hook registry 和 ambiguity scoring contract smoke。
+
 ## [0.2.5]
 
 ### Fixed

@@ -39,10 +39,12 @@ const ok = intake.includes('当前动作顺序（orchestrator shell 显示要求
   && intake.includes('生成 exploration brief，再派 `enterprise-harness:code-explore`')
   && intake.includes('生成文档调研 brief，再派 `enterprise-harness:doc-research`')
   && design.includes('生成 design exploration brief，再派 `enterprise-harness:code-explore` / `enterprise-harness:doc-research`')
-  && design.includes('design 成稿后派 `enterprise-harness:design-reviewer`')
-  && plan.includes('产出 `tasks.md`')
-  && plan.includes('然后派 `enterprise-harness:plan-critic`')
-  && verifyText.includes('派 `enterprise-harness:verification-reviewer`')
+  && design.includes('design.produce execute')
+  && design.includes('role=check handoff')
+  && plan.includes('plan.produce')
+  && plan.includes('enterprise-harness:plan-critic')
+  && verifyText.includes('enterprise-harness:verification-executor')
+  && verifyText.includes('enterprise-harness:verification-reviewer')
   && verifyText.includes('只消费 `pass` / `block` / `advisory` 结论');
 
 if (mode === 'red') {

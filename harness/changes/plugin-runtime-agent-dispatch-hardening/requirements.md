@@ -24,8 +24,8 @@
    exit code、时间与 RED→GREEN→REFACTOR 顺序；字符串 `"mvn test"` 不再足够。
 6. archive 必须复用完成态校验，不得只凭 `state=VALIDATED` 移动目录。
 7. marketplace/plugin/package/runtime 版本投影必须一致，PR/release 必须运行确定性 P0 smoke。
-   本 change 在本机 Claude 已安装且已认证的前提下必须运行 authenticated clean-target live
-   E2E；CI 无凭据时只运行 deterministic gate，并通过显式环境开关启用 live E2E。
+   插件验收只检查仓库可提供的 manifest、安装、launcher、hook、handoff 与 fixture，不检查
+   Claude 账户、认证、订阅、配额或服务容量。
 8. Agent 派发与完成证据必须消费 Claude Code 官方事件语义：
    - Agent `PreToolUse` 记录 requested scoped subtype 与 `tool_use_id`；
    - `SubagentStart` 记录 scoped `agent_type`、`agent_id`、`session_id`，该事件不可阻断；
@@ -38,6 +38,9 @@
      从事件 `cwd` 的当前 `HEAD` 创建 git worktree，并把规范化绝对路径作为 stdout 最后一个
      非空行返回。receipt 继续以 start/stop cwd、git HEAD 与真实 runner 输出证明 worktree，
      不能相信 worker 文本。
+9. 每个受治理行为必须由主 orchestrator 依次派发 executor 与独立 checker。两者使用不同的新
+   上下文，通过 frontmatter `skills:` 分别预加载 `harness-stage-executor` /
+   `harness-stage-checker`，并以统一 TECPC handoff envelope 接力。subagent 不得自行派生 checker。
 
 ### 成功标准
 
@@ -51,7 +54,7 @@
 - 不存在或字段不完整的 TDD receipt 被 verify 拒绝。
 - 不满足 completion predicate 的 VALIDATED change 无法归档。
 - `claude plugin validate .` 零 warning。
-- 新增 P0 smoke、现有关键 smoke、runtime verify 与本机 authenticated clean-target live probe 通过。
+- 新增 handoff/agent/hook/ambiguity smoke、现有关键 smoke、runtime verify 与 plugin validate 通过。
 
 ## C 上下文
 
@@ -122,7 +125,7 @@ agent-aware hook、TDD receipt、archive completion 与 release acceptance 视�
 | User/actor clarity | 5 | 普通用户、orchestrator、explorer、executor、reviewer 角色明确 |
 | Data/SQL clarity | 5 | 本 change 无业务数据/SQL 影响，明确为 N/A |
 | Interface/API clarity | 5 | canonical entry、事件身份关联、receipt/Agent subtype 已明确 |
-| Acceptance criteria clarity | 5 | 已定义 deterministic smoke、live E2E 与完成态反例 |
+| Acceptance criteria clarity | 5 | 已定义 deterministic plugin/hook smoke 与完成态反例 |
 | Constraint/risk clarity | 5 | 已识别 namespace、事件字段、worktree、旧缓存、hook 并行与 Bash 写面 |
 | **Overall** | 5.0 | 七维平均值，所有适用维度均不低于 4 |
 
@@ -154,7 +157,7 @@ archive/release acceptance；完整 receipt hash chain 与 FSM v4 深化不在�
 ### 假设
 
 - 当前 Claude Code 2.1.220 的 hook payload 与官方文档一致。
-- authenticated live E2E 可在本机运行；CI 中保持显式 opt-in，避免无凭据环境误失败。
+- 需要真实账户的人工试用不属于 release gate，也不得成为 state blocker。
 
 ## 最终路由
 

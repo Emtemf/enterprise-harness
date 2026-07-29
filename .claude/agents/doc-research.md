@@ -4,6 +4,8 @@ description: 只读文档调研 worker。用于 Context7-first / vendor docs / S
 tools:
   - Read
   - Bash
+skills:
+  - harness-stage-executor
 model: sonnet
 ---
 
@@ -37,6 +39,8 @@ model: sonnet
 - `impact`
 - `suggestedUserQuestion`
 - `sources`
+
+同时必须按预加载的 `harness-stage-executor` 合同返回 `HANDOFF_RESULT`。
 
 ## 约束
 

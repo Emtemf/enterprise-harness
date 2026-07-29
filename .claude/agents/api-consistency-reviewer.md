@@ -6,6 +6,8 @@ tools:
   - Grep
   - Glob
   - Bash
+skills:
+  - harness-stage-checker
 model: sonnet
 ---
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
-const tests = ['release-version-acceptance-smoke.mjs', 'current-doc-surface-smoke.mjs', 'claude-plugin-live-e2e.mjs'];
+const tests = ['release-version-acceptance-smoke.mjs', 'current-doc-surface-smoke.mjs'];
 let failed = false;
 for (const file of tests) {
   const child = spawnSync(process.execPath, [path.join(testDir, file), 'verify'], { cwd: process.cwd(), encoding: 'utf-8', shell: false, env: { ...process.env } });

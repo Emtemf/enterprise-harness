@@ -48,7 +48,11 @@
 | **Overall** | | |
 
 ### 当前最弱维度
-> 下一个问题应该指向哪个维度？
+- weakest：
+- weakest score：
+- 评分依据：
+- 下一问（一次一个）：
+- unresolved high-risk ambiguity：none / 具体说明
 
 ## P 路由
 
@@ -73,3 +77,9 @@
 
 ## 需要继续澄清的问题
 > 仍待回答的问题（clarify 过程中逐步清空）。
+
+## 用户确认
+
+- confirmed: false
+- source:
+- confirmedAt:

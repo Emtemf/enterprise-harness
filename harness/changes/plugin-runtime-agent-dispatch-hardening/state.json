@@ -37,12 +37,11 @@
   },
   "decisions": [
     "P0 scope frozen to canonical plugin entry, scoped dispatch, agent lifecycle hooks, agent-aware cumulative gates, trustworthy TDD receipt, completion/archive and release acceptance",
-    "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives"
+    "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives",
+    "Every governed behavior uses a fresh executor subagent and a different fresh checker subagent, both with preloaded skills and a durable TECPC handoff",
+    "Plugin acceptance never depends on Claude account authentication, quota, subscription, or service capacity"
   ],
-  "blockers": [
-    "Claude Code account capacity returned HTTP 429 before Agent dispatch, so fresh authoritative Task 2-4 tdd-run receipts cannot yet be generated/imported",
-    "Authenticated HARNESS_LIVE_E2E=1 is pending the same external capacity recovery; deterministic acceptance is green"
-  ],
+  "blockers": [],
   "approvals": {
     "requirements": {
       "status": "pass",
@@ -104,13 +103,15 @@
     "commandOutputSummary": null,
     "evidencePath": null
   },
-  "goal": "修复 Claude Code 插件入口、subagent 派发、agent-aware hooks、权威执行证据与发布验收",
+  "goal": "统一 Claude Code 插件的隔离 executor/checker、TECPC handoff、agent-aware hooks、澄清评分与诊断合同",
   "successCriteria": [
     "plugin-only /enterprise-harness:harness entry loads orchestrator and standalone /harness remains available",
     "scoped agents dispatch deterministically",
     "main-thread exploration and governed writes are blocked",
     "forged TDD evidence and incomplete archive are rejected",
-    "plugin validation and deterministic/live E2E pass"
+    "plugin validation and deterministic plugin acceptance pass",
+    "every governed execution has an independent checker handoff",
+    "diagnostics expose stable error code, changeId and runId without inspecting user accounts"
   ],
   "routingReason": "L3: plugin entry, skills, agents, hooks, runtime evidence, completion and release CI are cross-cutting governance surfaces",
   "workflow": {

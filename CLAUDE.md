@@ -60,14 +60,16 @@
 - standalone 使用 `/harness-intake|design|plan|tdd|verify`
 
 ### 职责边界
-- **skill**：阶段方法论、TECPC 检查、用户可见引导
-- **agent**：专职执行角色（explore / reviewer / executor）
+- **主 skill**：人机交互、阶段编排、TECPC 可见性和 execute/check 接力
+- **预加载 skill**：executor/checker 在隔离上下文中的统一行为合同
+- **agent**：专职 executor 或独立 checker；两者不共享上下文
 - **hook/runtime**：机械门禁、durable state、确定性 backend 动作
 - **spec**：单一真相层
 
 深入说明见：
 - `harness/specs/agent-skill-boundary.md`
 - `harness/specs/staged-workflow.md`
+- `harness/specs/handoff-scheme.md`
 
 ## 当前自动加载入口
 
@@ -120,6 +122,13 @@
 - **必须通过 `tdd-run` 执行真实项目命令**：如 tasks 冻结的 `mvn test` / `mvn verify`
 - worker 文本不构成完成证据；必须有 runtime receipt、`evidence-import` 与独立 review
 - 主对话禁止直接写生产代码
+
+### 5. 隔离接力
+- 每个受治理 Agent prompt 必须引用 runtime 创建的 `HANDOFF_INPUT`
+- executor 预加载 `harness-stage-executor`；checker 预加载 `harness-stage-checker`
+- executor 与 checker 都由主 orchestrator 派发；subagent 不得继续派生 subagent
+- `SubagentStop` 必须返回 TECPC result envelope，`TaskCompleted` 必须消费独立 checker verdict
+- 插件只诊断自身运行面，不检查 Claude 账户容量、订阅或配额
 
 ### 5. 实现前门禁
 在进入实现前，至少必须满足：

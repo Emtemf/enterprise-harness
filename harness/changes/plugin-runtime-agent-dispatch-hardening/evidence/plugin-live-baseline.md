@@ -29,5 +29,6 @@ subagent_type=enterprise-harness:code-explore
 - bare `code-explore` 只有仓库本地 `.claude/agents` 存在时才会被遮蔽式解析，不能作为
   marketplace/plugin contract。
 
-该 baseline 只证明修复前故障。修复后必须重新运行 `claude-plugin-live-e2e.mjs`，并把
+该 baseline 只证明修复前故障，不属于当前 release gate。修复后由不依赖账户的 plugin install、
+handoff 与 hook fixtures 验证，并把
 stream-json 中的 Skill/Agent 与 hook identity 摘要写入本 change validation。

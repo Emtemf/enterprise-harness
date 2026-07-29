@@ -81,6 +81,12 @@ fi
 7. 在 clarify-ready 且用户确认后，形成 final route（L0/L1/L2/L3）
 8. 明确下一个 artifact / gate
 
+人机一问一答必须留在主 orchestrator；subagent 不能继续派生 subagent，也不承担持续用户访谈。每轮获得用户回答后：
+
+1. 创建 `clarify.synthesize` execute handoff，派 `enterprise-harness:clarify-synthesizer` 更新 requirements/score；
+2. 以 executor runId 创建 check handoff，派独立 `enterprise-harness:requirement-reviewer`；
+3. 主 orchestrator 只消费评分变化、weakest、verdict 和下一问。
+
 ## 当前动作顺序（orchestrator shell 显示要求）
 
 进入 intake 后，主 orchestrator 必须显式向用户说明这一轮的动作顺序，而不是把调度隐含在长段 reasoning 里。

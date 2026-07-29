@@ -1,6 +1,6 @@
 # Harness 全生命周期真相文档（闭环五检驱动）
 
-> **用途**：本文档是 harness 的唯一时序真相。每一步标明：TECPC 维度、涉及文件、产出文件、预期输出、异常检测。**如果实际行为与本文档不符，就是 bug，应该提 issue。**
+> **用途**：本文档是面向用户的完整时序说明。规范真相以 `harness/specs/staged-workflow.md` 与 `harness/specs/handoff-scheme.md` 为准。每一步标明 TECPC、产出和异常定位；实际行为不符即为 bug。
 
 > **入口矩阵**：plugin install 使用 `/enterprise-harness:harness` 与 `/enterprise-harness:harness-*`；standalone checkout 才使用裸 `/harness` 与 `/harness-*`。下文裸名示例表示 standalone。
 
@@ -11,17 +11,17 @@
 ```mermaid
 graph TD
     A["1. Session Start<br/>session-start.mjs"] --> B["2. canonical harness skill<br/>plugin namespaced / standalone bare"]
-    B --> C["3. 代码探索<br/>委托 code-explore subagent"]
+    B --> C["3. 代码探索<br/>executor subagent + handoff"]
     C --> D["4. 需求澄清<br/>歧义评分 + 一问一答"]
     D --> E["5. 路由决策<br/>L0/L1/L2/L3"]
-    E --> F["6. 设计<br/>TECPC 五维 design.md"]
-    F --> G["7. 计划<br/>tasks.md"]
+    E --> F["6. 设计<br/>executor + checker"]
+    F --> G["7. 计划<br/>executor + checker"]
     G --> H["8. TDD RED<br/>写失败测试"]
     H --> I["9. 写代码<br/>pre-write hook 拦截"]
     I --> J["10. 写后检查<br/>post-write hook"]
     J --> K["11. TDD GREEN<br/>最小实现"]
     K --> L["12. TDD REFACTOR<br/>全绿重构"]
-    L --> M["13. 验证<br/>verify + reviewer"]
+    L --> M["13. 验证<br/>executor + checker"]
     M --> N["14. 归档<br/>lifecycle archive"]
     N --> O["15. 会话结束<br/>stop hook"]
 ```
@@ -34,7 +34,7 @@ graph TD
 - **T 目标**：让用户知道当前项目状态
 - **C 上下文**：插件读取项目结构 + active change
 - **E 证据**：输出闭环五检卡（TECPC 卡）
-- **P 纠正**：告诉用户下一步该做什么
+- **C 纠正**：告诉用户下一步该做什么
 
 ### 涉及文件
 | 文件 | 角色 |
@@ -284,7 +284,7 @@ design.md 必须包含以下 TECPC section：
 ### 方案选择（对比表）
 ### 最终方案（接口/数据/架构设计）
 ### 风险与回滚
-### P 纠正预案
+### C 纠正预案
 
 ## Design Self-Review
 - [ ] T 目标明确且可验收
@@ -381,7 +381,7 @@ design.md 必须包含以下 TECPC section：
 ## Step 9: 写入代码（pre-write hook 拦截）
 
 ### TECPC 维度
-- **P 纠正**：如果前置条件不满足→BLOCK + TECPC 卡
+- **C 纠正**：如果前置条件不满足→BLOCK + TECPC 卡
 
 ### 涉及文件
 | 文件 | 角色 |
@@ -461,7 +461,7 @@ design.md 必须包含以下 TECPC section：
 
 ### TECPC 维度
 - **E 证据**：validation fresh + reviewer pass
-- **P 纠正**：不通过则按 findings 修复
+- **C 纠正**：不通过则按 findings 修复
 
 ### 涉及文件
 | 文件 | 角色 |
@@ -507,7 +507,7 @@ design.md 必须包含以下 TECPC section：
 ## Step 15: 会话结束（stop hook）
 
 ### TECPC 维度
-- **P 纠正**：validation stale 时 BLOCK + TECPC 卡 + 恢复指引
+- **C 纠正**：validation stale 时 BLOCK + TECPC 卡 + 恢复指引
 
 ### 涉及文件
 | 文件 | 角色 |
@@ -537,7 +537,7 @@ design.md 必须包含以下 TECPC section：
 │ C 上下文  ▸ 已探索 7 表 | 已澄清 2 决策
 │ E 证据    ▸ design approved | RED verified
 │ P 路径    ▸ 涉及 API+数据，故 L2
-│ P 纠正    ▸ /harness-plan
+│ C 纠正    ▸ /harness-plan
 │ Ladder
   ✓ clarify
   ✓ route
@@ -556,7 +556,7 @@ design.md 必须包含以下 TECPC section：
 Repo contract / Bug / Feature
 
 ### 闭环五检维度（哪个断了？）
-T 目标 / C 上下文 / E 证据 / P 路径 / P 纠正
+T 目标 / E 证据 / C 上下文 / P 路径 / C 纠正
 
 ### 你用的模型
 /model 的输出

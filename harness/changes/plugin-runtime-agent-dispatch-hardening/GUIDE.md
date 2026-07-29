@@ -45,7 +45,7 @@ staged workflow 基线。
 - clean-target `/enterprise-harness:harness` 入口与 scoped agent dispatch 可观测；源码
   standalone `.claude/` 下 `/harness` 仍可用。
 - 主线程探索/写入、stage 跳跃、伪 TDD receipt、弱 archive 均有 RED 反例并被阻断。
-- Claude plugin validation、关键 smoke、runtime verify 与 live E2E 通过。
+- Claude plugin validation、关键 handoff/agent/hook smoke 与 runtime verify 通过。
 
 ## 怎么验收（直接可跑的命令）
 
@@ -59,8 +59,7 @@ node harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs verify
 node harness/plugin/runtime/test/archive-completion-smoke.mjs verify
 node harness/plugin/runtime/test/release-version-acceptance-smoke.mjs verify
 claude plugin validate .
-# 本机已认证时必须执行；CI 通过 HARNESS_LIVE_E2E=1 显式启用
-HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs verify
+node harness/plugin/runtime/test/handoff-contract-smoke.mjs verify
 node harness/plugin/runtime/lifecycle.mjs show-active
 ```
 

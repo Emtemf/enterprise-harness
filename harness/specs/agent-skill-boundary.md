@@ -11,8 +11,8 @@
 ## 一句话原则
 
 - `/harness`：总前门与阶段编排入口
-- `skill`：阶段方法论与用户可见引导
-- `agent`：专职执行角色
+- `skill`：主编排方法论，以及预加载进 executor/checker 的行为合同
+- `agent`：隔离上下文中的专职执行或独立检查角色
 - `hook/runtime`：机械门禁、durable state、确定性动作
 - `spec`：单一真相层
 
@@ -38,6 +38,7 @@
 - 阶段产物要求
 - 该阶段需要派哪些角色 agent
 - 当前阶段的恢复入口
+- 创建 execute/check handoff，并按 `harness/behavior-checks.json` 依次派发 executor 与 checker
 
 不负责：
 - durable state 的最终真相
@@ -51,22 +52,27 @@
 - review / critic / verification
 - TDD 执行（建议由专职 executor agent 承载）
 - 输出压缩结论，而不是污染主上下文
+- executor frontmatter 预加载 `harness-stage-executor`
+- reviewer/checker frontmatter 预加载 `harness-stage-checker`
 
 不负责：
 - 作为用户前门
 - 维护全局 workflow 状态机
 - 替代 `/harness` 决定整体阶段推进
+- 从 executor 内继续创建 reviewer subagent
 
 ### 4. hooks / runtime（更准确地说：hook adapter + workflow primitives）
 负责：
 - `state.json` / `ACTIVE_CHANGE` / verdict / validation 的 durable truth
 - PreToolUse / PostToolUse / Stop 的硬阻断
+- SubagentStart/SubagentStop/TaskCompleted 的 handoff 生命周期校验
 - scaffold / verify / archive / release / package 等确定性 backend 动作
 
 不负责：
 - 作为主要用户交互面
 - 隐式承载完整 staged UX
 - 取代 skill 层的 TECPC 阶段话术
+- 承担语义 reviewer；hook 只做机械可判定检查
 - 被误解为“需要把 `harness/` 整体删掉”
 
 ### 5. CodeGraph / Context7 探索能力层
@@ -102,8 +108,8 @@
 ### clarify 评分
 - 真相层：`harness/specs/ambiguity-scoring.md`
 - skill：如何向用户展示评分表
-- agent：必要时做前置探索
-- hook：不直接管理每轮评分文本
+- agent：探索、`clarify-synthesizer` 整理、`requirement-reviewer` 独立检查
+- hook/runtime：机械校验七维完整性、0-5 范围、Overall 与阈值；不代替主线程一问一答
 
 ### TDD 执行
 - 真相层：`harness/specs/staged-workflow.md` + 后续独立 `tdd-execution.md`

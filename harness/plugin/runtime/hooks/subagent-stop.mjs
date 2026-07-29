@@ -4,31 +4,15 @@ import {
   isHarnessAgentType,
   normalizeAgentType,
   sha256,
+  readAgentEvents,
 } from '../lib/agent-evidence.mjs';
-
-function resultIsStructured(agentType, message) {
-  if (agentType === 'enterprise-harness:code-explore') {
-    return [
-      /Exploration Packet/i,
-      /Scope/i,
-      /CodeGraph/i,
-      /Findings/i,
-      /Evidence/i,
-    ].every((pattern) => pattern.test(message));
-  }
-  if (agentType === 'enterprise-harness:tdd-executor') {
-    return [
-      /\btask[- ]?id\b/i,
-      /\bworktree\b/i,
-      /\breceipt/i,
-      /\bcommit\b/i,
-      /\bRED\b/,
-      /\bGREEN\b/,
-      /\bREFACTOR\b/,
-    ].every((pattern) => pattern.test(message));
-  }
-  return message.trim().length > 0;
-}
+import {
+  loadHandoffInput,
+  parseHandoffResult,
+  persistHandoffResult,
+  validateHandoffResult,
+} from '../lib/handoff.mjs';
+import { formatDiagnostic } from '../lib/diagnostics.mjs';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -45,7 +29,30 @@ const root = process.cwd();
 const changeId = activeChangeId(root);
 if (!changeId || !event.agent_id) process.exit(0);
 
-if (!resultIsStructured(normalized, message)) {
+const parsed = parseHandoffResult(message);
+const runId = parsed.value?.runId || null;
+const dispatch = runId
+  ? [...readAgentEvents(root, changeId)].reverse().find((item) => (
+    item.kind === 'dispatch'
+    && item.runId === runId
+    && item.requestedAgentType === normalized
+  ))
+  : null;
+const loaded = dispatch
+  ? loadHandoffInput(root, dispatch.handoffPath, {
+    changeId,
+    agentType: normalized,
+  })
+  : { ok: false, problems: ['no matching dispatch for result runId'] };
+const resultProblems = [
+  ...(parsed.problems || []),
+  ...(loaded.problems || []),
+  ...(parsed.ok && loaded.ok
+    ? validateHandoffResult(parsed.value, loaded.envelope, normalized)
+    : []),
+];
+
+if (resultProblems.length > 0) {
   appendAgentEvent(root, changeId, {
     kind: 'violation',
     violation: 'malformed-subagent-result',
@@ -53,23 +60,37 @@ if (!resultIsStructured(normalized, message)) {
     agentId: event.agent_id,
     observedAgentType: normalized,
     rawObservedAgentType: observedRaw,
+    runId,
+    errorCode: 'EH-SUBAGENT-RESULT-004',
+    problems: resultProblems,
     transcriptDigest: sha256(message),
     cwd: event.cwd || root,
   });
   if (event.stop_hook_active) process.exit(0);
   process.stdout.write(`${JSON.stringify({
     decision: 'block',
-    reason: `structured ${normalized} result is required before stop`,
+    reason: formatDiagnostic(
+      'EH-SUBAGENT-RESULT-004',
+      resultProblems.join('; '),
+      { changeId, runId },
+    ),
   })}\n`);
   process.exit(0);
 }
 
+const resultPath = persistHandoffResult(root, loaded.envelope, parsed.value);
 appendAgentEvent(root, changeId, {
   kind: 'stop',
   sessionId: event.session_id,
   agentId: event.agent_id,
   observedAgentType: normalized,
   rawObservedAgentType: observedRaw,
+  runId,
+  behavior: loaded.envelope.behavior,
+  handoffRole: loaded.envelope.role,
+  handoffPath: resultPath,
+  parentRunId: loaded.envelope.parentRunId,
+  verdict: parsed.value.verdict || null,
   transcriptDigest: sha256(message),
   cwd: event.cwd || root,
 });

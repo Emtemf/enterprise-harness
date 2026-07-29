@@ -5,6 +5,7 @@ import {
   normalizeAgentType,
   readAgentEvents,
 } from '../lib/agent-evidence.mjs';
+import { formatDiagnostic } from '../lib/diagnostics.mjs';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -20,7 +21,11 @@ const root = process.cwd();
 const changeId = activeChangeId(root);
 const agentId = event.tool_response?.agentId || event.tool_response?.agent_id;
 if (!changeId || !event.tool_use_id || !agentId) {
-  console.error('BLOCK: harness Agent PostToolUse requires active change, tool_use_id, and agentId');
+  console.error(formatDiagnostic(
+    'EH-AGENT-BINDING-003',
+    'PostToolUse requires active change, tool_use_id, and agentId',
+    { changeId },
+  ));
   process.exit(2);
 }
 const dispatch = [...readAgentEvents(root, changeId)].reverse().find((item) => (
@@ -29,7 +34,25 @@ const dispatch = [...readAgentEvents(root, changeId)].reverse().find((item) => (
   && item.requestedAgentType === normalizeAgentType(requestedRaw)
 ));
 if (!dispatch) {
-  console.error('BLOCK: Agent result has no matching scoped dispatch receipt');
+  console.error(formatDiagnostic(
+    'EH-AGENT-BINDING-003',
+    'Agent result has no matching scoped dispatch receipt',
+    { changeId },
+  ));
+  process.exit(2);
+}
+const matchingStop = [...readAgentEvents(root, changeId)].reverse().find((item) => (
+  item.kind === 'stop'
+  && item.agentId === agentId
+  && item.runId === dispatch.runId
+  && item.observedAgentType === dispatch.requestedAgentType
+));
+if (!matchingStop) {
+  console.error(formatDiagnostic(
+    'EH-AGENT-BINDING-003',
+    'Agent result has no matching structured SubagentStop receipt',
+    { changeId, runId: dispatch.runId },
+  ));
   process.exit(2);
 }
 appendAgentEvent(root, changeId, {
@@ -39,6 +62,10 @@ appendAgentEvent(root, changeId, {
   agentId,
   requestedAgentType: normalizeAgentType(requestedRaw),
   rawRequestedAgentType: requestedRaw,
+  runId: dispatch.runId,
+  behavior: dispatch.behavior,
+  handoffRole: dispatch.handoffRole,
+  handoffPath: matchingStop.handoffPath,
   cwd: event.cwd || root,
 });
 process.exit(0);

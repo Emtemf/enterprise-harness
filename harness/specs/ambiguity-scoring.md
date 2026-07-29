@@ -49,6 +49,8 @@ clarify-ready 的最低条件：
 - 所有关键维度 >= 4
 - 没有 unresolved high-risk ambiguity
 - 用户已显式确认执行范围
+- `Overall` 必须等于七维算术平均值（保留一位小数）
+- 每个维度必须写明来自探索事实或用户回答的评分依据
 
 ## 每维度评分标准
 
@@ -140,6 +142,13 @@ clarify-ready 的最低条件：
 5. 只问一个针对 weakest dimension 的问题（选项式 A/B/C + 其他）
 6. 在用户回答后重新评分，并说明为什么分数变化了
 7. 若已有足够 repo/documentation facts，可先更新事实，再问用户
+
+### 隔离接力
+
+- 主 orchestrator 保留一问一答，避免把持续用户交互交给无法继续派生 agent 的 subagent。
+- 每轮回答后由 `clarify-synthesizer` 在新上下文中更新 requirements/评分。
+- 随后由 `requirement-reviewer` 在另一个新上下文中检查评分依据、weakest、风险与用户确认。
+- runtime 机械检查七维是否齐全、分数是否为 0-5 整数、Overall 是否匹配平均值、是否全部达到阈值。
 
 ## 交互格式示例
 

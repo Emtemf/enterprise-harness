@@ -109,6 +109,10 @@ Stop 的 guidance 至少应覆盖：
 
 ## Durable Handoff Routing
 
+阶段间的隔离执行 handoff 以 `harness/specs/handoff-scheme.md` 为准，并落到
+`harness/changes/<change-id>/runs/<run-id>/`。本节的 session handoff 负责跨会话恢复，两者共享
+changeId/runId/TECPC/恢复入口，但不能用聊天摘要替代 machine-readable envelope。
+
 ### change-specific 结论
 优先写回当前 change 资产：
 

@@ -6,6 +6,8 @@ tools:
   - Bash
   - Edit
   - Write
+skills:
+  - harness-stage-executor
 model: sonnet
 isolation: worktree
 ---

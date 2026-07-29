@@ -40,7 +40,7 @@ const ok = designSkill.includes('闭环五检')
   && designTemplate.includes('## C 上下文')
   && designTemplate.includes('## E 证据')
   && designTemplate.includes('## P 路径')
-  && designTemplate.includes('### P 纠正预案')
+  && designTemplate.includes('### C 纠正预案')
   && designTemplate.includes('Design Self-Review');
 
 if (mode === 'red') {

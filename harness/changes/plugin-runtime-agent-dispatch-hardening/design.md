@@ -21,7 +21,7 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
 - Agent dispatch、SubagentStart、subagent 工具调用、SubagentStop 可按 `agent_id` 关联。
 - 受治理写入累计检查所有前序 artifact/approval，不信任单一 stage。
 - `tdd-run` 真实执行项目原生命令并记录退出码；伪字符串或不存在的 evidence path 失败。
-- archive、prepublish、release 与 clean-target live E2E 有可执行 gate。
+- archive、prepublish、release 与 clean-target deterministic plugin fixture 有可执行 gate。
 
 ## C 上下文
 
@@ -51,7 +51,7 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
     而不是 parent session `HEAD` 分支；
   - `WorktreeCreate` hook 会替换默认 git 行为，输入含 `cwd`/`name`，command hook 必须把
     worktree 路径作为 stdout 最后一个非空行返回。
-- authenticated live probe 已观察到 executor 初始 worktree 位于
+- 早期 live probe 已观察到 executor 初始 worktree 位于
   `ef4406821a626f22b9880ac4e63eb6bba8abcc3d`（`origin/main`），而派发基线为
   `fad5224de455d4ae2e33e3fe63e9bf24bde9db06`；旧基线缺少当前 tasks 与 Task 1 runner。
 
@@ -65,7 +65,7 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
 | Runtime domain | `runtime/lib/agent-evidence.mjs`, `tdd-receipts.mjs`, `gates.mjs`, `checks.mjs` | identity、receipt、completion predicate |
 | Runtime application | `cli.mjs`, `tdd-run.mjs`, `lifecycle.mjs` | authoritative command execution 与 archive |
 | Release | marketplace、`bin/release.mjs`、prepublish/workflows | version projection 与 acceptance |
-| Tests | `runtime/test/*hardening*.mjs` 及现有 smoke | RED/GREEN/对抗性/live E2E |
+| Tests | `runtime/test/*hardening*.mjs` 及现有 smoke | RED/GREEN/对抗性/plugin fixture |
 
 ### 兼容约束
 
@@ -74,7 +74,7 @@ TDD 只能由真实 runner 产生 RED→GREEN→REFACTOR receipt，完成态与�
   skills 的 backend 命令先执行 `command -v enterprise-harness`，找不到即明确 BLOCK 并提示
   reload/update，不能静默回退目标 cwd；standalone source checkout 才使用
   `node harness/plugin/runtime/cli.mjs`。portable bin 必须相对自身 `import.meta.url` 找
-  runtime，不能相对目标 cwd 找脚本。deterministic launcher smoke 与 clean live E2E 都要
+  runtime，不能相对目标 cwd 找脚本。deterministic launcher 与 clean-target fixtures 都要
   证明该 PATH/定位行为，不只依赖文档假设。
 - strict/legacy 不由可手改的 state 字段决定。一次性 migration 创建 runtime-owned
   `harness/evidence-policy.json`，记录 `strictByDefault=true`、`legacyBaselineCommit`、
@@ -189,7 +189,7 @@ standalone `.claude/settings.json` 的 `WorktreeCreate` 事件调用：
 
 Claude 对 git worktree 会继续自动 `git worktree remove`；本轮不注册自定义
 `WorktreeRemove`。deterministic smoke 必须在 default branch 落后 parent HEAD 的 fixture 中
-证明生成 worktree 仍等于 parent HEAD、只播种合法 active pointer；authenticated live probe
+证明生成 worktree 仍等于 parent HEAD、只播种合法 active pointer；deterministic hook fixture
 再证明 `SubagentStart` receipt 已在 worker 第一条命令前写入，且 subagent 首个命令能看到当前
 `tasks.md` 与正式 `tdd-run`。
 
@@ -327,6 +327,37 @@ Write/Edit/NotebookEdit 直接解析 path；Bash 对 `>`, `>>`, `tee`, `sed -i`,
 - checks 暴露共享 cumulative/completion predicate；pre-write/verify/archive 不复制规则。
 - release 只消费 deterministic acceptance，不自动发布、不 push。
 
+### 隔离接力与 Handoff 设计
+
+每个受治理行为由 `harness/behavior-checks.json` 注册 executor、executor Skill、checker、
+checker Skill 和预期 artifact。主 orchestrator 不直接产出阶段资产：
+
+```text
+main
+→ create role=execute input.json
+→ executor（fresh context + harness-stage-executor）
+→ SubagentStop 持久化 result.json
+→ create role=check input.json(parentRunId)
+→ checker（another fresh context + harness-stage-checker）
+→ SubagentStop 持久化 check.json
+→ TaskCompleted/Stop gate
+```
+
+统一 envelope 绑定 `runId/changeId/stage/behavior/role/agent/skill/TECPC/inputRefs/digests`。
+SubagentStop 的文本不是最终证据，只有通过 schema 校验并写入 run directory 后才可消费。
+插件 agent frontmatter 不承载关键 hook；生命周期门禁统一配置在 plugin `hooks/hooks.json`。
+
+clarify 的持续用户问答保留在主 orchestrator。每轮回答后由 `clarify-synthesizer` 整理评分，
+再由不同上下文的 `requirement-reviewer` 检查；这样既隔离上下文，又不要求 subagent 派生 subagent。
+
+### 诊断设计
+
+- 稳定错误码：`EH-HANDOFF-*`、`EH-AGENT-*`、`EH-CHECKER-*`、`EH-CLARIFY-*`。
+- 每条 BLOCK 尽量携带 `changeId/runId/detail/recovery`。
+- `enterprise-harness trace <run-id>` 输出当前 run artifacts 和 lifecycle events。
+- `enterprise-harness handoff explain <error-code>` 给出稳定解释和恢复动作。
+- 账户认证、订阅、配额和服务容量不属于插件可治理面，不进入 doctor/release/completion gate。
+
 ### 测试策略与 RED path
 
 - Unit/fixture：
@@ -339,13 +370,13 @@ Write/Edit/NotebookEdit 直接解析 path；Bash 对 `>`, `>>`, `tee`, `sed -i`,
 - Integration：
   - hook 脚本以 JSON stdin 在 temp repo 执行；
   - `tdd-run` 对最小 Node fixture 真实跑 RED/GREEN/REFACTOR。
-- Live E2E：
+- Deterministic clean-target fixture：
   - clean temp git repo 先用 source CLI `start-change` 建最小 durable target，再从 temp cwd
     执行 `claude --plugin-dir <repo>`；
   - stream-json 观察 Skill/Agent；
   - agent event ledger 观察 scoped Start/Stop；
   - PATH 中提供可控的 CodeGraph unavailable fixture，使 explorer 真实产生 attempt 后 fallback；
-  - 本机 authenticated 必跑，CI 用 `HARNESS_LIVE_E2E=1`。
+  - 使用不依赖账户的 deterministic clean-target/plugin/hook fixture。
 - 本 change 自身项目原生命令是 Node smoke；Java 目标项目在 tasks 中声明 `./mvnw ...` 后由
   同一个 `tdd-run` 无 shell 执行，不能再用字符串自报。
 
@@ -360,7 +391,7 @@ node harness/plugin/runtime/test/archive-completion-smoke.mjs verify
 node harness/plugin/runtime/test/release-version-acceptance-smoke.mjs verify
 node harness/plugin/runtime/cli.mjs verify
 claude plugin validate .
-HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs verify
+node harness/plugin/runtime/test/handoff-contract-smoke.mjs verify
 ```
 
 ## P 路径
@@ -381,7 +412,7 @@ HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs v
 4. 实现 authoritative `tdd-run` 与 receipt validator。
 5. 让 verify/stop/archive 消费 shared completion predicate。
 6. 对齐 marketplace/release/prepublish/CI。
-7. 跑现有 regression、plugin validate、clean-target authenticated live E2E。
+7. 跑现有 regression、plugin validate、clean-target deterministic plugin/hook fixture。
 
 ### 风险与回滚
 
@@ -402,17 +433,17 @@ HARNESS_LIVE_E2E=1 node harness/plugin/runtime/test/claude-plugin-live-e2e.mjs v
   - 缓解：安全 slug、canonical containment + symlink 拒绝、branch/path exclusive create、
     HEAD 后验一致性与精确补偿清理；stdout 只输出最终绝对路径，全部诊断走 stderr，任何异常
     fail closed。
-- 风险：live E2E 认证/费用。
-  - 处理：本机已认证则必跑；CI 无凭据明确 skip，deterministic gate 仍 blocking。
+- 风险：把宿主账户状态误当成插件质量。
+  - 处理：release/completion 只消费 deterministic plugin fixture；账户状态不进入诊断和 gate。
 
-### P 纠正预案
+### C 纠正预案
 
 - 若 Agent hook 的官方实际 payload 与文档不符：保存 sanitized event fixture，收缩 matcher，
   不以猜测字段放行。
 - 若 WorktreeCreate 无法从 parent cwd 的 HEAD 建立并复核：BLOCK 派发，不回退 default branch，
   不允许 executor 通过 checkout 猜测修复基线。
 - 若全仓 regression 发现 legacy break：只修 compatibility adapter，不降低 strict 新 change gate。
-- 回退条件：live plugin-only 无法加载 skill、Agent start/stop 无法关联、或 archive predicate
+- 回退条件：clean plugin fixture 无法加载 skill、Agent start/stop 无法关联、或 archive predicate
   产生数据损坏风险。
 
 ## Design Self-Review

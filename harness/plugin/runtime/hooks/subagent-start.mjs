@@ -23,6 +23,7 @@ appendAgentEvent(root, changeId, {
   agentId: event.agent_id,
   observedAgentType: normalizeAgentType(observedRaw),
   rawObservedAgentType: observedRaw,
+  lifecycle: 'isolated-context-started',
   cwd: event.cwd || root,
 });
 process.exit(0);

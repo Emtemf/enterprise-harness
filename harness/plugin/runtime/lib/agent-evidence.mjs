@@ -6,10 +6,15 @@ import { spawnSync } from 'node:child_process';
 export const PLUGIN_AGENT_TYPES = new Set([
   'code-explore',
   'doc-research',
+  'clarify-synthesizer',
+  'design-executor',
+  'plan-executor',
   'requirement-reviewer',
   'design-reviewer',
   'plan-critic',
   'tdd-executor',
+  'implementation-reviewer',
+  'verification-executor',
   'api-consistency-reviewer',
   'verification-reviewer',
 ]);
@@ -76,6 +81,11 @@ export function appendAgentEvent(root, changeId, event) {
     cwd: path.resolve(event.cwd || root),
     commandDigest: event.commandDigest || null,
     transcriptDigest: event.transcriptDigest || null,
+    runId: event.runId || null,
+    behavior: event.behavior || null,
+    handoffRole: event.handoffRole || null,
+    handoffPath: event.handoffPath || null,
+    parentRunId: event.parentRunId || null,
     issuedAt: event.issuedAt || new Date().toISOString(),
     ...event,
   };

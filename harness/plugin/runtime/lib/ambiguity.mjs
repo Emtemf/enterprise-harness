@@ -32,7 +32,7 @@ function parseScoreCell(cell) {
 }
 
 // 解析 requirements.md 中的歧义评分表。
-// 返回 { rows: [{dimension, score, note}], overall, missing: [], belowThreshold: [] }
+// 返回评分、机械计算的 overall/weakest，以及 gate 问题。
 export function parseAmbiguityScores(text) {
   const rows = [];
   let overall = null;
@@ -58,6 +58,9 @@ export function parseAmbiguityScores(text) {
   }
 
   const seen = new Set(rows.map((row) => row.dimension));
+  const duplicates = rows
+    .map((row) => row.dimension)
+    .filter((dimension, index, all) => all.indexOf(dimension) !== index);
   const missing = AMBIGUITY_DIMENSIONS.filter((dimension) => !seen.has(dimension));
   for (const row of rows) {
     if (row.score === null) missing.push(row.dimension);
@@ -65,8 +68,33 @@ export function parseAmbiguityScores(text) {
   const belowThreshold = rows
     .filter((row) => row.score !== null && row.score < AMBIGUITY_PASS_THRESHOLD)
     .map((row) => `${row.dimension}=${row.score}`);
+  const invalidScores = rows
+    .filter((row) => row.score !== null && (!Number.isInteger(row.score) || row.score < 0 || row.score > 5))
+    .map((row) => `${row.dimension}=${row.score}`);
+  const scored = rows.filter((row) => Number.isFinite(row.score));
+  const computedOverall = scored.length === AMBIGUITY_DIMENSIONS.length
+    ? Number((scored.reduce((sum, row) => sum + row.score, 0) / scored.length).toFixed(1))
+    : null;
+  const weakestScore = scored.length ? Math.min(...scored.map((row) => row.score)) : null;
+  const weakest = weakestScore === null
+    ? []
+    : scored.filter((row) => row.score === weakestScore).map((row) => row.dimension);
+  const missingEvidence = rows
+    .filter((row) => !String(row.note || '').trim())
+    .map((row) => row.dimension);
 
-  return { rows, overall, missing, belowThreshold };
+  return {
+    rows,
+    overall,
+    computedOverall,
+    weakest,
+    weakestScore,
+    missing,
+    duplicates: [...new Set(duplicates)],
+    belowThreshold,
+    invalidScores,
+    missingEvidence,
+  };
 }
 
 export function requirementsPath(root, changeId) {
@@ -92,10 +120,24 @@ export function validateAmbiguityGate(root, changeId, state = null) {
     return errors;
   }
   if (parsed.missing.length > 0) {
-    errors.push(`${changeId}: 歧义评分未填写完整，缺失维度: ${[...new Set(parsed.missing)].join(', ')}`);
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 歧义评分未填写完整，缺失维度: ${[...new Set(parsed.missing)].join(', ')}`);
+  }
+  if (parsed.duplicates.length > 0) {
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 歧义评分维度重复: ${parsed.duplicates.join(', ')}`);
+  }
+  if (parsed.invalidScores.length > 0) {
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 分数必须是 0-5 的整数: ${parsed.invalidScores.join(', ')}`);
+  }
+  if (parsed.missingEvidence.length > 0) {
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 每个分数必须有事实或用户回答依据: ${parsed.missingEvidence.join(', ')}`);
+  }
+  if (parsed.overall === null) {
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 缺少 Overall 分数`);
+  } else if (parsed.computedOverall !== null && Math.abs(parsed.overall - parsed.computedOverall) > 0.05) {
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: Overall=${parsed.overall} 与七维平均值 ${parsed.computedOverall} 不一致`);
   }
   if (parsed.belowThreshold.length > 0) {
-    errors.push(`${changeId}: 歧义评分未达标（要求所有维度 >= ${AMBIGUITY_PASS_THRESHOLD}）: ${parsed.belowThreshold.join(', ')}`);
+    errors.push(`[EH-CLARIFY-AMBIGUITY-006] ${changeId}: 歧义评分未达标（要求所有维度 >= ${AMBIGUITY_PASS_THRESHOLD}）: ${parsed.belowThreshold.join(', ')}`);
   }
   return errors;
 }
