@@ -39,7 +39,10 @@
     "P0 scope frozen to canonical plugin entry, scoped dispatch, agent lifecycle hooks, agent-aware cumulative gates, trustworthy TDD receipt, completion/archive and release acceptance",
     "Keep orchestration in Claude skills; runtime remains hook adapter and workflow primitives"
   ],
-  "blockers": [],
+  "blockers": [
+    "Claude Code account capacity returned HTTP 429 before Agent dispatch, so fresh authoritative Task 2-4 tdd-run receipts cannot yet be generated/imported",
+    "Authenticated HARNESS_LIVE_E2E=1 is pending the same external capacity recovery; deterministic acceptance is green"
+  ],
   "approvals": {
     "requirements": {
       "status": "pass",
@@ -67,11 +70,25 @@
       "implementationCommit": "3996796832afe2ed91f5bdcc8219b46474cd5387"
     },
     "task2Review": {
-      "status": "block",
+      "status": "pass",
       "reviewerId": "code-reviewer-task2",
-      "reviewedAt": "2026-07-28",
-      "digest": "6b1633369b07c42a1cd9686a5f78dc93222701d73391e22a3e5b842fc1bc7817",
-      "implementationCommit": "3861d328472c65d6b8fb8cf047870c974d025d33"
+      "reviewedAt": "2026-07-29",
+      "digest": "c8a077ea8de4ea2500afdb2beafc70dfee82cb4a8dd7ef891e0f1892519e35fb",
+      "implementationCommit": "beca73c203dc6b54555e972b6f09a05391dfeaf6"
+    },
+    "task3Review": {
+      "status": "pass",
+      "reviewerId": "code-reviewer-task3",
+      "reviewedAt": "2026-07-29",
+      "digest": "61718ff5d105706f5affc4c1db379a740509f54271aaefdc1a133cb4d7614ce9",
+      "implementationCommit": "f1217c0"
+    },
+    "task4Review": {
+      "status": "pass",
+      "reviewerId": "code-reviewer-task4",
+      "reviewedAt": "2026-07-29",
+      "digest": "a8758a3756730756efffa2f70daa3203973b143166a1e1d19f420258c2b903dc",
+      "implementationCommit": "0e94794"
     }
   },
   "gates": {
@@ -80,7 +97,7 @@
     "redTask": null,
     "redEvidenceRef": null
   },
-  "currentTask": "task-2",
+  "currentTask": "task-4",
   "tddEvidence": {
     "worktreeUsed": false,
     "commandExecuted": null,

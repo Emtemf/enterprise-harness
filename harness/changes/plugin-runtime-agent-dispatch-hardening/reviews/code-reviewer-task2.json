@@ -1,64 +1,17 @@
 {
   "changeId": "plugin-runtime-agent-dispatch-hardening",
   "reviewerId": "code-reviewer-task2",
-  "verdict": "block",
-  "findings": [
-    {
-      "severity": "critical",
-      "path": ".git/enterprise-harness/receipts/plugin-runtime-agent-dispatch-hardening/tdd/task-2.json; .git/enterprise-harness/receipts/plugin-runtime-agent-dispatch-hardening/agent-events.jsonl",
-      "line": "22; 14-15",
-      "problem": "Authoritative receipt包含最终实现提交中不存在的.tmp-worktree-debug-dUcfti/，且agent ledger包含两条malformed-subagent-result violation。该receipt无法合法导入，也不能作为Task 2完成证据。",
-      "minimalFix": "不得手改receipt或ledger。用clean worktree重新派发tdd-executor，确保调试目录在RED前已清除，返回符合SubagentStop结构契约的结果，并通过正式runner重新生成可导入receipt。"
-    },
-    {
-      "severity": "high",
-      "path": "harness/plugin/runtime/hooks/worktree-create.mjs",
-      "line": "153-158,185-187",
-      "problem": "findOwnedRegistration只绑定registration path和branch，不再要求entry.HEAD等于captured parent HEAD。cleanup先读取当前branch HEAD，再单独读取registration，未同时证明path、branch、entry.HEAD和branch HEAD均属于本次创建；两次读取间发生变化时仍可能移除错误HEAD的worktree registration。",
-      "minimalFix": "恢复findOwnedRegistration的expectedHead参数并要求entry.HEAD===expectedHead；补偿前基于同一份porcelain快照验证path、branch和entry.HEAD，同时验证完整refs/heads分支仍指向expectedHead。"
-    },
-    {
-      "severity": "medium",
-      "path": "harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs",
-      "line": "268-291",
-      "problem": "ownership-loss注入将branch更新到staleHead，但测试只断言branch仍非空，没有断言branch精确等于staleHead，也没有证明registration entry.HEAD与captured HEAD不匹配时必须保留资源。因此移除entry.HEAD校验仍可假绿。",
-      "minimalFix": "断言readBranchHead(root, branchName)===staleHead，并断言保留的porcelain stanza具有预期path、branch和精确注入后的HEAD；另增加registration HEAD变化但branch所有权检查通过时的反例。"
-    },
-    {
-      "severity": "high",
-      "path": "harness/plugin/runtime/test/portable-launcher-smoke.mjs; .claude/skills/harness-intake/SKILL.md; .claude/skills/harness-verify/SKILL.md",
-      "line": "87-89,133-140; 115,185; 78",
-      "problem": "Backend禁止裸node的测试先删除全部fenced code block，且正则要求node前是空白，导致inline backticks中的直连命令漏检。实际intake仍直接展示node harness/plugin/runtime/lifecycle.mjs lesson-list和node harness/plugin/runtime/cli.mjs workflow session-log；verify又展示不存在的顶层enterprise-harness lesson-add，实际执行返回Unknown command。",
-      "minimalFix": "扫描时仅豁免精确portable fallback片段，不删除其他代码块，并在匹配前剥离Markdown backticks。将intake命令改为enterprise-harness lifecycle lesson-list和enterprise-harness workflow session-log，将verify改为enterprise-harness lifecycle lesson-add，并为每个文档命令增加真实CLI执行测试。"
-    }
-  ],
+  "verdict": "pass",
+  "findings": [],
   "evidence": [
-    "implementationCommit=3861d328472c65d6b8fb8cf047870c974d025d33",
-    "parentCommit=f3209b6808077cc8e614c5eca4de34726185847f",
-    "executorCommit=b8f9959e090a6efbb05fe2a767e171d69e1c8c5b",
-    "receipt SHA-256 matches 6b1633369b07c42a1cd9686a5f78dc93222701d73391e22a3e5b842fc1bc7817",
-    "executor commit diff has 11 files while receipt changedPaths additionally contains .tmp-worktree-debug-dUcfti/",
-    "agent-events ledger contains malformed-subagent-result violations for agent a1d7fa44d6a310634",
-    "standalone CLAUDE.md correctly retains logical code-explore/doc-research lane names without bare subagent_type",
-    "plugin-facing skills now use scoped enterprise-harness agent identifiers",
-    "subagent-contract restored CLAUDE.md and both documentation regression sources",
-    "publish collision, ACTIVE_CHANGE symlink and dangling target tests execute real filesystem behavior",
-    "fixture set under /tmp remained unchanged after repeated smoke execution",
-    "node harness/plugin/runtime/cli.mjs lesson-add ... => exit 1, Unknown command: lesson-add"
+    "implementationCommit=beca73c203dc6b54555e972b6f09a05391dfeaf6",
+    "task2-plugin-agent-smoke verify passed",
+    "worktree cleanup uses one porcelain snapshot and exact path/full-ref/registration-HEAD plus branch HEAD ownership",
+    "portable scan exempts only the exact launcher snippet, strips backticks, and probes all three corrected commands",
+    "independent re-review PASS"
   ],
-  "implementationCommit": "3861d328472c65d6b8fb8cf047870c974d025d33",
-  "receiptDigest": "6b1633369b07c42a1cd9686a5f78dc93222701d73391e22a3e5b842fc1bc7817",
-  "testsRun": [
-    "node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify => pass",
-    "node harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs verify => pass",
-    "node harness/plugin/runtime/test/portable-launcher-smoke.mjs verify => pass despite inline-backtick command blind spot",
-    "node harness/plugin/runtime/test/subagent-contract-smoke.mjs verify => pass",
-    "node harness/plugin/runtime/test/worktree-create-current-head-smoke.mjs verify => pass",
-    "before/after /tmp worktree-create-* fixture set digest => unchanged",
-    "node harness/plugin/runtime/cli.mjs lifecycle lesson-list => pass",
-    "node harness/plugin/runtime/cli.mjs lesson-add probe low test none => exit 1, Unknown command",
-    "git diff --check f3209b6808077cc8e614c5eca4de34726185847f 3861d328472c65d6b8fb8cf047870c974d025d33 => pass",
-    "git status --short after tests => clean"
-  ],
-  "reviewedAt": "2026-07-28"
+  "implementationCommit": "beca73c203dc6b54555e972b6f09a05391dfeaf6",
+  "receiptDigest": null,
+  "digest": null,
+  "reviewedAt": "2026-07-29"
 }

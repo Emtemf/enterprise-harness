@@ -10,9 +10,9 @@
 - workflow：`clarify → route → design → plan → tdd → verify → archive`
 - requirements/design/plan：已澄清、独立评审并批准
 - Task 1：authoritative agent/TDD evidence foundation 已实现并评审
-- Task 2：canonical entry、scoped dispatch、portable launcher 与 parent-HEAD worktree hardening 已集成，等待最终 evidence/review 收口
-- Task 3：agent-aware cumulative gates 与统一 completion predicate 已实现，独立 review 进行中
-- Task 4：版本/发布验收、CI P0 与 clean-target live E2E harness 已实现，独立 review 进行中
+- Task 2：canonical entry、scoped dispatch、portable launcher 与 parent-HEAD worktree hardening 已集成，独立 review PASS
+- Task 3：agent-aware cumulative gates 与统一 completion predicate 已实现，独立 review PASS
+- Task 4：版本/发布验收、CI P0 与 clean-target live E2E harness 已实现，反假绿修复后独立 review PASS
 - validation：尚未刷新；完成 Task 2–4 review/evidence 后统一执行
 
 动态状态以 `harness/ACTIVE_CHANGE` 与 `harness/changes/plugin-runtime-agent-dispatch-hardening/state.json` 为准，本文件只提供人类可读快照。
@@ -39,10 +39,9 @@ plugin Agent subtype 必须使用 `enterprise-harness:<agent>`；standalone 的 
 
 ## 下一步
 
-1. 处理 Task 2–4 独立 review 发现并持久化 verdict/evidence
-2. 运行全量 runtime regression、prepublish 与 plugin validation
-3. 在 Claude 服务容量可用时运行 `HARNESS_LIVE_E2E=1` authenticated clean-target probe
-4. 刷新 `validation.md`、verification reviewer 与 validation digest
-5. 满足统一 completion predicate 后归档 change
+1. 等待 Claude 账户容量恢复，重新派发 scoped executor 并生成/import Task 2–4 authoritative receipts
+2. 重新运行 `HARNESS_LIVE_E2E=1` authenticated clean-target probe
+3. 派 verification reviewer，刷新 validation digest
+4. 满足统一 completion predicate 后归档 change
 
 本轮不执行 push、tag、GitHub Release 或 npm 发布。
