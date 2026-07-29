@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
@@ -84,6 +86,36 @@ for (const testCase of cases) {
   } catch (error) {
     failures.push(`${testCase.name}: ${error.message}`);
   }
+}
+
+const aliasFixture = fs.mkdtempSync(path.join(os.tmpdir(), 'governed-path-alias-'));
+try {
+  const realRoot = path.join(aliasFixture, 'real-repo');
+  const aliasRoot = path.join(aliasFixture, 'repo-alias');
+  const governedFile = path.join(realRoot, 'src', 'main', 'java', 'demo', 'App.java');
+  fs.mkdirSync(path.dirname(governedFile), { recursive: true });
+  fs.writeFileSync(governedFile, 'class App {}\n');
+  fs.symlinkSync(realRoot, aliasRoot, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.ok(
+    isGovernedTarget(realRoot, path.join(aliasRoot, 'src', 'main', 'java', 'demo', 'App.java')),
+    'filesystem aliases that identify the same repository must remain governed',
+  );
+
+  const outsideRoot = path.join(aliasFixture, 'outside');
+  const escapeLink = path.join(realRoot, 'linked-module');
+  const outsideFile = path.join(outsideRoot, 'src', 'main', 'java', 'demo', 'Escape.java');
+  fs.mkdirSync(path.dirname(outsideFile), { recursive: true });
+  fs.writeFileSync(outsideFile, 'class Escape {}\n');
+  fs.symlinkSync(outsideRoot, escapeLink, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.equal(
+    isGovernedTarget(realRoot, path.join(escapeLink, 'src', 'main', 'java', 'demo', 'Escape.java')),
+    null,
+    'a symlink that escapes the repository must not be treated as an in-repo governed path',
+  );
+} catch (error) {
+  failures.push(`canonical path identity: ${error.message}`);
+} finally {
+  fs.rmSync(aliasFixture, { recursive: true, force: true });
 }
 
 function fail(message) {

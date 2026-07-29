@@ -20,6 +20,27 @@ export const GOVERNANCE_BLOCKLIST = new Set(['target', 'build', 'node_modules', 
 const MAIN_PATTERN = ['src', 'main', 'java'];
 const TEST_PATTERN = ['src', 'test', 'java'];
 
+function canonicalPath(targetPath) {
+  const resolved = path.resolve(targetPath);
+  const suffix = [];
+  let existing = resolved;
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    suffix.unshift(path.basename(existing));
+    existing = parent;
+  }
+  let canonicalBase = existing;
+  try {
+    canonicalBase = fs.realpathSync.native(existing);
+  } catch {
+    // If no ancestor can be resolved, retain the absolute spelling and let
+    // the containment check fail closed where appropriate.
+  }
+  const canonical = path.normalize(path.join(canonicalBase, ...suffix));
+  return process.platform === 'win32' ? canonical.toLowerCase() : canonical;
+}
+
 function findSubsequence(segments, pattern) {
   for (let i = 0; i <= segments.length - pattern.length; i++) {
     if (pattern.every((part, j) => segments[i + j] === part)) return i;
@@ -33,8 +54,10 @@ function findSubsequence(segments, pattern) {
 // matched pattern) so that generated/vendor directories are excluded while business package
 // names that happen to contain a blocklisted word (e.g. "target") are not misjudged.
 function detectGovernedKind(root, target) {
-  const rel = path.relative(root, target);
-  if (rel.startsWith('..')) return null;
+  const canonicalRoot = canonicalPath(root);
+  const canonicalTarget = canonicalPath(target);
+  const rel = path.relative(canonicalRoot, canonicalTarget);
+  if (rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) return null;
   const segments = rel.split(path.sep);
 
   const mainIdx = findSubsequence(segments, MAIN_PATTERN);
@@ -53,7 +76,7 @@ function detectGovernedKind(root, target) {
   const ancestors = segments.slice(0, match.start);
   if (ancestors.some((segment) => GOVERNANCE_BLOCKLIST.has(segment))) return null;
 
-  return { kind: match.kind, dir: path.join(root, ...segments.slice(0, match.end)) };
+  return { kind: match.kind, dir: path.join(canonicalRoot, ...segments.slice(0, match.end)) };
 }
 
 export function isGovernedTarget(root, target) {

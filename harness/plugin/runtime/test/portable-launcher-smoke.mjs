@@ -77,14 +77,10 @@ function runPortableLauncher(args, cwd, env = {}) {
   if (!isWindows) {
     return runCommand('enterprise-harness', args, cwd, env);
   }
-  return spawnSync(process.env.ComSpec || 'cmd.exe', [
-    '/d',
-    '/s',
-    '/c',
-    `"${windowsLauncherPath}" ${args.map((arg) => `"${String(arg).replaceAll('"', '""')}"`).join(' ')}`,
-  ], {
+  return spawnSync(windowsLauncherPath, args, {
     cwd,
     encoding: 'utf-8',
+    shell: true,
     env: {
       ...process.env,
       ...env,

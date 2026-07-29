@@ -5,7 +5,11 @@ import { fileURLToPath } from 'node:url';
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
-const tests = ['cumulative-write-gate-smoke.mjs', 'archive-completion-smoke.mjs'];
+const tests = [
+  'gates-governed-target-unit-smoke.mjs',
+  'cumulative-write-gate-smoke.mjs',
+  'archive-completion-smoke.mjs',
+];
 let failed = false;
 for (const test of tests) {
   const result = spawnSync(process.execPath, [path.join(testDir, test), 'verify'], { cwd: process.cwd(), encoding: 'utf-8', shell: false });
