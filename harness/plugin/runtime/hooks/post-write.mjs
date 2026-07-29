@@ -53,6 +53,15 @@ if (raw) {
     }
   } catch {}
 }
+const semanticProblems = [
+  ...validateOpenApiLight(root),
+  ...validateGenericControllerConsistency(root),
+  ...validateReferenceServiceControllerConsistency(root),
+];
+if (semanticProblems.length) {
+  for (const problem of semanticProblems) console.error(problem);
+  process.exit(1);
+}
 const problems = [
   // validateStructure checks this repo's own fixed file list; only meaningful once a
   // target project has fully onboarded (harness/changes/ + harness/specs/ both present).
@@ -65,15 +74,6 @@ const problems = [
 ];
 if (problems.length) {
   for (const problem of problems) console.error(problem);
-  process.exit(1);
-}
-const semanticProblems = [
-  ...validateOpenApiLight(root),
-  ...validateGenericControllerConsistency(root),
-  ...validateReferenceServiceControllerConsistency(root),
-];
-if (semanticProblems.length) {
-  for (const problem of semanticProblems) console.error(problem);
   process.exit(1);
 }
 console.log('Post-write gate passed. 如有业务完成声明，后续仍需 fresh validation 证据。');

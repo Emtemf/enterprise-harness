@@ -38,7 +38,7 @@ const ok = model.includes('主执行 → 独立复核 → 统一消费 → 完�
   && (model.includes('pass / block / advisory') || model.includes('`pass` / `block` / `advisory`'))
   && reviewRule.includes('blocking reviewers')
   && (reviewRule.includes('mechanical consumption') || reviewRule.includes('机械消费基线'))
-  && stopText.includes('validateCompletionReviewers');
+  && stopText.includes('validateCompletionPredicate');
 
 if (mode === 'red') {
   if (!ok) {

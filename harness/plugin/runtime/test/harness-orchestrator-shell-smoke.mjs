@@ -31,7 +31,7 @@ const ok = text.includes('当前动作顺序')
   && text.includes('clarify：先补 repo/documentation facts')
   && text.includes('design：先消费 requirements / exploration')
   && text.includes('plan：先消费 design')
-  && text.includes('tdd：先派 `tdd-executor`')
+  && text.includes('tdd：先派 `enterprise-harness:tdd-executor`')
   && text.includes('verify：先消费 `validation.md` / reviewer verdict')
   && text.includes('会派哪个 agent')
   && text.includes('返回后主对话会消费什么结论');

@@ -82,7 +82,7 @@ try {
     writeText(path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'), '// fixture\n');
     const result = runPreWrite(tempRoot, path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'));
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
-    assert.match(result.stderr, /歧义评分尚未达标/);
+    assert.match(result.stderr, /歧义评分未达标/);
   });
 } catch (error) {
   failed = error;

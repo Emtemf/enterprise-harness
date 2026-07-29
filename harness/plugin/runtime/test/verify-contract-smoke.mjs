@@ -39,7 +39,7 @@ const ok = spec.includes('Verify Contract')
   && spec.includes('reviewer verdict 已落盘')
   && skill.includes('verification-reviewer')
   && reviewer.includes('完成声明是否被新鲜验证证据支持')
-  && stopText.includes('validateCompletionReviewers');
+  && stopText.includes('validateCompletionPredicate');
 
 if (mode === 'red') {
   if (!ok) {

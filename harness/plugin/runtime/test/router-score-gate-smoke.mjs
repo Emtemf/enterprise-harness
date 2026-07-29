@@ -54,7 +54,7 @@ try {
     writeText(path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'), '// fixture\n');
     const result = runPreWrite(tempRoot, path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'));
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
-    assert.match(result.stderr, /route 评分尚未完整/);
+    assert.match(result.stderr, /route 评分未填写完整/);
   });
 } catch (error) {
   failed = error;

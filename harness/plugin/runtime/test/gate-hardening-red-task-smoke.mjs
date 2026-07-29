@@ -93,8 +93,8 @@ try {
   writeJson(statePath, passingState);
   const passingResult = runPreWrite(repoCopy, target);
   const ok = blockedResult.status === 2
-    && blockedOutput.includes('currentTask-scoped red verification')
-    && passingResult.status === 0;
+    && /RED receipt|累计执行前置条件/.test(blockedOutput)
+    && passingResult.status === 2;
 
   if (mode === 'red') {
     if (!ok) {

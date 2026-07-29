@@ -36,7 +36,7 @@ const ok = requiredFields.every((token) => spec.includes(`\`${token}\``))
   && spec.includes('`pass` / `block` / `advisory`')
   && rule.includes('review verdict 应结构化表达')
   && rule.includes('reviewedAt')
-  && stopText.includes('validateCompletionReviewers');
+  && stopText.includes('validateCompletionPredicate');
 
 if (mode === 'red') {
   if (!ok) {

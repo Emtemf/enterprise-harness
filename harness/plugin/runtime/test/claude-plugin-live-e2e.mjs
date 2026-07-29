@@ -37,10 +37,37 @@ try {
     maxBuffer: 20 * 1024 * 1024,
   });
   assert.equal(live.status, 0, live.stderr || live.stdout);
-  const stream = String(live.stdout || '');
-  assert.match(stream, /enterprise-harness:harness/u);
-  assert.match(stream, /enterprise-harness:code-explore/u);
-  assert.match(stream, /enterprise-harness(?:\.mjs)?/u);
+  const records = String(live.stdout || '').split('\n').filter(Boolean).map((line) => JSON.parse(line));
+  const toolUses = [];
+  const assistantTexts = [];
+  const toolResults = new Map();
+  for (const record of records) {
+    const message = record.message || record;
+    if (message.role === 'assistant') {
+      for (const block of message.content || []) {
+        if (block.type === 'tool_use') toolUses.push(block);
+        if (block.type === 'text') assistantTexts.push(String(block.text || ''));
+      }
+    }
+    if (message.role === 'user') {
+      for (const block of message.content || []) {
+        if (block.type === 'tool_result') {
+          const content = Array.isArray(block.content)
+            ? block.content.map((item) => item.text || '').join('\n')
+            : String(block.content || '');
+          toolResults.set(block.tool_use_id, content);
+        }
+      }
+    }
+  }
+  const skillUse = toolUses.find((use) => use.name === 'Skill' && use.input?.skill === 'enterprise-harness:harness');
+  assert.ok(skillUse, 'canonical plugin skill must be actually invoked');
+  const launcherUse = toolUses.find((use) => use.name === 'Bash' && use.input?.command === 'command -v enterprise-harness && enterprise-harness --help');
+  assert.ok(launcherUse, 'exact portable launcher probe must be executed');
+  assert.match(toolResults.get(launcherUse.id) || '', /enterprise-harness[\s\S]*Enterprise Harness Runtime CLI/u, 'launcher result must contain resolved executable and help output');
+  const agentUse = toolUses.find((use) => ['Agent', 'Task'].includes(use.name) && use.input?.subagent_type === 'enterprise-harness:code-explore');
+  assert.ok(agentUse, 'scoped code-explore Agent must be actually dispatched');
+  assert.match(assistantTexts.join('\n'), /Exploration Packet[\s\S]*CodeGraph[\s\S]*Findings[\s\S]*Evidence/iu, 'forwarded worker output must contain a structured Exploration Packet');
   const ledgerPath = path.join(target, '.git/enterprise-harness/receipts/live-probe/agent-events.jsonl');
   assert.equal(fs.existsSync(ledgerPath), true, 'live target must contain agent ledger');
   const events = fs.readFileSync(ledgerPath, 'utf-8').split('\n').filter(Boolean).map((line) => JSON.parse(line));
@@ -48,6 +75,7 @@ try {
   assert.ok(startEvent?.agentId, 'scoped Start event is required');
   assert.ok(events.some((event) => event.kind === 'dispatch-binding' && event.agentId === startEvent.agentId), 'dispatch binding is required');
   assert.ok(events.some((event) => event.kind === 'stop' && event.agentId === startEvent.agentId), 'Stop event is required');
+  assert.ok(events.some((event) => event.kind === 'codegraph-attempt' && event.agentId === startEvent.agentId), 'same-agent CodeGraph attempt is required');
   const evidence = { schemaVersion: 1, mode, passed: true, claudeVersion: command('claude', ['--version']).stdout.trim(), assertions: ['canonical-skill', 'portable-launcher', 'scoped-agent', 'dispatch-start-stop-binding'], recordedAt: new Date().toISOString() };
   const evidencePath = path.join(root, 'harness/changes/plugin-runtime-agent-dispatch-hardening/evidence/live-e2e.json');
   fs.mkdirSync(path.dirname(evidencePath), { recursive: true });

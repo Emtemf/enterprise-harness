@@ -32,7 +32,7 @@ const installGuide = readText(installGuidePath);
 const ok = harness.includes('不得因为缺少 `.harness/`')
   && harness.includes('不能当作必须先完成的前置条件')
   && installGuide.includes('普通用户不需要先初始化 `.harness/`')
-  && installGuide.includes('也不应阻止继续通过 `/harness` 澄清需求');
+  && installGuide.includes('也不应阻止继续通过 canonical skill 澄清需求');
 
 if (mode === 'red') {
   if (!ok) {

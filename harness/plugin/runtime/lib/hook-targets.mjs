@@ -17,7 +17,8 @@ export function isPotentialWriteBash(command) {
 export function extractHookTargets(root, event) {
   const toolName = String(event?.tool_name || '');
   const input = event?.tool_input || {};
-  if (['Write', 'Edit', 'NotebookEdit'].includes(toolName)) {
+  if (['Write', 'Edit', 'NotebookEdit'].includes(toolName)
+      || (!toolName && DIRECT_PATH_FIELDS.some((field) => input[field]))) {
     return [...new Set(DIRECT_PATH_FIELDS.map((field) => absolute(root, input[field])).filter(Boolean))];
   }
   if (toolName !== 'Bash' || !isPotentialWriteBash(input.command)) return [];

@@ -36,13 +36,13 @@ const design = readText(files.design);
 const plan = readText(files.plan);
 const verifyText = readText(files.verify);
 const ok = intake.includes('当前动作顺序（orchestrator shell 显示要求）')
-  && intake.includes('先生成 exploration brief，再派 `code-explore`')
-  && intake.includes('先生成文档调研 brief，再派 `doc-research`')
-  && design.includes('先生成 design brief，再派 `code-explore` / `doc-research`')
-  && design.includes('design 成稿后派 `design-reviewer`')
+  && intake.includes('生成 exploration brief，再派 `enterprise-harness:code-explore`')
+  && intake.includes('生成文档调研 brief，再派 `enterprise-harness:doc-research`')
+  && design.includes('生成 design exploration brief，再派 `enterprise-harness:code-explore` / `enterprise-harness:doc-research`')
+  && design.includes('design 成稿后派 `enterprise-harness:design-reviewer`')
   && plan.includes('产出 `tasks.md`')
-  && plan.includes('然后派 `plan-critic`')
-  && verifyText.includes('派 `verification-reviewer`')
+  && plan.includes('然后派 `enterprise-harness:plan-critic`')
+  && verifyText.includes('派 `enterprise-harness:verification-reviewer`')
   && verifyText.includes('只消费 `pass` / `block` / `advisory` 结论');
 
 if (mode === 'red') {

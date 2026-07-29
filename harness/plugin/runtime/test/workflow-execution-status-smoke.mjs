@@ -26,6 +26,7 @@ function setupTempRepo() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'workflow-execution-status-'));
   const repoCopy = path.join(tempRoot, 'repo');
   copyDir(repoRoot, repoCopy);
+  fs.rmSync(path.join(repoCopy, 'harness', 'changes'), { recursive: true, force: true });
   const changeId = 'execution-status-smoke';
   const changeDir = path.join(repoCopy, 'harness', 'changes', changeId);
   fs.mkdirSync(path.join(changeDir, 'evidence'), { recursive: true });
@@ -130,12 +131,12 @@ try {
     workflowStatus?.nextAction === `workflow decide ${changeId} freeze-slice` &&
     workflowStatus?.currentGap === 'execution deepening 第一批切片待冻结。' &&
     sessionText.includes('[Harness Workflow] 当前 stage: design') &&
-    sessionText.includes('[Harness Workflow] 推荐恢复入口: /harness') &&
+    sessionText.includes('[Harness Workflow] 推荐恢复入口: /harness-design') &&
     sessionText.includes(`[Harness Workflow] 下一步动作: workflow decide ${changeId} freeze-slice`) &&
     statusCliText.includes('普通用户下一步命令') &&
     statusCliText.includes('- /harness') &&
     stopText.includes('- 当前 workflow stage：design') &&
-    stopText.includes('- 建议下次从：/harness 恢复');
+    stopText.includes('- 建议下次从：/harness-design 恢复');
 
   if (mode === 'red') {
     if (!ok) {
@@ -145,6 +146,7 @@ try {
   }
 
   if (!ok) {
+    console.error(JSON.stringify({ workflowStatus, sessionText, statusCliText, stopText }, null, 2));
     fail('Expected execution-phase status progression contract to pass');
   }
 

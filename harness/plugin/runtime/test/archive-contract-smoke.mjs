@@ -49,16 +49,13 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'archive-contract-'));
 try {
   fs.mkdirSync(path.join(tempRoot, 'harness', 'plugin', 'runtime', 'test'), { recursive: true });
 
-  // 1. VALIDATED change 应能成功归档。
+  // 1. 只有 VALIDATED projection、但缺 completion evidence 的 change 必须拒绝且无副作用。
   seedChange(tempRoot, 'done-change', 'VALIDATED');
   fs.writeFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), 'done-change\n');
   const okArchive = run(tempRoot, ['archive', 'done-change']);
   const movedToArchive = fs.existsSync(path.join(tempRoot, 'harness', 'archive', 'done-change', 'state.json'));
-  const removedFromChanges = !fs.existsSync(path.join(tempRoot, 'harness', 'changes', 'done-change'));
-  const archivedState = movedToArchive
-    ? JSON.parse(fs.readFileSync(path.join(tempRoot, 'harness', 'archive', 'done-change', 'state.json'), 'utf-8')).state
-    : null;
-  const activeCleared = !fs.existsSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'));
+  const remainsInChanges = fs.existsSync(path.join(tempRoot, 'harness', 'changes', 'done-change', 'state.json'));
+  const activePreserved = fs.readFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), 'utf-8') === 'done-change\n';
 
   // 2. 非 VALIDATED 应被拒绝。
   seedChange(tempRoot, 'draft-change', 'DRAFT');
@@ -70,11 +67,10 @@ try {
   const rejectReferenced = run(tempRoot, ['archive', 'referenced-change']);
 
   const failures = [];
-  if (okArchive.status !== 0) failures.push('VALIDATED archive should exit 0');
-  if (!movedToArchive) failures.push('archived change should appear under harness/archive/');
-  if (!removedFromChanges) failures.push('archived change should be removed from harness/changes/');
-  if (archivedState !== 'ARCHIVED') failures.push(`archived state should be ARCHIVED, got ${archivedState}`);
-  if (!activeCleared) failures.push('archiving active change should clear ACTIVE_CHANGE');
+  if (okArchive.status === 0) failures.push('incomplete VALIDATED archive should be rejected');
+  if (movedToArchive) failures.push('failed archive must not create archive destination');
+  if (!remainsInChanges) failures.push('failed archive must preserve source change');
+  if (!activePreserved) failures.push('failed archive must preserve ACTIVE_CHANGE');
   if (rejectDraft.status === 0) failures.push('DRAFT archive should be rejected');
   if (rejectReferenced.status === 0) failures.push('test-referenced archive should be rejected');
 
