@@ -365,7 +365,10 @@ function verifyRegistrationHeadMismatchPreservesResources(root) {
     name,
   }, {
     HARNESS_WORKTREE_CREATE_TEST_ACTIVE_CHANGE_COLLISION: 'existing-line\n',
-    HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP: `${worktreePath}:${mismatchedEntryHead}`,
+    HARNESS_WORKTREE_CREATE_TEST_OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP: JSON.stringify({
+      worktree: canonicalPath(worktreePath),
+      head: mismatchedEntryHead,
+    }),
   });
   assert.notEqual(result.status, 0);
   assert.match(String(result.stderr || ''), /manual recovery|Recover manually|recover manually|recover manually with/u);

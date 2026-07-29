@@ -60,6 +60,29 @@ function lstatEntry(absolutePath) {
   return fs.lstatSync(absolutePath, { throwIfNoEntry: false });
 }
 
+function canonicalPath(targetPath) {
+  const resolved = path.resolve(targetPath);
+  let canonical = resolved;
+  try {
+    canonical = fs.realpathSync.native(resolved);
+  } catch {
+    // Callers also use this helper while checking resources that may already
+    // have been compensated, so a missing path keeps its absolute spelling.
+  }
+  const normalized = path.normalize(canonical);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function samePath(left, right) {
+  return canonicalPath(left) === canonicalPath(right);
+}
+
+function pathIsWithin(targetPath, parentPath) {
+  const target = canonicalPath(targetPath);
+  const parent = canonicalPath(parentPath);
+  return target === parent || target.startsWith(`${parent}${path.sep}`);
+}
+
 function ensureRealDirectory(absolutePath, label) {
   const stat = lstatEntry(absolutePath);
   if (!stat) return;
@@ -77,18 +100,15 @@ function ensureDirectoryHierarchy(repoRoot) {
   else fs.mkdirSync(worktreesDir, { recursive: true });
   const repoReal = fs.realpathSync(repoRoot);
   const parentReal = fs.realpathSync(worktreesDir);
-  if (!parentReal.startsWith(`${repoReal}${path.sep}`)) {
+  if (!pathIsWithin(parentReal, repoReal)) {
     throw new Error('.claude/worktrees escapes the repository root');
   }
   return { worktreesDir, repoReal, parentReal };
 }
 
 function ensureContainedCanonicalPath(expectedPath, canonicalParent) {
-  const real = fs.realpathSync(expectedPath);
-  if (real !== expectedPath) {
-    throw new Error(`worktree path changed unexpectedly: ${real}`);
-  }
-  if (!real.startsWith(`${canonicalParent}${path.sep}`)) {
+  const real = canonicalPath(expectedPath);
+  if (!pathIsWithin(real, canonicalParent)) {
     throw new Error(`worktree path escapes canonical parent: ${real}`);
   }
 }
@@ -118,8 +138,8 @@ function publishActiveChange(parentRepo, childRoot, changeId, canonicalParent) {
   const childHarness = path.join(childRoot, 'harness');
   ensureRealDirectory(parentHarness, 'parent harness');
   ensureRealDirectory(childHarness, 'child harness');
-  if (fs.realpathSync(parentHarness) !== parentHarness) throw new Error('parent harness path must be canonical');
-  if (fs.realpathSync(childHarness) !== childHarness) throw new Error('child harness path must be canonical');
+  if (!pathIsWithin(parentHarness, parentRepo)) throw new Error('parent harness path escapes the repository root');
+  if (!pathIsWithin(childHarness, childRoot)) throw new Error('child harness path escapes the worktree root');
   ensureContainedCanonicalPath(childRoot, canonicalParent);
   const activePath = path.join(childHarness, 'ACTIVE_CHANGE');
   const tempPath = path.join(childHarness, `.ACTIVE_CHANGE.${process.pid}.${Date.now()}.tmp`);
@@ -153,10 +173,20 @@ function parseWorktreePorcelain(repoRoot) {
 
 function applyTestRegistrationHeadOverride(entry) {
   if (!entry || !OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP) return entry;
-  if (path.resolve(entry.worktree || '') !== path.resolve(OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.split(':', 2)[0] || '')) {
+  let override;
+  try {
+    override = JSON.parse(OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP);
+  } catch {
+    const separator = OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.lastIndexOf(':');
+    override = {
+      worktree: OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.slice(0, separator),
+      head: OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.slice(separator + 1),
+    };
+  }
+  if (!override || !samePath(entry.worktree || '', override.worktree || '')) {
     return entry;
   }
-  const [, overrideHead] = OVERRIDE_REGISTRATION_HEAD_DURING_CLEANUP.split(':', 2);
+  const overrideHead = String(override.head || '');
   if (!overrideHead) return entry;
   return {
     ...entry,
@@ -168,14 +198,14 @@ function findOwnedRegistration(entries, worktreePath, branchName, expectedHead) 
   const expectedBranch = `refs/heads/${branchName}`;
   return entries.find((rawEntry) => {
     const entry = applyTestRegistrationHeadOverride(rawEntry);
-    return path.resolve(entry.worktree || '') === path.resolve(worktreePath)
+    return samePath(entry.worktree || '', worktreePath)
       && entry.branch === expectedBranch
       && entry.HEAD === expectedHead;
   }) || null;
 }
 
 function findWorktreeByPath(repoRoot, worktreePath) {
-  return parseWorktreePorcelain(repoRoot).find((entry) => path.resolve(entry.worktree || '') === path.resolve(worktreePath)) || null;
+  return parseWorktreePorcelain(repoRoot).find((entry) => samePath(entry.worktree || '', worktreePath)) || null;
 }
 
 function findWorktreeByBranch(repoRoot, branchName) {
