@@ -27,7 +27,11 @@ for (const token of ['task1-authoritative-evidence-smoke.mjs', 'task2-plugin-age
 for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
   assert.match(fs.readFileSync(path.join(root, workflow), 'utf-8'), /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
 }
-const validation = spawnSync('claude', ['plugin', 'validate', '.'], { cwd: root, encoding: 'utf-8', shell: false });
+const validation = spawnSync('claude', ['plugin', 'validate', '.'], {
+  cwd: root,
+  encoding: 'utf-8',
+  shell: process.platform === 'win32',
+});
 assert.equal(validation.status, 0, validation.stderr || validation.stdout);
 assert.doesNotMatch(`${validation.stdout || ''}\n${validation.stderr || ''}`, /warning/iu, 'plugin validation must emit zero warnings');
 console.log('PASS release-version-acceptance verify');

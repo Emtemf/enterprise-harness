@@ -23,7 +23,11 @@ for (const args of commands) {
     process.exit(child.status ?? 1);
   }
 }
-const pluginValidation = spawnSync('claude', ['plugin', 'validate', '.'], { cwd: repoRoot, encoding: 'utf-8', shell: false });
+const pluginValidation = spawnSync('claude', ['plugin', 'validate', '.'], {
+  cwd: repoRoot,
+  encoding: 'utf-8',
+  shell: process.platform === 'win32',
+});
 process.stdout.write(pluginValidation.stdout || '');
 process.stderr.write(pluginValidation.stderr || '');
 if (pluginValidation.status !== 0 || /warning/iu.test(`${pluginValidation.stdout || ''}\n${pluginValidation.stderr || ''}`)) {
