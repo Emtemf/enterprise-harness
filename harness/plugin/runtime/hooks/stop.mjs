@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot, validateCompletionReviewers } from '../lib/checks.mjs';
+import { projectRoot, validateCompletionPredicate } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { buildRecoveryGuidance } from '../lib/recovery-guidance.mjs';
@@ -53,10 +53,12 @@ for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
     console.error(`BLOCK: ${changeDir} 的 validation.status=${state.validation?.status}，请先刷新验证证据。`);
     process.exit(2);
   }
-  const reviewerProblems = validateCompletionReviewers(root, entry.name, state);
-  if (reviewerProblems.length) {
-    console.error(`BLOCK: ${changeDir} 的 reviewer verdict 未满足完成态要求。`);
-    for (const problem of reviewerProblems) {
+  const completionProblems = state.state === 'VALIDATED'
+    ? validateCompletionPredicate(root, entry.name, state)
+    : [];
+  if (completionProblems.length) {
+    console.error(`BLOCK: ${changeDir} 的统一完成态条件未满足。`);
+    for (const problem of completionProblems) {
       console.error(`- ${problem}`);
     }
     process.exit(2);

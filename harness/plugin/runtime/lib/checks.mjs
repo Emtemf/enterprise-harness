@@ -4,6 +4,8 @@ import path from 'node:path';
 import { GOVERNANCE_BLOCKLIST, hasCurrentTaskTddExecutionEvidence } from './gates.mjs';
 import { validateAmbiguityGate } from './ambiguity.mjs';
 import { validateRouterScore } from './router-score.mjs';
+import { evidenceModeForChange } from './evidence-policy.mjs';
+import { readAndValidateTddReceipt } from './tdd-receipts.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -379,6 +381,67 @@ export function validateCompletionReviewers(root, changeId, state) {
     if (!review.reviewedAt) errors.push(`${reviewPath}: reviewedAt required`);
   }
   return errors;
+}
+
+function taskIdsFromPlan(root, changeId) {
+  const tasksPath = path.join(root, 'harness', 'changes', changeId, 'tasks.md');
+  if (!fs.existsSync(tasksPath)) return [];
+  return [...fs.readFileSync(tasksPath, 'utf-8').matchAll(/^## Task ([0-9]+):/gmu)]
+    .map((match) => `task-${match[1]}`);
+}
+
+function durableAgentEvents(root, changeId) {
+  const file = path.join(root, 'harness', 'changes', changeId, 'evidence', 'runtime', 'agent-events.jsonl');
+  if (!fs.existsSync(file)) return { events: [], invalid: false };
+  const events = [];
+  let invalid = false;
+  for (const line of fs.readFileSync(file, 'utf-8').split('\n').filter(Boolean)) {
+    try { events.push(JSON.parse(line)); } catch { invalid = true; }
+  }
+  return { events, invalid };
+}
+
+export function validateCompletionPredicate(root, changeId, state) {
+  const problems = [];
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
+  if (state?.state !== 'VALIDATED') problems.push(`state must be VALIDATED, got ${state?.state}`);
+  for (const key of ['api', 'data', 'architecture', 'rule']) {
+    if (state?.impact?.[key] === 'unknown' || !state?.impact?.[key]) problems.push(`impact.${key} must be resolved`);
+  }
+  if (state?.validation?.status !== 'fresh') problems.push('validation.status must be fresh');
+  const digest = computeValidationDigest(root, changeId);
+  if (!digest || state?.validation?.digest !== digest) problems.push('validation.digest is not current');
+  problems.push(...validateCompletionReviewers(root, changeId, state));
+  problems.push(...validateArtifactStates(root).filter((item) => item.includes(changeDir)));
+  problems.push(...validateChangeEvidence(root).filter((item) => item.includes(changeDir)));
+
+  const mode = evidenceModeForChange(root, changeId);
+  if (!mode.ok) {
+    problems.push(`sealed evidence policy unavailable: ${mode.problems.join('; ')}`);
+  } else if (mode.mode === 'strict') {
+    for (const taskId of taskIdsFromPlan(root, changeId)) {
+      const receiptPath = path.join(changeDir, 'evidence', 'tdd', `${taskId}.json`);
+      const receipt = readAndValidateTddReceipt(receiptPath, {
+        root,
+        changeId,
+        taskId,
+        allowBootstrap: taskId === 'task-1',
+        requireComplete: true,
+      });
+      if (!receipt.ok) problems.push(`${taskId} completion receipt invalid: ${receipt.problems.join('; ')}`);
+    }
+    const ledger = durableAgentEvents(root, changeId);
+    if (ledger.invalid) problems.push('agent event ledger contains invalid JSON');
+    if (ledger.events.some((event) => event.kind === 'violation')) problems.push('agent event ledger has unresolved violation');
+    const starts = ledger.events.filter((event) => event.kind === 'start' && String(event.observedAgentType || '').startsWith('enterprise-harness:'));
+    for (const start of starts) {
+      const stopped = ledger.events.some((event) => event.kind === 'stop'
+        && event.agentId === start.agentId
+        && Date.parse(event.issuedAt) >= Date.parse(start.issuedAt));
+      if (!stopped) problems.push(`scoped agent ${start.agentId} has no durable stop event`);
+    }
+  }
+  return [...new Set(problems)];
 }
 
 export function validateReviewVerdicts(root) {

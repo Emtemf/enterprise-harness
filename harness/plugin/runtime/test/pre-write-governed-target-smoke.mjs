@@ -55,7 +55,7 @@ function runPreWrite(tempRoot, filePath) {
   return spawnSync('node', [preWritePath], {
     cwd: tempRoot,
     encoding: 'utf-8',
-    input: JSON.stringify({ tool_input: { file_path: filePath } }),
+    input: JSON.stringify({ tool_name: 'Write', tool_input: { file_path: filePath } }),
   });
 }
 
@@ -92,7 +92,7 @@ check('A: non-reference-service src/main/java with designApproved=false must BLO
   });
 });
 
-check('B: gates satisfied must PASS', () => {
+check('B: forged legacy gates without agent receipts must BLOCK', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },
@@ -101,7 +101,7 @@ check('B: gates satisfied must PASS', () => {
     const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
     writeText(target, '// fixture\n');
     const result = runPreWrite(tempRoot, target);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
   });
 });
 
@@ -159,7 +159,7 @@ check('F: clarify stage — userConfirmedScope=false must BLOCK', () => {
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /BLOCK/);
-    assert.match(result.stderr, /userConfirmedScope/);
+    assert.match(result.stderr, /clarify scope|用户尚未确认执行范围/);
   });
 });
 
@@ -211,7 +211,7 @@ check('I: plan stage — missing tasks.md must BLOCK', () => {
   });
 });
 
-check('J: all stage artifacts present + gates satisfied must PASS', () => {
+check('J: all projections without authoritative agent evidence must BLOCK', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },
@@ -222,7 +222,7 @@ check('J: all stage artifacts present + gates satisfied must PASS', () => {
     const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
     writeText(target, '// fixture\n');
     const result = runPreWrite(tempRoot, target);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
   });
 });
 
@@ -239,11 +239,11 @@ check('K: codegraph evidence missing must BLOCK', () => {
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /BLOCK/);
-    assert.match(result.stderr, /codegraph/);
+    assert.match(result.stderr, /CodeGraph/i);
   });
 });
 
-check('L: codegraph evidence present must PASS (if other gates satisfied)', () => {
+check('L: state codegraph projection cannot replace agent-bound evidence', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       gates: { designApproved: true, redVerified: true, redTask: 'fixture-task', redEvidenceRef: 'evidence/red.md' },
@@ -254,7 +254,7 @@ check('L: codegraph evidence present must PASS (if other gates satisfied)', () =
     const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
     writeText(target, '// fixture\n');
     const result = runPreWrite(tempRoot, target);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
   });
 });
 

@@ -1,89 +1,61 @@
 import { projectRoot, hasChangeTracking } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
-
-// pre-explore hook: 拦截主 orchestrator 直接用 Grep/Read/Glob/Bash 探索代码。
-// codegraph-first 要求代码探索必须委托 code-explore subagent。
-// 如果 active change 存在但 tooling.codegraph 还没标记为已用，直接 BLOCK。
-//
-// 例外：非受治理路径（harness/ 自身、文档、配置）放行，不强制 codegraph。
+import {
+  appendAgentEvent,
+  boundHarnessAgent,
+  normalizeAgentType,
+  readAgentEvents,
+  sha256,
+} from '../lib/agent-evidence.mjs';
 
 const root = projectRoot();
-const trackingChanges = hasChangeTracking(root);
-
-// 没有 change tracking 的项目不强制
-if (!trackingChanges) {
-  process.exit(0);
-}
-
+if (!hasChangeTracking(root)) process.exit(0);
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
-const raw = (Buffer.concat(chunks).toString('utf-8')).trim();
+const raw = Buffer.concat(chunks).toString('utf-8').trim();
 if (!raw) process.exit(0);
-
 let event;
 try { event = JSON.parse(raw); } catch { process.exit(0); }
 
-const toolName = event.tool_name || '';
-const toolInput = event.tool_input || {};
+const toolName = String(event.tool_name || '');
+const input = event.tool_input || {};
+const target = String(input.file_path || input.path || input.pattern || input.command || '');
+const exempt = ['harness/', '.claude/', 'docs/', 'CLAUDE.md', 'AGENTS.md', 'PROGRESS.md', 'README.md', 'package.json', '.claude-plugin/']
+  .some((item) => target.includes(item));
+if (exempt) process.exit(0);
+const bash = String(input.command || '');
+const explorationBash = /(?:\brg\b|\bgrep\b|\bfind\b|\bcodegraph\b|src\/main\/java|src\/test\/java|openapi\/)/iu.test(bash);
+const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\bcodegraph\b/iu.test(bash));
+const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
+if (!codegraphTool && !fallbackTool) process.exit(0);
 
-function isExplorationBash(input) {
-  const command = String(input.command || '').toLowerCase();
-  if (!command) return false;
-  return (
-    command.includes('grep ') || command.includes('rg ') || command.includes('find ') ||
-    command.includes('codegraph ') || command.includes('ls src/') || command.includes('ls src/') ||
-    command.includes('src/main/java') || command.includes('src/test/java') || command.includes('openapi/')
-  );
-}
-
-// 只拦截探索性工具
-if (!['Grep', 'Read', 'Glob', 'Bash'].includes(toolName)) {
-  process.exit(0);
-}
-if (toolName === 'Bash' && !isExplorationBash(toolInput)) {
-  process.exit(0);
-}
-
-// 读取工具参数
-const target = toolInput.file_path || toolInput.path || toolInput.pattern || toolInput.command || '';
-
-// 例外路径：harness/ 自身、.claude/、docs/、*.md、配置文件 → 放行
-const exemptPatterns = [
-  'harness/',
-  '.claude/',
-  'docs/',
-  'CLAUDE.md',
-  'AGENTS.md',
-  'PROGRESS.md',
-  'README.md',
-  'package.json',
-  '.claude-plugin/',
-];
-const isExempt = exemptPatterns.some((p) => String(target).includes(p));
-if (isExempt) {
-  process.exit(0);
-}
-
-// 检查 codegraph 是否已标记为已用（从 active change 读取）
 const active = loadActiveChange(root);
-let codegraphUsed = false;
-if (active.ok) {
-  const codegraphStatus = active.data?.tooling?.codegraph?.status;
-  const codegraphQueries = active.data?.tooling?.codegraph?.queries;
-  codegraphUsed = codegraphStatus && codegraphStatus !== 'unknown'
-    && Array.isArray(codegraphQueries) && codegraphQueries.length > 0;
+if (!active.ok) {
+  console.error('BLOCK: 业务代码探索需要 active change，并且必须在 enterprise-harness:code-explore subagent 中执行。');
+  process.exit(2);
 }
-
-if (codegraphUsed) {
-  // 已委托 subagent 探索过，主 orchestrator 可以读取已探索的内容
+const agentId = String(event.agent_id || '').trim();
+const binding = agentId && boundHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:code-explore');
+if (!binding) {
+  console.error('BLOCK: 主 orchestrator 不得直接探索业务代码；必须使用 code-explore subagent，且当前事件没有绑定到 active enterprise-harness:code-explore。');
+  process.exit(2);
+}
+if (codegraphTool) {
+  appendAgentEvent(root, active.changeId, {
+    kind: 'codegraph-attempt',
+    sessionId: event.session_id,
+    agentId,
+    observedAgentType: normalizeAgentType(binding.start.observedAgentType),
+    commandDigest: sha256(JSON.stringify({ toolName, input })),
+    cwd: event.cwd || root,
+  });
   process.exit(0);
 }
-
-// 未委托 subagent，主 orchestrator 直接探索代码 → BLOCK
-// 注意：即使没有 active change（/harness 刚进来还没建 change），也要拦截，
-// 因为 codegraph-first 约束不依赖 change 是否存在。
-console.error('BLOCK: 主 orchestrator 不得直接用 Grep/Read/Glob 探索代码。代码探索必须委托 code-explore subagent（通过 Agent 工具，subagent_type: code-explore），由 subagent 使用 codegraph_explore/codegraph_search 完成探索。这是 codegraph-first 硬约束。');
-console.error('');
-console.error('如果你是在读取 subagent 已探索的结论文件（在 harness/changes/ 下），这是允许的。');
-console.error('如果是在探索业务代码，请改用 Agent 工具派遣 code-explore subagent。');
-process.exit(2);
+const attempted = readAgentEvents(root, active.changeId).some((item) => (
+  item.kind === 'codegraph-attempt' && item.agentId === agentId
+));
+if (!attempted) {
+  console.error('BLOCK: code-explore fallback 前必须由同一 agent_id 产生 CodeGraph attempt 证据。');
+  process.exit(2);
+}
+process.exit(0);

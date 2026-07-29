@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { validateCompletionPredicate } from './lib/checks.mjs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { computeValidationDigest } from './lib/checks.mjs';
@@ -204,9 +205,11 @@ function cmdArchive(changeId) {
     process.exit(2);
   }
   const data = readJson(statePath);
-  // 2. 只允许归档已 VALIDATED 的 change，避免误归档半成品。
-  if (data.state !== 'VALIDATED') {
-    console.error(`BLOCK: 只有 VALIDATED 才能归档，当前 state=${data.state}。`);
+  // 2. 归档与 verify/Stop 复用同一完成态谓词；任何失败都发生在状态或目录变更前。
+  const completionProblems = validateCompletionPredicate(repoRoot, changeId, data);
+  if (completionProblems.length) {
+    console.error(`BLOCK: ${changeId} 未满足统一完成态条件。`);
+    for (const problem of completionProblems) console.error(`- ${problem}`);
     process.exit(2);
   }
   // 3. 被 runtime smoke 硬编码引用的 change 不能归档，否则会打断 smoke。

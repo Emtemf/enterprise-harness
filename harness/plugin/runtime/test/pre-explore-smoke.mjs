@@ -107,13 +107,13 @@ check('B: Read on business code without codegraph evidence must BLOCK', () => {
   });
 });
 
-check('C: Grep with codegraph evidence present must PASS', () => {
+check('C: forged state codegraph evidence must not unlock main-thread exploration', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       tooling: { codegraph: { status: 'available', queries: ['find-template-module'], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
     }));
     const result = runPreExplore(tempRoot, 'Grep', { pattern: 'Template', path: 'src/main/java/com/example/' });
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
   });
 });
 

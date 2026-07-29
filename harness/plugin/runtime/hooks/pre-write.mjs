@@ -1,145 +1,49 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../lib/checks.mjs';
-import { hasCurrentTaskRedVerification, loadActiveChange, isGovernedTarget, requiredGateForTarget } from '../lib/gates.mjs';
-import { inferWorkflowStage } from '../lib/workflow.mjs';
+import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
+import { validateExecutionPrerequisites } from '../lib/execution-prerequisites.mjs';
+import { extractHookTargets } from '../lib/hook-targets.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
-import { validateAmbiguityGate } from '../lib/ambiguity.mjs';
-import { validateRouterScore } from '../lib/router-score.mjs';
 
 const root = projectRoot();
-
-function blockWithCard(message) {
-  console.error(message);
-  try {
-    const active = loadActiveChange(root);
-    if (active.ok) {
-      const card = renderTECPCCard(root, active.changeId, active.data);
-      console.error(card);
-    }
-  } catch {}
-  process.exit(2);
-}
-
-function blockGoverned(message, activeData) {
-  console.error(message);
-  try {
-    if (activeData) {
-      const card = renderTECPCCard(root, activeData.changeId, activeData);
-      console.error(card);
-    }
-  } catch {}
-  process.exit(2);
-}
-
-const payload = process.stdin.read ? process.stdin.read() : '';
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
-const raw = (payload || Buffer.concat(chunks).toString('utf-8')).trim();
+const raw = Buffer.concat(chunks).toString('utf-8').trim();
 if (!raw) process.exit(0);
 let event;
 try { event = JSON.parse(raw); } catch { process.exit(0); }
-const toolInput = event.tool_input || {};
-const filePath = toolInput.file_path || toolInput.path;
-if (!filePath) process.exit(0);
-const target = path.resolve(filePath);
-const legacyRulesRoot = path.resolve(path.join(root, 'rules'));
-const legacyAgentsRoot = path.resolve(path.join(root, 'agents'));
-const pluginAgentSurface = new Set([
-  path.resolve(path.join(root, 'agents', 'api-consistency-reviewer.md')),
-  path.resolve(path.join(root, 'agents', 'design-reviewer.md')),
-  path.resolve(path.join(root, 'agents', 'plan-critic.md')),
-  path.resolve(path.join(root, 'agents', 'requirement-reviewer.md')),
-  path.resolve(path.join(root, 'agents', 'verification-reviewer.md')),
-  path.resolve(path.join(root, 'agents', 'code-explore.md')),
-  path.resolve(path.join(root, 'agents', 'doc-research.md')),
-]);
-const archiveRoot = path.resolve(path.join(root, 'harness', 'archive'));
-if (target.startsWith(legacyRulesRoot + path.sep) || target === legacyRulesRoot) {
-  blockWithCard(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyRulesRoot} 。当前自动加载层以 .claude/ 为准。`);
+
+function block(message, active = null) {
+  console.error(`BLOCK: ${message}`);
+  try {
+    if (active?.ok) console.error(renderTECPCCard(root, active.changeId, active.data));
+  } catch {}
+  process.exit(2);
 }
-if ((target.startsWith(legacyAgentsRoot + path.sep) || target === legacyAgentsRoot) && !pluginAgentSurface.has(target)) {
-  blockWithCard(`BLOCK: 请不要继续把运行时规范写入历史目录 ${legacyAgentsRoot} 。当前自动加载层以 .claude/ 为准。`);
-}
-if (target.startsWith(archiveRoot + path.sep) || target === archiveRoot) {
-  blockWithCard('BLOCK: harness/archive/ 视为冻结历史，不允许直接编辑。');
-}
-const governedRoot = isGovernedTarget(root, target);
-if (!governedRoot && target.endsWith('.java')) {
-  console.error(`REMINDER: ${target} 看起来是 Java 源码，但未匹配到 src/main/java|src/test/java|openapi 常见约定，机械门禁（designApproved/RED 校验）不会保护此路径。如目录结构非标准，请检查是否符合 Maven/Gradle 约定。`);
-}
-if (governedRoot) {
+
+const targets = extractHookTargets(root, event);
+for (const target of targets) {
+  const legacyRulesRoot = path.resolve(root, 'rules');
+  const legacyAgentsRoot = path.resolve(root, 'agents');
+  const archiveRoot = path.resolve(root, 'harness/archive');
+  if (target === legacyRulesRoot || target.startsWith(`${legacyRulesRoot}${path.sep}`)) {
+    block('rules/ 是历史目录；运行时规则必须写入 .claude/rules/。');
+  }
+  if (target === archiveRoot || target.startsWith(`${archiveRoot}${path.sep}`)) {
+    block('harness/archive/ 是冻结历史，不允许直接编辑。');
+  }
+  if ((target === legacyAgentsRoot || target.startsWith(`${legacyAgentsRoot}${path.sep}`))
+      && !target.endsWith('.md')) block('agents/ 中非插件 agent 资产属于历史目录。');
+  if (!isGovernedTarget(root, target)) {
+    if (target.endsWith('.java')) console.error(`REMINDER: ${target} 未匹配 src/main/java、src/test/java 或 openapi 受治理约定。`);
+    continue;
+  }
   const active = loadActiveChange(root);
-  if (!active.ok) {
-    blockWithCard('BLOCK: 修改受治理路径（src/main/java、src/test/java、openapi 等）前，必须先设置且保持有效的 harness/ACTIVE_CHANGE。');
+  if (!active.ok) block('修改受治理路径前必须设置有效的 harness/ACTIVE_CHANGE。');
+  if (['DRAFT', 'ARCHIVED', 'REJECTED'].includes(active.data.state)) {
+    block(`active change 状态 ${active.data.state} 不允许受治理写入。`, active);
   }
-  const state = active.data;
-  const current = state.state;
-  const data = { ...state, changeId: active.changeId };
-  if (current === 'DRAFT') {
-    blockGoverned('BLOCK: 当前 active change 仍处于 DRAFT。请至少推进到 DISCOVERED 后再修改受治理路径。', data);
-  }
-  if (current === 'ARCHIVED' || current === 'REJECTED') {
-    blockGoverned(`BLOCK: 当前 active change 处于 ${current}，不能继续修改受治理路径。`, data);
-  }
-
-  // ── Stage-level artifact guards ──
-  const changeDir = path.join(root, 'harness', 'changes', active.changeId);
-  const stage = inferWorkflowStage(active.changeId, state);
-
-  if (stage === 'clarify') {
-    const missing = [];
-    if (!fs.existsSync(path.join(changeDir, 'requirements.md'))) missing.push('requirements.md');
-    if (!state.workflow?.userConfirmedScope) missing.push('workflow.userConfirmedScope');
-    if (missing.length > 0) {
-      blockGoverned(`BLOCK: 当前仍处于 clarify 阶段，缺少: ${missing.join(', ')}。必须先完成需求澄清并获得用户确认，再修改受治理路径。`, data);
-    }
-    const ambiguityProblems = validateAmbiguityGate(root, active.changeId, state);
-    if (ambiguityProblems.length > 0) {
-      blockGoverned(`BLOCK: 当前仍处于 clarify 阶段，歧义评分尚未达标。${ambiguityProblems.join(' | ')}`, data);
-    }
-  }
-
-  if (stage === 'route') {
-    if (!state.tier || !['L0', 'L1', 'L2', 'L3'].includes(state.tier)) {
-      blockGoverned('BLOCK: 当前仍处于 route 阶段，tier 未设置。必须先完成路由决策，再修改受治理路径。', data);
-    }
-    const routerProblems = validateRouterScore(root, active.changeId, state);
-    if (routerProblems.length > 0) {
-      blockGoverned(`BLOCK: 当前仍处于 route 阶段，route 评分尚未完整。${routerProblems.join(' | ')}`, data);
-    }
-  }
-
-  if (stage === 'design') {
-    if (!fs.existsSync(path.join(changeDir, 'design.md'))) {
-      blockGoverned('BLOCK: 当前仍处于 design 阶段，design.md 不存在。必须先完成设计文档，再修改受治理路径。', data);
-    }
-  }
-
-  if (stage === 'plan') {
-    if (!fs.existsSync(path.join(changeDir, 'tasks.md'))) {
-      blockGoverned('BLOCK: 当前仍处于 plan 阶段，tasks.md 不存在。必须先完成任务拆分，再修改受治理路径。', data);
-    }
-  }
-
-  // codegraph 使用证据检查：如果要写生产代码，但 state.json 里 tooling.codegraph.status 仍为 unknown，
-  // 说明模型从未声明使用过 codegraph，违反 codegraph-first 约束。程序级拦截，不依赖模型自觉。
-  const codegraphStatus = state.tooling?.codegraph?.status;
-  const codegraphQueries = state.tooling?.codegraph?.queries;
-  const codegraphUsed = codegraphStatus && codegraphStatus !== 'unknown'
-    && Array.isArray(codegraphQueries) && codegraphQueries.length > 0;
-  if (!codegraphUsed) {
-    blockGoverned('BLOCK: 写入受治理路径前必须有 codegraph 使用证据，但 state.json 的 tooling.codegraph 仍为 unknown/空。请先通过 code-explore subagent 探索代码，并在 state.json 记录 tooling.codegraph.status=available 和 queries。', data);
-  }
-
-  // ── Gate-level checks ──
-  const gate = requiredGateForTarget(root, target);
-  const gates = state.gates || {};
-  if (gate?.needsDesignApproved && !gates.designApproved) {
-    blockGoverned('BLOCK: 当前目标路径需要 designApproved=true。请先完成设计并标记 design gate 通过。', data);
-  }
-  if (gate?.needsRedVerified && !hasCurrentTaskRedVerification(state)) {
-    blockGoverned('BLOCK: 当前目标路径需要 currentTask-scoped red verification。请先为当前 currentTask 记录 RED 证据，再修改生产源码或 OpenAPI。', data);
-  }
+  const problems = validateExecutionPrerequisites(root, active.changeId, active.data, target, event);
+  if (problems.length) block(`累计执行前置条件未满足：${problems.join(' | ')}`, active);
 }
 process.exit(0);

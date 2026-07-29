@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from './lib/checks.mjs';
+import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency, validateCompletionPredicate } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
 
@@ -36,6 +36,7 @@ function validateVersionConsistency(repoRoot) {
   return errors;
 }
 
+const activeForCompletion = loadActiveChange(root);
 const problems = [
   ...validateVersionConsistency(root),
   ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
@@ -45,6 +46,10 @@ const problems = [
   ...validateArtifactStates(root),
   ...validateReviewVerdicts(root),
   ...validateChangeEvidence(root),
+  ...(activeForCompletion.ok && activeForCompletion.data.state === 'VALIDATED'
+    ? validateCompletionPredicate(root, activeForCompletion.changeId, activeForCompletion.data)
+      .map((problem) => `completion:${problem}`)
+    : []),
 ];
 
 const templateDir = path.join(root, 'harness', 'templates');
