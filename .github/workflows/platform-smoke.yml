@@ -25,11 +25,17 @@ jobs:
       - name: Install CodeGraph
         run: npm install -g @colbymchenry/codegraph@0.9.9
 
+      - name: Install Claude Code validator
+        run: npm install -g @anthropic-ai/claude-code
+
       - name: Initialize CodeGraph index
         run: codegraph init
 
       - name: Bootstrap runtime
         run: node harness/plugin/runtime/cli.mjs bootstrap
+
+      - name: P0 acceptance
+        run: npm run prepublish-check
 
       - name: Setup local adapter
         run: node harness/plugin/runtime/cli.mjs setup-local-adapter --write
