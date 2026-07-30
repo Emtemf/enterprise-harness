@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.30] - 2026-07-30
+
 ### Changed
 
 - 受治理阶段统一为 `main orchestrator → isolated executor → durable TECPC handoff → independent checker → hook gate`。
