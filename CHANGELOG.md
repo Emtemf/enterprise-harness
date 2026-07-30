@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复真实插件安装态下所有 Bash 写入被永久阻断的问题。当插件 manifest 与目标仓库
+  `.claude/settings.json` 注册了同一套 hook 时，Claude Code 会按注册数逐次运行
+  PostToolUse：第一次消费并删除写入前快照，第二次找不到快照即判为无法归因并 BLOCK。
+  现在消费快照时留下 consumed marker，使「重复投递的已归因写入」与「从未建立快照的
+  未归因写入」可区分；后者仍然阻断。marker 超过 24 小时由下一次 pre-write 清理。
+
 ## [0.2.33] - 2026-07-30
 
 ### Fixed
