@@ -56,7 +56,43 @@ completion/archive 与 release acceptance。
 - archive/release acceptance 属于用户所要求“自动跑且可自检”的完成闭环，不包含发布或 push。
 
 ## Waiver
-无。
+
+### W-1：task-2/3/4 缺少可导入的 TDD receipt（2026-07-30 记录）
+
+事实：
+
+- `evidence/tdd/` 只有 `task-1.json`。全分支 git 历史中该目录仅被写入过一次（`34fdaf9`）。
+- task-2 在 spool 留有四份 `provenance=tdd-run` 的真实执行 receipt
+  （`task-2-review0/1/2/3-invalid.json`），均记录 `RED=1, GREEN=0, REFACTOR=0`，
+  argv 与冻结矩阵一致。但没有任何一份被提升为权威 `task-2.json`，
+  `evidence-import` 因此返回 `BLOCK: invalid TDD spool: receipt is missing`。
+  `task-2-review2.json` 绑定 `head=f3209b6`，早于最终实现 commit `beca73c`，
+  其后的代码改动无执行证据覆盖。
+- task-3、task-4 在 spool、worktree 残留与 git 历史中均无任何执行 receipt。
+  实现 commit（`f1217c0`、`2c0ce2c`）与 review pass 存在，执行证据从未存在。
+- `reviews/code-reviewer-task2/3/4.json` 的 `receiptDigest` 均为 `null`，
+  即当时的 task review 未绑定任何执行 receipt 即给出 pass。
+
+结论：
+
+task-2/3/4 的先红后绿证据链已永久不可恢复。事后重跑只能证明「当前代码通过测试」，
+不能证明「由测试驱动写出」。因此本次收敛**不补录 receipt**：在缺少区分性 provenance 的
+前提下导入，会使补录证据与 task-1 的真实全链路 receipt 无法区分，等同伪造。
+
+已执行的替代验证（仅作当前正确性证明，不具 TDD receipt 效力）：
+
+- `node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify` → PASS
+- `node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify` → PASS
+- `node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify` → PASS
+
+因此 `workflow.tddStatus` 保持 `not-started`，不因替代验证而推进。该字段是当前唯一
+如实反映证据状态的投影。
+
+### 后续项（不在本次收敛范围）
+
+- 为事后验证引入区别于 `tdd-run` 的 provenance（如 `post-hoc-verification`），
+  需改 `tdd-receipts.mjs` 校验与 completion predicate。
+- task review 必须绑定非空 `receiptDigest`，堵住「无执行证据即可 pass」的漏洞。
 
 ## Requirement Review
 首轮 verdict=block；按入口契约、事件语义、deterministic fixture 与资产一致性 findings 修订后，

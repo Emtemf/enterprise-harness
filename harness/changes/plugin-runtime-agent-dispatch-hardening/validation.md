@@ -74,9 +74,9 @@
 - `design-reviewer-worktree-amendment`：历史 worktree amendment verdict PASS。
 - `plan-critic`：历史 plan verdict PASS。
 - `code-reviewer-task1`：PASS。
-- `code-reviewer-task2`：PASS。
-- `code-reviewer-task3`：PASS。
-- `code-reviewer-task4`：PASS。
+- `code-reviewer-task2`：PASS，但 `receiptDigest=null`，未绑定执行 receipt。
+- `code-reviewer-task3`：PASS，但 `receiptDigest=null`，未绑定执行 receipt。
+- `code-reviewer-task4`：PASS，但 `receiptDigest=null`，未绑定执行 receipt。
 - Task 5 的机械合同全部 PASS。
 - 正式独立 checker artifact 尚未生成，因此不把 state 推进为 `REVIEWED/VALIDATED`。
 
@@ -86,9 +86,26 @@
 - route：PASS
 - design：实现与文档一致性 smoke PASS；正式新 digest review 待补
 - plan：Task 5 已记录并可执行
-- tdd：runtime contract tests 与 Maven regression PASS
+- tdd：**证据不完整**。仅 task-1 有可导入的全链路 receipt；task-2/3/4 的 TDD 证据链
+  永久缺失，详见 `change.md` Waiver W-1。runtime contract tests 与 Maven regression PASS，
+  但这些不构成 TDD receipt。`workflow.tddStatus` 如实保持 `not-started`。
 - verify：deterministic validation PASS
 - archive：未执行
+
+## TDD Evidence Gap（2026-07-30 收敛）
+
+| task | 执行 receipt | 处置 |
+|------|-------------|------|
+| task-1 | 完整，已导入 `evidence/tdd/task-1.json` | 无需动作 |
+| task-2 | spool 有真实 RED/GREEN/REFACTOR，但无权威 `task-2.json`，且早于最终 commit | 不导入，记 W-1 |
+| task-3 | 无 | 不补录，记 W-1 |
+| task-4 | 无 | 不补录，记 W-1 |
+
+替代验证（2026-07-30 执行，仅证明当前代码正确，不具 receipt 效力）：
+
+- `task2-plugin-agent-smoke.mjs verify` → PASS
+- `task3-gate-completion-smoke.mjs verify` → PASS
+- `task4-release-acceptance-smoke.mjs verify` → PASS
 
 ## Skipped Checks
 

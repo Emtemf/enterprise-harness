@@ -441,4 +441,9 @@ claude plugin validate .
 - [x] `plan-critic` verdict=pass
 - [x] header 改为 `# Tasks`
 - [x] `workflow.planReady=true`、state=`TASKED`
-- [ ] 四个 task 串行 worktree、commit、import、cherry-pick、集成复验
+- [x] Task 1 完成 worktree、commit、import、cherry-pick、集成复验
+- [ ] Task 2–4 的实现与 review 已完成，但 TDD receipt 缺失且不可恢复（见 `change.md` W-1）；
+      本条无法在当前 change 内补齐
+- [ ] Task 5（TECPC handoff、独立 checker、诊断合同）尚未执行
+
+注：本 plan 最初只规划四个 task；Task 5 为后续追加，`plan-critic` 的 pass 不覆盖它。
