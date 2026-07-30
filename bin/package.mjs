@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { spawnSync } from 'node:child_process';
+import { gzipSync } from 'node:zlib';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
@@ -24,7 +24,6 @@ const ALLOWED_TREES = [
 ];
 const ALLOWED_HARNESS_FILES = ['harness/behavior-checks.json', 'harness/capabilities.json', 'harness/config.yaml'];
 const EXCLUDED_PREFIXES = ['harness/plugin/runtime/test/'];
-const REPRODUCIBLE_TIMESTAMP = new Date(0);
 
 let outDir = path.join(repoRoot, 'dist');
 for (let index = 0; index < args.length; index += 1) {
@@ -66,6 +65,61 @@ function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
+function writeOctal(header, offset, length, value) {
+  const encoded = Math.trunc(value).toString(8).padStart(length - 1, '0');
+  if (encoded.length >= length) throw new Error(`tar numeric field overflow: ${value}`);
+  header.write(encoded, offset, length - 1, 'ascii');
+  header[offset + length - 1] = 0;
+}
+
+function splitTarPath(relative) {
+  const portable = normalized(relative);
+  if (Buffer.byteLength(portable) <= 100) return { name: portable, prefix: '' };
+  for (let index = portable.lastIndexOf('/'); index > 0; index = portable.lastIndexOf('/', index - 1)) {
+    const prefix = portable.slice(0, index);
+    const name = portable.slice(index + 1);
+    if (Buffer.byteLength(name) <= 100 && Buffer.byteLength(prefix) <= 155) {
+      return { name, prefix };
+    }
+  }
+  throw new Error(`release path exceeds ustar limits: ${relative}`);
+}
+
+function tarEntry(relative, content) {
+  const header = Buffer.alloc(512);
+  const { name, prefix } = splitTarPath(relative);
+  header.write(name, 0, 100, 'utf-8');
+  writeOctal(header, 100, 8, 0o644);
+  writeOctal(header, 108, 8, 0);
+  writeOctal(header, 116, 8, 0);
+  writeOctal(header, 124, 12, content.length);
+  writeOctal(header, 136, 12, 0);
+  header.fill(0x20, 148, 156);
+  header[156] = 0x30;
+  header.write('ustar\0', 257, 6, 'ascii');
+  header.write('00', 263, 2, 'ascii');
+  header.write('root', 265, 32, 'ascii');
+  header.write('root', 297, 32, 'ascii');
+  if (prefix) header.write(prefix, 345, 155, 'utf-8');
+  const checksum = header.reduce((sum, byte) => sum + byte, 0);
+  header.write(checksum.toString(8).padStart(6, '0'), 148, 6, 'ascii');
+  header[154] = 0;
+  header[155] = 0x20;
+  const padding = Buffer.alloc((512 - (content.length % 512)) % 512);
+  return Buffer.concat([header, content, padding]);
+}
+
+function deterministicTarGzip(entries) {
+  const tar = Buffer.concat([
+    ...entries.map(({ relative, content }) => tarEntry(relative, content)),
+    Buffer.alloc(1024),
+  ]);
+  const gzip = gzipSync(tar, { level: 9 });
+  gzip.fill(0, 4, 8);
+  gzip[9] = 255;
+  return gzip;
+}
+
 const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8'));
 const version = pkg.version || '0.0.0';
 const tarballName = `enterprise-harness-${version}.tar.gz`;
@@ -84,7 +138,6 @@ try {
     const target = path.join(stageRoot, relative);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
-    fs.utimesSync(target, REPRODUCIBLE_TIMESTAMP, REPRODUCIBLE_TIMESTAMP);
   }
 
   const manifest = {
@@ -101,19 +154,13 @@ try {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf-8',
   );
-  fs.utimesSync(
-    path.join(stageRoot, 'manifest-files.json'),
-    REPRODUCIBLE_TIMESTAMP,
-    REPRODUCIBLE_TIMESTAMP,
-  );
-
   fs.mkdirSync(outDir, { recursive: true });
   const archiveFiles = [...files, 'manifest-files.json'];
-  const tar = spawnSync('tar', ['-czf', tarballPath, '-C', stageRoot, ...archiveFiles], {
-    encoding: 'utf-8',
-    shell: false,
-  });
-  if (tar.status !== 0) throw new Error(`tar failed: ${(tar.stderr || '').trim()}`);
+  const entries = archiveFiles.map((relative) => ({
+    relative,
+    content: fs.readFileSync(path.join(stageRoot, relative)),
+  }));
+  fs.writeFileSync(tarballPath, deterministicTarGzip(entries));
   const tarDigest = sha256(fs.readFileSync(tarballPath));
   fs.writeFileSync(path.join(outDir, 'SHA256SUMS'), `${tarDigest}  ${tarballName}\n`, 'utf-8');
   fs.copyFileSync(path.join(stageRoot, 'manifest-files.json'), path.join(outDir, 'manifest-files.json'));

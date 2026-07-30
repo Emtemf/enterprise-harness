@@ -11,7 +11,7 @@ const walkMarkdown = (relative) => {
   if (!fs.existsSync(absolute)) return [];
   if (fs.statSync(absolute).isFile()) return [relative];
   return fs.readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
-    const child = path.join(relative, entry.name);
+    const child = path.join(relative, entry.name).split(path.sep).join('/');
     if (entry.isDirectory()) return walkMarkdown(child);
     return entry.name.endsWith('.md') ? [child] : [];
   });
@@ -68,7 +68,7 @@ for (const capability of capabilities.capabilities) {
     assert.ok(fs.existsSync(path.join(root, testRef)), `${capability.id} test missing: ${testRef}`);
   }
 }
-for (const spec of walkMarkdown('harness/specs').filter((file) => !file.endsWith('/README.md'))) {
+for (const spec of walkMarkdown('harness/specs').filter((file) => path.basename(file) !== 'README.md')) {
   const text = fs.readFileSync(path.join(root, spec), 'utf-8');
   for (const field of ['status', 'owner', 'lastVerified', 'implementationRefs', 'testRefs']) {
     assert.match(text, new RegExp(`^${field}:`, 'm'), `${spec} metadata missing ${field}`);

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -43,7 +43,7 @@ if (!fs.existsSync(updateLocalPath)) {
 }
 
 // 4. 核心清理逻辑（纯函数）：保留启用版本目录，只挑出旧版本。
-const { selectStaleVersions } = await import(path.join(repoRoot, 'harness', 'plugin', 'runtime', 'lib', 'plugin-cache.mjs'));
+const { selectStaleVersions } = await import(pathToFileURL(path.join(repoRoot, 'harness', 'plugin', 'runtime', 'lib', 'plugin-cache.mjs')));
 const cacheRoot = '/fake/cache/root';
 const keep = path.join(cacheRoot, '0.1.7');
 const stale = selectStaleVersions(['0.1.1', '0.1.2', '0.1.7'], cacheRoot, keep);

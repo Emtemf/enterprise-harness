@@ -53,6 +53,13 @@ process.stdout.write('stub ctx7 ok\\n');
 `,
   { mode: 0o755 }
 );
+if (process.platform === 'win32') {
+  fs.writeFileSync(
+    path.join(stubsDir, 'npx.cmd'),
+    '@echo off\r\nnode \"%~dp0npx\" %*\r\n',
+    'utf-8',
+  );
+}
 
 try {
   const cliStatus = runNode(cliPath, ['status'], outsideCwd);

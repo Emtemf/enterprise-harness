@@ -30,6 +30,7 @@ function runPackageStatus() {
   return spawnSync('npm', ['run', 'status'], {
     cwd: repoRoot,
     encoding: 'utf-8',
+    shell: process.platform === 'win32',
   });
 }
 

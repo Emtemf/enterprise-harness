@@ -33,3 +33,5 @@ npm run test:e2e
 RED 必须来自目标断言在缺少实现时失败；同一测试在实现后通过。源码 token 检查只能用于 manifest/path parity。
 
 平台 matrix 包含 Linux、macOS、Windows 与 Node 20/22。确定性 gate 不执行 Context7 在线探测。
+
+远程 marketplace 安装/更新由 `plugin-install-flow-smoke.mjs` 单独执行，不进入离线 prepublish；本地 marketplace 安装与插件结构校验仍属于确定性 gate。

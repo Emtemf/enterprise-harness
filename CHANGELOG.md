@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop gate 只校验当前 `ACTIVE_CHANGE`，不再让非活动历史 change 阻断当前会话。
+- 发布包改用跨平台确定性 ustar/gzip writer；Windows 路径、动态 import、CLI shim 与测试隔离合同同步修复。
+- 依赖远程 marketplace 的在线安装测试从确定性 prepublish suite 分离。
+
 ## [0.2.31] - 2026-07-30
 
 ### Fixed

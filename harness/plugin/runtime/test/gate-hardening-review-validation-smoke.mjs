@@ -157,10 +157,13 @@ try {
   });
 
   const verifyResult = runVerify(repoCopy);
+  writeText(path.join(repoCopy, 'harness', 'ACTIVE_CHANGE'), 'review-validation-missing-api-review\n');
   const stopReviewerResult = runStop(repoCopy);
   fs.rmSync(path.join(repoCopy, 'harness', 'changes', 'review-validation-missing-api-review'), { recursive: true, force: true });
+  writeText(path.join(repoCopy, 'harness', 'ACTIVE_CHANGE'), 'review-validation-reviewed-stale\n');
   const stopReviewedStaleResult = runStop(repoCopy);
   fs.rmSync(path.join(repoCopy, 'harness', 'changes', 'review-validation-reviewed-stale'), { recursive: true, force: true });
+  writeText(path.join(repoCopy, 'harness', 'ACTIVE_CHANGE'), `${staleFixture.changeId}\n`);
   const stopValidatedStaleResult = runStop(repoCopy);
   let parsed = null;
   try {

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -20,7 +20,7 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 }
 
 const failures = [];
-const { classifyStopStdout, extractEventCommands } = await import(auditLib);
+const { classifyStopStdout, extractEventCommands } = await import(pathToFileURL(auditLib));
 
 // 1. classifyStopStdout：核心契约判定。
 if (!classifyStopStdout('{}').ok) failures.push('"{}" should be valid stop stdout');

@@ -40,39 +40,33 @@ function allow() {
   process.exit(0);
 }
 if (!fs.existsSync(changesDir)) allow();
-let warned = false;
-for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
-  if (!entry.isDirectory()) continue;
-  const changeDir = path.join(changesDir, entry.name);
-  const statePath = path.join(changeDir, 'state.json');
-  const validationPath = path.join(changeDir, 'validation.md');
-  if (!fs.existsSync(statePath)) continue;
-  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-  if (!fs.existsSync(validationPath)) {
-    console.error(`BLOCK: ${changeDir} 缺少 validation.md，不能作为完成状态结束。`);
-    process.exit(2);
-  }
-  if ((state.state === 'VALIDATED' || state.state === 'REVIEWED') && state.validation?.status !== 'fresh') {
-    console.error(`BLOCK: ${changeDir} 的 validation.status=${state.validation?.status}，请先刷新验证证据。`);
-    process.exit(2);
-  }
-  const completionProblems = state.state === 'VALIDATED'
-    ? validateCompletionPredicate(root, entry.name, state)
-    : state.state === 'REVIEWED'
-      ? validateCompletionReviewers(root, entry.name, state)
-      : [];
-  if (completionProblems.length) {
-    console.error(`BLOCK: ${changeDir} 的统一完成态条件未满足。`);
-    for (const problem of completionProblems) {
-      console.error(`- ${problem}`);
-    }
-    process.exit(2);
-  }
-  if (state.state === 'EXECUTING') {
-    warned = true;
-  }
+const active = loadActiveChange(root);
+if (!active.ok) {
+  printHandoffGuidance(root);
+  allow();
 }
-if (warned) {
+const changeDir = path.join(changesDir, active.changeId);
+const validationPath = path.join(changeDir, 'validation.md');
+const state = active.data;
+if (!fs.existsSync(validationPath)) {
+  console.error(`BLOCK: ${changeDir} 缺少 validation.md，不能作为完成状态结束。`);
+  process.exit(2);
+}
+if ((state.state === 'VALIDATED' || state.state === 'REVIEWED') && state.validation?.status !== 'fresh') {
+  console.error(`BLOCK: ${changeDir} 的 validation.status=${state.validation?.status}，请先刷新验证证据。`);
+  process.exit(2);
+}
+const completionProblems = state.state === 'VALIDATED'
+  ? validateCompletionPredicate(root, active.changeId, state)
+  : state.state === 'REVIEWED'
+    ? validateCompletionReviewers(root, active.changeId, state)
+    : [];
+if (completionProblems.length) {
+  console.error(`BLOCK: ${changeDir} 的统一完成态条件未满足。`);
+  for (const problem of completionProblems) console.error(`- ${problem}`);
+  process.exit(2);
+}
+if (state.state === 'EXECUTING') {
   console.error('Stop gate 提醒：仍有 change 处于 EXECUTING，请确认是否要结束在当前中间状态。');
 }
 printHandoffGuidance(root);

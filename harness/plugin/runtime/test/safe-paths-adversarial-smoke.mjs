@@ -44,5 +44,5 @@ try {
   if (!['EPERM', 'EACCES', 'UNKNOWN'].includes(error.code)) throw error;
 }
 
-assert.equal(canonicalPath(governed), fs.realpathSync(governed));
+assert.equal(canonicalPath(governed), canonicalPath(fs.realpathSync(governed)));
 console.log(`PASS safe-paths-adversarial ${mode}`);

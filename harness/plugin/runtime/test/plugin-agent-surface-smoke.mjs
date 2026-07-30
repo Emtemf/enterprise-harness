@@ -23,6 +23,7 @@ function run(command, args, env) {
     cwd: repoRoot,
     encoding: 'utf-8',
     env,
+    shell: process.platform === 'win32',
   });
 }
 

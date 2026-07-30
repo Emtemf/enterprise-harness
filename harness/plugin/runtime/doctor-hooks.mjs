@@ -90,7 +90,10 @@ function extractScriptPath(expandedCommand) {
 }
 
 function listEnabledPlugins() {
-  const res = spawnSync('claude', ['plugin', 'list', '--json'], { encoding: 'utf-8' });
+  const res = spawnSync('claude', ['plugin', 'list', '--json'], {
+    encoding: 'utf-8',
+    shell: process.platform === 'win32',
+  });
   if (res.status !== 0) return [];
   try {
     return JSON.parse(res.stdout || '[]');
