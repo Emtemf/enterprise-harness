@@ -24,6 +24,7 @@ const ALLOWED_TREES = [
 ];
 const ALLOWED_HARNESS_FILES = ['harness/behavior-checks.json', 'harness/capabilities.json', 'harness/config.yaml'];
 const EXCLUDED_PREFIXES = ['harness/plugin/runtime/test/'];
+const REPRODUCIBLE_TIMESTAMP = new Date(0);
 
 let outDir = path.join(repoRoot, 'dist');
 for (let index = 0; index < args.length; index += 1) {
@@ -83,6 +84,7 @@ try {
     const target = path.join(stageRoot, relative);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
+    fs.utimesSync(target, REPRODUCIBLE_TIMESTAMP, REPRODUCIBLE_TIMESTAMP);
   }
 
   const manifest = {
@@ -99,9 +101,15 @@ try {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf-8',
   );
+  fs.utimesSync(
+    path.join(stageRoot, 'manifest-files.json'),
+    REPRODUCIBLE_TIMESTAMP,
+    REPRODUCIBLE_TIMESTAMP,
+  );
 
   fs.mkdirSync(outDir, { recursive: true });
-  const tar = spawnSync('tar', ['-czf', tarballPath, '-C', stageRoot, '.'], {
+  const archiveFiles = [...files, 'manifest-files.json'];
+  const tar = spawnSync('tar', ['-czf', tarballPath, '-C', stageRoot, ...archiveFiles], {
     encoding: 'utf-8',
     shell: false,
   });

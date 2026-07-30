@@ -36,7 +36,17 @@ assert.doesNotMatch(release, /git', \['add', '-A'/u);
 assert.doesNotMatch(release, /main', '--tags'/u);
 
 const prepublish = fs.readFileSync(path.join(root, 'harness/plugin/runtime/prepublish.mjs'), 'utf-8');
-for (const token of ['bin/run-smoke-suite.mjs', "['plugin', 'validate', '.']", 'zero warnings']) assert.ok(prepublish.includes(token), `prepublish missing ${token}`);
+for (const token of [
+  'bin/run-smoke-suite.mjs',
+  "['harness/plugin/runtime/cli.mjs', 'bootstrap']",
+  "['plugin', 'validate', '.']",
+  'zero warnings',
+]) assert.ok(prepublish.includes(token), `prepublish missing ${token}`);
+assert.ok(
+  prepublish.indexOf("['harness/plugin/runtime/cli.mjs', 'bootstrap']")
+    < prepublish.indexOf("['harness/plugin/runtime/cli.mjs', 'sync', '--json']"),
+  'prepublish must bootstrap an isolated checkout before readiness validation',
+);
 for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
   const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
   assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);

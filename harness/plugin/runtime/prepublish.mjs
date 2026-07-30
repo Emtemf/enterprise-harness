@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 const repoRoot = process.cwd();
 const commands = [
   ['bin/run-smoke-suite.mjs'],
+  ['harness/plugin/runtime/cli.mjs', 'bootstrap'],
   ['harness/plugin/runtime/cli.mjs', 'doctor', '--json'],
   ['harness/plugin/runtime/cli.mjs', 'sync', '--json'],
   ['harness/plugin/runtime/cli.mjs', 'verify'],
