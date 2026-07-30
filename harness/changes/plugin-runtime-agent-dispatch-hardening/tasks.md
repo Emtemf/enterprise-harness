@@ -1,6 +1,6 @@
 # Tasks
 
-Status: finalized-plan
+Status: frozen（2026-07-30；终局说明见 `change.md` 顶部）
 
 ## Role Ownership
 
@@ -444,6 +444,8 @@ claude plugin validate .
 - [x] Task 1 完成 worktree、commit、import、cherry-pick、集成复验
 - [ ] Task 2–4 的实现与 review 已完成，但 TDD receipt 缺失且不可恢复（见 `change.md` W-1）；
       本条无法在当前 change 内补齐
-- [ ] Task 5（TECPC handoff、独立 checker、诊断合同）尚未执行
+- [x] Task 5 范围内的三项治理修复已实现并随 0.2.33 发布；但未走 `tdd-run` 冻结 argv
+      与隔离 executor，无 receipt（见 `change.md` W-2）
 
 注：本 plan 最初只规划四个 task；Task 5 为后续追加，`plan-critic` 的 pass 不覆盖它。
+Task 5 未进入 Allowed argv matrix，缺少冻结 wrapper argv——这是 W-2 的直接成因。

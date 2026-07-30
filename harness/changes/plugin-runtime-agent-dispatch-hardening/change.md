@@ -1,5 +1,40 @@
 # Change
 
+## 终局状态：FROZEN（2026-07-30）
+
+本 change 已停止推进，不再接收新工作。它**无法归档**，原因有二，且都不应通过修改状态绕过：
+
+1. completion predicate 有 10 个 blocker（3×`EH-COMPLETION-REVIEW-114`、4×`EH-COMPLETION-TDD-109`、
+   state/freshness/digest 各一）。`lifecycle archive` 复用同一谓词，任何绕过都是伪造证据。
+2. `harness/plugin/runtime/test/` 中 3 个 smoke 硬编码引用本 changeId
+   （`cumulative-write-gate`、`tdd-receipt-contract`、`tdd-run-baseline`），归档会破坏 smoke。
+
+不使用 `REJECTED`：本 change 的产出已真实发布（0.2.30–0.2.33），拒绝态会错误描述历史。
+`state` 保持 `EXECUTING`，`tddStatus` 保持 `not-started`——这两个字段如实反映证据现状。
+
+### 已交付并发布
+
+- Task 1：authoritative evidence foundation（完整 TDD receipt，唯一证据齐全的 task）
+- Task 2–4：canonical entry / scoped dispatch、cumulative gates、release acceptance
+  （实现与 review 存在，TDD receipt 缺失，见 W-1）
+- Task 5 范围内的三项治理修复，于 0.2.33 发布：失败派发不再阻断 TaskCompleted、
+  `EH-COMPLETION-REVIEW-114`、route 与 clarify 分离
+
+### 不可恢复的缺口
+
+- task-2/3/4 的先红后绿证据链永久缺失（W-1）
+- task-5 无 TDD receipt：其内容由主 orchestrator 在 main 上直接以 TDD 方式完成，
+  未走 `tdd-run` 冻结 argv、未派隔离 executor。这与 W-1 是同类问题，
+  但成因不同——见下方 W-2。
+
+### 后续工作去向
+
+均以独立小 change 承接，不在本 change 内继续：
+
+- 事后验证 provenance（区别于 `tdd-run`）
+- 解除 3 个 smoke 对本 changeId 的硬编码依赖，之后本 change 方可归档
+- L0/L1 轻量通道（见 W-2）
+
 ## 原始需求
 按 Claude Code 官方要求规范修复当前插件的 subagent 驱动与阶段门禁，并提交代码。
 
@@ -88,7 +123,32 @@ task-2/3/4 的先红后绿证据链已永久不可恢复。事后重跑只能证
 因此 `workflow.tddStatus` 保持 `not-started`，不因替代验证而推进。该字段是当前唯一
 如实反映证据状态的投影。
 
-### 后续项（不在本次收敛范围）
+### W-2：Task 5 内容未经隔离 executor 执行（2026-07-30 记录）
+
+事实：
+
+- 0.2.33 的三项治理修复（`task-completed.mjs` 失败派发恢复、`EH-COMPLETION-REVIEW-114`、
+  route/clarify 分离）落在 Task 5 的声明范围内。
+- 它们由主 orchestrator 直接在 main 上完成：先写失败测试、确认 RED、最小实现、确认 GREEN、
+  全量套件 0 失败、`claude plugin validate` 与 `prepublish-check` 通过。
+- 但**未**通过 `tdd-run` 执行冻结 argv，**未**派 `tdd-executor` 隔离 executor，
+  因此没有产生可导入的 receipt，也没有独立 implementation reviewer verdict。
+
+成因（与 W-1 不同）：
+
+Task 5 的 Verification Commands 段只列了 smoke 命令，未像 Task 1–4 那样冻结
+`tdd-run` wrapper argv，也未进入 Allowed argv matrix。plan 层缺口使得执行时没有可用的冻结命令。
+
+更根本的问题：本仓库的受治理路径 gate 针对 `src/main/java/**` 等业务路径，而修改
+`harness/plugin/runtime/**` 自身时，SOP 要求的隔离 executor 在实践中会与「正在被修改的
+runtime 就是执行 SOP 的 runtime」冲突。这属于产品缺口，不是执行纪律问题——见后续
+L0/L1 轻量通道工作项。
+
+结论：
+
+不事后补录 receipt（理由同 W-1：重跑只能证明当前代码通过测试，不能证明测试驱动）。
+本条如实记录执行方式，供后续审计。
+
 
 - 为事后验证引入区别于 `tdd-run` 的 provenance（如 `post-hoc-verification`），
   需改 `tdd-receipts.mjs` 校验与 completion predicate。

@@ -100,12 +100,27 @@
 | task-2 | spool 有真实 RED/GREEN/REFACTOR，但无权威 `task-2.json`，且早于最终 commit | 不导入，记 W-1 |
 | task-3 | 无 | 不补录，记 W-1 |
 | task-4 | 无 | 不补录，记 W-1 |
+| task-5 | 无；内容由主 orchestrator 直接 TDD 完成并已发布 | 不补录，记 W-2 |
 
 替代验证（2026-07-30 执行，仅证明当前代码正确，不具 receipt 效力）：
 
 - `task2-plugin-agent-smoke.mjs verify` → PASS
 - `task3-gate-completion-smoke.mjs verify` → PASS
 - `task4-release-acceptance-smoke.mjs verify` → PASS
+- 全量 `harness/plugin/runtime/test/*.mjs verify` → `TOTAL_FAILURES=0`（0.2.33 发布前后各一次）
+- `claude plugin validate .` → PASS；`npm run prepublish-check` → PASS
+
+## 终局 completion predicate（2026-07-30）
+
+本 change 冻结时仍有 10 个 blocker，均如实保留，不通过改状态绕过：
+
+- `EH-COMPLETION-STATE-101`：state 为 `EXECUTING`
+- `EH-COMPLETION-FRESHNESS-103` / `EH-COMPLETION-DIGEST-104`：validation 非 fresh
+- `EH-COMPLETION-REVIEW-114` ×3：task-2/3/4 review 未绑定执行 receipt
+- `EH-COMPLETION-TDD-109` ×4：task-2/3/4/5 无有效 receipt
+
+其中 `EH-COMPLETION-REVIEW-114` 是本 change 自身在 0.2.33 引入的新 gate，
+它独立复现了 W-1 手工记录的三条缺口——这是该 gate 生效的正面证据，不是回归。
 
 ## Skipped Checks
 

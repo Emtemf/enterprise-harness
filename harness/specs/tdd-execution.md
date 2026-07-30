@@ -72,6 +72,24 @@ node harness/plugin/runtime/cli.mjs evidence-import <change-id> <task-id>
 
 importer 校验 spool、agent 生命周期、worktree/git common dir、implementation patch 与 integration HEAD，再原子写入 `harness/changes/<change-id>/evidence/tdd/<task-id>.json`。verify、Stop 与 archive 只消费 durable imported evidence，不相信 worker 文本中的 `command-executed`、`summary` 或 `evidence-path`。
 
+## 已知缺口：runtime 自举
+
+修改 `harness/plugin/runtime/**` 自身时，本合同存在未解决的自举边界：执行 SOP 的 runtime
+就是被修改的 runtime，隔离 executor 无法在不影响自身执行环境的前提下改写它。
+
+历史处置各不相同，均已记录而非掩盖：
+
+- `plugin-runtime-agent-dispatch-hardening` Task 1 使用受限 `runner-bootstrap` provenance，
+  条件严格且只允许首个 task。
+- 同 change Task 5 由主 orchestrator 直接在 main 上以 TDD 方式完成，无 receipt，
+  记为该 change 的 W-2。
+
+当前尚无正式轻量通道。在提供之前，涉及 runtime 自身的改动必须：
+
+- 仍然先写失败测试并确认真实 RED
+- 在 change 资产中显式记录执行方式与缺失的 receipt
+- 不得把这类执行伪装成隔离 executor 产出
+
 ## 禁止事项
 
 - 不运行真实命令就声称 RED/GREEN/REFACTOR
