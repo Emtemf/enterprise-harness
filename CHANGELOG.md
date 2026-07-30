@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.35] - 2026-07-30
+
 ### Fixed
 
 - 解除 3 个 smoke 对 `plugin-runtime-agent-dispatch-hardening` 的硬编码依赖。
