@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyExecutionReadinessDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyExecutionReadinessDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
 import { compareAndSwapJson } from './lib/state-store.mjs';
@@ -177,6 +177,10 @@ function applyDecision(changeId, decision, reason = null) {
 
   if (pending.kind === 'scope-confirmation') {
     applyScopeConfirmationDecision(data, decision);
+  }
+
+  if (pending.kind === 'route-confirmation') {
+    applyRouteConfirmationDecision(data, decision);
   }
 
   if (pending.kind === 'execution-readiness') {

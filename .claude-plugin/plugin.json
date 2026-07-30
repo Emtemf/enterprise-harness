@@ -17,6 +17,7 @@
   "skills": [
     "./.claude/skills/harness/",
     "./.claude/skills/harness-intake/",
+    "./.claude/skills/harness-route/",
     "./.claude/skills/harness-design/",
     "./.claude/skills/harness-plan/",
     "./.claude/skills/harness-tdd/",
@@ -28,8 +29,10 @@
     "./.claude/agents/code-explore.md",
     "./.claude/agents/doc-research.md",
     "./.claude/agents/clarify-synthesizer.md",
+    "./.claude/agents/route-decider.md",
     "./.claude/agents/design-executor.md",
     "./.claude/agents/plan-executor.md",
+    "./.claude/agents/clarify-reviewer.md",
     "./.claude/agents/requirement-reviewer.md",
     "./.claude/agents/design-reviewer.md",
     "./.claude/agents/plan-critic.md",

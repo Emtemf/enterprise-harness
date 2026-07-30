@@ -4,9 +4,11 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
   - .claude/skills/harness/SKILL.md
+  - .claude/skills/harness-route/SKILL.md
   - harness/plugin/runtime/lib/workflow.mjs
 testRefs:
   - harness/plugin/runtime/test/workflow-runner-smoke.mjs
+  - harness/plugin/runtime/test/route-stage-separation-smoke.mjs
 ---
 
 # Workflow Contract
@@ -21,9 +23,23 @@ clarify → route → design → plan → tdd → verify → archive
 
 先派只读探索取得事实，再针对最低评分维度一次只问一个问题。七维评分和用户 scope confirmation 是 route 前置。
 
+checker 是 `clarify-reviewer`，只审澄清质量（维度齐全、评分有依据、无未解决高风险歧义、scope 已确认），不做分流判断。
+
 ## route
 
-确定 tier、API/data/architecture/rule 影响和所需 reviewer。
+route 是独立 gate，不是 clarify 的尾巴。clarify 回答“需求是什么”，route 回答“归谁、多大、需要谁复核”。
+
+确定 tier、owning service/module/业务域、API/data/architecture/rule 影响、non-goals 和所需 reviewer。
+
+- 前置：`clarifyReady` 与 `userConfirmedScope` 均为 true。
+- executor：`route-decider`（与 clarify 的 `clarify-synthesizer` 分离）。
+- checker：`requirement-reviewer` 独立复核分流决策，必须非 block。
+- 四个 impact 维度不得留 `unknown`。
+- 用户确认路由后由 `workflow decide <change-id> confirm-route` 写入 `routeReady=true`；
+  design 在 `routeReady` 为 false 时不可进入。
+- 恢复入口是 `/harness-route`，不复用 clarify 入口。
+
+route 事实不足时返回 clarify，不用推测补齐。
 
 ## design
 

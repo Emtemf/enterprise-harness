@@ -26,6 +26,8 @@ orchestrator
 
 executor 与 checker 使用不同 runId 和 subagent 上下文。checker 不读取 executor 聊天，只读取 digest 绑定的 result artifact。
 
+executor/checker 对不得跨 stage 复用：同一对同时服务两个阶段时，后一阶段的 checker 会复核自己在前一阶段提供过的输入，失去独立视角。clarify 用 `clarify-synthesizer` / `clarify-reviewer`，route 用 `route-decider` / `requirement-reviewer`。
+
 Handoff input 必含：
 
 - handoffVersion、runId、changeId

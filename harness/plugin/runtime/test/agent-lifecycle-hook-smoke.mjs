@@ -148,7 +148,7 @@ assert.equal(hook('pre-agent.mjs', {
   tool_use_id: 'tool-check',
   session_id: 'session-1',
   tool_input: {
-    subagent_type: 'enterprise-harness:requirement-reviewer',
+    subagent_type: 'enterprise-harness:clarify-reviewer',
     prompt: `HANDOFF_INPUT=${checkMarker}\nCheck the executor result.`,
   },
 }).status, 0);
@@ -156,13 +156,13 @@ assert.equal(hook('subagent-start.mjs', {
   hook_event_name: 'SubagentStart',
   session_id: 'session-1',
   agent_id: 'agent-check',
-  agent_type: 'enterprise-harness:requirement-reviewer',
+  agent_type: 'enterprise-harness:clarify-reviewer',
 }).status, 0);
 assert.equal(hook('subagent-stop.mjs', {
   hook_event_name: 'SubagentStop',
   session_id: 'session-1',
   agent_id: 'agent-check',
-  agent_type: 'enterprise-harness:requirement-reviewer',
+  agent_type: 'enterprise-harness:clarify-reviewer',
   last_assistant_message: resultBlock(check.envelope, { verdict: 'pass' }),
   stop_hook_active: false,
 }).status, 0);
@@ -171,7 +171,7 @@ assert.equal(hook('post-agent.mjs', {
   tool_use_id: 'tool-check',
   session_id: 'session-1',
   tool_input: {
-    subagent_type: 'enterprise-harness:requirement-reviewer',
+    subagent_type: 'enterprise-harness:clarify-reviewer',
     prompt: `HANDOFF_INPUT=${checkMarker}`,
   },
   tool_response: { agentId: 'agent-check' },

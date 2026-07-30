@@ -7,7 +7,10 @@
     },
     {
       "id": "isolated-executor-checker-handoff",
-      "testRefs": ["harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs"]
+      "testRefs": [
+        "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
+        "harness/plugin/runtime/test/failed-dispatch-recovery-smoke.mjs"
+      ]
     },
     {
       "id": "seven-dimension-ambiguity-gate",
@@ -31,7 +34,10 @@
     },
     {
       "id": "structured-completion-layers",
-      "testRefs": ["harness/plugin/runtime/test/completion-layers-smoke.mjs"]
+      "testRefs": [
+        "harness/plugin/runtime/test/completion-layers-smoke.mjs",
+        "harness/plugin/runtime/test/task-review-binding-smoke.mjs"
+      ]
     },
     {
       "id": "conservative-openapi-gate",

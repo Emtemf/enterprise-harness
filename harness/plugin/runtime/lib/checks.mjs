@@ -540,11 +540,68 @@ export function validateApiContract(root, state) {
     : [completionResult('EH-COMPLETION-API-113', 'pass', 'API contract checks passed')];
 }
 
+export function validateTaskReviewBindings(root, changeId) {
+  const results = [];
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
+  for (const taskId of taskIdsFromPlan(root, changeId)) {
+    const reviewPath = path.join(
+      changeDir,
+      'reviews',
+      `code-reviewer-${taskId.replace('task-', 'task')}.json`,
+    );
+    if (!fs.existsSync(reviewPath)) continue;
+    let review;
+    try {
+      review = JSON.parse(fs.readFileSync(reviewPath, 'utf-8'));
+    } catch {
+      results.push(completionResult(
+        'EH-COMPLETION-REVIEW-114',
+        'block',
+        `${taskId} review is invalid JSON`,
+        reviewPath,
+        'regenerate the task review verdict',
+      ));
+      continue;
+    }
+    if (String(review?.verdict || '').toLowerCase() === 'block') continue;
+    const receiptPath = path.join(changeDir, 'evidence', 'tdd', `${taskId}.json`);
+    let importedDigest = null;
+    if (fs.existsSync(receiptPath)) {
+      try {
+        importedDigest = JSON.parse(fs.readFileSync(receiptPath, 'utf-8'))?.import?.sourceSpoolDigest ?? null;
+      } catch {
+        importedDigest = null;
+      }
+    }
+    if (!review?.receiptDigest) {
+      results.push(completionResult(
+        'EH-COMPLETION-REVIEW-114',
+        'block',
+        `${taskId} review passed without binding an execution receipt digest`,
+        reviewPath,
+        'rereview the task against its imported TDD receipt and persist receiptDigest',
+      ));
+      continue;
+    }
+    if (review.receiptDigest !== importedDigest) {
+      results.push(completionResult(
+        'EH-COMPLETION-REVIEW-114',
+        'block',
+        `${taskId} review receiptDigest does not match the imported receipt`,
+        reviewPath,
+        'rereview the task against the currently imported TDD receipt',
+      ));
+    }
+  }
+  return results;
+}
+
 export function validateFinalCompletion(root, changeId, state) {
   return [
     ...validateState(root, changeId, state),
     ...validateArtifacts(root, changeId, state),
     ...validateReviews(root, changeId, state),
+    ...validateTaskReviewBindings(root, changeId),
     ...validateTddEvidence(root, changeId),
     ...validateAgentLedger(root, changeId),
     ...validateApiContract(root, state),

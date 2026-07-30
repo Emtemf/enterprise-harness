@@ -46,6 +46,7 @@
     "stage": "clarify",
     "clarifyReady": false,
     "userConfirmedScope": false,
+    "routeReady": false,
     "planReady": false,
     "tddStatus": "not-started",
     "nextEntry": "/harness"

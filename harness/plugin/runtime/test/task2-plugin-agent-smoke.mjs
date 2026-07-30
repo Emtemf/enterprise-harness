@@ -24,6 +24,7 @@ const components = [
   'worktree-create-current-head-smoke.mjs',
   'subagent-contract-smoke.mjs',
   'agent-lifecycle-hook-smoke.mjs',
+  'route-stage-separation-smoke.mjs',
 ];
 let failed = false;
 for (const component of components) {

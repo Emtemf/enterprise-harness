@@ -84,6 +84,7 @@ receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 dige
 | `EH-COMPLETION-ARTIFACT-105` | artifact 状态不合法 | 修复报告的 artifact |
 | `EH-COMPLETION-EVIDENCE-106` | change evidence 不完整 | 补齐 durable evidence |
 | `EH-COMPLETION-REVIEW-107` | reviewer verdict 缺失或阻断 | 派独立 checker |
+| `EH-COMPLETION-REVIEW-114` | task review 未绑定执行 receipt digest | 对照已导入 receipt 重新 review 并写入 receiptDigest |
 | `EH-COMPLETION-POLICY-108` | evidence policy 不可用 | 在目标仓库初始化 policy |
 | `EH-COMPLETION-TDD-109` | TDD receipt 无效 | 用 tdd-run 重跑冻结命令 |
 | `EH-COMPLETION-LEDGER-110` | agent ledger 损坏 | 隔离损坏事件并重跑 |

@@ -15,7 +15,7 @@
       "stage": "clarify",
       "executor": "enterprise-harness:code-explore",
       "executorSkill": "harness-stage-executor",
-      "checker": "enterprise-harness:requirement-reviewer",
+      "checker": "enterprise-harness:clarify-reviewer",
       "checkerSkill": "harness-stage-checker",
       "artifact": "evidence/*-exploration.md"
     },
@@ -23,7 +23,7 @@
       "stage": "clarify",
       "executor": "enterprise-harness:doc-research",
       "executorSkill": "harness-stage-executor",
-      "checker": "enterprise-harness:requirement-reviewer",
+      "checker": "enterprise-harness:clarify-reviewer",
       "checkerSkill": "harness-stage-checker",
       "artifact": "evidence/tooling.md"
     },
@@ -31,13 +31,13 @@
       "stage": "clarify",
       "executor": "enterprise-harness:clarify-synthesizer",
       "executorSkill": "harness-stage-executor",
-      "checker": "enterprise-harness:requirement-reviewer",
+      "checker": "enterprise-harness:clarify-reviewer",
       "checkerSkill": "harness-stage-checker",
       "artifact": "requirements.md"
     },
     "route.decide": {
       "stage": "route",
-      "executor": "enterprise-harness:clarify-synthesizer",
+      "executor": "enterprise-harness:route-decider",
       "executorSkill": "harness-stage-executor",
       "checker": "enterprise-harness:requirement-reviewer",
       "checkerSkill": "harness-stage-checker",

@@ -13,6 +13,9 @@ export function inferWorkflowStage(changeId, data) {
   if (explicitStage === 'design' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope)) {
     return 'clarify';
   }
+  if (explicitStage === 'design' && !data.workflow?.routeReady) {
+    return 'route';
+  }
   if (explicitStage === 'plan' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope || !data.gates?.designApproved)) {
     return 'design';
   }
@@ -39,7 +42,7 @@ export function recommendNextEntry(stage, data = null) {
   if (data?.workflow?.nextEntry && data?.workflow?.stage === stage) return data.workflow.nextEntry;
   switch (stage) {
     case 'clarify': return '/harness-intake';
-    case 'route': return '/harness-intake';
+    case 'route': return '/harness-route';
     case 'design': return '/harness-design';
     case 'plan': return '/harness-plan';
     case 'tdd': return '/harness-tdd';
@@ -93,6 +96,14 @@ export function inferPendingDecision(changeId, data, stage, currentGap, shouldSu
       message: '需要用户确认执行范围后才能继续 route。',
       options: ['confirm-scope', 'revise-scope'],
       evidence: [`harness/changes/${changeId}/requirements.md`],
+    };
+  }
+  if (stage === 'route' && !data.workflow?.routeReady) {
+    return {
+      kind: 'route-confirmation',
+      message: currentGap,
+      options: ['confirm-route', 'revise-route', 'stop'],
+      evidence: [`harness/changes/${changeId}/change.md`],
     };
   }
   if (stage === 'design' && data.approvals?.design?.status && data.approvals?.design?.status !== 'block' && !data.gates?.designApproved) {
@@ -155,13 +166,27 @@ export function applyScopeConfirmationDecision(data, decision) {
     data.workflow.userConfirmedScope = true;
     if (data.workflow.clarifyReady) {
       data.workflow.stage = 'route';
-      data.workflow.nextEntry = '/harness-intake';
+      data.workflow.nextEntry = '/harness-route';
     }
   }
   if (decision === 'revise-scope') {
     data.workflow.userConfirmedScope = false;
     data.workflow.stage = 'clarify';
     data.workflow.nextEntry = '/harness-intake';
+  }
+  return data;
+}
+
+export function applyRouteConfirmationDecision(data, decision) {
+  if (decision === 'confirm-route') {
+    data.workflow.routeReady = true;
+    data.workflow.stage = 'design';
+    data.workflow.nextEntry = '/harness-design';
+  }
+  if (decision === 'revise-route') {
+    data.workflow.routeReady = false;
+    data.workflow.stage = 'route';
+    data.workflow.nextEntry = '/harness-route';
   }
   return data;
 }
@@ -207,9 +232,7 @@ export function inferCurrentGap(root, changeId, data, workflowStage) {
     case 'route':
       if (!data.workflow?.clarifyReady) return 'clarify 结果尚未可消费。';
       if (!data.workflow?.userConfirmedScope) return '执行范围尚未被用户确认。';
-      if (!['DISCOVERED', 'CHANGE_APPROVED', 'SPECIFIED', 'DESIGN_APPROVED', 'TASKED', 'EXECUTING', 'REVIEWED', 'VALIDATED', 'ARCHIVED'].includes(data.state)) {
-        return 'final route / state 推进尚未完成。';
-      }
+      if (!data.workflow?.routeReady) return 'route 尚未确认 tier 与影响面。';
       return 'route 已形成，下一步应进入 design。';
     case 'design':
       if (!hasDesign) return '缺少 design.md。';

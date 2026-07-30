@@ -9,9 +9,15 @@ const changeId = activeChangeId(root);
 if (!changeId) process.exit(0);
 
 const events = readAgentEvents(root, changeId);
+const supersededRunIds = new Set();
+for (const event of events) {
+  if (event.kind === 'failure' && event.runId) supersededRunIds.add(event.runId);
+  if (event.kind === 'dispatch' && event.runId) supersededRunIds.delete(event.runId);
+}
 const latestExecution = [...events].reverse().find((event) => (
   event.kind === 'dispatch'
   && event.handoffRole === 'execute'
+  && !supersededRunIds.has(event.runId)
 ));
 if (!latestExecution) process.exit(0);
 

@@ -72,6 +72,7 @@ function setupTempRepo() {
       stage: 'design',
       clarifyReady: true,
       userConfirmedScope: true,
+      routeReady: true,
       planReady: false,
       tddStatus: 'not-started',
       nextEntry: '/harness-design'
