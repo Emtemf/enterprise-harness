@@ -10,6 +10,7 @@ import {
   consumeHookSnapshot,
   diffGovernedSnapshots,
 } from '../lib/hook-snapshots.mjs';
+import { canonicalPath, pathIsWithin } from '../lib/safe-paths.mjs';
 
 const root = projectRoot();
 const managed = isHarnessManaged(root);
@@ -56,8 +57,8 @@ if (raw) {
         ? diffGovernedSnapshots(before, captureGovernedSnapshot(root))
           .map((relative) => path.resolve(root, relative))
         : [];
-      const declared = new Set(targets.map((target) => path.resolve(target)));
-      for (const target of changedGoverned.filter((item) => !declared.has(item))) {
+      const declared = new Set(targets.map((target) => canonicalPath(target)));
+      for (const target of changedGoverned.filter((item) => !declared.has(canonicalPath(item)))) {
         attributionBlocked = true;
         if (active.ok) {
           appendAgentEvent(root, active.changeId, {
@@ -74,10 +75,11 @@ if (raw) {
       }
       targets.push(...changedGoverned);
     }
-    incrementalTargets = [...new Set(targets.map((target) => path.resolve(target)))];
+    incrementalTargets = [...new Set(targets.map((target) => canonicalPath(target)))];
     for (const target of targets) {
-      const activeChangeDir = active.ok ? path.resolve(path.join(root, 'harness', 'changes', active.changeId)) : null;
-      const touchesActiveChange = activeChangeDir && (target === activeChangeDir || target.startsWith(activeChangeDir + path.sep));
+      const canonicalTarget = canonicalPath(target);
+      const activeChangeDir = active.ok ? canonicalPath(path.join(root, 'harness', 'changes', active.changeId)) : null;
+      const touchesActiveChange = activeChangeDir && pathIsWithin(canonicalTarget, activeChangeDir);
       if ((isGovernedTarget(root, target) || touchesActiveChange) && active.ok && active.data.validation) {
         active.data.validation.status = 'stale';
         active.data.validation.digest = null;

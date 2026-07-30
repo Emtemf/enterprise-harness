@@ -40,19 +40,19 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'runtime-launcher-contrac
 const outsideCwd = path.join(tempRoot, 'outside-cwd');
 const stubsDir = path.join(tempRoot, 'stubs');
 const argvCapturePath = path.join(tempRoot, 'ctx7-argv.json');
+const npxCliStubPath = path.join(stubsDir, 'npx-cli.js');
 fs.mkdirSync(outsideCwd, { recursive: true });
 fs.mkdirSync(stubsDir, { recursive: true });
 
 const stubPath = path.join(stubsDir, 'npx');
-fs.writeFileSync(
-  stubPath,
+const stubSource =
   `#!/usr/bin/env node
 const fs = require('node:fs');
 fs.writeFileSync(${JSON.stringify(argvCapturePath)}, JSON.stringify(process.argv.slice(2), null, 2) + '\\n', 'utf-8');
 process.stdout.write('stub ctx7 ok\\n');
-`,
-  { mode: 0o755 }
-);
+`;
+fs.writeFileSync(stubPath, stubSource, { mode: 0o755 });
+fs.writeFileSync(npxCliStubPath, stubSource, { mode: 0o755 });
 if (process.platform === 'win32') {
   fs.writeFileSync(
     path.join(stubsDir, 'npx.cmd'),
@@ -67,7 +67,10 @@ try {
     context7Path,
     ['docs', '/react/react', 'use effect examples'],
     outsideCwd,
-    { PATH: `${stubsDir}${path.delimiter}${process.env.PATH}` }
+    {
+      PATH: `${stubsDir}${path.delimiter}${process.env.PATH}`,
+      npm_execpath: path.join(stubsDir, 'npm-cli.js'),
+    }
   );
 
   const argvObserved = fs.existsSync(argvCapturePath)

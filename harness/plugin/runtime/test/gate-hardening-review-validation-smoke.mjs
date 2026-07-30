@@ -192,8 +192,14 @@ try {
   if (!ok) {
     fail(`Expected blocking review verdict or stale validation to fail verification/stop contract:
 ${JSON.stringify({
+  checks: {
+    hasReviewerFailure,
+    hasVerifyStaleFailure,
+    hasStopReviewerBlock,
+    hasStopReviewedStaleBlock,
+    hasStopValidatedStaleBlock,
+  },
   verifyStatus: verifyResult.status,
-  verifyStdout: verifyResult.stdout,
   verifyStderr: verifyResult.stderr,
   parsed: Boolean(parsed),
   problems,
@@ -208,13 +214,6 @@ ${JSON.stringify({
   stopValidatedStale: {
     status: stopValidatedStaleResult.status,
     output: stopValidatedStaleOutput,
-  },
-  checks: {
-    hasReviewerFailure,
-    hasVerifyStaleFailure,
-    hasStopReviewerBlock,
-    hasStopReviewedStaleBlock,
-    hasStopValidatedStaleBlock,
   },
 }, null, 2)}`);
   }

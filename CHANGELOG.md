@@ -10,6 +10,7 @@
 - 发布包改用跨平台确定性 ustar/gzip writer；Windows 路径、动态 import、CLI shim 与测试隔离合同同步修复。
 - Context7 launcher 在 Windows 保持含空格参数的 argv 边界；Claude Code 插件验收使用独立用户目录与独立目标项目，不再污染或复用维护仓库的 local scope。
 - validation digest 的跨平台验收与生产口径统一排除易变 revision/event 字段，gate 失败会输出可直接定位的结构化诊断。
+- post-write 使用 canonical path 判断 active change，在 macOS `/var` 与 `/private/var` 等价路径下仍会可靠地使验证证据过期。
 - 依赖远程 marketplace 的在线安装测试从确定性 prepublish suite 分离。
 
 ## [0.2.31] - 2026-07-30
