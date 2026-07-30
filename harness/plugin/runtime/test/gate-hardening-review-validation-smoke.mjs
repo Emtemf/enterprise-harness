@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
-const cliPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'cli.mjs');
+const verifyPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'verify.mjs');
 const stopPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'hooks', 'stop.mjs');
 const fixturesRoot = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'test', 'fixtures');
 const mode = process.argv[2];
@@ -70,14 +70,14 @@ function createChange(repoCopy, changeId, state, options = {}) {
 }
 
 function runVerify(cwd) {
-  return spawnSync('node', [cliPath, 'verify', '--json'], {
+  return spawnSync(process.execPath, [verifyPath, '--json'], {
     cwd,
     encoding: 'utf-8',
   });
 }
 
 function runStop(cwd) {
-  return spawnSync('node', [stopPath], {
+  return spawnSync(process.execPath, [stopPath], {
     cwd,
     encoding: 'utf-8',
   });
