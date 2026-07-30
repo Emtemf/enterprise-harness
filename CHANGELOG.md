@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.33] - 2026-07-30
+
 ### Fixed
 
 - 失败的 Agent 派发不再永久阻断 `TaskCompleted`。此前 ledger 已记录 failure，但 gate 只判断「有 dispatch 无 checker verdict」，导致任何一次派发失败都无法恢复。
