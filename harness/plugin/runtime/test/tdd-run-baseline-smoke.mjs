@@ -15,7 +15,7 @@ import { tddReceiptSpoolPath } from '../lib/tdd-receipts.mjs';
 const mode = process.argv[2] || 'verify';
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = path.resolve(testDir, '../../../..');
-const changeId = 'plugin-runtime-agent-dispatch-hardening';
+const changeId = 'test-dynamic-change';
 const taskId = 'task-2';
 const agentId = 'agent-1';
 let root = null;

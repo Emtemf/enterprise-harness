@@ -110,7 +110,7 @@ fs.writeFileSync(path.join(root, 'harness', 'command-policy.json'), `${JSON.stri
     executables: ['node'],
   },
 })}\n`);
-const hardeningChange = path.join(root, 'harness', 'changes', 'plugin-runtime-agent-dispatch-hardening');
+const hardeningChange = path.join(root, 'harness', 'changes', 'test-dynamic-change');
 fs.mkdirSync(hardeningChange, { recursive: true });
 fs.writeFileSync(path.join(hardeningChange, 'task-commands.json'), `${JSON.stringify({
   schemaVersion: 1,
@@ -125,7 +125,7 @@ fs.writeFileSync(path.join(hardeningChange, 'task-commands.json'), `${JSON.strin
 const base = {
   receiptVersion: 1,
   provenance: 'runner-bootstrap',
-  changeId: 'plugin-runtime-agent-dispatch-hardening',
+  changeId: 'test-dynamic-change',
   taskId: 'task-1',
   agent: { id: 'agent-1', type: 'enterprise-harness:tdd-executor' },
   bootstrap: {

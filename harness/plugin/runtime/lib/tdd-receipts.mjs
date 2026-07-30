@@ -176,8 +176,8 @@ export function validateTddReceipt(receipt, options = {}) {
 
   if (receipt.provenance === 'runner-bootstrap') {
     if (!allowBootstrap) problems.push('bootstrap provenance is not allowed');
-    if (receipt.changeId !== 'plugin-runtime-agent-dispatch-hardening' || receipt.taskId !== 'task-1') {
-      problems.push('bootstrap provenance is restricted to hardening task-1');
+    if (receipt.taskId !== 'task-1') {
+      problems.push('bootstrap provenance is restricted to the first task of any change');
     }
     const scriptPath = receipt.bootstrap?.scriptPath;
     const absolute = isSafeRelativePath(scriptPath) ? path.join(root, scriptPath) : null;

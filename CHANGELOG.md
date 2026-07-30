@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 解除 3 个 smoke 对 `plugin-runtime-agent-dispatch-hardening` 的硬编码依赖。
+  `cumulative-write-gate` 改为生成动态 fixture 而非复制真实 change 资产；
+  `tdd-receipt-contract` 和 `tdd-run-baseline` 用动态 changeId 替代硬编码名称。
+- `validateTddReceipt` 的 bootstrap provenance 限制从特定 changeId 泛化为
+  任何 change 的 task-1。
+
 ## [0.2.34] - 2026-07-30
 
 ### Fixed

@@ -10,7 +10,6 @@ import { createEvidencePolicy } from '../lib/evidence-policy.mjs';
 import { tddReceiptSpoolPath } from '../lib/tdd-receipts.mjs';
 
 const runtimeRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const sourceRoot = path.resolve(runtimeRoot, '..', '..', '..');
 const hook = path.join(runtimeRoot, 'hooks', 'pre-write.mjs');
 const changeId = 'gate-probe';
 
@@ -32,18 +31,53 @@ function fixture() {
   run(root, 'git', ['config', 'user.name', 'fixture']);
   fs.mkdirSync(path.join(root, 'src/main/java/demo'), { recursive: true });
   fs.writeFileSync(path.join(root, 'src/main/java/demo/App.java'), 'class App {}\n');
-  const sourceChange = path.join(sourceRoot, 'harness/changes/plugin-runtime-agent-dispatch-hardening');
   const changeDir = path.join(root, 'harness/changes', changeId);
   fs.mkdirSync(path.join(changeDir, 'reviews'), { recursive: true });
-  for (const name of ['requirements.md', 'change.md', 'design.md', 'tasks.md']) fs.copyFileSync(path.join(sourceChange, name), path.join(changeDir, name));
-  for (const name of ['design-reviewer.json', 'plan-critic.json']) fs.copyFileSync(path.join(sourceChange, 'reviews', name), path.join(changeDir, 'reviews', name));
-  const state = JSON.parse(fs.readFileSync(path.join(sourceChange, 'state.json'), 'utf-8'));
-  state.changeId = changeId;
-  state.currentTask = 'task-3';
-  state.workflow.stage = 'tdd';
-  state.workflow.planReady = true;
-  state.gates.designApproved = true;
-  state.tooling.codegraph = { status: 'available', queries: ['forged-state-projection'] };
+  fs.writeFileSync(path.join(changeDir, 'requirements.md'), `# Requirements
+## 歧义评分
+| 维度 | 分数(0-5) | 说明 |
+|------|----------|------|
+| T 目标 clarity | 5 | fixture |
+| Scope clarity | 5 | fixture |
+| User/actor clarity | 5 | fixture |
+| Data/SQL clarity | 5 | fixture |
+| Interface/API clarity | 5 | fixture |
+| Acceptance criteria clarity | 5 | fixture |
+| Constraint/risk clarity | 5 | fixture |
+| **Overall** | 5.0 | fixture |
+`);
+  fs.writeFileSync(path.join(changeDir, 'change.md'), `# Change
+### Router 评分
+| 维度 | 分数(0-5) | 说明 |
+|------|----------|------|
+| Scope complexity | 2 | fixture |
+| Impact breadth | 2 | fixture |
+| Unknowns / ambiguity | 2 | fixture |
+| API / data risk | 2 | fixture |
+| Test / rollback complexity | 2 | fixture |
+| **Overall** | 2.0 | fixture |
+`);
+  fs.writeFileSync(path.join(changeDir, 'design.md'), `# Design\nplaceholder\n`);
+  fs.writeFileSync(path.join(changeDir, 'tasks.md'), `# Tasks\nStatus: finalized-plan\n\n## Task 3: test task\n`);
+  for (const [name, rid] of [['design-reviewer.json', 'design-reviewer'], ['plan-critic.json', 'plan-critic']]) {
+    fs.writeFileSync(path.join(changeDir, 'reviews', name), `${JSON.stringify({ changeId, reviewerId: rid, verdict: 'pass', findings: [], evidence: [], reviewedAt: '2026-07-30' })}\n`);
+  }
+  const state = {
+    schemaVersion: 3,
+    changeId,
+    tier: 'L3',
+    state: 'EXECUTING',
+    owner: 'smoke',
+    impact: { api: 'no', data: 'no', architecture: 'yes', rule: 'yes' },
+    tooling: { codegraph: { status: 'available', queries: ['forged-state-projection'], fallbackReason: null }, documentation: { status: 'unknown', libraries: [] } },
+    decisions: [],
+    blockers: [],
+    approvals: { design: { status: 'pass', reviewerId: 'design-reviewer', reviewedAt: '2026-07-30', digest: 'abc' }, plan: { status: 'pass', reviewerId: 'plan-critic', reviewedAt: '2026-07-30', digest: 'def' } },
+    gates: { designApproved: true, redVerified: false, redTask: null, redEvidenceRef: null },
+    currentTask: 'task-3',
+    workflow: { stage: 'tdd', clarifyReady: true, userConfirmedScope: true, routeReady: true, planReady: true, tddStatus: 'not-started', nextEntry: '/harness-tdd' },
+    validation: { status: 'missing', digest: null, validatedAt: null },
+  };
   writeJson(path.join(changeDir, 'state.json'), state);
   fs.writeFileSync(path.join(root, 'harness/ACTIVE_CHANGE'), `${changeId}\n`);
   writeJson(path.join(root, 'harness/command-policy.json'), {
