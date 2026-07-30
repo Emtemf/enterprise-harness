@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.32] - 2026-07-30
+
 ### Fixed
 
 - Stop gate 只校验当前 `ACTIVE_CHANGE`，不再让非活动历史 change 阻断当前会话。
