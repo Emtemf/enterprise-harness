@@ -47,6 +47,19 @@ assert.ok(
     < prepublish.indexOf("['harness/plugin/runtime/cli.mjs', 'sync', '--json']"),
   'prepublish must bootstrap an isolated checkout before readiness validation',
 );
+const runtimeTestDir = path.join(root, 'harness/plugin/runtime/test');
+const forbiddenDeveloperRoots = ['/home' + '/', 'C:' + '\\Users\\'];
+for (const entry of fs.readdirSync(runtimeTestDir, { withFileTypes: true })) {
+  if (!entry.isFile() || !entry.name.endsWith('.mjs')) continue;
+  const source = fs.readFileSync(path.join(runtimeTestDir, entry.name), 'utf-8');
+  for (const forbidden of forbiddenDeveloperRoots) {
+    assert.equal(
+      source.includes(forbidden),
+      false,
+      `${entry.name} must resolve repository paths dynamically instead of embedding ${forbidden}`,
+    );
+  }
+}
 for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
   const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
   assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);

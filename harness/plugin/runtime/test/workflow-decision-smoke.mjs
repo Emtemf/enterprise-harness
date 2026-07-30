@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
-const repoRoot = '/home/wula/IdeaProjects/sdd';
+const repoRoot = path.resolve(import.meta.dirname, '../../../..');
 const workflowPath = path.join(repoRoot, 'harness', 'plugin', 'runtime', 'workflow.mjs');
 const mode = process.argv[2];
 
