@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 失败的 Agent 派发不再永久阻断 `TaskCompleted`。此前 ledger 已记录 failure，但 gate 只判断「有 dispatch 无 checker verdict」，导致任何一次派发失败都无法恢复。
+- task review 不再能在未绑定执行 receipt 的情况下通过。新增 `EH-COMPLETION-REVIEW-114`，要求 review 的 `receiptDigest` 与已导入 receipt 一致。
+
+### Changed
+
+- route 成为独立阶段 gate：新增 `workflow.routeReady`、独立入口 `/harness-route` 与 `route-decider` executor；`routeReady` 为 false 时不能进入 design。
+- clarify 改用专审澄清质量的 `clarify-reviewer`；`requirement-reviewer` 归位为 route 的分流 checker，executor/checker 不再跨阶段复用。
+
 ## [0.2.32] - 2026-07-30
 
 ### Fixed
