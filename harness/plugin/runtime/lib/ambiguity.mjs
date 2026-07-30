@@ -108,6 +108,11 @@ export function validateAmbiguityGate(root, changeId, state = null) {
   if (state && ((state.schemaVersion ?? 0) < 3 || !state.workflow)) {
     return errors;
   }
+  // start-change 产出的 DRAFT scaffold 只有空模板，clarify 尚未开始。
+  // 若在此阶段就要求评分，verify/prepublish 会阻断在工具自身的产物上。
+  if (state?.state === 'DRAFT') {
+    return errors;
+  }
   const file = requirementsPath(root, changeId);
   if (!fs.existsSync(file)) {
     errors.push(`${changeId}: 缺少 requirements.md，无法消费歧义评分`);

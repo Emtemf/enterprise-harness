@@ -12,6 +12,11 @@
   现在消费快照时留下 consumed marker，使「重复投递的已归因写入」与「从未建立快照的
   未归因写入」可区分；后者仍然阻断。marker 超过 24 小时由下一次 pre-write 清理。
 
+- 修复 `start-change` 产出的 DRAFT scaffold 无法通过 `verify`/`prepublish-check` 的
+  问题。`validateAmbiguityGate`、`validateRouterScore` 与 `validateChangeEvidence`
+  的 validation.md 检查现在跳过 state=DRAFT 的 change，不再在澄清尚未开始时就要求
+  评分和验证证据。
+
 ## [0.2.33] - 2026-07-30
 
 ### Fixed

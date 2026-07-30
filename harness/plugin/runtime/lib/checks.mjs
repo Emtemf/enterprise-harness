@@ -688,7 +688,8 @@ export function validateChangeEvidence(root) {
     }
 
     const validationPath = path.join(changeDir, 'validation.md');
-    if (fs.existsSync(validationPath)) {
+    // DRAFT scaffold 的 validation.md 是空模板；验证证据要到 verify 阶段才存在。
+    if (state?.state !== 'DRAFT' && fs.existsSync(validationPath)) {
       const text = fs.readFileSync(validationPath, 'utf-8');
       if (!text.includes('## Commands Executed')) {
         errors.push(`${changeDir}: validation.md missing Commands Executed section`);

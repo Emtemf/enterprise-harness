@@ -52,6 +52,10 @@ export function validateRouterScore(root, changeId, state = null) {
   if (state && ((state.schemaVersion ?? 0) < 3 || !state.workflow)) {
     return errors;
   }
+  // DRAFT scaffold 的 route 评分表尚未填写；route 阶段之前不应阻断。
+  if (state?.state === 'DRAFT') {
+    return errors;
+  }
   const file = changePath(root, changeId);
   if (!fs.existsSync(file)) {
     errors.push(`${changeId}: 缺少 change.md，无法消费 route 评分`);
