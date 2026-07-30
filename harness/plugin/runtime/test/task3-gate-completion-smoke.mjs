@@ -14,6 +14,7 @@ const tests = [
   'openapi-controller-consistency-smoke.mjs',
   'gates-governed-target-unit-smoke.mjs',
   'cumulative-write-gate-smoke.mjs',
+  'duplicate-hook-registration-smoke.mjs',
   'task-review-binding-smoke.mjs',
   'archive-completion-smoke.mjs',
 ];

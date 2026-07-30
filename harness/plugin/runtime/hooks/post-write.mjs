@@ -9,6 +9,7 @@ import {
   captureGovernedSnapshot,
   consumeHookSnapshot,
   diffGovernedSnapshots,
+  hookSnapshotAlreadyConsumed,
 } from '../lib/hook-snapshots.mjs';
 import { canonicalPath, pathIsWithin } from '../lib/safe-paths.mjs';
 
@@ -39,7 +40,7 @@ if (raw) {
     const active = loadActiveChange(root);
     if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
       const before = consumeHookSnapshot(root, event.tool_use_id);
-      if (!before) {
+      if (!before && !hookSnapshotAlreadyConsumed(root, event.tool_use_id)) {
         attributionBlocked = true;
         if (active.ok) {
           appendAgentEvent(root, active.changeId, {
