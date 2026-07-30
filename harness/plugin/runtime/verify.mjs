@@ -106,29 +106,32 @@ const result = {
   runtimeReadinessChecks,
 };
 
-if (process.argv.includes('--json')) {
-  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
-  process.exit(result.ok ? 0 : 1);
-}
-
-console.log('Enterprise Harness Verify');
-if (contractChecks.ok) {
-  console.log('OK contract checks passed.');
+const jsonMode = process.argv.includes('--json');
+if (jsonMode) {
+  const payload = JSON.stringify(result, null, 2) + '\n';
+  await new Promise((resolve) => {
+    if (process.stdout.write(payload)) resolve();
+    else process.stdout.once('drain', resolve);
+  });
 } else {
-  for (const p of contractChecks.problems) console.log(`FAIL ${p}`);
-  for (const t of contractChecks.todoHits) console.log(`FAIL template-placeholder ${t}`);
-}
-console.log('runtime readiness requires separate commands: doctor --json, sync --json, upstream-check --json');
-
-// 闭环五检进度卡
-try {
-  const active = loadActiveChange(root);
-  if (active.ok) {
-    const card = renderTECPCCard(root, active.changeId, active.data);
-    console.log(card);
+  console.log('Enterprise Harness Verify');
+  if (contractChecks.ok) {
+    console.log('OK contract checks passed.');
+  } else {
+    for (const p of contractChecks.problems) console.log(`FAIL ${p}`);
+    for (const t of contractChecks.todoHits) console.log(`FAIL template-placeholder ${t}`);
   }
-} catch (error) {
-  console.log(`WARN EH-VERIFY-TECP-015 ${error.message}`);
-}
+  console.log('runtime readiness requires separate commands: doctor --json, sync --json, upstream-check --json');
 
-process.exit(result.ok ? 0 : 1);
+  // 闭环五检进度卡
+  try {
+    const active = loadActiveChange(root);
+    if (active.ok) {
+      const card = renderTECPCCard(root, active.changeId, active.data);
+      console.log(card);
+    }
+  } catch (error) {
+    console.log(`WARN EH-VERIFY-TECP-015 ${error.message}`);
+  }
+}
+process.exitCode = result.ok ? 0 : 1;
