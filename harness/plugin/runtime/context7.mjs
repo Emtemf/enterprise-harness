@@ -8,11 +8,26 @@ if (!action || action === '--help' || action === '-h') {
 }
 
 const childArgs = ['-y', 'ctx7', action, ...args];
-const child = spawnSync('npx', childArgs, {
+const quoteWindowsArgument = (value) => {
+  const text = String(value);
+  if (!/[\s"&|<>^()]/u.test(text)) return text;
+  return `"${text.replaceAll('"', '""')}"`;
+};
+const child = process.platform === 'win32'
+  ? spawnSync(
+    process.env.ComSpec || 'cmd.exe',
+    ['/d', '/s', '/c', `npx ${childArgs.map(quoteWindowsArgument).join(' ')}`],
+    {
+      cwd: process.cwd(),
+      encoding: 'utf-8',
+      shell: false,
+    },
+  )
+  : spawnSync('npx', childArgs, {
   cwd: process.cwd(),
   encoding: 'utf-8',
-  shell: process.platform === 'win32',
-});
+  shell: false,
+  });
 process.stdout.write(String(child.stdout ?? ''));
 process.stderr.write(String(child.stderr ?? child.error?.message ?? ''));
 process.exit(child.status ?? 1);

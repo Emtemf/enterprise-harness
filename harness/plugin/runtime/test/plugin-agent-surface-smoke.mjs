@@ -18,9 +18,9 @@ function pass(message) {
   process.exit(0);
 }
 
-function run(command, args, env) {
+function run(command, args, env, cwd) {
   return spawnSync(command, args, {
-    cwd: repoRoot,
+    cwd,
     encoding: 'utf-8',
     env,
     shell: process.platform === 'win32',
@@ -45,12 +45,24 @@ const requiredAgents = [
 ];
 
 const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-agent-surface-home-'));
-const env = { ...process.env, HOME: isolatedHome };
+const projectDir = path.join(isolatedHome, 'project');
+const appData = path.join(isolatedHome, 'AppData', 'Roaming');
+const localAppData = path.join(isolatedHome, 'AppData', 'Local');
+fs.mkdirSync(projectDir, { recursive: true });
+fs.mkdirSync(appData, { recursive: true });
+fs.mkdirSync(localAppData, { recursive: true });
+const env = {
+  ...process.env,
+  HOME: isolatedHome,
+  USERPROFILE: isolatedHome,
+  APPDATA: appData,
+  LOCALAPPDATA: localAppData,
+};
 
 try {
-  const marketplaceAdd = run('claude', ['plugin', 'marketplace', 'add', repoRoot], env);
-  const install = run('claude', ['plugin', 'install', 'enterprise-harness@enterprise-harness', '--scope', 'local'], env);
-  const pluginList = run('claude', ['plugin', 'list', '--json'], env);
+  const marketplaceAdd = run('claude', ['plugin', 'marketplace', 'add', repoRoot], env, projectDir);
+  const install = run('claude', ['plugin', 'install', 'enterprise-harness@enterprise-harness', '--scope', 'local'], env, projectDir);
+  const pluginList = run('claude', ['plugin', 'list', '--json'], env, projectDir);
   const pluginListJson = JSON.parse(pluginList.stdout || '[]');
   const installed = pluginListJson.find((p) => p.id === 'enterprise-harness@enterprise-harness');
   const installPath = installed?.installPath;

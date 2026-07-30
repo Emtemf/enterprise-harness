@@ -68,8 +68,9 @@ function computePortableDigest(repoCopy, changeId) {
   const hash = crypto.createHash('sha256');
   const statePath = path.join(changeDir, 'state.json');
   const state = readJson(statePath);
+  const { revision: _revision, lastEventId: _lastEventId, ...durableState } = state;
   const normalizedState = {
-    ...state,
+    ...durableState,
     validation: {
       status: null,
       digest: null,
@@ -219,7 +220,27 @@ try {
   }
 
   if (!ok) {
-    fail('Expected validated lifecycle to reject caller-supplied or stale validation digest semantics');
+    fail(`Expected validated lifecycle to reject caller-supplied or stale validation digest semantics:
+${JSON.stringify({
+  validatedStatus: validated.status,
+  validatedStdout: validated.stdout,
+  validatedStderr: validated.stderr,
+  validation: afterValidated.validation,
+  portableDigest,
+  verifyStatus: verifyAfterMutation.status,
+  problems,
+  postWriteStatus: postWrite.status,
+  postWriteStdout: postWrite.stdout,
+  postWriteStderr: postWrite.stderr,
+  afterPostWriteValidation: afterPostWrite.validation,
+  checks: {
+    hasComputedDigest,
+    hasPortableDigest,
+    hasVerifyDigestFailure,
+    hasPostWriteStale,
+    hasNormalizedWindowsPath,
+  },
+}, null, 2)}`);
   }
 
   pass(mode === 'green' ? 'Green gate-hardening validation-digest smoke passed.' : 'Gate-hardening validation-digest verify smoke passed.');

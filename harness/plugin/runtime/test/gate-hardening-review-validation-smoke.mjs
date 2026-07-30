@@ -190,7 +190,33 @@ try {
   }
 
   if (!ok) {
-    fail('Expected blocking review verdict or stale validation to fail verification/stop contract');
+    fail(`Expected blocking review verdict or stale validation to fail verification/stop contract:
+${JSON.stringify({
+  verifyStatus: verifyResult.status,
+  verifyStdout: verifyResult.stdout,
+  verifyStderr: verifyResult.stderr,
+  parsed: Boolean(parsed),
+  problems,
+  stopReviewer: {
+    status: stopReviewerResult.status,
+    output: stopReviewerOutput,
+  },
+  stopReviewedStale: {
+    status: stopReviewedStaleResult.status,
+    output: stopReviewedStaleOutput,
+  },
+  stopValidatedStale: {
+    status: stopValidatedStaleResult.status,
+    output: stopValidatedStaleOutput,
+  },
+  checks: {
+    hasReviewerFailure,
+    hasVerifyStaleFailure,
+    hasStopReviewerBlock,
+    hasStopReviewedStaleBlock,
+    hasStopValidatedStaleBlock,
+  },
+}, null, 2)}`);
   }
 
   pass(mode === 'green' ? 'Green gate-hardening review-validation smoke passed.' : 'Gate-hardening review-validation verify smoke passed.');

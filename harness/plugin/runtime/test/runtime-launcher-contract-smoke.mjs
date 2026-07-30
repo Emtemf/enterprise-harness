@@ -67,7 +67,7 @@ try {
     context7Path,
     ['docs', '/react/react', 'use effect examples'],
     outsideCwd,
-    { PATH: `${stubsDir}:${process.env.PATH}` }
+    { PATH: `${stubsDir}${path.delimiter}${process.env.PATH}` }
   );
 
   const argvObserved = fs.existsSync(argvCapturePath)
