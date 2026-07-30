@@ -1,84 +1,47 @@
 ---
 name: harness-plan
-description: >
-  Clarify-first staged workflow 的 plan 阶段入口。用于在 design 已完成后，把设计拆成可机械执行的 `tasks.md`，明确 touched files、test-first order、RED/GREEN 证据点与 acceptance checks。适用于“进入 plan 阶段”“补 tasks”“让 plan-critic 可评审”等场景。
+description: Enterprise Harness plan 阶段。把 approved design 拆成可独立执行、真实测试和精确命令冻结的 task，并要求独立 plan checker。
 ---
 
 # Harness Plan
 
-plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
+由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
 
-## 目标
+## 输入
 
-本阶段默认以 **Fullstack Developer 视角**主导，并让 **Quality Engineer** 参与确认可测性与验收边界。
+- approved design 和 digest
+- impact/reviewer requirements
+- project command policy
 
-职责不是重复 design，而是：
-- 把架构设计变成开发详细设计
-- 明确 touched files / 实现顺序 / 失败测试入口
-- 让下游执行者无需猜测即可进入 TDD
+## 动作
 
+1. 为每个 task 生成 task brief。
+2. 派 `plan-executor` 生成：
+   - taskId 和目标
+   - touched files
+   - test-first order
+   - RED/GREEN evidence point
+   - dependencies
+   - acceptance
+3. 在 `task-commands.json` 冻结每个 task 的 red/green/refactor 或 verify exact argv。
+4. Maven argv 必须符合 `harness/command-policy.json`。
+5. 派 `plan-critic` 独立检查可执行性和遗漏。
 
-## 前置条件
+## 产出
 
-进入本 skill 前，至少应满足：
+- `tasks.md`
+- task briefs
+- `task-commands.json`
+- plan checker verdict
 
-- `design.md` 已存在
-- design 已达到可评审状态
-- 当前 change 的执行范围已锁定
+## 阻断
 
-## 必须产出
+- design 未 pass
+- task 无具体测试或 RED 点
+- 命令只写自然语言
+- task 太大或顺序不明确
+- checker block
 
-- `harness/changes/<change-id>/tasks.md`
+## 下一阶段
 
-## 当前动作顺序（orchestrator shell 显示要求）
-
-进入 plan 后，主 orchestrator 必须显式说明这一轮的调度顺序。
-
-最低要求：
-- 先消费 `design.md` 与当前 change 上下文
-- 先按 `harness/specs/brief-contract.md` 生成 task brief，再将设计拆为 touched files / test-first order / RED/GREEN evidence point
-- 创建 `plan.produce` execute handoff，派预加载 executor Skill 的 `enterprise-harness:plan-executor` 产出 `tasks.md`
-- 以 executor runId 创建 check handoff，再派预加载 checker Skill 的 `enterprise-harness:plan-critic`
-- 返回后只消费 reviewer 的 block / advisory / pass 结论与下一步动作
-
-## plan 必查项
-
-1. touched files
-2. implementation order
-3. test-first order
-4. RED evidence point
-5. GREEN evidence point
-6. refactor boundary
-7. commands
-8. acceptance checks
-
-## 行为要求
-
-- 先读取目标项目 `CLAUDE.md` / 根事实，确认真实构建、约束与验收基线
-- 先明确文件和顺序，再谈实现细节
-- 不允许”实现时再想”的占位表述
-- 必须显式给出 RED/GREEN 验证点
-- 任务粒度要让 `enterprise-harness:plan-critic` 可以无猜测评审
-
-## 【硬约束】必须创建 tasks.md
-
-**【强制】进入 plan 阶段后，必须在进入 tdd 前创建 `harness/changes/<change-id>/tasks.md`。**
-
-具体要求：
-1. 由 `plan-executor` 创建 `harness/changes/<change-id>/tasks.md`，基于 `harness/templates/tasks.md` 模板
-2. 每个 task 必须包含：touched files / implementation order / test-first order / RED evidence point / GREEN evidence point / acceptance checks
-3. 创建完成后，更新 `state.json` 的 `workflow.planReady = true`
-4. **不得跳过 tasks.md 创建直接进入 tdd 阶段**
-
-**违反此约束 = 阻断**：如果模型试图在 tasks.md 不存在时进入 tdd，pre-write hook 会拦截受治理路径的写入。
-
-## Gate Discipline
-
-- plan/任务阶段同样不允许通过“继续”绕过 reviewer/gate
-- 若 `enterprise-harness:plan-critic` 未通过或 plan 仍为 draft，不得直接进入 TDD
-
-## 退出条件
-
-- `tasks.md` 从 draft 收敛为正式 plan
-- touched files / RED point / acceptance checks 已明确
-- 能进入 plan review / TASKED 准备态
+plan pass 后进入 tdd。

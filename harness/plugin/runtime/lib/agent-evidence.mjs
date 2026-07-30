@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { appendJsonLineOnce, withFileLock } from './state-store.mjs';
 
 export const PLUGIN_AGENT_TYPES = new Set([
   'code-explore',
@@ -72,6 +73,7 @@ export function appendAgentEvent(root, changeId, event) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const record = {
     receiptVersion: 1,
+    eventId: event.eventId || `agent_${crypto.randomUUID()}`,
     changeId,
     sessionId: event.sessionId || null,
     toolUseId: event.toolUseId || null,
@@ -89,7 +91,7 @@ export function appendAgentEvent(root, changeId, event) {
     issuedAt: event.issuedAt || new Date().toISOString(),
     ...event,
   };
-  fs.appendFileSync(target, `${JSON.stringify(record)}\n`, 'utf-8');
+  withFileLock(target, () => appendJsonLineOnce(target, record));
   return record;
 }
 

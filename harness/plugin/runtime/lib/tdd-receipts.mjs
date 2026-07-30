@@ -2,13 +2,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { gitCommonDir } from './agent-evidence.mjs';
+import {
+  assertSafeId,
+  isSafeId,
+  isSafeRelativePath,
+  resolveChild,
+} from './safe-paths.mjs';
 
-const COMMANDS = {
-  'task-1': 'task1-authoritative-evidence-smoke.mjs',
-  'task-2': 'task2-plugin-agent-smoke.mjs',
-  'task-3': 'task3-gate-completion-smoke.mjs',
-  'task-4': 'task4-release-acceptance-smoke.mjs',
-};
 const PHASES = ['RED', 'GREEN', 'REFACTOR'];
 const HEX_64 = /^[0-9a-f]{64}$/;
 const GIT_ID = /^[0-9a-f]{40,64}$/;
@@ -40,21 +40,95 @@ const TASK1_BOOTSTRAP_PATHS = new Set([
   'hooks/hooks.json',
 ]);
 
-export function allowedTaskCommand(taskId, rawPhase) {
+const PHASE_FIELDS = {
+  RED: 'redCommand',
+  GREEN: 'greenCommand',
+  REFACTOR: 'refactorCommand',
+};
+
+function readJson(file, label) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (error) {
+    throw new Error(`${label} is unreadable: ${error.message}`);
+  }
+}
+
+export function commandPolicyPath(root) {
+  return path.join(root, 'harness', 'command-policy.json');
+}
+
+export function taskCommandsPath(root, changeId) {
+  const changeRoot = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
+  return path.join(changeRoot, 'task-commands.json');
+}
+
+export function validateProjectCommand(policy, argv) {
+  const problems = [];
+  if (policy?.schemaVersion !== 1) problems.push('command policy schemaVersion must be 1');
+  const build = policy?.build;
+  if (!['maven', 'command'].includes(build?.type)) problems.push('build.type must be maven or command');
+  if (!Array.isArray(build?.executables) || build.executables.length === 0) {
+    problems.push('build.executables must be a non-empty array');
+  }
+  if (!Array.isArray(argv) || argv.length === 0 || argv.some((item) => typeof item !== 'string' || !item)) {
+    problems.push('task command must be a non-empty string argv array');
+    return problems;
+  }
+  if (Array.isArray(build?.executables) && !build.executables.includes(argv[0])) {
+    problems.push(`executable is not allowed: ${argv[0]}`);
+  }
+  if (build?.type === 'maven') {
+    if (!Array.isArray(build.allowedGoals) || build.allowedGoals.length === 0) {
+      problems.push('maven policy requires allowedGoals');
+    } else if (!argv.slice(1).some((arg) => build.allowedGoals.includes(arg))) {
+      problems.push('maven command does not contain an allowed goal');
+    }
+  }
+  return problems;
+}
+
+export function loadTaskCommand(root, changeId, taskId, rawPhase) {
+  assertSafeId(changeId, 'changeId');
+  assertSafeId(taskId, 'taskId');
   const phase = String(rawPhase || '').toUpperCase();
-  const file = COMMANDS[taskId];
-  if (!file || !PHASES.includes(phase)) return null;
-  const mode = phase === 'REFACTOR' ? 'verify' : phase.toLowerCase();
-  return ['node', `harness/plugin/runtime/test/${file}`, mode];
+  if (!PHASES.includes(phase)) return { ok: false, problems: ['phase is invalid'] };
+  const policyFile = commandPolicyPath(root);
+  const tasksFile = taskCommandsPath(root, changeId);
+  if (!fs.existsSync(policyFile)) {
+    return { ok: false, problems: [`command policy is missing: ${path.relative(root, policyFile)}`] };
+  }
+  if (!fs.existsSync(tasksFile)) {
+    return { ok: false, problems: [`task command freeze is missing: ${path.relative(root, tasksFile)}`] };
+  }
+  try {
+    const policy = readJson(policyFile, 'command policy');
+    const frozen = readJson(tasksFile, 'task command freeze');
+    const task = frozen?.tasks?.[taskId];
+    const field = PHASE_FIELDS[phase];
+    const argv = task?.[field] || (phase === 'REFACTOR' ? task?.verifyCommand : null);
+    const problems = [];
+    if (frozen?.schemaVersion !== 1) problems.push('task command schemaVersion must be 1');
+    if (!task) problems.push(`task is not frozen: ${taskId}`);
+    if (!argv) problems.push(`${field} is missing for ${taskId}`);
+    if (argv) problems.push(...validateProjectCommand(policy, argv));
+    return { ok: problems.length === 0, argv: problems.length ? null : argv, policy, task, problems };
+  } catch (error) {
+    return { ok: false, problems: [error.message] };
+  }
+}
+
+export function allowedTaskCommand(root, changeId, taskId, rawPhase) {
+  return loadTaskCommand(root, changeId, taskId, rawPhase).argv || null;
 }
 
 export function tddReceiptSpoolPath(root, changeId, taskId) {
+  assertSafeId(taskId, 'taskId');
+  const receiptRoot = path.join(gitCommonDir(root), 'enterprise-harness', 'receipts');
+  const changeRoot = resolveChild(receiptRoot, changeId, 'changeId');
+  const tddRoot = path.join(changeRoot, 'tdd');
   return path.join(
-    gitCommonDir(root),
-    'enterprise-harness',
-    'receipts',
-    changeId,
-    'tdd',
+    tddRoot,
     `${taskId}.json`,
   );
 }
@@ -64,14 +138,7 @@ export function receiptDigest(receipt) {
 }
 
 export function isSafeEvidenceId(value) {
-  return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(value);
-}
-
-function isSafeRelative(value) {
-  return typeof value === 'string'
-    && value.length > 0
-    && !path.isAbsolute(value)
-    && !value.split(/[\\/]/).includes('..');
+  return isSafeId(value);
 }
 
 export function validateTddReceipt(receipt, options = {}) {
@@ -89,7 +156,6 @@ export function validateTddReceipt(receipt, options = {}) {
   if (!isSafeEvidenceId(receipt.taskId)) problems.push('taskId is unsafe');
   if (changeId && receipt.changeId !== changeId) problems.push('changeId mismatch');
   if (taskId && receipt.taskId !== taskId) problems.push('taskId mismatch');
-  if (!COMMANDS[receipt.taskId]) problems.push('unknown task id');
   if (receipt.agent?.type !== 'enterprise-harness:tdd-executor') {
     problems.push('agent type must be enterprise-harness:tdd-executor');
   }
@@ -104,7 +170,7 @@ export function validateTddReceipt(receipt, options = {}) {
   if (!HEX_64.test(String(worktree.treeDigestAfter || ''))) problems.push('treeDigestAfter must be sha256');
 
   if (!Array.isArray(receipt.changedPaths)
-      || receipt.changedPaths.some((value) => !isSafeRelative(value))) {
+      || receipt.changedPaths.some((value) => !isSafeRelativePath(value))) {
     problems.push('changedPaths must contain safe relative paths');
   }
 
@@ -114,7 +180,7 @@ export function validateTddReceipt(receipt, options = {}) {
       problems.push('bootstrap provenance is restricted to hardening task-1');
     }
     const scriptPath = receipt.bootstrap?.scriptPath;
-    const absolute = isSafeRelative(scriptPath) ? path.join(root, scriptPath) : null;
+    const absolute = isSafeRelativePath(scriptPath) ? path.join(root, scriptPath) : null;
     if (!absolute || !fs.existsSync(absolute)) {
       problems.push('bootstrap script is missing');
     } else {
@@ -139,7 +205,7 @@ export function validateTddReceipt(receipt, options = {}) {
     const execution = executions[index];
     const phase = String(execution?.phase || '').toUpperCase();
     if (phase !== PHASES[index]) problems.push(`phase ${index + 1} must be ${PHASES[index]}`);
-    const expected = allowedTaskCommand(receipt.taskId, phase);
+    const expected = allowedTaskCommand(root, receipt.changeId, receipt.taskId, phase);
     if (!expected || JSON.stringify(execution.argv) !== JSON.stringify(expected)) {
       problems.push(`${phase || 'execution'} argv is not allowed`);
     }

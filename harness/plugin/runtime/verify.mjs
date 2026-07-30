@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency, validateCompletionPredicate } from './lib/checks.mjs';
+import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateGenericControllerConsistency, validateCompletionPredicate } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
 
@@ -42,7 +42,6 @@ const problems = [
   ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
   ...validateOpenApiLight(root),
   ...validateGenericControllerConsistency(root),
-  ...validateReferenceServiceControllerConsistency(root),
   ...validateArtifactStates(root),
   ...validateReviewVerdicts(root),
   ...validateChangeEvidence(root),
@@ -128,6 +127,8 @@ try {
     const card = renderTECPCCard(root, active.changeId, active.data);
     console.log(card);
   }
-} catch {}
+} catch (error) {
+  console.log(`WARN EH-VERIFY-TECP-015 ${error.message}`);
+}
 
 process.exit(result.ok ? 0 : 1);

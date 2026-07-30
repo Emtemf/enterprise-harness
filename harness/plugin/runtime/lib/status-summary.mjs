@@ -8,14 +8,14 @@ function readText(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : '';
 }
 
-function parseProgressSnapshot(text) {
+function parseDevelopmentSnapshot(text) {
   const currentPhase = text.match(/^- 当前阶段：(.+)$/m)?.[1]?.trim() || '未记录';
   const currentGoal = text.match(/^- 当前目标：(.+)$/m)?.[1]?.trim() || null;
   const nextFocus = Array.from(text.matchAll(/^- (.+)$/gm))
     .map((m) => m[1].trim())
     .filter((line) => !line.startsWith('当前阶段：') && !line.startsWith('进度定位：') && !line.startsWith('当前 active change：') && !line.startsWith('当前目标：') && !line.startsWith('动态真相优先级：') && !line.startsWith('本文件用途：'));
   return {
-    file: 'PROGRESS.md',
+    file: 'docs/internal/current-development-status.md',
     currentPhase,
     currentGoal,
     highlights: nextFocus.slice(0, 5),
@@ -62,15 +62,19 @@ function activeChangeSummary(root) {
 }
 
 export function buildStatusSummary(root) {
-  const progressPath = path.join(root, 'PROGRESS.md');
-  const progressText = readText(progressPath);
-  const progressSnapshot = parseProgressSnapshot(progressText);
+  const snapshotPath = path.join(root, 'docs', 'internal', 'current-development-status.md');
+  const snapshotText = readText(snapshotPath);
+  const progressSnapshot = parseDevelopmentSnapshot(snapshotText);
   const activeChange = activeChangeSummary(root);
   let tecpCard = null;
   if (activeChange.present) {
     const active = loadActiveChange(root);
     if (active.ok) {
-      try { tecpCard = renderTECPCCard(root, active.changeId, active.data); } catch {}
+      try {
+        tecpCard = renderTECPCCard(root, active.changeId, active.data);
+      } catch (error) {
+        tecpCard = `EH-STATUS-TECP-001: ${error.message}`;
+      }
     }
   }
   return {
@@ -92,17 +96,17 @@ export function buildStatusSummary(root) {
       },
       {
         kind: 'static',
-        paths: ['PROGRESS.md'],
-        note: 'PROGRESS.md 只承载阶段快照与阅读入口',
+        paths: ['docs/internal/current-development-status.md'],
+        note: '可选开发快照仅供维护者阅读，不参与 workflow 判定',
       },
     ],
     nextRead: [
       'README.md',
-      'docs/zh-cn/installation-guide.md',
-      'docs/zh-cn/overview.md',
+      'docs/user/quickstart.md',
+      'docs/user/workflow.md',
     ],
     nextCommands: [
-      '/harness',
+      '/enterprise-harness:harness（plugin）或 /harness（standalone）',
     ],
     maintainerCommands: [
       'node harness/plugin/runtime/cli.mjs status',
@@ -134,11 +138,12 @@ export function renderStatusSummary(summary) {
     summary.recommendedLane ? '推荐探索通道' : null,
     summary.recommendedLane ? `- ${summary.recommendedLane}` : null,
     '推荐恢复入口',
-    `- ${summary.recommendedEntry || '/harness'}`,
+    `- ${summary.recommendedEntry || '/enterprise-harness:harness'}`,
     '当前动作顺序',
-    `- ${summary.nextAction || '/harness'}`,
+    `- ${summary.nextAction || '/enterprise-harness:harness'}`,
     '普通用户下一步',
-    '- /harness',
+    '- plugin：/enterprise-harness:harness',
+    '- standalone：/harness',
     '普通用户先看这些',
     ...summary.nextRead.map((item) => `- ${item}`),
     '普通用户下一步命令',

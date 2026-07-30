@@ -12,7 +12,12 @@ for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
 if (!raw) process.exit(0);
 let event;
-try { event = JSON.parse(raw); } catch { process.exit(0); }
+try {
+  event = JSON.parse(raw);
+} catch (error) {
+  console.error(`BLOCK [EH-HOOK-INPUT-017] invalid Agent PostToolUse JSON: ${error.message}`);
+  process.exit(2);
+}
 if (event.tool_name !== 'Agent') process.exit(0);
 
 const requestedRaw = String(event.tool_input?.subagent_type || '').trim();

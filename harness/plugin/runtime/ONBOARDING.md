@@ -13,7 +13,7 @@
 优先阅读：
 
 - `README.md`
-- `docs/zh-cn/installation-guide.md`
+- `docs/user/quickstart.md`
 
 只有当你需要维护 runtime、排查本机问题、或做低层控制时，才继续阅读本文件。
 

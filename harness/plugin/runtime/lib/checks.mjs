@@ -56,17 +56,12 @@ export function requiredPaths() {
     files: [
       'AGENTS.md',
       'CLAUDE.md',
-      'PROGRESS.md',
       '.mcp.json',
       '.claude/settings.json',
       '.claude/rules/00-workflow.md',
-      '.claude/rules/10-code-analysis.md',
-      '.claude/rules/20-documentation.md',
-      '.claude/rules/30-java-architecture.md',
-      '.claude/rules/40-java-style.md',
-      '.claude/rules/50-testing.md',
-      '.claude/rules/60-api-contract.md',
-      '.claude/rules/70-review.md',
+      '.claude/rules/10-exploration.md',
+      '.claude/rules/20-java.md',
+      '.claude/rules/30-testing-and-review.md',
       '.claude/agents/requirement-reviewer.md',
       '.claude/agents/design-reviewer.md',
       '.claude/agents/plan-critic.md',
@@ -82,6 +77,7 @@ export function requiredPaths() {
       '.claude/skills/harness-verify/SKILL.md',
       'harness/config.yaml',
       'harness/templates/state.json',
+      'harness/schemas/state.schema.json',
       'harness/templates/change.md',
       'harness/templates/spec.md',
       'harness/templates/requirements.md',
@@ -92,28 +88,14 @@ export function requiredPaths() {
       'harness/templates/exploration.md',
       'harness/templates/tooling-evidence.md',
       'harness/reviewers/catalog.json',
-      'harness/specs/instruction-layering.md',
-      'harness/specs/directory-model.md',
-      'harness/specs/artifact-lifecycle.md',
-      'harness/specs/requirement-intake.md',
-      'harness/specs/tool-fallback-policy.md',
-      'harness/specs/evidence-submission.md',
-      'harness/specs/containerization-sandboxing.md',
-      'harness/specs/session-lifecycle.md',
-      'harness/specs/staged-workflow.md',
-      'harness/specs/plugin-runtime.md',
-      'harness/specs/local-runtime-adapter.md',
-      'harness/bin/create-change-scaffold.sh',
-      'harness/bin/create-exploration-artifact.sh',
-      'harness/bin/update-change-state.sh',
-      'harness/bin/set-active-change.sh',
-      'harness/bin/show-active-change.sh',
-      'harness/bin/set-change-impact.sh',
-      'harness/bin/record-review-verdict.sh',
-      'harness/bin/mark-change-reviewed.sh',
-      'harness/bin/mark-change-validated.sh',
-      'harness/bin/context7-library.sh',
-      'harness/bin/context7-docs.sh',
+      'harness/specs/architecture.md',
+      'harness/specs/workflow.md',
+      'harness/specs/state-schema.md',
+      'harness/specs/agents-and-handoff.md',
+      'harness/specs/hooks.md',
+      'harness/specs/evidence.md',
+      'harness/specs/testing.md',
+      'harness/specs/distribution-and-release.md',
       'harness/plugin/manifest.json',
       'harness/plugin/runtime/doctor.mjs',
       'harness/plugin/runtime/bootstrap.mjs',
@@ -401,23 +383,89 @@ function durableAgentEvents(root, changeId) {
   return { events, invalid };
 }
 
-export function validateCompletionPredicate(root, changeId, state) {
-  const problems = [];
-  const changeDir = path.join(root, 'harness', 'changes', changeId);
-  if (state?.state !== 'VALIDATED') problems.push(`state must be VALIDATED, got ${state?.state}`);
-  for (const key of ['api', 'data', 'architecture', 'rule']) {
-    if (state?.impact?.[key] === 'unknown' || !state?.impact?.[key]) problems.push(`impact.${key} must be resolved`);
-  }
-  if (state?.validation?.status !== 'fresh') problems.push('validation.status must be fresh');
-  const digest = computeValidationDigest(root, changeId);
-  if (!digest || state?.validation?.digest !== digest) problems.push('validation.digest is not current');
-  problems.push(...validateCompletionReviewers(root, changeId, state));
-  problems.push(...validateArtifactStates(root).filter((item) => item.includes(changeDir)));
-  problems.push(...validateChangeEvidence(root).filter((item) => item.includes(changeDir)));
+function completionResult(code, status, message, targetPath = null, recovery = null) {
+  return { code, status, path: targetPath, message, recovery };
+}
 
+export function validateState(root, changeId, state) {
+  const results = [];
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
+  if (state?.state !== 'VALIDATED') {
+    results.push(completionResult(
+      'EH-COMPLETION-STATE-101',
+      'block',
+      `state must be VALIDATED, got ${state?.state}`,
+      path.join(changeDir, 'state.json'),
+      'complete verify and persist a fresh VALIDATED state',
+    ));
+  }
+  for (const key of ['api', 'data', 'architecture', 'rule']) {
+    if (state?.impact?.[key] === 'unknown' || !state?.impact?.[key]) {
+      results.push(completionResult(
+        'EH-COMPLETION-IMPACT-102',
+        'block',
+        `impact.${key} must be resolved`,
+        path.join(changeDir, 'state.json'),
+        `resolve impact.${key} during route`,
+      ));
+    }
+  }
+  if (state?.validation?.status !== 'fresh') {
+    results.push(completionResult(
+      'EH-COMPLETION-FRESHNESS-103',
+      'block',
+      'validation.status must be fresh',
+      path.join(changeDir, 'validation.md'),
+      'rerun validation after the latest governed change',
+    ));
+  }
+  return results;
+}
+
+export function validateArtifacts(root, changeId, state) {
+  const results = [];
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
+  const digest = computeValidationDigest(root, changeId);
+  if (!digest || state?.validation?.digest !== digest) {
+    results.push(completionResult(
+      'EH-COMPLETION-DIGEST-104',
+      'block',
+      'validation.digest is not current',
+      path.join(changeDir, 'state.json'),
+      'rerun verify to seal the current artifact digest',
+    ));
+  }
+  for (const message of validateArtifactStates(root).filter((item) => item.includes(changeDir))) {
+    results.push(completionResult('EH-COMPLETION-ARTIFACT-105', 'block', message, changeDir, 'repair the reported artifact state'));
+  }
+  for (const message of validateChangeEvidence(root).filter((item) => item.includes(changeDir))) {
+    results.push(completionResult('EH-COMPLETION-EVIDENCE-106', 'block', message, changeDir, 'repair or regenerate durable evidence'));
+  }
+  return results;
+}
+
+export function validateReviews(root, changeId, state) {
+  return validateCompletionReviewers(root, changeId, state).map((message) => completionResult(
+    'EH-COMPLETION-REVIEW-107',
+    'block',
+    message,
+    path.join(root, 'harness', 'changes', changeId, 'reviews'),
+    'dispatch the required independent checker and persist its verdict',
+  ));
+}
+
+export function validateTddEvidence(root, changeId) {
+  const results = [];
+  const changeDir = path.join(root, 'harness', 'changes', changeId);
   const mode = evidenceModeForChange(root, changeId);
   if (!mode.ok) {
-    problems.push(`sealed evidence policy unavailable: ${mode.problems.join('; ')}`);
+    results.push(completionResult(
+      'EH-COMPLETION-POLICY-108',
+      'block',
+      `sealed evidence policy unavailable: ${mode.problems.join('; ')}`,
+      path.join(root, 'harness', 'evidence-policy.json'),
+      'initialize or migrate the target repository evidence policy',
+    ));
   } else if (mode.mode === 'strict') {
     for (const taskId of taskIdsFromPlan(root, changeId)) {
       const receiptPath = path.join(changeDir, 'evidence', 'tdd', `${taskId}.json`);
@@ -428,19 +476,86 @@ export function validateCompletionPredicate(root, changeId, state) {
         allowBootstrap: taskId === 'task-1',
         requireComplete: true,
       });
-      if (!receipt.ok) problems.push(`${taskId} completion receipt invalid: ${receipt.problems.join('; ')}`);
-    }
-    const ledger = durableAgentEvents(root, changeId);
-    if (ledger.invalid) problems.push('agent event ledger contains invalid JSON');
-    if (ledger.events.some((event) => event.kind === 'violation')) problems.push('agent event ledger has unresolved violation');
-    const starts = ledger.events.filter((event) => event.kind === 'start' && String(event.observedAgentType || '').startsWith('enterprise-harness:'));
-    for (const start of starts) {
-      const stopped = ledger.events.some((event) => event.kind === 'stop'
-        && event.agentId === start.agentId
-        && Date.parse(event.issuedAt) >= Date.parse(start.issuedAt));
-      if (!stopped) problems.push(`scoped agent ${start.agentId} has no durable stop event`);
+      if (!receipt.ok) {
+        results.push(completionResult(
+          'EH-COMPLETION-TDD-109',
+          'block',
+          `${taskId} completion receipt invalid: ${receipt.problems.join('; ')}`,
+          receiptPath,
+          'run the frozen RED/GREEN/REFACTOR commands through tdd-run',
+        ));
+      }
     }
   }
+  return results;
+}
+
+export function validateAgentLedger(root, changeId) {
+  const results = [];
+  const mode = evidenceModeForChange(root, changeId);
+  if (!mode.ok || mode.mode !== 'strict') return results;
+  const ledger = durableAgentEvents(root, changeId);
+  if (ledger.invalid) {
+    results.push(completionResult('EH-COMPLETION-LEDGER-110', 'block', 'agent event ledger contains invalid JSON', null, 'repair or quarantine the malformed event'));
+  }
+  if (ledger.events.some((event) => event.kind === 'violation')) {
+    results.push(completionResult('EH-COMPLETION-VIOLATION-111', 'block', 'agent event ledger has unresolved violation', null, 'resolve the violation and create a new governed run'));
+  }
+  const starts = ledger.events.filter((event) => event.kind === 'start' && String(event.observedAgentType || '').startsWith('enterprise-harness:'));
+  for (const start of starts) {
+    const stopped = ledger.events.some((event) => event.kind === 'stop'
+      && event.agentId === start.agentId
+      && Date.parse(event.issuedAt) >= Date.parse(start.issuedAt));
+    if (!stopped) {
+      results.push(completionResult(
+        'EH-COMPLETION-AGENT-112',
+        'block',
+        `scoped agent ${start.agentId} has no durable stop event`,
+        null,
+        'finish or explicitly fail the scoped run',
+      ));
+    }
+  }
+  return results;
+}
+
+export function validateApiContract(root, state) {
+  if (state?.impact?.api !== 'yes') {
+    return [completionResult('EH-COMPLETION-API-113', 'advisory', 'API impact is not applicable')];
+  }
+  const yamlFiles = findOpenApiYamlFiles(root);
+  const javaFiles = findJavaControllerFiles(root);
+  if (yamlFiles.length === 0 || javaFiles.length === 0) {
+    return [completionResult(
+      'EH-COMPLETION-API-113',
+      'unsupported',
+      'API impact is yes but OpenAPI or Spring controller inputs are unavailable',
+      null,
+      'add parseable OpenAPI and controller inputs or configure a project-specific checker',
+    )];
+  }
+  const problems = [...validateOpenApiLight(root), ...validateGenericControllerConsistency(root)];
+  return problems.length
+    ? problems.map((message) => completionResult('EH-COMPLETION-API-113', 'block', message, null, 'repair the API contract mismatch'))
+    : [completionResult('EH-COMPLETION-API-113', 'pass', 'API contract checks passed')];
+}
+
+export function validateFinalCompletion(root, changeId, state) {
+  return [
+    ...validateState(root, changeId, state),
+    ...validateArtifacts(root, changeId, state),
+    ...validateReviews(root, changeId, state),
+    ...validateTddEvidence(root, changeId),
+    ...validateAgentLedger(root, changeId),
+    ...validateApiContract(root, state),
+  ];
+}
+
+export function validateCompletionPredicate(root, changeId, state) {
+  const results = validateFinalCompletion(root, changeId, state);
+  const problems = results
+    .filter((item) => item.status === 'block' || item.status === 'unsupported')
+    .map((item) => `${item.code}: ${item.message}${item.recovery ? `; recovery=${item.recovery}` : ''}`);
   return [...new Set(problems)];
 }
 
@@ -648,8 +763,11 @@ export function validateOpenApiLight(root) {
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf-8');
     const relPath = normalizeDigestPath(path.relative(root, file));
-    for (const pattern of [/^openapi:/m, /^paths:/m, /^components:/m]) {
+    for (const pattern of [/^openapi:\s*3\.\d+(?:\.\d+)?\s*$/m, /^paths:\s*(?:$|\n)/m]) {
       if (!pattern.test(text)) errors.push(`openapi:${relPath}:${pattern.toString()}`);
+    }
+    if (/^paths:\s*\{\s*\}\s*$/m.test(text) || parseOpenApiPaths(text).size === 0) {
+      errors.push(`openapi:${relPath}:unsupported:no-parseable-paths`);
     }
   }
   return errors;
@@ -832,7 +950,12 @@ export function validateGenericControllerConsistency(root) {
     }
   }
 
-  if (yamlPaths.size === 0 || controllerPaths.size === 0) return [];
+  if (yamlPaths.size === 0) {
+    return ['openapi-controller:unsupported:no-parseable-openapi-paths'];
+  }
+  if (controllerPaths.size === 0) {
+    return ['openapi-controller:unsupported:no-parseable-spring-mappings'];
+  }
 
   const errors = [];
 

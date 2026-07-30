@@ -4,11 +4,45 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const files = ['README.md', 'AGENTS.md', 'CLAUDE.md', 'docs/zh-cn/installation-guide.md', 'docs/zh-cn/overview.md', 'harness/specs/staged-workflow.md', 'harness/specs/plugin-runtime.md', 'harness/specs/tdd-execution.md', 'harness/specs/directory-model.md', 'harness/specs/release-readiness.md'];
-const corpus = files.map((file) => `${file}\n${fs.readFileSync(path.join(root, file), 'utf-8')}`).join('\n');
-assert.match(corpus, /plugin install[\s\S]*\/enterprise-harness:harness/u);
+const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
+const currentDocs = [
+  'README.md',
+  'AGENTS.md',
+  'CLAUDE.md',
+  'docs/README.md',
+  'docs/user/quickstart.md',
+  'docs/user/workflow.md',
+  'docs/user/troubleshooting.md',
+  'docs/user/limitations.md',
+  'docs/maintainer/architecture.md',
+  'docs/maintainer/hooks.md',
+  'docs/maintainer/state-and-evidence.md',
+  'docs/maintainer/testing.md',
+  'docs/maintainer/packaging.md',
+  'docs/maintainer/release.md',
+  'harness/specs/README.md',
+  'harness/specs/architecture.md',
+  'harness/specs/workflow.md',
+  'harness/specs/state-schema.md',
+  'harness/specs/agents-and-handoff.md',
+  'harness/specs/hooks.md',
+  'harness/specs/evidence.md',
+  'harness/specs/testing.md',
+  'harness/specs/distribution-and-release.md',
+];
+for (const file of currentDocs) assert.ok(fs.existsSync(path.join(root, file)), `missing current document ${file}`);
+
+assert.ok(read('README.md').split(/\r?\n/u).length <= 160, 'README must remain at most 160 lines');
+assert.ok(read('CLAUDE.md').split(/\r?\n/u).length <= 110, 'CLAUDE.md must remain at most 110 lines');
+assert.ok(read('AGENTS.md').split(/\r?\n/u).length <= 100, 'AGENTS.md must remain at most 100 lines');
+
+const corpus = currentDocs.map((file) => `${file}\n${read(file)}`).join('\n');
+assert.match(corpus, /\/enterprise-harness:harness/u);
 assert.match(corpus, /standalone[\s\S]*\/harness/u);
-assert.doesNotMatch(corpus, /安装(?:插件|后)[^\n]{0,80}(?:从|入口)[^\n]{0,40}`\/harness`/u, 'current plugin docs must not advertise the standalone bare entry');
-for (const token of ['enterprise-harness:tdd-executor', 'tdd-run', 'evidence-import', 'agent_id', 'WorktreeCreate', 'NotebookEdit', 'completion predicate']) assert.ok(corpus.includes(token), `current docs missing ${token}`);
-assert.match(fs.readFileSync(path.join(root, 'harness/specs/directory-model.md'), 'utf-8'), /hooks\/hooks\.json[\s\S]*CLAUDE_PLUGIN_ROOT[\s\S]*\.claude\/settings\.json[\s\S]*CLAUDE_PROJECT_DIR/u);
+assert.doesNotMatch(corpus, /harness\/explorations/u);
+assert.doesNotMatch(corpus, /docs\/zh-cn/u);
+assert.doesNotMatch(corpus, /PROGRESS\.md/u);
+for (const token of ['七维', 'ambiguity', 'executor', 'checker', 'receipt', 'completion']) {
+  assert.ok(corpus.toLowerCase().includes(token.toLowerCase()), `current docs missing ${token}`);
+}
 console.log('PASS current-doc-surface verify');

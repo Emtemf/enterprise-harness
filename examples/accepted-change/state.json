@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 3,
+  "revision": 12,
+  "changeId": "add-order-cancel-api",
+  "tier": "L2",
+  "state": "ARCHIVED",
+  "impact": {
+    "api": "yes",
+    "data": "yes",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "workflow": {
+    "stage": "archive",
+    "nextEntry": "/enterprise-harness:harness"
+  },
+  "gates": {
+    "designApproved": true,
+    "redVerified": true
+  },
+  "approvals": {},
+  "validation": {
+    "status": "fresh",
+    "digest": "example-only",
+    "validatedAt": "2026-07-29T00:00:00.000Z"
+  },
+  "blockers": []
+}

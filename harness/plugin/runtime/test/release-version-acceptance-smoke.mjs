@@ -10,22 +10,39 @@ const pkg = readJson('package.json');
 const plugin = readJson('.claude-plugin/plugin.json');
 const runtime = readJson('harness/plugin/manifest.json');
 const marketplace = readJson('.claude-plugin/marketplace.json');
-const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf-8');
-const readmeVersion = readme.match(/^# Enterprise Harness \(v([^)]+)\)/u)?.[1];
-assert.deepEqual(new Set([pkg.version, plugin.version, runtime.version, marketplace.version, marketplace.plugins?.[0]?.version, readmeVersion]), new Set([pkg.version]), 'all five release projections and README must match');
+assert.deepEqual(
+  new Set([pkg.version, plugin.version, runtime.version, marketplace.version, marketplace.plugins?.[0]?.version]),
+  new Set([pkg.version]),
+  'generated release projections must match package.json',
+);
 
 const release = fs.readFileSync(path.join(root, 'bin/release.mjs'), 'utf-8');
-const preflightAt = release.indexOf("spawnSync('npm', ['run', 'prepublish-check']");
-assert.ok(preflightAt > 0, 'release must execute prepublish-check');
-for (const mutation of ['fs.writeFileSync(pkgPath', "spawnSync('git', ['add'", "spawnSync('git', ['tag'", "spawnSync('git', ['push'"]) {
-  assert.ok(release.indexOf(mutation) > preflightAt, `${mutation} must occur after prepublish acceptance`);
+for (const token of [
+  "['status', '--porcelain']",
+  "['branch', '--show-current']",
+  "['rev-parse', 'origin/main']",
+  "['worktree', 'add'",
+  "['bin/sync-version.mjs', '--quiet']",
+  "['run', 'prepublish-check']",
+  "['bin/package.mjs'",
+  "['diff', '--cached', '--name-only']",
+  "['push', 'origin', `HEAD:main`]",
+  "['push', 'origin', `refs/tags/${tagName}`]",
+]) {
+  assert.ok(release.includes(token), `release is missing ${token}`);
 }
-for (const token of ['marketplace.version = newVersion', 'entry.version = newVersion', 'README']) assert.match(release, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
+assert.ok(release.includes("'CHANGELOG.md'"), 'release must stage the generated CHANGELOG section');
+assert.doesNotMatch(release, /git', \['add', '-A'/u);
+assert.doesNotMatch(release, /main', '--tags'/u);
 
 const prepublish = fs.readFileSync(path.join(root, 'harness/plugin/runtime/prepublish.mjs'), 'utf-8');
-for (const token of ['task1-authoritative-evidence-smoke.mjs', 'task2-plugin-agent-smoke.mjs', 'task3-gate-completion-smoke.mjs', 'release-version-acceptance-smoke.mjs', "['plugin', 'validate', '.']", 'zero warnings']) assert.ok(prepublish.includes(token), `prepublish missing ${token}`);
+for (const token of ['bin/run-smoke-suite.mjs', "['plugin', 'validate', '.']", 'zero warnings']) assert.ok(prepublish.includes(token), `prepublish missing ${token}`);
 for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
-  assert.match(fs.readFileSync(path.join(root, workflow), 'utf-8'), /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
+  const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
+  assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
+  assert.match(text, /actions\/checkout@v7/u);
+  assert.match(text, /actions\/setup-node@v7/u);
+  assert.match(text, /@anthropic-ai\/claude-code@2\.1\.220/u);
 }
 const validation = spawnSync('claude', ['plugin', 'validate', '.'], {
   cwd: root,

@@ -1,167 +1,114 @@
 # Contributing
 
-感谢你关注 **Enterprise Harness**。
+感谢参与 Enterprise Harness。贡献应保持 Claude Code plugin、standalone runtime 和发布 artifact 的行为一致。
 
-这个仓库当前处于 **可运行的 Claude Code-only phase 1 staged workflow 基线** 阶段，欢迎帮助我们把它从“骨架”打磨成“更稳定、更易安装、更适合团队共享”的企业后端交付 Harness。
+## 环境
 
----
+- Git
+- Node.js 20 或 22
+- Claude Code CLI（plugin validation）
+- CodeGraph 0.9.9
+- Java 21 和 Maven/Maven Wrapper（Java fixture）
 
-## 1. 先读什么
+## 仓库结构
 
-在提 issue 或提交改动前，建议先看：
+- `.claude/skills/`：阶段过程
+- `.claude/agents/`：agent 身份和工具权限
+- `.claude/rules/`：短小的自动约束
+- `harness/specs/`：长期合同
+- `harness/plugin/runtime/`：确定性 backend 和 hooks
+- `harness/templates/`：安装时可复制模板
+- `docs/user/`：普通用户
+- `docs/maintainer/`：维护者
+- `test` 和 `harness/plugin/runtime/test/`：行为验收
 
-- `README.md`
-- `AGENTS.md`
-- `CLAUDE.md`
-- `harness/specs/mvp-roadmap.md`
-- `harness/specs/plugin-runtime.md`
-- `harness/specs/requirement-intake.md`
+## 开发流程
 
-如果你要改 runtime / plugin 层，再看：
+1. 从 active change 或新 change 开始。
+2. 先写能证明缺陷的行为测试。
+3. 修改最小实现。
+4. 运行直接测试。
+5. 运行 P0 aggregate 和 prepublish。
+6. 更新唯一权威合同和用户可见文档。
 
-- `harness/specs/local-runtime-adapter.md`
-- `harness/specs/containerization-sandboxing.md`
-- `harness/plugin/manifest.json`
-- `harness/plugin/runtime/README.md`
+## Runtime command
 
----
+新增命令时：
 
-## 2. 欢迎哪类贡献
+- 在 `harness/plugin/runtime/cli.mjs` 注册。
+- 提供稳定参数、`--help`、exit code 和 JSON 输出。
+- 外部进程使用 argv 数组，不拼 shell。
+- 写入使用临时文件加原子 rename。
+- 对用户输入使用 `safe-paths.mjs`。
+- 增加 unit、integration 和 adversarial 测试。
 
-当前最欢迎的方向：
+## Hook
 
-### A. 门禁收紧
-- design gate
-- stale validation gate
-- `RED_VERIFIED` 才允许生产源码写入
-- reviewer verdict 消费逻辑
-
-### B. Java 黄金样板增强
-- ArchUnit
-- JaCoCo 85%
-- 真实 HTTP API E2E
-- 更强 OpenAPI 契约校验
-
-### C. 插件产品化
-- machine-local adapter 正式 schema
-- 更完整 installer
-- upgrade / migration 机制
-- 上游升级治理与版本盘点
-- Windows / macOS 真机验证
-
-### D. 文档与协作
-- README/路线图补充
-- 更清晰的 onboarding / doctor / sync 文档
-- 示例 change / golden path 演示
-
----
-
-## 3. 提交前的基本约定
-
-### 语言约定
-- 流程资产、规范、评审说明：默认中文
-- 代码标识符、包名、公开 API：默认英文
-
-### 不要提交的内容
-- 本机 secrets / token / API key
-- `.claude/settings.local.json`
-- `.codegraph/`
-- `.omc/`
-- 构建产物
-- machine-local adapter 的真实本机文件
-
-### 变更方式
-如果是非平凡改动，请优先通过 `harness/changes/` 建一个 change，而不是直接一把改完。
-
-建议最少落这些资产：
-
-- `state.json`
-- `change.md`
-- `validation.md`
-- `evidence/tooling.md`
-
----
-
-## 4. 本地验证
-
-当前最小验证按变更面选择：
+只修改 `harness/plugin/hooks-manifest.json`，再运行：
 
 ```bash
-node harness/plugin/runtime/test/<task-aggregate-smoke>.mjs verify
-node harness/plugin/runtime/cli.mjs verify
-claude plugin validate .
+node bin/generate-hooks.mjs
+node bin/generate-hooks.mjs --check
 ```
 
-入口、Agent、portable launcher、worktree、累计 gate、completion 或 release 改动还应运行对应 P0 aggregate。发布面改动必须运行 `npm run prepublish-check`；已认证的本机 release acceptance 还应显式运行 live E2E。
+hook 必须声明性能预算和 fail mode。PreToolUse 只做最小快照和前置 gate；PostToolUse 只归因当前调用；全仓 verify 在阶段结束单独执行。
 
-如果改动了 `reference-service/`，当前建议执行：
+## Spec
+
+只有跨实现、长期稳定、需要多方遵守的内容才进入 `harness/specs/`。实现说明、路线图、发布宣传和历史决策分别进入 maintainer docs、Issues、marketing 或 ADR。
+
+每份现行 spec 需要：
+
+```yaml
+status: current
+owner: maintainers
+lastVerified: YYYY-MM-DD
+implementationRefs: []
+testRefs: []
+```
+
+## 测试
+
+直接验收：
 
 ```bash
-mvn -f reference-service/pom.xml verify
+node harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs verify
+node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify
+node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify
+node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
-同时请明确：generated `*MapperImpl` are build artifacts，而不是 hand-authored quality profile 的主要设计面。
-
-如果改动了 runtime，至少执行：
+完整验收：
 
 ```bash
-node harness/plugin/runtime/cli.mjs bootstrap
-node harness/plugin/runtime/cli.mjs doctor
-node harness/plugin/runtime/cli.mjs sync
-node harness/plugin/runtime/cli.mjs verify
+npm run prepublish-check
 ```
 
-TDD 命令必须通过 change 中冻结的 `tdd-run` argv 真实执行并导入 receipt；聊天摘要不能替代证据。
+测试应验证行为、文件系统结果、exit code 和结构化 evidence。不要用源码字符串存在或无条件 `process.exit(1)` 代替真实 RED。
 
----
+## Packaging
 
-## 5. Pull Request 建议
+```bash
+node bin/package.mjs --out dist
+node harness/plugin/runtime/test/artifact-content-smoke.mjs verify
+```
 
-PR 最好说明：
+artifact 必须排除 changes、archive、work、lessons、源仓库 evidence policy、runtime tests 和本地 adapter。
 
-1. 改了什么
-2. 为什么改
-3. 属于哪一层
-   - repo contract
-   - 动作层
-   - Java reference-service
-4. 跑了哪些验证
-5. 还有哪些未完成项 / 后续项
+## PR checklist
 
-如果你的改动只完成了 MVP 某一部分，请明确说清楚，不要把局部增强写成“全套已完成”。
+- [ ] 变更范围清楚且没有无关文件。
+- [ ] 新行为有真实测试。
+- [ ] 路径、symlink、Windows 大小写和无效输入已考虑。
+- [ ] hooks/settings 和版本投影由生成器更新。
+- [ ] 文档没有复制第二份 schema 或 runtime 输出。
+- [ ] artifact 内容已解包验证。
+- [ ] 没有 secrets、账户、容量或本机状态检查。
 
----
+## Release 禁止事项
 
-## 6. 贡献风格
-
-我们更欢迎：
-
-- 小而清晰的 PR
-- 先让 contract 清楚，再扩实现
-- 先让 doctor / validation 能说明问题，再做自动修复
-- 真实可运行、可验证的增量，而不是只停留在描述层
-
-不鼓励：
-
-- 大而模糊的“一次性全部重写”
-- 跳过 change 资产直接大量改动
-- 把当前 Linux/bash 假设硬编码成长期标准
-
----
-
-## 7. 不确定时怎么办
-
-如果你不确定某个改动该先做成：
-
-- contract
-- runtime
-- sample implementation
-
-建议先开 issue，说清楚：
-
-- 你的目标
-- 你观察到的问题
-- 你认为属于哪一层
-- 你的最小可交付范围
-
-这样更容易对齐。
+- 不从 dirty worktree 发布。
+- 不使用 `git add -A`。
+- 不用一次 push 同时推 main 和全部 tags。
+- 不在版本写入前做唯一一次验收。
+- 不发布未解包验证或版本与 tag 不一致的 artifact。

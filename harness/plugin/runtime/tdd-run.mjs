@@ -65,12 +65,12 @@ if (!changeId || !taskId || !phaseRaw || childArgv.length === 0) {
 if (!isSafeEvidenceId(changeId) || !isSafeEvidenceId(taskId)) {
   fail('change-id and task-id must be safe evidence identifiers');
 }
-const expected = allowedTaskCommand(taskId, phase);
+const root = process.cwd();
+const expected = allowedTaskCommand(root, changeId, taskId, phase);
 if (!expected || JSON.stringify(childArgv) !== JSON.stringify(expected)) {
-  fail(`child argv is outside the sealed task allowlist: ${JSON.stringify(childArgv)}`);
+  fail(`child argv differs from the frozen task command: ${JSON.stringify(childArgv)}`);
 }
 
-const root = process.cwd();
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 const agentId = process.env.CLAUDE_AGENT_ID || process.env.HARNESS_TDD_EXECUTOR_ID;
 let binding = agentId

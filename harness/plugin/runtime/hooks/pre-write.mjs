@@ -3,6 +3,8 @@ import { projectRoot } from '../lib/checks.mjs';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
 import { validateExecutionPrerequisites } from '../lib/execution-prerequisites.mjs';
 import { extractHookTargets } from '../lib/hook-targets.mjs';
+import { isPotentialWriteBash } from '../lib/hook-targets.mjs';
+import { captureGovernedSnapshot, writeHookSnapshot } from '../lib/hook-snapshots.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 
 const root = projectRoot();
@@ -11,13 +13,28 @@ for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
 if (!raw) process.exit(0);
 let event;
-try { event = JSON.parse(raw); } catch { process.exit(0); }
+try {
+  event = JSON.parse(raw);
+} catch (error) {
+  console.error(`BLOCK [EH-HOOK-INPUT-017] invalid PreToolUse JSON: ${error.message}`);
+  process.exit(2);
+}
+
+if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
+  try {
+    writeHookSnapshot(root, event.tool_use_id, captureGovernedSnapshot(root));
+  } catch (error) {
+    block(`EH-HOOK-SNAPSHOT-010 无法建立 Bash 写入前快照：${error.message}`);
+  }
+}
 
 function block(message, active = null) {
   console.error(`BLOCK: ${message}`);
   try {
     if (active?.ok) console.error(renderTECPCCard(root, active.changeId, active.data));
-  } catch {}
+  } catch (error) {
+    console.error(`EH-HOOK-TECP-018: ${error.message}`);
+  }
   process.exit(2);
 }
 

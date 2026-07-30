@@ -32,8 +32,25 @@ try {
   git('config', 'user.email', 'harness@example.invalid');
   git('config', 'user.name', 'Harness Smoke');
   fs.mkdirSync(path.join(root, 'harness', 'plugin', 'runtime', 'test'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
+  fs.writeFileSync(path.join(root, 'harness', 'command-policy.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    build: { type: 'command', executables: ['node'] },
+  })}\n`);
+  fs.writeFileSync(
+    path.join(root, 'harness', 'changes', changeId, 'task-commands.json'),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      tasks: {
+        [taskId]: {
+          redCommand: ['node', 'harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs', 'red'],
+          greenCommand: ['node', 'harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs', 'green'],
+          refactorCommand: ['node', 'harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs', 'verify'],
+        },
+      },
+    })}\n`,
+  );
   fs.writeFileSync(
     path.join(root, 'harness', 'plugin', 'runtime', 'test', 'task2-plugin-agent-smoke.mjs'),
     "console.error('intentional red'); process.exit(1);\n",

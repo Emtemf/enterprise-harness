@@ -2,11 +2,9 @@ schema: enterprise-harness-mvp
 version: 1
 
 context: |
-  Workspace type: local MVP for an enterprise Java microservice harness.
+  Workspace type: target Java/Spring project governed by Enterprise Harness.
   Artifact root: harness/
-  Reference service: reference-service/
-  Java version: 21
-  Build tool: Maven 3.8.7
+  Java and build-tool versions are discovered from the target repository.
   Documentation language: Chinese for workflow assets, English for code identifiers.
 
 tooling:
@@ -22,9 +20,6 @@ tooling:
     strategy: context7-first
     preferredTransport: cli
     cliFallback: ctx7
-    wrappers:
-      - harness/bin/context7-library.sh
-      - harness/bin/context7-docs.sh
     requiredFor:
       - library-docs
       - framework-behavior
@@ -44,9 +39,17 @@ fallbackPolicy:
     doNotTreatAsFinalAuthority: true
 
 java:
-  root: reference-service/
-  openApiPath: reference-service/openapi/order-service.yaml
-  controllerPackage: com.example.orders.interfaces.api
+  roots:
+    - .
+  governedPaths:
+    - src/main/java/**
+    - src/test/java/**
+    - openapi/**
+  openApiGlobs:
+    - openapi/**/*.yaml
+    - openapi/**/*.yml
+    - '**/openapi/**/*.yaml'
+    - '**/openapi/**/*.yml'
   architectureLayers:
     - interfaces
     - application

@@ -1,103 +1,48 @@
 ---
 name: harness-design
-description: >
-  Clarify-first staged workflow 的 design 阶段入口。基于闭环五检 (TECPC) 框架驱动设计产出：T 目标 → E 证据 → C 上下文 → P 路径 → C 纠正。适用于"进入 design 阶段""补设计""让 design-reviewer 可评审"等场景。
+description: Enterprise Harness design 阶段。把已确认 requirements 转成接口、错误、数据/SQL、架构、兼容性和测试设计，并要求独立 design reviewer。
 ---
 
-# Harness Design（闭环五检驱动）
+# Harness Design
 
-plugin-only 环境从 `/enterprise-harness:harness` 进入后会路由到本阶段；standalone source checkout 继续使用裸 `/harness` 与阶段恢复入口。
+由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
 
-## 目标
+## 输入
 
-本阶段默认以 **Principal Architect 视角**主导。
+- approved requirements
+- scope confirmation、tier、impact
+- relevant code/doc exploration
+- `harness/templates/design.md`
 
-职责不是直接开始实现，而是：
-- 用 TECPC 五维组织设计产出
-- 每个设计决策回答：T 目标是什么、E 用什么证据支撑、C 上下文有什么约束、P 为什么选这条路径、C 发现偏差怎么纠正
-- 给开发和测试讲清楚方案，让 reviewer 可评审
+## 动作
 
-## 前置条件
+1. 若接口、数据或调用方事实不足，先生成 design exploration brief 并派只读 agent。
+2. 创建 execute handoff，派 `design-executor`。
+3. design 必须覆盖适用项：
+   - goals/non-goals
+   - component boundaries
+   - API request/response/error/auth/idempotency
+   - caller compatibility
+   - schema、SQL、index、migration、rollback
+   - concurrency/transaction
+   - test strategy 和 observability
+4. 创建 check handoff，派 `design-reviewer`。
+5. blocker 修复后使用新 run 重审。
 
-进入本 skill 前，至少应满足：
+## 产出
 
-- 当前 change 已完成 `clarify`
-- `requirements.md` 已记录 TECPC 五维评分和最终路由
-- final route 已形成
-- 用户已确认执行范围
+- `design.md`
+- exploration refs
+- execute result
+- `design-reviewer` verdict
 
-## 必须产出
+## 阻断
 
-- `harness/changes/<change-id>/design.md`
+- requirements 未确认
+- API/data 适用但未设计
+- 只有文本长度，没有可验证取舍
+- reviewer 非 pass
 
-## TECPC 设计必查项
+## 下一阶段
 
-### T 目标
-- [ ] 业务目标明确
-- [ ] 成功标准可验收
-
-### C 上下文
-- [ ] 基于代码探索的事实（不是猜测）
-- [ ] 影响矩阵完整（Interface/Application/Domain/Infrastructure）
-- [ ] 技术约束已记录
-
-### E 证据
-- [ ] 每个关键决策有证据来源
-- [ ] 测试策略完整（Unit/Integration/E2E/RED）
-- [ ] 验证命令已明确
-
-### P 路径
-- [ ] 方案对比表完整（选了什么、为什么不选其他的）
-- [ ] 接口 / 数据 / 架构边界设计完整
-- [ ] 风险与回滚策略
-- [ ] C 纠正预案（设计偏差时怎么恢复）
-
-## 当前动作顺序（orchestrator shell 显示要求）
-
-进入 design 后，主 orchestrator 必须显式说明隔离接力，不得在主上下文直接撰写设计正文。
-
-最低要求：
-- 先消费 `requirements.md` / `change.md` / `CLAUDE.md` / exploration evidence
-- 若接口、数据、调用方或外部行为边界不清：先按 `harness/specs/brief-contract.md` 生成 design exploration brief，再派 `enterprise-harness:code-explore` / `enterprise-harness:doc-research`
-- facts 完整后先生成最小 design brief，作为 execute handoff 的 `inputRefs`
-- 运行 `handoff create <change-id> design design.produce execute`，派预加载 `harness-stage-executor` 的 `enterprise-harness:design-executor`
-- executor 返回并持久化 `result.json` 后，以其 runId 创建 role=check handoff
-- 派预加载 `harness-stage-checker` 的 `enterprise-harness:design-reviewer`
-- 涉及 API 时，再补 `enterprise-harness:api-consistency-reviewer`
-
-若这一轮会派 subagent，必须显式说明：
-- 会派哪个 agent
-- brief 的最小上下文是什么
-- 返回后主对话会消费哪些 review / fact 结论
-
-## 行为要求
-
-- 优先基于 `requirements.md`、`change.md`、目标项目 `CLAUDE.md` 与 exploration evidence 写 design
-- 若仓库事实不足，先触发代码/文档探索，再补设计
-- 设计不完整时不得直接跳到实现建议
-- 需要 API 一致性时，应为 `enterprise-harness:api-consistency-reviewer` 留出可评审输入
-- **每个设计决策必须标注证据来源**，不得出现"我觉得这样好"而无支撑
-
-## 【硬约束】必须创建 design.md
-
-**【强制】进入 design 阶段后，必须在进入 plan 前创建 `harness/changes/<change-id>/design.md`。**
-
-具体要求：
-1. 由 `design-executor` 使用写工具创建 `harness/changes/<change-id>/design.md`，基于 `harness/templates/design.md` 模板
-2. 填写 TECPC 五维内容（T 目标 / E 证据 / C 上下文 / P 路径 / C 纠正）
-3. 创建完成后，更新 `state.json` 的 `workflow.stage = 'design'`
-4. **不得跳过 design.md 创建直接进入 plan 阶段**
-
-**违反此约束 = 阻断**：如果模型试图在 design.md 不存在时进入 plan，pre-write hook 会拦截受治理路径的写入。
-
-## Gate Discipline
-
-- `enterprise-harness:design-reviewer` 属于强制 gate，不得提供“继续 / 跳过 review 直接进入 plan”的逃逸路径
-- 若 design review 发现 blocker，必须停留在 design 阶段修正，而不是靠聊天确认跳过
-- `enterprise-harness:design-reviewer` 必须检查 TECPC 五维是否都有实质内容（不是占位符）
-
-## 退出条件
-
-- `design.md` TECPC 五维 section 均已填写（非空、非占位符）
-- 能明确进入 design review
-- 不能以"实现时再补"替代设计缺口
+design pass 后进入 plan。长期合同见 `harness/specs/workflow.md`。

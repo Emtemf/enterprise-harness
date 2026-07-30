@@ -58,7 +58,7 @@
       "status": "reference-only",
       "notes": [
         "Role-perspective skills distilled from courses; informs design-stage quality.",
-        "Currently a draft (role-guided-staged-workflow.md); not yet wired into runtime."
+        "Role guidance is governed by harness/specs/workflow.md and the stage skills; upstream comparison remains manual."
       ],
       "lastReviewed": "2026-07-21",
       "observedVersions": [

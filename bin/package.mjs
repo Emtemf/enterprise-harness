@@ -1,92 +1,122 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
+const ROOT_FILES = ['package.json', 'README.md', 'CHANGELOG.md', 'LICENSE'];
+const ALLOWED_TREES = [
+  '.claude-plugin',
+  '.claude/skills',
+  '.claude/agents',
+  '.claude/rules',
+  'hooks',
+  'harness/plugin',
+  'harness/specs',
+  'harness/schemas',
+  'harness/templates',
+  'harness/reviewers',
+  'harness/upstream',
+  'bin',
+];
+const ALLOWED_HARNESS_FILES = ['harness/behavior-checks.json', 'harness/capabilities.json', 'harness/config.yaml'];
+const EXCLUDED_PREFIXES = ['harness/plugin/runtime/test/'];
 
-// 解析参数
 let outDir = path.join(repoRoot, 'dist');
-let help = false;
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--out' && args[i + 1]) {
-    outDir = path.resolve(args[i + 1]);
-    i++;
-  } else if (args[i] === '--help' || args[i] === '-h') {
-    help = true;
+for (let index = 0; index < args.length; index += 1) {
+  if (args[index] === '--out' && args[index + 1]) outDir = path.resolve(args[++index]);
+  else if (args[index] === '--help' || args[index] === '-h') {
+    console.log('Enterprise Harness Packager');
+    console.log('Usage: node bin/package.mjs [--out <dir>]');
+    console.log('Builds an allowlisted release artifact plus manifest-files.json and SHA256SUMS.');
+    process.exit(0);
+  } else {
+    console.error(`Unknown option: ${args[index]}`);
+    process.exit(1);
   }
 }
 
-if (help) {
-  console.log('Enterprise Harness Packager');
-  console.log('Usage: node bin/package.mjs [--out <dir>]');
-  console.log('  --out <dir>  输出目录（默认 dist/）');
-  process.exit(0);
+function normalized(value) {
+  return value.split(path.sep).join('/');
 }
 
-// 读取版本
+function walk(relativeRoot) {
+  const absolute = path.join(repoRoot, relativeRoot);
+  if (!fs.existsSync(absolute)) return [];
+  const stat = fs.lstatSync(absolute);
+  if (stat.isSymbolicLink()) throw new Error(`release asset must not be a symlink: ${relativeRoot}`);
+  if (stat.isFile()) return [normalized(relativeRoot)];
+  const files = [];
+  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
+    const relative = path.join(relativeRoot, entry.name);
+    const portable = normalized(relative);
+    if (EXCLUDED_PREFIXES.some((prefix) => portable.startsWith(prefix))) continue;
+    if (entry.isSymbolicLink()) throw new Error(`release asset must not be a symlink: ${portable}`);
+    if (entry.isDirectory()) files.push(...walk(relative));
+    else if (entry.isFile()) files.push(portable);
+  }
+  return files;
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
 const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8'));
 const version = pkg.version || '0.0.0';
 const tarballName = `enterprise-harness-${version}.tar.gz`;
-
-// 排除的目录/文件
-const excludeDirs = new Set([
-  '.git',
-  '.codegraph',
-  'node_modules',
-  'dist',
-  '__pycache__',
-  '.DS_Store',
-]);
-const excludeFiles = new Set([
-  '.env',
-  '.env.local',
-]);
-
-// 用 git archive 打包（排除 .git 相关），再用 tar 进一步排除 node_modules/dist
-// 但 git archive 只包含 git tracked 文件，可能漏掉未跟踪但必要的文件
-// 所以改用自定义 tar：遍历目录，排除特定项
-
-console.log('Enterprise Harness Packager');
-console.log(`Repo: ${repoRoot}`);
-console.log(`Version: ${version}`);
-console.log(`Output: ${outDir}/${tarballName}`);
-
-fs.mkdirSync(outDir, { recursive: true });
-
-// 生成排除列表文件（给 tar 用）
-const excludeListPath = path.join(outDir, '.exclude-list');
-const excludePatterns = ['.git', '.codegraph', 'node_modules', 'dist', '__pycache__', '.DS_Store', '.env', '.env.local'];
-fs.writeFileSync(excludeListPath, excludePatterns.join('\n') + '\n', 'utf-8');
-
-// 使用 tar 打包
 const tarballPath = path.join(outDir, tarballName);
-const tarResult = spawnSync('tar', [
-  '-czf',
-  tarballPath,
-  '-C', repoRoot,
-  '--exclude=.git',
-  '--exclude=.codegraph',
-  '--exclude=node_modules',
-  '--exclude=dist',
-  '--exclude=__pycache__',
-  '--exclude=.DS_Store',
-  '--exclude=.env',
-  '--exclude=.env.local',
-  '.',
-], { encoding: 'utf-8' });
+const stageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-package-'));
 
-// 清理临时文件
-fs.unlinkSync(excludeListPath);
+try {
+  const files = [...new Set([
+    ...ROOT_FILES,
+    ...ALLOWED_HARNESS_FILES,
+    ...ALLOWED_TREES.flatMap(walk),
+  ])].filter((relative) => fs.existsSync(path.join(repoRoot, relative))).sort();
 
-if (tarResult.status !== 0) {
-  console.error(`ERROR: tar failed: ${(tarResult.stderr || '').trim()}`);
-  process.exit(1);
+  for (const relative of files) {
+    const source = path.join(repoRoot, relative);
+    const target = path.join(stageRoot, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+  }
+
+  const manifest = {
+    schemaVersion: 1,
+    package: pkg.name,
+    version,
+    files: files.map((relative) => {
+      const content = fs.readFileSync(path.join(stageRoot, relative));
+      return { path: relative, size: content.length, sha256: sha256(content) };
+    }),
+  };
+  fs.writeFileSync(
+    path.join(stageRoot, 'manifest-files.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    'utf-8',
+  );
+
+  fs.mkdirSync(outDir, { recursive: true });
+  const tar = spawnSync('tar', ['-czf', tarballPath, '-C', stageRoot, '.'], {
+    encoding: 'utf-8',
+    shell: false,
+  });
+  if (tar.status !== 0) throw new Error(`tar failed: ${(tar.stderr || '').trim()}`);
+  const tarDigest = sha256(fs.readFileSync(tarballPath));
+  fs.writeFileSync(path.join(outDir, 'SHA256SUMS'), `${tarDigest}  ${tarballName}\n`, 'utf-8');
+  fs.copyFileSync(path.join(stageRoot, 'manifest-files.json'), path.join(outDir, 'manifest-files.json'));
+
+  console.log('Enterprise Harness Packager');
+  console.log(`Tarball: ${tarballPath}`);
+  console.log(`Files: ${manifest.files.length + 1}`);
+  console.log(`SHA256: ${tarDigest}`);
+} catch (error) {
+  console.error(`ERROR: ${error.message}`);
+  process.exitCode = 1;
+} finally {
+  fs.rmSync(stageRoot, { recursive: true, force: true });
 }
-
-const stats = fs.statSync(tarballPath);
-const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-
-console.log(`Tarball created: ${tarballName} (${sizeMB} MB)`);
-console.log('Packaging complete.');

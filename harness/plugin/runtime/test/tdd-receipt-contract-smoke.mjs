@@ -8,6 +8,7 @@ import {
   allowedTaskCommand,
   isSafeEvidenceId,
   readAndValidateTddReceipt,
+  validateProjectCommand,
   validateTddReceipt,
 } from '../lib/tdd-receipts.mjs';
 import {
@@ -51,7 +52,76 @@ git('add', '.claude/settings.json');
 git('commit', '-qm', 'hidden path');
 assert.deepEqual(changedPathsBetween(root, baselineHead), ['.claude/settings.json']);
 const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
-const command = (phase) => allowedTaskCommand('task-1', phase);
+const mavenChange = 'maven-change';
+const mavenTask = 'task-add-order-api';
+fs.mkdirSync(path.join(root, 'harness', 'changes', mavenChange), { recursive: true });
+fs.writeFileSync(path.join(root, 'harness', 'command-policy.json'), `${JSON.stringify({
+  schemaVersion: 1,
+  build: {
+    type: 'maven',
+    executables: ['./mvnw', 'mvn'],
+    allowedGoals: ['test', 'verify'],
+  },
+})}\n`);
+fs.writeFileSync(
+  path.join(root, 'harness', 'changes', mavenChange, 'task-commands.json'),
+  `${JSON.stringify({
+    schemaVersion: 1,
+    tasks: {
+      [mavenTask]: {
+        redCommand: ['./mvnw', '-pl', 'order-service', '-Dtest=OrderTest', 'test'],
+        greenCommand: ['./mvnw', '-pl', 'order-service', '-Dtest=OrderTest', 'test'],
+        verifyCommand: ['./mvnw', 'verify'],
+      },
+    },
+  })}\n`,
+);
+assert.deepEqual(
+  allowedTaskCommand(root, mavenChange, mavenTask, 'RED'),
+  ['./mvnw', '-pl', 'order-service', '-Dtest=OrderTest', 'test'],
+);
+assert.deepEqual(
+  allowedTaskCommand(root, mavenChange, mavenTask, 'REFACTOR'),
+  ['./mvnw', 'verify'],
+);
+assert.notDeepEqual(
+  validateProjectCommand(
+    { schemaVersion: 1, build: { type: 'maven', executables: ['./mvnw'], allowedGoals: ['test'] } },
+    ['bash', '-lc', 'mvn test'],
+  ),
+  [],
+);
+assert.notDeepEqual(
+  validateProjectCommand(
+    { schemaVersion: 1, build: { type: 'maven', executables: ['./mvnw'], allowedGoals: ['test'] } },
+    ['./mvnw', 'deploy'],
+  ),
+  [],
+);
+const command = (phase) => [
+  'node',
+  'harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs',
+  phase === 'REFACTOR' ? 'verify' : phase.toLowerCase(),
+];
+fs.writeFileSync(path.join(root, 'harness', 'command-policy.json'), `${JSON.stringify({
+  schemaVersion: 1,
+  build: {
+    type: 'command',
+    executables: ['node'],
+  },
+})}\n`);
+const hardeningChange = path.join(root, 'harness', 'changes', 'plugin-runtime-agent-dispatch-hardening');
+fs.mkdirSync(hardeningChange, { recursive: true });
+fs.writeFileSync(path.join(hardeningChange, 'task-commands.json'), `${JSON.stringify({
+  schemaVersion: 1,
+  tasks: {
+    'task-1': {
+      redCommand: command('RED'),
+      greenCommand: command('GREEN'),
+      refactorCommand: command('REFACTOR'),
+    },
+  },
+})}\n`);
 const base = {
   receiptVersion: 1,
   provenance: 'runner-bootstrap',

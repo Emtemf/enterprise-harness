@@ -1,11 +1,15 @@
 import fs from 'node:fs';
-import { spawnSync } from 'node:child_process';
-import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateReferenceServiceControllerConsistency, validateGenericControllerConsistency } from '../lib/checks.mjs';
+import { projectRoot, isHarnessManaged, hasChangeTracking, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateGenericControllerConsistency } from '../lib/checks.mjs';
 import path from 'node:path';
 import { loadActiveChange, isGovernedTarget } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { extractHookTargets, isPotentialWriteBash } from '../lib/hook-targets.mjs';
+import {
+  captureGovernedSnapshot,
+  consumeHookSnapshot,
+  diffGovernedSnapshots,
+} from '../lib/hook-snapshots.mjs';
 
 const root = projectRoot();
 const managed = isHarnessManaged(root);
@@ -19,28 +23,58 @@ if (!managed && !trackingChanges) {
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
+let incrementalTargets = [];
+let attributionBlocked = false;
 if (raw) {
+  let event;
   try {
-    const event = JSON.parse(raw);
+    event = JSON.parse(raw);
+  } catch (error) {
+    console.error(`BLOCK [EH-HOOK-POST-WRITE-011] invalid hook JSON: ${error.message}`);
+    process.exit(1);
+  }
+  try {
     const targets = extractHookTargets(root, event);
     const active = loadActiveChange(root);
-    if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command) && active.ok) {
-      const diff = spawnSync('git', ['diff', '--name-only'], { cwd: root, encoding: 'utf-8', shell: false });
-      const changedGoverned = String(diff.stdout || '').split('\n').filter(Boolean)
-        .map((relative) => path.resolve(root, relative)).filter((target) => isGovernedTarget(root, target));
+    if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
+      const before = consumeHookSnapshot(root, event.tool_use_id);
+      if (!before) {
+        attributionBlocked = true;
+        if (active.ok) {
+          appendAgentEvent(root, active.changeId, {
+            kind: 'violation',
+            violation: 'missing-bash-write-snapshot',
+            errorCode: 'EH-HOOK-SNAPSHOT-010',
+            sessionId: event.session_id,
+            toolUseId: event.tool_use_id || null,
+            agentId: event.agent_id || null,
+            cwd: event.cwd || root,
+          });
+        }
+      }
+      const changedGoverned = before
+        ? diffGovernedSnapshots(before, captureGovernedSnapshot(root))
+          .map((relative) => path.resolve(root, relative))
+        : [];
       const declared = new Set(targets.map((target) => path.resolve(target)));
       for (const target of changedGoverned.filter((item) => !declared.has(item))) {
-        appendAgentEvent(root, active.changeId, {
-          kind: 'violation',
-          violation: 'unparsed-governed-bash-write',
-          sessionId: event.session_id,
-          agentId: event.agent_id || null,
-          cwd: event.cwd || root,
-          target: path.relative(root, target).replaceAll('\\', '/'),
-        });
+        attributionBlocked = true;
+        if (active.ok) {
+          appendAgentEvent(root, active.changeId, {
+            kind: 'violation',
+            violation: 'unparsed-governed-bash-write',
+            errorCode: 'EH-HOOK-POST-WRITE-011',
+            sessionId: event.session_id,
+            toolUseId: event.tool_use_id || null,
+            agentId: event.agent_id || null,
+            cwd: event.cwd || root,
+            target: path.relative(root, target).replaceAll('\\', '/'),
+          });
+        }
       }
       targets.push(...changedGoverned);
     }
+    incrementalTargets = [...new Set(targets.map((target) => path.resolve(target)))];
     for (const target of targets) {
       const activeChangeDir = active.ok ? path.resolve(path.join(root, 'harness', 'changes', active.changeId)) : null;
       const touchesActiveChange = activeChangeDir && (target === activeChangeDir || target.startsWith(activeChangeDir + path.sep));
@@ -51,13 +85,33 @@ if (raw) {
         fs.writeFileSync(active.statePath, JSON.stringify(active.data, null, 2) + '\n', 'utf-8');
       }
     }
-  } catch {}
+  } catch (error) {
+    const active = loadActiveChange(root);
+    if (active.ok) {
+      appendAgentEvent(root, active.changeId, {
+        kind: 'violation',
+        violation: 'post-write-attribution-failed',
+        errorCode: 'EH-HOOK-POST-WRITE-011',
+        sessionId: event?.session_id,
+        toolUseId: event?.tool_use_id || null,
+        agentId: event?.agent_id || null,
+        cwd: event?.cwd || root,
+        detail: error.message,
+      });
+    }
+    console.error(`BLOCK [EH-HOOK-POST-WRITE-011] ${error.message}`);
+    process.exit(1);
+  }
 }
-const semanticProblems = [
+if (attributionBlocked) {
+  console.error('BLOCK [EH-HOOK-SNAPSHOT-010] Bash 写入无法完整归因；查看 violation ledger 后重试。');
+  process.exit(2);
+}
+const touchesGoverned = incrementalTargets.some((target) => isGovernedTarget(root, target));
+const semanticProblems = touchesGoverned ? [
   ...validateOpenApiLight(root),
   ...validateGenericControllerConsistency(root),
-  ...validateReferenceServiceControllerConsistency(root),
-];
+] : [];
 if (semanticProblems.length) {
   for (const problem of semanticProblems) console.error(problem);
   process.exit(1);
@@ -84,4 +138,6 @@ try {
     const card = renderTECPCCard(root, active.changeId, active.data);
     console.log(`[Harness 闭环五检]\n${card}`);
   }
-} catch {}
+} catch (error) {
+  console.log(`[Harness 诊断 EH-POST-WRITE-TECP-016] ${error.message}`);
+}

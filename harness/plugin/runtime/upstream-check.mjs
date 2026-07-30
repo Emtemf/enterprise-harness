@@ -4,6 +4,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = process.cwd();
+const online = process.argv.includes('--online');
 const registryPath = process.env.HARNESS_UPSTREAM_REGISTRY || path.join(repoRoot, 'harness', 'upstream', 'registry.json');
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
 
@@ -55,14 +56,25 @@ function runtimeCheck(name, command, args) {
 
 const checks = [];
 checks.push(runtimeCheck('CodeGraph', 'codegraph', ['--version']));
-checks.push(runtimeCheck('Context7', 'npx', ['-y', 'ctx7', '--version']));
+if (online) {
+  checks.push(runtimeCheck('Context7', 'npx', ['--no-install', 'ctx7', '--version']));
+} else {
+  checks.push({
+    name: 'Context7',
+    kind: 'runtime-upstream',
+    ok: null,
+    status: 'online-check-not-run',
+    currentVersion: null,
+    expectedVersion: registry.runtimeUpstreams.find((x) => x.name === 'Context7')?.currentValidatedVersion ?? null,
+  });
+}
 
 for (const item of registry.referenceUpstreams) {
   checks.push({
     name: item.name,
     kind: 'reference-upstream',
-    ok: true,
-    status: 'manual-review',
+    ok: null,
+    status: 'manual-review-required',
     currentVersion: item.observedVersions?.[0] ?? null,
     expectedVersion: 'manual-review',
   });
@@ -70,7 +82,7 @@ for (const item of registry.referenceUpstreams) {
 
 const result = {
   repoRoot,
-  ok: checks.every((c) => c.ok),
+  ok: checks.every((check) => check.ok !== false),
   checks,
   guidance: [
     '参考型上游只做人工比对，不自动同步。',
@@ -85,7 +97,7 @@ if (process.argv.includes('--json')) {
 
 console.log('Enterprise Harness Upstream Check');
 for (const item of checks) {
-  const prefix = item.ok ? 'OK' : 'FAIL';
+  const prefix = item.ok === true ? 'OK' : item.ok === false ? 'FAIL' : 'REVIEW';
   console.log(`${prefix} ${item.kind}: ${item.name}`);
   console.log(`  status=${item.status}`);
   console.log(`  current=${item.currentVersion ?? 'unknown'} expected=${item.expectedVersion ?? 'unknown'}`);

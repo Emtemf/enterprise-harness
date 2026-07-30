@@ -20,10 +20,13 @@ function printHandoffGuidance(root) {
       const card = renderTECPCCard(root, active.changeId, active.data);
       console.error(card);
     }
-  } catch {}
-  console.error('- repo-level 阶段信息：写回 PROGRESS.md，更新整体阶段、当前目标与下一步重点。');
+  } catch (error) {
+    console.error(`- EH-STOP-TECP-001：TECPC 卡片无法渲染：${error.message}`);
+  }
+  console.error('- 动态状态：写回 active change 的 state.json、evidence、reviews 与 validation.md。');
+  console.error('- 可选维护快照：如确有必要，更新 docs/internal/current-development-status.md；它不参与 gate。');
   console.error('- Claude memory：只保存 repo 中没有记录、但跨会话仍有价值的非仓库事实，而且必须通过显式动作触发。');
-  console.error('- 聊天记录：可以作为来源，但不是仓库真相，也不能替代 change 资产、PROGRESS.md 或 Claude memory。');
+  console.error('- 聊天记录：可以作为来源，但不是仓库真相，也不能替代 change 资产或 Claude memory。');
   console.error('- 如需重新确认当前状态，可运行 node harness/plugin/runtime/cli.mjs status。');
 }
 

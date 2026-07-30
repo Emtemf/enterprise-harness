@@ -5,22 +5,23 @@ import { spawnSync } from 'node:child_process';
 import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.mjs';
 
 const repoRoot = process.cwd();
+const online = process.argv.includes('--online');
 
 const requiredProjectFiles = [
   'AGENTS.md',
   'CLAUDE.md',
-  'PROGRESS.md',
   '.claude/settings.json',
   'harness/config.yaml',
-  'harness/specs/plugin-runtime.md',
-  'harness/specs/session-lifecycle.md',
-  'harness/specs/staged-workflow.md',
+  'harness/specs/architecture.md',
+  'harness/specs/workflow.md',
+  'harness/specs/state-schema.md',
   'harness/templates/requirements.md',
 ];
 
 const optionalProjectFiles = [
   '.mcp.json',
   'harness/ACTIVE_CHANGE',
+  'docs/internal/current-development-status.md',
 ];
 
 const checks = [];
@@ -74,14 +75,25 @@ checks.push({
   detail: outputText(codegraph),
 });
 
-const ctx7 = run('npx', ['-y', 'ctx7', 'docs', '/react/react', 'useEffect examples']);
-checks.push({
-  kind: 'tool',
-  name: 'context7-cli-runtime',
-  ok: ctx7.status === 0,
-  severity: ctx7.status === 0 ? 'info' : 'warn',
-  detail: outputText(ctx7).split('\n').slice(0, 3).join('\n'),
-});
+if (online) {
+  const ctx7 = run('npx', ['--no-install', 'ctx7', 'docs', '/react/react', 'useEffect examples']);
+  checks.push({
+    kind: 'online-tool',
+    name: 'context7-cli-runtime',
+    ok: ctx7.status === 0,
+    severity: ctx7.status === 0 ? 'info' : 'warn',
+    detail: outputText(ctx7).split('\n').slice(0, 3).join('\n'),
+  });
+} else {
+  checks.push({
+    kind: 'online-tool',
+    name: 'context7-cli-runtime',
+    ok: true,
+    severity: 'info',
+    status: 'not-run',
+    detail: 'offline doctor does not access Context7; pass --online to probe the installed CLI',
+  });
+}
 
 const localAdapter = readLocalAdapter();
 const localAdapterHasError = localAdapter.problems.some((problem) => problem.severity === 'error');

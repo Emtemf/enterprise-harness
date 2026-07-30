@@ -20,9 +20,9 @@ const summary = buildStatusSummary(root);
 const activeChange = summary.activeChange.present
   ? `${summary.activeChange.changeId} | state=${summary.activeChange.state} | validation=${summary.activeChange.validationStatus}`
   : '当前没有 active change';
-const progressFile = summary.progressSnapshot.file || 'PROGRESS.md';
+const progressFile = summary.progressSnapshot.file || 'docs/internal/current-development-status.md';
 const maintainerStatusCommand = summary.maintainerCommands?.find((command) => command.includes('status')) || 'node harness/plugin/runtime/cli.mjs status';
-const userEntry = '/harness';
+const userEntry = '/enterprise-harness:harness（plugin）或 /harness（standalone）';
 const workflowStage = summary.nextStage || '未识别';
 const currentGap = summary.currentGap || '未识别当前缺口';
 const guideReminder = summary.activeChange?.guideReminder || null;
@@ -52,8 +52,8 @@ if (fs.existsSync(projectInfoPath)) {
     } else {
       console.log('[Harness 项目技术栈] 未配置（project-info.json 存在但字段未填写），建议运行 setup-local-adapter --write 并编辑 harness/project-info.json 填写项目技术栈');
     }
-  } catch {
-    // ignore parse errors
+  } catch (error) {
+    console.log(`[Harness 诊断 EH-SESSION-PROJECT-INFO-001] project-info.json 无法解析：${error.message}`);
   }
 } else {
   console.log('[Harness 项目技术栈] 未找到 harness/project-info.json，建议运行 setup-local-adapter --write 生成并填写');
@@ -83,7 +83,9 @@ try {
     const card = renderTECPCCard(root, active.changeId, active.data);
     console.log(`[Harness 闭环五检]\n${card}`);
   }
-} catch {}
+} catch (error) {
+  console.log(`[Harness 诊断 EH-SESSION-TECP-002] TECPC 卡片无法渲染：${error.message}`);
+}
 
 // 代码探索工具可用性提醒
 console.log('[Harness 工具提醒] 代码探索时请优先使用 codegraph_explore/codegraph_search 等 MCP 工具，不要用 grep/Read 替代。');

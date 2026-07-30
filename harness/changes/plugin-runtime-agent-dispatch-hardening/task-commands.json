@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "tasks": {
+    "task-1": {
+      "redCommand": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "red"
+      ],
+      "greenCommand": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "green"
+      ],
+      "refactorCommand": [
+        "node",
+        "harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs",
+        "verify"
+      ]
+    },
+    "task-2": {
+      "redCommand": [
+        "node",
+        "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
+        "red"
+      ],
+      "greenCommand": [
+        "node",
+        "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
+        "green"
+      ],
+      "refactorCommand": [
+        "node",
+        "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
+        "verify"
+      ]
+    },
+    "task-3": {
+      "redCommand": [
+        "node",
+        "harness/plugin/runtime/test/task3-gate-completion-smoke.mjs",
+        "red"
+      ],
+      "greenCommand": [
+        "node",
+        "harness/plugin/runtime/test/task3-gate-completion-smoke.mjs",
+        "green"
+      ],
+      "refactorCommand": [
+        "node",
+        "harness/plugin/runtime/test/task3-gate-completion-smoke.mjs",
+        "verify"
+      ]
+    },
+    "task-4": {
+      "redCommand": [
+        "node",
+        "harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs",
+        "red"
+      ],
+      "greenCommand": [
+        "node",
+        "harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs",
+        "green"
+      ],
+      "refactorCommand": [
+        "node",
+        "harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs",
+        "verify"
+      ]
+    }
+  }
+}

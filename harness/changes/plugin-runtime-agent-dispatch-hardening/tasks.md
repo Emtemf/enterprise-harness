@@ -81,10 +81,10 @@ receipt 标记 `provenance=runner-bootstrap`，只在同时满足以下条件时
 | task-2 | RED | `node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs red` |
 | task-2 | GREEN | `node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs green` |
 | task-2 | REFACTOR | `node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify` |
-| task-3 | RED | `node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs red` |
+| task-3 | Historical RED | Original executor receipt required; current source must not manufacture failure |
 | task-3 | GREEN | `node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs green` |
 | task-3 | REFACTOR | `node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify` |
-| task-4 | RED | `node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs red` |
+| task-4 | Historical RED | Original executor receipt required; current source must not manufacture failure |
 | task-4 | GREEN | `node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs green` |
 | task-4 | REFACTOR | `node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify` |
 

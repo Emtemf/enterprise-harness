@@ -1,3 +1,14 @@
+---
+status: current
+owner: enterprise-harness-maintainers
+lastVerified: 2026-07-29
+implementationRefs:
+  - harness/plugin/runtime/tdd-run.mjs
+  - harness/plugin/runtime/lib/tdd-receipts.mjs
+testRefs:
+  - harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs
+---
+
 # TDD Execution Contract
 
 ## 目标

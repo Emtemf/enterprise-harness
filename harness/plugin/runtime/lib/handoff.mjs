@@ -2,11 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { normalizeAgentType, sha256 } from './agent-evidence.mjs';
+import {
+  assertSafeId,
+  assertSafeRunId,
+  canonicalPath,
+  isSafeId,
+  isSafeRelativePath,
+  isSafeRunId,
+  pathIsWithin,
+  resolveChild,
+  resolveWithin,
+} from './safe-paths.mjs';
 
 export const HANDOFF_VERSION = 1;
 export const HANDOFF_RESULT_START = 'ENTERPRISE_HARNESS_HANDOFF_RESULT';
 export const HANDOFF_RESULT_END = 'END_ENTERPRISE_HARNESS_HANDOFF_RESULT';
-const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 const STAGES = new Set(['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']);
 const ROLES = new Set(['execute', 'check']);
 
@@ -19,11 +29,13 @@ export function loadBehaviorRegistry(root) {
 }
 
 export function runsDir(root, changeId) {
-  return path.join(root, 'harness', 'changes', changeId, 'runs');
+  const changeDir = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
+  return path.join(changeDir, 'runs');
 }
 
 export function runDir(root, changeId, runId) {
-  return path.join(runsDir(root, changeId), runId);
+  assertSafeRunId(runId);
+  return resolveChild(runsDir(root, changeId), runId, 'runId');
 }
 
 export function handoffInputPath(root, changeId, runId) {
@@ -56,7 +68,7 @@ export function createHandoffInput(root, {
   pathSummary = '',
   correction = '',
 }) {
-  if (!SAFE_ID.test(changeId || '')) throw new Error('unsafe changeId');
+  assertSafeId(changeId, 'changeId');
   const registry = loadBehaviorRegistry(root);
   const contract = registry.behaviors?.[behavior];
   if (!contract) throw new Error(`unknown governed behavior: ${behavior}`);
@@ -73,6 +85,7 @@ export function createHandoffInput(root, {
   }
   if (role === 'check') {
     if (!parentRunId) throw new Error('checker handoff requires parentRunId');
+    assertSafeRunId(parentRunId, 'parentRunId');
     const parentResult = handoffResultPath(root, changeId, parentRunId, 'execute');
     if (!fs.existsSync(parentResult)) throw new Error(`executor result does not exist: ${parentResult}`);
   }
@@ -80,6 +93,10 @@ export function createHandoffInput(root, {
   const effectiveInputRefs = role === 'check' && parentRunId && inputRefs.length === 0
     ? [path.relative(root, handoffResultPath(root, changeId, parentRunId, 'execute'))]
     : inputRefs;
+  for (const ref of effectiveInputRefs) {
+    if (!isSafeRelativePath(ref)) throw new Error(`inputRef must be a safe relative path: ${ref}`);
+    resolveWithin(root, ref, 'inputRef');
+  }
   const envelope = {
     handoffVersion: HANDOFF_VERSION,
     runId,
@@ -102,8 +119,8 @@ export function createHandoffInput(root, {
     },
     inputRefs: effectiveInputRefs,
     inputDigests: Object.fromEntries(effectiveInputRefs
-      .filter((ref) => typeof ref === 'string' && fs.existsSync(path.resolve(root, ref)))
-      .map((ref) => [ref, sha256(fs.readFileSync(path.resolve(root, ref)))])),
+      .filter((ref) => fs.existsSync(resolveWithin(root, ref, 'inputRef')))
+      .map((ref) => [ref, sha256(fs.readFileSync(resolveWithin(root, ref, 'inputRef')))])),
     createdAt: new Date().toISOString(),
   };
   const targetPath = handoffInputPath(root, changeId, runId);
@@ -131,8 +148,8 @@ export function parseHandoffResult(message) {
 export function validateHandoffInput(envelope, expected = {}) {
   const problems = [];
   if (envelope?.handoffVersion !== HANDOFF_VERSION) problems.push(`handoffVersion must be ${HANDOFF_VERSION}`);
-  if (!SAFE_ID.test(envelope?.changeId || '')) problems.push('changeId is missing or unsafe');
-  if (!String(envelope?.runId || '').startsWith('run_')) problems.push('runId is missing');
+  if (!isSafeId(envelope?.changeId)) problems.push('changeId is missing or unsafe');
+  if (!isSafeRunId(envelope?.runId)) problems.push('runId is missing or unsafe');
   if (!STAGES.has(envelope?.stage)) problems.push('stage is invalid');
   if (!envelope?.behavior) problems.push('behavior is missing');
   if (!ROLES.has(envelope?.role)) problems.push('role must be execute or check');
@@ -161,6 +178,9 @@ export function validateHandoffResult(result, input, expectedAgentType = null) {
     if (tecpc?.[key] === undefined || tecpc?.[key] === null) problems.push(`tecpc.${key} is missing`);
   }
   if (!Array.isArray(result?.outputRefs)) problems.push('outputRefs must be an array');
+  else if (result.outputRefs.some((ref) => !isSafeRelativePath(ref))) {
+    problems.push('outputRefs must contain safe relative paths');
+  }
   if (!Array.isArray(result?.blockers)) problems.push('blockers must be an array');
   if (!String(result?.summary || '').trim()) problems.push('summary is missing');
   if (input?.role === 'check' && !['pass', 'block', 'advisory'].includes(result?.verdict)) {
@@ -170,7 +190,12 @@ export function validateHandoffResult(result, input, expectedAgentType = null) {
 }
 
 export function loadHandoffInput(root, markerPath, expected = {}) {
-  const absolute = path.resolve(root, markerPath || '');
+  let absolute;
+  try {
+    absolute = resolveWithin(root, markerPath || '', 'HANDOFF_INPUT');
+  } catch (error) {
+    return { ok: false, path: null, problems: [error.message] };
+  }
   if (!fs.existsSync(absolute)) return { ok: false, path: absolute, problems: ['input file does not exist'] };
   let envelope;
   try {
@@ -178,9 +203,14 @@ export function loadHandoffInput(root, markerPath, expected = {}) {
   } catch (error) {
     return { ok: false, path: absolute, problems: [`invalid input JSON: ${error.message}`] };
   }
-  const canonical = handoffInputPath(root, envelope.changeId, envelope.runId);
   const problems = validateHandoffInput(envelope, expected);
-  if (path.resolve(canonical) !== absolute) problems.push('input path is outside canonical run directory');
+  let canonical = null;
+  if (isSafeId(envelope?.changeId) && isSafeRunId(envelope?.runId)) {
+    canonical = handoffInputPath(root, envelope.changeId, envelope.runId);
+  }
+  if (!canonical || !pathIsWithin(absolute, root) || canonicalPath(canonical) !== canonicalPath(absolute)) {
+    problems.push('input path is outside canonical run directory');
+  }
   try {
     const contract = loadBehaviorRegistry(root).behaviors?.[envelope.behavior];
     if (!contract) {
@@ -200,7 +230,13 @@ export function loadHandoffInput(root, markerPath, expected = {}) {
     problems.push(`behavior registry unavailable: ${error.message}`);
   }
   for (const ref of envelope.inputRefs || []) {
-    const refPath = path.resolve(root, ref);
+    let refPath;
+    try {
+      refPath = resolveWithin(root, ref, 'inputRef');
+    } catch (error) {
+      problems.push(error.message);
+      continue;
+    }
     if (!fs.existsSync(refPath)) {
       problems.push(`inputRef does not exist: ${ref}`);
       continue;

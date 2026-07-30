@@ -160,6 +160,17 @@ check('H: non-exploration Bash must PASS', () => {
   });
 });
 
+check('I: an exempt README token must not exempt business-code exploration in the same Bash command', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', {
+      command: 'rg "Template" README.md src/main/java',
+    });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/u);
+  });
+});
+
 function fail(message) {
   console.error(message);
   for (const f of failures) console.error(`  - ${f}`);

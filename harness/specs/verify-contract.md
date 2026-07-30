@@ -1,3 +1,13 @@
+---
+status: current
+owner: enterprise-harness-maintainers
+lastVerified: 2026-07-29
+implementationRefs:
+  - harness/plugin/runtime/verify.mjs
+testRefs:
+  - harness/plugin/runtime/test/completion-layers-smoke.mjs
+---
+
 # Verify Contract
 
 ## 目标

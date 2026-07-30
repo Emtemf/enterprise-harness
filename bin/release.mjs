@@ -1,145 +1,158 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
-
-// 解析参数
-let bumpType = 'patch'; // patch | minor | major
+let bumpType = 'patch';
 let dryRun = false;
-let help = false;
-for (let i = 0; i < args.length; i++) {
-  const arg = args[i];
+for (const arg of args) {
   if (arg === '--patch') bumpType = 'patch';
   else if (arg === '--minor') bumpType = 'minor';
   else if (arg === '--major') bumpType = 'major';
   else if (arg === '--dry-run') dryRun = true;
-  else if (arg === '--help' || arg === '-h') help = true;
+  else if (arg === '--help' || arg === '-h') {
+    console.log('Enterprise Harness Release');
+    console.log('Usage: node bin/release.mjs [--patch|--minor|--major] [--dry-run]');
+    console.log('Builds and validates a release in an isolated temporary Git worktree.');
+    process.exit(0);
+  } else {
+    console.error(`Unknown option: ${arg}`);
+    process.exit(1);
+  }
 }
 
-if (help) {
-  console.log('Enterprise Harness Release');
-  console.log('Usage: node bin/release.mjs [--patch|--minor|--major] [--dry-run]');
-  console.log('  --patch   bump patch version (default)');
-  console.log('  --minor   bump minor version');
-  console.log('  --major   bump major version');
-  console.log('  --dry-run 只显示将要执行的步骤，不实际执行');
-  process.exit(0);
+function run(command, argv, cwd = repoRoot, options = {}) {
+  const result = spawnSync(command, argv, {
+    cwd,
+    encoding: 'utf-8',
+    shell: false,
+    ...options,
+  });
+  if (options.forward !== false) {
+    process.stdout.write(result.stdout || '');
+    process.stderr.write(result.stderr || '');
+  }
+  if (result.status !== 0) {
+    throw new Error(`${command} ${argv.join(' ')} failed`);
+  }
+  return String(result.stdout || '').trim();
 }
 
-// 读取当前版本
-const pkgPath = path.join(repoRoot, 'package.json');
-const manifestPath = path.join(repoRoot, 'harness', 'plugin', 'manifest.json');
-const pluginJsonPath = path.join(repoRoot, '.claude-plugin', 'plugin.json');
-const marketplacePath = path.join(repoRoot, '.claude-plugin', 'marketplace.json');
-const readmePath = path.join(repoRoot, 'README.md');
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
-const marketplace = JSON.parse(fs.readFileSync(marketplacePath, 'utf-8'));
-const currentVersion = pkg.version;
-
-// 计算 bump 后的版本
-function bumpVersion(version, type) {
+function bump(version, type) {
   const parts = version.split('.').map(Number);
+  if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part) || part < 0)) {
+    throw new Error(`invalid package version: ${version}`);
+  }
   let [major, minor, patch] = parts;
-  if (type === 'major') { major++; minor = 0; patch = 0; }
-  else if (type === 'minor') { minor++; patch = 0; }
-  else { patch++; }
+  if (type === 'major') [major, minor, patch] = [major + 1, 0, 0];
+  else if (type === 'minor') [minor, patch] = [minor + 1, 0];
+  else patch += 1;
   return `${major}.${minor}.${patch}`;
 }
 
-const newVersion = bumpVersion(currentVersion, bumpType);
-const tagName = `v${newVersion}`;
-
-console.log('Enterprise Harness Release');
-console.log(`Current version: ${currentVersion}`);
-console.log(`Bump type: ${bumpType}`);
-console.log(`New version: ${newVersion}`);
-console.log(`Tag: ${tagName}`);
-console.log('');
-
-const steps = [
-  '1. 在任何版本写入、commit、tag 或 push 前运行 npm run prepublish-check',
-  `2. 原子更新 package / runtime manifest / plugin / marketplace root+entry / README -> ${newVersion}`,
-  `3. git add + commit: "chore: release ${newVersion}"`,
-  `4. git tag ${tagName}`,
-  `5. git push origin main --tags`,
-  `6. GitHub Actions (release.yml) 自动构建 tarball并发布`,
-];
-
-console.log('Release steps:');
-steps.forEach((s) => console.log(`  ${s}`));
-console.log('');
-
-if (dryRun) {
-  console.log('[dry-run] No changes made. Re-run without --dry-run to execute.');
-  process.exit(0);
+function assertPreflight(tagName) {
+  if (run('git', ['status', '--porcelain'], repoRoot, { forward: false })) {
+    throw new Error('release requires a clean worktree');
+  }
+  if (run('git', ['branch', '--show-current'], repoRoot, { forward: false }) !== 'main') {
+    throw new Error('release must start from main');
+  }
+  const local = run('git', ['rev-parse', 'HEAD'], repoRoot, { forward: false });
+  const remote = run('git', ['rev-parse', 'origin/main'], repoRoot, { forward: false });
+  if (local !== remote) throw new Error('main must exactly match origin/main');
+  const localTag = spawnSync('git', ['rev-parse', '--verify', `refs/tags/${tagName}`], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    shell: false,
+  });
+  if (localTag.status === 0) throw new Error(`tag already exists: ${tagName}`);
+  const remoteTag = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tagName}`], repoRoot, {
+    forward: false,
+  });
+  if (remoteTag) throw new Error(`remote tag already exists: ${tagName}`);
+  return local;
 }
 
-// 实际执行
-console.log('Executing release...');
+const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8'));
+const nextVersion = bump(pkg.version, bumpType);
+const tagName = `v${nextVersion}`;
+console.log(`Release plan: ${pkg.version} -> ${nextVersion} (${tagName})`);
+console.log('1. verify clean synchronized main and absent tag');
+console.log('2. create isolated release worktree');
+console.log('3. update package version and generate projections');
+console.log('4. run prepublish, build allowlisted artifact, and verify artifact contents');
+console.log('5. commit only version projections, tag, then push commit and tag separately');
+if (dryRun) process.exit(0);
 
-// 所有可能产生副作用的动作之前，先执行完整发布验收。
-const prepublish = spawnSync('npm', ['run', 'prepublish-check'], { cwd: repoRoot, encoding: 'utf-8', shell: false });
-process.stdout.write(prepublish.stdout || '');
-process.stderr.write(prepublish.stderr || '');
-if (prepublish.status !== 0) {
-  console.error('ERROR: prepublish acceptance failed; no release files were changed');
-  process.exit(prepublish.status ?? 1);
+let tempRoot;
+let worktree;
+let branchName;
+try {
+  const sourceHead = assertPreflight(tagName);
+  tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-release-'));
+  worktree = path.join(tempRoot, 'worktree');
+  branchName = `release-${nextVersion}-${process.pid}`;
+  run('git', ['worktree', 'add', '-b', branchName, worktree, sourceHead]);
+
+  const packagePath = path.join(worktree, 'package.json');
+  const releasePackage = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+  releasePackage.version = nextVersion;
+  fs.writeFileSync(packagePath, `${JSON.stringify(releasePackage, null, 2)}\n`, 'utf-8');
+  const changelogPath = path.join(worktree, 'CHANGELOG.md');
+  const changelog = fs.readFileSync(changelogPath, 'utf-8');
+  const releaseDate = new Date().toISOString().slice(0, 10);
+  fs.writeFileSync(
+    changelogPath,
+    changelog.replace('## [Unreleased]\n', `## [Unreleased]\n\n## [${nextVersion}] - ${releaseDate}\n`),
+    'utf-8',
+  );
+  run(process.execPath, ['bin/sync-version.mjs', '--quiet'], worktree);
+
+  run('codegraph', ['init'], worktree);
+  run('npm', ['run', 'prepublish-check'], worktree);
+  run(process.execPath, ['bin/package.mjs', '--out', 'dist'], worktree);
+  run(process.execPath, ['harness/plugin/runtime/test/artifact-content-smoke.mjs', 'verify'], worktree);
+
+  const versionFiles = [
+    'package.json',
+    'harness/plugin/manifest.json',
+    '.claude-plugin/plugin.json',
+    '.claude-plugin/marketplace.json',
+    'CHANGELOG.md',
+  ];
+  run('git', ['add', '--', ...versionFiles], worktree);
+  const staged = run('git', ['diff', '--cached', '--name-only'], worktree, { forward: false })
+    .split('\n')
+    .filter(Boolean)
+    .sort();
+  if (JSON.stringify(staged) !== JSON.stringify([...versionFiles].sort())) {
+    throw new Error(`unexpected release files staged: ${staged.join(', ')}`);
+  }
+  run('git', ['commit', '-m', `chore: release ${nextVersion}`], worktree);
+  run('git', ['tag', tagName], worktree);
+  run('git', ['push', 'origin', `HEAD:main`], worktree);
+  run('git', ['push', 'origin', `refs/tags/${tagName}`], worktree);
+  console.log(`Release ${nextVersion} pushed successfully.`);
+} catch (error) {
+  console.error(`BLOCK: ${error.message}`);
+  process.exitCode = 1;
+} finally {
+  if (worktree && fs.existsSync(worktree)) {
+    spawnSync('git', ['worktree', 'remove', '--force', worktree], {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+      shell: false,
+    });
+  }
+  if (branchName) {
+    spawnSync('git', ['branch', '-D', branchName], {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+      shell: false,
+    });
+  }
+  if (tempRoot) fs.rmSync(tempRoot, { recursive: true, force: true });
 }
-
-// 1. 验收通过后，同步全部版本投影。
-pkg.version = newVersion;
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
-manifest.version = newVersion;
-fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
-pluginJson.version = newVersion;
-fs.writeFileSync(pluginJsonPath, JSON.stringify(pluginJson, null, 2) + '\n', 'utf-8');
-marketplace.version = newVersion;
-for (const entry of marketplace.plugins || []) {
-  if (entry.name === pluginJson.name) entry.version = newVersion;
-}
-fs.writeFileSync(marketplacePath, JSON.stringify(marketplace, null, 2) + '\n', 'utf-8');
-const readme = fs.readFileSync(readmePath, 'utf-8').replace(/^# Enterprise Harness \(v[^)]+\)/u, `# Enterprise Harness (v${newVersion})`);
-fs.writeFileSync(readmePath, readme, 'utf-8');
-console.log('  ✓ package / runtime manifest / plugin / marketplace / README versions updated');
-
-// 2. git add + commit
-const commitResult = spawnSync('git', ['add', '-A'], { cwd: repoRoot, encoding: 'utf-8' });
-if (commitResult.status !== 0) {
-  console.error('ERROR: git add failed');
-  process.exit(1);
-}
-
-const commitMsgResult = spawnSync('git', ['commit', '-m', `chore: release ${newVersion}`], { cwd: repoRoot, encoding: 'utf-8' });
-if (commitMsgResult.status !== 0) {
-  console.error('ERROR: git commit failed');
-  process.exit(1);
-}
-console.log(`  ✓ committed: "chore: release ${newVersion}"`);
-
-// 4. git tag
-const tagResult = spawnSync('git', ['tag', tagName], { cwd: repoRoot, encoding: 'utf-8' });
-if (tagResult.status !== 0) {
-  console.error(`ERROR: git tag ${tagName} failed`);
-  process.exit(1);
-}
-console.log(`  ✓ tagged: ${tagName}`);
-
-// 5. git push
-console.log('  → pushing to origin...');
-const pushResult = spawnSync('git', ['push', 'origin', 'main', '--tags'], { cwd: repoRoot, encoding: 'utf-8' });
-if (pushResult.status !== 0) {
-  console.error(`ERROR: git push failed: ${(pushResult.stderr || '').trim()}`);
-  console.error('You may need to push manually: git push origin main --tags');
-  process.exit(1);
-}
-console.log(`  ✓ pushed`);
-
-console.log('');
-console.log(`Release ${newVersion} triggered!`);
-console.log('GitHub Actions will build the tarball and create the GitHub Release automatically.');
-console.log(`Monitor at: https://github.com/Emtemf/enterprise-harness/actions`);

@@ -6,6 +6,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     runs-on: ${{ matrix.os }}
@@ -13,20 +16,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['20', '22']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
 
       - name: Install CodeGraph
         run: npm install -g @colbymchenry/codegraph@0.9.9
 
       - name: Install Claude Code validator
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-code@2.1.220
 
       - name: Initialize CodeGraph index
         run: codegraph init
@@ -51,3 +56,15 @@ jobs:
 
       - name: Upstream check
         run: node harness/plugin/runtime/cli.mjs upstream-check
+
+      - name: Build artifact manifest
+        run: node bin/package.mjs --out dist
+
+      - name: Upload deterministic reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: platform-smoke-${{ matrix.os }}-node-${{ matrix.node }}
+          path: |
+            dist/manifest-files.json
+            dist/SHA256SUMS
+          if-no-files-found: error

@@ -14,7 +14,6 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
@@ -22,10 +21,10 @@
             "timeout": 10,
             "statusMessage": "校验 scoped Agent 派发"
           }
-        ]
+        ],
+        "matcher": "Agent"
       },
       {
-        "matcher": "Write|Edit|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
@@ -33,10 +32,10 @@
             "timeout": 30,
             "statusMessage": "执行写入前治理检查"
           }
-        ]
+        ],
+        "matcher": "Write|Edit|NotebookEdit|Bash"
       },
       {
-        "matcher": "Grep|Read|Glob|Bash",
         "hooks": [
           {
             "type": "command",
@@ -44,12 +43,12 @@
             "timeout": 10,
             "statusMessage": "检查代码探索是否已委托 subagent"
           }
-        ]
+        ],
+        "matcher": "Grep|Read|Glob|Bash"
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
@@ -57,10 +56,10 @@
             "timeout": 10,
             "statusMessage": "绑定 Agent 派发证据"
           }
-        ]
+        ],
+        "matcher": "Agent"
       },
       {
-        "matcher": "Write|Edit|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
@@ -68,12 +67,12 @@
             "timeout": 60,
             "statusMessage": "执行写入后治理检查"
           }
-        ]
+        ],
+        "matcher": "Write|Edit|NotebookEdit|Bash"
       }
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
@@ -81,7 +80,8 @@
             "timeout": 10,
             "statusMessage": "记录 Agent 失败与恢复入口"
           }
-        ]
+        ],
+        "matcher": "Agent"
       }
     ],
     "SubagentStart": [

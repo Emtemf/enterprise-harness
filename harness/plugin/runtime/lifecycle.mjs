@@ -5,6 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { computeValidationDigest } from './lib/checks.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
+import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
 
 const repoRoot = process.cwd();
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -13,12 +14,14 @@ const changesDir = path.join(repoRoot, 'harness', 'changes');
 const activeFile = path.join(repoRoot, 'harness', 'ACTIVE_CHANGE');
 
 function printTECPCCard(root, changeId) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   if (!fs.existsSync(statePath)) return;
   try {
     const data = readJson(statePath);
     console.log(renderTECPCCard(root, changeId, data));
-  } catch {}
+  } catch (error) {
+    console.error(`WARN EH-LIFECYCLE-TECP-019 ${error.message}`);
+  }
 }
 
 function readJson(file) {
@@ -30,11 +33,16 @@ function writeJson(file, data) {
 }
 
 function ensureChangeDir(changeId) {
-  const changeDir = path.join(changesDir, changeId);
+  const changeDir = changePath(changeId);
   fs.mkdirSync(path.join(changeDir, 'evidence'), { recursive: true });
   fs.mkdirSync(path.join(changeDir, 'specs'), { recursive: true });
   fs.mkdirSync(path.join(changeDir, 'reviews'), { recursive: true });
   return changeDir;
+}
+
+function changePath(changeId) {
+  assertSafeId(changeId, 'changeId');
+  return resolveChild(changesDir, changeId, 'changeId');
 }
 
 function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic = '') {
@@ -80,8 +88,9 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic 
 }
 
 function cmdExploration(changeId, topic) {
+  const topicSlug = safeSlug(topic, 'topic');
   const changeDir = ensureChangeDir(changeId);
-  const target = path.join(changeDir, 'evidence', `${topic}-exploration.md`);
+  const target = path.join(changeDir, 'evidence', `${topicSlug}-exploration.md`);
   if (!fs.existsSync(target)) {
     fs.copyFileSync(path.join(templatesDir, 'exploration.md'), target);
   }
@@ -89,7 +98,7 @@ function cmdExploration(changeId, topic) {
 }
 
 function cmdState(changeId, state, tier) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const data = readJson(statePath);
   if (state === 'EXECUTING' && (!data.currentTask || !String(data.currentTask).trim())) {
     console.error('BLOCK: 进入 EXECUTING 前必须先设置非空 currentTask。');
@@ -103,7 +112,8 @@ function cmdState(changeId, state, tier) {
 }
 
 function cmdCurrentTask(changeId, currentTask) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  if (currentTask && currentTask.trim().length > 0) assertSafeId(currentTask, 'currentTask');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const data = readJson(statePath);
   data.currentTask = currentTask && currentTask.trim().length > 0 ? currentTask : null;
   writeJson(statePath, data);
@@ -111,6 +121,7 @@ function cmdCurrentTask(changeId, currentTask) {
 }
 
 function cmdActive(changeId) {
+  assertSafeId(changeId, 'changeId');
   fs.writeFileSync(activeFile, changeId + '\n', 'utf-8');
   console.log(`Active change set: ${changeId}`);
 }
@@ -124,7 +135,7 @@ function cmdShowActive() {
 }
 
 function cmdImpact(changeId, api, dataImpact, architecture, rule) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const json = readJson(statePath);
   json.impact = { api, data: dataImpact, architecture, rule };
   writeJson(statePath, json);
@@ -132,7 +143,8 @@ function cmdImpact(changeId, api, dataImpact, architecture, rule) {
 }
 
 function cmdReviewVerdict(changeId, reviewerId, verdict) {
-  const reviewDir = path.join(changesDir, changeId, 'reviews');
+  assertSafeId(reviewerId, 'reviewerId');
+  const reviewDir = path.join(changePath(changeId), 'reviews');
   fs.mkdirSync(reviewDir, { recursive: true });
   const template = readJson(path.join(templatesDir, 'review-verdict.json'));
   template.changeId = changeId;
@@ -143,7 +155,7 @@ function cmdReviewVerdict(changeId, reviewerId, verdict) {
 }
 
 function cmdMarkGate(changeId, gate, value, extra = null) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const data = readJson(statePath);
   if (!data.gates) data.gates = {};
   data.gates[gate] = value;
@@ -159,7 +171,7 @@ function cmdMarkGate(changeId, gate, value, extra = null) {
 }
 
 function cmdMarkValidated(changeId, _digest, date) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const json = readJson(statePath);
   json.state = 'VALIDATED';
   writeJson(statePath, json);
@@ -178,7 +190,7 @@ function cmdMarkValidated(changeId, _digest, date) {
 }
 
 function cmdMarkValidationStale(changeId) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changePath(changeId), 'state.json');
   const json = readJson(statePath);
   json.validation = json.validation || {};
   json.validation.status = 'stale';
@@ -197,7 +209,7 @@ function cmdArchive(changeId) {
     console.error('BLOCK: archive 需要 <changeId>。');
     process.exit(2);
   }
-  const srcDir = path.join(changesDir, changeId);
+  const srcDir = changePath(changeId);
   const statePath = path.join(srcDir, 'state.json');
   // 1. 存在性校验。
   if (!fs.existsSync(statePath)) {
@@ -217,7 +229,7 @@ function cmdArchive(changeId) {
     console.error(`BLOCK: ${changeId} 仍被 harness/plugin/runtime/test 引用，归档会破坏 smoke，先解除引用。`);
     process.exit(2);
   }
-  const destDir = path.join(archiveDir, changeId);
+  const destDir = resolveChild(archiveDir, changeId, 'changeId');
   if (fs.existsSync(destDir)) {
     console.error(`BLOCK: 归档目标已存在：harness/archive/${changeId}`);
     process.exit(2);
@@ -254,6 +266,8 @@ function cmdLessonAdd(slug, severity = 'medium', tags = '', sourceChange = '', d
     console.error('BLOCK: lesson-add 需要 <slug>。');
     process.exit(2);
   }
+  assertSafeId(slug, 'lesson slug');
+  if (sourceChange) assertSafeId(sourceChange, 'sourceChange');
   fs.mkdirSync(lessonsDir, { recursive: true });
   const recordedAt = date || new Date().toISOString().slice(0, 10);
   const normalizedTags = tags

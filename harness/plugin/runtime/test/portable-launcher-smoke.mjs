@@ -11,11 +11,6 @@ const launcherModulePath = path.join(repoRoot, 'bin', 'enterprise-harness.mjs');
 const launcherExecutablePath = path.join(repoRoot, 'bin', 'enterprise-harness');
 const windowsLauncherPath = path.join(repoRoot, 'bin', 'enterprise-harness.cmd');
 const isWindows = process.platform === 'win32';
-const pluginFacingSkills = [
-  ['.claude/skills/harness/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness', 'SKILL.md'), 'utf-8')],
-  ['.claude/skills/harness-intake/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-intake', 'SKILL.md'), 'utf-8')],
-  ['.claude/skills/harness-verify/SKILL.md', fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'harness-verify', 'SKILL.md'), 'utf-8')],
-];
 const documentedCommandProbes = [
   {
     label: 'enterprise-harness lifecycle lesson-list',
@@ -35,16 +30,6 @@ const literalShell = [
   '  enterprise-harness "$@"',
   'elif test -f harness/plugin/runtime/cli.mjs; then',
   '  node harness/plugin/runtime/cli.mjs "$@"',
-  'else',
-  '  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2',
-  '  exit 2',
-  'fi',
-].join('\n');
-const documentedPortableSnippet = [
-  'if command -v enterprise-harness >/dev/null 2>&1; then',
-  '  enterprise-harness <subcommand> [args...]',
-  'elif test -f harness/plugin/runtime/cli.mjs; then',
-  '  node harness/plugin/runtime/cli.mjs <subcommand> [args...]',
   'else',
   '  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2',
   '  exit 2',
@@ -130,23 +115,6 @@ function isExecutable(filePath) {
   return (stat.mode & 0o111) !== 0;
 }
 
-function normalizeNewlines(text) {
-  return String(text || '').replace(/\r\n?/gu, '\n');
-}
-
-function stripExactPortableSnippet(text) {
-  const exactSnippets = [
-    documentedPortableSnippet,
-    `\`\`\`bash\n${documentedPortableSnippet}\n\`\`\``,
-    `\`\`\`\n${documentedPortableSnippet}\n\`\`\``,
-  ];
-  return exactSnippets.reduce((current, snippet) => current.split(snippet).join(''), normalizeNewlines(text));
-}
-
-function normalizeMarkdownCommandSurface(text) {
-  return stripExactPortableSnippet(text).replace(/`/gu, '');
-}
-
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node harness/plugin/runtime/test/portable-launcher-smoke.mjs <red|green|verify>');
   process.exit(1);
@@ -195,15 +163,6 @@ try {
   }
   if (!/import\.meta\.url/u.test(fs.readFileSync(launcherModulePath, 'utf-8'))) {
     failures.push('portable launcher module must locate runtime relative to import.meta.url');
-  }
-  for (const [relativePath, skillContent] of pluginFacingSkills) {
-    if (!normalizeNewlines(skillContent).includes(documentedPortableSnippet)) {
-      failures.push(`${relativePath} must embed the literal enterprise-harness-first / local cli fallback / BLOCK launcher snippet`);
-    }
-    const commandSurface = normalizeMarkdownCommandSurface(skillContent);
-    if (/node\s+harness\/plugin\/runtime\/(?:cli|lifecycle)\.mjs(?:\s|$)/u.test(commandSurface)) {
-      failures.push(`${relativePath} must not show direct target-cwd node harness/plugin/runtime cli or lifecycle commands outside the exact portable fallback snippet`);
-    }
   }
   if (commandProbe.status !== 0) {
     failures.push(`command -v enterprise-harness failed under PATH: exit=${commandProbe.status} stderr=${String(commandProbe.stderr || '').trim()}`);

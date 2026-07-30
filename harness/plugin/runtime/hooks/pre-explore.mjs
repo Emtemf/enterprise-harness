@@ -7,6 +7,10 @@ import {
   readAgentEvents,
   sha256,
 } from '../lib/agent-evidence.mjs';
+import {
+  extractExplorationTargets,
+  isExplorationTargetExempt,
+} from '../lib/hook-targets.mjs';
 
 const root = projectRoot();
 if (!hasChangeTracking(root)) process.exit(0);
@@ -15,19 +19,24 @@ for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
 if (!raw) process.exit(0);
 let event;
-try { event = JSON.parse(raw); } catch { process.exit(0); }
+try {
+  event = JSON.parse(raw);
+} catch (error) {
+  console.error(`BLOCK [EH-HOOK-INPUT-017] invalid PreToolUse JSON: ${error.message}`);
+  process.exit(2);
+}
 
 const toolName = String(event.tool_name || '');
 const input = event.tool_input || {};
-const target = String(input.file_path || input.path || input.pattern || input.command || '');
-const exempt = ['harness/', '.claude/', 'docs/', 'CLAUDE.md', 'AGENTS.md', 'PROGRESS.md', 'README.md', 'package.json', '.claude-plugin/']
-  .some((item) => target.includes(item));
-if (exempt) process.exit(0);
 const bash = String(input.command || '');
 const explorationBash = /(?:\brg\b|\bgrep\b|\bfind\b|\bcodegraph\b|src\/main\/java|src\/test\/java|openapi\/)/iu.test(bash);
 const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\bcodegraph\b/iu.test(bash));
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);
+const targets = extractExplorationTargets(root, event);
+if (targets.length > 0 && targets.every((target) => isExplorationTargetExempt(root, target))) {
+  process.exit(0);
+}
 
 const active = loadActiveChange(root);
 if (!active.ok) {

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "script": "session-start.mjs",
+        "timeout": 30,
+        "performanceBudgetMs": 2000,
+        "failMode": "fail-open",
+        "statusMessage": "加载 harness 启动检查"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "script": "pre-agent.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "校验 scoped Agent 派发"
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "script": "pre-write.mjs",
+        "timeout": 30,
+        "performanceBudgetMs": 150,
+        "failMode": "fail-closed",
+        "statusMessage": "执行写入前治理检查"
+      },
+      {
+        "matcher": "Grep|Read|Glob|Bash",
+        "script": "pre-explore.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "检查代码探索是否已委托 subagent"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "script": "post-agent.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "绑定 Agent 派发证据"
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "script": "post-write.mjs",
+        "timeout": 60,
+        "performanceBudgetMs": 500,
+        "failMode": "fail-closed",
+        "statusMessage": "执行写入后治理检查"
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Agent",
+        "script": "agent-failure.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-open",
+        "statusMessage": "记录 Agent 失败与恢复入口"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "script": "subagent-start.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 subagent 启动证据"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "script": "subagent-stop.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "校验 subagent 完成证据"
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "script": "worktree-create.mjs",
+        "timeout": 30,
+        "performanceBudgetMs": 2000,
+        "failMode": "fail-closed",
+        "statusMessage": "从父会话 HEAD 创建受控 worktree"
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "script": "task-completed.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 500,
+        "failMode": "fail-closed",
+        "statusMessage": "校验执行与独立检查接力"
+      }
+    ],
+    "Stop": [
+      {
+        "script": "stop.mjs",
+        "timeout": 30,
+        "performanceBudgetMs": 2000,
+        "failMode": "fail-closed",
+        "statusMessage": "检查完成前验证状态"
+      }
+    ]
+  }
+}

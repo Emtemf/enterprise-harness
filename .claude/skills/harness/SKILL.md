@@ -1,255 +1,67 @@
 ---
 name: harness
-description: >
-  Enterprise Harness 的统一 SOP 入口与阶段编排器。按闭环五检 (TECPC) 驱动的 clarify-first staged workflow 推进需求：clarify → route → design → plan → tdd → verify → archive。每个阶段有明确的产出物、门禁和 TECPC 检查。
+description: Enterprise Harness 的唯一工作流入口。用于创建或恢复 change，按 clarify、route、design、plan、tdd、verify、archive 推进，并为受治理行为派发隔离 executor/checker。
 ---
 
-# Harness — TECPC 分阶段 SOP 入口
+# Harness
 
-## 这个 skill 做什么
+你是轻量主 orchestrator，只负责用户交互、状态恢复、handoff 和阶段推进。
 
-你是 harness 工作流的**统一流程入口与阶段编排器**。plugin-only 环境的 canonical 入口是 `/enterprise-harness:harness`；源码仓库作为 standalone `.claude/` 使用时保留裸 `/harness`。用户的每个需求都从这里进入，按 7 个阶段顺序推进。
-每个阶段都要过**闭环五检 (TECPC)**，不达标不能进下一步。
+## 入口
 
-这是 clarify-first staged workflow：`clarify / route / design / plan / tdd / verify / archive`。
+- plugin：`/enterprise-harness:harness`
+- standalone：`/harness`
 
-## 隔离接力不变量
+backend 优先运行 `enterprise-harness <command>`；只有 standalone checkout 才 fallback 到 `node harness/plugin/runtime/cli.mjs <command>`。
 
-主 orchestrator 必须保持轻量，只负责人机交互、状态推进和接力，不直接承担受治理阶段产出。
+## 开始
+
+1. 运行 `status` 和 `workflow status --json`。
+2. 有 active change 时恢复 currentGap，不重复已完成阶段。
+3. 没有 change 时生成安全 changeId，并运行 `start-change`。
+4. 根据 stage 加载对应阶段 skill。
+
+## 阶段
 
 ```text
-main harness skill
-→ handoff create (role=execute)
-→ scoped executor subagent（预加载 harness-stage-executor，新上下文）
-→ SubagentStop 持久化 result.json
-→ handoff create (role=check, parentRunId=<executor run>)
-→ 不同的 checker subagent（预加载 harness-stage-checker，新上下文）
-→ hooks 校验 verdict
-→ main 推进下一阶段
+clarify → route → design → plan → tdd → verify → archive
 ```
 
-- subagent 不能再派生 subagent；executor 与 checker 必须都由 main 依次派发。
-- `isolation: worktree` 是文件/分支隔离，只在 TDD 写代码时强制；每个 subagent 本身已经提供上下文隔离。
-- agent frontmatter 的 `skills:` 必须预加载执行/检查合同，不依赖 worker 临时决定是否调用 Skill。
-- handoff 是 durable protocol，hook 是协议各条边的授权、校验、记录与阻断，不得把 handoff 退化为聊天摘要。
-- 每个 Agent prompt 必须含 runtime 输出的 `HANDOFF_INPUT=...`，不得手工伪造 runId。
+clarify/route 使用 `harness-intake`；其他阶段使用同名 skill。
 
-创建接力输入：
+## 隔离接力
 
-```bash
-enterprise-harness handoff create <change-id> <stage> <behavior> execute --input-ref <brief-path> --target "<目标>"
-enterprise-harness handoff create <change-id> <stage> <behavior> check <executor-run-id>
-```
+受治理行为：
 
-行为到 executor/checker 的唯一映射见 `harness/behavior-checks.json`。
+1. 生成 brief。
+2. `handoff create ... execute`。
+3. 派 registry 指定 executor，prompt 原样包含 `HANDOFF_INPUT=...`。
+4. 等待 result，不重复相同工作。
+5. `handoff create ... check <executor-run-id>`。
+6. 派 registry 指定 checker。
+7. 只有 checker pass 才推进。
 
-plugin-installed skill 的 backend 命令必须使用同一段确定性 Bash：
+executor 与 checker 必须是不同 subagent/run。worktree 只提供文件隔离；subagent 提供上下文隔离。
 
-```bash
-if command -v enterprise-harness >/dev/null 2>&1; then
-  enterprise-harness <subcommand> [args...]
-elif test -f harness/plugin/runtime/cli.mjs; then
-  node harness/plugin/runtime/cli.mjs <subcommand> [args...]
-else
-  echo "BLOCK: enterprise-harness launcher unavailable; reload/update the plugin" >&2
-  exit 2
-fi
-```
+代码探索只派 `enterprise-harness:code-explore`。外部资料只派 `enterprise-harness:doc-research`。
 
-### 实现前 orchestration guardrail（硬约束）
+## TECPC 自检
 
-在任何代码实现、设计落地、任务推进或生产修改之前，必须先满足：
-- 已进入 `/harness` 或显式 staged workflow 入口
-- 已完成 `clarify`（或至少 clarify-ready 并获得用户确认）
-- 已完成 `route`（L1+ 变化不得跳过）
+每次推进前确认：
 
-不得在未完成 clarify / route 前直接进入实现。这是 orchestration 级门禁，不是建议。
-- 不得给“跳过 clarify 直接进 design/plan”的逃逸路径
+- Target：当前行为和成功条件。
+- Evidence：消费了哪些 durable artifact/receipt/verdict。
+- Context：输入 refs 是否最小且 fresh。
+- Path：当前阶段、run 和下一入口。
+- Correction：blocker 是否有错误码和恢复动作。
 
-## 完整 SOP 步骤序列
+## 输出
 
-收到用户需求后，**严格按以下顺序执行**。不要跳步，不要自作主张。
+只向用户输出：
 
-**【强制】每步操作后输出 TECPC 状态卡**：每完成一个阶段或关键动作，在对话文本中输出当前闭环五检卡，让用户看到进度。不要只依赖 hook 输出——对话文本中的输出用户一定能看到。
+- changeId、stage、currentGap
+- 本轮消费的 evidence
+- checker verdict
+- 一个下一动作或一个澄清问题
 
-**【强制】等待 subagent / 后台任务时禁止轮询刷屏**：当 `Agent`、`Monitor`、后台 Bash 或其他 Claude Code 已能自动通知完成的任务已经启动后，主 orchestrator 不得再用 `sleep`、倒计时、循环“继续等待”、反复状态播报或伪进展输出来占用对话。默认做法是：启动任务后立即停手，等待 Claude Code 的完成通知或用户下一条真实消息。只有通知机制覆盖不到的外部系统，才允许设置单次兜底等待；即便如此，也不得在等待期间持续骚扰用户。
-
-### 第 0 步：建立 change（如果还没有）
-plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness start-change <change-id> [owner] [tier] "<一句话目标>"`；standalone source checkout 才走上面的本地 CLI fallback。
-这会创建 `harness/changes/<id>/state.json` 并设置 `goal`。
-
-### 第 1 步：clarify（需求澄清）
-**目标**：把模糊需求变成明确的、可执行的、用户确认的需求。先进入 `clarify`。
-
-1. **先创建 handoff 并委托探索**（不得自己做）：
-   - 【硬约束】代码探索必须委托 subagent
-   - 派遣 `subagent_type: enterprise-harness:code-explore` 探索代码，不得使用任何通用 fallback 做代码探索
-   - subagent prompt 开头写"先用 codegraph_explore / codegraph_search"
-   - Agent 标题写用户的项目名 + 具体主题（禁止写 `enterprise-harness`）
-2. **一次只问一个问题**（选项式 A/B/C + 其他）
-3. **每轮展示歧义评分**：7 维度 × 0-5 分 + overall + weakest + 评分依据
-4. **用户有权修正评分**——接受并调整
-5. 主线程完成一问一答后，派 `clarify-synthesizer` 整理 `requirements.md`，再由不同上下文的 `requirement-reviewer` 检查
-6. **达标条件**：所有维度 ≥ 4 + 用户确认执行范围
-7. 更新 `state.json`：`workflow.clarifyReady=true`、`workflow.userConfirmedScope=true`
-
-### 第 2 步：route（路由决策）
-**目标**：确定变更复杂度 tier。
-
-1. 由 `clarify-synthesizer` 基于已确认 clarify 结果形成 L0/L1/L2/L3 route
-2. 记录 `routingReason`（为什么选这个 tier）
-3. 更新 `state.json`：`tier`、`goal`
-4. 产出：`change.md`，再由独立 `requirement-reviewer` 检查 route
-
-### 第 3 步：design（TECPC 驱动设计）
-**目标**：产出可评审的、有证据支撑的设计。
-
-1. 创建 `design.produce` execute handoff，派 `design-executor`
-2. **【强制】由隔离 executor 创建 `design.md`**：
-   - 基于 `harness/templates/design.md` 模板
-   - 必须包含 TECPC 五维：
-     - **T 目标**：业务目标 + 成功标准
-     - **C 上下文**：探索事实（引用具体文件）+ 影响矩阵
-     - **E 证据**：每个决策的证据来源 + 测试策略 + 验证命令
-     - **P 路径**：方案对比表 + 接口/数据/架构设计 + 风险回滚 + **纠正预案**
-3. 以 executor runId 创建 check handoff，派不同上下文的 `enterprise-harness:design-reviewer`
-4. 更新 `state.json`：`gates.designApproved=true`、`workflow.stage='design'`
-5. **不得在 design.md 不存在时进入 plan**
-
-### 第 4 步：plan（任务拆分）
-**目标**：把设计拆成可机械执行的任务。
-
-1. **【强制】创建 `plan.produce` handoff 并派 `plan-executor` 创建 `tasks.md`**：
-   - 基于 `harness/templates/tasks.md` 模板
-   - 每个 task 必须有：
-     - Touched files（完整路径）
-     - Implementation order
-     - **RED evidence point**（哪个测试先失败 + 对应 mvn 命令）
-     - **GREEN evidence point**（哪个测试后通过 + 对应 mvn 命令）
-     - Acceptance checks
-2. 以 executor runId 派独立 `enterprise-harness:plan-critic`，获得 pass verdict
-3. 更新 `state.json`：`workflow.planReady=true`、`workflow.stage='plan'`
-4. **不得在 tasks.md 不存在时进入 tdd
-
-### 第 5 步：tdd（RED → GREEN → REFACTOR）
-**目标**：先证明问题存在，再写最小实现。
-
-**【强制】TDD 必须通过 subagent 执行，不得在主对话中直接写代码。**
-
-1. **派遣 subagent**：
-   - 使用 `Agent` 工具，`subagent_type: enterprise-harness:tdd-executor`（必须使用 scoped `enterprise-harness:tdd-executor`，不得回退到任何通用 worker）
-   - `isolation: "worktree"`（每个 task 在独立 worktree 中执行）
-   - prompt 包含：task 描述、touched files、RED/GREEN evidence point、目标项目构建命令
-2. **Subagent 必须通过 `tdd-run` 执行 tasks.md 冻结的真实 literal argv**：
-   - Java/Maven：`mvn test` / `mvn verify` / `mvn compile`
-   - 不得跳过构建命令
-   - RED：执行测试 → 必须失败 → 记录失败输出
-   - GREEN：执行测试 → 必须通过 → 记录通过输出
-   - REFACTOR：执行测试 → 必须全绿 → 记录通过输出
-3. **完成证据必须来自 runtime receipt**：绑定 task、scoped agent_id、worktree、HEAD/tree digest、exact argv、exit code、时间和 RED→GREEN→REFACTOR 顺序；worker 文本不是证据
-4. executor commit 集成后先独立 review，再运行 `enterprise-harness evidence-import <change-id> <task-id>`
-5. 主 orchestrator 只保留 receipt refs / commit / verdict，不堆积整段构建输出
-
-### 第 6 步：verify（验证收口）
-**目标**：用新鲜证据确认完成。
-
-1. 派 `verification-executor` 执行真实验证并更新 `validation.md`
-2. executor 必须跑 `cli.mjs verify` 并如实记录结果
-3. 以 executor runId 派独立 `enterprise-harness:verification-reviewer`（必须 pass）
-4. 更新 `state.json`：`validation.status=fresh`
-
-### 第 7 步：archive（归档）
-plugin-only 环境按上面的 portable launcher 片段执行 `enterprise-harness lifecycle archive <change-id>`；standalone source checkout 才走上面的本地 CLI fallback。
-
-## TECPC 检查（每个阶段都要过）
-
-| 维度 | 每阶段必须回答 |
-|------|--------------|
-| **T 目标** | 这一步要达成什么？产出物是什么？ |
-| **E 证据** | 用什么证明这步做对了？（测试/reviewer/命令输出） |
-| **C 上下文** | 基于什么最小事实包？引用具体文件 |
-| **P 路径** | 为什么这么做？下一棒是谁？ |
-| **C 纠正** | 错误码、blocker 和恢复动作是什么？ |
-
-## 硬约束（程序级门禁会拦截）
-
-- 写 `src/main/java` 前：必须已完成 clarify + route + design + plan + codegraph 证据
-- 主 orchestrator 不得直接 Grep/Read/Glob 探索业务代码——必须委托 `enterprise-harness:code-explore` subagent
-- 跳过任何累计前置条件都会被 pre-write hook BLOCK；单改 workflow.stage 或 state projection 无法绕过
-- 探索业务代码会被 pre-explore hook BLOCK（除非已记录 codegraph 证据）
-
-## 阶段判定（怎么知道当前在哪步）
-
-读取 `harness/ACTIVE_CHANGE` + `state.json` 的 `workflow.stage`、`workflow.clarifyReady`、`workflow.userConfirmedScope`：
-- 无 active change → 第 0 步
-- `requirements.md` 缺失 / clarify 未达标 / 用户未确认范围 → 第 1 步
-- `state.json.state` 仍在 `DRAFT` / `DISCOVERED` / tier 未设置 → 第 2 步
-- 处于 clarify / route 阶段时，推荐恢复入口应显式显示为 `/harness-intake`
-- `design.md` 缺失 / design approval 不存在 → 第 3 步
-- `tasks.md` 仍是 draft / plan verdict 不可消费 → 第 4 步
-- `state.json.state` 为 `TASKED` / `EXECUTING` / `tddStatus` 未到 `refactor-verified` → 第 5 步
-- `state.json.state` 为 `REVIEWED` / `VALIDATED` 但 validation 缺解释 → 第 6 步
-- validation 已 fresh 且完成声明成立 → 第 7 步
-
-判定后必须明确告诉用户：
-1. 当前 stage
-2. 当前缺口（artifact / approval / evidence）
-3. 推荐恢复入口（skill 或 backend command）
-4. 当前为何还不能进入下一阶段
-5. **当前动作顺序**（这一轮会先做什么、再做什么、默认会派哪些 subagent）
-6. **高噪声步骤必须先做任务摘要（task brief / exploration brief），再派 subagent；主对话只消费压缩结论，不堆积实现/探索过程原文**
-
-恢复入口约定：
-- `clarify` / `route` 阶段默认恢复到 `/harness-intake`
-- `design` 阶段恢复到 `/harness-design`
-- `plan` 阶段恢复到 `/harness-plan`
-- `tdd` 阶段恢复到 `/harness-tdd`
-- `verify` 阶段恢复到 `/harness-verify`
-- `archive` 或未知阶段恢复到 `/harness`
-
-## 未初始化目标项目的约束
-
-- 若当前项目还没有 harness 资产或 runtime 初始化信息，不得因为缺少 `.harness/`、bootstrap marker、或本地 adapter 而阻断普通用户继续通过 `/harness` 进入澄清流程
-- 对普通用户，这类缺口只能作为"维护者可后续补 bootstrap/doctor/sync"的建议，不能当作必须先完成的前置条件
-
-## Exploration Lane（补事实的通道）
-
-clarify 阶段应优先补事实再问用户，不得先问用户去替系统做 repo discovery：
-- 代码事实 / 调用链 / 影响面不清 → `enterprise-harness:code-explore`（codegraph 一套搞定定位+传播）
-- 外部库/框架/SDK 版本行为不清 → `enterprise-harness:doc-research`
-
-## 当前动作顺序（orchestrator shell 显示要求）
-
-`/harness` 不只是展示当前 stage / gap / nextEntry，还应向用户显式说明“这一轮会怎么调度”。
-
-最低要求：
-- clarify：先补 repo/documentation facts，再做 ambiguity scoring，再问一个 weakest-dimension 问题
-- route：先消费 clarify 结果，再决定 tier / impact / route 结论
-- design：先消费 requirements / exploration，再产出 design，再派 `enterprise-harness:design-reviewer`
-- plan：先消费 design，再产出 tasks，再派 `enterprise-harness:plan-critic`
-- tdd：先派 `enterprise-harness:tdd-executor`，再消费 RED/GREEN/REFACTOR 摘要并推进子状态
-- verify：先消费 `validation.md` / reviewer verdict，再派 `enterprise-harness:verification-reviewer` 或直接统一消费完成态证据
-
-若某一轮会派 subagent，必须显式说明：
-- 会派哪个 agent
-- 为什么派
-- 返回后主对话会消费什么结论
-
-## 禁止事项
-
-- reviewer 返回 block，不得进入下一阶段
-- 不得跳过任何阶段
-- 【硬约束】代码探索必须委托 subagent，必须使用 `subagent_type: enterprise-harness:code-explore`，不得使用任何通用 fallback 做代码探索
-- 不得自己直接用 grep/Read 搜索代码做探索——必须委托 `enterprise-harness:code-explore` subagent
-- Agent 标题必须指向当前目标项目和具体探索主题，禁止写成 `Explore enterprise-harness`
-- 必须等待 subagent 返回结论，并把结论作为后续阶段的事实来源；不得无视结论并重新发起相同的探索
-- 不得在已启动可通知任务后通过 `sleep`、倒计时、循环“继续等待”或反复状态播报来刷屏
-- 不得一次问多个问题
-- 不得不展示歧义评分就推进
-- 不得在没有 RED 证据时写生产代码
-- 不得在 codegraph 可用时跳过 codegraph-first
-- **【硬约束】design 阶段必须创建 `design.md`**，不得跳过直接进入 plan
-- **【硬约束】plan 阶段必须创建 `tasks.md`**，不得跳过直接进入 tdd
-- **【硬约束】TDD 阶段必须通过 subagent 执行**，不得在主对话中直接写代码
-- **【硬约束】TDD subagent 必须使用 `isolation: "worktree"`**，实现隔离
-- **【硬约束】TDD subagent 必须执行真实构建命令**（`mvn test` / `mvn verify`），不得跳过
+不要复制 ledger、schema 或内部 hook 全文。长期合同见 `harness/specs/workflow.md` 和 `harness/specs/agents-and-handoff.md`。

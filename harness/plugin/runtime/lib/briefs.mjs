@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { assertSafeId, resolveChild } from './safe-paths.mjs';
 
 function slugify(input) {
   return String(input || '')
@@ -11,7 +12,8 @@ function slugify(input) {
 }
 
 export function briefDir(root, changeId) {
-  return path.join(root, 'harness', 'changes', changeId, 'briefs');
+  assertSafeId(changeId, 'changeId');
+  return path.join(resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId'), 'briefs');
 }
 
 export function briefFileName(kind, name) {

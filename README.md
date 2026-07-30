@@ -1,310 +1,144 @@
-# Enterprise Harness (v0.2.29)
+# Enterprise Harness
 
-一套围绕 Claude Code 的**工程治理骨架**——用 prompt 约束 + 机械门禁 + durable 状态，让 AI 在团队协作中走得更稳，而不是更自由。
+Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需求澄清、代码探索、设计、计划、真实 TDD、独立检查、验证和归档组织成可恢复、可诊断的 staged workflow。
 
-> **Claude Code-only phase 1** 指的是：前门、阶段编排与交互体验收口到 Claude Code；并不意味着删除 `harness/`。`harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语。
+它适合希望在 Java/Spring Boot/Maven 项目中约束 agent 行为的团队，尤其适合以下场景：
 
-> 它不是一个完整的交付平台，而是一个帮你给 Claude Code 上规矩的基础设施。
+- 需求经常存在歧义，需要先澄清再实现。
+- 希望代码探索由隔离的只读 subagent 完成。
+- 希望 executor 与 checker 上下文隔离，并留下结构化 handoff。
+- 希望 TDD 真实执行项目 Maven 命令，而不是只生成测试文本。
+- 希望 hooks 能阻止越阶段写入，并给出稳定错误码和恢复动作。
 
-## 最终执行模型：隔离执行，隔离检查
+## 当前支持范围
 
-主 `/enterprise-harness:harness` Skill 是轻量 orchestrator。每个受治理行为先派一个预加载 executor Skill 的 subagent，再派另一个预加载 checker Skill 的 subagent；两者拥有不同的新上下文。主线程只消费落盘 handoff 和压缩结论。
+当前主要支持：
 
-```text
-main → HANDOFF_INPUT → executor subagent → result.json
-main → check handoff → independent checker subagent → check.json
-hooks → 校验身份、schema、receipt、digest、verdict 与完成态
-```
+- Claude Code plugin 和 standalone checkout。
+- Java、Spring Boot、Maven 项目。
+- `src/main/java/**`、`src/test/java/**`、`openapi/**` 约定路径。
+- CodeGraph-first 代码探索。
+- Context7-first 外部库和框架资料查询。
+- `clarify → route → design → plan → tdd → verify → archive` 七阶段流程。
+- executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
+- Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
 
-`isolation: worktree` 只解决文件/分支隔离，TDD executor 强制使用；上下文隔离来自 subagent 本身。完整合同见 [handoff-scheme](harness/specs/handoff-scheme.md)。
+当前仍是早期治理框架。它不替代 CI/CD、人工代码审查、安全扫描、制品签名、权限平台或生产发布审批。OpenAPI 检查已具备基础门禁，但复杂 YAML 和 Spring 映射仍可能返回 `unsupported`，不能视为完整 API 治理平台。
 
-## 闭环五检 (TECPC)：这个项目是怎么工作的
+## 五分钟安装
 
-闭环五检 (TECPC) 是本项目的核心方法论——五个维度，缺一不可：
+要求：
 
-| 维度 | 含义 | 在本项目中 |
-|------|------|-----------|
-| **T 目标** | 要达成什么？什么叫成功？ | 每个 change 都有明确的目标和成功标准 |
-| **E 证据** | 用什么证明当前步骤对了？ | ✓/▸/○ 阶梯 + validation/reviewer 证据链 |
-| **C 上下文** | 知道什么？还缺什么？ | 探索代码/文档后才问用户，不凭空猜 |
-| **P 路径** | 为什么这么走？还有哪些路径？ | 路由决策（L0-L3）有理由，可回溯 |
-| **C 纠正** | 发现偏差后怎么办？ | BLOCK 消息 + 恢复入口，不是死胡同 |
+- Claude Code
+- Node.js 20 或 22
+- Git
+- Java 项目建议提供 Maven Wrapper
+- CodeGraph；涉及外部文档时建议提供 Context7 CLI
 
-## 一个需求进来，会发生什么
-
-```mermaid
-graph TD
-    U["plugin: /enterprise-harness:harness<br/>standalone: /harness"] --> S["Session Start<br/>输出 闭环五检 (TECPC) 卡"]
-    S --> E["代码探索<br/>隔离 executor"]
-    E --> C["澄清<br/>一次问一个问题"]
-    C --> R["路由<br/>L0/L1/L2/L3"]
-    R --> D["设计<br/>executor + checker"]
-    D --> T["计划<br/>executor + checker"]
-    T --> RED["RED<br/>写失败测试"]
-    RED --> GREEN["GREEN<br/>写最小实现"]
-    GREEN --> V["验证<br/>executor + checker"]
-    V --> A["归档<br/>lifecycle archive"]
-
-    style S fill:#4ecdc4,color:#fff
-    style E fill:#4ecdc4,color:#fff
-    style C fill:#45b7d1,color:#fff
-    style R fill:#45b7d1,color:#fff
-    style D fill:#96ceb4,color:#fff
-    style T fill:#96ceb4,color:#fff
-    style RED fill:#ff6b6b,color:#fff
-    style GREEN fill:#51cf66,color:#fff
-    style V fill:#feca57,color:#333
-    style A fill:#a29bfe,color:#fff
-```
-
-### 每一步的 闭环五检 (TECPC) 验收
-
-| 步骤 | T 目标 | E 证据 / C 纠正（你应该看到） | 门禁级别 |
-|------|------|-------------------------|---------|
-| **Session Start** | 知道当前状态 | `[Harness 进度卡]` 含 ✓/▸/○ 阶梯 | 程序强制 |
-| **代码探索** | 了解项目结构 | scoped `code-explore` + agent-bound CodeGraph attempt | 程序强制 |
-| **澄清** | 把需求变明确 | 一次一问 + 七维评分 + Overall/依据 gate | 程序 + 独立检查 |
-| **路由** | 确定复杂度 tier | synthesizer 产出 + requirement reviewer | 程序 + 独立检查 |
-| **设计** | TECPC 驱动的完整设计 | `design.md` 含 T/E/C/P/C 五维 + reviewer pass | 程序强制 |
-| **计划** | 拆成可执行任务 | `tasks.md` 存在 + plan critic pass | 程序强制 |
-| **RED** | 证明问题存在 | `tdd-run` 真实执行并生成失败 receipt | 程序强制 |
-| **GREEN** | 最小实现通过 | 同一 receipt 记录真实成功命令 | 程序强制 |
-| **验证** | 确认无回归 | `cli.mjs verify` OK + validation fresh | 程序强制 |
-| **归档** | 结束 change | change 移入 `harness/archive/` | 程序强制 |
-
-**程序强制**负责可确定的 schema、身份、证据和阶段 gate；**独立检查**负责设计/计划/实现等语义判断。Hook 不冒充 reviewer。
-
-### 闭环五检 (TECPC) 进度卡
-
-任何时候你都可以看到这张卡（session-start / `cli status` / BLOCK 时自动输出）：
-
-```
-┌─ hard-delete-template (L2) ─
-│ T 目标    ▸ 模板支持硬删除，级联清理关联数据
-│ E 证据    ▸ design approved | RED verified
-│ C 上下文  ▸ tasks.md 不存在，需先完成任务拆分
-│ P 路径    ▸ 涉及 API + 数据变化，故 L2
-│ C 纠正    ▸ /harness-plan
-│ Ladder
-  ✓ clarify
-  ✓ route
-  ✓ design
-  ▸ plan
-  ○ tdd
-  ○ verify
-  ○ archive
-└─
-```
-
-## 核心价值：机械门禁
-
-这是本项目与其他 AI 工作流框架**最本质的区别**——它不是靠"提示词建议 AI 自觉"，而是有**真实程序拦截违规操作**：
-
-### pre-explore hook（探索代码前）
-
-主 orchestrator 直接用 Grep/Read/Glob/Bash 探索业务代码时：
-- 无 active change 或无 `agent_id` → **BLOCK**
-- 只有 active `enterprise-harness:code-explore` 才能探索；fallback 前必须由同一 agent 留下 CodeGraph attempt
-- 手填 `state.tooling.codegraph` 永远不能解锁主线程
-- 读 harness/ 内部文件、CLAUDE.md、docs、配置 → 放行（豁免）
-
-### CodeGraph / Context7：phase 1 的双探索亮点
-
-- **CodeGraph-first**：代码探索默认走 `code-explore`，用 codegraph 做定位、调用链、影响面分析，而不是主对话直接乱 grep
-- **Context7-first**：文档探索默认走 `doc-research`，用于外部库、框架、SDK、版本行为的事实核实
-- clarify / route / design / verify 都可以依赖这两条探索通道先补事实，再决定下一步
-
-### subagent / 后台任务等待约束
-
-当 `Agent`、`Monitor`、后台 Bash 等任务已经启动且 Claude Code 会自动回送完成通知时：
-- 主 orchestrator **不得**再用 `sleep`、倒计时、循环“继续等待”或反复状态播报刷屏
-- 默认做法是：启动后立即停手，等待 Claude Code 的 `<task-notification>` 或用户下一条真实消息
-- 只有通知机制覆盖不到的外部系统，才允许单次兜底等待
-
-### pre-write hook（写代码前）
-
-门禁不再按可伪造的单一 stage 分支，而是对每次 Write/Edit/NotebookEdit/常见 Bash 写入累计检查：
-
-| # | 检查 | 触发条件 |
-|---|------|---------|
-| 1 | 路径保护 | 写 `rules/` / `agents/` 历史目录 |
-| 2 | 路径保护 | 写 `harness/archive/` 冻结目录 |
-| 3 | ACTIVE_CHANGE | 未设置 active change |
-| 4 | state=DRAFT | change 还没推进 |
-| 5 | state=ARCHIVED/REJECTED | change 已结束 |
-| 6 | **clarify 产物** | `requirements.md` 缺失 或 `userConfirmedScope=false` |
-| 7 | **route 产物** | `tier` 未设置 |
-| 8 | **design 产物** | `design.md` 不存在 |
-| 9 | **plan 产物** | `tasks.md` 不存在 |
-| 10 | **CodeGraph 证据** | 缺少 agent-bound CodeGraph attempt |
-| 11 | designApproved | 设计未批准 |
-| 12 | RED 证据 | 当前 task 缺少由 `tdd-run` 生成的失败 receipt |
-
-受治理写入还必须来自 active `enterprise-harness:tdd-executor`。PostToolUse 会把无法静态解析但实际改动受治理文件的 Bash 写入记录为 violation；verify、Stop 与 archive 共同消费统一 completion predicate。
-
-### post-write hook（写代码后）
-
-- artifact 完整性检查（`change.md` / `validation.md` / `evidence/tooling.md`）
-- OpenAPI 结构检查（任意 `openapi/*.yaml`）
-- **OpenAPI 结构检查**（任意 `openapi/*.yaml`）
-- **reference-service 自身的 Controller 一致性回归检查**（当前仍不是任意项目通用的 OpenAPI ↔ Controller 交叉校验器）
-
-### stop hook（会话结束前）
-
-- validation stale/current digest 不一致 → BLOCK
-- reviewer、完整 task receipt、agent ledger 或 impact 未满足 → BLOCK
-- 输出 闭环五检 (TECPC) 卡（v0.1.19+）
-
-## 安装
-
-### 方式 A：Claude Code 会话里（推荐）
-
-```
-/plugin marketplace add https://github.com/Emtemf/enterprise-harness
-/plugin install enterprise-harness@enterprise-harness
-```
-
-### 方式 B：终端
+从 GitHub marketplace 安装：
 
 ```bash
-claude plugin marketplace add https://github.com/Emtemf/enterprise-harness
+claude plugin marketplace add Emtemf/enterprise-harness
 claude plugin install enterprise-harness@enterprise-harness --scope local
 ```
 
-### 方式 C：手动安装（离线/代理/TLS 不稳）
-
-从 [Releases](https://github.com/Emtemf/enterprise-harness/releases) 下载 tarball：
+本地开发 checkout：
 
 ```bash
-tar -xzf enterprise-harness-*.tar.gz -C /tmp/eh
-cd /tmp/eh
-node bin/install.mjs --target /path/to/your/project
+claude plugin marketplace add /absolute/path/to/enterprise-harness
+claude plugin install enterprise-harness@enterprise-harness --scope local
 ```
 
-## 使用：Claude Code-only Phase 1
+安装完成后，在目标项目的 Claude Code 会话中运行：
 
-当前版本的产品形态已经明确收口为 **Claude Code-only phase 1**。
+```text
+/enterprise-harness:harness
+```
 
-这意味着：
-- **用户前门、阶段编排、恢复入口、交互体验** 都收口到 Claude Code 原生机制
-- plugin 安装态唯一前门是 `/enterprise-harness:harness`；standalone checkout 才使用 `/harness`
-- `harness/` 继续承载 specs、templates、changes、archive、动作层与统一业务原语，但不作为普通用户前门暴露
+只有直接把仓库资产安装进目标项目的 standalone 模式才使用：
 
-通过 `/plugin install` 安装后，Claude Code 的 PreToolUse/PostToolUse/Stop/SessionStart
-生命周期会**自动执行** harness 的 hook。你只需要打字，门禁在后台兜底。
+```text
+/harness
+```
 
-- 写代码前 → agent-aware 累计前置条件自动检查
-- 被拦 → 看到 BLOCK + TECPC 卡
-- 会话开头 → 自动输出 TECPC 卡
+standalone 安装器默认保留已有 `CLAUDE.md`、`AGENTS.md` 和非 harness settings：
 
-| 运行面 | 主入口 | 阶段恢复入口 | Agent subtype |
-|---|---|---|---|
-| plugin install | `/enterprise-harness:harness` | `/enterprise-harness:harness-*` | `enterprise-harness:<agent>` |
-| standalone checkout | `/harness` | `/harness-*` | 项目本地 logical name |
+```bash
+node bin/install.mjs --target /path/to/project --dry-run --plan-json
+node bin/install.mjs --target /path/to/project
+```
 
-plugin 阶段恢复依次是 `/enterprise-harness:harness-intake`、`/enterprise-harness:harness-design`、`/enterprise-harness:harness-plan`、`/enterprise-harness:harness-tdd`、`/enterprise-harness:harness-verify`。裸入口只属于 standalone source checkout。
+## 最小使用示例
 
-### 为什么仍然保留 `harness/` 目录？
+用户可以直接描述需求：
 
-因为 `harness/` 负责 repo truth 与 durable assets：
-- `harness/specs/`
-- `harness/templates/`
-- `harness/changes/`
-- `harness/archive/`
-- `harness/plugin/runtime/`（hook 接缝层与统一业务原语/动作层）
+```text
+为订单服务增加取消订单 API；只有待支付订单可取消，并记录取消原因。
+```
 
-Claude Code-only 的意思是“交互与编排收口到 Claude Code”，而不是“物理删除 `harness/`”。
+插件会：
 
-### 更新插件
+1. 创建或恢复 active change。
+2. 派 `code-explore` 只读 subagent 获取代码事实。
+3. 按七维歧义评分逐项澄清，并要求用户确认 scope。
+4. 生成含接口、错误模型和必要 SQL 的 design。
+5. 冻结任务级 exact argv。
+6. 在隔离 TDD executor 中执行 RED、GREEN、REFACTOR。
+7. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
+8. 汇总 fresh validation 和 completion evidence 后才允许归档。
+
+## 用户会看到什么
+
+每个阶段返回简短状态：
+
+```text
+change: add-order-cancel-api
+stage: clarify
+ambiguity: 27/35
+weakest: acceptanceCriteria=3
+next: answer one scope question
+```
+
+出现阻断时会返回稳定错误码、原因和恢复动作，例如：
+
+```text
+EH-TDD-RECEIPT-007
+```
+
+诊断不要求提供 Claude 的完整思考过程。提交 issue 时请附：
+
+- 错误码和恢复提示。
+- `enterprise-harness status --json` 的非敏感输出。
+- 对应 change 的 `state.json`、runId 和已脱敏 ledger 片段。
+- 操作系统、Node、Java、Maven 和插件版本。
+
+插件验收不会检查 Claude 账户、订阅、认证或服务容量。CI 安装 Claude Code CLI 仅用于 `claude plugin validate`。
+
+## 更新与卸载
 
 ```bash
 claude plugin marketplace update enterprise-harness
 claude plugin update enterprise-harness@enterprise-harness --scope local
+claude plugin uninstall enterprise-harness@enterprise-harness --scope local
 ```
 
-## 深入阅读导航
-
-如果你想进一步理解当前设计，而不只看安装与使用：
-
-- **Specs 总索引 / 建议阅读顺序**：`harness/specs/README.md`
-- **Claude Code-only phase 1 边界**：`harness/specs/claude-code-only-phase1.md`
-- **Claude Code-only phase 1 重构蓝图**：`harness/specs/claude-code-only-phase1-blueprint.md`
-- **Agent / Skill / Hook / Runtime 分层**：`harness/specs/agent-skill-boundary.md`
-- **Hook 接缝层 / 统一业务原语层**：`harness/specs/hook-adapter-and-primitives.md`
-- **上游映射（Superpowers / OpenSpec / deep-interview）**：`harness/specs/upstream-mapping.md`
-- **当前 staged workflow 真相层**：`harness/specs/staged-workflow.md`
-- **TDD 专职执行 contract**：`harness/specs/tdd-execution.md`
-- **Verify 阶段消费 contract**：`harness/specs/verify-contract.md`
-- **Reviewer verdict 最小 schema**：`harness/specs/reviewer-verdict-contract.md`
-- **double-check 闭环模型**：`harness/specs/double-check-model.md`
-- **Brief-driven dispatch contract**：`harness/specs/brief-contract.md`
-
-## 诚实边界
-
-### 什么是真正强制的（程序拦截）
-
-- 探索业务代码时被 pre-explore hook BLOCK（除非已委托 subagent 或有 codegraph 证据）
-- 受治理路径（`src/main/java`、`src/test/java`、`openapi/`）的 **agent-aware 累计写入检查**（含 CodeGraph attempt 与 task RED receipt）
-- 变更资产完整性检查
-- OpenAPI ↔ Controller 一致性检查
-- 验证新鲜度检查
-
-> `cli.mjs verify` 只声明 contract checks；runtime readiness 需另行运行 doctor / sync / upstream-check。
-
-### 什么是"建议遵守"的（prompt 约束）
-
-- 一次只问一个问题 + 展示歧义评分
-- 先澄清再动手
-- TDD 严格 RED→GREEN→REFACTOR，必须通过 subagent + worktree 隔离执行，必须运行真实构建命令（`mvn test`/`mvn verify`）
-- subagent 标题对准用户项目（不得写 `enterprise-harness`）
-
-### 什么还没实现
-
-- ArchUnit 架构门禁
-- JaCoCo 覆盖率机械检查
-- 真实 HTTP API E2E
-
-## 适合谁 / 不适合谁
-
-**适合**：
-- Java 后端团队，想让 AI 在有约束的流程下工作
-- 需要 durable 状态和可追溯变更记录的团队
-- 弱模型场景，需要额外约束兜底
-
-**不适合**：
-- 只想做快速原型、不想走流程
-- 前端为主
-- 期待"一问就出代码"的体验
-
-## 设计理念
-
-这个项目借鉴了五个参考实现：
-- **分阶段 SOP** ← Superpowers
-- **归档与资产分层** ← OpenSpec
-- **苏格拉底式澄清** ← deep-interview
-- **打断后可继续** ← gump（durable state）
-- **角色视角** ← role-workbench
-
-目标是让较弱的模型在明确约束下也能稳定工作——但约束本身也有边界，不是万能的。
-
-## 维护者命令
+standalone 模式：
 
 ```bash
-node harness/plugin/runtime/cli.mjs doctor     # 环境体检
-node harness/plugin/runtime/cli.mjs verify     # 契约检查（含 闭环五检 (TECPC) 卡）
-node harness/plugin/runtime/cli.mjs status     # 当前状态（含 闭环五检 (TECPC) 卡）
+node bin/install.mjs --target /path/to/project --uninstall
 ```
 
-## 深入阅读
+## 文档
 
-- **[docs/zh-cn/tecp-user-acceptance-guide.md](docs/zh-cn/tecp-user-acceptance-guide.md)** — **闭环五检 (TECPC) 五维验收指南**（每步的预期/实际/证据）
-- [docs/zh-cn/full-lifecycle-truth.md](docs/zh-cn/full-lifecycle-truth.md) — 每个步骤的真相文档（时序图 + 涉及文件 + 产出 + checklist + 异常检测）
-- `PROGRESS.md` — 当前进度
-- `CLAUDE.md` — 项目约束
-- `AGENTS.md` — 仓库协作合同
-- `harness/specs/staged-workflow.md` — 分阶段工作流规范
-- `harness/specs/session-lifecycle.md` — 会话生命周期规范
+- [文档索引](docs/README.md)
+- [快速开始](docs/user/quickstart.md)
+- [用户工作流](docs/user/workflow.md)
+- [故障排查](docs/user/troubleshooting.md)
+- [已知限制](docs/user/limitations.md)
+- [维护架构](docs/maintainer/architecture.md)
+- [规范索引](harness/specs/README.md)
+- [贡献指南](CONTRIBUTING.md)
 
 ## License
 
-Apache-2.0
+Apache-2.0，见 [LICENSE](LICENSE)。

@@ -14,7 +14,8 @@
     "CLAUDE.md",
     ".claude/settings.json",
     "harness/config.yaml",
-    "harness/specs/plugin-runtime.md"
+    "harness/specs/architecture.md",
+    "harness/specs/workflow.md"
   ],
   "optionalProjectFiles": [
     ".mcp.json",

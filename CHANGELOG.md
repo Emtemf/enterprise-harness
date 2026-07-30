@@ -10,6 +10,9 @@
 - executor/checker 通过 agent `skills:` 确定性预加载专用 Skill；TDD 继续额外使用 worktree 文件隔离。
 - clarify 每轮评分增加 0-5 整数、评分依据、Overall 平均值与 weakest dimension 的机械合同。
 - release/completion 不再依赖 Claude 账户、认证、订阅、配额或服务容量。
+- TDD 命令改为目标项目 policy 与 task 级 exact argv，不再绑定本仓库 task-1～task-4。
+- 文档收敛为用户、维护者、八个主合同、ADR/营销/内部状态四个阅读面。
+- 删除旧 `harness/bin/*.sh` 与 shell verify 第二实现，Windows 发布包只依赖 Node runtime。
 
 ### Added
 
@@ -17,6 +20,16 @@
 - `EH-*` 稳定错误码、`enterprise-harness handoff explain` 与 `enterprise-harness trace`。
 - design/plan/verification executors、clarify synthesizer 与 implementation reviewer。
 - handoff、隔离接力、hook registry 和 ambiguity scoring contract smoke。
+- 安全路径 containment、事务安装与回滚、发布 artifact allowlist/manifest/SHA256/SBOM。
+- Bash 写入前后增量快照、revision CAS、幂等 eventId、结构化 completion layers。
+- 外部 Spring/Maven 项目的真实 RED/GREEN/REFACTOR 验收流水线。
+
+### Fixed
+
+- 代码探索不再因同一 Bash 命令包含 README/docs 字符串而整体豁免。
+- API/OpenAPI 解析不到内容时返回 `unsupported`，不再作为空错误集静默通过。
+- doctor 默认离线，不再动态下载或探测最新 Context7 CLI。
+- 安装器不再覆盖已有 `CLAUDE.md`、`AGENTS.md` 或非 harness settings。
 
 ## [0.2.5]
 

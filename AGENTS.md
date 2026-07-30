@@ -1,165 +1,95 @@
 # AGENTS
 
-## 目标
+本文件是面向人类贡献者和各类 agent harness 的仓库级协作合同，不是 Claude Code 自动加载规则源。
 
-为当前仓库提供一个**面向人类与各类 agent 的仓库级协作合同**。
+## 先读
 
-这个文件不是 Claude Code 的自动加载规则源；它的职责是给外部贡献者、其他 agent harness、以及首次进入仓库的人一个稳定前门。
+1. `README.md`
+2. `AGENTS.md`
+3. `docs/README.md`
+4. `CLAUDE.md`（仅 Claude Code 运行约束）
+5. `harness/specs/README.md`
+6. `CONTRIBUTING.md`
 
-## 先读什么
+## 真相层
 
-建议阅读顺序：
+- 产品与用户入口：`README.md`、`docs/user/`
+- 维护文档：`docs/maintainer/`
+- 长期运行合同：`harness/specs/`
+- Claude 自动规则：`.claude/rules/`
+- 阶段过程：`.claude/skills/`
+- agent 身份与工具边界：`.claude/agents/`
+- 机械执行：`harness/plugin/runtime/`
+- 动态 change：`harness/ACTIVE_CHANGE`、`harness/changes/<id>/state.json`
 
-1. `README.md`：项目定位、入口模型、Quickstart
-2. `AGENTS.md`：仓库级协作合同
-3. `PROGRESS.md`：当前阶段快照与继续阅读入口
-4. `CLAUDE.md`：Claude Code 专用高层操作合同
-5. `harness/specs/session-lifecycle.md`：会话打开/结束与 handoff 规则
-6. `harness/specs/staged-workflow.md`：clarify-first staged workflow 与阶段 gate 规则
-7. `harness/specs/handoff-scheme.md`：隔离 executor/checker、TECPC handoff 与 hook 规则
-8. `harness/specs/`：长期稳定规范
-9. `CONTRIBUTING.md`：贡献与提交约定
+同一规则只能有一个权威来源。用户文档解释行为，不能复制 schema 或 runtime 输出全文。
 
-## 入口模型
+## 修改与验证
 
-### 0. Claude Code plugin / marketplace 安装入口
-当前仓库已经具备本地 marketplace 可安装形态。
+修改 runtime、hooks、installer 或 release：
 
-推荐安装路径：
-
-- `claude plugin marketplace add /absolute/path/to/enterprise-harness`
-- `claude plugin install enterprise-harness@enterprise-harness --scope local`
-- 更新：
-  - `claude plugin marketplace update enterprise-harness`
-  - `claude plugin update enterprise-harness@enterprise-harness --scope local`
-
-这条路径更接近 superpowers 的安装/更新体验。插件安装态的 canonical 前门是 `/enterprise-harness:harness`；裸 `/harness` 仅用于 standalone checkout。
-
-### 1. Claude Code 会话唯一前门
-优先从：
-
-- plugin：`/enterprise-harness:harness`
-- standalone：`/harness`
-
-开始。它负责：
-
-- 接住新需求
-- 继续当前 change
-- 作为 clarify-first staged workflow 的单一入口
-- 判断当前处于 `clarify / route / design / plan / tdd / verify / archive` 的哪一段
-- 给出下一阶段的恢复入口或 backend 命令
-
-### 2. Runtime / 仓库后台命令
-优先使用：
-
-- `node harness/plugin/runtime/cli.mjs start-change <change-id> [owner] [tier] [topic]`
-- `node harness/plugin/runtime/cli.mjs bootstrap`
-- `node harness/plugin/runtime/cli.mjs doctor`
-- `node harness/plugin/runtime/cli.mjs sync`
-- `node harness/plugin/runtime/cli.mjs verify`
-
-plugin 安装态优先使用 `enterprise-harness <command>`；standalone 才使用上述 Node fallback。它们是 canonical skill 背后的确定性 backend，不是第二套用户工作流。
-
-### 3. 自动门禁层
-自动发生但不是总入口：
-
-- `CLAUDE.md`
-- `.claude/rules/`
-- `.claude/settings.json` hooks
-
-这些负责：
-
-- 默认流程约束
-- 写前/写后 gate
-- stop validation 检查
-
-## 工作流
-
-对 L1 及以上变更，默认按以下顺序推进：
-
-```text
-clarify
-→ route
-→ design
-→ plan
-→ tdd
-→ verify
-→ archive
+```bash
+npm run prepublish-check
 ```
 
-说明：
-- `clarify` 是强制第一阶段，优先通过代码/文档探索拿事实，再进行一问一答澄清与用户确认
-- `verify` 吸收 reviewer verdict、validation freshness 与 completion evidence 的统一消费职责
-- exploration 在高噪声场景下默认下沉为 read-only subagent，主 orchestrator 只消费压缩结论
+至少同时运行与改动直接相关的行为测试。新增 hook 必须：
 
-所有受治理阶段行为都由主 orchestrator 接力：
+- 在 `harness/plugin/hooks-manifest.json` 声明。
+- 运行 `node bin/generate-hooks.mjs`。
+- 指定 fail-open/fail-closed 和性能预算。
+- 提供 stdin、exit code、stdout/stderr 行为测试。
 
-```text
-executor subagent（预加载 executor Skill）
-→ durable TECPC handoff
-→ independent checker subagent（预加载 checker Skill）
-→ hook gate
+新增 runtime command 必须：
+
+- 由 `cli.mjs` 暴露。
+- 提供 `--help`。
+- 使用 argv 数组和 `shell: false`。
+- 提供稳定错误码与恢复动作。
+- 覆盖路径逃逸、无效 JSON 和外部命令失败。
+
+新增或修改 spec 必须：
+
+- 说明 status、owner、lastVerified、implementationRefs、testRefs。
+- 更新 `harness/specs/README.md`。
+- 避免与其他主合同重复。
+
+## 安全边界
+
+- 所有 ID 和相对路径必须经过 `safe-paths.mjs`。
+- 不信任 changeId、taskId、runId、reviewerId、topic、inputRef 或 outputRef。
+- 不跟随可逃逸目标根目录的 symlink。
+- 不用字符串包含关系判断 Bash 探索豁免。
+- 不用全局 dirty diff 归因当前 Bash 调用。
+- 不静默吞掉关键异常。
+- 不运行隐式最新版依赖；CI 和在线工具必须锁定版本。
+
+## 生成文件
+
+不得手工修改：
+
+- `hooks/hooks.json`
+- `.claude/settings.json` 中的 harness hook 投影
+- 版本 manifest 投影
+
+对应生成命令：
+
+```bash
+node bin/generate-hooks.mjs
+node bin/sync-version.mjs
 ```
 
-executor 与 checker 必须是不同的新上下文；subagent 不继续派生 subagent。
+## 历史与研发资产
 
-## 仓库约定
+- `harness/archive/**` 是冻结历史，不直接修改。
+- `harness/changes/**` 只保存活动 change。
+- `harness/work/**` 不属于规范或发布资产。
+- `docs/internal/**` 是可过期的维护快照。
+- 测试 fixture 必须在临时目录创建，不依赖真实 active change。
 
-### 规则源
-- `.claude/rules/` 是 Claude Code 的自动加载规则源
-- 根目录 `rules/` 与 `agents/` 视为历史参考，不再是运行时真相
+## PR 要求
 
-### 资产落点
-- 长期规范：`harness/specs/`
-- 活动 change：`harness/changes/<change-id>/`
-- 探索证据：`harness/explorations/` 或 change `evidence/`
-- 模板：`harness/templates/`
-
-### 证据要求
-聊天记录可以作为证据来源，但不能替代正式证据资产。
-
-最终应整理并落盘到：
-
-- `validation.md`
-- `evidence/*.md`
-- `reviews/*.json`
-- `state.json`
-
-## 关键策略
-
-### codegraph-first
-- Java / 后端分析默认先走 codegraph
-- 只有在不可用、结果不足、或影响面无法覆盖时才 fallback
-
-### Context7-first
-- 涉及外部库、框架、SDK、版本行为时优先 Context7
-- 不足时再查官方文档或官方源码
-
-## 贡献边界
-
-- 不要把聊天上下文当成唯一状态来源
-- 不要在 codegraph 可用时直接跳过到 grep
-- 不要在 design / RED / validation 缺失时声称完成
-- 不要把 hooks 当成总编排器
-- 不要把 command 当成需求分析器
-
-## 受治理路径
-
-任意项目下的以下路径都受 pre-write gate 保护（不只限于 `reference-service/`）：
-
-- `src/main/java/**`
-- `src/test/java/**`
-- `openapi/**`
-
-当修改这些路径时，应确保：
-
-- `harness/ACTIVE_CHANGE` 有效
-- 相应 design / RED gate 已满足
-- 当前事件绑定 active scoped executor，且 ledger 中已有 code-explore agent 的 CodeGraph attempt
-- 生产/OpenAPI 写入已有当前 task 的真实 RED receipt；手填 state projection 不算证据
-
-## 结论
-
-一句话总结：
-
-> `AGENTS.md` 负责给仓库一个面向人类与 agent 的协作前门；`CLAUDE.md` 与 `.claude/` 继续负责 Claude Code 的运行时专用约束。
+- 说明用户可见变化和兼容性。
+- 列出行为测试与平台证据。
+- 不能把聊天输出当唯一证据。
+- 不能在 design、真实 RED、独立 checker 或 fresh validation 缺失时声称完成。
+- 不提交 secrets、账户信息、本机 adapter 或 receipt spool。

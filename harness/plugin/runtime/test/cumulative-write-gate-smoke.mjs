@@ -46,6 +46,20 @@ function fixture() {
   state.tooling.codegraph = { status: 'available', queries: ['forged-state-projection'] };
   writeJson(path.join(changeDir, 'state.json'), state);
   fs.writeFileSync(path.join(root, 'harness/ACTIVE_CHANGE'), `${changeId}\n`);
+  writeJson(path.join(root, 'harness/command-policy.json'), {
+    schemaVersion: 1,
+    build: { type: 'command', executables: ['node'] },
+  });
+  writeJson(path.join(changeDir, 'task-commands.json'), {
+    schemaVersion: 1,
+    tasks: {
+      'task-3': {
+        redCommand: ['node', 'harness/plugin/runtime/test/task3-gate-completion-smoke.mjs', 'red'],
+        greenCommand: ['node', 'harness/plugin/runtime/test/task3-gate-completion-smoke.mjs', 'green'],
+        refactorCommand: ['node', 'harness/plugin/runtime/test/task3-gate-completion-smoke.mjs', 'verify'],
+      },
+    },
+  });
   run(root, 'git', ['add', '.']);
   run(root, 'git', ['commit', '-qm', 'fixture baseline']);
   createEvidencePolicy(root, { strictChangeIds: [changeId] });
@@ -91,7 +105,12 @@ try {
   assert.equal(result.status, 0, result.stderr);
   result = hookCall(root, { tool_name: 'NotebookEdit', agent_id: 'executor-1', tool_input: { notebook_path: path.join(root, 'src/test/java/demo/App.ipynb') } });
   assert.equal(result.status, 0, result.stderr);
-  result = hookCall(root, { tool_name: 'Bash', agent_id: 'executor-1', tool_input: { command: 'tee src/main/java/demo/App.java' } });
+  result = hookCall(root, {
+    tool_name: 'Bash',
+    tool_use_id: 'bash-write-1',
+    agent_id: 'executor-1',
+    tool_input: { command: 'tee src/main/java/demo/App.java' },
+  });
   assert.equal(result.status, 0, result.stderr);
   const saved = fs.readFileSync(planReview);
   fs.rmSync(planReview);

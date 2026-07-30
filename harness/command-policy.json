@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "build": {
+    "type": "command",
+    "executables": [
+      "node"
+    ]
+  }
+}

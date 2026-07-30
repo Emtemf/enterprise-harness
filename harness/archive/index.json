@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "changes": [
+    {
+      "changeId": "draft-gate-demo",
+      "title": "Change",
+      "tier": "L1",
+      "completedAt": null,
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "g4c-progress-card",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": null,
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "gate-hardening-semantics",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-16",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "gate-tightening-skeleton",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "java-golden-quality-gates",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-16",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "java-golden-real-http-openapi",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-16",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "openapi-contract-check-generalization",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "orchestrator-execution-deepening",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-20",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "per-change-guide-card",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-21",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "pi-containerization-guidance",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "pi-inspired-improvements",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "pi-runtime-followups",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "plugin-distribution",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "red-task-fixture-decoupling",
+      "title": "Change",
+      "tier": "L1",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "release-local-source-external-smoke",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": null,
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "runtime-adapter-diagnostics-hardening",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-16",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "runtime-installability-polish",
+      "title": "Change",
+      "tier": "L1",
+      "completedAt": "2026-07-20",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "runtime-productization-polish",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-16",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "session-lifecycle-progress",
+      "title": "Change",
+      "tier": "L3",
+      "completedAt": "2026-07-15",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "smoke-fixture-decoupling",
+      "title": "Change",
+      "tier": "L1",
+      "completedAt": "2026-07-22",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "state-schema-migration",
+      "title": "Change",
+      "tier": "L2",
+      "completedAt": "2026-07-23",
+      "summary": "Change",
+      "tags": []
+    },
+    {
+      "changeId": "workflow-runner-fixture-isolation",
+      "title": "Change",
+      "tier": "L1",
+      "completedAt": "2026-07-23",
+      "summary": "Change",
+      "tags": []
+    }
+  ]
+}

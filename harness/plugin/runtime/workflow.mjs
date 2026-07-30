@@ -8,6 +8,8 @@ import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyExecutionReadinessDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
+import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
+import { compareAndSwapJson } from './lib/state-store.mjs';
 
 const root = projectRoot();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd（企业目标项目里 cwd 是用户项目根）。
@@ -17,10 +19,6 @@ const activeFile = path.join(root, 'harness', 'ACTIVE_CHANGE');
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf-8'));
-}
-
-function writeJson(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 function setActiveChange(changeId) {
@@ -72,7 +70,7 @@ function shouldSuppressExecutionReadiness(changeId, data) {
 
 
 function ensureChangeExists(changeId) {
-  const statePath = path.join(changesDir, changeId, 'state.json');
+  const statePath = path.join(changeDir(changeId), 'state.json');
   return fs.existsSync(statePath);
 }
 
@@ -101,7 +99,8 @@ function ensureWorkflowShape(data) {
 }
 
 function changeDir(changeId) {
-  return path.join(changesDir, changeId);
+  assertSafeId(changeId, 'changeId');
+  return resolveChild(changesDir, changeId, 'changeId');
 }
 
 function statePathFor(changeId) {
@@ -110,12 +109,6 @@ function statePathFor(changeId) {
 
 function eventLogPathFor(changeId) {
   return path.join(changeDir(changeId), 'evidence', 'workflow-events.jsonl');
-}
-
-function appendEvent(changeId, event) {
-  const file = eventLogPathFor(changeId);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.appendFileSync(file, JSON.stringify(event) + '\n', 'utf-8');
 }
 
 function recordEvent(changeId, data, type, payload = {}) {
@@ -132,7 +125,6 @@ function recordEvent(changeId, data, type, payload = {}) {
   };
   data.lastEventId = eventId;
   data.revision = (data.revision ?? 1) + 1;
-  appendEvent(changeId, event);
   return event;
 }
 
@@ -146,17 +138,27 @@ function loadChange(changeId) {
   return data;
 }
 
-function saveChange(changeId, data) {
-  writeJson(statePathFor(changeId), data);
+function saveChange(changeId, data, event) {
+  compareAndSwapJson(
+    statePathFor(changeId),
+    data.revision - 1,
+    data,
+    eventLogPathFor(changeId),
+    event,
+  );
 }
 
 function resolveChangeId(candidate) {
-  if (candidate) return candidate;
+  if (candidate) {
+    assertSafeId(candidate, 'changeId');
+    return candidate;
+  }
   const active = loadActiveChange(root);
   if (!active.ok) {
     console.error('No active change');
     process.exit(1);
   }
+  assertSafeId(active.changeId, 'active changeId');
   return active.changeId;
 }
 
@@ -188,8 +190,8 @@ function applyDecision(changeId, decision, reason = null) {
     applyExecutionReadinessDecision(data, decision, baselineSha);
   }
 
-  recordEvent(changeId, data, 'decision', { decision, reason, kind: pending.kind });
-  saveChange(changeId, data);
+  const event = recordEvent(changeId, data, 'decision', { decision, reason, kind: pending.kind });
+  saveChange(changeId, data, event);
   return buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
 }
 
@@ -221,8 +223,8 @@ switch (action) {
       setActiveChange(changeId);
     }
     const data = loadChange(changeId);
-    recordEvent(changeId, data, 'run', { owner, tier, topic });
-    saveChange(changeId, data);
+    const event = recordEvent(changeId, data, 'run', { owner, tier, topic });
+    saveChange(changeId, data, event);
     const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     process.exit(0);
@@ -231,8 +233,8 @@ switch (action) {
     const changeId = resolveChangeId(args[0]);
     setActiveChange(changeId);
     const data = loadChange(changeId);
-    recordEvent(changeId, data, 'resume');
-    saveChange(changeId, data);
+    const event = recordEvent(changeId, data, 'resume');
+    saveChange(changeId, data, event);
     const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     process.exit(0);
@@ -285,8 +287,8 @@ switch (action) {
       process.exit(2);
     }
     const data = loadChange(changeId);
-    recordEvent(changeId, data, noteType, { note: noteParts.join(' ') });
-    saveChange(changeId, data);
+    const event = recordEvent(changeId, data, noteType, { note: noteParts.join(' ') });
+    saveChange(changeId, data, event);
     console.log(`Noted ${noteType} on ${changeId}`);
     process.exit(0);
   }

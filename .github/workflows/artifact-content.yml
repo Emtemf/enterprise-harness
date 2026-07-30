@@ -1,0 +1,21 @@
+name: Artifact Content
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: node bin/package.mjs --out dist
+      - run: node harness/plugin/runtime/test/artifact-content-smoke.mjs verify

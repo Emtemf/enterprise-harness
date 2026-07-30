@@ -35,6 +35,14 @@ export const DIAGNOSTICS = Object.freeze({
     summary: '受治理 Agent 调用失败，结果未形成可消费 handoff。',
     recovery: '使用 runId 查看 events.jsonl/agent ledger，修复失败原因后以新 attempt 重试。',
   },
+  'EH-HOOK-SNAPSHOT-010': {
+    summary: 'Bash 写入缺少可归因的前后快照。',
+    recovery: '确认 PreToolUse 与 PostToolUse 使用相同 tool_use_id，并重试该次命令。',
+  },
+  'EH-HOOK-POST-WRITE-011': {
+    summary: 'Post-write 无法解析事件或完成增量归因。',
+    recovery: '查看 violation ledger 中的 toolUseId、target 与 detail，修复 hook 输入后重新验证。',
+  },
 });
 
 export function diagnostic(code) {

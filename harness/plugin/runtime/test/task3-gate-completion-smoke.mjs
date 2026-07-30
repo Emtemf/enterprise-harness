@@ -6,6 +6,12 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const tests = [
+  'safe-paths-adversarial-smoke.mjs',
+  'hook-snapshot-attribution-smoke.mjs',
+  'state-store-concurrency-smoke.mjs',
+  'completion-layers-smoke.mjs',
+  'checks-openapi-scan-unit-smoke.mjs',
+  'openapi-controller-consistency-smoke.mjs',
   'gates-governed-target-unit-smoke.mjs',
   'cumulative-write-gate-smoke.mjs',
   'archive-completion-smoke.mjs',
@@ -16,10 +22,6 @@ for (const test of tests) {
   process.stdout.write(result.stdout || '');
   process.stderr.write(result.stderr || '');
   if (result.status !== 0) failed = true;
-}
-if (mode === 'red') {
-  console.error('RED: Task 3 adversarial contract requires the cumulative gate and completion implementation');
-  process.exit(1);
 }
 if (failed) process.exit(1);
 console.log(`PASS task3-gate-completion ${mode}`);
