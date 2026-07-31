@@ -29,6 +29,7 @@
     "test:ci": "node harness/plugin/runtime/prepublish.mjs",
     "test:all": "node bin/run-smoke-suite.mjs",
     "test:e2e": "node test/external-project/maven-lifecycle-e2e.mjs",
+    "test:everything": "npm run test:ci && npm run test:all && npm run docs:check && npm run test:e2e",
     "docs:check": "node harness/plugin/runtime/test/docs-consistency-smoke.mjs verify",
     "pack": "node bin/package.mjs",
     "release": "node bin/release.mjs"

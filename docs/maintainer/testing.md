@@ -17,7 +17,13 @@ node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify
 node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
-完整：
+发布前或改动跨越 runtime 与 fixture 时，用聚合入口一次跑完四条流水线：
+
+```bash
+npm run test:everything
+```
+
+分别运行时注意 `test:all` 只含 smoke suite，不含 external-project E2E：
 
 ```bash
 npm run test:all

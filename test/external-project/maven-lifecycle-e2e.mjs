@@ -19,6 +19,27 @@ const run = (command, args, options = {}) => spawnSync(command, args, {
 });
 const mustPass = (result, label) => assert.equal(result.status, 0, `${label}\n${result.stdout}\n${result.stderr}`);
 
+// Stage the runtime assets a target project needs. The plugin normally delivers these through
+// Claude Code, which this headless test cannot use, so it copies the same subset directly
+// rather than depending on a separate installer.
+const STAGED_EXCLUDES = ['changes', 'archive', 'work', 'lessons', 'ACTIVE_CHANGE', 'command-policy.json', 'evidence-policy.json'];
+function stageRuntime() {
+  fs.cpSync(path.join(sourceRoot, 'harness'), path.join(target, 'harness'), {
+    recursive: true,
+    filter: (source) => {
+      const relative = path.relative(path.join(sourceRoot, 'harness'), source);
+      if (!relative) return true;
+      const [head] = relative.split(path.sep);
+      if (STAGED_EXCLUDES.includes(head)) return false;
+      return relative !== path.join('plugin', 'runtime', 'test');
+    },
+  });
+  fs.copyFileSync(
+    path.join(sourceRoot, 'harness/templates/command-policy.maven.json'),
+    path.join(target, 'harness/command-policy.json'),
+  );
+}
+
 try {
   fs.cpSync(path.join(sourceRoot, 'test/fixtures/maven-spring-project'), target, { recursive: true });
   const implementationText = fs.readFileSync(path.join(target, implementation), 'utf-8');
@@ -29,7 +50,7 @@ try {
   mustPass(run('git', ['add', '.']), 'git add');
   mustPass(run('git', ['commit', '-m', 'broken baseline for real RED']), 'git commit');
 
-  mustPass(run(process.execPath, [path.join(sourceRoot, 'bin/install.mjs'), '--target', target]), 'install');
+  stageRuntime();
   mustPass(run(process.execPath, [path.join(target, 'harness/plugin/runtime/cli.mjs'), 'start-change', 'greeting-api', 'e2e', 'L1', 'greeting']), 'start change');
   fs.writeFileSync(path.join(target, 'harness/changes/greeting-api/task-commands.json'), `${JSON.stringify({
     schemaVersion: 1,
