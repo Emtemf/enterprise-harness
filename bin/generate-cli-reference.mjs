@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '..');
 const target = path.join(root, 'docs', 'maintainer', 'cli-reference.md');
-const result = spawnSync(process.execPath, ['harness/plugin/runtime/cli.mjs', '--help'], {
+const result = spawnSync(process.execPath, ['runtime/cli.mjs', '--help'], {
   cwd: root,
   encoding: 'utf-8',
   shell: false,

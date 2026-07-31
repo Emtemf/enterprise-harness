@@ -11,10 +11,10 @@
 P0：
 
 ```bash
-node harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs verify
-node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify
-node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify
-node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify
+node runtime/test/task1-authoritative-evidence-smoke.mjs verify
+node runtime/test/task2-plugin-agent-smoke.mjs verify
+node runtime/test/task3-gate-completion-smoke.mjs verify
+node runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
 发布前或改动跨越 runtime 与 fixture 时，用聚合入口一次跑完四条流水线：

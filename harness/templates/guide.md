@@ -40,10 +40,10 @@
 
 ```bash
 # 从 repo 根运行
-node harness/plugin/runtime/cli.mjs verify
-node harness/plugin/runtime/cli.mjs doctor
-node harness/plugin/runtime/test/scaffold-guide-contract-smoke.mjs verify
-node harness/plugin/runtime/lifecycle.mjs show-active
+node runtime/cli.mjs verify
+node runtime/cli.mjs doctor
+node runtime/test/scaffold-guide-contract-smoke.mjs verify
+node runtime/lifecycle.mjs show-active
 ```
 
 ## 业务知识沉淀（去哪读）

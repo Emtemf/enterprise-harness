@@ -4,9 +4,9 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
   - .claude-plugin/plugin.json
-  - harness/plugin/runtime/cli.mjs
+  - runtime/cli.mjs
 testRefs:
-  - harness/plugin/runtime/test/plugin-entry-agent-contract-smoke.mjs
+  - runtime/test/plugin-entry-agent-contract-smoke.mjs
 ---
 
 # Architecture Contract

@@ -4,7 +4,7 @@
 
 ```text
 Enterprise Harness Runtime CLI
-Usage: node harness/plugin/runtime/cli.mjs <command> [args]
+Usage: node runtime/cli.mjs <command> [args]
 Commands:
 - bootstrap
 - doctor

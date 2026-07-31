@@ -83,7 +83,7 @@ enterprise-harness handoff explain <EH-CODE>
 本仓库开发时将 `enterprise-harness` 替换为：
 
 ```bash
-node harness/plugin/runtime/cli.mjs
+node runtime/cli.mjs
 ```
 
 当前研发快照只在 `docs/internal/current-development-status.md`，不属于安装合同或发布资产。

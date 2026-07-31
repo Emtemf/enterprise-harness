@@ -3,9 +3,9 @@ status: current
 owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
-  - harness/plugin/runtime/lib/ambiguity.mjs
+  - runtime/lib/ambiguity.mjs
 testRefs:
-  - harness/plugin/runtime/test/ambiguity-gate-smoke.mjs
+  - runtime/test/ambiguity-gate-smoke.mjs
 ---
 
 # Ambiguity Scoring Contract

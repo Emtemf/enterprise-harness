@@ -7,7 +7,7 @@ implementationRefs:
   - bin/release.mjs
   - .github/workflows/release.yml
 testRefs:
-  - harness/plugin/runtime/test/artifact-content-smoke.mjs
+  - runtime/test/artifact-content-smoke.mjs
 ---
 
 # Distribution and Release Contract

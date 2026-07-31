@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { appendAgentEvent } from '../../harness/plugin/runtime/lib/agent-evidence.mjs';
-import { readAndValidateTddReceipt, tddReceiptSpoolPath } from '../../harness/plugin/runtime/lib/tdd-receipts.mjs';
+import { appendAgentEvent } from '../../runtime/lib/agent-evidence.mjs';
+import { readAndValidateTddReceipt, tddReceiptSpoolPath } from '../../runtime/lib/tdd-receipts.mjs';
 
 const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-external-maven-'));
@@ -31,7 +31,7 @@ function stageRuntime() {
       if (!relative) return true;
       const [head] = relative.split(path.sep);
       if (STAGED_EXCLUDES.includes(head)) return false;
-      return relative !== path.join('plugin', 'runtime', 'test');
+      return relative !== path.join('runtime', 'test');
     },
   });
   fs.copyFileSync(
@@ -51,7 +51,7 @@ try {
   mustPass(run('git', ['commit', '-m', 'broken baseline for real RED']), 'git commit');
 
   stageRuntime();
-  mustPass(run(process.execPath, [path.join(target, 'harness/plugin/runtime/cli.mjs'), 'start-change', 'greeting-api', 'e2e', 'L1', 'greeting']), 'start change');
+  mustPass(run(process.execPath, [path.join(target, 'runtime/cli.mjs'), 'start-change', 'greeting-api', 'e2e', 'L1', 'greeting']), 'start change');
   fs.writeFileSync(path.join(target, 'harness/changes/greeting-api/task-commands.json'), `${JSON.stringify({
     schemaVersion: 1,
     tasks: {
@@ -71,7 +71,7 @@ try {
   });
   const env = { HARNESS_TDD_EXECUTOR_ID: 'external-e2e-agent' };
   const tdd = (phase) => run(process.execPath, [
-    path.join(target, 'harness/plugin/runtime/tdd-run.mjs'),
+    path.join(target, 'runtime/tdd-run.mjs'),
     'greeting-api',
     'task-greeting',
     phase,

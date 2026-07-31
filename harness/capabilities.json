@@ -3,44 +3,44 @@
   "capabilities": [
     {
       "id": "safe-path-containment",
-      "testRefs": ["harness/plugin/runtime/test/safe-paths-adversarial-smoke.mjs"]
+      "testRefs": ["runtime/test/safe-paths-adversarial-smoke.mjs"]
     },
     {
       "id": "isolated-executor-checker-handoff",
       "testRefs": [
-        "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
-        "harness/plugin/runtime/test/failed-dispatch-recovery-smoke.mjs",
-        "harness/plugin/runtime/test/bare-agent-dispatch-smoke.mjs"
+        "runtime/test/task2-plugin-agent-smoke.mjs",
+        "runtime/test/failed-dispatch-recovery-smoke.mjs",
+        "runtime/test/bare-agent-dispatch-smoke.mjs"
       ]
     },
     {
       "id": "seven-dimension-ambiguity-gate",
-      "testRefs": ["harness/plugin/runtime/test/ambiguity-gate-smoke.mjs"]
+      "testRefs": ["runtime/test/ambiguity-gate-smoke.mjs"]
     },
     {
       "id": "real-frozen-tdd-command",
-      "testRefs": ["harness/plugin/runtime/test/tdd-run-baseline-smoke.mjs"]
+      "testRefs": ["runtime/test/tdd-run-baseline-smoke.mjs"]
     },
     {
       "id": "incremental-hook-attribution",
-      "testRefs": ["harness/plugin/runtime/test/hook-snapshot-attribution-smoke.mjs"]
+      "testRefs": ["runtime/test/hook-snapshot-attribution-smoke.mjs"]
     },
     {
       "id": "allowlisted-release-artifact",
-      "testRefs": ["harness/plugin/runtime/test/artifact-content-smoke.mjs"]
+      "testRefs": ["runtime/test/artifact-content-smoke.mjs"]
     },
     {
       "id": "structured-completion-layers",
       "testRefs": [
-        "harness/plugin/runtime/test/completion-layers-smoke.mjs",
-        "harness/plugin/runtime/test/task-review-binding-smoke.mjs"
+        "runtime/test/completion-layers-smoke.mjs",
+        "runtime/test/task-review-binding-smoke.mjs"
       ]
     },
     {
       "id": "conservative-openapi-gate",
       "testRefs": [
-        "harness/plugin/runtime/test/checks-openapi-scan-unit-smoke.mjs",
-        "harness/plugin/runtime/test/openapi-controller-consistency-smoke.mjs"
+        "runtime/test/checks-openapi-scan-unit-smoke.mjs",
+        "runtime/test/openapi-controller-consistency-smoke.mjs"
       ]
     }
   ]

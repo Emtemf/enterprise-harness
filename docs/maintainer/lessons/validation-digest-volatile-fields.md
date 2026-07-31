@@ -31,4 +31,4 @@ recordedAt: 2026-07-21
 
 ## 关联
 
-- 见 `harness/plugin/runtime/lib/checks.mjs` 的 `computeValidationDigest`
+- 见 `runtime/lib/checks.mjs` 的 `computeValidationDigest`

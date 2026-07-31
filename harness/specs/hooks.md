@@ -4,10 +4,10 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
   - harness/plugin/hooks-manifest.json
-  - harness/plugin/runtime/hooks
+  - runtime/hooks
 testRefs:
-  - harness/plugin/runtime/test/hook-manifest-parity-smoke.mjs
-  - harness/plugin/runtime/test/hook-snapshot-attribution-smoke.mjs
+  - runtime/test/hook-manifest-parity-smoke.mjs
+  - runtime/test/hook-snapshot-attribution-smoke.mjs
 ---
 
 # Hooks Contract

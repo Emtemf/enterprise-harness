@@ -1,0 +1,79 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const mode = process.argv[2] || 'verify';
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const out = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-artifact-'));
+const secondOut = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-artifact-repeat-'));
+const extract = path.join(out, 'extract');
+fs.mkdirSync(extract);
+
+try {
+  const packed = spawnSync(process.execPath, [path.join(root, 'bin', 'package.mjs'), '--out', out], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+  });
+  assert.equal(packed.status, 0, packed.stderr);
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
+  const tarball = path.join(out, `enterprise-harness-${pkg.version}.tar.gz`);
+  const unpacked = spawnSync('tar', ['-xzf', tarball, '-C', extract], {
+    encoding: 'utf-8',
+    shell: false,
+  });
+  assert.equal(unpacked.status, 0, unpacked.stderr);
+  const manifest = JSON.parse(fs.readFileSync(path.join(extract, 'manifest-files.json'), 'utf-8'));
+  const listed = new Set(manifest.files.map((entry) => entry.path));
+  for (const required of [
+    '.claude-plugin/plugin.json',
+    '.claude/skills/harness/SKILL.md',
+    'hooks/hooks.json',
+    'runtime/cli.mjs',
+    'harness/templates/state.json',
+    'harness/schemas/state.schema.json',
+    'harness/capabilities.json',
+    'bin/enterprise-harness.mjs',
+    'package.json',
+    'CHANGELOG.md',
+  ]) {
+    assert.equal(listed.has(required), true, `artifact must contain ${required}`);
+  }
+  for (const forbidden of [
+    'harness/ACTIVE_CHANGE',
+    'harness/evidence-policy.json',
+    'harness/command-policy.json',
+    'PROGRESS.md',
+  ]) {
+    assert.equal(listed.has(forbidden), false, `artifact must exclude ${forbidden}`);
+  }
+  assert.equal(
+    [...listed].some((file) => /^(?:harness\/(?:archive|changes|work|lessons)|harness\/plugin\/runtime\/test)\//u.test(file)),
+    false,
+  );
+  for (const entry of manifest.files) {
+    const content = fs.readFileSync(path.join(extract, entry.path));
+    assert.equal(content.length, entry.size);
+    assert.equal(crypto.createHash('sha256').update(content).digest('hex'), entry.sha256);
+  }
+  const sums = fs.readFileSync(path.join(out, 'SHA256SUMS'), 'utf-8').trim();
+  const expected = crypto.createHash('sha256').update(fs.readFileSync(tarball)).digest('hex');
+  assert.equal(sums, `${expected}  ${path.basename(tarball)}`);
+  const repeated = spawnSync(process.execPath, [path.join(root, 'bin', 'package.mjs'), '--out', secondOut], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+  });
+  assert.equal(repeated.status, 0, repeated.stderr);
+  const repeatedTarball = path.join(secondOut, path.basename(tarball));
+  const repeatedDigest = crypto.createHash('sha256').update(fs.readFileSync(repeatedTarball)).digest('hex');
+  assert.equal(repeatedDigest, expected, 'same source state must produce the same tarball digest');
+  console.log(`PASS artifact-content ${mode}`);
+} finally {
+  fs.rmSync(out, { recursive: true, force: true });
+  fs.rmSync(secondOut, { recursive: true, force: true });
+}

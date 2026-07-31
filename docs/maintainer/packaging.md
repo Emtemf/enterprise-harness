@@ -15,6 +15,6 @@ node bin/package.mjs --out dist
 验收：
 
 ```bash
-node harness/plugin/runtime/test/artifact-content-smoke.mjs verify
+node runtime/test/artifact-content-smoke.mjs verify
 node bin/validate-artifact.mjs <tarball> <version>
 ```

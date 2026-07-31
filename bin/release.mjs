@@ -114,7 +114,7 @@ try {
   run('codegraph', ['init'], worktree);
   run('npm', ['run', 'prepublish-check'], worktree);
   run(process.execPath, ['bin/package.mjs', '--out', 'dist'], worktree);
-  run(process.execPath, ['harness/plugin/runtime/test/artifact-content-smoke.mjs', 'verify'], worktree);
+  run(process.execPath, ['runtime/test/artifact-content-smoke.mjs', 'verify'], worktree);
 
   const versionFiles = [
     'package.json',

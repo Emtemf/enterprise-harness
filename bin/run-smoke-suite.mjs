@@ -4,7 +4,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '..');
-const testDir = path.join(root, 'harness', 'plugin', 'runtime', 'test');
+const testDir = path.join(root, 'runtime', 'test');
 const ONLINE_TESTS = new Set(['plugin-install-flow-smoke.mjs']);
 const tests = fs.readdirSync(testDir)
   .filter((name) => name.endsWith('-smoke.mjs') && !ONLINE_TESTS.has(name))

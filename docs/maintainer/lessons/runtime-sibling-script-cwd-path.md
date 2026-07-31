@@ -16,7 +16,7 @@ recordedAt: 2026-07-21
 
 ## 根因
 
-runtime 脚本用 `process.cwd()`（或写死 `'harness/plugin/runtime/xxx.mjs'`）
+runtime 脚本用 `process.cwd()`（或写死 `'runtime/xxx.mjs'`）
 来定位并 spawn 兄弟脚本。企业目标项目里 cwd 是用户项目根，插件真实物理
 位置却在 `${CLAUDE_PLUGIN_ROOT}` 缓存目录下，两者不一致。
 
@@ -34,7 +34,7 @@ runtime 脚本用 `process.cwd()`（或写死 `'harness/plugin/runtime/xxx.mjs'`
 
 ## 关联
 
-- `harness/plugin/runtime/cli.mjs`、`workflow.mjs`、`start-change.mjs` 已按此修正
+- `runtime/cli.mjs`、`workflow.mjs`、`start-change.mjs` 已按此修正
 - maintainer-only 命令（install/migrate/update/prepublish/release-local）
   仍用 cwd 相对，但它们只在仓库根手动运行，暂不受影响——若未来要在目标项目
   运行，需同样处理

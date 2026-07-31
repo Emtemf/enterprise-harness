@@ -19,7 +19,7 @@
 - Claude 自动规则：`.claude/rules/`
 - 阶段过程：`.claude/skills/`
 - agent 身份与工具边界：`.claude/agents/`
-- 机械执行：`harness/plugin/runtime/`
+- 机械执行：`runtime/`
 - 动态 change：`harness/ACTIVE_CHANGE`、`harness/changes/<id>/state.json`
 
 同一规则只能有一个权威来源。用户文档解释行为，不能复制 schema 或 runtime 输出全文。

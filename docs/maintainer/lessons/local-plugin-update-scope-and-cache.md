@@ -29,11 +29,11 @@ recordedAt: 2026-07-21
 - 本地更新永远带 scope：`claude plugin update <id> --scope local`
   （或先 `claude plugin list --json` 读出实际 scope 再用）。
 - 更新后删除非当前启用版本的缓存目录，只保留 `installPath` 指向的那个。
-- 用封装命令一键完成：`node harness/plugin/runtime/cli.mjs update-local`
+- 用封装命令一键完成：`node runtime/cli.mjs update-local`
   （marketplace update → plugin update --scope <实际> → 清理旧缓存），`--dry-run` 预览。
 - 更新后重启 Claude Code 会话才生效（hook 配置在会话启动时加载）。
 
 ## 关联
 
-- `harness/plugin/runtime/update-local.mjs` + `lib/plugin-cache.mjs`
+- `runtime/update-local.mjs` + `lib/plugin-cache.mjs`
 - 相关 hook 坑见 [[stop-hook-stdout-json]]、[[hook-var-scope-settings-vs-plugin]]

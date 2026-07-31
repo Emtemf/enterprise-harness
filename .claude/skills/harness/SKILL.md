@@ -12,7 +12,7 @@ description: Enterprise Harness 的唯一工作流入口。用于创建或恢复
 - plugin：`/enterprise-harness:harness`
 - 本仓库开发：`/harness`
 
-backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时才 fallback 到 `node harness/plugin/runtime/cli.mjs <command>`。
+backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时才 fallback 到 `node runtime/cli.mjs <command>`。
 
 ## 开始
 

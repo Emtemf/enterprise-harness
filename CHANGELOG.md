@@ -133,7 +133,7 @@
 ## [0.2.4]
 
 ### Fixed
-- **维护层 spec 口径与 phase 1 对齐**：`plugin-runtime.md`、`mvp-governance.md`、`directory-model.md` 不再混用旧的 旧运行层叙事 / legacy `rules/` / `agents/` / `hooks/` 真相层表述，统一回到当前 `.claude/` 自动加载层与 `harness/plugin/runtime/hooks/` hook 执行体模型。
+- **维护层 spec 口径与 phase 1 对齐**：`plugin-runtime.md`、`mvp-governance.md`、`directory-model.md` 不再混用旧的 旧运行层叙事 / legacy `rules/` / `agents/` / `hooks/` 真相层表述，统一回到当前 `.claude/` 自动加载层与 `runtime/hooks/` hook 执行体模型。
 
 ## [0.2.3]
 ## [0.2.3]
@@ -481,7 +481,7 @@
 
 ### Cleanup
 
-- 删除根 `rules/` 僵尸目录、agents 收敛为 `.claude/agents/` 单一来源、归档一次性 demo change、shell 校验脚本迁移到 `harness/plugin/runtime/verify-scripts/`。
+- 删除根 `rules/` 僵尸目录、agents 收敛为 `.claude/agents/` 单一来源、归档一次性 demo change、shell 校验脚本迁移到 `runtime/verify-scripts/`。
 
 ## [0.1.3]
 

@@ -15,7 +15,7 @@ function render(rootExpression) {
       const group = {
         hooks: [{
           type: 'command',
-          command: `node "${rootExpression}/harness/plugin/runtime/hooks/${entry.script}"`,
+          command: `node "${rootExpression}/runtime/hooks/${entry.script}"`,
           timeout: entry.timeout,
           statusMessage: entry.statusMessage,
         }],

@@ -5,7 +5,7 @@ lastVerified: 2026-07-29
 implementationRefs:
   - harness/upstream/registry.json
 testRefs:
-  - harness/plugin/runtime/test/offline-diagnostics-smoke.mjs
+  - runtime/test/offline-diagnostics-smoke.mjs
 ---
 
 # Upstream Mapping

@@ -5,10 +5,10 @@ lastVerified: 2026-07-29
 implementationRefs:
   - .claude/skills/harness/SKILL.md
   - .claude/skills/harness-route/SKILL.md
-  - harness/plugin/runtime/lib/workflow.mjs
+  - runtime/lib/workflow.mjs
 testRefs:
-  - harness/plugin/runtime/test/workflow-runner-smoke.mjs
-  - harness/plugin/runtime/test/route-stage-separation-smoke.mjs
+  - runtime/test/workflow-runner-smoke.mjs
+  - runtime/test/route-stage-separation-smoke.mjs
 ---
 
 # Workflow Contract

@@ -8,7 +8,7 @@
 Mark the main layer touched by this PR:
 
 - [ ] Repo contract (`CLAUDE.md`, `.claude/`, `harness/specs/`, `harness/templates/`)
-- [ ] Portable runtime (`harness/plugin/runtime/`)
+- [ ] Portable runtime (`runtime/`)
 - [ ] Change lifecycle commands (`harness/bin/`)
 - [ ] Java reference service (`reference-service/`)
 - [ ] Validation / hooks (`hooks/`)

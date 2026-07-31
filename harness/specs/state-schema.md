@@ -5,10 +5,10 @@ lastVerified: 2026-07-29
 implementationRefs:
   - harness/templates/state.json
   - harness/schemas/state.schema.json
-  - harness/plugin/runtime/lib/state-migration.mjs
+  - runtime/lib/state-migration.mjs
 testRefs:
-  - harness/plugin/runtime/test/state-migration-backward-compat-smoke.mjs
-  - harness/plugin/runtime/test/state-store-concurrency-smoke.mjs
+  - runtime/test/state-migration-backward-compat-smoke.mjs
+  - runtime/test/state-store-concurrency-smoke.mjs
 ---
 
 # State Schema Contract

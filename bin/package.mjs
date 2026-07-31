@@ -14,7 +14,7 @@ const ALLOWED_TREES = [
   '.claude/agents',
   '.claude/rules',
   'hooks',
-  'harness/plugin',
+  'runtime',
   'harness/specs',
   'harness/schemas',
   'harness/templates',
@@ -23,7 +23,7 @@ const ALLOWED_TREES = [
   'bin',
 ];
 const ALLOWED_HARNESS_FILES = ['harness/behavior-checks.json', 'harness/capabilities.json', 'harness/config.yaml'];
-const EXCLUDED_PREFIXES = ['harness/plugin/runtime/test/'];
+const EXCLUDED_PREFIXES = ['runtime/test/'];
 
 let outDir = path.join(repoRoot, 'dist');
 for (let index = 0; index < args.length; index += 1) {

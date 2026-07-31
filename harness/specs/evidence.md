@@ -3,12 +3,12 @@ status: current
 owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
-  - harness/plugin/runtime/lib/evidence-policy.mjs
-  - harness/plugin/runtime/lib/tdd-receipts.mjs
-  - harness/plugin/runtime/lib/checks.mjs
+  - runtime/lib/evidence-policy.mjs
+  - runtime/lib/tdd-receipts.mjs
+  - runtime/lib/checks.mjs
 testRefs:
-  - harness/plugin/runtime/test/evidence-policy-contract-smoke.mjs
-  - harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs
+  - runtime/test/evidence-policy-contract-smoke.mjs
+  - runtime/test/tdd-receipt-contract-smoke.mjs
 ---
 
 # Evidence Contract

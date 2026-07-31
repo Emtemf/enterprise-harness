@@ -3,10 +3,10 @@ status: current
 owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
-  - harness/plugin/runtime/tdd-run.mjs
-  - harness/plugin/runtime/lib/tdd-receipts.mjs
+  - runtime/tdd-run.mjs
+  - runtime/lib/tdd-receipts.mjs
 testRefs:
-  - harness/plugin/runtime/test/tdd-receipt-contract-smoke.mjs
+  - runtime/test/tdd-receipt-contract-smoke.mjs
 ---
 
 # TDD Execution Contract
@@ -40,7 +40,7 @@ enterprise-harness tdd-run <change-id> <task-id> <red|green|refactor> -- <litera
 本仓库开发时的等价 fallback 是：
 
 ```bash
-node harness/plugin/runtime/cli.mjs tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
+node runtime/cli.mjs tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
 ```
 
 runner 以 `spawnSync(command, args, { shell: false })` 真实执行命令。Java/Maven task 必须在 tasks 中冻结并实际执行 `mvn test`、`mvn verify` 或项目 wrapper；不存在“文字声明已执行”的降级路径。
@@ -67,14 +67,14 @@ enterprise-harness evidence-import <change-id> <task-id>
 本仓库开发 fallback：
 
 ```bash
-node harness/plugin/runtime/cli.mjs evidence-import <change-id> <task-id>
+node runtime/cli.mjs evidence-import <change-id> <task-id>
 ```
 
 importer 校验 spool、agent 生命周期、worktree/git common dir、implementation patch 与 integration HEAD，再原子写入 `harness/changes/<change-id>/evidence/tdd/<task-id>.json`。verify、Stop 与 archive 只消费 durable imported evidence，不相信 worker 文本中的 `command-executed`、`summary` 或 `evidence-path`。
 
 ## 已知缺口：runtime 自举
 
-修改 `harness/plugin/runtime/**` 自身时，本合同存在未解决的自举边界：执行 SOP 的 runtime
+修改 `runtime/**` 自身时，本合同存在未解决的自举边界：执行 SOP 的 runtime
 就是被修改的 runtime，隔离 executor 无法在不影响自身执行环境的前提下改写它。
 
 历史处置各不相同，均已记录而非掩盖：

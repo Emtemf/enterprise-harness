@@ -16,11 +16,11 @@
 - `.claude/agents/`：agent 身份和工具权限
 - `.claude/rules/`：短小的自动约束
 - `harness/specs/`：长期合同
-- `harness/plugin/runtime/`：确定性 backend 和 hooks
+- `runtime/`：确定性 backend 和 hooks
 - `harness/templates/`：安装时可复制模板
 - `docs/user/`：普通用户
 - `docs/maintainer/`：维护者
-- `test` 和 `harness/plugin/runtime/test/`：行为验收
+- `test` 和 `runtime/test/`：行为验收
 
 ## 开发流程
 
@@ -35,7 +35,7 @@
 
 新增命令时：
 
-- 在 `harness/plugin/runtime/cli.mjs` 注册。
+- 在 `runtime/cli.mjs` 注册。
 - 提供稳定参数、`--help`、exit code 和 JSON 输出。
 - 外部进程使用 argv 数组，不拼 shell。
 - 写入使用临时文件加原子 rename。
@@ -72,10 +72,10 @@ testRefs: []
 直接验收：
 
 ```bash
-node harness/plugin/runtime/test/task1-authoritative-evidence-smoke.mjs verify
-node harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs verify
-node harness/plugin/runtime/test/task3-gate-completion-smoke.mjs verify
-node harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs verify
+node runtime/test/task1-authoritative-evidence-smoke.mjs verify
+node runtime/test/task2-plugin-agent-smoke.mjs verify
+node runtime/test/task3-gate-completion-smoke.mjs verify
+node runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
 完整验收：
@@ -90,7 +90,7 @@ npm run prepublish-check
 
 ```bash
 node bin/package.mjs --out dist
-node harness/plugin/runtime/test/artifact-content-smoke.mjs verify
+node runtime/test/artifact-content-smoke.mjs verify
 ```
 
 artifact 必须排除 changes、archive、work、lessons、源仓库 evidence policy、runtime tests 和本地 adapter。

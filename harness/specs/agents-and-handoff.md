@@ -4,10 +4,10 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
   - harness/behavior-checks.json
-  - harness/plugin/runtime/lib/handoff.mjs
-  - harness/plugin/runtime/lib/agent-evidence.mjs
+  - runtime/lib/handoff.mjs
+  - runtime/lib/agent-evidence.mjs
 testRefs:
-  - harness/plugin/runtime/test/agent-lifecycle-hook-smoke.mjs
+  - runtime/test/agent-lifecycle-hook-smoke.mjs
 ---
 
 # Agents and Handoff Contract

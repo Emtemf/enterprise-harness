@@ -6,7 +6,7 @@ import process from 'node:process';
 
 const args = process.argv.slice(2);
 const installRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const runtimeCli = path.join(installRoot, 'harness', 'plugin', 'runtime', 'cli.mjs');
+const runtimeCli = path.join(installRoot, 'runtime', 'cli.mjs');
 const child = spawnSync('node', [runtimeCli, ...args], {
   cwd: process.cwd(),
   encoding: 'utf-8',

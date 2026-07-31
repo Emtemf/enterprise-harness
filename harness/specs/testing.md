@@ -3,10 +3,10 @@ status: current
 owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
-  - harness/plugin/runtime/test
+  - runtime/test
   - .github/workflows/platform-smoke.yml
 testRefs:
-  - harness/plugin/runtime/test/task4-release-acceptance-smoke.mjs
+  - runtime/test/task4-release-acceptance-smoke.mjs
 ---
 
 # Testing Contract
