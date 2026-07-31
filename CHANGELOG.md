@@ -4,7 +4,19 @@
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-07-31
+## [0.3.2] - 2026-07-31
+
+### Changed
+
+- `runtime/` 从 `harness/plugin/runtime/` 提升到项目根目录。`harness/` 合同只应包含
+  specs、changes、archive、templates 和 state；实现代码放在其下是历史遗留，
+  本次将其移至 `runtime/` 并更新全部 120+ 处引用（hook 注册、测试 import、
+  打包白名单、docs、specs、skills 和 E2E 测试）。目录内容不变，纯路径重构。
+
+### Fixed
+
+- 修复 release 脚本重复插入 CHANGELOG 版本标题的问题。此前脚本无条件插入标题，
+  维护者手写的 section 被复制一份。现检查标题是否已存在再决定是否插入。
 
 ### Fixed
 
