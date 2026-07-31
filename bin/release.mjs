@@ -104,11 +104,11 @@ try {
   const changelogPath = path.join(worktree, 'CHANGELOG.md');
   const changelog = fs.readFileSync(changelogPath, 'utf-8');
   const releaseDate = new Date().toISOString().slice(0, 10);
-  fs.writeFileSync(
-    changelogPath,
-    changelog.replace('## [Unreleased]\n', `## [Unreleased]\n\n## [${nextVersion}] - ${releaseDate}\n`),
-    'utf-8',
-  );
+  const headingRe = new RegExp(`^## \\[${nextVersion.replace(/[[\]]/gu, '\\$&')}`, 'mu');
+  const patched = headingRe.test(changelog)
+    ? changelog
+    : changelog.replace('## [Unreleased]\n', `## [Unreleased]\n\n## [${nextVersion}] - ${releaseDate}\n`);
+  fs.writeFileSync(changelogPath, patched, 'utf-8');
   run(process.execPath, ['bin/sync-version.mjs', '--quiet'], worktree);
 
   run('codegraph', ['init'], worktree);
