@@ -6,8 +6,6 @@
 
 ## [0.3.0] - 2026-07-31
 
-## [0.3.0] - 2026-07-31
-
 ### Removed
 
 - 移除 standalone 分发通道。`bin/install.mjs` 安装器、`install-to` script、
