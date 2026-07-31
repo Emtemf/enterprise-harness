@@ -1,21 +1,10 @@
 import path from 'node:path';
+import { isGovernedTarget } from './gates.mjs';
 
 const DIRECT_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
 const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i)|cp|mv|install|patch)\b|(?:^|[^>])>>?/u;
 const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+))/gu;
 const SHELL_TOKEN = /"([^"]*)"|'([^']*)'|([^\s;&|<>]+)/gu;
-const EXEMPT_EXPLORATION_ROOTS = [
-  'harness/',
-  '.claude/',
-  'docs/',
-  '.claude-plugin/',
-];
-const EXEMPT_EXPLORATION_FILES = new Set([
-  'CLAUDE.md',
-  'AGENTS.md',
-  'README.md',
-  'package.json',
-]);
 
 function absolute(root, value) {
   const text = String(value || '').trim();
@@ -70,9 +59,10 @@ export function extractExplorationTargets(root, event) {
   )];
 }
 
+// Exploration is gated on governed business code only. Anything else — repo tooling, docs,
+// paths outside the root, shell redirect targets, regex literals misparsed as paths — is not
+// the gate's concern, so it asks "does any target hit a governed root" rather than requiring
+// every target to match an exemption allowlist.
 export function isExplorationTargetExempt(root, target) {
-  const relative = path.relative(root, target).replaceAll('\\', '/');
-  if (!relative || relative.startsWith('../') || path.isAbsolute(relative)) return false;
-  return EXEMPT_EXPLORATION_FILES.has(relative)
-    || EXEMPT_EXPLORATION_ROOTS.some((prefix) => relative.startsWith(prefix));
+  return !isGovernedTarget(root, target);
 }

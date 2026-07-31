@@ -171,6 +171,54 @@ check('I: an exempt README token must not exempt business-code exploration in th
   });
 });
 
+check('J: exploration Bash without any path target must PASS', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', { command: 'find . -name "*.mjs"' });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('K: a redirect to /dev/null must not defeat exemption of non-governed targets', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', {
+      command: 'grep -rn "x" harness/plugin/runtime/lib/gates.mjs 2>/dev/null',
+    });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('L: a regex literal containing a slash must not be treated as a governed path', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', {
+      command: 'grep -rn "a\\|b" harness/plugin/runtime/lib/gates.mjs',
+    });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('M: Read on a path outside the repo root must PASS', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const outside = path.join(os.tmpdir(), 'eh-outside-probe.md');
+    const result = runPreExplore(tempRoot, 'Read', { file_path: outside });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('N: governed exploration must still BLOCK when mixed with an outside-root target', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', {
+      command: 'grep -rn "Template" src/main/java 2>/dev/null',
+    });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/u);
+  });
+});
+
 function fail(message) {
   console.error(message);
   for (const f of failures) console.error(`  - ${f}`);

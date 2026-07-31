@@ -34,7 +34,7 @@ const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);
 const targets = extractExplorationTargets(root, event);
-if (targets.length > 0 && targets.every((target) => isExplorationTargetExempt(root, target))) {
+if (targets.every((target) => isExplorationTargetExempt(root, target))) {
   process.exit(0);
 }
 
