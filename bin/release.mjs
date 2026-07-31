@@ -124,12 +124,14 @@ try {
     'CHANGELOG.md',
   ];
   run('git', ['add', '--', ...versionFiles], worktree);
+  const expected = [...versionFiles].sort();
   const staged = run('git', ['diff', '--cached', '--name-only'], worktree, { forward: false })
     .split('\n')
     .filter(Boolean)
     .sort();
-  if (JSON.stringify(staged) !== JSON.stringify([...versionFiles].sort())) {
-    throw new Error(`unexpected release files staged: ${staged.join(', ')}`);
+  const unexpected = staged.filter((f) => !expected.includes(f));
+  if (unexpected.length > 0) {
+    throw new Error(`unexpected release files staged: ${unexpected.join(', ')}`);
   }
   run('git', ['commit', '-m', `chore: release ${nextVersion}`], worktree);
   run('git', ['tag', tagName], worktree);
