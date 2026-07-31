@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-31
+
+### Fixed
+
+- 修复 0.3.0 移除 standalone 安装器导致的 External Project E2E 回归。该测试原本借用
+  安装器把 runtime 资产铺进临时 Maven 项目；plugin 通道由 Claude Code 投递资产，
+  headless 测试无法驱动，因此改为测试内自行复制同一份资产子集。
+
+### Added
+
+- 新增 `npm run test:everything` 聚合入口，一条命令依次跑 `test:ci`、`test:all`、
+  `docs:check`、`test:e2e`。此前四条流水线彼此独立且没有任何命令覆盖全部，
+  是上述回归进入 main 的机械成因。维护者文档不再把只含 smoke suite 的
+  `test:all` 称为「完整」。
+
 ## [0.3.0] - 2026-07-31
 
 ### Removed
