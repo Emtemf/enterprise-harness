@@ -7,6 +7,5 @@
 - hooks 不能替代操作系统 sandbox、仓库权限、CI 分支保护或供应链安全。
 - worktree 只隔离文件和分支，不等于上下文隔离。
 - Windows、macOS、Linux 的 CI 配置存在，实时是否通过以 GitHub Actions 为准。
-- standalone 安装支持备份和回滚，但修改过的合并配置在卸载时会保留，需要人工清理 harness hook。
 - state/event 已使用 revision CAS、进程锁、原子 rename 与幂等 eventId；跨主机共享文件系统仍需外部协调。
 - 当前 API checker 解析不到结构时必须返回 `unsupported`；尚未实现的解析面不能声称 pass。

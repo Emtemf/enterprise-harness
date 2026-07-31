@@ -5,7 +5,7 @@ description: Enterprise Harness verify 阶段。独立消费 state、artifacts�
 
 # Harness Verify
 
-由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
+由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
 ## 输入
 

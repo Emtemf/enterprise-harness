@@ -26,10 +26,6 @@
       "testRefs": ["harness/plugin/runtime/test/hook-snapshot-attribution-smoke.mjs"]
     },
     {
-      "id": "transactional-install",
-      "testRefs": ["harness/plugin/runtime/test/installer-transaction-smoke.mjs"]
-    },
-    {
       "id": "allowlisted-release-artifact",
       "testRefs": ["harness/plugin/runtime/test/artifact-content-smoke.mjs"]
     },

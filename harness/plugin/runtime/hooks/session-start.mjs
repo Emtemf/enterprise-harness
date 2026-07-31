@@ -22,7 +22,7 @@ const activeChange = summary.activeChange.present
   : '当前没有 active change';
 const progressFile = summary.progressSnapshot.file || 'docs/internal/current-development-status.md';
 const maintainerStatusCommand = summary.maintainerCommands?.find((command) => command.includes('status')) || 'node harness/plugin/runtime/cli.mjs status';
-const userEntry = '/enterprise-harness:harness（plugin）或 /harness（standalone）';
+const userEntry = '/enterprise-harness:harness（plugin）或 /harness（本仓库开发）';
 const workflowStage = summary.nextStage || '未识别';
 const currentGap = summary.currentGap || '未识别当前缺口';
 const guideReminder = summary.activeChange?.guideReminder || null;

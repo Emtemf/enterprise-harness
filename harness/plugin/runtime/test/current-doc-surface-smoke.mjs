@@ -38,7 +38,8 @@ assert.ok(read('AGENTS.md').split(/\r?\n/u).length <= 100, 'AGENTS.md must remai
 
 const corpus = currentDocs.map((file) => `${file}\n${read(file)}`).join('\n');
 assert.match(corpus, /\/enterprise-harness:harness/u);
-assert.match(corpus, /standalone[\s\S]*\/harness/u);
+assert.match(corpus, /本仓库开发[\s\S]*\/harness/u);
+assert.doesNotMatch(corpus, /standalone/iu);
 assert.doesNotMatch(corpus, /harness\/explorations/u);
 assert.doesNotMatch(corpus, /docs\/zh-cn/u);
 assert.doesNotMatch(corpus, /PROGRESS\.md/u);

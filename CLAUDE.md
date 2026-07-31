@@ -4,8 +4,8 @@
 
 ## 唯一入口
 
-- plugin：`/enterprise-harness:harness`
-- standalone：`/harness`
+- 用户（plugin）：`/enterprise-harness:harness`
+- 本仓库开发：`/harness`
 
 阶段顺序固定为：
 
@@ -80,7 +80,7 @@ enterprise-harness workflow status --json
 enterprise-harness handoff explain <EH-CODE>
 ```
 
-standalone checkout 将 `enterprise-harness` 替换为：
+本仓库开发时将 `enterprise-harness` 替换为：
 
 ```bash
 node harness/plugin/runtime/cli.mjs

@@ -3,20 +3,16 @@ status: current
 owner: enterprise-harness-maintainers
 lastVerified: 2026-07-29
 implementationRefs:
-  - bin/install.mjs
   - bin/package.mjs
   - bin/release.mjs
   - .github/workflows/release.yml
 testRefs:
-  - harness/plugin/runtime/test/installer-transaction-smoke.mjs
   - harness/plugin/runtime/test/artifact-content-smoke.mjs
 ---
 
 # Distribution and Release Contract
 
-standalone 安装按 inspect、plan、conflict、backup、stage、atomic apply、verify、rollback 执行。默认不覆盖已有根合同、非 harness settings 或同名用户 skill/agent。
-
-目标无 Git HEAD 时安装 BLOCK。evidence policy 从目标 HEAD 初始化。
+分发只有一条通道：Claude Code plugin marketplace。
 
 artifact 使用 allowlist，并产出逐文件 manifest、SHA256 和 SBOM。changes、archive、work、lessons、源 policy、receipts 和本机 adapter 永不发布。
 

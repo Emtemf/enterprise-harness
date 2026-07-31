@@ -45,17 +45,6 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 claude plugin uninstall enterprise-harness@enterprise-harness --scope local
 ```
 
-## Standalone fallback
-
-只有直接 checkout 并安装运行资产时才使用：
-
-```bash
-node bin/install.mjs --target /path/to/project --dry-run --plan-json
-node bin/install.mjs --target /path/to/project
-```
-
-然后运行 `/harness`。安装器不会覆盖已有根合同或非 harness settings；冲突会先 BLOCK。
-
 ## 最小排查
 
 ```bash

@@ -13,7 +13,7 @@ testRefs:
 
 ## 范围
 
-当前产品只承诺 Claude Code plugin 与 standalone checkout，重点支持 Java/Spring Boot/Maven 和约定治理路径。
+当前产品只承诺 Claude Code plugin，重点支持 Java/Spring Boot/Maven 和约定治理路径。
 
 ## 分层
 
@@ -29,10 +29,10 @@ testRefs:
 ## 安装面
 
 - plugin command：`/enterprise-harness:harness`
-- standalone command：`/harness`
+- 本仓库开发 command：`/harness`
 - plugin agent type：`enterprise-harness:<agent>`
 
-plugin 与 standalone 共享 runtime；只允许入口变量和安装位置不同。
+分发只有 plugin 一条通道。`/harness` 与 `.claude/settings.json` 是本仓库自用的开发通道，让维护者能对工作目录代码直接验证 hook 改动；它不进发布包，也不是用户安装方式。
 
 ## 资产
 

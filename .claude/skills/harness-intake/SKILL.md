@@ -5,7 +5,7 @@ description: Enterprise Harness 的 clarify 阶段。用于先探索事实、执
 
 # Harness Intake
 
-由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
+由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
 本 skill 只负责 clarify。tier、归属与影响面属于 route，见 `/harness-route`。
 

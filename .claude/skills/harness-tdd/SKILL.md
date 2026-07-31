@@ -5,7 +5,7 @@ description: Enterprise Harness tdd 阶段。为当前 task 派隔离 tdd-execut
 
 # Harness TDD
 
-由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
+由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
 ## 输入
 

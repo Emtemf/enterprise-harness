@@ -1,6 +1,6 @@
 # Contributing
 
-感谢参与 Enterprise Harness。贡献应保持 Claude Code plugin、standalone runtime 和发布 artifact 的行为一致。
+感谢参与 Enterprise Harness。贡献应保持 Claude Code plugin、本仓库开发通道和发布 artifact 的行为一致。
 
 ## 环境
 

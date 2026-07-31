@@ -6,7 +6,6 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const tests = [
-  'installer-transaction-smoke.mjs',
   'artifact-content-smoke.mjs',
   'offline-diagnostics-smoke.mjs',
   'hook-manifest-parity-smoke.mjs',

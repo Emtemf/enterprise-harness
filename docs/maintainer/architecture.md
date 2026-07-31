@@ -26,6 +26,6 @@ flowchart LR
 
 worktree 解决文件/分支隔离，subagent 解决上下文隔离，runId 和 digest 解决接力身份与新鲜度。
 
-plugin 使用 `${CLAUDE_PLUGIN_ROOT}`；standalone 使用 `$CLAUDE_PROJECT_DIR`。两套 hook 配置由同一 manifest 生成。
+plugin 使用 `${CLAUDE_PLUGIN_ROOT}`；本仓库开发通道使用 `$CLAUDE_PROJECT_DIR`。两套 hook 配置由同一 manifest 生成。
 
 上游设计来源包括 Superpowers、OpenSpec、deep-interview、CodeGraph 和 Context7，但本仓库只维护自己的稳定合同，映射见 `harness/specs/upstream-mapping.md`。

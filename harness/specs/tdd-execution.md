@@ -18,7 +18,7 @@ TDD 是由 Claude Code 专职 subagent 执行、由 runtime receipt 证明的机
 ## 角色与入口
 
 - plugin 阶段入口：`/enterprise-harness:harness-tdd`
-- standalone 阶段入口：`/harness-tdd`
+- 本仓库开发阶段入口：`/harness-tdd`
 - plugin executor subtype：`enterprise-harness:tdd-executor`
 - executor frontmatter：logical `name: tdd-executor`，并声明 `isolation: worktree`
 - 主 orchestrator：只负责串行派发、集成 implementation commit、独立 review、`evidence-import` 与集成复验
@@ -37,7 +37,7 @@ Claude Code 默认隔离 worktree 可能从 default branch 创建。本项目注
 enterprise-harness tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
 ```
 
-standalone source checkout 的等价 fallback 是：
+本仓库开发时的等价 fallback 是：
 
 ```bash
 node harness/plugin/runtime/cli.mjs tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
@@ -64,7 +64,7 @@ executor 提交实现后，主 orchestrator 先把 implementation commit 集成�
 enterprise-harness evidence-import <change-id> <task-id>
 ```
 
-standalone fallback：
+本仓库开发 fallback：
 
 ```bash
 node harness/plugin/runtime/cli.mjs evidence-import <change-id> <task-id>

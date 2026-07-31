@@ -5,7 +5,7 @@ description: Enterprise Harness plan 阶段。把 approved design 拆成可独�
 
 # Harness Plan
 
-由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）按当前 stage 加载。
+由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
 ## 输入
 

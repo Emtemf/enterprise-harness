@@ -14,7 +14,7 @@ Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需
 
 当前主要支持：
 
-- Claude Code plugin 和 standalone checkout。
+- Claude Code plugin。
 - Java、Spring Boot、Maven 项目。
 - `src/main/java/**`、`src/test/java/**`、`openapi/**` 约定路径。
 - CodeGraph-first 代码探索。
@@ -53,19 +53,6 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 
 ```text
 /enterprise-harness:harness
-```
-
-只有直接把仓库资产安装进目标项目的 standalone 模式才使用：
-
-```text
-/harness
-```
-
-standalone 安装器默认保留已有 `CLAUDE.md`、`AGENTS.md` 和非 harness settings：
-
-```bash
-node bin/install.mjs --target /path/to/project --dry-run --plan-json
-node bin/install.mjs --target /path/to/project
 ```
 
 ## 最小使用示例
@@ -120,12 +107,6 @@ EH-TDD-RECEIPT-007
 claude plugin marketplace update enterprise-harness
 claude plugin update enterprise-harness@enterprise-harness --scope local
 claude plugin uninstall enterprise-harness@enterprise-harness --scope local
-```
-
-standalone 模式：
-
-```bash
-node bin/install.mjs --target /path/to/project --uninstall
 ```
 
 ## 文档

@@ -106,7 +106,7 @@ export function buildStatusSummary(root) {
       'docs/user/workflow.md',
     ],
     nextCommands: [
-      '/enterprise-harness:harness（plugin）或 /harness（standalone）',
+      '/enterprise-harness:harness（plugin）或 /harness（本仓库开发）',
     ],
     maintainerCommands: [
       'node harness/plugin/runtime/cli.mjs status',
@@ -143,7 +143,7 @@ export function renderStatusSummary(summary) {
     `- ${summary.nextAction || '/enterprise-harness:harness'}`,
     '普通用户下一步',
     '- plugin：/enterprise-harness:harness',
-    '- standalone：/harness',
+    '- 本仓库开发：/harness',
     '普通用户先看这些',
     ...summary.nextRead.map((item) => `- ${item}`),
     '普通用户下一步命令',

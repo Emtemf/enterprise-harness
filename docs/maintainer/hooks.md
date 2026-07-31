@@ -10,7 +10,7 @@ node bin/generate-hooks.mjs --check
 生成目标：
 
 - `hooks/hooks.json`：plugin，使用 `CLAUDE_PLUGIN_ROOT`
-- `.claude/settings.json`：standalone，使用 `CLAUDE_PROJECT_DIR`
+- `.claude/settings.json`：本仓库开发通道，使用 `CLAUDE_PROJECT_DIR`
 
 每项声明 event、matcher、script、timeout、performanceBudgetMs、failMode 和 statusMessage。
 

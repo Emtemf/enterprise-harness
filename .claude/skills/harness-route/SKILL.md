@@ -5,7 +5,7 @@ description: Enterprise Harness route 阶段。消费已确认 requirements，�
 
 # Harness Route
 
-由 plugin 入口 `/enterprise-harness:harness`（standalone 为 `/harness`）在 stage=route 时加载。
+由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）在 stage=route 时加载。
 
 route 是独立 gate，不是 clarify 的尾巴。clarify 回答“需求是什么”，route 回答“这件事归谁、有多大、需要谁复核”。
 
