@@ -2,7 +2,6 @@ import {
   activeChangeId,
   appendAgentEvent,
   isHarnessAgentType,
-  isKnownBareAgentType,
   normalizeAgentType,
 } from '../lib/agent-evidence.mjs';
 import {
@@ -24,13 +23,11 @@ try {
 }
 if (event.tool_name !== 'Agent') process.exit(0);
 
+// Agent types arrive scoped (`enterprise-harness:code-explore`) when loaded as a plugin and
+// bare (`code-explore`) when the same definitions load from this repo's own .claude/agents.
+// Both spellings denote the same governed agent, so normalize instead of demanding a prefix
+// the local registry cannot resolve — the handoff evidence below is what actually gates.
 const requestedRaw = String(event.tool_input?.subagent_type || '').trim();
-if (isKnownBareAgentType(requestedRaw)) {
-  console.error(
-    `BLOCK: plugin Agent subtype must be scoped: enterprise-harness:${requestedRaw}`,
-  );
-  process.exit(2);
-}
 if (!isHarnessAgentType(requestedRaw)) process.exit(0);
 
 const root = process.cwd();

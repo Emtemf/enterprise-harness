@@ -9,7 +9,8 @@
       "id": "isolated-executor-checker-handoff",
       "testRefs": [
         "harness/plugin/runtime/test/task2-plugin-agent-smoke.mjs",
-        "harness/plugin/runtime/test/failed-dispatch-recovery-smoke.mjs"
+        "harness/plugin/runtime/test/failed-dispatch-recovery-smoke.mjs",
+        "harness/plugin/runtime/test/bare-agent-dispatch-smoke.mjs"
       ]
     },
     {

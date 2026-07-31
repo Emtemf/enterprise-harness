@@ -34,10 +34,6 @@ export function isHarnessAgentType(value) {
     && PLUGIN_AGENT_TYPES.has(normalized.slice('enterprise-harness:'.length));
 }
 
-export function isKnownBareAgentType(value) {
-  return PLUGIN_AGENT_TYPES.has(String(value || '').trim());
-}
-
 export function sha256(value) {
   return crypto.createHash('sha256').update(value ?? '').digest('hex');
 }
