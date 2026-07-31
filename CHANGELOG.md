@@ -4,6 +4,27 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-31
+
+### Removed
+
+- 移除 standalone 分发通道。`bin/install.mjs` 安装器、`install-to` script、
+  `transactional-install` 能力声明及其 smoke 一并删除。standalone 早于 plugin 存在，
+  是最初的 MVP 形态，plugin 出现后从未拆除；产品方向为 Claude Code plugin only。
+- `.claude/settings.json` 不再是第二条分发通道，改为本仓库自用的开发通道，
+  让维护者能对工作目录代码验证 hook 改动。它不进发布包，也不是用户安装方式。
+
+### Fixed
+
+- 修复探索 gate 误拦无害命令。此前判定逻辑是「每个目标都必须命中豁免 allowlist」，
+  导致四类命令被错误阻断：解析不出路径目标的命令、含 `2>/dev/null` 重定向的命令、
+  正则字面量被误当路径的命令，以及任何仓库 root 之外的路径。现在复用写入 gate 的
+  `isGovernedTarget()`，只判断目标是否命中受治理路径，豁免 allowlist 随之删除。
+- 修复受治理 subagent 在插件之外无法派发的死锁。`pre-agent` 要求 subagent_type 带
+  `enterprise-harness:` 前缀，但该前缀只在 Claude Code 以插件加载时存在；在本仓库
+  开发时 agent registry 只有裸名，两种写法都失败——带前缀报 agent-not-found，
+  裸名被 hook 阻断。现在两种写法统一 normalize，HANDOFF_INPUT 证据校验不变。
+
 ## [0.2.35] - 2026-07-30
 
 ### Fixed
