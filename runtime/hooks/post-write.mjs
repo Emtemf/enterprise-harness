@@ -12,6 +12,7 @@ import {
   hookSnapshotAlreadyConsumed,
 } from '../lib/hook-snapshots.mjs';
 import { canonicalPath, pathIsWithin } from '../lib/safe-paths.mjs';
+import { dedupGuard } from '../lib/hook-dedup.mjs';
 
 const root = projectRoot();
 const managed = isHarnessManaged(root);
@@ -36,6 +37,7 @@ if (raw) {
     process.exit(1);
   }
   try {
+    if (dedupGuard('post-write', event.tool_use_id, event.cwd)) process.exit(0);
     const targets = extractHookTargets(root, event);
     const active = loadActiveChange(root);
     if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {

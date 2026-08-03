@@ -11,6 +11,7 @@ import {
   extractExplorationTargets,
   isExplorationTargetExempt,
 } from '../lib/hook-targets.mjs';
+import { dedupGuard } from '../lib/hook-dedup.mjs';
 
 const root = projectRoot();
 if (!hasChangeTracking(root)) process.exit(0);
@@ -33,6 +34,7 @@ const explorationBash = /(?:\brg\b|\bgrep\b|\bfind\b|\bcodegraph\b|src\/main\/ja
 const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\bcodegraph\b/iu.test(bash));
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);
+if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) process.exit(0);
 const targets = extractExplorationTargets(root, event);
 if (targets.every((target) => isExplorationTargetExempt(root, target))) {
   process.exit(0);

@@ -11,6 +11,9 @@
 - 修复 subagent-stop hook 在 worktree 中运行时找不到 input.json 的问题。
   所有 agent lifecycle hooks 现在通过 `gitCommonDir` 解析主仓库根目录，
   而不是依赖 `process.cwd()`（worktree 中是 worktree 路径）。
+- 给 pre-write、post-write、pre-explore 添加 dedup 守卫。当同一 hook
+  被 plugin 和 settings.json 重复注册时，同一个 tool_use_id 只处理一次，
+  消除重复的 validation errors 和 snapshot 操作。
 
 ## [0.3.4] - 2026-08-03
 

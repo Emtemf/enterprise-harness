@@ -6,6 +6,7 @@ import { extractHookTargets } from '../lib/hook-targets.mjs';
 import { isPotentialWriteBash } from '../lib/hook-targets.mjs';
 import { captureGovernedSnapshot, writeHookSnapshot } from '../lib/hook-snapshots.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
+import { dedupGuard } from '../lib/hook-dedup.mjs';
 
 const root = projectRoot();
 const chunks = [];
@@ -19,6 +20,7 @@ try {
   console.error(`BLOCK [EH-HOOK-INPUT-017] invalid PreToolUse JSON: ${error.message}`);
   process.exit(2);
 }
+if (dedupGuard('pre-write', event.tool_use_id, event.cwd)) process.exit(0);
 
 if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
   try {
