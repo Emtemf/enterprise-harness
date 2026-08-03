@@ -3,7 +3,7 @@
 agents/.omc/
 harness/ACTIVE_CHANGE
 harness/work/
-harness/plugin/runtime/.bootstrap-ran
+runtime/.bootstrap-ran
 
 # Claude Code local-only config
 .claude/settings.local.json

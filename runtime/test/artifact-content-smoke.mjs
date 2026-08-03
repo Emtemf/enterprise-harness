@@ -48,11 +48,12 @@ try {
     'harness/evidence-policy.json',
     'harness/command-policy.json',
     'PROGRESS.md',
+    'runtime/.bootstrap-ran',
   ]) {
     assert.equal(listed.has(forbidden), false, `artifact must exclude ${forbidden}`);
   }
   assert.equal(
-    [...listed].some((file) => /^(?:harness\/(?:archive|changes|work|lessons)|harness\/plugin\/runtime\/test)\//u.test(file)),
+    [...listed].some((file) => /^(?:harness\/(?:archive|changes|work|lessons)|runtime\/test)\//u.test(file)),
     false,
   );
   for (const entry of manifest.files) {

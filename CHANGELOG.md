@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复发布包含用户机器的 bootstrap 标记。`runtime/.bootstrap-ran` 是本机运行产物，
+  0.3.2 把 `harness/plugin/runtime/` 迁到 `runtime/` 时 `.gitignore` 仍指向旧路径，
+  该文件因此被误跟踪并进了 `runtime/` 白名单树。用户装到的插件会带着构建者机器的
+  时间戳，`runtime/sync.mjs` 的 `bootstrap-marker` 检查随之误判为"已运行过 bootstrap"。
+  已取消跟踪、修正 `.gitignore` 路径，并在 `bin/package.mjs` 中显式排除。
+- 修复 artifact 白名单测试中的失效断言。`artifact-content-smoke` 用于确认测试目录
+  不进发布包的正则仍写着 0.3.2 前的 `harness/plugin/runtime/test`，该路径已不存在，
+  断言恒真通过。改为 `runtime/test`，并新增对 `runtime/.bootstrap-ran` 的排除断言。
+
 ## [0.3.7] - 2026-08-03
 
 ### Fixed
