@@ -1,11 +1,13 @@
 import {
   activeChangeId,
   appendAgentEvent,
+  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
   readAgentEvents,
 } from '../lib/agent-evidence.mjs';
 import { formatDiagnostic } from '../lib/diagnostics.mjs';
+import path from 'node:path';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -22,7 +24,9 @@ if (event.tool_name !== 'Agent') process.exit(0);
 
 const requestedRaw = String(event.tool_input?.subagent_type || '').trim();
 if (!isHarnessAgentType(requestedRaw)) process.exit(0);
-const root = process.cwd();
+const cwd = event.cwd || process.cwd();
+const commonDir = gitCommonDir(cwd);
+const root = path.resolve(commonDir, '..');
 const changeId = activeChangeId(root);
 const agentId = event.tool_response?.agentId || event.tool_response?.agent_id;
 if (!changeId || !event.tool_use_id || !agentId) {
@@ -71,6 +75,6 @@ appendAgentEvent(root, changeId, {
   behavior: dispatch.behavior,
   handoffRole: dispatch.handoffRole,
   handoffPath: matchingStop.handoffPath,
-  cwd: event.cwd || root,
+  cwd,
 });
 process.exit(0);

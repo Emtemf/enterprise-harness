@@ -1,9 +1,11 @@
 import {
   activeChangeId,
   appendAgentEvent,
+  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
 } from '../lib/agent-evidence.mjs';
+import path from 'node:path';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -19,7 +21,9 @@ try {
 
 const observedRaw = String(event.agent_type || '').trim();
 if (!isHarnessAgentType(observedRaw)) process.exit(0);
-const root = process.cwd();
+const cwd = event.cwd || process.cwd();
+const commonDir = gitCommonDir(cwd);
+const root = path.resolve(commonDir, '..');
 const changeId = activeChangeId(root);
 if (!changeId || !event.agent_id) process.exit(0);
 appendAgentEvent(root, changeId, {
@@ -29,6 +33,6 @@ appendAgentEvent(root, changeId, {
   observedAgentType: normalizeAgentType(observedRaw),
   rawObservedAgentType: observedRaw,
   lifecycle: 'isolated-context-started',
-  cwd: event.cwd || root,
+  cwd,
 });
 process.exit(0);

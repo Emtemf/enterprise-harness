@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 subagent-stop hook 在 worktree 中运行时找不到 input.json 的问题。
+  所有 agent lifecycle hooks 现在通过 `gitCommonDir` 解析主仓库根目录，
+  而不是依赖 `process.cwd()`（worktree 中是 worktree 路径）。
+
 ## [0.3.4] - 2026-08-03
 
 ### Fixed

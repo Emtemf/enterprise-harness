@@ -1,6 +1,7 @@
 import {
   activeChangeId,
   appendAgentEvent,
+  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
   sha256,
@@ -13,6 +14,7 @@ import {
   validateHandoffResult,
 } from '../lib/handoff.mjs';
 import { formatDiagnostic } from '../lib/diagnostics.mjs';
+import path from 'node:path';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -30,7 +32,11 @@ const observedRaw = String(event.agent_type || '').trim();
 if (!isHarnessAgentType(observedRaw)) process.exit(0);
 const normalized = normalizeAgentType(observedRaw);
 const message = String(event.last_assistant_message || '');
-const root = process.cwd();
+const cwd = event.cwd || process.cwd();
+// When the subagent runs in a worktree, process.cwd() is the worktree dir but
+// handoff inputs and agent events live in the main repo. Resolve via git common dir.
+const commonDir = gitCommonDir(cwd);
+const root = path.resolve(commonDir, '..');
 const changeId = activeChangeId(root);
 if (!changeId || !event.agent_id) process.exit(0);
 
@@ -69,7 +75,7 @@ if (resultProblems.length > 0) {
     errorCode: 'EH-SUBAGENT-RESULT-004',
     problems: resultProblems,
     transcriptDigest: sha256(message),
-    cwd: event.cwd || root,
+    cwd,
   });
   if (event.stop_hook_active) process.exit(0);
   process.stdout.write(`${JSON.stringify({
@@ -97,6 +103,6 @@ appendAgentEvent(root, changeId, {
   parentRunId: loaded.envelope.parentRunId,
   verdict: parsed.value.verdict || null,
   transcriptDigest: sha256(message),
-  cwd: event.cwd || root,
+  cwd,
 });
 process.exit(0);
