@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-08-03
+
 ### Fixed
 
 - 消除本仓库开发时的 hook 双重执行。`.claude/settings.json` 的每个 hook 现在带
