@@ -10,8 +10,10 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const plugin = JSON.parse(read('.claude-plugin/plugin.json'));
 const stageSkills = [
-  'harness', 'harness-intake', 'harness-design', 'harness-plan', 'harness-tdd', 'harness-verify',
+  'harness', 'harness-clarify', 'harness-route', 'harness-design', 'harness-plan',
+  'harness-tdd', 'harness-verify',
 ];
+const workerSkills = ['harness-stage-executor', 'harness-stage-checker'];
 const agents = [
   'code-explore', 'doc-research', 'tdd-executor', 'design-reviewer',
   'api-consistency-reviewer', 'plan-critic', 'verification-reviewer',
@@ -23,6 +25,11 @@ const check = () => {
     const text = read(`.claude/skills/${skill}/SKILL.md`);
     assert.match(text, /^---[\s\S]*?^name:\s*\S+/mu);
     assert.ok(text.includes('/enterprise-harness:harness'), `${skill} must name plugin entry`);
+  }
+  for (const skill of workerSkills) {
+    const text = read(`.claude/skills/${skill}/SKILL.md`);
+    assert.match(text, /^---[\s\S]*?^name:\s*\S+/mu);
+    assert.match(text, /^user-invocable:\s*false$/mu, `${skill} is a worker contract, not a user entry`);
   }
   for (const agent of agents) {
     const text = read(`.claude/agents/${agent}.md`);

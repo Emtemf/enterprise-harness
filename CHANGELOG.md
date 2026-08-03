@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `harness-intake` skill 改名为 `harness-clarify`，与它实际承担的 clarify 阶段一致。
+  route 早已拆到独立的 `harness-route`，"intake" 这个名字是拆分前的遗留，职责本身没有变化。
+  共改动 16 处引用（skill 目录与 frontmatter、`plugin.json`、`checks.mjs` 必需路径、
+  `workflow.mjs` 的 `recommendNextEntry` 与 `revise-scope` 落盘值、specs、upstream registry
+  及 7 个测试）。CHANGELOG 历史条目按既成事实保留原名。
+- `harness` skill 中"clarify/route 使用 harness-clarify"改为"每个阶段使用同名 skill"。
+  route 独立后该表述已不成立。
+
+### Added
+
+- 新增 `skill-registry-contract-smoke`，断言每个 skill 的 frontmatter `name` 与其目录名一致、
+  每个 skill 目录都在 `plugin.json` 中注册、且 `plugin.json` 不引用不存在的目录。
+  `bin/package.mjs` 按整棵树打包 `.claude/skills`，改名遗留的孤儿目录此前会被静默发布。
+
+### Fixed
+
+- 补齐 `checks.mjs` 必需路径与 plugin entry 契约测试中缺失的 `harness-route`、
+  `harness-stage-executor`、`harness-stage-checker`。这三个 skill 此前不受结构校验覆盖。
+  两个 worker skill 改为断言 `user-invocable: false`，而非用户入口文案。
+
 ### Fixed
 
 - 修复 CI 自 0.3.2 起持续全红。那次把 `harness/plugin/runtime/` 迁到 `runtime/` 时，

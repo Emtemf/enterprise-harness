@@ -53,7 +53,7 @@ function baseState() {
       userConfirmedScope: true,
       planReady: false,
       tddStatus: 'not-started',
-      nextEntry: '/harness-intake',
+      nextEntry: '/harness-clarify',
     },
   };
 }

@@ -10,7 +10,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const files = [
   '.claude/skills/harness/SKILL.md',
-  '.claude/skills/harness-intake/SKILL.md',
+  '.claude/skills/harness-clarify/SKILL.md',
   '.claude/rules/10-exploration.md',
   '.claude/agents/code-explore.md',
   'docs/user/troubleshooting.md',

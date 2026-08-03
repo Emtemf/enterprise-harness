@@ -16,7 +16,7 @@
   ],
   "skills": [
     "./.claude/skills/harness/",
-    "./.claude/skills/harness-intake/",
+    "./.claude/skills/harness-clarify/",
     "./.claude/skills/harness-route/",
     "./.claude/skills/harness-design/",
     "./.claude/skills/harness-plan/",

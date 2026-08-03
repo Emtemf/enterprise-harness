@@ -9,7 +9,7 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 }
 
 try {
-  assert.equal(recommendNextEntry('clarify'), '/harness-intake');
+  assert.equal(recommendNextEntry('clarify'), '/harness-clarify');
   assert.equal(recommendNextEntry('route'), '/harness-route');
   assert.equal(recommendNextEntry('design'), '/harness-design');
   assert.equal(recommendNextEntry('plan'), '/harness-plan');

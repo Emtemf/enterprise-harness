@@ -27,7 +27,7 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
 clarify → route → design → plan → tdd → verify → archive
 ```
 
-clarify/route 使用 `harness-intake`；其他阶段使用同名 skill。
+每个阶段使用同名 skill。
 
 ## 隔离接力
 

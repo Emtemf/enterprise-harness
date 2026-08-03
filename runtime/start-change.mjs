@@ -46,6 +46,6 @@ if (topic && topic !== '-' && topic !== 'none') {
 run(['active', changeId]);
 
 console.log('Next Steps:');
-console.log('- 在 Claude Code 会话中，从 /harness 或 /harness-intake 继续推进 intake。');
+console.log('- 在 Claude Code 会话中，从 /harness 或 /harness-clarify 继续推进 clarify。');
 console.log('- 当前 change 仍保持 DRAFT，完成最小探索并记录证据后，再推进到 DISCOVERED。');
 console.log('- 若后续会修改受治理路径，请先准备 designApproved / redVerified 所需证据。');

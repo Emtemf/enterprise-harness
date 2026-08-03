@@ -33,7 +33,7 @@ function baseState() {
     decisions: [], blockers: [], approvals: {}, currentTask: null,
     gates: { designApproved: false, redVerified: false, redTask: null, redEvidenceRef: null },
     validation: { status: 'missing', digest: null, validatedAt: null },
-    workflow: { stage: 'route', clarifyReady: true, userConfirmedScope: true, planReady: false, tddStatus: 'not-started', nextEntry: '/harness-intake' },
+    workflow: { stage: 'route', clarifyReady: true, userConfirmedScope: true, planReady: false, tddStatus: 'not-started', nextEntry: '/harness-clarify' },
   };
 }
 function runPreWrite(tempRoot, filePath) {

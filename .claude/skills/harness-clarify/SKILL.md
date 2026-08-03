@@ -1,9 +1,9 @@
 ---
-name: harness-intake
+name: harness-clarify
 description: Enterprise Harness 的 clarify 阶段。用于先探索事实、执行七维歧义评分、逐个澄清问题并确认 scope。route 由独立的 harness-route 承担。
 ---
 
-# Harness Intake
+# Harness Clarify
 
 由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
