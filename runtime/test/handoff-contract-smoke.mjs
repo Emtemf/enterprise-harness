@@ -77,7 +77,16 @@ try {
   fs.writeFileSync(execute.path, `${JSON.stringify(tampered, null, 2)}\n`);
   assert.ok(loadHandoffInput(root, path.relative(root, execute.path)).problems
     .includes('agent.skill does not match behavior registry'));
-  console.log(`PASS handoff-contract ${process.argv[2] || 'verify'}`);
+  // unknown behavior must list legal behaviors in the error message
+  try {
+    createHandoffInput(root, { changeId: 'probe', stage: 'clarify', behavior: 'exploration', role: 'execute' });
+    assert.fail('should have thrown for unknown behavior');
+  } catch (error) {
+    assert.match(error.message, /legal behaviors/);
+    assert.match(error.message, /clarify.explore-code/);
+  }
+
+console.log(`PASS handoff-contract ${process.argv[2] || 'verify'}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

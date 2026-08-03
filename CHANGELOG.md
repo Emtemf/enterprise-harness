@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `handoff create` 在传入不合法 behavior 时不再只报 `unknown governed behavior`
+  而不列合法值。现在错误消息附带 `legal behaviors:` 列表，用户可自助恢复。
+  行为注册表已在作用域内，零额外 I/O。
+
 ## [0.3.3] - 2026-08-03
 
 ### Fixed

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 3,
+  "revision": 1,
+  "changeId": "improve-handoff-error-listing",
+  "tier": "L1",
+  "state": "VALIDATED",
+  "owner": "wula",
+  "impact": {
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "no"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "unknown",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "unknown",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": "task-1",
+  "tddEvidence": {
+    "worktreeUsed": false,
+    "commandExecuted": null,
+    "commandOutputSummary": null,
+    "evidencePath": null,
+    "authority": "runtime-receipt-only"
+  },
+  "goal": "handoff create 报 unknown governed behavior 时不列合法列表，用户无法自助恢复",
+  "successCriteria": [],
+  "routingReason": null,
+  "workflow": {
+    "stage": "plan",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "routeReady": true,
+    "planReady": true,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-route"
+  },
+  "validation": {
+    "status": "fresh",
+    "digest": "419685cb67fa5a9f176d612eb0b59222ce01a86759733d4b0a359fc237f70180",
+    "validatedAt": "2026-08-03T04:22:36.364Z"
+  }
+}

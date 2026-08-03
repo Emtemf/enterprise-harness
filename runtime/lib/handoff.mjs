@@ -71,7 +71,10 @@ export function createHandoffInput(root, {
   assertSafeId(changeId, 'changeId');
   const registry = loadBehaviorRegistry(root);
   const contract = registry.behaviors?.[behavior];
-  if (!contract) throw new Error(`unknown governed behavior: ${behavior}`);
+  if (!contract) {
+    const legal = Object.keys(registry.behaviors || {}).join(', ');
+    throw new Error(`unknown governed behavior: ${behavior}; legal behaviors: ${legal}`);
+  }
   if (contract.stage !== stage) throw new Error(`behavior ${behavior} belongs to stage ${contract.stage}`);
   if (!ROLES.has(role)) throw new Error(`unsupported handoff role: ${role}`);
   const expectedAgent = role === 'check' ? contract.checker : contract.executor;

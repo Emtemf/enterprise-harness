@@ -1,0 +1,8 @@
+{
+  "changeId": "improve-handoff-error-listing",
+  "reviewerId": "verification-reviewer",
+  "verdict": "pass",
+  "findings": [],
+  "evidence": ["全量 smoke suite 0 失败", "handoff-contract-smoke 包含 legal behaviors 断言"],
+  "reviewedAt": "2026-08-03"
+}
