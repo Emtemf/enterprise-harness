@@ -4,6 +4,7 @@ import { projectRoot, validateCompletionPredicate, validateCompletionReviewers }
 import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { buildRecoveryGuidance } from '../lib/recovery-guidance.mjs';
+import { sessionDedupGuard, stopEventIdentity } from '../lib/hook-dedup.mjs';
 
 function printHandoffGuidance(root) {
   const guidance = buildRecoveryGuidance(root);
@@ -39,6 +40,19 @@ function allow() {
   process.stdout.write('{}\n');
   process.exit(0);
 }
+
+const chunks = [];
+for await (const chunk of process.stdin) chunks.push(chunk);
+let event = {};
+try {
+  event = JSON.parse(Buffer.concat(chunks).toString('utf-8').trim() || '{}');
+} catch {
+  event = {};
+}
+// 重复注册（plugin + settings.json）时同一次 stop 会被触发两遍。第二遍仍要满足
+// stdout 契约，但不重复跑门禁和 handoff 输出。
+if (sessionDedupGuard('stop', stopEventIdentity(event), event.cwd || root)) allow();
+
 if (!fs.existsSync(changesDir)) allow();
 const active = loadActiveChange(root);
 if (!active.ok) {

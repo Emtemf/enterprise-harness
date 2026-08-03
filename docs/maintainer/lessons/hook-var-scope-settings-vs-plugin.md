@@ -32,6 +32,9 @@ hooks/hooks.json file, not in settings.json.`
   Claude Code 专门提供的、cwd 无关的项目根绝对路径变量。
 - **`hooks/hooks.json`**（插件分发面）：用 `${CLAUDE_PLUGIN_ROOT}`。
 - 两者**有意分化**，不要为“看起来一致”而统一。
+- 推论：既然 settings.json 的 hook 不属于任何插件，`CLAUDE_PLUGIN_ROOT` 在它的执行环境里
+  **恒为空**，因此也不能拿它当「插件已加载」的判据去做去重守卫——见
+  [hook-dedup-needs-event-identity](./hook-dedup-needs-event-identity.md)。
 - Stop hook 放行仍需 stdout 输出合法 JSON（见 [[stop-hook-stdout-json]]）。
 
 ## 关联

@@ -4,10 +4,21 @@ import { highSeverityLessons } from '../lib/lessons.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { recommendNextAction } from '../lib/workflow.mjs';
+import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const chunks = [];
+for await (const chunk of process.stdin) chunks.push(chunk);
+let event = {};
+try {
+  event = JSON.parse(Buffer.concat(chunks).toString('utf-8').trim() || '{}');
+} catch {
+  event = {};
+}
+
 const root = projectRoot();
+if (sessionDedupGuard('session-start', sessionStartEventIdentity(event), event.cwd || root)) process.exit(0);
 const parts = [
   `.claude/rules=${exists(root, '.claude/rules') ? '存在' : '缺失'}`,
   `.claude/agents=${exists(root, '.claude/agents') ? '存在' : '缺失'}`,

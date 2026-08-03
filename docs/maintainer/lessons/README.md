@@ -6,6 +6,7 @@
 
 <!-- LESSONS:BEGIN -->
 - hook-changes-need-fresh-session — high — hooks, session, cache, plugin, debug
+- hook-dedup-needs-event-identity — high — hooks, dedup, plugin, settings, concurrency
 - hook-var-scope-settings-vs-plugin — high — hooks, settings, plugin, path
 - local-plugin-update-scope-and-cache — high — plugin, update, scope, cache, hooks
 - runtime-sibling-script-cwd-path — high — runtime, cwd, spawn, plugin

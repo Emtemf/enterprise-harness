@@ -8,17 +8,11 @@ const manifest = JSON.parse(
   fs.readFileSync(path.join(root, 'harness', 'plugin', 'hooks-manifest.json'), 'utf-8'),
 );
 
-function render(rootExpression, guarded = false) {
+function render(rootExpression) {
   const hooks = {};
   for (const [event, entries] of Object.entries(manifest.hooks || {})) {
     hooks[event] = entries.map((entry) => {
-      let command = `node "${rootExpression}/runtime/hooks/${entry.script}"`;
-      // When the plugin is also loaded (CLAUDE_PLUGIN_ROOT is set), the settings.json
-      // hooks would duplicate every plugin hook. Skip them so the dev checkout doesn't
-      // fire twice per event.
-      if (guarded) {
-        command = `test -z "$CLAUDE_PLUGIN_ROOT" && ${command} || true`;
-      }
+      const command = `node "${rootExpression}/runtime/hooks/${entry.script}"`;
       const group = {
         hooks: [{
           type: 'command',
@@ -41,7 +35,7 @@ const outputs = [
   },
   {
     path: path.join(root, '.claude', 'settings.json'),
-    value: render('$CLAUDE_PROJECT_DIR', true),
+    value: render('$CLAUDE_PROJECT_DIR'),
   },
 ];
 let stale = false;
