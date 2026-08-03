@@ -39,7 +39,7 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-validation-conten
 const repoCopy = path.join(tempRoot, 'repo');
 try {
   copyDir(repoRoot, repoCopy);
-  const changeDir = path.join(repoCopy, 'harness', 'changes', 'intake-smoke-demo');
+  const changeDir = path.join(repoCopy, 'harness', 'changes', 'test-validation-content-probe');
   fs.mkdirSync(changeDir, { recursive: true });
   fs.writeFileSync(path.join(changeDir, 'validation.md'), '# Validation\n\n## Commands Executed\n\n## Review Verdicts\n\n## Stage Gate Summary\n- verify:\n\n## Final Verdict\n', 'utf-8');
 

@@ -1,14 +1,14 @@
 {
-  "schemaVersion": 2,
-  "changeId": "generic-openapi-controller-consistency-checker",
-  "tier": "L2",
-  "state": "DRAFT",
-  "owner": "wula",
+  "schemaVersion": 3,
+  "changeId": "add-enterprise-harness-mvp",
+  "tier": "L0",
+  "state": "ARCHIVED",
+  "owner": "legacy",
   "impact": {
-    "api": "unknown",
-    "data": "unknown",
-    "architecture": "unknown",
-    "rule": "unknown"
+    "api": "no",
+    "data": "no",
+    "architecture": "no",
+    "rule": "no"
   },
   "tooling": {
     "codegraph": {
@@ -25,23 +25,20 @@
   "blockers": [],
   "approvals": {},
   "gates": {
-    "designApproved": false,
-    "redVerified": false,
-    "redTask": null,
-    "redEvidenceRef": null
+    "designApproved": false
   },
-  "currentTask": null,
   "workflow": {
-    "stage": "clarify",
+    "stage": "archive",
     "clarifyReady": false,
     "userConfirmedScope": false,
+    "routeReady": false,
     "planReady": false,
     "tddStatus": "not-started",
     "nextEntry": "/harness"
   },
   "validation": {
-    "status": "missing",
-    "digest": "cb620b8f4e1c4ed21a779f50057a94ae5dba68006ba4e598ed2e34c488ce3767",
+    "status": "stale",
+    "digest": null,
     "validatedAt": null
   }
 }

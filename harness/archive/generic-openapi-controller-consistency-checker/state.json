@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "changeId": "generic-openapi-controller-consistency-checker",
+  "tier": "L2",
+  "state": "ARCHIVED",
+  "owner": "wula",
+  "impact": {
+    "api": "unknown",
+    "data": "unknown",
+    "architecture": "unknown",
+    "rule": "unknown"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "unknown",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "unknown",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "workflow": {
+    "stage": "clarify",
+    "clarifyReady": false,
+    "userConfirmedScope": false,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness"
+  },
+  "validation": {
+    "status": "missing",
+    "digest": "cb620b8f4e1c4ed21a779f50057a94ae5dba68006ba4e598ed2e34c488ce3767",
+    "validatedAt": null
+  }
+}

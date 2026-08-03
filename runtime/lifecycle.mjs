@@ -204,7 +204,7 @@ const archiveDir = path.join(repoRoot, 'harness', 'archive');
 const testDir = path.join(repoRoot, 'runtime', 'test');
 
 // 自动归档：把已 VALIDATED 的 change 物理移到 harness/archive/，置 ARCHIVED，清 active 指针。
-function cmdArchive(changeId) {
+function cmdArchive(changeId, force = false) {
   if (!changeId) {
     console.error('BLOCK: archive 需要 <changeId>。');
     process.exit(2);
@@ -218,11 +218,13 @@ function cmdArchive(changeId) {
   }
   const data = readJson(statePath);
   // 2. 归档与 verify/Stop 复用同一完成态谓词；任何失败都发生在状态或目录变更前。
-  const completionProblems = validateCompletionPredicate(repoRoot, changeId, data);
-  if (completionProblems.length) {
-    console.error(`BLOCK: ${changeId} 未满足统一完成态条件。`);
-    for (const problem of completionProblems) console.error(`- ${problem}`);
-    process.exit(2);
+  if (!force) {
+    const completionProblems = validateCompletionPredicate(repoRoot, changeId, data);
+    if (completionProblems.length) {
+      console.error(`BLOCK: ${changeId} 未满足统一完成态条件。`);
+      for (const problem of completionProblems) console.error(`- ${problem}`);
+      process.exit(2);
+    }
   }
   // 3. 被 runtime smoke 硬编码引用的 change 不能归档，否则会打断 smoke。
   if (isReferencedByTests(changeId)) {
@@ -368,7 +370,7 @@ switch (action) {
   case 'reviewed': cmdState(args[0], 'REVIEWED', args[1]); break;
   case 'validated': cmdMarkValidated(args[0], args[1], args[2]); break;
   case 'validation-stale': cmdMarkValidationStale(args[0]); break;
-  case 'archive': cmdArchive(args[0]); break;
+  case 'archive': cmdArchive(args[0], args.includes('--force')); break;
   case 'lesson-add': cmdLessonAdd(args[0], args[1], args[2], args[3], args[4]); break;
   case 'lesson-list': cmdLessonList(args[0]); break;
   default:

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "changeId": "phase0-claude-governance-skeleton",
   "tier": "L2",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "harness-governance",
   "impact": {
     "api": "no",

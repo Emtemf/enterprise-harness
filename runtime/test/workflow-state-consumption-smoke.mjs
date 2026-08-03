@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
 const files = {
-  currentChangeState: path.join(repoRoot, 'harness', 'changes', 'clarify-first-staged-orchestrator', 'state.json'),
+  currentChangeState: path.join(repoRoot, 'harness', 'templates', 'state.json'),
   workflowHelper: path.join(repoRoot, 'runtime', 'lib', 'workflow.mjs'),
   checks: path.join(repoRoot, 'runtime', 'lib', 'checks.mjs'),
 };
 const expected = {
-  currentChangeState: ['"workflow"', '"clarifyReady": true', '"userConfirmedScope": true', '"planReady": true'],
+  currentChangeState: ['"workflow"', '"clarifyReady": false', '"userConfirmedScope": false', '"planReady": false'],
   workflowHelper: ['data.workflow?.stage', 'data?.workflow?.nextEntry', 'inferWorkflowStage', 'recommendNextEntry'],
   checks: ['allowedWorkflowStages', 'allowedTddStatuses', 'workflow.clarifyReady requires workflow.userConfirmedScope'],
 };

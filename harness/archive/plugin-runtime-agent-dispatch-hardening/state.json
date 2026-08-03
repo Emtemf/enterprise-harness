@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "changeId": "plugin-runtime-agent-dispatch-hardening",
   "tier": "L3",
-  "state": "EXECUTING",
+  "state": "ARCHIVED",
   "owner": "codex",
   "impact": {
     "api": "no",

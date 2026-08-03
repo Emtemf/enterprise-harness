@@ -40,24 +40,29 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tdd-execution-evidence-'
 const repoCopy = path.join(tempRoot, 'repo');
 try {
   copyDir(repoRoot, repoCopy);
-  const change = 'reference-service-boundary-realignment';
-  const statePath = path.join(repoCopy, 'harness', 'changes', change, 'state.json');
-  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-  state.schemaVersion = 3;
-  state.state = 'REVIEWED';
-  state.workflow = state.workflow || {};
-  state.workflow.stage = 'verify';
-  state.workflow.clarifyReady = true;
-  state.workflow.userConfirmedScope = true;
-  state.workflow.planReady = true;
-  state.workflow.tddStatus = 'refactor-verified';
-  state.validation = state.validation || {};
-  state.validation.status = 'fresh';
-  state.tddEvidence = {
-    worktreeUsed: false,
-    commandExecuted: null,
-    commandOutputSummary: null,
-    evidencePath: null,
+  const change = 'test-tdd-evidence-probe';
+  const changeDir = path.join(repoCopy, 'harness', 'changes', change);
+  fs.mkdirSync(changeDir, { recursive: true });
+  fs.writeFileSync(path.join(changeDir, 'validation.md'), '# Validation\n\n## Commands Executed\nplaceholder\n\n## Final Verdict\nPASS\n');
+  fs.writeFileSync(path.join(changeDir, 'change.md'), '# Change\n### Router 评分\n| 维度 | 分数(0-5) | 说明 |\n|------|----------|------|\n| Scope complexity | 1 | fixture |\n| Impact breadth | 1 | fixture |\n| Unknowns / ambiguity | 1 | fixture |\n| API / data risk | 1 | fixture |\n| Test / rollback complexity | 1 | fixture |\n| **Overall** | 1.0 | fixture |\n');
+  fs.writeFileSync(path.join(changeDir, 'requirements.md'), '# Requirements\n## 歧义评分\n| 维度 | 分数(0-5) | 说明 |\n|------|----------|------|\n| T 目标 clarity | 5 | fixture |\n| Scope clarity | 5 | fixture |\n| User/actor clarity | 5 | fixture |\n| Data/SQL clarity | 5 | fixture |\n| Interface/API clarity | 5 | fixture |\n| Acceptance criteria clarity | 5 | fixture |\n| Constraint/risk clarity | 5 | fixture |\n| **Overall** | 5.0 | fixture |\n');
+  const statePath = path.join(changeDir, 'state.json');
+  const state = {
+    schemaVersion: 3,
+    changeId: change,
+    tier: 'L1',
+    state: 'REVIEWED',
+    owner: 'smoke',
+    impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' },
+    tooling: { codegraph: { status: 'available', queries: [], fallbackReason: null }, documentation: { status: 'unknown', libraries: [] } },
+    decisions: [],
+    blockers: [],
+    approvals: {},
+    gates: { designApproved: true, redVerified: false, redTask: null, redEvidenceRef: null },
+    currentTask: null,
+    workflow: { stage: 'verify', clarifyReady: true, userConfirmedScope: true, routeReady: true, planReady: true, tddStatus: 'refactor-verified', nextEntry: '/harness-verify' },
+    validation: { status: 'fresh', digest: null, validatedAt: new Date().toISOString() },
+    tddEvidence: { worktreeUsed: false, commandExecuted: null, commandOutputSummary: null, evidencePath: null },
   };
   fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n');
 

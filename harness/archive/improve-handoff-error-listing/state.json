@@ -3,7 +3,7 @@
   "revision": 1,
   "changeId": "improve-handoff-error-listing",
   "tier": "L1",
-  "state": "VALIDATED",
+  "state": "ARCHIVED",
   "owner": "wula",
   "impact": {
     "api": "no",
