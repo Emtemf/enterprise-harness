@@ -19,7 +19,7 @@ jobs:
       - uses: actions/dependency-review-action@v5
 
   scorecard:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.event.repository.private == false
     runs-on: ubuntu-latest
     permissions:
       security-events: write

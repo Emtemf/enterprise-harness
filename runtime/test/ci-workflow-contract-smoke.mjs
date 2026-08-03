@@ -29,4 +29,19 @@ for (const workflow of workflows) {
 }
 assert.deepEqual(missing, [], `CI workflow references a target that does not exist:\n${missing.join('\n')}`);
 
+// A job that cannot pass on this repository trains maintainers to read red as
+// normal, which is how 20 consecutive real failures went unnoticed. ossf/scorecard
+// needs GraphQL access GitHub only grants on public repositories, so it must be
+// gated on visibility rather than left permanently failing.
+const visibilityGated = ['ossf/scorecard-action'];
+const ungated = [];
+for (const workflow of workflows) {
+  const text = fs.readFileSync(path.join(workflowDir, workflow), 'utf-8');
+  for (const action of visibilityGated) {
+    if (!text.includes(action)) continue;
+    if (!/github\.event\.repository\.private\s*==\s*false/u.test(text)) ungated.push(`${workflow}: ${action}`);
+  }
+}
+assert.deepEqual(ungated, [], `public-repository-only action must be gated on visibility:\n${ungated.join('\n')}`);
+
 console.log(`PASS ci-workflow-contract ${mode} (${workflows.length} workflows)`);

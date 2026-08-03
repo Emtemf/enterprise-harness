@@ -15,7 +15,14 @@
 
 - 新增 `ci-workflow-contract-smoke`，断言每个 workflow 引用的 `node <script>` 目标
   文件存在、`npm run <script>` 在 `package.json` 中有定义。上述路径漂移属于纯机械错误，
-  此前没有任何测试覆盖 workflow 内容。
+  此前没有任何测试覆盖 workflow 内容。同时断言仅限公开仓库的 action 必须带 visibility gate。
+
+### Changed
+
+- `ossf/scorecard` 改为仅在公开仓库运行。它依赖的 GraphQL `ListCommits` 在私有仓库下
+  返回 `Resource not accessible by integration`，因此在本仓库转公开前不可能通过。
+  常驻红色会把「CI 有红是正常的」变成默认认知，正是上述 20 次真实失败被忽略的土壤。
+  仓库转为公开后该 job 自动恢复。
 
 ## [0.3.8] - 2026-08-03
 
