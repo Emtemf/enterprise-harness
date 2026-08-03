@@ -4,28 +4,28 @@
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.8
+- 当前版本：0.3.9
 - active change：无（`harness/changes/` 为空，33 个已归档在 `harness/archive/`）
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
-## 最近一轮：0.3.2 路径重构的遗留漂移
+## 0.3.2 路径重构的遗留漂移（0.3.8 修复）
 
 `harness/plugin/runtime/` → `runtime/`（0.3.2）声称更新了 120+ 处引用，实际漏掉四类
-非 import 引用，均在 2026-08-03 修复：
+非 import 引用，均在 0.3.8 修复：
 
 - `.gitignore` 仍指旧路径，导致本机运行标记 `runtime/.bootstrap-ran` 被跟踪并打进发布包
 - `bin/package.mjs` 白名单未排除该标记
 - `artifact-content-smoke` 中用于排除测试目录的正则仍写旧路径，断言恒真通过
 - 三个 CI workflow 共 8 处脚本路径未改，CI 自 0.3.2 起连续 20 次全红
 
-共同特征是错了不报错、只是静默失效，且本地入口（`npm run` 脚本）与 CI（手写路径）
-是两套引用，本地全绿掩盖了 CI 全红。
+## 0.3.9 改名与守卫补齐
 
-## 新增守卫
-
-- `ci-workflow-contract-smoke`：断言 workflow 引用的 `node <script>` 存在、
-  `npm run <script>` 已定义、仅限公开仓库的 action 带 visibility gate。
-- `ossf/scorecard` 改为仅公开仓库运行；私有仓库下它不可能通过，常驻红色会让真实失败被忽略。
+- `harness-intake` → `harness-clarify`：skill 名与 clarify 阶段一致，纯改名 16 处引用。
+- 新增 `skill-registry-contract-smoke`：断言 name/dir 一致、无孤儿、无幽灵引用。
+- `checks.mjs` 必需路径补齐 `harness-route`、`harness-stage-executor`、`harness-stage-checker`。
+- `plugin-entry-agent-contract` 区分用户 skill 和 worker skill（`user-invocable: false`）。
+- CI workflow 路径修复 + `ci-workflow-contract-smoke` 守卫。
+- `ossf/scorecard` 改为仅公开仓库运行。
 
 ## 判据
 
