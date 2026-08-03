@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-08-03
+
 ### Fixed
 
 - `handoff create` 在传入不合法 behavior 时不再只报 `unknown governed behavior`
