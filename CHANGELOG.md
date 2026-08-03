@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-08-03
+
 ### Fixed
 
 - 修复发布包含用户机器的 bootstrap 标记。`runtime/.bootstrap-ran` 是本机运行产物，
