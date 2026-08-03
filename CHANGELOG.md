@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-08-03
+
 ### Changed
 
 - `harness-intake` skill 改名为 `harness-clarify`，与它实际承担的 clarify 阶段一致。
