@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-08-03
+
 ### Fixed
 
 - 修复 subagent-stop hook 在 worktree 中运行时找不到 input.json 的问题。
