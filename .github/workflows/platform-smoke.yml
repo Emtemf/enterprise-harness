@@ -37,25 +37,25 @@ jobs:
         run: codegraph init
 
       - name: Bootstrap runtime
-        run: node harness/plugin/runtime/cli.mjs bootstrap
+        run: node runtime/cli.mjs bootstrap
 
       - name: P0 acceptance
         run: npm run prepublish-check
 
       - name: Setup local adapter
-        run: node harness/plugin/runtime/cli.mjs setup-local-adapter --write
+        run: node runtime/cli.mjs setup-local-adapter --write
 
       - name: Doctor
-        run: node harness/plugin/runtime/cli.mjs doctor
+        run: node runtime/cli.mjs doctor
 
       - name: Sync
-        run: node harness/plugin/runtime/cli.mjs sync
+        run: node runtime/cli.mjs sync
 
       - name: Verify
-        run: node harness/plugin/runtime/cli.mjs verify
+        run: node runtime/cli.mjs verify
 
       - name: Upstream check
-        run: node harness/plugin/runtime/cli.mjs upstream-check
+        run: node runtime/cli.mjs upstream-check
 
       - name: Build artifact manifest
         run: node bin/package.mjs --out dist

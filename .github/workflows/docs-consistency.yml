@@ -17,4 +17,4 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: node harness/plugin/runtime/test/docs-consistency-smoke.mjs verify
+      - run: node runtime/test/docs-consistency-smoke.mjs verify

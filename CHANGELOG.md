@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 CI 自 0.3.2 起持续全红。那次把 `harness/plugin/runtime/` 迁到 `runtime/` 时，
+  三个 workflow 里的 8 处脚本路径没有跟着改，`docs-consistency`、`artifact-content`
+  和 `platform-smoke` 从此每次 push 都以 `MODULE_NOT_FOUND` 失败，连续 20 次未被发现。
+  本地入口跑的是 `npm run` 脚本，与 workflow 里手写的路径是两套引用，本地全绿掩盖了 CI 全红。
+
+### Added
+
+- 新增 `ci-workflow-contract-smoke`，断言每个 workflow 引用的 `node <script>` 目标
+  文件存在、`npm run <script>` 在 `package.json` 中有定义。上述路径漂移属于纯机械错误，
+  此前没有任何测试覆盖 workflow 内容。
+
 ## [0.3.8] - 2026-08-03
 
 ### Fixed

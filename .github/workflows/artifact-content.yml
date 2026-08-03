@@ -18,4 +18,4 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: node bin/package.mjs --out dist
-      - run: node harness/plugin/runtime/test/artifact-content-smoke.mjs verify
+      - run: node runtime/test/artifact-content-smoke.mjs verify
