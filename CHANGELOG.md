@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复重复注册的 hook 每个事件触发两遍。0.3.3 引入的
+  `test -z "$CLAUDE_PLUGIN_ROOT"` 守卫是恒真的死代码：该变量由宿主按插件注入，
+  `.claude/settings.json` 的 hook 不属于任何插件，在它的执行环境里永远为空，
+  守卫因此永远放行。已从生成器 `bin/generate-hooks.mjs` 移除。
+- 给 SessionStart 和 Stop 添加去重。这两个事件没有 `tool_use_id`，
+  0.3.5 的 `dedupGuard` 覆盖不到它们。改为按「两个通道都能观察到的事件身份」取键：
+  SessionStart 用 `session_id + source + transcript stamp`（resume / clear / compact
+  会复用同一 `session_id`，只用 id 会让首次 startup 之后整个会话拿不到 harness 上下文）；
+  Stop 用 `session_id + transcript stamp`（它每轮触发，只用 id 会静音整个会话的门禁）。
+  拿不到身份时 fail open。
+- 修复 `dedupGuard` 的抢占不是原子的。此前先写 pid 命名的临时文件再 `rename` 到
+  marker——`wx` 对每个进程都成功，而 `rename` 会覆盖目标，导致并发下多个进程都认为
+  自己抢到了（实测 8 进程有 4~8 个同时"获胜"）。改为直接对 marker `open(wx)`。
+  该缺陷同样影响 0.3.5 加在 pre-write、post-write、pre-explore 上的守卫。
+
 ## [0.3.6] - 2026-08-03
 
 ## [0.3.5] - 2026-08-03
