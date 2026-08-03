@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 消除本仓库开发时的 hook 双重执行。`.claude/settings.json` 的每个 hook 现在带
+  `test -z "$CLAUDE_PLUGIN_ROOT"` 守卫：插件已加载时 settings.json hook 自动跳过，
+  只执行插件 hook；插件未加载时（开发场景）正常执行。此前在本仓库同时作为插件
+  加载时，每个 PreToolUse/PostToolUse/SessionStart 等事件执行两次相同代码。
+- 修复 0.3.2 `runtime/` 路径重构后 External Project E2E 的路径回归。`stageRuntime()`
+  现在同时复制 `harness/` 和 `runtime/` 到临时目标项目，不再依赖旧的
+  `harness/plugin/runtime/` 路径。
+
 ## [0.3.2] - 2026-07-31
 
 ### Changed

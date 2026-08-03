@@ -30,8 +30,14 @@ function stageRuntime() {
       const relative = path.relative(path.join(sourceRoot, 'harness'), source);
       if (!relative) return true;
       const [head] = relative.split(path.sep);
-      if (STAGED_EXCLUDES.includes(head)) return false;
-      return relative !== path.join('runtime', 'test');
+      return !STAGED_EXCLUDES.includes(head);
+    },
+  });
+  fs.cpSync(path.join(sourceRoot, 'runtime'), path.join(target, 'runtime'), {
+    recursive: true,
+    filter: (source) => {
+      const relative = path.relative(path.join(sourceRoot, 'runtime'), source);
+      return relative !== 'test' && relative !== path.join('test');
     },
   });
   fs.copyFileSync(

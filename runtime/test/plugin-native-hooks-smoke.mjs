@@ -50,7 +50,7 @@ for (const eventEntries of Object.values(settingsJson.hooks ?? {})) {
   }
 }
 const settingsUseProjectDir = settingsCommands.length > 0 && settingsCommands.every((cmd) => cmd.includes('$CLAUDE_PROJECT_DIR'));
-const settingsNoPluginRoot = settingsCommands.every((cmd) => !cmd.includes('CLAUDE_PLUGIN_ROOT'));
+const settingsNoPluginRoot = settingsCommands.every((cmd) => !cmd.includes('${CLAUDE_PLUGIN_ROOT}'));
 
 // Contract 2: hook scripts must degrade gracefully when cwd is a target project
 // WITHOUT harness assets: exit 0, no MODULE_NOT_FOUND, no structure-problem spam.
