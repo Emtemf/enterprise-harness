@@ -1,11 +1,24 @@
 ---
 name: harness-tdd
 description: Enterprise Harness tdd 阶段。为当前 task 派隔离 tdd-executor，执行冻结的真实 RED/GREEN/REFACTOR argv，导入 receipt，再派独立 implementation reviewer。
+user-invocable: false
+context: fork
+background: false
+agent: general-purpose
 ---
 
 # Harness TDD
 
 由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
+
+## 上下文边界
+
+你在 forked subagent 中运行，没有主会话历史，也没有和用户对话的通道。
+
+- 权威输入只有 change 目录里的 durable artifact、task brief 和冻结 argv。
+- 需要用户决策时在 blockers 里写明，交主 orchestrator 去问。
+- 你必须派 `tdd-executor` 和 `implementation-reviewer`；不得自己实现或自审。
+- 返回给主 orchestrator 的是压缩结论和 receipt refs，不是测试输出全文。
 
 ## 输入
 

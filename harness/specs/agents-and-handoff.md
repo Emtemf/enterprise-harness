@@ -12,7 +12,24 @@ testRefs:
 
 # Agents and Handoff Contract
 
-每个受治理行为：
+## 上下文隔离的两层
+
+```text
+main conversation
+└─ stage skill (context: fork)        ← 阶段 SOP 不进主上下文
+   ├─ executor  (isolated subagent)
+   └─ checker   (isolated subagent)
+```
+
+`harness` 与 `harness-clarify` 必须留在主对话，因为它们要和用户一问一答；forked subagent 没有用户通道。route、design、plan、tdd、verify 以 `context: fork` + `background: false` 运行。
+
+forked 阶段仍必须派自己的 executor 和 checker，因此 subagent 生成深度至少需要 2。到达深度上限时 `Agent` 工具会被静默收走，forked 阶段就会自写自审、塌成单一上下文 —— 这是本合同不接受的降级。本仓库用 `.claude/settings.json` 的 `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 兜住；该文件由 `bin/generate-hooks.mjs` 生成，不要手改。
+
+已知缺口：`.claude/settings.json` 不在 `bin/package.mjs` 的发布白名单内，所以安装 plugin 的用户拿不到这个 guard。
+
+需要用户确认的动作（例如 route 的 tier 确认与 `workflow.routeReady` 置位）由主 orchestrator 承担，forked 阶段只返回待确认项。
+
+## 每个受治理行为
 
 ```text
 orchestrator

@@ -1,6 +1,7 @@
 ---
 name: harness-clarify
 description: Enterprise Harness 的 clarify 阶段。用于先探索事实、执行七维歧义评分、逐个澄清问题并确认 scope。route 由独立的 harness-route 承担。
+user-invocable: false
 ---
 
 # Harness Clarify
@@ -8,6 +9,10 @@ description: Enterprise Harness 的 clarify 阶段。用于先探索事实、执
 由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
 
 本 skill 只负责 clarify。tier、归属与影响面属于 route，见 `/harness-route`。
+
+## 为什么不 fork
+
+clarify 的核心行为是一次只问用户一个问题。forked subagent 没有用户对话通道，所以本 skill 与入口 `harness` 一样在主对话中运行；探索与整理仍然委托隔离 subagent。
 
 ## 输入
 

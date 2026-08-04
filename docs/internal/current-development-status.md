@@ -27,6 +27,19 @@
 - CI workflow 路径修复 + `ci-workflow-contract-smoke` 守卫。
 - `ossf/scorecard` 改为仅公开仓库运行。
 
+## 阶段 skill 上下文隔离
+
+- route/design/plan/tdd/verify 加 `context: fork` + `background: false`：阶段 SOP 全文不再进主对话。此前跑完整条链会在主上下文堆叠 7 份阶段合同。
+- `harness` 与 `harness-clarify` 保持 inline：forked subagent 没有用户对话通道，而 clarify 的核心行为是一次只问一个问题。
+- route 原第 4 步"向用户展示并请其确认路由"移回主 orchestrator；forked route 只返回待确认项，`workflow.routeReady` 不由该 skill 置位。
+- 除入口外全部 stage skill 加 `user-invocable: false`，兑现"唯一入口"。此前 `/harness-design` 等可直接跳进去绕过 gate。
+- `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3` 写入 `bin/generate-hooks.mjs`（`.claude/settings.json` 是生成物，手改会被 `hook-manifest-parity-smoke` 判 stale）。
+
+### 已知缺口
+
+- `.claude/settings.json` 不在 `bin/package.mjs` 的 `ALLOWED_TREES` 内，安装 plugin 的用户拿不到深度 guard。深度上限时 `Agent` 被静默收走，forked 阶段会自写自审、executor/checker 塌成同一上下文，且不报错。需要 runtime 侧 fail-loud 检测（doctor 或 pre-agent hook）才能覆盖发布包用户。
+- Context7 仍走 CLI（`runtime/context7.mjs` + doctor/sync/registry/launcher smoke），未改 MCP。这是刻意设计，非缺陷。
+
 ## 判据
 
 改动后必须查 CI 实际结论（`gh run list`），本地测试全绿不构成完成证据。
