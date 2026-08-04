@@ -39,10 +39,25 @@ forked 阶段没有用户通道。它们返回的待确认项由你负责向用�
 受治理行为：
 
 1. 生成 brief。
-2. `handoff create ... execute`。
-3. 派 registry 指定 executor，prompt 原样包含 `HANDOFF_INPUT=...`。
+2. 用精确 argv 创建 execute handoff：
+
+   ```bash
+   enterprise-harness handoff create <change-id> <stage> <behavior> execute
+   ```
+
+   `<behavior>` 不是 agent 名。合法取值与对应 executor/checker 见
+   `harness/behavior-checks.json`，例如代码探索是 `clarify explore-code`
+   对应的 `clarify.explore-code`，而不是 `code-explore`。
+   若 behavior 名写错或漏了这一步，`pre-agent` 会 BLOCK 并在错误信息里给出
+   本次应当执行的完整命令，照它执行即可。
+3. 派 registry 指定 executor，prompt 原样包含上一步输出的 `HANDOFF_INPUT=<path>` 行。
 4. 等待 result，不重复相同工作。
-5. `handoff create ... check <executor-run-id>`。
+5. 用 executor 的 run id 创建 check handoff：
+
+   ```bash
+   enterprise-harness handoff create <change-id> <stage> <behavior> check <executor-run-id>
+   ```
+
 6. 派 registry 指定 checker。
 7. 只有 checker pass 才推进。
 

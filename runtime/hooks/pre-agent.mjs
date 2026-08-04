@@ -10,6 +10,7 @@ import {
   parseHandoffInputMarker,
 } from '../lib/handoff.mjs';
 import { formatDiagnostic } from '../lib/diagnostics.mjs';
+import { formatHandoffGuidance, suggestHandoffCommand } from '../lib/handoff-guidance.mjs';
 import path from 'node:path';
 
 const chunks = [];
@@ -45,9 +46,12 @@ if (!changeId) {
 }
 const marker = parseHandoffInputMarker(event.tool_input?.prompt);
 if (!marker) {
+  // The caller is being told to satisfy a rule it was never taught, so name the
+  // exact command rather than leaving it to guess the behavior string.
+  const guidance = formatHandoffGuidance(suggestHandoffCommand(root, requestedRaw, changeId));
   console.error(formatDiagnostic(
     'EH-HANDOFF-INPUT-001',
-    'Agent prompt must contain HANDOFF_INPUT=<canonical input.json path>',
+    `Agent prompt must contain HANDOFF_INPUT=<canonical input.json path>${guidance ? ` | ${guidance}` : ''}`,
     { changeId },
   ));
   process.exit(2);
