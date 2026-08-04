@@ -1,11 +1,24 @@
 ---
 name: harness-verify
 description: Enterprise Harness verify 阶段。独立消费 state、artifacts、reviews、TDD receipts、agent ledger、API contract 和 fresh validation，并给出 completion verdict。
+user-invocable: false
+context: fork
+background: false
+agent: general-purpose
 ---
 
 # Harness Verify
 
 由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
+
+## 上下文边界
+
+你在 forked subagent 中运行，没有主会话历史，也没有和用户对话的通道。
+
+- 权威输入只有 durable artifact、receipt、ledger 和真实命令输出，不是聊天记录。
+- 需要用户决策时在 blockers 里写明，交主 orchestrator 去问。
+- 你必须派 `verification-executor` 和 `verification-reviewer`；不得自收自审。
+- 返回给主 orchestrator 的是 completion verdict 和 blockers，不是 validation 全文。
 
 ## 输入
 

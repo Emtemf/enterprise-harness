@@ -65,7 +65,10 @@ openapi/**
 
 - 不要把 hooks 当总编排器。
 - 不要让主 orchestrator 重新做已委托的代码探索。
-- 不要把 `isolation: worktree` 当成上下文隔离；上下文隔离来自独立 subagent。
+- 不要把 `isolation: worktree` 当成上下文隔离；上下文隔离来自 forked stage skill 和独立 subagent。
+- 不要给 `harness` 或 `harness-clarify` 加 `context: fork`；它们需要用户对话通道。
+- 不要让 forked stage skill 代替用户确认 scope 或 route。
+- 不要手改 `.claude/settings.json`；它由 `bin/generate-hooks.mjs` 生成。
 - 不要接受 worker 自报的 RED/GREEN、review 或 validation。
 - 不要静默吞掉关键 hook 异常。
 - 不要修改 `harness/archive/**`。

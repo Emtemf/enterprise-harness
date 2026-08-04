@@ -43,6 +43,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Post-write 无法解析事件或完成增量归因。',
     recovery: '查看 violation ledger 中的 toolUseId、target 与 detail，修复 hook 输入后重新验证。',
   },
+  'EH-SPAWN-DEPTH-020': {
+    summary: 'Subagent 生成深度不足以让 forked 阶段派发自己的 executor 和 checker。',
+    recovery: '在 .claude/settings.json 的 env 中设置 CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3 后重启会话，再运行 enterprise-harness doctor 确认。',
+  },
 });
 
 export function diagnostic(code) {

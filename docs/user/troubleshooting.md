@@ -67,6 +67,7 @@ receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 dige
 | `EH-HOOK-INPUT-017` | Claude Code hook 输入不是合法 JSON | 保留原始 hook 事件并重试 |
 | `EH-HOOK-TECP-018` | hook 无法渲染 TECPC 卡 | 运行 status 检查状态 |
 | `EH-LIFECYCLE-TECP-019` | lifecycle 无法渲染 TECPC 卡 | 校验 change state |
+| `EH-SPAWN-DEPTH-020` | subagent 生成深度不足，forked 阶段会自写自审 | 设置 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3` 后重启会话 |
 | `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |

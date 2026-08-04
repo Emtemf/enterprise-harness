@@ -35,7 +35,13 @@ const outputs = [
   },
   {
     path: path.join(root, '.claude', 'settings.json'),
-    value: render('$CLAUDE_PROJECT_DIR'),
+    // Forked stage skills sit one layer down and must still dispatch their own
+    // executor and checker. At the spawn-depth limit the Agent tool is withheld
+    // silently, which would collapse both roles into one context.
+    value: {
+      env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' },
+      ...render('$CLAUDE_PROJECT_DIR'),
+    },
   },
 ];
 let stale = false;

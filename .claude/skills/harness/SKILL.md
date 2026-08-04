@@ -27,7 +27,12 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
 clarify → route → design → plan → tdd → verify → archive
 ```
 
-每个阶段使用同名 skill。
+每个阶段使用同名 skill。其中：
+
+- `harness-clarify` 在主对话内运行，因为它要和用户一问一答。
+- `harness-route`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify` 以 `context: fork` 在隔离 subagent 中运行，只把压缩结论交回主对话，阶段 SOP 全文不进入主上下文。
+
+forked 阶段没有用户通道。它们返回的待确认项由你负责向用户提问，例如 route 的 tier 与影响矩阵确认、`workflow.routeReady` 的置位。forked skill 不得自行代替用户确认。
 
 ## 隔离接力
 
