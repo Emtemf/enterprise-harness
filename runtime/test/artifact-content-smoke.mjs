@@ -69,6 +69,19 @@ try {
   ]) {
     assert.equal(listed.has(forbidden), false, `artifact must exclude ${forbidden}`);
   }
+  // Shipped runtime must not hardcode paths from this repo's own demo service.
+  // A checker that silently returns [] when those paths are absent reports zero
+  // findings on every real target project while looking like it passed.
+  for (const entry of manifest.files) {
+    if (!/^runtime\/.*\.mjs$/u.test(entry.path)) continue;
+    const text = fs.readFileSync(path.join(extract, entry.path), 'utf-8');
+    assert.equal(
+      /reference-service/u.test(text),
+      false,
+      `${entry.path} hardcodes reference-service paths, which do not exist in a target project`,
+    );
+  }
+
   assert.equal(
     [...listed].some((file) => /^(?:harness\/(?:archive|changes|work|lessons)|runtime\/test)\//u.test(file)),
     false,

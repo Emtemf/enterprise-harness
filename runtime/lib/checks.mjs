@@ -1041,20 +1041,3 @@ export function validateGenericControllerConsistency(root) {
 
   return errors;
 }
-
-// 注意：这是 reference-service 自身的 demo 回归检查（硬编码 OrderCancellationController 的路径/注解语义），
-// 不是通用的任意项目 OpenAPI-Controller 交叉一致性校验器。真正的通用校验器需要解析任意 OpenAPI `paths`
-// 与任意 Spring `@RequestMapping`/`@GetMapping`/... 注解并做双向比对，是独立的、更大的后续 initiative。
-export function validateReferenceServiceControllerConsistency(root) {
-  const yamlFile = path.join(root, 'reference-service', 'openapi', 'order-service.yaml');
-  const controllerFile = path.join(root, 'reference-service', 'src', 'main', 'java', 'com', 'example', 'orders', 'interfaces', 'api', 'OrderCancellationController.java');
-  if (!fs.existsSync(yamlFile) || !fs.existsSync(controllerFile)) return [];
-  const yaml = fs.readFileSync(yamlFile, 'utf-8');
-  const controller = fs.readFileSync(controllerFile, 'utf-8');
-  const errors = [];
-  if (!yaml.includes('/api/orders/{orderId}/cancel:')) errors.push('controller:path-missing-in-yaml');
-  if (!/^\s+post:/m.test(yaml)) errors.push('controller:post-missing-in-yaml');
-  if (!controller.includes('@RequestMapping("/api/orders")')) errors.push('controller:base-mapping-missing');
-  if (!controller.includes('@PostMapping("/{orderId}/cancel")')) errors.push('controller:post-mapping-missing');
-  return errors;
-}
