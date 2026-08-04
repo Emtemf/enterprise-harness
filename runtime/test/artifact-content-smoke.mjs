@@ -40,8 +40,25 @@ try {
     'bin/enterprise-harness.mjs',
     'package.json',
     'CHANGELOG.md',
+    '.mcp.json',
   ]) {
     assert.equal(listed.has(required), true, `artifact must contain ${required}`);
+  }
+
+  // plugin.json is the installer's contract. Anything it points at must actually
+  // ship, or the capability silently disappears for installed users — .mcp.json
+  // was declared but unpackaged, so plugin users got no codegraph MCP tools and
+  // exploration degraded to raw grep with nothing reporting it.
+  const pluginManifest = JSON.parse(fs.readFileSync(path.join(extract, '.claude-plugin/plugin.json'), 'utf-8'));
+  const declared = [
+    ...(pluginManifest.skills || []),
+    ...(pluginManifest.agents || []),
+    ...(typeof pluginManifest.mcpServers === 'string' ? [pluginManifest.mcpServers] : []),
+  ];
+  for (const target of declared) {
+    const relative = target.replace(/^\.\//u, '').replace(/\/$/u, '');
+    const present = listed.has(relative) || [...listed].some((file) => file.startsWith(`${relative}/`));
+    assert.equal(present, true, `plugin.json declares ${target} but the artifact does not ship it`);
   }
   for (const forbidden of [
     'harness/ACTIVE_CHANGE',

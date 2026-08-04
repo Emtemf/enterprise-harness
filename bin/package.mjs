@@ -7,7 +7,10 @@ import { gzipSync } from 'node:zlib';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
-const ROOT_FILES = ['package.json', 'README.md', 'CHANGELOG.md', 'LICENSE'];
+// .mcp.json is referenced by plugin.json's mcpServers field. Without it an
+// installed plugin has no codegraph MCP tools, so exploration silently falls
+// back to raw grep instead of the symbol graph.
+const ROOT_FILES = ['package.json', 'README.md', 'CHANGELOG.md', 'LICENSE', '.mcp.json'];
 const ALLOWED_TREES = [
   '.claude-plugin',
   '.claude/skills',
