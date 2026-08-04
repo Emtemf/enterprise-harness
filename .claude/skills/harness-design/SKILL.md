@@ -60,7 +60,7 @@ agent: general-purpose
 
 design pass 后，主 orchestrator 必须执行：
 ```bash
-enterprise-harness workflow decide <change-id> freeze-slice
+enterprise-harness workflow decide <change-id> approve
 ```
 此命令将 `designApproved` 置 true 并推进到 plan 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 design。
 长期合同见 `harness/specs/workflow.md`。

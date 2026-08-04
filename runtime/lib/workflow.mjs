@@ -191,6 +191,26 @@ export function applyRouteConfirmationDecision(data, decision) {
   return data;
 }
 
+export function applyDesignApprovalDecision(data, decision) {
+  if (decision === 'approve') {
+    data.gates = data.gates || {};
+    data.gates.designApproved = true;
+    data.state = 'DESIGN_APPROVED';
+    data.workflow.stage = 'plan';
+    data.workflow.nextEntry = '/harness-plan';
+    data.workflow.planReady = false;
+  }
+  if (decision === 'request-changes' || decision === 'reject') {
+    data.gates = data.gates || {};
+    data.gates.designApproved = false;
+    data.state = 'DISCOVERED';
+    data.workflow.stage = 'design';
+    data.workflow.nextEntry = '/harness-design';
+    data.workflow.planReady = false;
+  }
+  return data;
+}
+
 export function applyExecutionReadinessDecision(data, decision, baselineDesignSha256 = null) {
   if (decision === 'freeze-slice') {
     data.gates = data.gates || {};
