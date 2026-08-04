@@ -47,6 +47,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Subagent 生成深度不足以让 forked 阶段派发自己的 executor 和 checker。',
     recovery: '在 .claude/settings.json 的 env 中设置 CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3 后重启会话，再运行 enterprise-harness doctor 确认。',
   },
+  'EH-CODEGRAPH-INDEX-021': {
+    summary: 'CodeGraph 索引不可用，代码探索会静默退化成全量 grep/read。',
+    recovery: '在目标项目根目录运行 codegraph init 建立索引，再运行 enterprise-harness doctor 确认 codegraph 检查为 indexed。',
+  },
 });
 
 export function diagnostic(code) {

@@ -6,6 +6,8 @@ import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { recommendNextAction } from '../lib/workflow.mjs';
 import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
 import { evaluateSpawnDepth } from '../lib/spawn-depth.mjs';
+import { evaluateCodegraphIndex } from '../lib/codegraph-index.mjs';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -101,6 +103,16 @@ try {
 
 // 代码探索工具可用性提醒
 console.log('[Harness 工具提醒] 代码探索时请优先使用 codegraph_explore/codegraph_search 等 MCP 工具，不要用 grep/Read 替代。');
+
+const codegraphIndex = evaluateCodegraphIndex(spawnSync('codegraph', ['status'], {
+  cwd: root,
+  encoding: 'utf-8',
+  shell: false,
+  timeout: 5000,
+}));
+if (!codegraphIndex.ok) {
+  console.log(`[Harness 探索能力 EH-CODEGRAPH-INDEX-021] ${codegraphIndex.detail}`);
+}
 
 const spawnDepth = evaluateSpawnDepth();
 if (spawnDepth.ok !== true) {

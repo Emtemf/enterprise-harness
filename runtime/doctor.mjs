@@ -4,6 +4,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.mjs';
 import { evaluateSpawnDepth } from './lib/spawn-depth.mjs';
+import { evaluateCodegraphIndex } from './lib/codegraph-index.mjs';
 
 const repoRoot = process.cwd();
 const online = process.argv.includes('--online');
@@ -79,11 +80,14 @@ checks.push({
 });
 
 const codegraph = run('codegraph', ['status']);
+const codegraphIndex = evaluateCodegraphIndex(codegraph);
 checks.push({
   kind: 'tool',
   name: 'codegraph',
-  ok: codegraph.status === 0,
-  detail: outputText(codegraph),
+  ok: codegraphIndex.ok,
+  severity: codegraphIndex.severity,
+  status: codegraphIndex.status,
+  detail: codegraphIndex.detail,
 });
 
 if (online) {
