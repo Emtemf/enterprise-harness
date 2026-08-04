@@ -58,4 +58,9 @@ agent: general-purpose
 
 ## 下一阶段
 
-design pass 后进入 plan。长期合同见 `harness/specs/workflow.md`。
+design pass 后，主 orchestrator 必须执行：
+```bash
+enterprise-harness workflow decide <change-id> freeze-slice
+```
+此命令将 `designApproved` 置 true 并推进到 plan 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 design。
+长期合同见 `harness/specs/workflow.md`。

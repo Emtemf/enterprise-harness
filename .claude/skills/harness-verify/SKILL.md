@@ -56,4 +56,8 @@ agent: general-purpose
 
 ## 下一阶段
 
-completion pass 才进入 archive。详细合同见 `harness/specs/verify-contract.md`。
+completion pass 后，主 orchestrator 必须执行：
+```bash
+enterprise-harness workflow decide <change-id> freeze-slice
+```
+此命令将 `validation.status` 置为 fresh 并推进到 archive 阶段。若漏执行，state.json 的 validation 保持 stale，链路会卡在 verify。详细合同见 `harness/specs/verify-contract.md`。

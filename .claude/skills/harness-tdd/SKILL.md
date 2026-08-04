@@ -57,4 +57,8 @@ agent: general-purpose
 
 ## 下一阶段
 
-所有 task 通过后进入 verify。详细合同见 `harness/specs/tdd-execution.md` 和 `harness/specs/evidence.md`。
+所有 task 通过后，主 orchestrator 必须执行：
+```bash
+enterprise-harness workflow decide <change-id> freeze-slice
+```
+此命令将 tdd gates 置 true 并推进到 verify 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 tdd。详细合同见 `harness/specs/tdd-execution.md` 和 `harness/specs/evidence.md`。

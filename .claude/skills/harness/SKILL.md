@@ -61,6 +61,31 @@ forked 阶段没有用户通道。它们返回的待确认项由你负责向用�
 6. 派 registry 指定 checker。
 7. 只有 checker pass 才推进。
 
+## 阶段推进
+
+checker 返回 verdict 后，根据 verdict 执行对应命令：
+
+**pass：**
+```bash
+enterprise-harness workflow decide <change-id> freeze-slice
+```
+此命令将当前 gate 置 true、推进 stage 到下一阶段、更新 nextEntry。
+若漏执行此命令，state.json 的 gate 保持 false，链路会卡在当前阶段。
+
+**block：**
+```bash
+enterprise-harness workflow decide <change-id> revise-slice
+```
+此命令将 gate 置 false、回退到当前阶段，等待修复后重新执行 executor。
+
+每个阶段的 gate 映射：
+- clarify → `clarifyReady` + `userConfirmedScope`
+- route → `routeReady`
+- design → `designApproved`
+- plan → `planReady`
+- tdd → `redVerified` / `greenVerified` / `refactorVerified`
+- verify → `validation.status === 'fresh'`
+
 executor 与 checker 必须是不同 subagent/run。worktree 只提供文件隔离；subagent 提供上下文隔离。
 
 代码探索只派 `enterprise-harness:code-explore`。外部资料只派 `enterprise-harness:doc-research`。
