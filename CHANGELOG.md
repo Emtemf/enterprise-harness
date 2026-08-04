@@ -4,6 +4,39 @@
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-08-04
+
+### Changed
+
+- route/design/plan/tdd/verify 五个阶段 skill 改为 `context: fork` + `background: false`，
+  阶段 SOP 全文不再进入主对话。此前跑完整条链会在主上下文堆叠 7 份阶段合同。
+  `harness` 与 `harness-clarify` 保持 inline —— forked subagent 没有用户对话通道，
+  而 clarify 的核心行为是一次只问一个问题。
+- `harness-route` 原第 4 步"向用户展示并请其确认路由"移回主 orchestrator。
+  fork 之后该步骤没有用户通道会悬空，forked route 改为只返回待确认项，
+  `workflow.routeReady` 不由该 skill 置位。
+- 除唯一入口外全部 stage skill 加 `user-invocable: false`。此前"唯一入口"是空话，
+  `/harness-design` 等可以直接跳进去绕过前置 gate。
+
+### Added
+
+- subagent 生成深度不足改为 fail-loud。forked 阶段仍必须派自己的 executor 和 checker，
+  但到达深度上限时 Claude Code 会静默收走 `Agent` 工具，导致阶段自写自审、
+  executor 与 checker 塌进同一上下文且不报错 —— 这正是本项目要防的"worker 自报"。
+  新增 `runtime/lib/spawn-depth.mjs`：`doctor` 在深度低于 2 时判 fail、未设置时判 warn，
+  session-start 报 `EH-SPAWN-DEPTH-020`。
+  `.claude/settings.json` 里的 `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 按
+  `harness/specs/architecture.md` 属开发通道、刻意不进发布包，因此发布通道靠 runtime
+  侧检测覆盖，而不是扩大打包白名单。
+
+### Fixed
+
+- `dependency-review` 按仓库可见性 gate。该 job 需要 dependency graph，
+  GitHub 只在公开仓库或 Advanced Security 下提供，在私有仓库上每个 PR 必然失败 ——
+  与 `ossf/scorecard` 已经修过的是同一种"把红当正常"的失败模式。
+  `ci-workflow-contract-smoke` 的可见性断言同时改为按 job 作用域匹配，
+  此前是整文件正则，同一文件里一个已 gate 的 job 能替未 gate 的 job 背书。
+
 ## [0.3.9] - 2026-08-03
 
 ### Changed
