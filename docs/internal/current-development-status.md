@@ -1,10 +1,10 @@
 # 当前研发快照
 
-更新时间：2026-08-03
+更新时间：2026-08-04
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.9
+- 当前版本：0.3.10
 - active change：无（`harness/changes/` 为空，33 个已归档在 `harness/archive/`）
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
@@ -27,7 +27,7 @@
 - CI workflow 路径修复 + `ci-workflow-contract-smoke` 守卫。
 - `ossf/scorecard` 改为仅公开仓库运行。
 
-## 阶段 skill 上下文隔离
+## 0.3.10 阶段 skill 上下文隔离
 
 - route/design/plan/tdd/verify 加 `context: fork` + `background: false`：阶段 SOP 全文不再进主对话。此前跑完整条链会在主上下文堆叠 7 份阶段合同。
 - `harness` 与 `harness-clarify` 保持 inline：forked subagent 没有用户对话通道，而 clarify 的核心行为是一次只问一个问题。
@@ -36,6 +36,7 @@
 - `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3` 写入 `bin/generate-hooks.mjs`（`.claude/settings.json` 是生成物，手改会被 `hook-manifest-parity-smoke` 判 stale）。
 - fork 内治理链已实测：探针 skill 在 fork 中写受治理路径被 `pre-write.mjs` BLOCK，文件未生成；nested `Agent` 派发可用，cwd 解析到仓库根。静态 frontmatter 断言不覆盖这条，需要实跑。
 - 深度不足改为 fail-loud：`runtime/lib/spawn-depth.mjs` 求值 → doctor 在 depth<2 判 fail、未设置判 warn，session-start 报 `EH-SPAWN-DEPTH-020`。`.claude/settings.json` 按 `harness/specs/architecture.md` 属开发通道、刻意不进发布包，所以发布通道靠 runtime 侧检测覆盖，而非扩白名单。
+- `dependency-review` 按仓库可见性 gate：私有仓库缺 dependency graph，该 job 每个 PR 必然失败，与 `ossf/scorecard` 是同一种"把红当正常"的模式。`ci-workflow-contract-smoke` 的可见性断言同时改为按 job 作用域，此前整文件正则会让一个已 gate 的 job 替未 gate 的 job 背书。
 
 ### 已知缺口
 
