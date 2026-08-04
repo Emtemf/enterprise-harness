@@ -96,6 +96,12 @@ export function createHandoffInput(root, {
   const effectiveInputRefs = role === 'check' && parentRunId && inputRefs.length === 0
     ? [path.relative(root, handoffResultPath(root, changeId, parentRunId, 'execute'))]
     : inputRefs;
+  // An executor treats target plus inputRefs as its only authoritative input, so
+  // a handoff carrying neither hands it nothing to act on. Refuse instead of
+  // letting the run stall with no artifact and no stated reason.
+  if (String(target || '').trim() === '' && effectiveInputRefs.length === 0) {
+    throw new Error(`handoff for ${behavior} requires a target or at least one inputRef`);
+  }
   for (const ref of effectiveInputRefs) {
     if (!isSafeRelativePath(ref)) throw new Error(`inputRef must be a safe relative path: ${ref}`);
     resolveWithin(root, ref, 'inputRef');

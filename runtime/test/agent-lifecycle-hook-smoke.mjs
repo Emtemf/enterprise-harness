@@ -60,7 +60,14 @@ function resultBlock(input, extra = {}) {
 }
 
 function create(stage, behavior, role = 'execute', parentRunId = null) {
-  return createHandoffInput(root, { changeId, stage, behavior, role, parentRunId });
+  return createHandoffInput(root, {
+    changeId,
+    stage,
+    behavior,
+    role,
+    parentRunId,
+    target: `fixture ${behavior} ${role}`,
+  });
 }
 
 assert.equal(normalizeAgentType('code-explore'), 'enterprise-harness:code-explore');

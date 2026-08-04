@@ -40,6 +40,7 @@ function dispatchThenFail(root, toolUseId) {
     behavior: 'clarify.explore-code',
     role: 'execute',
     parentRunId: null,
+    target: 'fixture exploration for dispatch failure recovery',
   });
   const marker = path.relative(root, input.path);
   const dispatched = hook(root, 'pre-agent.mjs', {
@@ -89,6 +90,7 @@ function dispatchThenFail(root, toolUseId) {
     behavior: 'clarify.synthesize',
     role: 'execute',
     parentRunId: null,
+    target: 'fixture synthesize for pending execution recovery',
   });
   assert.equal(hook(root, 'pre-agent.mjs', {
     tool_name: 'Agent',

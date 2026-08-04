@@ -22,12 +22,45 @@ fs.copyFileSync(
 );
 
 try {
+  // An executor's only authoritative input is its target plus inputRefs, so a
+  // handoff carrying neither hands it nothing to work from. That was accepted
+  // silently: a clarify.synthesize run was created with both empty and stalled
+  // without producing requirements.md or reporting why.
+  let refused = false;
+  try {
+    createHandoffInput(root, {
+      changeId,
+      stage: 'clarify',
+      behavior: 'clarify.synthesize',
+      role: 'execute',
+      inputRefs: [],
+      target: '',
+    });
+  } catch (error) {
+    refused = true;
+    assert.match(error.message, /target|inputRef/u);
+  }
+  assert.equal(refused, true, 'execute handoff with neither target nor inputRefs should be refused');
+
+  // A target alone is enough — the first exploration of a change has no prior
+  // artifact to reference.
+  const targetOnly = createHandoffInput(root, {
+    changeId,
+    stage: 'clarify',
+    behavior: 'clarify.explore-code',
+    role: 'execute',
+    inputRefs: [],
+    target: 'explore GreetingService and its callers',
+  });
+  assert.equal(targetOnly.envelope.role, 'execute');
+
   const execute = createHandoffInput(root, {
     changeId,
     stage: 'design',
     behavior: 'design.produce',
     role: 'execute',
     inputRefs: [],
+    target: 'produce the design for the greeting endpoint',
   });
   const loaded = loadHandoffInput(root, path.relative(root, execute.path), {
     changeId,
