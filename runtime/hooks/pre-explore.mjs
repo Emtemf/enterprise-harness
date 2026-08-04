@@ -2,10 +2,10 @@ import { projectRoot, hasChangeTracking } from '../lib/checks.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import {
   appendAgentEvent,
-  boundHarnessAgent,
   normalizeAgentType,
   readAgentEvents,
   sha256,
+  startedHarnessAgent,
 } from '../lib/agent-evidence.mjs';
 import {
   extractExplorationTargets,
@@ -32,11 +32,18 @@ const input = event.tool_input || {};
 const bash = String(input.command || '');
 const explorationBash = /(?:\brg\b|\bgrep\b|\bfind\b|\bcodegraph\b|src\/main\/java|src\/test\/java|openapi\/)/iu.test(bash);
 const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\bcodegraph\b/iu.test(bash));
+// Only an MCP CodeGraph call genuinely has no path to match; a Bash command
+// merely mentioning the word still carries real path tokens, so it keeps the
+// normal exemption and must not be forced through the gate.
+const codegraphMcpTool = /codegraph/iu.test(toolName);
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);
 if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) process.exit(0);
 const targets = extractExplorationTargets(root, event);
-if (targets.every((target) => isExplorationTargetExempt(root, target))) {
+// A CodeGraph query names symbols, not paths, so it has no governed target to
+// match. Exempting it here would skip recording the attempt that the fallback
+// branch below then demands — making the required evidence impossible to produce.
+if (!codegraphMcpTool && targets.every((target) => isExplorationTargetExempt(root, target))) {
   process.exit(0);
 }
 
@@ -46,7 +53,11 @@ if (!active.ok) {
   process.exit(2);
 }
 const agentId = String(event.agent_id || '').trim();
-const binding = agentId && boundHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:code-explore');
+// The gate runs while the subagent is still executing, so it can only rely on
+// evidence that exists mid-flight. `dispatch-binding` is written by
+// PostToolUse:Agent — after the subagent exits — so requiring it here made a
+// code-explore subagent unable to pass its own gate.
+const binding = agentId && startedHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:code-explore');
 if (!binding) {
   console.error('BLOCK: 主 orchestrator 不得直接探索业务代码；必须使用 code-explore subagent，且当前事件没有绑定到 active enterprise-harness:code-explore。');
   process.exit(2);
@@ -56,7 +67,7 @@ if (codegraphTool) {
     kind: 'codegraph-attempt',
     sessionId: event.session_id,
     agentId,
-    observedAgentType: normalizeAgentType(binding.start.observedAgentType),
+    observedAgentType: normalizeAgentType(binding.observedAgentType),
     commandDigest: sha256(JSON.stringify({ toolName, input })),
     cwd: event.cwd || root,
   });

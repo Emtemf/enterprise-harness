@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preExplorePath = path.join(repoRoot, 'runtime', 'hooks', 'pre-explore.mjs');
@@ -26,6 +27,10 @@ function writeText(file, text) {
 }
 
 function createChangeFixture(tempRoot, changeId, state) {
+  // The agent event spool lives under the git common dir, so evidence-carrying
+  // fixtures need a real repository or appendAgentEvent writes somewhere the
+  // hook will not read back.
+  spawnSync('git', ['init', '-q'], { cwd: tempRoot, encoding: 'utf-8' });
   fs.mkdirSync(path.join(tempRoot, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`, 'utf-8');
   writeJson(path.join(tempRoot, 'harness', 'changes', changeId, 'state.json'), state);
@@ -45,11 +50,11 @@ function baseState(overrides = {}) {
   };
 }
 
-function runPreExplore(tempRoot, toolName, input) {
+function runPreExplore(tempRoot, toolName, input, agentId = undefined) {
   return spawnSync('node', [preExplorePath], {
     cwd: tempRoot,
     encoding: 'utf-8',
-    input: JSON.stringify({ tool_name: toolName, tool_input: input }),
+    input: JSON.stringify({ tool_name: toolName, tool_input: input, agent_id: agentId }),
   });
 }
 
@@ -216,6 +221,103 @@ check('N: governed exploration must still BLOCK when mixed with an outside-root 
     });
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /BLOCK/u);
+  });
+});
+
+// An in-flight code-explore subagent only has `dispatch` + `start` on the spool.
+// `dispatch-binding` is written by PostToolUse:Agent, which fires after the
+// subagent has already exited, so gating on it made the subagent unable to pass
+// its own gate — every fallback Read/Grep was blocked and exploration could
+// never happen. Observed ordering: dispatch → start → stop → dispatch-binding.
+check('O: an in-flight code-explore subagent must PASS codegraph exploration', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'dispatch',
+      requestedAgentType: 'enterprise-harness:code-explore',
+      toolUseId: 'tool-inflight',
+    });
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'start',
+      agentId: 'inflight-explorer',
+      observedAgentType: 'enterprise-harness:code-explore',
+    });
+    const result = runPreExplore(tempRoot, 'mcp__codegraph__codegraph_search', {
+      query: 'Template',
+    }, 'inflight-explorer');
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('O2: after a CodeGraph attempt the same in-flight subagent may fall back to Grep', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'start',
+      agentId: 'inflight-explorer',
+      observedAgentType: 'enterprise-harness:code-explore',
+    });
+    const codegraph = runPreExplore(tempRoot, 'mcp__codegraph__codegraph_search', {
+      query: 'Template',
+    }, 'inflight-explorer');
+    assert.equal(codegraph.status, 0, `codegraph attempt should pass; stderr=${codegraph.stderr}`);
+    const result = runPreExplore(tempRoot, 'Grep', {
+      pattern: 'Template',
+      path: 'src/main/java/com/example/Template.java',
+    }, 'inflight-explorer');
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('P: a code-explore subagent that already stopped must BLOCK', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'start',
+      agentId: 'finished-explorer',
+      observedAgentType: 'enterprise-harness:code-explore',
+    });
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'stop',
+      agentId: 'finished-explorer',
+      observedAgentType: 'enterprise-harness:code-explore',
+    });
+    const result = runPreExplore(tempRoot, 'Grep', {
+      pattern: 'Template',
+      path: 'src/main/java/com/example/Template.java',
+    }, 'finished-explorer');
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/u);
+  });
+});
+
+check('Q: a non-code-explore subagent must not pass the exploration gate', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'start',
+      agentId: 'wrong-type',
+      observedAgentType: 'enterprise-harness:design-executor',
+    });
+    const result = runPreExplore(tempRoot, 'Grep', {
+      pattern: 'Template',
+      path: 'src/main/java/com/example/Template.java',
+    }, 'wrong-type');
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/u);
+  });
+});
+
+// Forcing every codegraph-mentioning event past the path exemption made an
+// ordinary shell command that merely names the word — a commit message, a doc
+// edit — get gated as business-code exploration.
+check('R: a Bash command mentioning codegraph but touching no governed path must PASS', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const result = runPreExplore(tempRoot, 'Bash', {
+      command: 'git commit -m "fix: record the codegraph attempt before fallback"',
+    });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
   });
 });
 
