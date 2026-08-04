@@ -1,10 +1,10 @@
 # 当前研发快照
 
-更新时间：2026-08-04
+更新时间：2026-08-04（0.3.11）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.10
+- 当前版本：0.3.11
 - active change：无（`harness/changes/` 为空，33 个已归档在 `harness/archive/`）
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 

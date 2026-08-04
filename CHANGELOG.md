@@ -4,6 +4,37 @@
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-08-04
+
+### Fixed
+
+- 探索 gate 对活着的 subagent 可满足。pre-explore 要求 `dispatch-binding`，
+  但该事件是 PostToolUse:Agent 在 subagent 退出后才写的——运行中的 code-explore
+  永远过不了自己的 gate，每次探索都被 BLOCK，唯一的出路是主对话自己读代码，
+  正好是这个 gate 要禁止的事。改为 gate 由 SubagentStart 发出的 start 事件。
+- CodeGraph 索引不可用时不再静默退化。`codegraph status` 在没有索引时
+  也 exit 0，doctor 和 session-start 报健康，但图查询全部失败、
+  探索退化成全量 grep/read——正是上下文爆掉的路径。现在解析输出而非信退出码，
+  doctor 判 warn，session-start 报 `EH-CODEGRAPH-INDEX-021`。
+- 发布包带上 `.mcp.json`。plugin.json 声明了 codegraph MCP 服务器配置，
+  但 `bin/package.mjs` 的 ROOT_FILES 没包含它，装 plugin 的用户完全没有
+  codegraph MCP 工具——探索退化成 Bash 调 CLI 或 Read，上下文爆掉。同时加了
+  manifest 悬空引用断言，让构建直接失败而不是静默丢能力。
+- `HANDOFF_INPUT` 断链修复。pre-agent 要求 Agent prompt 里带 `HANDOFF_INPUT=`，
+  但 harness skill 写的是字面省略号 `handoff create ... execute`，
+  且 behavior 名不等于 agent 名（派 code-explore 要写 clarify.explore-code），
+  这个映射没有文档化。现在拒绝信息直接带上可用命令。
+- execute handoff 不再接受零输入。target 和 inputRefs 都为空时
+  executor 拿不到任何输入，run 会悬空不产出任何 artifact 也不报原因。
+  clarify.synthesize 的 requirements.md 没生成就是这个原因。
+
+### Changed
+
+- 删除 `validateReferenceServiceControllerConsistency`。它是死代码，
+  零调用者，硬编码本仓库独有的 reference-service 路径，目标项目里那两个文件
+  不存在时返回 []——零发现看起来像通过。真正在用的是通用的
+  `validateGenericControllerConsistency`。加了断言防止硬编码路径回到 runtime。
+
 ## [0.3.10] - 2026-08-04
 
 ### Changed
