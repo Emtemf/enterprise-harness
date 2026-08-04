@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.mjs';
+import { evaluateSpawnDepth } from './lib/spawn-depth.mjs';
 
 const repoRoot = process.cwd();
 const online = process.argv.includes('--online');
@@ -65,6 +66,16 @@ checks.push({
   name: 'node',
   ok: true,
   detail: nodeVersion,
+});
+
+const spawnDepth = evaluateSpawnDepth();
+checks.push({
+  kind: 'runtime',
+  name: 'subagent-spawn-depth',
+  ok: spawnDepth.ok === true,
+  severity: spawnDepth.severity,
+  status: spawnDepth.status,
+  detail: spawnDepth.detail,
 });
 
 const codegraph = run('codegraph', ['status']);

@@ -5,6 +5,7 @@ import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { recommendNextAction } from '../lib/workflow.mjs';
 import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
+import { evaluateSpawnDepth } from '../lib/spawn-depth.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -100,6 +101,11 @@ try {
 
 // 代码探索工具可用性提醒
 console.log('[Harness 工具提醒] 代码探索时请优先使用 codegraph_explore/codegraph_search 等 MCP 工具，不要用 grep/Read 替代。');
+
+const spawnDepth = evaluateSpawnDepth();
+if (spawnDepth.ok !== true) {
+  console.log(`[Harness 隔离能力 EH-SPAWN-DEPTH-020] ${spawnDepth.detail}`);
+}
 
 // 强制层的"不再犯"：开会话即把高危教训推到上下文，弱模型也漏不掉。
 if (isHarnessManaged(root)) {

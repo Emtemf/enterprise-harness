@@ -34,10 +34,11 @@
 - route 原第 4 步"向用户展示并请其确认路由"移回主 orchestrator；forked route 只返回待确认项，`workflow.routeReady` 不由该 skill 置位。
 - 除入口外全部 stage skill 加 `user-invocable: false`，兑现"唯一入口"。此前 `/harness-design` 等可直接跳进去绕过 gate。
 - `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3` 写入 `bin/generate-hooks.mjs`（`.claude/settings.json` 是生成物，手改会被 `hook-manifest-parity-smoke` 判 stale）。
+- fork 内治理链已实测：探针 skill 在 fork 中写受治理路径被 `pre-write.mjs` BLOCK，文件未生成；nested `Agent` 派发可用，cwd 解析到仓库根。静态 frontmatter 断言不覆盖这条，需要实跑。
+- 深度不足改为 fail-loud：`runtime/lib/spawn-depth.mjs` 求值 → doctor 在 depth<2 判 fail、未设置判 warn，session-start 报 `EH-SPAWN-DEPTH-020`。`.claude/settings.json` 按 `harness/specs/architecture.md` 属开发通道、刻意不进发布包，所以发布通道靠 runtime 侧检测覆盖，而非扩白名单。
 
 ### 已知缺口
 
-- `.claude/settings.json` 不在 `bin/package.mjs` 的 `ALLOWED_TREES` 内，安装 plugin 的用户拿不到深度 guard。深度上限时 `Agent` 被静默收走，forked 阶段会自写自审、executor/checker 塌成同一上下文，且不报错。需要 runtime 侧 fail-loud 检测（doctor 或 pre-agent hook）才能覆盖发布包用户。
 - Context7 仍走 CLI（`runtime/context7.mjs` + doctor/sync/registry/launcher smoke），未改 MCP。这是刻意设计，非缺陷。
 
 ## 判据
