@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-08-04
+
+### Fixed
+
+- checker pass 后 orchestrator 不知道怎么推进。每个 stage skill 写"pass 后进入
+  下一阶段"，但没有告诉 orchestrator 要执行 `workflow decide freeze-slice` 或
+  `workflow decide approve`。forked 阶段通过 checker 后，state.json 的 gate
+  永远保持 false，链路卡在当前阶段。orchestrator skill 新增"阶段推进"章节，
+  每个 stage skill 的"下一阶段"给出精确命令。
+- `design-approval` decision 无 handler。workflow.mjs 只处理了
+  `scope-confirmation`、`route-confirmation` 和 `execution-readiness`，
+  `design-approval` 被创建但从未被消费。新增 `applyDesignApprovalDecision`
+  原语，将 approve 映射到 `designApproved=true` 并推进到 plan。
+
 ## [0.3.11] - 2026-08-04
 
 ### Fixed
