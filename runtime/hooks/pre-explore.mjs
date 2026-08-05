@@ -36,7 +36,11 @@ const bash = String(input.command || '');
 // 里提到受治理路径就被当成探索并 BLOCK——提交自己的修复都会被自己的网关拦住。
 const READ_COMMAND = /(?:^|[;&|]\s*|\$\(\s*)(?:rg|grep|egrep|fgrep|find|ls|cat|head|tail|sed|awk|codegraph)\b/u;
 const explorationBash = READ_COMMAND.test(bash);
-const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /(?:^|[;&|]\s*|\$\(\s*)codegraph\b/u.test(bash));
+const CODEGRAPH_EXPLORATION_MCP = /(?:^|__)codegraph_(?:explore|search|callers|callees|impact|node|files)$/u;
+// status 只说明索引服务存活，不能替代针对需求的代码探索；它若被当作 attempt，
+// code-explore 可先查一次 status 再直接 fallback 到 Grep/Read，绕过 CodeGraph-first。
+const codegraphTool = (toolName === 'Bash' && /(?:^|[;&|]\s*|\$\(\s*)codegraph\s+(?:explore|search|callers|callees|impact|node|files)\b/u.test(bash))
+  || CODEGRAPH_EXPLORATION_MCP.test(toolName);
 // Bash codegraph 与 MCP CodeGraph 都是一次必须落账的 attempt。
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);

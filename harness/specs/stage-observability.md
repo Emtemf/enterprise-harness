@@ -152,7 +152,8 @@ enterprise-harness workflow audit <change-id> --json
 
 返回 `0` 是 PASS；返回 `2` 是 BLOCK。schema 4 的 completion predicate 同时调用这项审计，
 故 archive / Stop / `verify` 不能只靠手改 `state.json` 获得“完成”。schema 3 及以前的历史
-change 也能运行 audit，但缺 `runs/` 会如实显示 BLOCK；不会被旧 state 倒灌为“合格”。
+change 运行 audit 时显示 `evidencePolicy: historical-unenforced`：它仍会如实报告缺 `runs/` 的
+BLOCK，但不会参与旧 change 的 completion predicate，也不会被旧 state 倒灌为“合格”。
 
 ### 3. 行为级证据和时序图
 

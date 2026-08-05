@@ -48,22 +48,17 @@ function resultFor(input, verdict = undefined) {
 
 function completeBehavior(behavior, stage) {
   const execute = createHandoffInput(root, {
-    changeId,
-    stage,
-    behavior,
-    role: 'execute',
-    target: `complete ${behavior}`,
+    changeId, stage, behavior, role: 'execute', target: `complete ${behavior}`,
   }).envelope;
   persistHandoffResult(root, execute, resultFor(execute));
   const check = createHandoffInput(root, {
-    changeId,
-    stage,
-    behavior,
-    role: 'check',
-    parentRunId: execute.runId,
-    target: `check ${behavior}`,
+    changeId, stage, behavior, role: 'check', parentRunId: execute.runId, target: `check ${behavior}`,
   }).envelope;
   persistHandoffResult(root, check, resultFor(check, 'pass'));
+}
+
+function runDir(runId) {
+  return path.join(changeDir, 'runs', runId);
 }
 
 try {
@@ -85,12 +80,8 @@ try {
     gates: { designApproved: true },
     currentTask: 'task-1',
     workflow: {
-      stage: 'archive',
-      clarifyReady: true,
-      userConfirmedScope: true,
-      routeReady: true,
-      planReady: true,
-      tddStatus: 'refactor-verified',
+      stage: 'archive', clarifyReady: true, userConfirmedScope: true,
+      routeReady: true, planReady: true, tddStatus: 'refactor-verified',
     },
     validation: { status: 'fresh', digest: 'abc123' },
   };
@@ -111,39 +102,57 @@ try {
     fail(`Expected complete evidence graph to pass, got ${complete.verdict}: ${JSON.stringify(complete.blockers)}`);
   }
 
-  // 普通 audit 不要求当前 working stage 已结束；但 completion audit 必须要求。
+  // 伪造 checker 为 executor 身份，即便 result 与 input 自洽，也必须被 registry 校验拒绝。
+  const routeCheck = complete.stages.find((stage) => stage.stage === 'route')?.handoffs
+    .find((handoff) => handoff.behavior === 'route.decide')?.checks[0];
+  if (!routeCheck) fail('Could not locate completed route checker run');
+  const routeCheckInputPath = path.join(runDir(routeCheck.runId), 'input.json');
+  const routeCheckResultPath = path.join(runDir(routeCheck.runId), 'check.json');
+  const originalCheckInput = JSON.parse(fs.readFileSync(routeCheckInputPath, 'utf-8'));
+  const originalCheckResult = JSON.parse(fs.readFileSync(routeCheckResultPath, 'utf-8'));
+  const forgedInput = { ...originalCheckInput, agent: { type: 'enterprise-harness:route-decider', skill: 'harness-stage-executor' } };
+  const forgedResult = { ...originalCheckResult, agent: forgedInput.agent };
+  fs.writeFileSync(routeCheckInputPath, JSON.stringify(forgedInput, null, 2), 'utf-8');
+  fs.writeFileSync(routeCheckResultPath, JSON.stringify(forgedResult, null, 2), 'utf-8');
+  const forgedAudit = auditWorkflow(root, changeId, state);
+  if (forgedAudit.verdict !== 'block' || !forgedAudit.blockers.some((item) => item.code === 'EH-AUDIT-HANDOFF-002')) {
+    fail(`Expected forged checker identity to block audit, got ${forgedAudit.verdict}: ${JSON.stringify(forgedAudit.blockers)}`);
+  }
+  fs.writeFileSync(routeCheckInputPath, JSON.stringify(originalCheckInput, null, 2), 'utf-8');
+  fs.writeFileSync(routeCheckResultPath, JSON.stringify(originalCheckResult, null, 2), 'utf-8');
+
+  // 不能把未知 stage 视作所有阶段都尚未开始，然后错误返回 PASS。
+  const invalidStageAudit = auditWorkflow(root, changeId, { ...state, workflow: { ...state.workflow, stage: 'bogus' } });
+  if (invalidStageAudit.verdict !== 'block' || !invalidStageAudit.blockers.some((item) => item.code === 'EH-AUDIT-STATE-005')) {
+    fail(`Expected invalid workflow stage to block audit, got ${invalidStageAudit.verdict}: ${JSON.stringify(invalidStageAudit.blockers)}`);
+  }
+
+  // 普通 audit 不要求当前 working stage 已结束；completion audit 必须要求。
   const verifyState = { ...state, workflow: { ...state.workflow, stage: 'verify' } };
   const currentOnly = auditWorkflow(root, changeId, verifyState);
-  if (currentOnly.verdict !== 'pass') {
-    fail(`Expected ordinary verify-stage audit to ignore current stage, got ${currentOnly.verdict}`);
-  }
+  if (currentOnly.verdict !== 'pass') fail(`Expected ordinary verify-stage audit to ignore current stage, got ${currentOnly.verdict}`);
   const completionAudit = auditWorkflow(root, changeId, verifyState, { includeCurrent: true });
-  if (completionAudit.verdict !== 'pass') {
-    fail(`Expected completion audit to include and pass verify evidence, got ${completionAudit.verdict}`);
-  }
+  if (completionAudit.verdict !== 'pass') fail(`Expected completion audit to include and pass verify evidence, got ${completionAudit.verdict}`);
   const verifyRun = completionAudit.stages.find((stage) => stage.stage === 'verify')?.handoffs
     .find((handoff) => handoff.behavior === 'verify.collect')?.executions[0];
   if (!verifyRun) fail('Could not locate completed verify executor run');
-  fs.rmSync(path.join(changeDir, 'runs', verifyRun, 'result.json'));
+  fs.rmSync(path.join(runDir(verifyRun), 'result.json'));
   const missingCurrentVerify = auditWorkflow(root, changeId, verifyState, { includeCurrent: true });
-  if (missingCurrentVerify.verdict !== 'block') {
-    fail('Expected completion audit to block when current verify evidence is missing');
-  }
-  persistHandoffResult(root, JSON.parse(fs.readFileSync(path.join(changeDir, 'runs', verifyRun, 'input.json'), 'utf-8')),
-    resultFor(JSON.parse(fs.readFileSync(path.join(changeDir, 'runs', verifyRun, 'input.json'), 'utf-8'))));
+  if (missingCurrentVerify.verdict !== 'block') fail('Expected completion audit to block when current verify evidence is missing');
+  const verifyInput = JSON.parse(fs.readFileSync(path.join(runDir(verifyRun), 'input.json'), 'utf-8'));
+  persistHandoffResult(root, verifyInput, resultFor(verifyInput));
 
   // 删除一个 executor result：artifact/state 都还在，audit 仍必须拒绝。
-  const tddStage = complete.stages.find((stage) => stage.stage === 'tdd');
-  const runId = tddStage?.handoffs.find((handoff) => handoff.behavior === 'tdd.execute-task')?.executions[0];
-  if (!runId) fail('Could not locate completed tdd executor run');
-  fs.rmSync(path.join(changeDir, 'runs', runId, 'result.json'));
+  const tddRun = complete.stages.find((stage) => stage.stage === 'tdd')?.handoffs
+    .find((handoff) => handoff.behavior === 'tdd.execute-task')?.executions[0];
+  if (!tddRun) fail('Could not locate completed tdd executor run');
+  fs.rmSync(path.join(runDir(tddRun), 'result.json'));
   const incomplete = auditWorkflow(root, changeId, state);
-  const codes = incomplete.blockers.map((item) => item.code);
-  if (incomplete.verdict !== 'block' || !codes.includes('EH-AUDIT-HANDOFF-001')) {
+  if (incomplete.verdict !== 'block' || !incomplete.blockers.some((item) => item.code === 'EH-AUDIT-HANDOFF-001')) {
     fail(`Expected missing executor result to block audit, got ${incomplete.verdict}: ${JSON.stringify(incomplete.blockers)}`);
   }
 
-  if (process.exitCode !== 1) console.log('Workflow audit smoke passed (complete PASS, missing result BLOCK).');
+  if (process.exitCode !== 1) console.log('Workflow audit smoke passed (valid PASS; forged/missing evidence and invalid stage BLOCK).');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

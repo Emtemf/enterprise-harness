@@ -27,13 +27,18 @@ function inspectBehavior(root, changeId, behavior, contract) {
 
   for (const runId of runs) {
     const inputPath = path.join(runsDir, runId, 'input.json');
-    const input = readJson(inputPath);
+    // 不可直接信任 runs 下的 JSON：它可以把 checker 的 agent.type 伪造成 executor。
+    // loadHandoffInput 会验证 canonical path、behavior registry、agent/skill、input digest
+    // 以及 checker 的 parent result/inputRef 约束；只有它通过的 run 才能计入完成证据。
+    const loaded = loadHandoffInput(root, path.relative(root, inputPath), { changeId });
+    const input = loaded.envelope;
     if (!input || input.behavior !== behavior) continue;
     const resultPath = path.join(runsDir, runId, input.role === 'check' ? 'check.json' : 'result.json');
     const result = readJson(resultPath);
-    const validation = result
-      ? validateHandoffResult(result, input, input.agent?.type)
-      : ['result artifact is missing'];
+    const validation = [
+      ...(loaded.problems || []),
+      ...(result ? validateHandoffResult(result, input, input.agent?.type) : ['result artifact is missing']),
+    ];
     const record = { runId, inputPath, resultPath, input, result, validation };
     if (input.role === 'execute') executions.push(record);
     if (input.role === 'check') checks.push(record);
@@ -79,8 +84,9 @@ function inspectArtifacts(root, changeId, artifacts) {
 
 export function auditWorkflow(root, changeId, data, options = {}) {
   const registry = loadBehaviorRegistry(root);
-  const completed = new Set(completedStages(data, options.includeCurrent === true));
   const currentStage = String(data?.workflow?.stage || 'clarify');
+  const invalidStage = !STAGE_ORDER.includes(currentStage);
+  const completed = new Set(completedStages(data, options.includeCurrent === true));
   const events = readAgentEvents(root, changeId);
   const stages = [];
 
@@ -126,9 +132,21 @@ export function auditWorkflow(root, changeId, data, options = {}) {
   }
 
   const completedStagesAudit = stages.filter((stage) => stage.lifecycle === 'completed');
-  const blockers = completedStagesAudit.flatMap((stage) => stage.blockers);
+  const stageProblem = invalidStage
+    ? problem(
+      'EH-AUDIT-STATE-005',
+      `workflow.stage is invalid: ${currentStage}`,
+      `restore workflow.stage to one of: ${STAGE_ORDER.join(', ')}`,
+    )
+    : null;
+  const blockers = [
+    ...completedStagesAudit.flatMap((stage) => stage.blockers),
+    ...(stageProblem ? [stageProblem] : []),
+  ];
   return {
     changeId,
+    schemaVersion: Number(data?.schemaVersion ?? 0),
+    evidencePolicy: (data?.schemaVersion ?? 0) >= 4 ? 'strict' : 'historical-unenforced',
     workflowStage: currentStage,
     verdict: blockers.length ? 'block' : 'pass',
     completedStages: completedStagesAudit.map((stage) => stage.stage),
@@ -146,6 +164,7 @@ export function renderWorkflowAudit(audit) {
   const lines = [
     'Enterprise Harness Workflow Audit',
     `changeId: ${audit.changeId}`,
+    `schemaVersion: ${audit.schemaVersion} (${audit.evidencePolicy})`,
     `workflowStage: ${audit.workflowStage}`,
     `verdict: ${audit.verdict.toUpperCase()}`,
     `ledger: ${audit.ledger.eventCount} event(s), ${audit.ledger.codegraphAttempts} CodeGraph attempt(s), ${audit.ledger.violations} violation(s)`,
