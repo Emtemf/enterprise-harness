@@ -44,6 +44,34 @@ harness/changes/<change-id>/task-commands.json
 
 receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 digest。缺失时通常返回 `EH-TDD-RECEIPT-007`。
 
+## 私有 marketplace 无法更新
+
+如果 `claude plugin marketplace update enterprise-harness` 输出：
+
+```text
+Cannot prompt because user interactivity has been disabled
+fatal: unable to get password from user
+Failed to clone marketplace repository
+```
+
+这表示 Claude Code 在后台调用 Git 时无法读取 private GitHub repository 的凭据。确认用户有
+`Emtemf/enterprise-harness` 的访问权限，然后在操作系统终端（不是 Claude 的 tool prompt）运行：
+
+```bash
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+git ls-remote https://github.com/Emtemf/enterprise-harness.git
+```
+
+只有 `git ls-remote` 成功输出 refs 后再运行：
+
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+如果 plugin 安装在其他 scope，把 `local` 替换成实际 scope；不要省略 scope。
+
 ## 常见错误码
 
 | 错误码 | 含义 | 恢复 |

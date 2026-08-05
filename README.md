@@ -42,6 +42,30 @@ claude plugin marketplace add Emtemf/enterprise-harness
 claude plugin install enterprise-harness@enterprise-harness --scope local
 ```
 
+### 私有 GitHub marketplace
+
+本仓库为 private 时，Claude Code 更新 marketplace 会在后台运行非交互式 Git；它不能弹出
+GitHub 登录窗口。因此每位使用者都必须先拥有仓库访问权限，并让本机 Git 能无提示读取 GitHub。
+
+Windows PowerShell、macOS 或 Linux 终端中执行：
+
+```bash
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+git ls-remote https://github.com/Emtemf/enterprise-harness.git
+```
+
+最后一条必须能输出 refs，才安装或更新插件。若出现 `Cannot prompt because user interactivity
+has been disabled`、`unable to get password` 或 `Failed to clone marketplace repository`，说明 Git
+凭据尚未配置好，不是插件版本或 release 附件问题。配置完成后使用：
+
+```bash
+claude plugin marketplace update enterprise-harness
+claude plugin update enterprise-harness@enterprise-harness --scope local
+```
+
+`--scope local` 必须与安装 scope 一致；省略它可能会让 Claude Code 错误地去 user scope 查找插件。
+
 本地开发 checkout：
 
 ```bash
