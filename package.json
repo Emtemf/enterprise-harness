@@ -37,6 +37,25 @@
   "engines": {
     "node": ">=20"
   },
+  "files": [
+    "bin",
+    "runtime",
+    "hooks",
+    ".claude-plugin",
+    ".claude/skills",
+    ".claude/agents",
+    ".claude/rules",
+    ".mcp.json",
+    "harness/specs",
+    "harness/schemas",
+    "harness/templates",
+    "harness/reviewers",
+    "harness/upstream",
+    "harness/behavior-checks.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "keywords": [
     "claude-code",
     "enterprise-harness",

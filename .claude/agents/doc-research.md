@@ -19,7 +19,8 @@ model: sonnet
 
 ## 工作原则
 
-- 默认 Context7-first
+- 默认 Context7-first：跑 `enterprise-harness context7 library <name>` / `context7 docs <id>`
+  （本仓库开发时用 `node runtime/cli.mjs context7 ...`）。它是 CLI，不是 MCP 工具。
 - Context7 不足时，再查 vendor docs / 官方源码
 - 结论必须标注 library / version / query / source
 - 不返回大段原文给主 orchestrator

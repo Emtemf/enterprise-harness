@@ -43,6 +43,14 @@
       "checkerSkill": "harness-stage-checker",
       "artifact": "change.md"
     },
+    "route.explore-code": {
+      "stage": "route",
+      "executor": "enterprise-harness:code-explore",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:requirement-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/*-exploration.md"
+    },
     "design.produce": {
       "stage": "design",
       "executor": "enterprise-harness:design-executor",
@@ -50,6 +58,22 @@
       "checker": "enterprise-harness:design-reviewer",
       "checkerSkill": "harness-stage-checker",
       "artifact": "design.md"
+    },
+    "design.explore-code": {
+      "stage": "design",
+      "executor": "enterprise-harness:code-explore",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:design-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/*-exploration.md"
+    },
+    "design.research-docs": {
+      "stage": "design",
+      "executor": "enterprise-harness:doc-research",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:design-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/tooling.md"
     },
     "design.check-api": {
       "stage": "design",
@@ -82,6 +106,22 @@
       "checker": "enterprise-harness:verification-reviewer",
       "checkerSkill": "harness-stage-checker",
       "artifact": "validation.md"
+    },
+    "verify.check-api": {
+      "stage": "verify",
+      "executor": "enterprise-harness:verification-executor",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:api-consistency-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "reviews/api-consistency-reviewer.json"
+    },
+    "verify.explore-code": {
+      "stage": "verify",
+      "executor": "enterprise-harness:code-explore",
+      "executorSkill": "harness-stage-executor",
+      "checker": "enterprise-harness:verification-reviewer",
+      "checkerSkill": "harness-stage-checker",
+      "artifact": "evidence/*-exploration.md"
     }
   }
 }

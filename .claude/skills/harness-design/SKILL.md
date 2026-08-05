@@ -40,7 +40,9 @@ agent: general-purpose
    - concurrency/transaction
    - test strategy 和 observability
 4. 创建 check handoff，派 `design-reviewer`。
-5. blocker 修复后使用新 run 重审。
+5. 设计触及 API 时，另创建 `design.check-api` 的 check handoff，派 `api-consistency-reviewer`
+   复核 OpenAPI 与 controller/request/response/error 契约。
+6. blocker 修复后使用新 run 重审。
 
 ## 产出
 

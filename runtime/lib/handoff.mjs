@@ -183,8 +183,22 @@ export function validateHandoffResult(result, input, expectedAgentType = null) {
   }
   if (result?.agent?.skill !== input?.agent?.skill) problems.push('result agent.skill does not match preloaded skill');
   const tecpc = result?.tecpc;
+  // 只做 presence 检查等于没检查：evidence: [] 既不是 undefined 也不是 null，
+  // 空字符串同理。TECPC 的意义是"消费了什么真实证据"，空值必须判不合格。
   for (const key of ['target', 'evidence', 'context', 'path', 'correction']) {
-    if (tecpc?.[key] === undefined || tecpc?.[key] === null) problems.push(`tecpc.${key} is missing`);
+    const value = tecpc?.[key];
+    if (value === undefined || value === null) {
+      problems.push(`tecpc.${key} is missing`);
+      continue;
+    }
+    if (Array.isArray(value)) {
+      if (value.length === 0) problems.push(`tecpc.${key} must not be empty`);
+      else if (value.some((item) => !String(item ?? '').trim())) {
+        problems.push(`tecpc.${key} must not contain empty entries`);
+      }
+      continue;
+    }
+    if (!String(value).trim()) problems.push(`tecpc.${key} must not be empty`);
   }
   if (!Array.isArray(result?.outputRefs)) problems.push('outputRefs must be an array');
   else if (result.outputRefs.some((ref) => !isSafeRelativePath(ref))) {

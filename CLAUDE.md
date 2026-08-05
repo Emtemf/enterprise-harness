@@ -45,7 +45,7 @@ openapi/**
 - approved design 和 plan
 - 当前 task
 - scoped executor binding
-- 同一 agent 的 CodeGraph attempt
+- 由 `code-explore` agent 留下的 CodeGraph attempt（fallback 探索时须为同一 agent）
 - 当前 task 的真实 RED receipt
 
 不得通过修改 `state.json` 投影伪造上述证据。

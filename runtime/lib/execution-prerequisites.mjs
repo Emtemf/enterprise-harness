@@ -73,6 +73,10 @@ export function validateExecutionPrerequisites(root, changeId, state, target, ev
   }
   if (requiredGateForTarget(root, target)?.needsRedVerified) {
     problems.push(...validateTaskRedReceipt(root, changeId, state, agentId));
+  } else if (!String(state?.currentTask || '').trim()) {
+    // 测试路径写入天然免 RED（RED 就是靠写测试产生的），但仍必须归属到某个 task，
+    // 否则 currentTask 检查只存在于 RED 分支，测试代码可以完全脱离 plan 写入。
+    problems.push('currentTask is missing');
   }
   return problems;
 }

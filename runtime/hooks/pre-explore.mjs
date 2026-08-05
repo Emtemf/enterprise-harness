@@ -31,8 +31,12 @@ try {
 const toolName = String(event.tool_name || '');
 const input = event.tool_input || {};
 const bash = String(input.command || '');
-const explorationBash = /(?:\brg\b|\bgrep\b|\bfind\b|\bcodegraph\b|src\/main\/java|src\/test\/java|openapi\/)/iu.test(bash);
-const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /\bcodegraph\b/iu.test(bash));
+// 探索判定必须看"命令做什么"，而不是"命令里出现了什么字符串"。
+// 早期版本直接匹配裸路径（src/main/java 等），导致 `git commit` 的 heredoc 消息
+// 里提到受治理路径就被当成探索并 BLOCK——提交自己的修复都会被自己的网关拦住。
+const READ_COMMAND = /(?:^|[;&|]\s*|\$\(\s*)(?:rg|grep|egrep|fgrep|find|ls|cat|head|tail|sed|awk|codegraph)\b/u;
+const explorationBash = READ_COMMAND.test(bash);
+const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /(?:^|[;&|]\s*|\$\(\s*)codegraph\b/u.test(bash));
 // Only an MCP CodeGraph call genuinely has no path to match; a Bash command
 // merely mentioning the word still carries real path tokens, so it keeps the
 // normal exemption and must not be forced through the gate.
