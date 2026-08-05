@@ -24,13 +24,15 @@ clarify 的核心行为是一次只问用户一个问题。forked subagent 没�
 ## clarify
 
 1. 判断事实缺口。
-2. 代码事实：创建 exploration brief，派 `enterprise-harness:code-explore`，要求 CodeGraph-first。
-3. 外部事实：创建 exploration brief，派 `enterprise-harness:doc-research`，要求 Context7-first。
+2. 代码事实：创建 exploration brief；对 `clarify.explore-code` 创建 execute handoff，派
+   `enterprise-harness:code-explore`，再以该 runId 创建 check handoff，派 `clarify-reviewer`。
+3. 外部事实：创建 exploration brief；对 `clarify.research-docs` 创建 execute handoff，派
+   `enterprise-harness:doc-research`，再以该 runId 创建 check handoff，派 `clarify-reviewer`。
 4. 主 orchestrator 消费压缩结论，不重复探索。
-5. 派 `clarify-synthesizer` 更新 requirements 和评分。
-6. 派 `clarify-reviewer` 独立检查澄清质量。
-7. 展示七维评分、依据、overall 和 weakest dimension。
-8. 一次只问用户一个针对 weakest dimension 的问题。
+5. 对 `clarify.synthesize` 创建 execute handoff，派 `clarify-synthesizer` 更新 requirements 和评分；
+   等待 `result.json` 后以该 runId 创建 check handoff，派 `clarify-reviewer` 独立检查。
+6. 展示七维评分、依据、overall 和 weakest dimension。
+7. 一次只问用户一个针对 weakest dimension 的问题。
 
 七维：
 

@@ -70,6 +70,9 @@ check('B: a dispatch and stop produce a complete sequence', () => {
     assert.match(result.stdout, /Orchestrator->>code-explore: dispatch/u);
     assert.match(result.stdout, /code-explore->>Orchestrator: stop \(pass\)/u);
     assert.match(result.stdout, /group run run-aaa/u);
+    const groups = (result.stdout.match(/^  group run /gmu) || []).length;
+    const ends = (result.stdout.match(/^  end$/gmu) || []).length;
+    assert.equal(ends, groups, 'every Mermaid group must have a closing end marker');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

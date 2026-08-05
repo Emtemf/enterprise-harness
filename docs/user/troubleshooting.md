@@ -50,6 +50,10 @@ receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 dige
 |---|---|---|
 | `EH-HANDOFF-INPUT-001` | 缺少 handoff input | 重新创建 handoff |
 | `EH-HANDOFF-SCHEMA-002` | envelope 不合法 | 运行 handoff validate |
+| `EH-AUDIT-HANDOFF-001` | 阶段缺少有效 executor `result.json` | 用对应 behavior 创建 execute handoff，派 executor 并确保 `HANDOFF_RESULT` 被 SubagentStop 持久化 |
+| `EH-AUDIT-HANDOFF-002` | executor 没有绑定其 runId 的独立 checker pass/advisory | 用 executor runId 创建 check handoff，派 registry checker，保留 `check.json` |
+| `EH-AUDIT-ARTIFACT-003` | 已完成阶段缺少必需 artifact | 运行 `workflow audit <change-id>` 定位文件，并回到该阶段以新 run 产出 |
+| `EH-AUDIT-STATE-004` | state 投影不满足阶段完成谓词 | 不手改 state；补齐 evidence 后运行该阶段对应 lifecycle/workflow 命令 |
 | `EH-AGENT-BINDING-003` | dispatch/start/result 不一致 | trace runId |
 | `EH-SUBAGENT-RESULT-004` | result 无法解析 | 按 skill schema 返回 |
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |

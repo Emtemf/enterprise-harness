@@ -67,10 +67,13 @@ function renderMermaid(changeId, events) {
   lines.push('');
 
   let currentRun = null;
+  let groupOpen = false;
   for (const event of events) {
     if (event.runId && event.runId !== currentRun) {
+      if (groupOpen) lines.push('  end');
       currentRun = event.runId;
       lines.push(`  group run ${currentRun}`);
+      groupOpen = true;
     }
     const agent = event.agentId ? sanitize(event.agentId) : 'Orchestrator';
     const time = event.issuedAt ? new Date(event.issuedAt).toISOString().slice(11, 19) : '';
@@ -102,6 +105,7 @@ function renderMermaid(changeId, events) {
         lines.push(`    note over ${agent}: ${event.kind} ${time}`);
     }
   }
+  if (groupOpen) lines.push('  end');
   return lines.join('\n');
 }
 

@@ -37,21 +37,16 @@ const bash = String(input.command || '');
 const READ_COMMAND = /(?:^|[;&|]\s*|\$\(\s*)(?:rg|grep|egrep|fgrep|find|ls|cat|head|tail|sed|awk|codegraph)\b/u;
 const explorationBash = READ_COMMAND.test(bash);
 const codegraphTool = /codegraph/iu.test(toolName) || (toolName === 'Bash' && /(?:^|[;&|]\s*|\$\(\s*)codegraph\b/u.test(bash));
-// Only an MCP CodeGraph call genuinely has no path to match; a Bash command
-// merely mentioning the word still carries real path tokens, so it keeps the
-// normal exemption and must not be forced through the gate.
-const codegraphMcpTool = /codegraph/iu.test(toolName);
+// Bash codegraph 与 MCP CodeGraph 都是一次必须落账的 attempt。
 const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
 if (!codegraphTool && !fallbackTool) process.exit(0);
 if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) process.exit(0);
 const targets = extractExplorationTargets(root, event);
-// A CodeGraph query names symbols, not paths, so it has no governed target to
-// match. Exempting it here would skip recording the attempt that the fallback
-// branch below then demands — making the required evidence impossible to produce.
-// 无作用域的 Grep/Glob（不带 path/glob）等于全仓扫描，必然触及受治理代码；
-// 它没有可解析目标，因此不能走 every() 豁免，否则整个网关被绕过。
+// CodeGraph 查询通常带的是符号而非文件路径，不能因其 token 不在受治理目录就豁免；
+// 必须先记录同一 agent 的 attempt，后续 fallback 才有可验证的前置证据。
+// 其他工具没有可解析目标且不属于全仓 Grep/Glob 时，才可按所有目标豁免。
 const unbounded = hasUnboundedExplorationScope(root, event);
-if (!codegraphMcpTool && !unbounded && targets.every((target) => isExplorationTargetExempt(root, target))) {
+if (!codegraphTool && !unbounded && targets.every((target) => isExplorationTargetExempt(root, target))) {
   process.exit(0);
 }
 

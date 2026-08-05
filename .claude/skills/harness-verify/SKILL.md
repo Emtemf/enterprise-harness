@@ -32,9 +32,11 @@ agent: general-purpose
 ## 动作
 
 1. 生成 verification brief。
-2. 派 `verification-executor` 收集真实 validation。
-3. API 变化时创建 `verify.check-api` 的 check handoff，派 `api-consistency-reviewer`。
-4. 派 `verification-reviewer` 独立检查 completion。
+2. 对 `verify.collect` 创建 execute handoff，派 `verification-executor` 收集真实 validation。
+3. 等待 `verify.collect/result.json`，以其 runId 创建 check handoff，派 `verification-reviewer`
+   独立检查 completion。
+4. API 变化时，对 `verify.check-api` 创建 execute handoff，派 `verification-executor` 收集 API
+   契约对照 evidence；再以其 runId 创建 check handoff，派 `api-consistency-reviewer`。
 5. runtime 分层验证 state、artifacts、reviews、TDD、ledger、API 和 final completion。
 6. 任一 `block` 或 `unsupported` 不得提升为 pass。
 

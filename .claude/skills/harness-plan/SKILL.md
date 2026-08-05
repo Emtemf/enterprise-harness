@@ -29,7 +29,7 @@ agent: general-purpose
 ## 动作
 
 1. 为每个 task 生成 task brief。
-2. 派 `plan-executor` 生成：
+2. 对 `plan.produce` 创建 execute handoff，派 `plan-executor` 生成：
    - taskId 和目标
    - touched files
    - test-first order
@@ -38,7 +38,8 @@ agent: general-purpose
    - acceptance
 3. 在 `task-commands.json` 冻结每个 task 的 red/green/refactor 或 verify exact argv。
 4. Maven argv 必须符合 `harness/command-policy.json`。
-5. 派 `plan-critic` 独立检查可执行性和遗漏。
+5. 等待 `plan.produce` 的 `result.json` 后，以其 runId 创建 check handoff，派 `plan-critic`
+   独立检查可执行性和遗漏；只有 `check.json` verdict 为 pass/advisory 才可 `freeze-plan`。
 
 ## 产出
 

@@ -6,6 +6,7 @@ import { validateAmbiguityGate } from './ambiguity.mjs';
 import { validateRouterScore } from './router-score.mjs';
 import { evidenceModeForChange } from './evidence-policy.mjs';
 import { readAndValidateTddReceipt } from './tdd-receipts.mjs';
+import { auditWorkflow } from './workflow-audit.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -603,7 +604,7 @@ export function validateTaskReviewBindings(root, changeId) {
 }
 
 export function validateFinalCompletion(root, changeId, state) {
-  return [
+  const base = [
     ...validateState(root, changeId, state),
     ...validateArtifacts(root, changeId, state),
     ...validateReviews(root, changeId, state),
@@ -611,6 +612,21 @@ export function validateFinalCompletion(root, changeId, state) {
     ...validateTddEvidence(root, changeId),
     ...validateAgentLedger(root, changeId),
     ...validateApiContract(root, state),
+  ];
+  // schema 4 起，阶段完成必须有可复核的 executor/checker handoff 闭环。
+  // schema 3 及以前的 archive 没有 runs/ 是历史事实，audit 仍会如实报告 BLOCK，
+  // 但不追溯性改变既有 completion predicate 或把旧 evidence 伪装成新证据。
+  if ((state?.schemaVersion ?? 0) < 4) return base;
+  const audit = auditWorkflow(root, changeId, state, { includeCurrent: true });
+  return [
+    ...base,
+    ...audit.blockers.map((item) => completionResult(
+      item.code,
+      'block',
+      item.message,
+      path.join(root, 'harness', 'changes', changeId),
+      item.recovery,
+    )),
   ];
 }
 

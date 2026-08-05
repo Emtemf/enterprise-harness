@@ -29,8 +29,13 @@ agent: general-purpose
 
 ## 动作
 
-1. 若接口、数据或调用方事实不足，先生成 design exploration brief 并派只读 agent。
-2. 创建 execute handoff，派 `design-executor`。
+每个 behavior 必须走 execute → `result.json` → independent check → `check.json`。具体命令
+与 `HANDOFF_INPUT` 传递格式见 `harness/SKILL.md`；不能只写 review verdict 或 state projection。
+
+1. 若接口、数据或调用方事实不足，先生成 design exploration brief：代码事实用
+   `design.explore-code` execute + `design-reviewer` check；外部资料用 `design.research-docs`
+   execute + `design-reviewer` check。
+2. 对 `design.produce` 创建 execute handoff，派 `design-executor`。
 3. design 必须覆盖适用项：
    - goals/non-goals
    - component boundaries
@@ -39,9 +44,10 @@ agent: general-purpose
    - schema、SQL、index、migration、rollback
    - concurrency/transaction
    - test strategy 和 observability
-4. 创建 check handoff，派 `design-reviewer`。
-5. 设计触及 API 时，另创建 `design.check-api` 的 check handoff，派 `api-consistency-reviewer`
-   复核 OpenAPI 与 controller/request/response/error 契约。
+4. 用 `design.produce` execute runId 创建 check handoff，派 `design-reviewer`。
+5. 设计触及 API 时，先对 `design.check-api` 创建 execute handoff，派 `design-executor`
+   生成可审计的 API 对照输入；再以该 runId 创建 check handoff，派
+   `api-consistency-reviewer` 复核 OpenAPI 与 controller/request/response/error 契约。
 6. blocker 修复后使用新 run 重审。
 
 ## 产出

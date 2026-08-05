@@ -46,9 +46,16 @@ route 是独立 gate，不是 clarify 的尾巴。clarify 回答“需求是什�
 
 ## 执行
 
-1. 事实不足时派 `enterprise-harness:code-explore` 补齐归属与影响面，不推测。
-2. 派 `enterprise-harness:route-decider` 更新 `change.md` 的路由段与 `state.json` 的 tier/impact 投影。
-3. 派 `enterprise-harness:requirement-reviewer` 独立复核分流决策。
+所有派发遵守 `harness/SKILL.md` 的 execute → result → check 闭环；先创建 execute
+handoff、等待 `result.json`，再以 executor runId 创建独立 checker handoff。不得仅凭
+`state.json` 投影推进。
+
+1. 事实不足时，对 `route.explore-code` 创建 execute handoff，派 `enterprise-harness:code-explore`，
+   再派 `requirement-reviewer` checker 补齐归属与影响面，不推测。
+2. 对 `route.decide` 创建 execute handoff，派 `enterprise-harness:route-decider` 更新 `change.md`
+   的路由段与 `state.json` 的 tier/impact 投影。
+3. 用该 execute runId 对 `route.decide` 创建 check handoff，派 `enterprise-harness:requirement-reviewer`
+   独立复核分流决策。
 4. 把 tier、影响矩阵与依据作为**待用户确认项**返回主 orchestrator，由其向用户求确认。
 
 ## 产出

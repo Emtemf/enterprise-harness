@@ -8,6 +8,7 @@ import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
+import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
 import { compareAndSwapJson } from './lib/state-store.mjs';
 
@@ -223,10 +224,11 @@ const [, , action, ...args] = process.argv;
 
 if (!action || action === '--help' || action === '-h') {
   console.log('Enterprise Harness Workflow');
-  console.log('Usage: node runtime/workflow.mjs <run|resume|status|decide|note|session-log|brief> [args]');
+  console.log('Usage: node runtime/workflow.mjs <run|resume|status|audit|decide|note|session-log|brief> [args]');
   console.log('  run <change-id> [owner] [tier] [topic]');
   console.log('  resume [change-id]');
   console.log('  status [change-id] [--json]');
+  console.log('  audit [change-id] [--json]');
   console.log('  decide <change-id> <decision> [reason]');
   console.log('  note <change-id> <clarify-qa|route-decided> <text>');
   console.log('  session-log [change-id]');
@@ -285,6 +287,14 @@ switch (action) {
       }
     }
     process.exit(0);
+  }
+  case 'audit': {
+    const json = args.includes('--json');
+    const changeId = resolveChangeId(args.find((arg) => !arg.startsWith('--')) || null);
+    const audit = auditWorkflow(root, changeId, loadChange(changeId));
+    if (json) process.stdout.write(JSON.stringify(audit, null, 2) + '\n');
+    else console.log(renderWorkflowAudit(audit));
+    process.exit(audit.verdict === 'pass' ? 0 : 2);
   }
   case 'decide': {
     const [changeIdRaw, decision, ...reasonParts] = args;
