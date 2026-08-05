@@ -27,7 +27,7 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
 clarify → route → design → plan → tdd → verify → archive
 ```
 
-每个阶段使用同名 skill。其中：
+每个阶段使用对应阶段的 `harness-<stage>` skill（如 design 阶段用 `harness-design`）。其中：
 
 - `harness-clarify` 在主对话内运行，因为它要和用户一问一答。
 - `harness-route`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify` 以 `context: fork` 在隔离 subagent 中运行，只把压缩结论交回主对话，阶段 SOP 全文不进入主上下文。
@@ -63,28 +63,26 @@ forked 阶段没有用户通道。它们返回的待确认项由你负责向用�
 
 ## 阶段推进
 
-checker 返回 verdict 后，根据 verdict 执行对应命令：
+推进命令按阶段不同，不存在通用命令。任何时候都可以用
+`enterprise-harness workflow status <change-id>` 读取当前 `pendingDecision.options`，
+它是唯一权威的可用决策集合；执行不在该集合中的决策会直接失败退出。
 
-**pass：**
-```bash
-enterprise-harness workflow decide <change-id> freeze-slice
-```
-此命令将当前 gate 置 true、推进 stage 到下一阶段、更新 nextEntry。
-若漏执行此命令，state.json 的 gate 保持 false，链路会卡在当前阶段。
+| 阶段 | pass 决策 | block/返工决策 | 推进的 gate |
+|---|---|---|---|
+| clarify | `confirm-clarity`，随后 `confirm-scope` | `narrow-scope` / `revise-scope` | `clarifyReady` + `userConfirmedScope` |
+| route | `confirm-route` | `revise-route` | `routeReady` |
+| design | `approve`（或切片场景 `freeze-slice`） | `request-changes` / `reject` / `revise-slice` | `designApproved` |
+| plan | `freeze-plan` | `revise-plan` | `planReady` |
+| tdd | `enter-verify` | `revise-task` | `tddStatus === 'refactor-verified'` |
+| verify | 先 `lifecycle validated`，再 `enter-archive` | `revise-verification` | `validation.status === 'fresh'` |
 
-**block：**
-```bash
-enterprise-harness workflow decide <change-id> revise-slice
-```
-此命令将 gate 置 false、回退到当前阶段，等待修复后重新执行 executor。
+clarify 的两个标志相互独立：`confirm-clarity` 只置 `clarifyReady`，
+scope 仍须用户单独 `confirm-scope`，不得相互替代。
 
-每个阶段的 gate 映射：
-- clarify → `clarifyReady` + `userConfirmedScope`
-- route → `routeReady`
-- design → `designApproved`
-- plan → `planReady`
-- tdd → `redVerified` / `greenVerified` / `refactorVerified`
-- verify → `validation.status === 'fresh'`
+tdd 的 `tddStatus` 由真实 receipt 驱动，不能用 decide 命令直接置位。
+`validation.status` 由 `lifecycle validated` 重算 digest 得到，decide 命令不写它。
+
+若漏执行推进命令，state.json 的 gate 保持 false，链路会卡在当前阶段。
 
 executor 与 checker 必须是不同 subagent/run。worktree 只提供文件隔离；subagent 提供上下文隔离。
 

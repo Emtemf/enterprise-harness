@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
 import { compareAndSwapJson } from './lib/state-store.mjs';
@@ -175,6 +175,10 @@ function applyDecision(changeId, decision, reason = null) {
     process.exit(1);
   }
 
+  if (pending.kind === 'requirement-clarification') {
+    applyClarityConfirmationDecision(data, decision);
+  }
+
   if (pending.kind === 'scope-confirmation') {
     applyScopeConfirmationDecision(data, decision);
   }
@@ -196,6 +200,18 @@ function applyDecision(changeId, decision, reason = null) {
 
   if (pending.kind === 'design-approval') {
     applyDesignApprovalDecision(data, decision);
+  }
+
+  if (pending.kind === 'plan-readiness') {
+    applyPlanReadinessDecision(data, decision);
+  }
+
+  if (pending.kind === 'tdd-completion') {
+    applyTddCompletionDecision(data, decision);
+  }
+
+  if (pending.kind === 'verify-completion') {
+    applyVerifyCompletionDecision(data, decision);
   }
 
   const event = recordEvent(changeId, data, 'decision', { decision, reason, kind: pending.kind });

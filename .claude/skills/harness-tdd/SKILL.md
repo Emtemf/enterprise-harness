@@ -59,6 +59,8 @@ agent: general-purpose
 
 所有 task 通过后，主 orchestrator 必须执行：
 ```bash
-enterprise-harness workflow decide <change-id> freeze-slice
+enterprise-harness workflow decide <change-id> enter-verify
 ```
-此命令将 tdd gates 置 true 并推进到 verify 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 tdd。详细合同见 `harness/specs/tdd-execution.md` 和 `harness/specs/evidence.md`。
+此命令推进到 verify 阶段。前置是 `tddStatus` 已由真实 receipt 推进到 `refactor-verified`；
+未达到时该决策不会出现，需先补齐 RED/GREEN/REFACTOR 证据。需要返工用 `revise-task`。
+详细合同见 `harness/specs/tdd-execution.md` 和 `harness/specs/evidence.md`。

@@ -59,6 +59,7 @@ agent: general-purpose
 
 plan pass 后，主 orchestrator 必须执行：
 ```bash
-enterprise-harness workflow decide <change-id> freeze-slice
+enterprise-harness workflow decide <change-id> freeze-plan
 ```
 此命令将 `planReady` 置 true 并推进到 tdd 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 plan。
+需要返工时用 `revise-plan`。

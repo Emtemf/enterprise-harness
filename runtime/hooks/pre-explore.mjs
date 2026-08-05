@@ -10,6 +10,7 @@ import {
 import {
   extractExplorationTargets,
   isExplorationTargetExempt,
+  hasUnboundedExplorationScope,
 } from '../lib/hook-targets.mjs';
 import { dedupGuard } from '../lib/hook-dedup.mjs';
 
@@ -43,7 +44,10 @@ const targets = extractExplorationTargets(root, event);
 // A CodeGraph query names symbols, not paths, so it has no governed target to
 // match. Exempting it here would skip recording the attempt that the fallback
 // branch below then demands — making the required evidence impossible to produce.
-if (!codegraphMcpTool && targets.every((target) => isExplorationTargetExempt(root, target))) {
+// 无作用域的 Grep/Glob（不带 path/glob）等于全仓扫描，必然触及受治理代码；
+// 它没有可解析目标，因此不能走 every() 豁免，否则整个网关被绕过。
+const unbounded = hasUnboundedExplorationScope(root, event);
+if (!codegraphMcpTool && !unbounded && targets.every((target) => isExplorationTargetExempt(root, target))) {
   process.exit(0);
 }
 

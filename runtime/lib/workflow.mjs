@@ -86,7 +86,8 @@ export function inferPendingDecision(changeId, data, stage, currentGap, shouldSu
     return {
       kind: 'requirement-clarification',
       message: currentGap,
-      options: ['answer-next-question', 'narrow-scope', 'stop'],
+      // confirm-clarity 是 clarify 的唯一出口；其余选项只记录事件，不推进 gate。
+      options: ['confirm-clarity', 'answer-next-question', 'narrow-scope', 'stop'],
       evidence: [`harness/changes/${changeId}/requirements.md`],
     };
   }
@@ -126,6 +127,38 @@ export function inferPendingDecision(changeId, data, stage, currentGap, shouldSu
       evidence: [`harness/changes/${changeId}/design.md`],
     };
   }
+  // plan/tdd/verify 各自的出口决策。缺任一项，stage 就没有任何命令可以推进，
+  // 链路会永久停在该阶段（见 runtime/test/workflow-stage-progression-smoke.mjs）。
+  if (stage === 'plan' && !data.workflow?.planReady) {
+    if (currentGap === 'plan 尚未 ready。') {
+      return {
+        kind: 'plan-readiness',
+        message: currentGap,
+        options: ['freeze-plan', 'revise-plan'],
+        defaultDecision: 'freeze-plan',
+        evidence: [`harness/changes/${changeId}/tasks.md`],
+      };
+    }
+    return null;
+  }
+  if (stage === 'tdd' && data.workflow?.tddStatus === 'refactor-verified') {
+    return {
+      kind: 'tdd-completion',
+      message: currentGap,
+      options: ['enter-verify', 'revise-task'],
+      defaultDecision: 'enter-verify',
+      evidence: [`harness/changes/${changeId}/tasks.md`],
+    };
+  }
+  if (stage === 'verify' && data.validation?.status === 'fresh') {
+    return {
+      kind: 'verify-completion',
+      message: currentGap,
+      options: ['enter-archive', 'revise-verification'],
+      defaultDecision: 'enter-archive',
+      evidence: [`harness/changes/${changeId}/validation.md`],
+    };
+  }
   return null;
 }
 
@@ -159,6 +192,66 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
     validation: data.validation ?? null,
     nextEntry,
   };
+}
+
+export function applyClarityConfirmationDecision(data, decision) {
+  if (decision === 'confirm-clarity') {
+    data.workflow.clarifyReady = true;
+    // scope 仍需用户单独确认；两个标志独立，不得相互替代。
+    if (data.workflow.userConfirmedScope) {
+      data.workflow.stage = 'route';
+      data.workflow.nextEntry = '/harness-route';
+    }
+  }
+  if (decision === 'narrow-scope') {
+    data.workflow.clarifyReady = false;
+    data.workflow.userConfirmedScope = false;
+    data.workflow.stage = 'clarify';
+    data.workflow.nextEntry = '/harness-clarify';
+  }
+  return data;
+}
+
+export function applyPlanReadinessDecision(data, decision) {
+  if (decision === 'freeze-plan') {
+    data.workflow.planReady = true;
+    data.state = 'PLANNED';
+    data.workflow.stage = 'tdd';
+    data.workflow.nextEntry = '/harness-tdd';
+  }
+  if (decision === 'revise-plan') {
+    data.workflow.planReady = false;
+    data.workflow.stage = 'plan';
+    data.workflow.nextEntry = '/harness-plan';
+  }
+  return data;
+}
+
+export function applyTddCompletionDecision(data, decision) {
+  if (decision === 'enter-verify') {
+    data.workflow.stage = 'verify';
+    data.workflow.nextEntry = '/harness-verify';
+  }
+  if (decision === 'revise-task') {
+    data.workflow.tddStatus = 'not-started';
+    data.workflow.stage = 'tdd';
+    data.workflow.nextEntry = '/harness-tdd';
+  }
+  return data;
+}
+
+export function applyVerifyCompletionDecision(data, decision) {
+  if (decision === 'enter-archive') {
+    data.workflow.stage = 'archive';
+    data.workflow.nextEntry = '/harness';
+  }
+  if (decision === 'revise-verification') {
+    // 重新验证前先让 validation 失效，避免用旧 digest 直接归档。
+    if (data.validation) data.validation.status = 'stale';
+    data.workflow.stage = 'verify';
+    data.workflow.nextEntry = '/harness-verify';
+  }
+  return data;
 }
 
 export function applyScopeConfirmationDecision(data, decision) {

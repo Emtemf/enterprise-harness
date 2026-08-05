@@ -58,6 +58,9 @@ agent: general-purpose
 
 completion pass 后，主 orchestrator 必须执行：
 ```bash
-enterprise-harness workflow decide <change-id> freeze-slice
+enterprise-harness lifecycle validated <change-id>
+enterprise-harness workflow decide <change-id> enter-archive
 ```
-此命令将 `validation.status` 置为 fresh 并推进到 archive 阶段。若漏执行，state.json 的 validation 保持 stale，链路会卡在 verify。详细合同见 `harness/specs/verify-contract.md`。
+第一条命令重算 validation digest 并把 `validation.status` 置为 fresh；第二条推进到 archive 阶段。
+validation 不是 fresh 时 `enter-archive` 不会出现。需要返工用 `revise-verification`（会把 validation 置回 stale）。
+详细合同见 `harness/specs/verify-contract.md`。

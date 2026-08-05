@@ -81,7 +81,7 @@ try {
   const ok = statusResult?.stage === 'clarify'
     && statusResult?.pendingDecision?.kind === 'requirement-clarification'
     && statusResult?.currentGap === '缺少 requirements.md。'
-    && statusResult?.nextAction === `workflow decide ${changeId} <answer-next-question|narrow-scope|stop>`;
+    && statusResult?.nextAction === `workflow decide ${changeId} <confirm-clarity|answer-next-question|narrow-scope|stop>`;
 
   if (mode === 'red') {
     if (!ok) {

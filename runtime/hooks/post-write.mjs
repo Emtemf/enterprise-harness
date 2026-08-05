@@ -34,7 +34,7 @@ if (raw) {
     event = JSON.parse(raw);
   } catch (error) {
     console.error(`BLOCK [EH-HOOK-POST-WRITE-011] invalid hook JSON: ${error.message}`);
-    process.exit(1);
+    process.exit(2);
   }
   try {
     if (dedupGuard('post-write', event.tool_use_id, event.cwd)) process.exit(0);
@@ -105,7 +105,7 @@ if (raw) {
       });
     }
     console.error(`BLOCK [EH-HOOK-POST-WRITE-011] ${error.message}`);
-    process.exit(1);
+    process.exit(2);
   }
 }
 if (attributionBlocked) {
@@ -119,7 +119,9 @@ const semanticProblems = touchesGoverned ? [
 ] : [];
 if (semanticProblems.length) {
   for (const problem of semanticProblems) console.error(problem);
-  process.exit(1);
+  // manifest 声明 post-write 为 fail-closed；Claude Code 只把 exit 2 当作 block，
+  // exit 1 会被当成普通失败并放行，等于治理检查形同虚设。
+  process.exit(2);
 }
 const problems = [
   // validateStructure checks this repo's own fixed file list; only meaningful once a
@@ -133,7 +135,7 @@ const problems = [
 ];
 if (problems.length) {
   for (const problem of problems) console.error(problem);
-  process.exit(1);
+  process.exit(2);
 }
 console.log('Post-write gate passed. 如有业务完成声明，后续仍需 fresh validation 证据。');
 // 每次写完受治理路径后，输出 TECPC 卡让用户看到进度更新
