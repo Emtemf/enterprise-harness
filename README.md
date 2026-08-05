@@ -114,6 +114,7 @@ claude plugin uninstall enterprise-harness@enterprise-harness --scope local
 - [文档索引](docs/README.md)
 - [快速开始](docs/user/quickstart.md)
 - [用户工作流](docs/user/workflow.md)
+- [查看阶段证据与实际时序](harness/specs/stage-observability.md)
 - [故障排查](docs/user/troubleshooting.md)
 - [已知限制](docs/user/limitations.md)
 - [维护架构](docs/maintainer/architecture.md)
