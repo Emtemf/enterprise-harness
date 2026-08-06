@@ -9,13 +9,14 @@ import {
   readAgentEvents,
 } from './lib/agent-evidence.mjs';
 import {
-  allowedTaskCommand,
   isSafeEvidenceId,
+  loadTaskCommand,
   tddReceiptSpoolPath,
   validateTddReceipt,
 } from './lib/tdd-receipts.mjs';
 import {
-  changedWorktreePaths,
+  captureWorktreeBaseline,
+  changedPathsSinceBaseline,
   headSnapshotDigest,
   worktreeSnapshotDigest,
 } from './lib/git-evidence.mjs';
@@ -39,10 +40,6 @@ function treeDigest(cwd) {
   return worktreeSnapshotDigest(cwd);
 }
 
-function changedPaths(cwd) {
-  return changedWorktreePaths(cwd);
-}
-
 function atomicWriteJson(target, value) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
@@ -51,7 +48,7 @@ function atomicWriteJson(target, value) {
 }
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log('Usage: node runtime/tdd-run.mjs <change-id> <task-id> <red|green|refactor> -- <command> [args...]');
+  console.log('Usage: node runtime/tdd-run.mjs <change-id> <task-id> <red|green|refactor|verify> -- <command> [args...]');
   process.exit(0);
 }
 const separator = process.argv.indexOf('--');
@@ -60,17 +57,13 @@ const [changeId, taskId, phaseRaw] = process.argv.slice(2, separator);
 const childArgv = process.argv.slice(separator + 1);
 const phase = String(phaseRaw || '').toUpperCase();
 if (!changeId || !taskId || !phaseRaw || childArgv.length === 0) {
-  fail('usage: tdd-run <change-id> <task-id> <red|green|refactor> -- <command> [args]');
+  fail('usage: tdd-run <change-id> <task-id> <red|green|refactor|verify> -- <command> [args]');
 }
 if (!isSafeEvidenceId(changeId) || !isSafeEvidenceId(taskId)) {
   fail('change-id and task-id must be safe evidence identifiers');
 }
-const root = process.cwd();
-const expected = allowedTaskCommand(root, changeId, taskId, phase);
-if (!expected || JSON.stringify(childArgv) !== JSON.stringify(expected)) {
-  fail(`child argv differs from the frozen task command: ${JSON.stringify(childArgv)}`);
-}
 
+const root = process.cwd();
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 const agentId = process.env.CLAUDE_AGENT_ID || process.env.HARNESS_TDD_EXECUTOR_ID;
 let binding = agentId
@@ -111,12 +104,17 @@ if (fs.existsSync(receiptPath)) {
   }
 }
 const expectedIndex = receipt?.executions?.length || 0;
-if (['RED', 'GREEN', 'REFACTOR'][expectedIndex] !== phase) {
-  fail(`phase order violation: expected ${['RED', 'GREEN', 'REFACTOR'][expectedIndex] || 'complete'}`);
+const resolution = loadTaskCommand(root, changeId, taskId, phase, { executionIndex: expectedIndex });
+if (!resolution.ok) {
+  fail(resolution.problems.join('; '));
+}
+if (JSON.stringify(childArgv) !== JSON.stringify(resolution.argv)) {
+  fail(`child argv differs from the frozen task command: ${JSON.stringify(childArgv)}`);
 }
 
-const headBefore = git(['rev-parse', 'HEAD'], root);
-const beforeDigest = headSnapshotDigest(root, headBefore);
+const baseline = receipt?.worktree?.statusBaseline || captureWorktreeBaseline(root);
+const headBefore = receipt?.worktree?.headBefore || git(['rev-parse', 'HEAD'], root);
+const beforeDigest = receipt?.worktree?.treeDigestBefore || headSnapshotDigest(root, headBefore);
 const startedAt = new Date().toISOString();
 const child = spawnSync(childArgv[0], childArgv.slice(1), {
   cwd: root,
@@ -147,15 +145,20 @@ if (!receipt) {
       headAfter,
       treeDigestBefore: beforeDigest,
       treeDigestAfter: afterDigest,
+      statusBaseline: baseline,
     },
     changedPaths: [],
     executions: [],
   };
 } else {
-  receipt.worktree.headAfter = headAfter;
-  receipt.worktree.treeDigestAfter = afterDigest;
+  receipt.worktree = {
+    ...receipt.worktree,
+    headAfter,
+    treeDigestAfter: afterDigest,
+    statusBaseline: baseline,
+  };
 }
-receipt.changedPaths = changedPaths(root);
+receipt.changedPaths = changedPathsSinceBaseline(root, baseline);
 receipt.executions.push({
   phase,
   argv: childArgv,
@@ -171,7 +174,7 @@ const problems = validateTddReceipt(receipt, {
   changeId,
   taskId,
   allowBootstrap: false,
-  requireComplete: phase === 'REFACTOR',
+  requireComplete: resolution.isFinalCommand,
 });
 if (problems.length) fail(`refusing invalid TDD receipt: ${problems.join('; ')}`);
 atomicWriteJson(receiptPath, receipt);
