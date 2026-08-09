@@ -1,15 +1,17 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-05
+lastVerified: 2026-08-09
 implementationRefs:
   - runtime/lib/stage-contract.mjs
   - runtime/lib/workflow-audit.mjs
+  - runtime/lib/status-summary.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
   - harness/behavior-checks.json
 testRefs:
   - runtime/test/workflow-audit-smoke.mjs
+  - runtime/test/workflow-status-audit-block-smoke.mjs
   - runtime/test/trace-mermaid-smoke.mjs
   - runtime/test/skill-command-conformance-smoke.mjs
 ---
@@ -131,7 +133,15 @@ sequenceDiagram
 enterprise-harness workflow status <change-id> --json
 ```
 
-只信任输出的 `pendingDecision.options`。SKILL.md 内命令与 runtime 决策集合另有
+先读取顶层 `status`：
+
+- `status=blocked` 时，`pendingDecision` 和探索推荐会被清空，只执行顶层 `nextAction`；对
+  schema 4 strict change，该动作是 `workflow audit <change-id> --json`。
+- 非 blocked 时，只有 `pendingDecision.options` 中列出的决策可以交给 `workflow decide`。
+
+普通 `status --json` 使用同一 workflow 结果，也必须在顶层返回相同 `status`、`blockers`、
+`nextAction` 和恢复入口；阻断态的 `nextStage` 为 null，`projectedStage` 仅用于解释原 state。
+SKILL.md 内命令与 runtime 决策集合另有
 `skill-command-conformance-smoke` 交叉测试，防止文档写了 runtime 不支持的命令。
 
 ### 2. 完整阶段审计（核心）

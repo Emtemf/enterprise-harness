@@ -74,7 +74,13 @@ try {
     workflow.nextAction === `workflow audit ${changeId} --json` &&
     workflow.pendingDecision === null &&
     workflow.currentGap.includes('EH-AUDIT-HANDOFF-001') &&
+    summary.status === 'blocked' &&
+    summary.blockers?.[0]?.code === 'EH-AUDIT-HANDOFF-001' &&
+    summary.activeChange.workflowStatus === 'blocked' &&
+    summary.activeChange.blockers?.[0]?.code === 'EH-AUDIT-HANDOFF-001' &&
     summary.activeChange.audit?.verdict === 'block' &&
+    summary.nextStage === null &&
+    summary.projectedStage === 'tdd' &&
     summary.recommendedEntry === '/harness' &&
     summary.nextAction === `workflow audit ${changeId} --json` &&
     card.includes('✗ clarify') &&

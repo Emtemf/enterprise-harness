@@ -2,7 +2,8 @@
 
 ## 目标
 
-这里保存 Enterprise Harness 的跨平台运行层骨架。
+这里保存 Enterprise Harness 的 Claude Code-only 运行层骨架。此处的“可移植”只指同一
+Claude Code plugin 在不同操作系统上的机械 runtime，不包含其他 agent harness 适配。
 
 当前阶段提供：
 
@@ -15,6 +16,7 @@
 
 ## 原则
 
-- 运行层优先跨平台实现
+- 运行层优先保持 Linux、macOS、Windows 的操作系统可移植性
+- agent 宿主只采用 Claude Code 的 hook、skill、agent 与 command 合同
 - 仓库契约与机器本地适配分离
 - 本地 secrets 不进入仓库

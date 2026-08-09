@@ -7,6 +7,7 @@ implementationRefs:
   - .claude/skills/harness-route/SKILL.md
   - runtime/lib/workflow.mjs
   - runtime/lib/workflow-audit.mjs
+  - runtime/lib/status-summary.mjs
 testRefs:
   - runtime/test/workflow-runner-smoke.mjs
   - runtime/test/route-stage-separation-smoke.mjs
@@ -67,3 +68,5 @@ route 事实不足时返回 clarify，不用推测补齐。
 对 schemaVersion 4 及以上的 strict change，任何已完成阶段 audit blocker 都优先于
 `workflow.stage`、`nextEntry` 和 pending decision。`workflow status` 与普通 `status` 必须返回
 `status=blocked`、隐藏阶段决策，并只推荐 `workflow audit <change-id> --json`；不得继续到投影阶段。
+普通 `status` 的 `nextStage` 在阻断态必须为 null；原 state 阶段只能作为只读
+`projectedStage` 暴露，不能被解释为恢复动作。

@@ -94,4 +94,7 @@ enterprise-harness trace --change <change-id> --mermaid
 它比聊天进度可靠。完整阶段说明见[七阶段工作流](workflow.md)与
 [阶段时序、事件与产物合同](../../harness/specs/stage-observability.md)。
 
+两个 status 命令都应先读取顶层 `status`。若为 `blocked`，只执行返回的 `nextAction`，不要按
+投影的 `stage` 或 `nextStage` 直接进入后续阶段。
+
 `doctor` 默认离线。只有显式运行 `doctor --online` 才检查 Context7 网络能力。

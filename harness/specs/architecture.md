@@ -19,6 +19,10 @@ testRefs:
 最低 Claude Code 版本为 2.1.218；该版本提供本工作流使用的 `background: false`。
 nested subagent 还必须配合 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`，由 doctor 与 SessionStart 诊断。
 
+这里的 “Claude Code-only” 指 agent 宿主与 hook/skill/agent 语法边界：当前不设计或承诺
+Codex、OpenCode、Gemini CLI 等其他 harness 的兼容层。Linux、macOS、Windows 的测试矩阵
+只描述同一 Claude Code plugin 的操作系统可移植性，不代表多 agent 平台支持。
+
 ## 分层
 
 - spec：长期合同

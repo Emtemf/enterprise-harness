@@ -21,7 +21,10 @@ Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需
 - Context7-first 外部库和框架资料查询。
 - `clarify → route → design → plan → tdd → verify → archive` 七阶段流程。
 - executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
-- Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
+- 同一 Claude Code plugin 的 Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
+
+“Claude Code-only” 是当前明确的产品边界：暂不设计 Codex、OpenCode、Gemini CLI 等其他
+agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin 自身的可移植性验证。
 
 当前仍是早期治理框架。它不替代 CI/CD、人工代码审查、安全扫描、制品签名、权限平台或生产发布审批。OpenAPI 检查已具备基础门禁，但复杂 YAML 和 Spring 映射仍可能返回 `unsupported`，不能视为完整 API 治理平台。
 
