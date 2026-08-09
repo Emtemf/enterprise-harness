@@ -15,8 +15,13 @@ import { canonicalPath, pathIsWithin } from '../lib/safe-paths.mjs';
 import { dedupGuard } from '../lib/hook-dedup.mjs';
 
 const root = projectRoot();
+const canonicalRoot = canonicalPath(root);
 const managed = isHarnessManaged(root);
 const trackingChanges = hasChangeTracking(root);
+
+function relativeToRoot(target) {
+  return path.relative(canonicalRoot, canonicalPath(target)).replaceAll('\\', '/');
+}
 
 function changeWriteScope(target) {
   const canonicalTarget = canonicalPath(target);
@@ -43,7 +48,7 @@ function activeChangeWriteScope(active, target) {
 }
 
 function requiresFullChangeValidation(active, target) {
-  const relative = path.relative(root, canonicalPath(target)).replaceAll('\\', '/');
+  const relative = relativeToRoot(target);
   const isRuntimeControlPlane = relative === 'runtime' || relative.startsWith('runtime/');
   return isGovernedTarget(root, target)
     || isRuntimeControlPlane
@@ -69,7 +74,7 @@ function markValidationStale(statePath) {
 }
 
 function invalidateAffectedValidations(active, target) {
-  const relative = path.relative(root, canonicalPath(target)).replaceAll('\\', '/');
+  const relative = relativeToRoot(target);
   const isRuntimeControlPlane = relative === 'runtime' || relative.startsWith('runtime/');
   if (isRuntimeControlPlane) {
     const changesDir = path.join(root, 'harness', 'changes');
