@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-08-09
+
 ### Fixed
 
 - strict change 的 `workflow status` 与普通 `status` 现在先消费已完成阶段 audit；历史 evidence
