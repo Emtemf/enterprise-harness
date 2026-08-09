@@ -7,7 +7,7 @@ const commands = [
   ['runtime/cli.mjs', 'bootstrap'],
   ['runtime/cli.mjs', 'doctor', '--json'],
   ['runtime/cli.mjs', 'sync', '--json'],
-  ['runtime/cli.mjs', 'verify'],
+  ['runtime/cli.mjs', 'verify', '--release-surface'],
   ['runtime/upstream-check.mjs', '--json'],
 ];
 

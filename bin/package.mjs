@@ -18,6 +18,7 @@ const ALLOWED_TREES = [
   '.claude/rules',
   'hooks',
   'runtime',
+  'harness/plugin',
   'harness/specs',
   'harness/schemas',
   'harness/templates',

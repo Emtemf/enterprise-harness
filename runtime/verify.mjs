@@ -6,6 +6,21 @@ import { renderTECPCCard } from './lib/tecp-card.mjs';
 import { buildWorkflowResult } from './lib/workflow.mjs';
 
 const root = projectRoot();
+const releaseSurface = process.argv.includes('--release-surface');
+const DEVELOPMENT_ONLY_REQUIRED_PATHS = new Set([
+  'AGENTS.md',
+  'CLAUDE.md',
+  '.claude/settings.json',
+  'harness/changes',
+]);
+
+// 发布包刻意不包含 harness/changes/**。本地开发验证仍必须审计全部 change
+// 资产；发布验证只审计会进入包的 runtime、spec、template 与 plugin 合同，不能让
+// 一个未归档的开发 change 伪装成已发布内容或反过来阻断可发布的包。
+function validateReleaseSurfaceStructure(repoRoot) {
+  return validateStructure(repoRoot)
+    .filter((missing) => !DEVELOPMENT_ONLY_REQUIRED_PATHS.has(missing.path));
+}
 
 // 版本一致性检查：package.json / manifest.json / .claude-plugin/plugin.json 必须一致
 function validateVersionConsistency(repoRoot) {
@@ -38,18 +53,23 @@ function validateVersionConsistency(repoRoot) {
 }
 
 const activeForCompletion = loadActiveChange(root);
+const developmentChangeProblems = releaseSurface
+  ? []
+  : [
+      ...validateArtifactStates(root),
+      ...validateReviewVerdicts(root),
+      ...validateChangeEvidence(root),
+      ...(activeForCompletion.ok && activeForCompletion.data.state === 'VALIDATED'
+        ? validateCompletionPredicate(root, activeForCompletion.changeId, activeForCompletion.data)
+          .map((problem) => `completion:${problem}`)
+        : []),
+    ];
 const problems = [
   ...validateVersionConsistency(root),
-  ...validateStructure(root).map((m) => `${m.kind}:${m.path}`),
+  ...(releaseSurface ? validateReleaseSurfaceStructure(root) : validateStructure(root)).map((m) => `${m.kind}:${m.path}`),
   ...validateOpenApiLight(root),
   ...validateGenericControllerConsistency(root),
-  ...validateArtifactStates(root),
-  ...validateReviewVerdicts(root),
-  ...validateChangeEvidence(root),
-  ...(activeForCompletion.ok && activeForCompletion.data.state === 'VALIDATED'
-    ? validateCompletionPredicate(root, activeForCompletion.changeId, activeForCompletion.data)
-      .map((problem) => `completion:${problem}`)
-    : []),
+  ...developmentChangeProblems,
 ];
 
 const templateDir = path.join(root, 'harness', 'templates');
@@ -91,6 +111,7 @@ const consumedEvidenceSummary = {
   contractProblems: contractChecks.problems.length,
   todoHits: contractChecks.todoHits.length,
   runtimeReadinessStatus: runtimeReadinessChecks.status,
+  developmentChangeValidationSkipped: releaseSurface,
 };
 const nextStep = contractChecks.ok
   ? 'archive-or-completion-gate'
@@ -98,6 +119,7 @@ const nextStep = contractChecks.ok
 
 const result = {
   repoRoot: root,
+  scope: releaseSurface ? 'release-surface' : 'development',
   ok: contractChecks.ok,
   'completion-verdict': completionVerdict,
   blockers,

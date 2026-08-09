@@ -32,6 +32,8 @@ for (const token of [
   assert.ok(release.includes(token), `release is missing ${token}`);
 }
 assert.ok(release.includes("'CHANGELOG.md'"), 'release must stage the generated CHANGELOG section');
+const packager = fs.readFileSync(path.join(root, 'bin/package.mjs'), 'utf-8');
+assert.match(packager, /'harness\/plugin'/u, 'release package must include the runtime version manifest');
 assert.doesNotMatch(release, /git', \['add', '-A'/u);
 assert.doesNotMatch(release, /main', '--tags'/u);
 
@@ -39,6 +41,7 @@ const prepublish = fs.readFileSync(path.join(root, 'runtime/prepublish.mjs'), 'u
 for (const token of [
   'bin/run-smoke-suite.mjs',
   "['runtime/cli.mjs', 'bootstrap']",
+  "['runtime/cli.mjs', 'verify', '--release-surface']",
   "['plugin', 'validate', '.']",
   'zero warnings',
 ]) assert.ok(prepublish.includes(token), `prepublish missing ${token}`);

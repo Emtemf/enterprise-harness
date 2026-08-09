@@ -29,6 +29,14 @@ try {
     false,
     'artifact contains a forbidden development asset',
   );
+  const releaseVerification = spawnSync(process.execPath, ['runtime/verify.mjs', '--release-surface', '--json'], {
+    cwd: extract,
+    encoding: 'utf-8',
+  });
+  assert.equal(releaseVerification.status, 0, releaseVerification.stderr || releaseVerification.stdout);
+  const releaseVerificationResult = JSON.parse(releaseVerification.stdout);
+  assert.equal(releaseVerificationResult.scope, 'release-surface');
+  assert.equal(releaseVerificationResult['consumed-evidence-summary'].developmentChangeValidationSkipped, true);
   const validation = spawnSync('claude', ['plugin', 'validate', '.'], {
     cwd: extract,
     encoding: 'utf-8',
