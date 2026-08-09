@@ -1,0 +1,30 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_e2c2d6ef-d121-483f-8c4b-468de32964ca",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_d261446a-cd78-4dda-844a-ad914a7527ac",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "implementation-review-task-00-bootstrap-v2-command-sequencing",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/result.json"
+    ],
+    "path": "review Task 00 bootstrap v2 sequencing executor result",
+    "correction": "Verify receipts, commit, changed paths, and contract adherence; return pass/block/advisory with EH-* recovery."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/result.json": "f6ce5e4ec2e42afebbea7c7f925ac69d1ccc34bd9d8616ad981e053459f570af"
+  },
+  "createdAt": "2026-08-06T13:06:35.595Z"
+}

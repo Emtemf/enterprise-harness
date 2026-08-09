@@ -3,6 +3,7 @@ import path from 'node:path';
 import { projectRoot, validateStructure, validateArtifactStates, validateReviewVerdicts, validateChangeEvidence, validateOpenApiLight, validateGenericControllerConsistency, validateCompletionPredicate } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
+import { buildWorkflowResult } from './lib/workflow.mjs';
 
 const root = projectRoot();
 
@@ -127,7 +128,9 @@ if (jsonMode) {
   try {
     const active = loadActiveChange(root);
     if (active.ok) {
-      const card = renderTECPCCard(root, active.changeId, active.data);
+      const card = renderTECPCCard(root, active.changeId, active.data, {
+        workflowResult: buildWorkflowResult(root, active.changeId, active.data),
+      });
       console.log(card);
     }
   } catch (error) {

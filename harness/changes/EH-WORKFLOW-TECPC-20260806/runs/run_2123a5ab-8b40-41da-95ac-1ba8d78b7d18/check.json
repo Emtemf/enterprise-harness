@@ -1,0 +1,68 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 design.explore-code 执行结果是否对 design.produce 提供可追溯、基于代码事实、范围贴合且足够的 brownfield 输入。",
+    "evidence": [
+      "已核验 checker input 指向的 executor artifact：runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json 的 SHA-256 为 bb59c059375bb710f3537f400aac2d7afa692e88295e8ba3c2312b01d24b887d，与本 checker input.json 的 inputDigests 一致。",
+      "已核验 executor handoff input 的 6 个 authoritative inputRefs 当前 digest 均与其 input.json 记录一致：requirements.md、change.md、state.json、minimum-discovery-exploration.md、route.decide execute result、route.decide check.json；traceability 成立。",
+      "已核验 requirements.md、change.md、state.json：当前 scope 的确是 Enterprise Harness governance breaking redesign，兼容性为 none，workflow.stage=design 且 routeReady=true；design.explore-code 的关注面应落在 durable contract / interface / architecture / rule，而不是业务 Java/OpenAPI 细节。",
+      "已核验 runtime/lib/stage-contract.mjs、runtime/lib/workflow.mjs、harness/behavior-checks.json、harness/specs/state-schema.md：stage 合同、behavior 注册、pending decision、workflow readiness flags 分散存在，当前没有单一 first-class stage manifest/checkpoint artifact；该结论与 executor facts[3]-[4] 一致。",
+      "已核验 runtime/lib/router-score.mjs 与 change.md：runtime 仍只解析 5 维 Router 评分表并做完整性检查，而当前 change.md 已采用 6 维 repo-specific L3 模型；executor 对 route-scoring contract split 的判断准确。",
+      "已核验 runtime/lib/ambiguity.mjs、requirements.md、state.json：requirements 中仍有 3 分维度，而 state.json 已投影 clarifyReady=true；这确实暴露 phase-boundary / projection 语义冲突。补充说明：validateAmbiguityGate 对 DRAFT 有豁免，因此当前冲突更准确地说是合同语义分裂而非单一路径即时 runtime blocker，但不影响其作为 design 输入的价值。",
+      "已核验 runtime/lib/workflow-audit.mjs、runtime/lib/checks.mjs、runtime/evidence-import.mjs、runtime/lib/import-validation.mjs、runtime/hooks/pre-explore.mjs、runtime/lib/execution-prerequisites.mjs：audit 默认只严审已完成阶段、completion 才 includeCurrent；通用 artifact import 目前成熟链路主要在 TDD receipt；CodeGraph attempt 与 governed write prerequisites 已机械存在。executor 对 audit/import/probing 边界的归纳与代码一致。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/{requirements.md,change.md,state.json,evidence/minimum-discovery-exploration.md}",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_aeb755ed-0626-4ac7-a085-0ab39c6c4acf/check.json",
+      "runtime/lib/{workflow.mjs,stage-contract.mjs,ambiguity.mjs,router-score.mjs,workflow-audit.mjs,handoff.mjs,execution-prerequisites.mjs,checks.mjs,import-validation.mjs}",
+      "runtime/{evidence-import.mjs,hooks/pre-explore.mjs}",
+      "harness/specs/{workflow.md,agents-and-handoff.md,state-schema.md,stage-observability.md}"
+    ],
+    "path": "结论为 pass。该 executor result 对 design.produce 已足够：1) traceability 明确，authoritative inputRefs 与当前 artifacts/digests 一致；2) 关键判断都能回溯到具体 runtime/spec/change 文件，而非抽象猜测；3) 范围贴合 design 阶段，聚焦 stage manifest/checkpoint、artifact import、route score、clarify probing、audit/current-stage semantics 等设计必答问题；4) 输出没有偷跑实现方案，只压缩了现状、裂缝与待设计决策。唯一需要校准的点是 facts[12] 更准确应理解为“clarifyReady 语义与 requirements 低分之间的合同分裂，且 DRAFT 豁免掩盖了即时 gate 冲突”，但这不削弱其作为 design.produce 输入的充分性。",
+    "correction": "无需恢复动作；可直接进入 design.produce。下一步应在 design.md 中显式冻结：统一或分层的 stage/checkpoint source-of-truth、artifact import/provenance 规则、route scoring machine-readable contract、clarify probing evidence schema，以及 audit/status/completion 对 current stage 的统一语义。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_aeb755ed-0626-4ac7-a085-0ab39c6c4acf/check.json",
+    "runtime/lib/workflow.mjs",
+    "runtime/lib/stage-contract.mjs",
+    "runtime/lib/ambiguity.mjs",
+    "runtime/lib/router-score.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lib/execution-prerequisites.mjs",
+    "runtime/lib/checks.mjs",
+    "runtime/lib/import-validation.mjs",
+    "runtime/evidence-import.mjs",
+    "runtime/hooks/pre-explore.mjs",
+    "harness/behavior-checks.json",
+    "harness/specs/workflow.md",
+    "harness/specs/agents-and-handoff.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/stage-observability.md"
+  ],
+  "blockers": [],
+  "summary": "pass：该 design.explore-code 结果可追溯到当前 change artifacts 与 runtime/spec 事实，关键结论关于 stage contract 分裂、route score 旧 5 维、clarify probing 未入 runtime schema、TDD-only import 链路、以及 audit current-stage 语义均与代码一致，足以作为 design.produce 的事实输入。",
+  "recordedAt": "2026-08-06T09:20:17.803Z",
+  "resultDigest": "680c7e790d250caa450b5b8f19a6188ff850bebaa1e45ee02e6e293bbe321fe6"
+}

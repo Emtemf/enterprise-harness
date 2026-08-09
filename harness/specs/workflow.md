@@ -1,14 +1,16 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-09
 implementationRefs:
   - .claude/skills/harness/SKILL.md
   - .claude/skills/harness-route/SKILL.md
   - runtime/lib/workflow.mjs
+  - runtime/lib/workflow-audit.mjs
 testRefs:
   - runtime/test/workflow-runner-smoke.mjs
   - runtime/test/route-stage-separation-smoke.mjs
+  - runtime/test/workflow-status-audit-block-smoke.mjs
 ---
 
 # Workflow Contract
@@ -61,4 +63,7 @@ route 事实不足时返回 clarify，不用推测补齐。
 
 只有统一 completion predicate pass 才能物理移动 change 并清 active pointer。
 
-阶段恢复只读取 durable state；聊天上下文不能替代。
+阶段恢复读取 durable state 与已完成阶段的权威 evidence audit；聊天上下文不能替代。
+对 schemaVersion 4 及以上的 strict change，任何已完成阶段 audit blocker 都优先于
+`workflow.stage`、`nextEntry` 和 pending decision。`workflow status` 与普通 `status` 必须返回
+`status=blocked`、隐藏阶段决策，并只推荐 `workflow audit <change-id> --json`；不得继续到投影阶段。

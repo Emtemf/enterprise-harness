@@ -1,11 +1,14 @@
 # 当前研发快照
 
-更新时间：2026-08-04（0.3.12 pre-release）
+更新时间：2026-08-09（0.3.13 development）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.11
-- active change：无（`harness/changes/` 为空，33 个已归档在 `harness/archive/`）
+- 当前版本：0.3.13
+- 当前阶段：strict audit recovery convergence
+- 当前目标：统一 status、SessionStart、Stop、verify 与 TECPC 卡片的 audit-first 恢复口径
+- active change：`EH-WORKFLOW-TECPC-20260806`，投影 stage 为 tdd，但 completed-stage audit
+  仍为 block；恢复入口以 `workflow audit EH-WORKFLOW-TECPC-20260806 --json` 为准，不进入 TDD
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
 ## 0.3.2 路径重构的遗留漂移（0.3.8 修复）

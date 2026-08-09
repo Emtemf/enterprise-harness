@@ -2,7 +2,7 @@
 
 ## 前置要求
 
-- Claude Code
+- Claude Code 2.1.218 或更高版本（`background: false` 与 nested subagent 所需）
 - Git
 - Node.js 20 或 22
 - Java 项目建议提供 `./mvnw`

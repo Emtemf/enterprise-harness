@@ -1,0 +1,51 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_381271de-0303-4ec2-9cc6-74cf6ff919d3",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "task-01-snapshot-import-state-atomicity",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9d0b0f35-bd74-432e-b33f-8939ea337129/check.json"
+    ],
+    "path": "Execute frozen Task 01 RED/GREEN/REFACTOR/VERIFY sequence after Task 00 v2-command support pass",
+    "correction": "Use only the authoritative run-contract approvals in inputRefs. Do not trust legacy reviews or state projections. Execute the exact frozen commands[] order via node runtime/tdd-run.mjs with real RED/GREEN/REFACTOR/VERIFY receipts, implement only the scoped Task 01 files, import durable artifacts, and return blockers only for freshly observed issues."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/command-policy.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9d0b0f35-bd74-432e-b33f-8939ea337129/check.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md": "a730ca1f2f8b6d3b550581cd6c36b008ee0b564b1f3aa563e86696cabadfdf2c",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md": "edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md": "8e1942baa08e5172614d4129fb3472d1e59ae34fdf205fdb1341a4747d868d81",
+    "harness/command-policy.json": "11658601b065be5fe1b3cbd8e288db0331ef6fc8b02bb9ecc2836b155708aa2a",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json": "655a4e7dd940de7b8b8a7b02c201f8e493cf473520325a0268ef96c0cb46096f",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json": "c2a58f36989044e31acc5fae4a24bac6f978ffa72734ff29d8e53ae991ad0d02",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9d0b0f35-bd74-432e-b33f-8939ea337129/check.json": "77406d3721a59e88f72e00365ae8c579e6984d3f35923d97a221f1a9e130cebf"
+  },
+  "createdAt": "2026-08-06T14:57:51.788Z"
+}

@@ -1,0 +1,503 @@
+{
+  "schemaVersion": 1,
+  "repoRoot": ".",
+  "commandExecutablePolicy": [
+    "node"
+  ],
+  "tasks": {
+    "task-00-bootstrap-v2-command-sequencing": {
+      "redCommand": [
+        "node",
+        "runtime/test/task-command-v2-sequencing-smoke.mjs",
+        "red"
+      ],
+      "greenCommand": [
+        "node",
+        "runtime/test/task-command-v2-sequencing-smoke.mjs",
+        "green"
+      ],
+      "refactorCommand": [
+        "node",
+        "runtime/test/task-command-v2-sequencing-smoke.mjs",
+        "verify"
+      ]
+    },
+    "task-01-snapshot-import-state-atomicity": {
+      "commands": [
+        {
+          "id": "artifact-import-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/artifact-import-contract-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "artifact-import-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/artifact-import-contract-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "artifact-import-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/artifact-import-contract-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "worktree-snapshot-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/worktree-snapshot-import-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "worktree-snapshot-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/worktree-snapshot-import-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "worktree-snapshot-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/worktree-snapshot-import-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "state-projection-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/state-projection-atomicity-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "state-projection-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/state-projection-atomicity-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "state-projection-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/state-projection-atomicity-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "receipt-regression-verify",
+          "phase": "VERIFY",
+          "argv": [
+            "node",
+            "runtime/test/tdd-receipt-contract-smoke.mjs",
+            "verify"
+          ]
+        }
+      ]
+    },
+    "task-02-manifest-and-phase-checkpoints": {
+      "commands": [
+        {
+          "id": "governance-manifest-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/governance-manifest-contract-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "governance-manifest-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/governance-manifest-contract-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "governance-manifest-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/governance-manifest-contract-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "stage-checkpoint-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/stage-checkpoint-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "stage-checkpoint-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/stage-checkpoint-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "stage-checkpoint-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/stage-checkpoint-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "schema5-migration-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/schema5-migration-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "schema5-migration-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/schema5-migration-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "schema5-migration-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/schema5-migration-smoke.mjs",
+            "verify"
+          ]
+        }
+      ]
+    },
+    "task-03-codegraph-probe-and-registry": {
+      "commands": [
+        {
+          "id": "codegraph-index-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-index-identity-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "codegraph-index-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-index-identity-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "codegraph-index-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-index-identity-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "codegraph-fallback-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-fallback-binding-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "codegraph-fallback-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-fallback-binding-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "codegraph-fallback-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/codegraph-fallback-binding-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "registry-probe-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/registry-conformance-probe-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "registry-probe-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/registry-conformance-probe-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "registry-probe-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/registry-conformance-probe-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "doctor-json-verify",
+          "phase": "VERIFY",
+          "argv": [
+            "node",
+            "runtime/doctor.mjs",
+            "--json"
+          ]
+        }
+      ]
+    },
+    "task-04-route-and-clarify-quant-models": {
+      "commands": [
+        {
+          "id": "route-score-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/route-score-six-dimension-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "route-score-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/route-score-six-dimension-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "route-score-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/route-score-six-dimension-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "clarify-interview-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/clarify-interview-evidence-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "clarify-interview-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/clarify-interview-evidence-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "clarify-interview-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/clarify-interview-evidence-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "ambiguity-phase-boundary-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/ambiguity-phase-boundary-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "ambiguity-phase-boundary-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/ambiguity-phase-boundary-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "ambiguity-phase-boundary-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/ambiguity-phase-boundary-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "route-stage-separation-verify",
+          "phase": "VERIFY",
+          "argv": [
+            "node",
+            "runtime/test/route-stage-separation-smoke.mjs",
+            "verify"
+          ]
+        }
+      ]
+    },
+    "task-05-audit-stop-skills-docs-packaging-regression": {
+      "commands": [
+        {
+          "id": "workflow-audit-current-stage-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/workflow-audit-current-stage-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "workflow-audit-current-stage-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/workflow-audit-current-stage-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "workflow-audit-current-stage-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/workflow-audit-current-stage-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "stop-audit-block-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/stop-audit-block-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "stop-audit-block-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/stop-audit-block-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "stop-audit-block-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/stop-audit-block-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "release-acceptance-red",
+          "phase": "RED",
+          "argv": [
+            "node",
+            "runtime/test/task4-release-acceptance-smoke.mjs",
+            "red"
+          ]
+        },
+        {
+          "id": "release-acceptance-green",
+          "phase": "GREEN",
+          "argv": [
+            "node",
+            "runtime/test/task4-release-acceptance-smoke.mjs",
+            "green"
+          ]
+        },
+        {
+          "id": "release-acceptance-refactor-verify",
+          "phase": "REFACTOR",
+          "argv": [
+            "node",
+            "runtime/test/task4-release-acceptance-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "workflow-audit-verify",
+          "phase": "VERIFY",
+          "argv": [
+            "node",
+            "runtime/test/workflow-audit-smoke.mjs",
+            "verify"
+          ]
+        },
+        {
+          "id": "prepublish-acceptance",
+          "phase": "ACCEPTANCE",
+          "argv": [
+            "node",
+            "runtime/prepublish.mjs"
+          ]
+        },
+        {
+          "id": "external-project-maven-lifecycle-e2e",
+          "phase": "ACCEPTANCE",
+          "argv": [
+            "node",
+            "test/external-project/maven-lifecycle-e2e.mjs"
+          ]
+        }
+      ]
+    }
+  }
+}

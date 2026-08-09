@@ -1,0 +1,126 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_1f812538-658a-478d-a071-6f26f4e28358",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "taskId": "task-01-snapshot-import-state-atomicity",
+  "agentId": "agent-abb15c620e2a94fa8",
+  "worktreeAbsolutePath": "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abb15c620e2a94fa8",
+  "gitCommonDir": "/home/wula/IdeaProjects/sdd/.git",
+  "receipts": {
+    "red": [],
+    "green": [],
+    "refactor": [],
+    "verify": []
+  },
+  "implementationCommit": null,
+  "changedPaths": [],
+  "commandExitSummary": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abb15c620e2a94fa8",
+        "rev-parse",
+        "--show-toplevel",
+        "--git-common-dir"
+      ],
+      "status": "ok",
+      "exitCode": 0,
+      "note": "仅获取 worktree 与 git common dir。"
+    },
+    {
+      "argv": [
+        "node",
+        "runtime/tdd-run.mjs",
+        "EH-WORKFLOW-TECPC-20260806",
+        "task-01-snapshot-import-state-atomicity",
+        "<phase>",
+        "--",
+        "<frozen-argv>"
+      ],
+      "status": "not-run",
+      "note": "authoritative plan/design/state gates 未满足，未进入 RED。"
+    }
+  ],
+  "tecpc": {
+    "target": "执行 task-01-snapshot-import-state-atomicity 的冻结 TDD 流程，并产出真实 RED/GREEN/REFACTOR/VERIFY receipts。",
+    "evidence": [
+      "已校验 handoff input：changeId=EH-WORKFLOW-TECPC-20260806，stage=tdd，behavior=tdd.execute-task，role=execute，agent.type=enterprise-harness:tdd-executor，agent.skill=harness-stage-executor。",
+      "authoritative 输入 `harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md` 明示：plan status=`draft`，design-review-imported=`false`，design-approved=`false`，latest plan-critic verdict=`block`，并声明在 design review durable import 且独立 critic 非 block 前，不得把该文件当作已批准 plan 使用。",
+      "PostToolUse/Bash hook 同步报出门禁问题：`state.json: invalid state PLANNED`；`designApproved requires reviews/design-reviewer.json`；`EH-CLARIFY-AMBIGUITY-006`（歧义评分缺维度、缺 Overall、Acceptance criteria clarity=3）；`change.md` 未找到 Router 评分表；`validation.md` 的 Commands Executed / Final Verdict / Review Verdicts 为空。",
+      "由于缺少已批准 plan 与合法状态投影，未执行任何 `node runtime/tdd-run.mjs ...` 冻结 argv，因此不存在可宣称的 RED/GREEN/REFACTOR/VERIFY runtime receipts。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json"
+    ],
+    "path": "按 handoff 先校验输入与冻结任务，再检查 authoritative task/plan 门禁；在发现 tasks.md 明确禁止将当前 draft plan 作为已批准 plan 使用，且 hook 暴露 state/clarify/route/validation 前置条件缺失后，停止执行，未写测试、未写实现、未运行任何 tdd-run phase。",
+    "correction": "阻断而非猜测继续。先补齐 design review durable import、独立 plan-critic 非 block 结果，并修复 state/clarify/route/validation 前置门禁；确认当前 change 的状态模型允许或迁移 `PLANNED` 后，再重新派发本 task。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    {
+      "code": "EH-TDD-GATE-001",
+      "message": "authoritative `tasks.md` 仍是 corrected-draft-plan，且明确禁止在 design review durable import 与独立 critic 非 block 前把该 plan 当作已批准 plan 使用。",
+      "recovery": [
+        "导入 durable `reviews/design-reviewer.json`。",
+        "重跑独立 `plan-critic`，直到 verdict 非 `block`。",
+        "更新/确认 plan 已批准后，再重新派发 `task-01-snapshot-import-state-atomicity`。"
+      ],
+      "evidenceRefs": [
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md"
+      ]
+    },
+    {
+      "code": "EH-TDD-GATE-002",
+      "message": "active change 状态当前不合法：hook 报告 `state.json: invalid state PLANNED`，且 `designApproved requires reviews/design-reviewer.json`。",
+      "recovery": [
+        "修复或迁移当前 change 的 state 投影，使其与当前 runtime/state schema 一致。",
+        "补齐 `reviews/design-reviewer.json` 后再投影 `designApproved`。",
+        "确认 `PLANNED` 对该 change 的 truth model 合法，或先完成所需 schema/状态迁移。"
+      ],
+      "evidenceRefs": [
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json"
+      ]
+    },
+    {
+      "code": "EH-CLARIFY-AMBIGUITY-006",
+      "message": "歧义评分未完成且未达标：缺 `User/actor clarity`、`Data/SQL clarity`、`Interface/API clarity`、`Constraint/risk clarity`，缺 `Overall`，且 `Acceptance criteria clarity=3`。",
+      "recovery": [
+        "补全 clarify 七维评分与 Overall。",
+        "将所有要求维度提升到 >= 4，并留下可审计证据。",
+        "确认 scope 后再进入后续受治理执行。"
+      ],
+      "evidenceRefs": [
+        "harness/changes/EH-WORKFLOW-TECPC-20260806"
+      ]
+    },
+    {
+      "code": "EH-TDD-GATE-003",
+      "message": "route/validation 前置工件不完整：`change.md` 未找到 Router 评分表；`validation.md` 的 Commands Executed、Final Verdict、Review Verdicts 为空。",
+      "recovery": [
+        "补齐 route 评分真相与对应 evidence。",
+        "补齐 validation 工件或移除错误投影，确保状态与阶段事实一致。",
+        "在前置 gate 完整后再重新调度 TDD executor。"
+      ],
+      "evidenceRefs": [
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/validation.md"
+      ]
+    }
+  ],
+  "nextStep": "主 orchestrator 先修复/导入前置治理证据：design review、plan critic、state 合法性、clarify 评分、route/validation 工件；完成后重新派发同一 task 的 TDD 执行。",
+  "summary": "阻断，未进入 RED。authoritative `tasks.md` 明示当前 plan 仍是 draft 且 design review/import/critic 未通过；hook 进一步暴露 `state.json` 非法、clarify 评分缺失、route/validation 工件不完整。基于这些前置 gate 缺失，我没有执行任何 `node runtime/tdd-run.mjs` 冻结命令、没有生成 receipt、没有改动文件、也没有提交 implementation commit。",
+  "recordedAt": "2026-08-06T11:06:04.438Z",
+  "resultDigest": "1113f8bbec54326ec5021b92e314057a7df1eb69223dbbe2adcf58b4153c35b5"
+}

@@ -1,0 +1,47 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_9b82f778-84dc-4194-9fac-07d96c8e3d82",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Produce schema-5 governance redesign plan artifacts with 5 serial workstream tasks, frozen node-only argv, and per-task TDD/review/acceptance details.",
+    "evidence": [
+      "Wrote /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abc6076478fdb49bc/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "Wrote /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abc6076478fdb49bc/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "Wrote 5 task brief files under /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abc6076478fdb49bc/harness/changes/EH-WORKFLOW-TECPC-20260806/",
+      "Consumed /home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "Consumed /home/wula/IdeaProjects/sdd/harness/command-policy.json",
+      "Consumed /home/wula/IdeaProjects/sdd/harness/templates/tasks.md and /home/wula/IdeaProjects/sdd/harness/templates/task-brief.md",
+      "Confirmed node-based smoke/prepublish command style from /home/wula/IdeaProjects/sdd/package.json and /home/wula/IdeaProjects/sdd/bin/run-smoke-suite.mjs"
+    ],
+    "context": [
+      "HANDOFF input had matching changeId/stage/behavior/role/agent skill but empty inputRefs, so prompt-specified refs were used directly",
+      "Plan order follows the required 5 workstreams: snapshot/import -> manifest/checkpoint -> CodeGraph/probe/registry -> route/clarify models -> audit/stop/docs/packaging/regression",
+      "Existing change-level post-write gate reports legacy clarify/route/validation/design-review blockers unrelated to plan file content"
+    ],
+    "path": "Read handoff input, design, command policy, templates, and native test runner files; drafted 5 serial tasks plus command freeze and per-task briefs; preserved node-only argv arrays and independent reviewer targets without self-critique.",
+    "correction": "Non-fatal blocker: post-write hooks report missing design-review projection and legacy clarify/route/validation gate mismatches for this change. Plan artifacts were still written, but downstream governed writes may continue to surface these EH-CLARIFY/validation/designApproved blockers until the change's durable gate evidence is reconciled."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md"
+  ],
+  "blockers": [
+    "Post-write hook reports /harness/changes/EH-WORKFLOW-TECPC-20260806/state.json designApproved requires reviews/design-reviewer.json",
+    "Post-write hook reports legacy ambiguity/route/validation gate mismatches on requirements.md, change.md, and validation.md for this active change"
+  ],
+  "summary": "Plan artifacts were produced in the worktree: a 5-task serial schema-5 redesign plan, frozen node-only command sets, and 5 task briefs. Existing change-level gate artifacts are inconsistent with current legacy validators and should be reconciled separately before relying on further governed writes.",
+  "recordedAt": "2026-08-06T10:38:30.009Z",
+  "resultDigest": "14f2eed1b03e06a3bcc4067f20467f0060025365d7273ebfe049c31c362f1043"
+}

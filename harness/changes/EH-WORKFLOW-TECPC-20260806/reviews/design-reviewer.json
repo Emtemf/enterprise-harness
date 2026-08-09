@@ -1,0 +1,67 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_876e34ac-bc9e-4b65-a3ed-41892666336a",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立复核 design.md 在 architecture-authority 对齐修正后，是否已足够支撑进入 plan。",
+    "evidence": [
+      "已核验 checker input 仅指向 executor artifact：harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json；本次检查基于该 result 与其声明的 durable artifacts 进行。",
+      "已核验 design artifact：harness/changes/EH-WORKFLOW-TECPC-20260806/design.md 现已显式补齐 architecture authority 对齐：第十三节明确 spec 只定义不变量/边界/恢复语义，runtime 拥有 manifest.json、checkpoints/*.json、state projection 与 evidence/runtime projections 的 machine-readable control-plane schema，符合 harness/specs/architecture.md“长 schema 只能有一个权威来源”的约束。",
+      "已核验 TECPC 完整性：design.md 覆盖 T 目标与可验收成功标准、C 代码/规范/registry 上下文与影响矩阵、E 决策-证据-验证-纠正表、P 方案对比/选型理由/最终路径/风险回滚/纠正预案，且不存在“待补充”占位目标或空证据列。",
+      "已核验 requirement alignment：design.md 的目标、成功标准、route 六维、inline clarify+forked 后续阶段、CodeGraph valid-index 绑定、worktree snapshot/import、registry/probe/hooks/checkers、audit current-stage/auto-stop、breaking/no-compat stance，均与 requirements.md、change.md、state.json 记录的已确认 scope 一致。",
+      "已核验 API/data 双轨与适用性结论：design.md 明确 Public HTTP/OpenAPI=none、SQL DB=none、CLI/hook/internal file-backed durable contracts=applicable，并给出来自 change.md、requirements.md 与当前 governance module 边界的证据；未把不适用项伪装成 pass。",
+      "已核验 migration/fail-loud/test/rollback 覆盖：design.md 包含 schema 4→5 unsupported/migrate/backups/rollback、checkpoint/state/probe/codegraph/worktree 的 fail-loud 错误模型、unit/integration/CLI-hook E2E 测试策略，以及 plan-owned exact argv 尚未冻结的边界说明，满足 design 阶段应有而未越权到 plan。",
+      "已核验 ownership boundaries：design.md 现在不仅识别 owning module/domain，还冻结了 spec/rule/skill/agent/hook/runtime 各自职责，以及 writer/import validator/reconcile owner 三元责任，足以避免把 implementation 细节伪装成 design 或让 state.json 自证 gate。",
+      "已交叉消费 design.explore-code 独立 checker 事实输入：run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json 与 run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json 已分别确认 stage/source-of-truth 分裂、route 5维/6维裂缝、clarify phase-boundary 问题、worktree snapshot 缺陷、wrong-worktree CodeGraph 误报、registry/probe 多源漂移；design.md 对这些 brownfield facts 的收束与文档内容一致。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/specs/architecture.md",
+      "harness/specs/workflow.md",
+      "harness/specs/state-schema.md",
+      "harness/specs/stage-observability.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json",
+      ".claude-plugin/plugin.json",
+      "harness/behavior-checks.json",
+      "harness/reviewers/catalog.json",
+      "harness/plugin/hooks-manifest.json"
+    ],
+    "path": "verdict=pass。architecture-authority 对齐修正后，设计已把 runtime/spec 的权威边界说清，并补齐了进入 plan 所需的接口/数据/错误/迁移/兼容/测试/回滚/ownership 定义。它既基于当前代码与规范事实，又解释了为何不选多真相源或 state.json 自证路径；下一步可进入 plan，由 plan 进一步冻结任务拆分、RED 点与 exact argv。",
+    "correction": "无阻断恢复动作。进入 plan 时应把 design 中已冻结的 contract surface 映射为具体 tasks，并显式包含 spec/runtime/projection 同步、migration smoke、probe/conformance、checkpoint reconcile 与 rollback 验证任务。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/specs/architecture.md",
+    "harness/specs/workflow.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/stage-observability.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json",
+    ".claude-plugin/plugin.json",
+    "harness/behavior-checks.json",
+    "harness/reviewers/catalog.json",
+    "harness/plugin/hooks-manifest.json"
+  ],
+  "blockers": [],
+  "summary": "pass：design.md 在 authority 对齐修正后已满足 TECPC 与技术完整性要求，API/data 适用性、migration/fail-loud/test/rollback 与 ownership boundary 都已清晰，足以进入 plan。",
+  "recordedAt": "2026-08-06T10:11:14.973Z",
+  "resultDigest": "381346ff8a1b130f76c84a506cf5eb4f504235425113d1b66acea837560374a2"
+}

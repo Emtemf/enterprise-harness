@@ -1,0 +1,52 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_9d0b0f35-bd74-432e-b33f-8939ea337129",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立复核 Task 00 rerun executor result、receipt baseline-relative changedPaths、冻结 argv 绑定，以及实现 commit 95690858d3cf34f299552147615345bfaa249bd2 与 brief/design/acceptance 的一致性。",
+    "evidence": [
+      "已核验 checker 输入 runs/run_9d0b0f35-bd74-432e-b33f-8939ea337129/input.json 仅引用 executor result runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/result.json，且其 SHA-256 实测为 8b68c3df9e28e08e1de17cb2eea0c9cd30c52ff9b3c58e4771f17dfad967b9ea，与 inputDigests 一致。",
+      "已核验独立性：checker runId=run_9d0b0f35-bd74-432e-b33f-8939ea337129 与 executor runId=run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e 不同；executor result 的 outputRef 指向 .git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json。",
+      "已核验 receipt 绑定：receipt.agent.id=ae13eefd8ff5862c7，worktree.path=/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae13eefd8ff5862c7，agent id 与 worktree 名一致；worktree.gitCommonDir=/home/wula/IdeaProjects/sdd/.git；headBefore=headAfter=e3f491670aa61902330b742a2c41db5d36d25863。",
+      "已核验 frozen legacy argv 与 TDD 顺序：receipt.executions 依次为 RED argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,red] exitCode=1、GREEN argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,green] exitCode=0、REFACTOR argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,verify] exitCode=0；startedAt/finishedAt 单调递增，无相位重叠。",
+      "已核验 baseline-relative changedPaths：receipt.worktree.statusBaseline 在 RED 前记录了大量 pre-existing active-change metadata（含 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/**、reviews/**、state.json、validation.md）以及 4 个已存在的 task 文件修改；最终 receipt.changedPaths 仅为 [runtime/lib/git-evidence.mjs, runtime/test/tdd-receipt-contract-smoke.mjs]，未再泄漏上述 pre-existing metadata，且未超出 Task 00 允许范围。",
+      "已核验实现 commit：95690858d3cf34f299552147615345bfaa249bd2 可定位，存在于分支 tdd-task-00-baseline-scope；其父提交正是 e3f491670aa61902330b742a2c41db5d36d25863，与 receipt.headBefore/headAfter 一致；commit 文件列表严格限定为 runtime/lib/git-evidence.mjs、runtime/lib/tdd-receipts.mjs、runtime/tdd-run.mjs、runtime/test/task-command-v2-sequencing-smoke.mjs、runtime/test/tdd-receipt-contract-smoke.mjs，未越出 task scope。",
+      "已核验实现与验收一致：commit 中 runtime/lib/git-evidence.mjs 新增 baseline capture/digest 对比，并排除 pre-existing active-change metadata；runtime/lib/tdd-receipts.mjs 同时支持 legacy redCommand/greenCommand/refactorCommand 与 sequenced commands[]，并校验 duplicate id、相位顺序、缺失尾部序列及 terminal VERIFY；runtime/tdd-run.mjs 以 receipt.executions.length 作为 executionIndex 精确解析下一条 frozen argv，并继续强制 child argv 与 freeze 完全一致。",
+      "已核验测试覆盖 acceptance：runtime/test/task-command-v2-sequencing-smoke.mjs 断言 repeated RED/GREEN/REFACTOR 与 terminal VERIFY 的顺序执行、out-of-order GREEN 阻断、以及 baseline filtering 后 changedPaths 仅保留任务增量；runtime/test/tdd-receipt-contract-smoke.mjs 断言 legacy triplet 兼容、commands[] 重复/乱序/缺失拒绝、baseline-relative changedPaths 与 pre-existing metadata 排除。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9d0b0f35-bd74-432e-b33f-8939ea337129/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/result.json",
+      ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json"
+    ],
+    "path": "verdict=pass。fresh evidence 证明本次 rerun 的 receipt 已从“工作树当前所有脏路径”收敛为“RED baseline 之后的 task 增量”，并正确排除了 pre-existing active-change metadata；RED 非零、GREEN/REFACTOR 为零且顺序正确；frozen legacy argv 使用精确无漂移；commands[] v2 sequencing 与 legacy triplet compatibility 均由实现与 smoke 覆盖支撑；implementation commit 95690858d3cf34f299552147615345bfaa249bd2 可定位且文件范围与 task/design/acceptance 一致。",
+    "correction": "无需恢复动作。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/result.json",
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+  ],
+  "blockers": [],
+  "summary": "pass：Task 00 rerun receipt 现在正确使用 RED baseline-relative changedPaths 并排除 pre-existing active-change metadata；RED/GREEN/REFACTOR receipt 与 frozen argv 绑定有效；commands[] v2 与 legacy triplet 兼容性保留；implementation commit 95690858d3cf34f299552147615345bfaa249bd2 可定位且符合 task brief/design。",
+  "recordedAt": "2026-08-06T14:52:10.724Z",
+  "resultDigest": "906e7918b7774b04d2343c0b1c48a93c2ce631e6d3c274f01cf1153d6f0586d0"
+}

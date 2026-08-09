@@ -1,0 +1,35 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_d4b156ea-221f-4d22-82e9-3061729bcfbe",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:clarify-synthesizer",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Revise the durable clarify artifact so it faithfully captures the user-confirmed governance-redesign scope, recalibrates seven-dimension ambiguity scoring at the correct phase boundary, and avoids falsely freezing design-owned schema/API/assertion details.",
+    "evidence": [
+      "Updated /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae5847d4c9f258d30/harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md.",
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae5847d4c9f258d30/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d4b156ea-221f-4d22-82e9-3061729bcfbe/input.json and confirmed the run targets clarify.synthesize with no inputRefs.",
+      "Consumed durable exploration and governing specs from /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae5847d4c9f258d30/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae5847d4c9f258d30/harness/specs/workflow.md, and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae5847d4c9f258d30/harness/specs/ambiguity-scoring.md.",
+      "The revised requirements now record: Overall 3.7; weakest dimension Data / SQL clarity (3) with tie note for Interface / API clarity and Acceptance criteria clarity; unresolved high-risk ambiguity none at clarify scope level; user scope confirmed yes; ready pending correct decision projection yes; no new clarify question."
+    ],
+    "context": [
+      "Minimal stable inputs used: input.json, existing requirements artifact, change.md template, minimum-discovery exploration evidence, workflow spec, ambiguity-scoring spec.",
+      "User-confirmed scope already durably recorded: breaking redesign allowed, no compatibility requirement, all durable workflow contracts may redesign together under internal-consistency/durable-evidence/recoverable/fail-loud invariants.",
+      "Remaining unknowns are downstream route/design/plan decisions, not missing clarify facts."
+    ],
+    "path": "Validated the handoff envelope, read the existing change artifact and governing specs, then rewrote requirements.md to (1) explain the clarify/design/plan boundary defect, (2) freeze sharp target/actors/domain/interfaces/outcomes/constraints at requirement level, and (3) recalibrate ambiguity scoring so lower data/interface/acceptance scores reflect later-stage ownership rather than unresolved user ambiguity.",
+    "correction": "No execution failure. If a downstream gate still requires all dimensions >= 4 before route, recover by fixing the decision projection/contract interpretation rather than asking the user for design-owned payload fields or mutating state.json."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md"
+  ],
+  "blockers": [],
+  "summary": "requirements.md has been revised to make the phase boundary explicit: clarify now freezes scope/risk/acceptance intent only, while design owns concrete schema/API/error/recovery and plan owns commands/assertions. The user-confirmed scope is preserved, no further clarify question is warranted, and the artifact now marks the change as ready pending correct decision projection rather than falsely fully clarify-ready.",
+  "recordedAt": "2026-08-06T08:05:04.629Z",
+  "resultDigest": "fb8f8b3c6651241bcd73dbba3d3f3b7e9ee7c670f01c64b87ca334b9ee9101a5"
+}

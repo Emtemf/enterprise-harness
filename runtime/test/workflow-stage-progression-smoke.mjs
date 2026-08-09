@@ -46,6 +46,12 @@ try {
   run(['lifecycle', 'scaffold', changeId, 'dev', 'L1', 'progression probe']);
   run(['lifecycle', 'active', changeId]);
   const changeDir = path.join(tempRoot, 'harness', 'changes', changeId);
+  // 本 fixture 只锁定 decision primitive 的可达性，不构造 executor/checker evidence graph。
+  // 标成 historical schema，避免 strict audit 正确地把这种无证据推进拦下。
+  const primitiveStatePath = path.join(changeDir, 'state.json');
+  const primitiveState = JSON.parse(fs.readFileSync(primitiveStatePath, 'utf-8'));
+  primitiveState.schemaVersion = 3;
+  fs.writeFileSync(primitiveStatePath, JSON.stringify(primitiveState, null, 2), 'utf-8');
   fs.writeFileSync(path.join(changeDir, 'requirements.md'), '# Requirements\n', 'utf-8');
   fs.writeFileSync(path.join(changeDir, 'design.md'), '# Design\n', 'utf-8');
   fs.writeFileSync(path.join(changeDir, 'tasks.md'), '# Tasks\n\n- task-1\n', 'utf-8');

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder, recommendNextAction } from './workflow.mjs';
+import { buildWorkflowResult, computeGuideReminder } from './workflow.mjs';
 import { renderTECPCCard } from './tecp-card.mjs';
 
 function readText(file) {
@@ -41,9 +41,7 @@ function activeChangeSummary(root) {
     };
   }
   const data = active.data;
-  const workflowStage = inferWorkflowStage(active.changeId, data);
-  const nextEntry = recommendNextEntry(workflowStage, data);
-  const currentGap = inferCurrentGap(root, active.changeId, data, workflowStage);
+  const workflow = buildWorkflowResult(root, active.changeId, data);
   return {
     present: true,
     changeId: active.changeId,
@@ -52,12 +50,14 @@ function activeChangeSummary(root) {
     blockers: data.blockers ?? [],
     approvals: data.approvals ?? {},
     currentTask: data.currentTask ?? null,
-    workflowStage,
-    nextEntry,
-    recommendedLane: recommendExplorationLane(workflowStage, data),
+    workflowStage: workflow.stage,
+    nextEntry: workflow.nextEntry,
+    recommendedLane: workflow.recommendedLane,
     guideReminder: computeGuideReminder(root, active.changeId),
-    currentGap,
-    nextAction: recommendNextAction(active.changeId, data, workflowStage, currentGap),
+    currentGap: workflow.currentGap,
+    nextAction: workflow.nextAction,
+    workflowStatus: workflow.status,
+    audit: workflow.audit,
   };
 }
 
@@ -71,7 +71,14 @@ export function buildStatusSummary(root) {
     const active = loadActiveChange(root);
     if (active.ok) {
       try {
-        tecpCard = renderTECPCCard(root, active.changeId, active.data);
+        tecpCard = renderTECPCCard(root, active.changeId, active.data, {
+          workflowResult: {
+            stage: activeChange.workflowStage,
+            currentGap: activeChange.currentGap,
+            nextAction: activeChange.nextAction,
+            audit: activeChange.audit,
+          },
+        });
       } catch (error) {
         tecpCard = `EH-STATUS-TECP-001: ${error.message}`;
       }

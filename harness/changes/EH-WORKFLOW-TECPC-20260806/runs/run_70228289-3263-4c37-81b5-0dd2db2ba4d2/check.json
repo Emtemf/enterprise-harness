@@ -1,0 +1,57 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_70228289-3263-4c37-81b5-0dd2db2ba4d2",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 plan-executor run_22789833-0d4c-488a-b2f1-28b8e17b2cd5 产出的计划，确认是否可以在 reviews 投影仍为 legacy 的前提下，仅凭 run-contract checker pass 启动 Task 1，并确认所有 task 命令仍保持冻结。",
+    "evidence": [
+      "已核验 checker 输入只要求检查 `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_22789833-0d4c-488a-b2f1-28b8e17b2cd5/result.json`。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md`：计划元数据明确 design/plan 的权威审批来源是 `runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json` 与 `runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json`，并明确 `reviews/design-reviewer.json` 与 `reviews/plan-critic.json` 只是 legacy、non-authoritative projection；同时写明 `Task 1 may start now on run-contract approval; Task 2+ require Task 1 bootstrap import resolution`。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md`：Task 1 的 bootstrap note 与 tasks.md 一致，明确 raw review projection 不能作为审批 gate，而本任务本身负责通过 verified importer 完成 copied review projection 的规范化并保留回指 `runs/*/check.json` 的 backlink。",
+      "已核验 Task 1 具备显式 RED → GREEN → REFACTOR → VERIFY 路径：先以 `runtime/test/artifact-import-contract-smoke.mjs red` 证明 importer/bootstrap 缺口，再进入最小 GREEN、REFACTOR 与 receipt 回归验证，满足不可跳过 RED 的要求。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json` 与 `reviews/plan-critic.json`：内容确为 check envelope 复制件，而非 legacy review schema；这与计划把它们标记为 non-authoritative bootstrap input 的描述一致，没有伪装为已导入审批事实。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json` 与 `tasks.md`、五份 `task-brief-*.md`：task-01 至 task-05 的全部 argv 一致，未发现命令冻结漂移或 markdown / json 分叉。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_22789833-0d4c-488a-b2f1-28b8e17b2cd5/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json"
+    ],
+    "path": "verdict=pass。该计划已把 Task 1 明确设为 legacy review projection 的 bootstrap normalization 入口，因此在权威审批仍锚定于独立 checker 的 `runs/*/check.json`、而 `reviews/*.json` 仍为 non-authoritative legacy projection 的前提下，启动 Task 1 是自洽且可执行的。计划同时明确限制 Task 2-5 必须等待 Task 1 完成 bootstrap import resolution，避免下游误把 raw reviews 当作可消费 gate。命令冻结方面，`task-commands.json` 与所有计划文档保持一致，下游执行者无需猜测 argv。",
+    "correction": "按当前计划继续执行时，必须严格使用 `harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json` 的冻结 argv 启动 Task 1；在 Task 1 完成 verified import 之前，不得把 `harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json` 或 `harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json` 当作权威审批源，也不得据此放行 Task 2+。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_22789833-0d4c-488a-b2f1-28b8e17b2cd5/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json"
+  ],
+  "blockers": [],
+  "summary": "pass：计划已明确 Task 1 可基于权威 run-contract checker pass 启动，并把 legacy `reviews/*.json` 限定为待 Task 1 规范化的非权威投影；同时 task-01 至 task-05 的全部 argv 仍保持冻结一致。",
+  "recordedAt": "2026-08-06T12:01:21.222Z",
+  "resultDigest": "ad929aee99dcd7f7c4ca52316e3a605346f5d74bb64cb860188d61b3a46d5666"
+}

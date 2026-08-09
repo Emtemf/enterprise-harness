@@ -1,0 +1,47 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_26345239-e929-4637-92bd-28180e18e623",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 run_3e14c0f1 的计划修正是否补齐 Task 00 独立 brief、让 Task 01 显式依赖 Task 00，并保持冻结命令无漂移。",
+    "evidence": [
+      "已校验 inputDigests 指向的 executor result：runs/run_3e14c0f1-b97d-4143-b38b-935910888769/result.json 的实际 SHA-256 为 382a316610db5ec424f369423405b985b13603a4456638a3d548eccdaa6cd5c7，与输入信封一致。",
+      "已核验 task-brief-00-bootstrap-v2-command-sequencing.md 存在，task id 为 task-00-bootstrap-v2-command-sequencing，且 Touched Files / Consumes / Produces / Dependency 与 tasks.md 中的 Task 00 对齐。",
+      "已逐项核对 Task 00 的 RED / GREEN / REFACTOR argv；task-brief-00 中三条命令与 task-commands.json 中 Task 00 的 redCommand / greenCommand / refactorCommand 完全一致。",
+      "已核验 task-brief-01-snapshot-import-state-atomicity.md 的 Dependency 现已显式依赖 task-00-bootstrap-v2-command-sequencing，不再包含 none 或 must run first 的冲突表述。",
+      "已核验 Task 01 brief 中 artifact-import / worktree-snapshot / state-projection / receipt-regression 的命令序列与 task-commands.json 中 Task 01 commands[] 完全一致。",
+      "已核验 task-commands.json 仍保持 Task 00 使用 legacy triplet、Task 01-05 保持 commands[] 的 bootstrap 结构，未发现本次修正引入的 command drift。"
+    ],
+    "context": [
+      "runs/run_26345239-e929-4637-92bd-28180e18e623/input.json",
+      "runs/run_3e14c0f1-b97d-4143-b38b-935910888769/result.json",
+      "runs/run_671cf8b5-7659-48ac-99ad-89355dd54275/check.json",
+      "tasks.md",
+      "task-commands.json",
+      "task-brief-00-bootstrap-v2-command-sequencing.md",
+      "task-brief-01-snapshot-import-state-atomicity.md"
+    ],
+    "path": "verdict=pass。前次 block 的两个关键缺口都已关闭：Task 00 已有独立 brief，且其 legacy triplet 与 frozen commands 精确一致；Task 01 已显式依赖 Task 00。Task 00/01 与 task-commands.json 之间未见命令漂移，因此下游 executor 现在可以从 Task 00 开始按冻结 argv 顺序执行，无需猜测。",
+    "correction": "无新的计划修正要求；后续执行仅需继续严格遵守 tasks.md 与 task-commands.json 中冻结的 Task 00 -> Task 01 -> Task 02 -> Task 03 -> Task 04 -> Task 05 顺序。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_3e14c0f1-b97d-4143-b38b-935910888769/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_671cf8b5-7659-48ac-99ad-89355dd54275/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md"
+  ],
+  "blockers": [],
+  "summary": "pass：Task 00 独立 brief 已补齐并匹配 legacy frozen triplet，Task 01 已显式依赖 Task 00，且未发现 task command drift。",
+  "recordedAt": "2026-08-06T12:42:39.352Z",
+  "resultDigest": "cd8b47baeaefaa5e0dd2302066bea9a48d0bc3aa50f61c0713a926bc01465f30"
+}

@@ -1,0 +1,57 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_aeb755ed-0626-4ac7-a085-0ab39c6c4acf",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "route",
+  "behavior": "route.decide",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:requirement-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 EH-WORKFLOW-TECPC-20260806 的 route.decide 是否正确确定 tier、归属边界、impact、non-goals、reviewer 与 routeReady 投影约束。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json 的 SHA-256 为 d05d18260737b9203efcdf9ed973e838a8fc2c5f730c9ee71c18f5a5d60e652b，与 checker input.json 中 inputDigests 一致。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/change.md：已明确 owning service/module/domain、L3、impact matrix、non-goals、required reviewers，并显式声明 routing score 模型仅适用于本仓库 governance routing，不宣称为通用行业标准。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/state.json：tier=L3、impact.api/data/architecture/rule 全为 yes、revision 从 pre-write 的 3 升至 4、validation.status=stale、workflow.routeReady 保持 false。",
+      "已核验 route.decide execute handoff 显式消费 requirements.md、state.json、minimum-discovery-exploration.md、route.explore-code result/check，且这些 authoritative inputs 的 digest 与当前 change 目录副本一致。",
+      "已核验 requirements.md 与 minimum-discovery-exploration.md：本次 request 属于既有 Enterprise Harness governance contracts 的 mixed breaking redesign，scope 覆盖 handoff/state/receipt/ledger/audit/stage artifact 等 authoritative contracts，且无 clarify 级高风险未决歧义。",
+      "已核验 .claude/skills/harness-route/SKILL.md、harness/specs/workflow.md、harness/specs/state-schema.md、harness/behavior-checks.json：route 只负责分流投影，routeReady 只能在用户确认后由 workflow decide 写入，不得由 route executor 自投影。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_aeb755ed-0626-4ac7-a085-0ab39c6c4acf/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8f644248-6630-4364-a22e-e2fa321759c9/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_cdd20df4-d5ca-404b-97c1-6d7ff0ed6e10/check.json",
+      ".claude/skills/harness-route/SKILL.md",
+      "harness/specs/workflow.md",
+      "harness/specs/state-schema.md",
+      "harness/behavior-checks.json",
+      "harness/reviewers/catalog.json"
+    ],
+    "path": "结论为 pass。该需求不是纯新增或纯修改中的局部修补，而是单一 service 内对既有 Enterprise Harness governance contracts 的 mixed breaking redesign；owning scope 指向 Enterprise Harness plugin/runtime governance core 明确，无跨服务 scope explosion。L3 与 impact=yes/yes/yes/yes 一致：harness-facing contract 边界可计入 repo-specific 的 API 影响，durable contracts 属于 data，inline/forked execution 与 gating 属于 architecture，TECPC/CodeGraph-first/fail-loud enforcement 属于 rule。non-goals、required reviewers、conditional api-consistency-reviewer 触发条件均已写明，且量化 routing model 明确声明仅适用于本仓库。state 投影与 change.md 一致，routeReady 未被自投影，后续仍需主 orchestrator 取得用户确认后再进入 design。",
+    "correction": "无当前 blocker。若用户不同意 L3 或 impact=yes/yes/yes/yes，应通过 /harness-route 执行 revise-route；不得手工编辑 state.json 或由 route executor 直接把 workflow.routeReady 置为 true。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+    ".claude/skills/harness-route/SKILL.md",
+    "harness/specs/workflow.md",
+    "harness/specs/state-schema.md",
+    "harness/behavior-checks.json",
+    "harness/reviewers/catalog.json"
+  ],
+  "blockers": [],
+  "summary": "pass：EH-WORKFLOW-TECPC-20260806 的 route.decide 路由归属合理，单一 service 内的 governance mixed breaking redesign 被一致投影为 L3；impact、non-goals、reviewers 与 repo-specific 定量模型完整，workflow.routeReady 仍为 false，等待用户确认。",
+  "recordedAt": "2026-08-06T08:37:51.355Z",
+  "resultDigest": "019d521375b1e551786c923d076ac5a8de801c121787d1d50e7e6b2a69bbac3c"
+}

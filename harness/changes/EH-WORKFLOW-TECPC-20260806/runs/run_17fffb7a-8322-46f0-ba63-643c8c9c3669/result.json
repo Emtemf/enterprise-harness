@@ -1,0 +1,65 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_17fffb7a-8322-46f0-ba63-643c8c9c3669",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "为 EH-WORKFLOW-TECPC-20260806 的 design 提供当前 runtime/spec/skill surface 的压缩探索事实，聚焦 inline intake+clarify、stage manifest/TECPC/handoff、route 严格评分、clarify interview evidence、audit/stop 语义。",
+    "evidence": [
+      "CodeGraph-first 已执行：mcp__codegraph__codegraph_explore/search 命中 /home/wula/IdeaProjects/sdd 的上游索引并持续返回“different git worktree”警告；因此本次仅对当前 worktree 必需的稳定 specs/runtime/inputRefs 做有限 Read/Bash fallback，原因和范围可审计。",
+      "当前入口仍是双层而非单一 intake：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/.claude/skills/harness/SKILL.md 要求主入口 `/harness` 加载阶段 skill；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/.claude/skills/harness-clarify/SKILL.md 明确 clarify 保持 inline 主对话；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/agents-and-handoff.md 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/workflow.md 明确 route/design/plan/tdd/verify 为 forked stage skill。当前 live specs/runtime 中没有正式 `intake` stage 名称。",
+      "标准阶段清单的机器真相是 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/stage-contract.mjs：`STAGE_ORDER=['clarify','route','design','plan','tdd','verify','archive']`，并为每阶段定义 artifacts/state/requiredBehaviors/optionalBehaviors。/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/stage-observability.md 明确 `workflow audit` 消费 stage-contract + state + runs/* + ledger，而不是消费 SKILL.md。",
+      "handoff/TECPC/独立 checker 的机器约束集中在 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/behavior-checks.json 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/handoff.mjs：behavior registry 绑定 stage→executor/checker/skill；checker handoff 必须带 parentRunId；inputRefs 绑定 digest；HANDOFF_RESULT 必须回显身份字段且 `tecpc.target/evidence/context/path/correction` 不能为空；`outputRefs`/`summary` 必填。/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/test/tecpc-and-registry-smoke.mjs 还覆盖 TECPC 非空和 registry/skill 一致性。",
+      "clarify 的 runtime gate 目前只机械消费 7 维评分表，而没有 interview 模型 schema：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/ambiguity-scoring.md 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/.claude/skills/harness-clarify/SKILL.md 要求 weakest-dimension、一次只问一个问题、overall、用户确认；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/ambiguity.mjs 只检查维度齐全、0-5 整数、每维 note 非空、Overall=平均值、阈值>=4。当前 repo 中 `information-gain`/`Socratic`/`Grill-Me` 只出现在本 change 的 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md 与 change.md，未进入通用 runtime/spec/skill 机器合同。",
+      "route 严格评分合同当前存在明显漂移：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/router-score.mjs 仍定义 legacy 5 维 `Scope complexity / Impact breadth / Unknowns / ambiguity / API / data risk / Test / rollback complexity`，且 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/test/router-score-gate-smoke.mjs 只验证“表是否填满”；没有 shared runtime truth 去校验 6 维 strict schema、分档阈值、tier 映射或证据依据。当前 6 维 quantitative route model 只存在于本 change 的 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/changes/EH-WORKFLOW-TECPC-20260806/change.md。",
+      "executor-checker-artifact-import 模型目前只有 TDD 具备通用导入层：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/tdd-execution.md 要求主 orchestrator 在独立 review 后执行 `evidence-import`，而 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/import-validation.mjs 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/checks.mjs 校验 imported TDD evidence、agent lifecycle、source/integration HEAD、review.receiptDigest 绑定。其他阶段当前主要依赖 `runs/<run-id>/result.json|check.json` + agent ledger，没有统一的非-TDD artifact-import 层。",
+      "当前 stage/audit/auto-stop 语义是：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/workflow.mjs 的 `inferWorkflowStage` 会把显式 `workflow.stage` 回退到 clarify/route/design 以匹配 gate；codegraph 展示的 /home/wula/IdeaProjects/sdd/runtime/lib/workflow-audit.mjs 只对 completed stages 计 blocker，只有 final completion 经 /home/wula/IdeaProjects/sdd/runtime/lib/checks.mjs 调 `auditWorkflow(...,{includeCurrent:true})` 时才把 current stage 一并算入 completion；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/hooks/stop.mjs 对 REVIEWED/VALIDATED 缺 validation 或 stale validation 直接 block，但 `state.state==='EXECUTING'` 时只是提醒后放行，不会自动终止会话。",
+      "高置信漂移/阻塞事实：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/state-schema.md 声明 machine-readable truth 是 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/schemas/state.schema.json，但该 schema 仍把 `schemaVersion` 限到 3 且 state enum 还是 `CLARIFIED/DESIGNED/PLANNED` 老集合；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/state-migration.mjs 也只迁移到 v3；而 codegraph 展示的 /home/wula/IdeaProjects/sdd/runtime/lib/checks.mjs 已按 schema 4 审计，且当前 inputRef /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json 已是 `schemaVersion:4` + `state:DRAFT`。"
+    ],
+    "context": [
+      "question: 探索当前 Enterprise Harness runtime/spec/skill surfaces，支撑 EH-WORKFLOW-TECPC-20260806 对 inline intake+clarify、standard stage manifest/TECPC/import、route 六维 strict schema、clarify interview evidence、audit/stop semantics 的 design。",
+      "scope: 只读消费 HANDOFF_INPUT 指定 inputRefs 与最小稳定合同；重点文件为 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/workflow.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/agents-and-handoff.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/state-schema.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/ambiguity-scoring.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/stage-observability.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/harness/specs/tdd-execution.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/lib/*.mjs, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/hooks/pre-explore.mjs, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9f10171bdaf3aa4c/runtime/hooks/stop.mjs, 以及本 change 的 requirements.md/change.md/state.json。",
+      "uncertainties: 当前 repo 没有 live 机器合同来回答“单一 intake stage 的正式 schema/行为名是什么”“route 是独立 stage 还是 intake checkpoint”“information-gain/Socratic/Grill-Me 的 durable evidence shape 是什么”“非-TDD 通用 artifact-import 是否存在”；这些都是 design 待冻结项，不是已存在实现。",
+      "sources: CodeGraph attempt=explore×3/search×2，均返回上游 worktree 警告（/home/wula/IdeaProjects/sdd 而非当前 worktree）；fallback 仅限上述稳定 specs/runtime 与 inputRefs，未做广泛源码 dump。"
+    ],
+    "path": "执行路径：先读取 HANDOFF_INPUT 校验 changeId/stage/behavior/role/agent；随后按 codegraph-first 运行 mcp__codegraph__codegraph_explore/search，发现索引绑定上游 worktree 且不足以可靠覆盖当前 worktree 的 markdown/json/contract 漂移；因此降级为有限 Read/Bash，只读取 inputRefs 与解释 5 个 design 主题所必需的稳定合同文件；最后交叉比对 current change artifacts、runtime machine checks、hook/audit semantics，压缩成设计可消费的事实/缺口包。",
+    "correction": "无探索执行级 blocker。设计级修正重点有二：1) 先统一 schemaVersion 4 的 state truth（schema + migration + runtime enums）；2) 把 route 六维 strict schema/threshold 与 clarify probe evidence contract 从当前 change 文本提升为 shared runtime/spec truth。若需要 worktree-accurate 的更高置信 codegraph 证据，应先在当前 worktree 初始化本地 .codegraph 索引后重跑。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/specs/workflow.md",
+    "harness/specs/agents-and-handoff.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/ambiguity-scoring.md",
+    "harness/specs/stage-observability.md",
+    "harness/specs/tdd-execution.md",
+    "harness/specs/evidence.md",
+    "harness/behavior-checks.json",
+    "harness/schemas/state.schema.json",
+    "runtime/lib/stage-contract.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lib/ambiguity.mjs",
+    "runtime/lib/router-score.mjs",
+    "runtime/lib/workflow.mjs",
+    "runtime/lib/state-migration.mjs",
+    "runtime/lib/execution-prerequisites.mjs",
+    "runtime/lib/import-validation.mjs",
+    "runtime/hooks/pre-explore.mjs",
+    "runtime/hooks/stop.mjs"
+  ],
+  "blockers": [
+    "DESIGN-BLOCKER: machine-readable state truth is split. `harness/specs/state-schema.md` says `harness/schemas/state.schema.json` is authoritative, but that schema and `runtime/lib/state-migration.mjs` are still schema-v3/old-state contracts while runtime checks and the active change already operate on schemaVersion 4 + `DRAFT/TASKED/...` semantics.",
+    "DESIGN-BLOCKER: there is no shared runtime/spec truth for the requested strict six-dimension route model. `runtime/lib/router-score.mjs` and its smoke test still enforce only the legacy five-dimension completeness check."
+  ],
+  "summary": "question=当前 Enterprise Harness 如何实现 inline clarify、stage manifest/TECPC/handoff、route 评分、clarify interviewing、audit/stop；scope=只读当前 worktree 的 stable specs/runtime 与 EH-WORKFLOW-TECPC-20260806 inputRefs；facts=1) 当前是 `harness` 主入口 + `harness-clarify` inline，route 及后续 forked，并无 live `intake` stage；2) 阶段机器真相在 `runtime/lib/stage-contract.mjs`，audit 消费 stage-contract+runs+ledger，不消费 skill 文本；3) handoff/TECPC/独立 checker 的机器约束已在 `behavior-checks.json` + `runtime/lib/handoff.mjs` 落地；4) clarify runtime 只机械校验七维表和阈值，不存在 `information-gain/Socratic/Grill-Me` 的通用 evidence schema；5) route runtime 仍是 legacy 5 维填表检查，6 维 strict 模型只在本 change 文本中；6) 通用 artifact-import 目前只有 TDD 已成型，其他阶段主要靠 `runs/*` result/check + ledger；7) current stage 由 `inferWorkflowStage` 可回退推断，`workflow audit` 默认只 block 已完成阶段，final completion 才含 current；8) stop 对 REVIEWED/VALIDATED 缺 fresh validation 会 block，但 EXECUTING 只提醒不 auto-stop；uncertainties=单一 intake stage 名称/行为、route 是否并入 intake checkpoint、clarify probing durable schema、非-TDD 统一 import 层都尚未在 live contract 中定义；impact=设计若合并 intake 并标准化 TECPC/checkpoint，将同时触达 skill topology、behavior registry、state schema、workflow audit、hook gates、stop/recovery、review/import contracts；suggestedUserQuestion=是否接受把现有 `harness` + `harness-clarify` 合并为单一 inline `intake` stage，并把 `route` 降为 intake 内 checkpoint，同时一并升级 state schema/migration、route 六维 strict schema、clarify probe evidence、以及非-TDD 通用 artifact-import 为 shared runtime truth；sources=已执行 CodeGraph-first，但索引属于上游 worktree，故 fallback 仅读取当前 worktree 的稳定 specs/runtime/inputRefs。",
+  "recordedAt": "2026-08-06T08:57:29.876Z",
+  "resultDigest": "5f470960731922092a5903a596e1b01c4120c9619494b854a9e7b9a90606d227"
+}

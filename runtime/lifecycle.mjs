@@ -5,6 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { computeValidationDigest } from './lib/checks.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
+import { buildWorkflowResult } from './lib/workflow.mjs';
 import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
 
 const repoRoot = process.cwd();
@@ -18,7 +19,9 @@ function printTECPCCard(root, changeId) {
   if (!fs.existsSync(statePath)) return;
   try {
     const data = readJson(statePath);
-    console.log(renderTECPCCard(root, changeId, data));
+    console.log(renderTECPCCard(root, changeId, data, {
+      workflowResult: buildWorkflowResult(root, changeId, data),
+    }));
   } catch (error) {
     console.error(`WARN EH-LIFECYCLE-TECP-019 ${error.message}`);
   }

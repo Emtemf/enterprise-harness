@@ -1,12 +1,14 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-09
 implementationRefs:
   - .claude-plugin/plugin.json
   - runtime/cli.mjs
+  - runtime/lib/claude-version.mjs
 testRefs:
   - runtime/test/plugin-entry-agent-contract-smoke.mjs
+  - runtime/test/claude-version-contract-smoke.mjs
 ---
 
 # Architecture Contract
@@ -14,6 +16,8 @@ testRefs:
 ## 范围
 
 当前产品只承诺 Claude Code plugin，重点支持 Java/Spring Boot/Maven 和约定治理路径。
+最低 Claude Code 版本为 2.1.218；该版本提供本工作流使用的 `background: false`。
+nested subagent 还必须配合 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`，由 doctor 与 SessionStart 诊断。
 
 ## 分层
 

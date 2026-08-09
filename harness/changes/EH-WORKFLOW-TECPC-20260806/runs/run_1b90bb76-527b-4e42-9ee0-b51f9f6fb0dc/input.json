@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_1b90bb76-527b-4e42-9ee0-b51f9f6fb0dc",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_41897503-c302-461f-aa6b-96bc9c011cf3",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "clarify.explore-code",
+    "evidence": [],
+    "context": [],
+    "path": "check clarify.explore-code",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json": "9c47704813e510741f87bb594498bcf805777826c693e659f0d54281ebc045fc"
+  },
+  "createdAt": "2026-08-06T07:32:00.344Z"
+}

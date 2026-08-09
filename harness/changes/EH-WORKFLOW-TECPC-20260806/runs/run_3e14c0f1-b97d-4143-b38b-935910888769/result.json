@@ -1,0 +1,38 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_3e14c0f1-b97d-4143-b38b-935910888769",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Resolve only the two independent-critic plan blockers by adding the missing standalone Task 00 bootstrap brief and aligning Task 01's dependency wording to Task 00 without touching state or review projections.",
+    "evidence": [
+      "Created /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md with task id `task-00-bootstrap-v2-command-sequencing`, the same touched files as tasks.md, consumes/produces, explicit test-first RED/GREEN/REFACTOR order, exact legacy triplet argv matching task-commands.json, and matching acceptance checks.",
+      "Updated /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md so `## Dependency` now points to `task-00-bootstrap-v2-command-sequencing` and no longer claims Task 01 runs first.",
+      "Wrote durable result artifact at /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_3e14c0f1-b97d-4143-b38b-935910888769/result.json.",
+      "Post-write hooks reported pre-existing invalid state/review/clarify/validation assets in the change directory; per scope, those projections were not edited."
+    ],
+    "context": [
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_3e14c0f1-b97d-4143-b38b-935910888769/input.json.",
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_671cf8b5-7659-48ac-99ad-89355dd54275/check.json for the two blocking findings.",
+      "Consumed canonical plan artifacts /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json.",
+      "Consumed existing brief format from /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-adb323fc6d66fc898/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md."
+    ],
+    "path": "Applied the minimal plan-only fix set requested by the handoff: add the missing Task 00 brief using existing tasks.md/task-commands.json as the source of truth, then align Task 01's dependency wording to that bootstrap sequencing. No state, review, or validation projection edits were made.",
+    "correction": "No hidden remediation was applied beyond the two cited findings. An independent plan-critic recheck is still required next. Pre-existing hook warnings about invalid state/review/clarify/validation assets remain visible and must be handled explicitly outside this scoped plan fix."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_3e14c0f1-b97d-4143-b38b-935910888769/result.json"
+  ],
+  "blockers": [],
+  "summary": "Plan artifacts are minimally aligned for the two cited blockers: Task 00 now has its own bootstrap brief matching the existing frozen legacy triplet, and Task 01's brief now depends on Task 00 instead of claiming it runs first.",
+  "recordedAt": "2026-08-06T12:39:05.107Z",
+  "resultDigest": "08ab0f419986e5d12f4a7e25ea4c46692b89929f4ecbe2f1e49a46c9967281e3"
+}

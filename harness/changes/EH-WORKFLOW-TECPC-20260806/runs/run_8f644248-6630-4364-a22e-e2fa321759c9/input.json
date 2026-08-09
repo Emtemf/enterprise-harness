@@ -1,0 +1,24 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_8f644248-6630-4364-a22e-e2fa321759c9",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "route",
+  "behavior": "route.explore-code",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "route.explore-code",
+    "evidence": [],
+    "context": [],
+    "path": "execute route.explore-code",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [],
+  "inputDigests": {},
+  "createdAt": "2026-08-06T08:09:49.295Z"
+}

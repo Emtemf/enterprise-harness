@@ -1,0 +1,38 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4e1cfa78-10fb-4004-92ef-3521ac9a9040",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "route",
+  "behavior": "route.decide",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:route-decider",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "基于 handoff 指定的 authoritative inputs 与已校验的 route.explore-code 结果/check，更新 EH-WORKFLOW-TECPC-20260806 的 route 决策：tier、owning service/module/domain、impact matrix、non-goals、required reviewers，以及 state.json 中的 tier/impact 投影，同时不得把 workflow.routeReady 置为 true。",
+    "evidence": [
+      "已读取并消费 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md，确认本变更是允许不兼容的 Enterprise Harness governance breaking redesign，scope 覆盖 state/handoff/receipt/ledger/audit projection/stage artifact 等 authoritative durable contracts，且 clarify 级别无未决高风险歧义。",
+      "已读取并消费 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md，获取 API/Data/Architecture/Rule 四维影响的当前 change 级事实基础，其中 exploration brief 明确写出 breaking harness-facing workflow contracts、durable contract redesign、inline/forked architecture boundary 与 governance rule hardening。",
+      "已读取并消费 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8f644248-6630-4364-a22e-e2fa321759c9/result.json 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_cdd20df4-d5ca-404b-97c1-6d7ff0ed6e10/check.json，吸收其对 owning boundary、route gate 独立性、router-score 现状局限、L3 倾向与 reviewer 边界的有效结论，并补足其 traceability 缺口。",
+      "已更新 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/change.md：写入 final tier=L3、owning service/module/domain、API/Data/Architecture/Rule= yes/yes/yes/yes、non-goals、required reviewers，以及带分维阈值的定量 routing complexity model（明确声明仅适用于本仓库治理路由，不宣称为通用行业标准）。",
+      "已更新 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json：revision 3→4，tier=L3，impact.api/data/architecture/rule 全部投影为 yes，routingReason 写明 coordinated breaking redesign across interfaces/data/architecture/rules；workflow.routeReady 保持 false，validation.status 保持 stale。"
+    ],
+    "context": [
+      "HANDOFF_INPUT: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/input.json",
+      "Authoritative inputRefs: requirements.md、state.json、minimum-discovery-exploration.md、route.explore-code result.json、route.explore-code check.json",
+      "Stable contracts additionally read because they are necessary to keep the write valid: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/.claude/skills/harness-route/SKILL.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/specs/workflow.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/specs/state-schema.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/schemas/state.schema.json, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/reviewers/catalog.json, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a58f6572d83e8293a/harness/behavior-checks.json",
+      "未决不确定性不属于 clarify 缺口，而属于 downstream design/plan：统一 durable schema、digest/consistency model、error/recovery contract、route complexity executable assertions、WorktreeCreate/ACTIVE_CHANGE/artifact import repair 的最终合同细节。"
+    ],
+    "path": "按 handoff 先校验 route.decide executor 上下文，再最小化读取 authoritative artifacts。判定时以 requirements 与 current exploration brief 为主事实层、以 validated explore/check 为补充校验层：最终将 API 视为 yes，是因为本次 scope 明确包含 breaking harness-facing interface contracts，而不仅是 OpenAPI/controller；与此同时 api-consistency-reviewer 仍保持条件性，因为其引入条件是 scope 扩展到 openapi/controller/外部公共 API。综合四个硬信号均为 yes、authoritative durable contracts 协同 breaking redesign、同一 service 内跨 spec/runtime/hook/handoff/audit 多层联动，故 tier 从原 L1 投影上调为 L3，并把 routeReady 故意留给用户确认后的 workflow decide。",
+    "correction": "无执行 blocker。若后续独立 requirement-reviewer 对本次 route.decide 给出 block，或用户不确认 L3 / yes-yes-yes-yes 路由，则恢复入口应回到 /harness-route 做 revise-route；不得由本执行者或任何手工 state.json 编辑把 workflow.routeReady 置为 true。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json"
+  ],
+  "blockers": [],
+  "summary": "已完成 route.decide 写入：本变更被投影为 Enterprise Harness plugin/runtime governance core 的 L3 breaking redesign；impact=api/data/architecture/rule 全 yes；non-goals、required reviewers 与 repo-specific quantitative routing model 已写入 change.md；state.json 已更新 tier/impact/routingReason，且 workflow.routeReady 仍为 false，等待独立 checker 与用户确认。",
+  "recordedAt": "2026-08-06T08:32:53.803Z",
+  "resultDigest": "93b83174ec340363f0c12bb1db06c4262ef5d65d3505e0513d604bc4f3ab5e83"
+}

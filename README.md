@@ -29,7 +29,7 @@ Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需
 
 要求：
 
-- Claude Code
+- Claude Code 2.1.218 或更高版本（当前验证版本：2.1.226）
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper

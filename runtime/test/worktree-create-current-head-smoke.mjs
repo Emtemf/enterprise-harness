@@ -160,6 +160,33 @@ function verifySuccessScenario(root) {
   assert.equal(fs.readFileSync(path.join(worktreePath, 'harness', 'ACTIVE_CHANGE'), 'utf-8'), 'task-probe\n');
 }
 
+function verifyUncommittedActiveChangeSnapshot(root) {
+  const changeId = 'uncommitted-probe';
+  const parentChange = path.join(root, 'harness', 'changes', changeId);
+  fs.mkdirSync(path.join(parentChange, 'runs', 'run-1'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
+  fs.writeFileSync(path.join(parentChange, 'state.json'), JSON.stringify({ state: 'DRAFT', changeId }, null, 2));
+  fs.writeFileSync(path.join(parentChange, 'runs', 'run-1', 'input.json'), JSON.stringify({ runId: 'run-1' }, null, 2));
+
+  const name = 'task-2-uncommitted-change';
+  const result = runHook(root, {
+    hook_event_name: 'WorktreeCreate',
+    cwd: root,
+    name,
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const worktreePath = stdoutLastNonEmptyLine(result);
+  assert.equal(fs.readFileSync(path.join(worktreePath, 'harness', 'ACTIVE_CHANGE'), 'utf-8'), `${changeId}\n`);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(worktreePath, 'harness', 'changes', changeId, 'state.json'), 'utf-8')),
+    { state: 'DRAFT', changeId },
+  );
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(worktreePath, 'harness', 'changes', changeId, 'runs', 'run-1', 'input.json'), 'utf-8')),
+    { runId: 'run-1' },
+  );
+}
+
 function verifyMissingActiveChangeCompatibility(root) {
   const name = 'task-2-no-active-change';
   const result = runHook(root, {
@@ -418,6 +445,7 @@ if (mode === 'red') {
   try {
     for (const [label, verify] of [
       ['success', verifySuccessScenario],
+      ['uncommitted-active-change-snapshot', verifyUncommittedActiveChangeSnapshot],
       ['missing-active-change', verifyMissingActiveChangeCompatibility],
       ['invalid-inputs', verifyInvalidInputs],
       ['branch-and-path-exclusion', verifyBranchAndPathExclusion],
@@ -464,6 +492,11 @@ try {
     const root = createRepo('worktree-create-success');
     fixtureRoots.push(root);
     verifySuccessScenario(root);
+  }
+  {
+    const root = createRepo('worktree-create-uncommitted-active-change');
+    fixtureRoots.push(root);
+    verifyUncommittedActiveChangeSnapshot(root);
   }
   {
     const root = createRepo('worktree-create-no-active-change');

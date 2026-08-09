@@ -1,0 +1,54 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_b68cfc8c-76c6-495d-b3ba-a32c64dfbcba",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 clarify.synthesize 产物是否满足七维评分、事实依据、scope confirmation 与单题澄清合同，并判断 clarify 是否达标。",
+    "evidence": [
+      "已核验 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a61f5528ad676774d/harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md：七维齐全、无 N/A 漏项、Overall=3.9 与 5/4/4/3/3/4/4 的算术平均一致，weakest dimension 说明可追溯。",
+      "已核验 requirements.md：Data / SQL clarity=3、Interface / API clarity=3，且明确列出 4 条 unresolved high-risk ambiguities；这与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a61f5528ad676774d/harness/specs/ambiguity-scoring.md 中 clarify-ready 的最低条件冲突。",
+      "已核验 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a61f5528ad676774d/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md：其中的 brownfield facts 能支撑当前多数维度评分与风险识别。",
+      "已核验 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a61f5528ad676774d/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json：workflow.userConfirmedScope=false、clarifyReady=false、routeReady=false，和 requirements.md 中“Scope confirmed by user: Yes”不自洽。",
+      "已核验 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a61f5528ad676774d/harness/specs/state-schema.md：workflow.userConfirmedScope 必须作为独立 durable 投影存在，不能只停留在 requirements 文本里。",
+      "本次 checker 任务说明已声明用户已确认 scope，并允许必要时 breaking all durable contracts；但 requirements.md 的 Recommended Next Single Clarify Question 仍在追问该 durable contract boundary，说明单题已过时且最新确认未同步进 durable clarify 产物。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4de3d931-8518-4e7b-a741-692b87f00a07/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json",
+      "harness/specs/ambiguity-scoring.md",
+      "harness/specs/state-schema.md",
+      "harness/specs/workflow.md"
+    ],
+    "path": "当前 clarify 产物已经具备可审查的七维结构与事实基础，但它自己仍声明关键维度低于 4 且存在未解决高风险歧义，因此不能通过 clarify。另一个独立 blocker 是 scope confirmation 没有在 state.json 中自洽投影，且下一单题没有吸收最新用户确认。",
+    "correction": "先把最新用户确认 durable 化：明确记录“允许必要时 breaking all durable contracts，但新合同必须自洽且 fail-loud”，同步修正 requirements.md 的 unresolved ambiguity 与下一单题，并用正确机制把 workflow.userConfirmedScope 投影为 true。随后重新评分；若任一关键维度仍低于 4，则只能继续针对新的 weakest dimension 再问一个问题，直到所有关键维度>=4 且无 unresolved high-risk ambiguity。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4de3d931-8518-4e7b-a741-692b87f00a07/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json",
+    "harness/specs/ambiguity-scoring.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/workflow.md"
+  ],
+  "blockers": [
+    "EH-CLARIFY-SCORES-BELOW-THRESHOLD: requirements.md 仍将 Data / SQL clarity 和 Interface / API clarity 评为 3，不满足 clarify-ready 的关键维度>=4。恢复：吸收最新用户确认后重评分；若仍<4，只能继续问新的 weakest-dimension 单题。",
+    "EH-CLARIFY-HIGH-RISK-AMBIGUITY-OPEN: requirements.md 仍保留 unresolved high-risk ambiguities，clarify 合同禁止在此状态下进入 route。恢复：先关闭或显著缩窄这些高风险歧义，再复核七维评分。",
+    "EH-CLARIFY-SCOPE-PROJECTION-INCONSISTENT: requirements.md 写明 scope confirmed，但 state.json 仍是 workflow.userConfirmedScope=false，且下一单题仍追问已被当前用户确认的 durable contract boundary。恢复：把 scope confirmation 正确投影到 state.json，并更新 requirements.md 的单题与确认状态，确保 durable artifacts 自洽且 fail-loud。"
+  ],
+  "summary": "block：七维与依据已落盘，但当前 clarify 产物仍自证未达门槛，且 scope confirmation 在 requirements.md 与 state.json 之间不自洽；下一单题也没有吸收最新用户确认，不能进入 route。",
+  "recordedAt": "2026-08-06T07:49:38.134Z",
+  "resultDigest": "c13c5f4b4d9587696ca094a71e5b5a845b0e6a84f667ca3ba4f65efff3dbbb0f"
+}

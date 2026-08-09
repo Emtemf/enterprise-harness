@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 4,
+  "revision": 7,
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "tier": "L3",
+  "state": "PLANNED",
+  "owner": "harness-governance",
+  "impact": {
+    "api": "yes",
+    "data": "yes",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "unknown",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "unknown",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": true,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "tddEvidence": {
+    "worktreeUsed": false,
+    "commandExecuted": null,
+    "commandOutputSummary": null,
+    "evidencePath": null,
+    "authority": "runtime-receipt-only"
+  },
+  "goal": "minimum-discovery",
+  "successCriteria": [],
+  "routingReason": "Route projection raised to L3 because the confirmed scope is a coordinated breaking redesign of Enterprise Harness governance contracts across harness-facing interfaces, authoritative durable artifacts, execution architecture, and runtime-enforced rules.",
+  "workflow": {
+    "stage": "tdd",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "routeReady": true,
+    "planReady": true,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-tdd"
+  },
+  "validation": {
+    "status": "stale",
+    "digest": null,
+    "validatedAt": null
+  },
+  "lastEventId": "wf_b5b6d596-5722-4685-8814-41cea89f5480"
+}
