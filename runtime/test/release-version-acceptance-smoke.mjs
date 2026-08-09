@@ -66,6 +66,7 @@ for (const entry of fs.readdirSync(runtimeTestDir, { withFileTypes: true })) {
 for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
   const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
   assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
+  assert.match(text, /node runtime\/cli\.mjs verify --release-surface/u, `${workflow} must verify the release package surface`);
   assert.match(text, /actions\/checkout@v7/u);
   assert.match(text, /actions\/setup-node@v7/u);
   assert.match(text, /@anthropic-ai\/claude-code@2\.1\.220/u);

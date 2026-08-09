@@ -51,8 +51,8 @@ jobs:
       - name: Sync
         run: node runtime/cli.mjs sync
 
-      - name: Verify
-        run: node runtime/cli.mjs verify
+      - name: Verify release surface
+        run: node runtime/cli.mjs verify --release-surface
 
       - name: Upstream check
         run: node runtime/cli.mjs upstream-check
