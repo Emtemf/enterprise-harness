@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_671cf8b5-7659-48ac-99ad-89355dd54275",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_733562b2-9c7f-4dbf-9c26-e425edb7d66a",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "plan.produce",
+    "evidence": [],
+    "context": [],
+    "path": "check plan.produce",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_733562b2-9c7f-4dbf-9c26-e425edb7d66a/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_733562b2-9c7f-4dbf-9c26-e425edb7d66a/result.json": "1d1acb270b4147bddd3908a3976ade171f0f1a232d35e09cea426f366def7403"
+  },
+  "createdAt": "2026-08-06T12:30:19.011Z"
+}

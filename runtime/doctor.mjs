@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.mjs';
 import { evaluateSpawnDepth } from './lib/spawn-depth.mjs';
 import { evaluateCodegraphIndex } from './lib/codegraph-index.mjs';
+import { evaluateClaudeCodeVersion } from './lib/claude-version.mjs';
 
 const repoRoot = process.cwd();
 const online = process.argv.includes('--online');
@@ -67,6 +68,13 @@ checks.push({
   name: 'node',
   ok: true,
   detail: nodeVersion,
+});
+
+const claudeCodeVersion = evaluateClaudeCodeVersion(run('claude', ['--version']));
+checks.push({
+  kind: 'runtime',
+  name: 'claude-code',
+  ...claudeCodeVersion,
 });
 
 const spawnDepth = evaluateSpawnDepth();

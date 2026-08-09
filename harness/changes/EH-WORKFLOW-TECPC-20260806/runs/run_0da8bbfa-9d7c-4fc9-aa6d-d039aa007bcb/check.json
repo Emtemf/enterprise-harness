@@ -1,0 +1,57 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_0da8bbfa-9d7c-4fc9-aa6d-d039aa007bcb",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 clarify.synthesize 产物是否满足 clarify artifact contract：七维齐全且评分有事实依据、无未解决高风险歧义、用户 scope 已被真实 durable 化确认，并与 state/workflow gate 自洽。",
+    "evidence": [
+      "已核验输入摘要：harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0da8bbfa-9d7c-4fc9-aa6d-d039aa007bcb/input.json 声明的 result.json digest 为 fdc35ed527a7f100638040ac891fefa94b6be3a23ed47a9a78c8c1056f9564d9；实际对 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_c9c98893-80f4-4173-b7df-6642e2edc0b5/result.json 计算 SHA-256 一致。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md：七维均已显式列出，Overall=4.1 与 5/4/4/4/4/4/4 的算术平均一致，且旧的 durable-contract boundary 单题已被移除，requirements 文本层面已吸收“所有 durable contracts 可一起 breaking redesign”的最新结论。",
+      "但 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md 第 105-109 行写明“Scope confirmed by user: Yes / Clarify ready for route: Yes”，而 harness/changes/EH-WORKFLOW-TECPC-20260806/state.json 第 45-48 行仍是 workflow.clarifyReady=false、workflow.userConfirmedScope=false、workflow.routeReady=false，durable artifacts 彼此不自洽。",
+      "已核验 harness/specs/state-schema.md 第 51-59 行：clarifyReady、userConfirmedScope、routeReady 是独立 workflow 标志，不能互相替代；design/route 前必须由 durable state 正确投影，不能只停留在 requirements 文本里。",
+      "已核验 harness/specs/workflow.md 第 24-39 行与 harness/specs/stage-observability.md 第 116-119 行：route 前置明确要求 clarifyReady 与 userConfirmedScope 为 true，且 clarify 的合法推进包含 confirm-clarity 后再由用户 confirm-scope。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md 第 84-88 行：当前 4 分依据本身仍承认“异常/恢复交互待 design 写清”“精确 schema 字段待 design 冻结”“具体 artifact/API 形状与 validator 待设计”“精确断言和阈值待 design/plan 冻结”。这与 harness/specs/ambiguity-scoring.md 第 96-107、117-141 行对 4 分的要求（actor 异常路径已确认、data 结构/迁移/约束/回滚已明确、interface 签名+error+兼容策略已明确、acceptance 主要+边界断言可直接写测试、risk+mitigation 已明确）不完全匹配，至少 User/actor、Data/SQL、Interface/API、Acceptance criteria 的 4 分依据不足。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md 与 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json：它们足以支撑“durable-contract boundary 已解决、若干 route/design 决策仍待冻结”的事实，但没有新增 durable 证据把上述多个维度提升到 scoring spec 所要求的 4 分阈值。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0da8bbfa-9d7c-4fc9-aa6d-d039aa007bcb/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_c9c98893-80f4-4173-b7df-6642e2edc0b5/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json",
+      "harness/specs/ambiguity-scoring.md",
+      "harness/specs/state-schema.md",
+      "harness/specs/workflow.md",
+      "harness/specs/stage-observability.md"
+    ],
+    "path": "本次 synthesis 已修复上轮最突出的 stale 单题问题，并把“durable contracts 可一起 breaking redesign”写入 requirements/evidence；但 clarify artifact contract 不是只看文本是否更完整，还要求 scope confirmation 为真实 durable gate，且七维分数必须按 scoring spec 有足够事实支撑。当前 requirements 与 state.json 仍不自洽，且多个 4 分实际上建立在“待 design 冻结”的未来事项上，因此不能判定 clarify 达标。",
+    "correction": "先用正确的 runtime/decision 路径把真实用户 scope confirmation durable 化并投影到 harness/changes/EH-WORKFLOW-TECPC-20260806/state.json；随后按 harness/specs/ambiguity-scoring.md 重新校准 User/actor、Data/SQL、Interface/API、Acceptance criteria（必要时含 Constraint/risk）分数。若补不出满足 4 分标准的事实证据，就必须把分数降回真实水平并继续 clarify，只问新的 weakest dimension 单题；只有当 state 与 requirements 同时显示 userConfirmedScope=true、clarifyReady=true，且所有关键维度的 4 分都有可追溯证据时，才能进入 route。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_c9c98893-80f4-4173-b7df-6642e2edc0b5/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json",
+    "harness/specs/ambiguity-scoring.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/workflow.md",
+    "harness/specs/stage-observability.md"
+  ],
+  "blockers": [
+    "EH-CLARIFY-SCOPE-CONFIRMATION-NOT-DURABLE: requirements.md 宣称 scope 已确认，但 state.json 仍是 workflow.userConfirmedScope=false、clarifyReady=false。恢复：通过正确 runtime 决策链 durable 化真实用户确认并更新 state 投影，不能只靠 requirements 文本自报。",
+    "EH-CLARIFY-SCORE-EVIDENCE-MISMATCH: 当前多个 4 分没有达到 ambiguity-scoring.md 的证据阈值；requirements 自身仍把 actor 异常路径、data schema/rollback、artifact/API 形状、精确断言/阈值留给 design/plan。恢复：补充足以满足 4 分标准的 durable 事实，或下调这些维度并继续针对新的 weakest dimension 做单题 clarify。"
+  ],
+  "summary": "block：requirements 已吸收“所有 durable contracts 可一起 breaking redesign”的新 scope，但 clarify artifact contract 仍未达标；一是 scope confirmation 还未 durable 化到 state.json，二是多项 4 分依据仍落在未来 design/plan 事项上，未满足 ambiguity scoring spec 的 4 分证据门槛。",
+  "recordedAt": "2026-08-06T08:00:51.172Z",
+  "resultDigest": "badff64dc7bb8fb192a0d1534639d792e97543598928879cfbeec51d6a60dafd"
+}

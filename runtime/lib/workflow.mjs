@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { auditWorkflow } from './workflow-audit.mjs';
 
 export function computeGuideReminder(root, changeId) {
   if (!root || !changeId) return null;
@@ -175,22 +176,55 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const currentGap = inferCurrentGap(root, changeId, data, stage);
   const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap, shouldSuppressExecutionReadiness);
   const nextAction = recommendNextAction(changeId, data, stage, currentGap, pendingDecision);
+  let audit = null;
+  if (Number(data?.schemaVersion ?? 0) >= 4) {
+    try {
+      audit = auditWorkflow(root, changeId, data);
+    } catch (error) {
+      audit = {
+        verdict: 'block',
+        blockers: [{
+          code: 'EH-AUDIT-RUNTIME-006',
+          message: `workflow audit failed: ${error.message}`,
+          recovery: `run workflow audit ${changeId} --json and repair the invalid durable evidence`,
+        }],
+        stages: [],
+      };
+    }
+  }
+  const auditBlocked = audit?.verdict === 'block';
+  const firstAuditBlocker = audit?.blockers?.[0] ?? null;
+  const firstBlockedStage = audit?.stages?.find((item) => item.lifecycle === 'completed' && item.status === 'block')?.stage ?? null;
+  const auditSummary = audit ? {
+    verdict: audit.verdict,
+    blockerCount: audit.blockers?.length ?? 0,
+    blockedStages: audit.stages
+      ?.filter((item) => item.lifecycle === 'completed' && item.status === 'block')
+      .map((item) => item.stage) ?? [],
+    firstBlocker: firstAuditBlocker,
+  } : null;
+  const auditGap = firstAuditBlocker
+    ? `已完成阶段${firstBlockedStage ? ` ${firstBlockedStage}` : ''} 的权威证据审计失败：${firstAuditBlocker.code} ${firstAuditBlocker.message}；恢复：${firstAuditBlocker.recovery}`
+    : currentGap;
   return {
     changeId,
     state: data.state ?? null,
     stage,
-    status: inferRunnerStatus(stage, pendingDecision),
-    nextAction,
-    pendingDecision,
-    recommendedLane,
-    currentGap,
-    blockers: data.blockers ?? [],
+    status: auditBlocked ? 'blocked' : inferRunnerStatus(stage, pendingDecision),
+    nextAction: auditBlocked ? `workflow audit ${changeId} --json` : nextAction,
+    pendingDecision: auditBlocked ? null : pendingDecision,
+    recommendedLane: auditBlocked ? null : recommendedLane,
+    currentGap: auditBlocked ? auditGap : currentGap,
+    blockers: auditBlocked ? [...(data.blockers ?? []), firstAuditBlocker].filter(Boolean) : (data.blockers ?? []),
+    audit: auditSummary,
     approvals: data.approvals ?? {},
     revision: data.revision ?? 1,
     lastEventId: data.lastEventId ?? null,
-    workflow: data.workflow ?? null,
+    workflow: auditBlocked && data.workflow
+      ? { ...data.workflow, projectedNextEntry: data.workflow.nextEntry ?? null, nextEntry: '/harness' }
+      : (data.workflow ?? null),
     validation: data.validation ?? null,
-    nextEntry,
+    nextEntry: auditBlocked ? '/harness' : nextEntry,
   };
 }
 

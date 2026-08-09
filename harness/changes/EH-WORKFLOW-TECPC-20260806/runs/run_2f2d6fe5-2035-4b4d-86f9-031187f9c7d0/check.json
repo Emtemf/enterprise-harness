@@ -1,0 +1,58 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_2f2d6fe5-2035-4b4d-86f9-031187f9c7d0",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 Task 1 executor result、receipt 绑定、TDD 顺序、scope 与设计/acceptance 对齐",
+    "evidence": [
+      "已核验 executor result digest=e06c227f9f6d43618a88802f66d4ef6c247238b642bb71f9ac6dd732c7128fed，与 input.json 声明一致。",
+      "已核验 agent-events.jsonl 中 run_1b3716f3-df73-4677-a432-6039d305d29a 的 dispatch/start/stop：agentId=a91c5151f4f0b83ec，cwd=/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec；与 TDD receipt 的 agent/worktree 一致。",
+      "已核验 receipt.worktree.headBefore=headAfter=e3f491670aa61902330b742a2c41db5d36d25863；implementation commit e3baf3a480af93a073885f99174c9bf13cf029e7 的 parent 也是该 HEAD，提交可定位。",
+      "已核验 receipt.executions 共 10 条，严格匹配 task-commands.json schemaVersion 2 冻结顺序：3 个 RED exit=1，3 个 GREEN exit=0，3 个 REFACTOR exit=0，1 个 VERIFY exit=0；argv 与冻结 commands 一致。",
+      "Task 1 冻结 touched files 不包含 runtime/lib/checks.mjs、runtime/lib/tdd-receipts.mjs、runtime/lib/workflow.mjs、runtime/tdd-run.mjs、runtime/workflow.mjs；但 implementation commit e3baf3a480af93a073885f99174c9bf13cf029e7 实际修改了这些路径。",
+      "其中 runtime/lib/checks.mjs 与 runtime/lib/workflow.mjs 的 PLANNED 状态校验/推断调整不属于 Task 1 acceptance 所要求的 shared importer、snapshot continuity、unimported spool non-authoritative、atomic state/checkpoint publish。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2f2d6fe5-2035-4b4d-86f9-031187f9c7d0/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1b3716f3-df73-4677-a432-6039d305d29a/result.json",
+      ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json",
+      ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/agent-events.jsonl",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+    ],
+    "path": "receipt/run/agent/worktree/argv/HEAD 绑定成立，RED/GREEN/REFACTOR/VERIFY 顺序成立，implementation commit 可定位；但实现超出 Task 1 冻结 scope，独立 checker 不能放行。",
+    "correction": "BLOCK [EH-TASK-SCOPE-001]：先把额外路径纳入经批准的 task/plan scope，或拆分/回滚超范围改动后重新执行独立 TDD。至少 runtime/lib/checks.mjs 与 runtime/lib/workflow.mjs 应从 Task 1 移除；若 runtime/lib/tdd-receipts.mjs、runtime/tdd-run.mjs、runtime/workflow.mjs 确属必要，也必须先更新冻结 touched-files/acceptance，再重跑 RED→GREEN→REFACTOR→VERIFY 并提交新的 executor result。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1b3716f3-df73-4677-a432-6039d305d29a/result.json",
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json",
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/agent-events.jsonl"
+  ],
+  "blockers": [
+    {
+      "code": "EH-TASK-SCOPE-001",
+      "message": "Implementation commit e3baf3a480af93a073885f99174c9bf13cf029e7 changed files outside Task 1 frozen scope.",
+      "evidence": [
+        "Frozen touched files do not include runtime/lib/checks.mjs, runtime/lib/tdd-receipts.mjs, runtime/lib/workflow.mjs, runtime/tdd-run.mjs, or runtime/workflow.mjs.",
+        "Task 1 expected runtime/cli.mjs for CLI wiring, but the commit changed runtime/workflow.mjs instead."
+      ],
+      "recovery": [
+        "Re-freeze Task 1 scope to explicitly authorize only the receipt/workflow files that are truly required, then rerun isolated TDD and review.",
+        "Or split the extra receipt/workflow/state-gate edits into follow-up tasks and keep Task 1 limited to the originally approved files."
+      ]
+    }
+  ],
+  "summary": "BLOCK: executor evidence and TDD ordering are valid, but Task 1 fails independent review because implementation commit e3baf3a480af93a073885f99174c9bf13cf029e7 exceeds the frozen task scope, including unjustified PLANNED-state changes.",
+  "recordedAt": "2026-08-06T11:45:28.399Z",
+  "resultDigest": "b39e1a082a480cdb36beb52d9e8023a8fa439cad6442988882ee3ce0a4694814"
+}

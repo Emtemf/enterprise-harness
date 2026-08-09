@@ -3,7 +3,6 @@ import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { highSeverityLessons } from '../lib/lessons.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
-import { recommendNextAction } from '../lib/workflow.mjs';
 import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
 import { evaluateSpawnDepth } from '../lib/spawn-depth.mjs';
 import { evaluateCodegraphIndex } from '../lib/codegraph-index.mjs';
@@ -42,11 +41,7 @@ const currentGap = summary.currentGap || '未识别当前缺口';
 const guideReminder = summary.activeChange?.guideReminder || null;
 const recommendedLane = summary.recommendedLane || null;
 const recommendedEntry = summary.recommendedEntry || '/harness';
-const nextAction = summary.activeChange?.present
-  ? recommendNextAction(summary.activeChange.changeId, {
-      workflow: { stage: workflowStage, nextEntry: recommendedEntry },
-    }, workflowStage, summary.currentGap)
-  : '/harness';
+const nextAction = summary.nextAction || '/harness';
 console.log(`[Harness 启动检查] ${parts.join(' | ')}`);
 console.log(`[Harness 入口] 普通用户入口: ${userEntry}`);
 console.log(`[Harness 强制约束] 所有请求必须先走 ${userEntry} 进入 SOP，不得跳过。`);
@@ -94,7 +89,14 @@ console.log(`[Harness 维护] 如需排障再用: ${maintainerStatusCommand}`);
 try {
   const active = loadActiveChange(root);
   if (active.ok) {
-    const card = renderTECPCCard(root, active.changeId, active.data);
+    const card = renderTECPCCard(root, active.changeId, active.data, {
+      workflowResult: {
+        stage: workflowStage,
+        currentGap,
+        nextAction,
+        audit: summary.activeChange.audit,
+      },
+    });
     console.log(`[Harness 闭环五检]\n${card}`);
   }
 } catch (error) {

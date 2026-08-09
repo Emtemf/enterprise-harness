@@ -1,0 +1,50 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_98ef7ffc-0e73-46e3-8841-f41ba3e0934f",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 design.produce 产出的 design.md 是否完整、基于事实、适用性判断正确，并且与已通过的 design.explore-code 结论一致到足以进入 plan。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md：T/C/E/P 结构完整，已覆盖 public HTTP/OpenAPI=`none` 且 review 结论应为 `unsupported`、SQL/DB=`none`、file-backed durable data=`applicable`，并包含 migration、fail-loud、测试、rollback 设计。",
+      "已对照 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json 与 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json：design.md 对单一 manifest、stage checkpoint、worktree snapshot、CodeGraph valid-index、route 六维、clarify interview evidence、audit current-stage 等主设计方向与已检查通过的探索结果一致。",
+      "已核验 harness/plugin/hooks-manifest.json：当前 authoritative hook projection 实际包含 9 个 top-level hook event groups（SessionStart、PreToolUse、PostToolUse、PostToolUseFailure、SubagentStart、SubagentStop、WorktreeCreate、TaskCompleted、Stop），共 12 个 registration。",
+      "已核验 design.md 在当前状态描述与最终方案中两次写成“8 个 hook event group、12 个具体 hook 注册”（C 上下文当前 registry 面；P 路径 governance manifest 合同），与当前 authoritative hook projection 不一致。该误差落在本次 redesign 的核心边界：统一 hook/agent/checker registry 与 boot-time probe。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json",
+      "harness/plugin/hooks-manifest.json"
+    ],
+    "path": "结论为 block。该设计在目标、适用性、迁移/fail-loud/test/rollback、以及大部分 brownfield 对齐上已基本到位；但它把当前 hook registry 盘点写错为 8 个 event groups，而当前 authoritative projection 明确是 9 个。由于“统一 hook/agent/checker registry + boot-time conformance probe”正是本次 redesign 的核心方案，这不是可忽略的文案小误差，而是会直接影响 manifest 覆盖边界与后续 plan 拆解的设计缺口。修正该核心 inventory 之前，不应进入 plan。",
+    "correction": "恢复动作：修订 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md，按 authoritative sources 更正当前 hook surface 为 9 个 event groups/12 个 registrations，并在统一 governance manifest/probe 设计里显式说明这 9 个 groups 的覆盖与投影关系；若 schema 5 有意删除或合并其中任一 group，必须补充迁移、兼容与 fail-loud 行为。修订后重新执行 design.produce 并再次独立 review。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/plugin/hooks-manifest.json"
+  ],
+  "blockers": [
+    "EH-DESIGN-REGISTRY-001: design.md 将当前 hook registry 盘点写成 8 个 event groups，但 authoritative hook projection 实际为 9 个；该误差落在本次统一 registry/probe 设计的核心边界，需先修正后才能进入 plan。"
+  ],
+  "summary": "block：design.md 已覆盖 API none/unsupported、file-backed data applicable、migration/fail-loud/test/rollback 等关键面，但在核心 registry 设计上把当前 hook event groups 从实际 9 个误写成 8 个，导致统一 manifest/probe 的覆盖边界不可靠，需修订后再过 design gate。",
+  "recordedAt": "2026-08-06T09:57:07.696Z",
+  "resultDigest": "66007208d3a97ccc12eef7c4ef722a209c76518c7bb17994b17ebbb1c6f32e8a"
+}

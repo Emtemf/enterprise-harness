@@ -113,15 +113,52 @@ function ensureContainedCanonicalPath(expectedPath, canonicalParent) {
   }
 }
 
-function safeActiveChange(parentRepo, parentHead) {
+function ensureSafeRegularFile(absolutePath, label) {
+  const stat = lstatEntry(absolutePath);
+  if (!stat || stat.isSymbolicLink() || !stat.isFile()) {
+    throw new Error(`${label} must be a regular file: ${absolutePath}`);
+  }
+}
+
+function ensureSafeTree(absolutePath, label) {
+  const stat = lstatEntry(absolutePath);
+  if (!stat || stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new Error(`${label} must be a real directory: ${absolutePath}`);
+  }
+  for (const entry of fs.readdirSync(absolutePath, { withFileTypes: true })) {
+    const child = path.join(absolutePath, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`${label} must not contain symlinks: ${child}`);
+    if (entry.isDirectory()) ensureSafeTree(child, label);
+    else if (!entry.isFile()) throw new Error(`${label} contains unsupported entry: ${child}`);
+  }
+}
+
+function safeActiveChange(parentRepo) {
   const activePath = path.join(parentRepo, 'harness', 'ACTIVE_CHANGE');
   if (!lstatEntry(activePath)) return null;
+  ensureSafeRegularFile(activePath, 'ACTIVE_CHANGE');
   const value = fs.readFileSync(activePath, 'utf-8').trim();
   if (!SAFE_CHANGE_ID.test(value)) throw new Error(`ACTIVE_CHANGE is unsafe: ${value}`);
-  const stateRel = path.posix.join('harness', 'changes', value, 'state.json');
-  const cat = runGit(parentRepo, ['-C', parentRepo, 'cat-file', '-e', `${parentHead}:${stateRel}`]);
-  if (cat.status !== 0) throw new Error(`ACTIVE_CHANGE state.json is unavailable at parent HEAD: ${value}`);
-  return value;
+  const changePath = path.join(parentRepo, 'harness', 'changes', value);
+  ensureSafeTree(changePath, `active change ${value}`);
+  ensureSafeRegularFile(path.join(changePath, 'state.json'), `active change ${value} state.json`);
+  return { changeId: value, changePath };
+}
+
+function snapshotActiveChange(active, childRoot, canonicalParent) {
+  const childHarness = path.join(childRoot, 'harness');
+  const childChange = path.join(childHarness, 'changes', active.changeId);
+  ensureRealDirectory(childHarness, 'child harness');
+  if (!pathIsWithin(childChange, childHarness)) throw new Error('active change snapshot escapes child harness');
+  ensureContainedCanonicalPath(childRoot, canonicalParent);
+  fs.cpSync(active.changePath, childChange, {
+    recursive: true,
+    dereference: false,
+    errorOnExist: false,
+    force: true,
+  });
+  ensureSafeTree(childChange, `child active change ${active.changeId}`);
+  ensureSafeRegularFile(path.join(childChange, 'state.json'), `child active change ${active.changeId} state.json`);
 }
 
 function injectPublishFailure(childHarness, activePath) {
@@ -293,7 +330,7 @@ try {
   if (String(runGit(repoRoot, ['-C', repoRoot, 'branch', '--list', branchName]).stdout || '').trim()) {
     throw new Error(`worktree branch already exists: ${branchName}`);
   }
-  const changeId = safeActiveChange(repoRoot, parentHead);
+  const active = safeActiveChange(repoRoot);
 
   let created = false;
   try {
@@ -305,8 +342,9 @@ try {
     if (observedHead !== parentHead) {
       throw new Error(`worktree HEAD mismatch: expected ${parentHead} got ${observedHead}`);
     }
-    if (changeId) {
-      publishActiveChange(repoRoot, worktreePath, changeId, parentReal);
+    if (active) {
+      snapshotActiveChange(active, worktreePath, parentReal);
+      publishActiveChange(repoRoot, worktreePath, active.changeId, parentReal);
     }
     console.log(worktreePath);
     process.exit(0);

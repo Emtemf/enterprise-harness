@@ -1,5 +1,5 @@
 import { loadActiveChange } from './gates.mjs';
-import { inferWorkflowStage, recommendNextEntry } from './workflow.mjs';
+import { buildWorkflowResult } from './workflow.mjs';
 
 export function buildRecoveryGuidance(root) {
   const active = loadActiveChange(root);
@@ -13,12 +13,15 @@ export function buildRecoveryGuidance(root) {
     };
   }
 
-  const workflowStage = inferWorkflowStage(active.changeId, active.data);
+  const workflow = buildWorkflowResult(root, active.changeId, active.data);
   return {
     present: true,
     changeId: active.changeId,
-    workflowStage,
-    nextEntry: recommendNextEntry(workflowStage, active.data),
+    workflowStage: workflow.stage,
+    nextEntry: workflow.nextEntry,
+    nextAction: workflow.nextAction,
+    currentGap: workflow.currentGap,
+    audit: workflow.audit,
     assetGuidance: `change-specific 结论：优先写回 harness/changes/${active.changeId}/ 下的 change.md / design.md / tasks.md / validation.md / evidence/*.md / reviews/*.json。`,
   };
 }

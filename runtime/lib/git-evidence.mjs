@@ -22,6 +22,10 @@ function nulRecords(buffer) {
   return buffer.toString('utf-8').split('\0').filter(Boolean);
 }
 
+function sha256(value) {
+  return crypto.createHash('sha256').update(value ?? '').digest('hex');
+}
+
 function inventoryDigest(entries) {
   const hash = crypto.createHash('sha256');
   hash.update('git-file-inventory-v1\0');
@@ -36,20 +40,68 @@ function inventoryDigest(entries) {
   return hash.digest('hex');
 }
 
-export function changedWorktreePaths(cwd) {
-  const records = nulRecords(runGit(
-    ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
-    cwd,
-  ));
-  const paths = [];
+function fileDigest(absolute) {
+  if (!fs.existsSync(absolute) || fs.statSync(absolute).isDirectory()) return null;
+  return sha256(fs.readFileSync(absolute));
+}
+
+function statusEntriesFromRecords(records) {
+  const entries = [];
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
     if (record.length < 4) continue;
     const status = record.slice(0, 2);
-    paths.push(record.slice(3));
+    entries.push({ path: record.slice(3), status });
     if (/[RC]/.test(status)) index += 1;
   }
-  return [...new Set(paths)].sort();
+  return entries;
+}
+
+function isPreExistingActiveChangeMetadataPath(relative) {
+  return /^harness\/changes\/[^/]+\/(runs\/|reviews\/|snapshots\/|state\.json$|validation\.md$)/.test(relative);
+}
+
+export function worktreeStatusEntries(cwd) {
+  return statusEntriesFromRecords(nulRecords(runGit(
+    ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+    cwd,
+  )));
+}
+
+export function captureWorktreeBaseline(cwd) {
+  const entries = worktreeStatusEntries(cwd);
+  const digests = Object.fromEntries(entries.map((entry) => [
+    entry.path,
+    fileDigest(path.join(cwd, entry.path)),
+  ]));
+  return {
+    baselineVersion: 1,
+    paths: entries,
+    digests,
+  };
+}
+
+export function changedWorktreePaths(cwd) {
+  return [...new Set(worktreeStatusEntries(cwd).map((entry) => entry.path))].sort();
+}
+
+export function changedPathsSinceBaseline(cwd, baseline) {
+  if (!baseline || baseline.baselineVersion !== 1 || !Array.isArray(baseline.paths)) {
+    return changedWorktreePaths(cwd);
+  }
+  const baselineEntries = new Map(baseline.paths.map((entry) => [entry.path, entry]));
+  const baselineDigests = baseline.digests && typeof baseline.digests === 'object'
+    ? baseline.digests
+    : {};
+  return [...new Set(worktreeStatusEntries(cwd)
+    .filter((entry) => {
+      const before = baselineEntries.get(entry.path);
+      if (!before) return true;
+      if (isPreExistingActiveChangeMetadataPath(entry.path)) return false;
+      const currentDigest = fileDigest(path.join(cwd, entry.path));
+      return baselineDigests[entry.path] !== currentDigest || before.status !== entry.status;
+    })
+    .map((entry) => entry.path))].sort();
 }
 
 export function changedPathsBetween(cwd, fromRef, toRef = 'HEAD') {

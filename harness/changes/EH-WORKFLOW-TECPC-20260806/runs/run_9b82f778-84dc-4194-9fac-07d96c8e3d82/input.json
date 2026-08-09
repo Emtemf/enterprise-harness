@@ -1,0 +1,24 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_9b82f778-84dc-4194-9fac-07d96c8e3d82",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "plan.produce",
+    "evidence": [],
+    "context": [],
+    "path": "execute plan.produce",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [],
+  "inputDigests": {},
+  "createdAt": "2026-08-06T10:24:01.141Z"
+}

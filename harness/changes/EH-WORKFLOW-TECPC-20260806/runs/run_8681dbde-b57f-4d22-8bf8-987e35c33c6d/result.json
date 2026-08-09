@@ -1,0 +1,61 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_8681dbde-b57f-4d22-8bf8-987e35c33c6d",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "基于当前 Enterprise Harness runtime/spec/active-change 事实，压缩输出 workflow governance redesign 设计所需的代码探索结论，重点覆盖 inline intake/clarify vs forked stages、stage manifest/checkpoint/artifact import、route scoring、clarify interviewing/probing、audit semantics。",
+    "evidence": [
+      "question: 当前代码如何真实实现 intake/clarify inline 边界、forked stage executor/checker、stage 合同/checkpoint、artifact import、route scoring、clarify probing 与 audit；哪些地方已经机械化，哪些地方仍然分裂或互相矛盾？",
+      "scope: runtime/lib/{workflow.mjs,stage-contract.mjs,handoff.mjs,workflow-audit.mjs,ambiguity.mjs,router-score.mjs,execution-prerequisites.mjs,agent-evidence.mjs,spawn-depth.mjs,gates.mjs,tdd-receipts.mjs,import-validation.mjs}；runtime/{evidence-import.mjs}；runtime/hooks/{pre-agent.mjs,subagent-start.mjs,subagent-stop.mjs,post-agent.mjs,pre-explore.mjs}；harness/{behavior-checks.json,specs/workflow.md,specs/agents-and-handoff.md,specs/ambiguity-scoring.md,specs/evidence.md,specs/state-schema.md}；以及当前 change 的 requirements/change/state/run artifacts。",
+      "facts[1]: inline vs forked 边界已经是显式合同，不是口头习惯。harness/specs/agents-and-handoff.md 规定 `harness` 与 `harness-clarify` 留在主对话，route/design/plan/tdd/verify 为 forked stage；runtime/lib/workflow.mjs 通过 `inferWorkflowStage`、`inferPendingDecision`、`applyRouteConfirmationDecision` 等把 `confirm-scope`、`confirm-route` 等需用户确认的动作保留给主 orchestrator，而不是 forked stage 自行推进。",
+      "facts[2]: forked stage 是否还能再派 executor/checker 取决于 spawn depth；这是 runtime 级 fail-loud 约束。runtime/lib/spawn-depth.mjs 要求至少 2、推荐 3；harness/specs/agents-and-handoff.md 说明深度不足会让 Agent 工具静默消失并导致自写自审塌缩；bin/generate-hooks.mjs 生成 `.claude/settings.json` 时把 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 设为 3。",
+      "facts[3]: 当前 stage/behavior 合同并非单一 manifest，而是分散在至少四层。runtime/lib/stage-contract.mjs 定义每个 stage 的 artifacts/state/requiredBehaviors/optionalBehaviors；harness/behavior-checks.json 定义 behavior->stage/executor/checker/artifact；runtime/lib/workflow.mjs 定义 pending decisions 与状态推进；harness/specs/state-schema.md 定义 `workflow` readiness flags。当前 active runtime 没有单一 first-class stage manifest/checkpoint artifact。",
+      "facts[4]: 当前 ‘checkpoint’ 更像 decision+flag，而不是独立 durable schema。`inferPendingDecision` 产出 `confirm-clarity`、`confirm-scope`、`confirm-route`、`freeze-slice`、`approve`、`freeze-plan`、`enter-verify`、`enter-archive` 等选项；对应 durable 投影主要是 `workflow.clarifyReady`、`workflow.userConfirmedScope`、`workflow.routeReady`、`gates.designApproved`、`workflow.planReady`、`workflow.tddStatus`、`validation.status`，外加 `workflow.suppressionBaseline.designMdSha256` 这个特殊 case。对 `runtime/**` 与 `harness/**` 的 fallback `rg -n \"checkpoint\"` 结果显示，active runtime 几乎没有独立 checkpoint contract；该词主要出现在当前 change 文档、archive 历史设计与测试里。",
+      "facts[5]: handoff/agent ledger 已经相对机械化。runtime/lib/handoff.mjs 会验证 behavior 所属 stage、agent/skill、checker `parentRunId` 与 parent result；runtime/hooks/pre-agent.mjs 记录 `dispatch`；subagent-start 记录 `start`；subagent-stop 校验结果 envelope 后持久化 `result.json/check.json` 并记录 `stop` 或 `violation`；post-agent 只有在找到匹配 `dispatch` 与 `stop` 后才补 `dispatch-binding`。",
+      "facts[6]: CodeGraph-first 已进入 ledger 语义，但只覆盖 attempt 记账，不覆盖更高层设计语义。runtime/hooks/pre-explore.mjs 会为 MCP/Bash CodeGraph 记 `codegraph-attempt`，并阻止同一 agent 在没有 attempt 的情况下直接 fallback 到 Read/Grep/Glob/Bash；runtime/lib/execution-prerequisites.mjs 还要求存在至少一个 agent-bound CodeGraph attempt 才允许受治理写入；runtime/lib/workflow-audit.mjs 会把 `codegraphAttempts` 计入 ledger summary。",
+      "facts[7]: artifact import 当前只有 TDD receipt 一条成熟链路，还不是通用 stage artifact import。runtime/tdd-run.mjs 在 git common dir 下写 spool receipt；runtime/lib/import-validation.mjs 校验 common dir、dispatch/start/binding/stop 生命周期、HEAD/tree digest、ancestor 关系、changedPaths；runtime/evidence-import.mjs 再把 receipt 导入到 `harness/changes/<change>/evidence/tdd/<task>.json`，并附加 `import.sourceSpoolDigest/sourceWorktreeHead/integrationHead/importedAt`，同时把 agent ledger 导入 `evidence/runtime/agent-events.jsonl`。目前没有 clarify/route/design/plan/verify 通用的 import provenance schema。",
+      "facts[8]: review 与 import 的绑定也只在 TDD 上机械化。runtime/lib/checks.mjs 中 `validateTaskReviewBindings` 要求 reviewer verdict 绑定 `receiptDigest`，且必须等于 imported receipt 的 `import.sourceSpoolDigest`；否则 completion block。",
+      "facts[9]: route scoring contract 仍是旧的 5 维 parser，而且检查很浅。runtime/lib/router-score.mjs 只认识 `Scope complexity / Impact breadth / Unknowns / ambiguity / API / data risk / Test / rollback complexity` 五维；`validateRouterScore` 只检查表存在且维度填满，不校验 overall、tier 阈值、impact 一致性、state 投影一致性、evidence 依据或 breakglass 规则。",
+      "facts[10]: 当前 change 自己已经暴露 route scoring contract 分裂。harness/changes/EH-WORKFLOW-TECPC-20260806/change.md 采用的是 6 维 repo-specific 模型（Boundary breadth、Durable contract/data scope、Interface/API contract breadth、Architecture execution impact、Governance/rule enforcement、Verification/recovery complexity）和 L0-L3 阈值；这与 `runtime/lib/router-score.mjs` 的 5 维硬编码不是同一 contract source。",
+      "facts[11]: clarify probing 的机械化只到‘分数表/weakest/阈值’层，未进入 probe schema 层。runtime/lib/ambiguity.mjs 会解析 7 维、Overall、weakest、missingEvidence、belowThreshold，并强制所有维度 >=4；但 runtime 没有 Socratic contradiction、Grill-Me、question type、probe transcript、answer provenance 的独立 schema。对 `Socratic|Grill-Me|question|weakest` 的 fallback 搜索表明，这些规则主要存在于 harness/specs/ambiguity-scoring.md 与 `.claude/skills/harness-clarify/SKILL.md`，而不是 runtime gate。",
+      "facts[12]: 当前 change artifacts 已经给出一个真实矛盾样本：期望的 phase boundary 与现有 clarify gate 不一致。harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md 明确把 `Data / SQL clarity`、`Interface / API clarity`、`Acceptance criteria clarity` 记为 3，并说明这些低分反映 design/plan 责任边界而非用户 ambiguity；同时同文件又说不需要再问 clarify 问题。可 runtime/lib/ambiguity.mjs 仍要求所有维度 >=4 才能过 gate，而 harness/changes/EH-WORKFLOW-TECPC-20260806/state.json 已投影 `workflow.clarifyReady=true`。这是当前治理 redesign 需要解决的真实合同冲突，不是抽象担忧。",
+      "facts[13]: audit semantics 现在是‘完成阶段优先’，不是‘全阶段总览都同等严格’。runtime/lib/workflow-audit.mjs 默认只审已完成阶段；当前阶段只有在 `includeCurrent=true` 时才纳入 blockers。它逐 stage 检 artifacts、state predicates、以及有效的 execute + 独立 checker pass/advisory；optional behavior 只有在 agent ledger 中真的有 dispatch 时才转为 required。completion 侧 runtime/lib/checks.mjs 在 schemaVersion>=4 时会调用 `auditWorkflow(..., { includeCurrent: true })`，因此最终完成态比平时 `workflow audit` 更严格。",
+      "facts[14]: 对 governed 写入的前置检查已经把 clarify/route/design/plan/CodeGraph/TDD receipt 串起来，但这是写入 gate，不是统一 stage checkpoint schema。runtime/lib/execution-prerequisites.mjs 同时要求 requirements、ambiguity gate、tier/router score、design.md + design review + designApproved、tasks.md + plan review + planReady、agent 绑定、CodeGraph attempt、以及 currentTask/RED receipt。",
+      "uncertainties: 1) CodeGraph 索引来自 `/home/wula/IdeaProjects/sdd` 而非当前 worktree，稳定 runtime/spec 路径可信，但若本 worktree-only 改动未进上游索引，CodeGraph 可能漏掉；2) 当前代码没有统一 stage manifest/checkpoint artifact，设计时仍需决定是合并为单一 schema，还是保留 `stage-contract + behavior registry + workflow decision` 三层结构；3) 仍需设计澄清 probing 是否要把 Socratic/Grill-Me 变成显式 artifact/ledger，而不是只停留在 prompt discipline。",
+      "impact: A) 设计若要达成‘stagewise TECPC artifacts/checkpoints/auto-block’，需要把现有分散在 `stage-contract.mjs`、`behavior-checks.json`、`workflow.mjs`、`state.json.workflow` 的合同统一成可审计 source-of-truth；B) 需要把 TDD-only import/provenance 扩展为通用 stage artifact import，或显式声明哪些阶段不允许 import；C) 需要把 route score 从 Markdown parser 升级为共享 machine-readable contract；D) 需要给 clarify probing 独立 evidence schema，否则 Socratic/Grill-Me 仍无法被 runtime/audit 真正消费；E) 需要明确 audit 的‘当前阶段’与‘已完成阶段’语义，避免 status/audit/completion 三套口径继续分裂。",
+      "suggestedUserQuestion: 你希望新的治理合同把 stage manifest/checkpoint 收敛成单一 machine-readable schema（统一声明 stage、behavior、required artifacts/state/decision/import rules），还是保留 `STAGE_CONTRACTS + behavior-checks + workflow decisions` 分层，只统一它们的 digest/audit/import 语义？",
+      "sources: CodeGraph-first 已执行，但存在非阻断 worktree 索引偏差：CodeGraph status 指向 `/home/wula/IdeaProjects/sdd` 而不是当前 worktree。随后仅对 CodeGraph 不擅长或结果不足的范围做了最小 fallback：1) Read 当前 handoff input、当前 change artifacts、Markdown specs、JSON behavior registry、top-level hook scripts；2) Bash `rg` 仅用于确认 `checkpoint`、`Socratic|Grill-Me|question|weakest` 等关键词在 active runtime 中的存在/缺失范围。关键相对路径包括：runtime/lib/workflow.mjs, runtime/lib/stage-contract.mjs, runtime/lib/workflow-audit.mjs, runtime/lib/ambiguity.mjs, runtime/lib/router-score.mjs, runtime/evidence-import.mjs, runtime/lib/import-validation.mjs, runtime/lib/tdd-receipts.mjs, runtime/hooks/pre-explore.mjs, harness/behavior-checks.json, harness/specs/agents-and-handoff.md, harness/specs/ambiguity-scoring.md, harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md, harness/changes/EH-WORKFLOW-TECPC-20260806/change.md, harness/changes/EH-WORKFLOW-TECPC-20260806/state.json."
+    ],
+    "context": [
+      "HANDOFF_INPUT=harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/input.json",
+      "Authoritative inputRefs consumed: harness/changes/EH-WORKFLOW-TECPC-20260806/{requirements.md,change.md,state.json,evidence/minimum-discovery-exploration.md} and prior route execute/check artifacts under runs/run_4e1cfa78-10fb-4004-92ef-3521ac9a9040/result.json and runs/run_aeb755ed-0626-4ac7-a085-0ab39c6c4acf/check.json.",
+      "Stable specs additionally read because they define the current governed contract: harness/specs/{workflow.md,agents-and-handoff.md,ambiguity-scoring.md,evidence.md,state-schema.md}.",
+      "Non-blocking uncertainty: CodeGraph index belongs to `/home/wula/IdeaProjects/sdd` rather than this worktree; conclusions are strongest for unchanged runtime/spec paths and weaker for worktree-only deltas."
+    ],
+    "path": "先按 CodeGraph-first 执行：检查索引状态，然后用 `codegraph_explore/search` 聚焦 workflow/stage-contract/handoff/ambiguity/router-score/workflow-audit/execution-prerequisites/tdd import/agent evidence/spawn-depth。由于 CodeGraph 当前索引绑定上游 worktree，且对 Markdown/JSON/无导出符号的 hook 脚本与‘不存在某 checkpoint contract’这类问题覆盖不足，所以只在这些点做最小 Read/Bash fallback：读取 handoff 输入、当前 change artifacts、稳定 specs、behavior-checks.json、hook 顶层脚本，并用窄范围 `rg` 验证 checkpoint/probing 关键词是否仅停留在文档/archive。结论聚焦设计需要的真实现状与合同裂缝，不扩展到实现方案。",
+    "correction": "无执行 blocker。若下一步需要把 redesign 落成设计合同，建议 design.produce 明确回答三件事：1) 是否引入单一 stage manifest/checkpoint schema；2) 是否把 TDD import/provenance 泛化为所有 stage artifact；3) clarify probing 的 question/probe/contradiction evidence 是否进入 runtime ledger 与 audit，而不是继续停留在 skill 指南。"
+  },
+  "outputRefs": [
+    "runtime/lib/workflow.mjs",
+    "runtime/lib/stage-contract.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/lib/ambiguity.mjs",
+    "runtime/lib/router-score.mjs",
+    "runtime/evidence-import.mjs",
+    "runtime/lib/import-validation.mjs",
+    "harness/behavior-checks.json",
+    "harness/specs/agents-and-handoff.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md"
+  ],
+  "blockers": [],
+  "summary": "当前治理实现已经把 inline clarify、forked executor/checker、handoff/ledger/audit、以及 TDD receipt import 做成了可执行骨架，但合同被分散在 `stage-contract.mjs`、`behavior-checks.json`、`workflow.mjs`、`state.json.workflow`、hooks 与 checks 之间，没有统一 stage manifest/checkpoint schema。route scoring 仍是旧 5 维浅校验，而当前 change 已写成另一套 6 维模型；clarify probing 机械化只到七维评分/weakest/阈值，Socratic/Grill-Me 仍主要活在 specs/skills；当前 change 的 requirements 与 runtime ambiguity gate 还直接暴露了 phase-boundary 冲突。设计重构若要达成 stagewise TECPC + auto-block + auditable recovery，核心就是统一 stage/checkpoint/import/audit source-of-truth，而不是再堆更多 prompt 纪律。",
+  "recordedAt": "2026-08-06T09:00:01.779Z",
+  "resultDigest": "d23d8d4b72f0b9b2269f25f500cd8c63e679e8afb407beb73b5a88f6d0ca5bd1"
+}

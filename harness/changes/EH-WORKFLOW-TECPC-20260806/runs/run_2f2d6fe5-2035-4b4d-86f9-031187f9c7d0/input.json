@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_2f2d6fe5-2035-4b4d-86f9-031187f9c7d0",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_1b3716f3-df73-4677-a432-6039d305d29a",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "implementation-review-task-01",
+    "evidence": [],
+    "context": [],
+    "path": "review Task 1 implementation against receipts and design",
+    "correction": "Verify receipt binding, TDD order, changed paths, and design alignment; return pass, block, or advisory with EH-* recovery if needed."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1b3716f3-df73-4677-a432-6039d305d29a/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1b3716f3-df73-4677-a432-6039d305d29a/result.json": "e06c227f9f6d43618a88802f66d4ef6c247238b642bb71f9ac6dd732c7128fed"
+  },
+  "createdAt": "2026-08-06T11:37:29.480Z"
+}

@@ -1,0 +1,42 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_79f08fe6-c01a-4081-9b28-44714c31ba0b",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "按 Task 1 冻结 argv 严格执行 RED -> GREEN -> REFACTOR -> VERIFY。",
+    "evidence": [
+      "已读取 HANDOFF_INPUT、task brief、task-commands.json、tasks.md、design.md、command-policy.json、authoritative design/plan checker pass。",
+      "已确认当前 worktree active change 为 EH-WORKFLOW-TECPC-20260806，且 agent-events 中存在当前 executor start 记录（agentId=a0d8a85c21b26fef2）。",
+      "真实探测命令 `node runtime/tdd-run.mjs EH-WORKFLOW-TECPC-20260806 task-01-snapshot-import-state-atomicity red -- node runtime/test/artifact-import-contract-smoke.mjs red` 退出码 2，报错 `child argv differs from the frozen task command`。",
+      "runtime/lib/tdd-receipts.mjs 当前仅支持 task command schemaVersion 1 + redCommand/greenCommand/refactorCommand/verifyCommand；而本 task-commands.json 为 schemaVersion 2 + commands[]。"
+    ],
+    "context": [
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/input.json",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "/home/wula/IdeaProjects/sdd/harness/command-policy.json",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "/home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a0d8a85c21b26fef2/runtime/tdd-run.mjs",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a0d8a85c21b26fef2/runtime/lib/tdd-receipts.mjs"
+    ],
+    "path": "先校验 handoff 与冻结命令，再最小探测首个 RED 是否可由 tdd-run 启动。结果显示 blocker 发生在 runner 解析 frozen argv 之前的命令冻结兼容层，因此未进入合法 RED。",
+    "correction": "BLOCKED by EH-TDD-FROZEN-COMMAND-001。需先让 tdd-run/allowedTaskCommand 能消费当前 task-commands.json，或把 task-commands.json 回退到当前 runtime 支持的 schema，再重新执行本 task。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    "EH-TDD-FROZEN-COMMAND-001: 当前 runtime/lib/tdd-receipts.mjs 只接受 schemaVersion 1 的 task command freeze，但 /home/wula/IdeaProjects/sdd/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json 为 schemaVersion 2 commands[]；因此 node runtime/tdd-run.mjs 在子测试启动前即 exit 2，无法产出合法 RED receipt。"
+  ],
+  "summary": "Task 1 本次未能进入 RED。权威 design/plan 审批已具备，但冻结 argv 与当前 tdd-run 的 command-freeze 解析合同不兼容；真实探测命令 exit 2，子测试未执行，因此没有 RED/GREEN/REFACTOR receipt、没有实现提交、也没有代码改动。",
+  "recordedAt": "2026-08-06T12:17:37.878Z",
+  "resultDigest": "f2b20e9deea05c2f6500afe478e198565ff6b1fc3d0502c434a419e663ceeb08"
+}

@@ -18,6 +18,12 @@ enterprise-harness trace --change <change-id> --mermaid
 `workflow audit` 返回 `0` 表示已完成阶段的证据符合合同；返回 `2` 表示有阻断项，输出会明确
 指出缺少的 artifact、execute result、checker result、parent run 关联或 state predicate。
 
+读取 `workflow status --json` 或普通 `status --json` 时先看顶层字段。若 `status=blocked`，
+不要根据 `stage`、`nextStage` 或 `projectedNextEntry` 继续执行；此时只执行顶层 `nextAction`，
+并按 `blockers[0]` 修复最早的证据缺口。只有非 blocked 状态下，才可采用
+`pendingDecision.options` 中的阶段决策。
+普通 status 在阻断态会令 `nextStage=null`；`projectedStage` 只是原 state 的只读解释。
+
 从 schema 4 开始，archive、Stop 和最终 completion 会强制执行相同审计：不能只修改
 `state.json` 把 change 标成完成。需要完整的事件、文件、角色边界和磁盘路径说明时，见
 [阶段时序、事件与产物合同](../../harness/specs/stage-observability.md)。

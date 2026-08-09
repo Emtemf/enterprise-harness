@@ -1,0 +1,53 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_8f644248-6630-4364-a22e-e2fa321759c9",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "route",
+  "behavior": "route.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "为 EH-WORKFLOW-TECPC-20260806 的 route 阶段确认 governance redesign 的 owning boundary、route scoring 现状/局限、workflow/handoff/evidence 影响面与 L2/L3 归类。",
+    "evidence": [
+      "CodeGraph-first 已执行：codegraph_status + codegraph_explore/search/callers/impact 覆盖 workflow/router-score/handoff/workflow-audit/checks/execution-prerequisites/stage-contract。",
+      "已确认 route 是独立 gate：runtime/lib/workflow.mjs、runtime/lib/stage-contract.mjs、runtime/test/route-stage-separation-smoke.mjs。",
+      "已确认 router-score 仅做 markdown 表完整性校验，不驱动 tier/impact/reviewer 决策：runtime/lib/router-score.mjs、runtime/test/router-score-gate-smoke.mjs。",
+      "已确认 schema 4 completion 会审计 execute/check handoff 闭环与 evidence：runtime/lib/workflow-audit.mjs、runtime/lib/checks.mjs、runtime/test/workflow-audit-smoke.mjs。",
+      "已确认 codegraph-attempt、pre-write prerequisites、stop/archive completion predicate 形成跨阶段 rule/evidence 面：runtime/hooks/pre-explore.mjs、runtime/lib/execution-prerequisites.mjs、runtime/hooks/stop.mjs、runtime/lifecycle.mjs、runtime/verify.mjs。"
+    ],
+    "context": [
+      "HANDOFF_INPUT 有效，但 inputRefs 为空；本次结论基于 prompt 指定范围与最小稳定 specs/目标代码，而非当前 change 的额外 authoritative artifact。",
+      "消费的稳定合同：harness/specs/{architecture,workflow,agents-and-handoff,evidence,state-schema,stage-observability}.md，behavior-checks.json，reviewers/catalog.json。",
+      "CodeGraph 索引属于 /home/wula/IdeaProjects/sdd 主工作树而非当前 worktree；对 branch-only 差异与部分 callers/callees 的可信度低于同树本地索引。"
+    ],
+    "path": "先用 CodeGraph 建立 runtime governance 主干图，再在 codegraph 不擅长或结果不足的少量 spec/JSON/test 文件上做定向 Read/rg；综合结果显示该 redesign 触达 workflow、handoff、evidence、hooks 与合同层，是跨层治理变更，route 上更接近 L3 而非 L2。",
+    "correction": "若主 orchestrator 需要更高确定性，请先在当前 worktree 重新建立 codegraph 索引，并在下一次 handoff 中提供当前 change 的 state/change/requirements 作为 inputRefs；若 scope 扩到 openapi/** 或 Java controllers，再把 impact.api 与 api-consistency-reviewer 纳入本轮。"
+  },
+  "outputRefs": [
+    "runtime/lib/workflow.mjs",
+    "runtime/lib/router-score.mjs",
+    "runtime/lib/stage-contract.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lib/execution-prerequisites.mjs",
+    "runtime/lib/checks.mjs",
+    "runtime/hooks/pre-explore.mjs",
+    "runtime/lifecycle.mjs",
+    "runtime/verify.mjs",
+    "harness/behavior-checks.json",
+    "harness/reviewers/catalog.json",
+    "harness/specs/architecture.md",
+    "harness/specs/workflow.md",
+    "harness/specs/agents-and-handoff.md",
+    "harness/specs/evidence.md",
+    "harness/specs/state-schema.md",
+    "harness/specs/stage-observability.md"
+  ],
+  "blockers": [],
+  "summary": "探索结论：`EH-WORKFLOW-TECPC-20260806` 的目标面属于 Enterprise Harness plugin/runtime governance core，而不是单一子模块。当前 route 机制已经把 route 变成独立 gate，但 route scoring 仍只检查 markdown 表是否填满，不能机械推导 tier、impact 一致性或 reviewer。真正承载治理语义的是 workflow/stage-contract/workflow-audit、handoff/behavior registry、evidence/completion/checks 与 pre-explore/pre-write/stop hooks。按这些受影响面判断，本轮更像 L3 的跨层 governance redesign；建议 route 设为 `api=no, data=yes, architecture=yes, rule=yes`，并预期 requirement/design/plan/implementation/verification reviewers，除非 scope 扩到 OpenAPI/Controller，否则不默认引入 api-consistency-reviewer。",
+  "recordedAt": "2026-08-06T08:19:35.785Z",
+  "resultDigest": "4450d075346e645b356e3725993bb5a660075261f8267edc83188aa48b6766c9"
+}

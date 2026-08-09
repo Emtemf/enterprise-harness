@@ -40,16 +40,19 @@ function stageIsComplete(changeDir, stage, data, currentIdx) {
   }
 }
 
-function renderLadder(changeDir, data, currentStage) {
+function renderLadder(changeDir, data, currentStage, blockedStages = []) {
   const currentIdx = STAGES.indexOf(currentStage);
   if (currentIdx < 0) return '';
+  const blocked = new Set(blockedStages);
 
   const lines = [];
   for (const stage of STAGES) {
     const complete = stageIsComplete(changeDir, stage, data, currentIdx);
     const isCurrent = stage === currentStage;
     let marker;
-    if (isCurrent) {
+    if (blocked.has(stage)) {
+      marker = '✗';
+    } else if (isCurrent) {
       marker = '▸';
     } else if (complete) {
       marker = '✓';
@@ -70,20 +73,21 @@ function renderLadder(changeDir, data, currentStage) {
  * @param {object} data - loaded state.json object
  * @returns {string} multi-line TECPC card text
  */
-export function renderTECPCCard(root, changeId, data) {
+export function renderTECPCCard(root, changeId, data, options = {}) {
   const changeDir = path.join(root, 'harness', 'changes', changeId);
-  const stage = inferWorkflowStage(changeId, data) || 'clarify';
-  const gap = inferCurrentGap(root, changeId, data, stage) || '';
-  const nextEntry = recommendNextEntry(stage, data) || '/harness';
+  const workflowResult = options.workflowResult ?? null;
+  const stage = workflowResult?.stage || inferWorkflowStage(changeId, data) || 'clarify';
+  const gap = workflowResult?.currentGap || inferCurrentGap(root, changeId, data, stage) || '';
+  const nextEntry = workflowResult?.nextAction || recommendNextEntry(stage, data) || '/harness';
 
   const target = data.goal || '未记录';
   const reason = data.routingReason || '未记录';
-  const ladder = renderLadder(changeDir, data, stage);
+  const ladder = renderLadder(changeDir, data, stage, workflowResult?.audit?.blockedStages);
 
   return [
     `┌─ ${changeId} (${data.tier || '?'}) ─`,
     `│ T 目标    ▸ ${target}`,
-    `│ E 证据    ▸ ${renderEvidenceSummary(data)}`,
+    `│ E 证据    ▸ ${renderEvidenceSummary(data, workflowResult)}`,
     `│ C 上下文  ▸ ${gap}`,
     `│ P 路径    ▸ ${reason}`,
     `│ C 纠正    ▸ ${nextEntry}`,
@@ -96,7 +100,10 @@ export function renderTECPCCard(root, changeId, data) {
 // Backward-compatible alias; new code should use renderTECPCCard.
 export const renderTECPCard = renderTECPCCard;
 
-function renderEvidenceSummary(data) {
+function renderEvidenceSummary(data, workflowResult = null) {
+  if (workflowResult?.audit?.verdict === 'block') {
+    return `audit BLOCK (${workflowResult.audit.blockerCount ?? '?'} blocker(s))`;
+  }
   const parts = [];
   if (data.validation?.status === 'fresh') parts.push('validation fresh');
   if (data.gates?.designApproved) parts.push('design approved');
@@ -106,4 +113,3 @@ function renderEvidenceSummary(data) {
   }
   return parts.length > 0 ? parts.join(' | ') : '尚无证据';
 }
-

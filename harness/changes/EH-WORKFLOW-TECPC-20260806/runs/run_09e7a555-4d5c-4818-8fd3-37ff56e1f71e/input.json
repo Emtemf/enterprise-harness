@@ -1,0 +1,45 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "rerun task-00-bootstrap-v2-command-sequencing with baseline-relative changedPaths",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_e2c2d6ef-d121-483f-8c4b-468de32964ca/check.json"
+    ],
+    "path": "rerun Task 00 with frozen legacy RED/GREEN/REFACTOR argv and baseline-relative changed-path filtering",
+    "correction": "Use the frozen legacy redCommand/greenCommand/refactorCommand argv exactly via node runtime/tdd-run.mjs. Updated scope explicitly allows editing runtime/lib/git-evidence.mjs in addition to the original Task 00 files. Before RED, capture the executor worktree git-status baseline and ensure receipt.changedPaths reports only paths introduced or modified relative to that baseline by this task; never include pre-existing active-change snapshot/runs/reviews/state/validation metadata. Keep commands[] v2 support and legacy triplet compatibility. Historical review projections are non-authoritative; return blockers only for fresh, observed issues."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/command-policy.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_e2c2d6ef-d121-483f-8c4b-468de32964ca/check.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md": "d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md": "edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md": "8e1942baa08e5172614d4129fb3472d1e59ae34fdf205fdb1341a4747d868d81",
+    "harness/command-policy.json": "11658601b065be5fe1b3cbd8e288db0331ef6fc8b02bb9ecc2836b155708aa2a",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_e2c2d6ef-d121-483f-8c4b-468de32964ca/check.json": "356f2f91467999804c75bec3c080618b2056d02568efda352aafb4c5aea15745"
+  },
+  "createdAt": "2026-08-06T14:25:25.139Z"
+}

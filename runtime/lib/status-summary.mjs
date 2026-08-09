@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, computeGuideReminder, recommendNextAction } from './workflow.mjs';
+import { buildWorkflowResult, computeGuideReminder } from './workflow.mjs';
 import { renderTECPCCard } from './tecp-card.mjs';
 
 function readText(file) {
@@ -41,23 +41,23 @@ function activeChangeSummary(root) {
     };
   }
   const data = active.data;
-  const workflowStage = inferWorkflowStage(active.changeId, data);
-  const nextEntry = recommendNextEntry(workflowStage, data);
-  const currentGap = inferCurrentGap(root, active.changeId, data, workflowStage);
+  const workflow = buildWorkflowResult(root, active.changeId, data);
   return {
     present: true,
     changeId: active.changeId,
     state: data.state ?? null,
     validationStatus: data.validation?.status ?? null,
-    blockers: data.blockers ?? [],
+    blockers: workflow.blockers,
     approvals: data.approvals ?? {},
     currentTask: data.currentTask ?? null,
-    workflowStage,
-    nextEntry,
-    recommendedLane: recommendExplorationLane(workflowStage, data),
+    workflowStage: workflow.stage,
+    nextEntry: workflow.nextEntry,
+    recommendedLane: workflow.recommendedLane,
     guideReminder: computeGuideReminder(root, active.changeId),
-    currentGap,
-    nextAction: recommendNextAction(active.changeId, data, workflowStage, currentGap),
+    currentGap: workflow.currentGap,
+    nextAction: workflow.nextAction,
+    workflowStatus: workflow.status,
+    audit: workflow.audit,
   };
 }
 
@@ -71,7 +71,14 @@ export function buildStatusSummary(root) {
     const active = loadActiveChange(root);
     if (active.ok) {
       try {
-        tecpCard = renderTECPCCard(root, active.changeId, active.data);
+        tecpCard = renderTECPCCard(root, active.changeId, active.data, {
+          workflowResult: {
+            stage: activeChange.workflowStage,
+            currentGap: activeChange.currentGap,
+            nextAction: activeChange.nextAction,
+            audit: activeChange.audit,
+          },
+        });
       } catch (error) {
         tecpCard = `EH-STATUS-TECP-001: ${error.message}`;
       }
@@ -79,11 +86,14 @@ export function buildStatusSummary(root) {
   }
   return {
     summaryVersion: 1,
+    status: activeChange.present ? activeChange.workflowStatus : 'idle',
+    blockers: activeChange.present ? activeChange.blockers : [],
     currentPhase: progressSnapshot.currentPhase,
     progressSnapshot,
     activeChange,
     _tecpCard: tecpCard,
-    nextStage: activeChange.present ? activeChange.workflowStage : null,
+    nextStage: activeChange.present && activeChange.workflowStatus !== 'blocked' ? activeChange.workflowStage : null,
+    projectedStage: activeChange.present ? activeChange.workflowStage : null,
     recommendedEntry: activeChange.present ? activeChange.nextEntry : '/harness',
     recommendedLane: activeChange.present ? activeChange.recommendedLane : null,
     currentGap: activeChange.currentGap,
@@ -129,6 +139,8 @@ export function renderStatusSummary(summary) {
     summary.progressSnapshot.currentGoal ? `- 当前目标：${summary.progressSnapshot.currentGoal}` : '- 当前目标：未记录',
     '动态真相',
     `- ${active}`,
+    'Workflow 状态',
+    `- ${summary.status}`,
     summary.nextStage ? '当前 workflow stage' : null,
     summary.nextStage ? `- ${summary.nextStage}` : null,
     '当前缺口',

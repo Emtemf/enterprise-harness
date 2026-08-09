@@ -1,0 +1,51 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_671cf8b5-7659-48ac-99ad-89355dd54275",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 run_733562b2 产出的计划是否真正补入可由当前 runner 执行的 Task 00 bootstrap bridge，并把 Task 01 依赖切到 Task 00，同时保持后续 frozen commands 不漂移，进而判断该计划现在是否可安全交给 TDD。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：Task 00 `task-00-bootstrap-v2-command-sequencing` 已新增，且其 RED/GREEN/REFACTOR 明确冻结为当前 runner 可消费的 legacy triplet；Task 01 在此文件中被改为依赖 Task 00。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json：Task 00 使用 `redCommand` / `greenCommand` / `refactorCommand`；Task 01-05 的 `commands[]` 序列仍保留，后续 exact argv 未被压扁或改写。",
+      "已核验 runtime/tdd-run.mjs 与 runtime/lib/tdd-receipts.mjs：当前 runtime 仍只直接接受 legacy 单组三阶段冻结，因此 Task 00 的 triplet 形态本身是 runner-compatible 的。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md：其 `## Dependency` 仍写明 `none; this task must run first`，与 tasks.md 中“Task 01 depends on Task 00”的新桥接顺序直接冲突。",
+      "已核验当前 change 目录仅存在 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md 至 task-brief-05-audit-stop-skills-docs-packaging-regression.md；未发现 Task 00 对应的 task brief，因此新增 bootstrap task 没有与其余任务同等级的独立 brief。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_671cf8b5-7659-48ac-99ad-89355dd54275/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_733562b2-9c7f-4dbf-9c26-e425edb7d66a/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "runtime/tdd-run.mjs",
+      "runtime/lib/tdd-receipts.mjs",
+      ".claude/skills/harness-plan/SKILL.md"
+    ],
+    "path": "结论为 block。Task 00 的 frozen command 形态本身是对当前 runner 兼容的，且后续 `commands[]` 也确实被保留下来了；但计划包没有把这次 bootstrap 变更传播到全部执行工件。最关键的冲突是：tasks.md 说 Task 01 依赖 Task 00，而 task-brief-01 仍说 Task 01 无依赖且必须第一个执行；同时新增的 Task 00 没有独立 task brief。对下游 TDD executor 而言，这会造成“从 Task 00 还是 Task 01 开始、以哪份 brief 为准”的真实猜测空间，因此不能判定为现在就可安全开跑的 TDD 计划。",
+    "correction": "1) 为 Task 00 补一份独立 task brief，并与 tasks.md / task-commands.json 使用同一 task id、同一 touched files、同一 RED→GREEN→REFACTOR 顺序；2) 修改 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md，使其显式依赖 Task 00，删除 `none; this task must run first` 之类旧表述；3) 重新做独立 plan check，确认 Task 00、Task 01、tasks.md 与 task-commands.json 四者顺序一致后，再进入 TDD。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_733562b2-9c7f-4dbf-9c26-e425edb7d66a/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "runtime/tdd-run.mjs",
+    "runtime/lib/tdd-receipts.mjs",
+    ".claude/skills/harness-plan/SKILL.md"
+  ],
+  "blockers": [
+    "EH-PLAN-DEPENDENCY-001: Task 01 的依赖声明在计划工件间不一致。tasks.md 已改为依赖 Task 00，但 task-brief-01-snapshot-import-state-atomicity.md 仍声明 `Dependency: none` 且 `this task must run first`。下游无法无猜测决定 TDD 起点。",
+    "EH-PLAN-TASK00-BRIEF-001: 新增的 Task 00 没有独立 task brief。.claude/skills/harness-plan/SKILL.md 要求为每个 task 生成 brief；当前 change 目录仅有 task-brief-01 到 task-brief-05，bootstrap task 缺少同等级执行说明。"
+  ],
+  "summary": "block：Task 00 的 legacy frozen triplet 与后续 `commands[]` 保留本身都成立，但计划包仍不自洽；Task 01 依赖在 tasks.md 与 task-brief-01 之间相互冲突，且 Task 00 缺少独立 brief，因此还不能判定为现在就可安全进入 TDD。",
+  "recordedAt": "2026-08-06T12:36:09.385Z",
+  "resultDigest": "d861f3f99bfbf55824ece3e4a860be07671be8a767ea800328b1b4f3658a403a"
+}

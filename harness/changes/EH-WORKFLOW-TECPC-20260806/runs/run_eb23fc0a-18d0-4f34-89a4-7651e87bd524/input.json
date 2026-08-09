@@ -1,0 +1,51 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_eb23fc0a-18d0-4f34-89a4-7651e87bd524",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.produce",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:design-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "design.produce",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/templates/design.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_03abfcb3-4bff-4e15-a964-980671937151/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json"
+    ],
+    "path": "execute design.produce",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/templates/design.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_03abfcb3-4bff-4e15-a964-980671937151/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md": "0838983bdb07f411e0980c3e7aca66d980b6031215804993001e3002fa469bc1",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md": "a0ae0a0db34912be9242fecedddf99763a6514bbebcb01559e757f58c42a48e1",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json": "80345a0a927699ef349a53b156f1952a0011dae89ac94d56c50f9921e9c948e9",
+    "harness/templates/design.md": "75edfee6b6b239ad609f6aae887516a5453571f92e7ffd5db9b6071714451f89",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json": "bb59c059375bb710f3537f400aac2d7afa692e88295e8ba3c2312b01d24b887d",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json": "aa403eacd98793e1b00546ab5b292167792d30d6c35afb0a64aa4e6a6a963e1d",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_03abfcb3-4bff-4e15-a964-980671937151/result.json": "3373524c6825f7500198e64c0d5e8024a943c15c7517ad8565fbce2505718b94",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json": "a788f03530d507870a8c8c1f972f77aaa4b9b72b8d9b7100c3c08c1fd7d38bf1"
+  },
+  "createdAt": "2026-08-06T09:28:34.041Z"
+}

@@ -51,6 +51,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'CodeGraph 索引不可用，代码探索会静默退化成全量 grep/read。',
     recovery: '在目标项目根目录运行 codegraph init 建立索引，再运行 enterprise-harness doctor 确认 codegraph 检查为 indexed。',
   },
+  'EH-AUDIT-RUNTIME-006': {
+    summary: 'Workflow audit 无法读取或校验 durable evidence。',
+    recovery: '运行 enterprise-harness workflow audit <change-id> --json，修复首个无效 artifact/handoff 后重试 status。',
+  },
 });
 
 export function diagnostic(code) {

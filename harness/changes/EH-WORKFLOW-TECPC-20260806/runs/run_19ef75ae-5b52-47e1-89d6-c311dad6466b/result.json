@@ -1,0 +1,47 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_19ef75ae-5b52-47e1-89d6-c311dad6466b",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Rewrite the blocked schema-5 redesign plan so every task is executable without guessing: relative paths, full RED→GREEN→REFACTOR argv coverage, accurate design gate status, and Task 1 first fixing durable import plus atomic state advancement.",
+    "evidence": [
+      "Updated tasks.md to repository-relative paths and repo root '.' with design-approved=false and design-review-imported=false.",
+      "Updated task-commands.json to freeze all task commands, including route-stage-separation and test/external-project/maven-lifecycle-e2e.mjs.",
+      "Rewrote task briefs 01-05 so each includes touched files, consumes/produces, dependencies, explicit test-first sequencing, and acceptance checks.",
+      "Task 1 now explicitly leads with shared durable artifact importer, parent-working-tree snapshot continuity, and atomic state/checkpoint advancement."
+    ],
+    "context": [
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ade89415bba0a8f62/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_19ef75ae-5b52-47e1-89d6-c311dad6466b/input.json",
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ade89415bba0a8f62/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0948a719-c498-49c9-84aa-4aa96290f2bf/check.json",
+      "Consumed existing plan artifacts under /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ade89415bba0a8f62/harness/changes/EH-WORKFLOW-TECPC-20260806/",
+      "Consumed /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ade89415bba0a8f62/harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+    ],
+    "path": "Read the critic block report and current plan artifacts, then rewrote the plan documents in place to preserve task dependencies while eliminating absolute worktree binding, adding per-behavior RED/GREEN/REFACTOR command coverage, correcting the design approval status, and freezing all mandatory validation commands.",
+    "correction": "Plan artifacts are corrected, but post-write hooks still report pre-existing change-level blockers: missing imported design review evidence, incomplete legacy clarify/route evidence, and empty validation sections. These are not repaired here and must be reconciled before downstream governed execution can rely on fresh gates."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md"
+  ],
+  "blockers": [
+    "state.json still requires reviews/design-reviewer.json for designApproved, so change-level gate state remains inconsistent with design.md approval status.",
+    "Existing clarify evidence for EH-WORKFLOW-TECPC-20260806 is incomplete under current hooks: missing ambiguity dimensions, missing overall score, and acceptance criteria clarity below required threshold.",
+    "Existing route evidence remains legacy-incompatible: current change.md lacks the router table shape expected by active hooks.",
+    "Existing validation.md is still incomplete: Commands Executed, Final Verdict, and Review Verdicts sections are empty."
+  ],
+  "summary": "Corrected the blocked plan by rewriting tasks.md, task-commands.json, and all five task briefs to use repository-relative paths, freeze every required RED/GREEN/REFACTOR/verification argv, keep Task 1 focused on durable importer plus atomic state advancement, and stop claiming design approval without imported review evidence. Remaining blockers are pre-existing change-level gate inconsistencies reported by post-write hooks.",
+  "recordedAt": "2026-08-06T10:54:42.720Z",
+  "resultDigest": "e7beacb233f1e9cff44b48b5fb4d973ffe6d210396387038a3a8ae580e5778f1"
+}

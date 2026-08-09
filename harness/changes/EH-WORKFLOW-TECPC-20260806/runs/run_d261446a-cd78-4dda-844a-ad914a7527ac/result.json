@@ -1,0 +1,37 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_d261446a-cd78-4dda-844a-ad914a7527ac",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "完成 task-00-bootstrap-v2-command-sequencing：让 runtime/tdd-run.mjs 与 runtime/lib/tdd-receipts.mjs 在不破坏 legacy redCommand/greenCommand/refactorCommand 的前提下，按 execution index 消费 v2 commands[] 序列，并用真实 receipt 证明 RED -> GREEN -> REFACTOR。",
+    "evidence": [
+      "RED 真证据：.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json execution[0]，phase=RED，exitCode=1。",
+      "GREEN 真证据：同一 receipt execution[1]，phase=GREEN，exitCode=0。",
+      "REFACTOR 真证据：同一 receipt execution[2]，phase=REFACTOR，exitCode=0。",
+      "新增 smoke：runtime/test/task-command-v2-sequencing-smoke.mjs，在临时仓库中真实串行驱动重复 RED/GREEN/REFACTOR + VERIFY 序列。",
+      "回归命令 `node runtime/test/tdd-receipt-contract-smoke.mjs verify` exit=0，证明 legacy triplet 与新 sequence 规则同时成立。",
+      "实现提交：99ce8429108f8b1e576ec88f02a674d0be3dca12。"
+    ],
+    "context": [
+      "已消费 handoff input.json 与其 inputRefs：task-brief-00-bootstrap-v2-command-sequencing.md、task-commands.json、tasks.md、design.md、harness/command-policy.json。",
+      "已读取并修改 touched files：runtime/tdd-run.mjs、runtime/lib/tdd-receipts.mjs、runtime/test/tdd-receipt-contract-smoke.mjs，并新增 runtime/test/task-command-v2-sequencing-smoke.mjs。",
+      "执行期间存在既有 change 资产的 post-write governance 提醒，但未阻断 runtime 路径上的 Task 00 TDD 执行。"
+    ],
+    "path": "先写失败 smoke，再通过冻结 argv 跑真实 RED；随后最小实现 sequenced commands[] 解析/校验与 runner execution-index 解析；GREEN 通过后扩充 receipt contract 回归，再跑冻结 REFACTOR，并把 4 个 runtime 文件提交到工作分支 tdd-task-00-bootstrap-v2-sequencing。",
+    "correction": "本 task 已完成；未掩盖的问题是 change 目录里的旧治理投影仍触发 hook 提醒。建议主 orchestrator 先派独立 checker 消费当前 receipt/commit，再决定是否在进入 Task 01 前用后续 importer/normalization 机制处理这些陈旧资产。"
+  },
+  "outputRefs": [
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json"
+  ],
+  "blockers": [],
+  "summary": "Task 00 已完成并提交。真实 RED 证明当前 runner 对 v2 commands[] 序列不兼容；实现后 GREEN/REFACTOR 均通过。runtime 现在支持按 execution index 解析重复 RED/GREEN/REFACTOR/VERIFY commands[]，同时保留 legacy triplet。实现提交为 99ce8429108f8b1e576ec88f02a674d0be3dca12；下一步应由独立 checker 基于 receipt 与 commit 审核，然后再决定是否先清理当前 change 资产里的旧治理投影噪声后进入 Task 01。",
+  "recordedAt": "2026-08-06T13:00:43.519Z",
+  "resultDigest": "0fba097bc81b68f05f8417aaecf1250f73493ebf253d0a550007793499dc8bb6"
+}

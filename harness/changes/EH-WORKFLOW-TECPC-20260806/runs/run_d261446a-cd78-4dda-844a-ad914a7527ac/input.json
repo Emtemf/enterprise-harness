@@ -1,0 +1,42 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_d261446a-cd78-4dda-844a-ad914a7527ac",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "task-00-bootstrap-v2-command-sequencing",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json"
+    ],
+    "path": "execute Task 00 bootstrap v2 command sequencing",
+    "correction": "Use the frozen argv exactly via node runtime/tdd-run.mjs; if any prerequisite or gate is missing, return an EH-* blocker instead of guessing."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/command-policy.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md": "692d0d72003ac3e312c0980cb0f7450534212f7858b084a7ff93f34fc78559dc",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md": "ea3c0335228f39025659406e9983fc71f671a6470670571b2a16831c33f412ae",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md": "8e1942baa08e5172614d4129fb3472d1e59ae34fdf205fdb1341a4747d868d81",
+    "harness/command-policy.json": "11658601b065be5fe1b3cbd8e288db0331ef6fc8b02bb9ecc2836b155708aa2a"
+  },
+  "createdAt": "2026-08-06T12:45:35.356Z"
+}

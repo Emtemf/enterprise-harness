@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_9d0b0f35-bd74-432e-b33f-8939ea337129",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "implementation-review-task-00-bootstrap-v2-command-sequencing-rerun",
+    "evidence": [],
+    "context": [],
+    "path": "review Task 00 rerun baseline-relative changedPaths executor result",
+    "correction": "Verify receipts, commit 95690858d3cf34f299552147615345bfaa249bd2, changed-path semantics, and frozen-task/design adherence. Historical review projections are non-authoritative. Return pass/block/advisory only from fresh observed evidence."
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e/result.json": "8b68c3df9e28e08e1de17cb2eea0c9cd30c52ff9b3c58e4771f17dfad967b9ea"
+  },
+  "createdAt": "2026-08-06T14:44:16.408Z"
+}

@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_cdd20df4-d5ca-404b-97c1-6d7ff0ed6e10",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "route",
+  "behavior": "route.explore-code",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_8f644248-6630-4364-a22e-e2fa321759c9",
+  "agent": {
+    "type": "enterprise-harness:requirement-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "route.explore-code",
+    "evidence": [],
+    "context": [],
+    "path": "check route.explore-code",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8f644248-6630-4364-a22e-e2fa321759c9/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_8f644248-6630-4364-a22e-e2fa321759c9/result.json": "e868594d4333e2a28212237abae8176853551688bdd6f19db814d8ea6a50ddde"
+  },
+  "createdAt": "2026-08-06T08:19:45.255Z"
+}

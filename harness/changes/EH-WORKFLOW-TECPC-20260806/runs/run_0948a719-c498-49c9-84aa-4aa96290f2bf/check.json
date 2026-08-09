@@ -1,0 +1,57 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_0948a719-c498-49c9-84aa-4aa96290f2bf",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 schema-5 redesign 的 plan 是否可被下游 executor 在无猜测前提下按 RED → GREEN → REFACTOR 执行，且首任务先原子修复当前 state/evidence import 模型。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9b82f778-84dc-4194-9fac-07d96c8e3d82/result.json：executor 声明产出 5 个串行任务，并承认现有 design/clarify/validation gate 仍不一致。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：Task 1 的依赖顺序正确，先处理 snapshot/import/state atomicity；但同文件将 repo root 与 touched files 冻结到另一个瞬时 worktree agent-abc6076478fdb49bc，且文本同时出现 Pending Design Approval 与 design-approved: true，自相矛盾。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json：只冻结了每 task 的 4 个 argv，但未覆盖 tasks.md 与 briefs 中要求的所有必跑验证命令。",
+      "已核验 task briefs 01-05：Task 2-5 都把部分新增测试面放到首个 GREEN 之后补写/补完，缺少对应 RED 证据路径；Task 5 明确要求运行 [\"node\",\"test/external-project/maven-lifecycle-e2e.mjs\"]，但该 argv 未进入 task-commands.json。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md：设计冻结了待计划细化的 smoke 面，但 Approval 仍是“待独立 design-reviewer 检查”，与 tasks.md 的 design-approved: true 不一致。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0948a719-c498-49c9-84aa-4aa96290f2bf/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9b82f778-84dc-4194-9fac-07d96c8e3d82/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+    ],
+    "path": "Task 1 的依赖顺序符合要求，确实把 snapshot/import/state atomicity 放在首位；但整个计划仍不可执行，因为冻结路径绑定到错误 worktree、多个新增测试面没有独立 RED 证据路径、部分必跑验证命令未冻结、且 design approval 状态在 plan 内自相矛盾。下游若照此执行，必须自行猜测 cwd、补命令、决定哪些测试先 RED，违反 plan 阶段应消除猜测的目标。",
+    "correction": "1) 重新产出 plan，使所有文件路径与 frozen argv 的工作目录绑定到将被消费的实际 checkout，而不是 executor 的瞬时 worktree；2) 对 Task 2-5 每个新增生产行为分别补齐 RED argv 与执行时序，不能把新增 smoke 放到首个 GREEN 之后再补；3) 把 tasks.md/brief 中所有必跑验证命令完整写入 task-commands.json，至少补齐 route-stage-separation 与 external-project acceptance；4) 在计划文本中去掉 design-approved: true，或先补足独立 design-review durable evidence 后再出可执行 plan。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_9b82f778-84dc-4194-9fac-07d96c8e3d82/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+  ],
+  "blockers": [
+    "EH-PLAN-CWD-001: tasks.md 把 repo root、handoff artifact 和 touched files 冻结到另一个瞬时 worktree agent-abc6076478fdb49bc。该路径不是当前被消费计划所在 checkout，导致下游 executor 无法在不猜测的前提下确定应使用哪个 worktree/cwd。",
+    "EH-PLAN-TDD-002: Task 2-5 的新增测试面没有完整 RED 证据路径。典型缺口包括 stage-checkpoint/schema5-migration、registry-conformance-probe、clarify-interview/ambiguity-phase-boundary、stop-audit-block；这些都在 tasks.md 和 briefs 中被放到首个 GREEN 之后补写/补完，违反必须先 RED 再实现的计划要求。",
+    "EH-PLAN-CMDS-003: task-commands.json 未冻结所有计划中声明的必跑命令。至少缺少 Task 4 的 route-stage-separation 回归 argv，以及 Task 5 的 [\"node\",\"test/external-project/maven-lifecycle-e2e.mjs\"]。缺命令即缺验证闭环。",
+    "EH-PLAN-GATE-004: tasks.md 同时写“Pending Design Approval”和“design-approved: true”，而 design.md 仍是“待独立 design-reviewer 检查”。计划文本会误导下游在 gate 未闭合时继续 governed writes。"
+  ],
+  "summary": "block：Task 1 的首位原子修复顺序是对的，但该 plan 仍因错误 worktree 路径冻结、缺失多处 RED 路径、必跑 argv 未完整冻结、以及 design approval 状态自相矛盾而不可直接执行。",
+  "recordedAt": "2026-08-06T10:44:47.448Z",
+  "resultDigest": "e67ff35f1f499ca8e66fae3f6ab1d181886d20e468f7b6be384c04905a1cbd9c"
+}

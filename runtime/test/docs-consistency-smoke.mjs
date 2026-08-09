@@ -61,6 +61,16 @@ for (const relative of fs.readdirSync(path.join(root, 'bin'), { recursive: true,
 const troubleshooting = fs.readFileSync(path.join(root, 'docs/user/troubleshooting.md'), 'utf-8');
 for (const code of runtimeCodes) assert.ok(troubleshooting.includes(code), `troubleshooting missing ${code}`);
 
+const architecture = fs.readFileSync(path.join(root, 'harness/specs/architecture.md'), 'utf-8');
+const workflowDocs = fs.readFileSync(path.join(root, 'docs/user/workflow.md'), 'utf-8');
+const observability = fs.readFileSync(path.join(root, 'harness/specs/stage-observability.md'), 'utf-8');
+assert.match(architecture, /Claude Code-only[\s\S]*不设计或承诺[\s\S]*其他 harness/u, 'architecture must define the Claude Code-only host boundary');
+for (const [name, text] of [['user workflow', workflowDocs], ['stage observability', observability]]) {
+  assert.match(text, /status=blocked/u, `${name} must document audit-first blocked status`);
+  assert.match(text, /nextAction/u, `${name} must document nextAction as the blocked recovery authority`);
+  assert.match(text, /pendingDecision/u, `${name} must distinguish pending decisions from blocked recovery`);
+}
+
 const capabilities = JSON.parse(fs.readFileSync(path.join(root, 'harness/capabilities.json'), 'utf-8'));
 for (const capability of capabilities.capabilities) {
   assert.ok(capability.testRefs.length > 0, `${capability.id} has no acceptance test`);

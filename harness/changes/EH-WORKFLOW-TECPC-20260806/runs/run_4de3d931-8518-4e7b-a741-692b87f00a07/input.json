@@ -1,0 +1,24 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4de3d931-8518-4e7b-a741-692b87f00a07",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:clarify-synthesizer",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "clarify.synthesize",
+    "evidence": [],
+    "context": [],
+    "path": "execute clarify.synthesize",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [],
+  "inputDigests": {},
+  "createdAt": "2026-08-06T07:04:11.407Z"
+}

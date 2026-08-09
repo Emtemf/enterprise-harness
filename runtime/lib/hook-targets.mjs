@@ -3,7 +3,7 @@ import { isGovernedTarget } from './gates.mjs';
 
 const DIRECT_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
 const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i)|cp|mv|install|patch)\b|(?:^|[^>])>>?/u;
-const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+))/gu;
+const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+|harness\/changes\/[^\s'";|<>]+|runtime\/[^\s'";|<>]+))/gu;
 const SHELL_TOKEN = /"([^"]*)"|'([^']*)'|([^\s;&|<>]+)/gu;
 
 function absolute(root, value) {
@@ -27,9 +27,17 @@ export function extractHookTargets(root, event) {
   const targets = [];
   for (const match of String(input.command || '').matchAll(PATH_CANDIDATE)) {
     const candidate = String(match[1] || '').replace(/[),:]$/u, '');
-    const governedOffset = candidate.search(/(?:^|\/)src\/(?:main|test)\/java\/|(?:^|\/)openapi\//u);
-    if (governedOffset < 0) continue;
     targets.push(absolute(root, candidate));
+  }
+  for (const candidate of shellPathTokens(input.command)) {
+    const absoluteCandidate = absolute(root, candidate);
+    if (!absoluteCandidate) continue;
+    const relativeCandidate = path.relative(root, absoluteCandidate).replaceAll('\\', '/');
+    const isHarnessArtifact = relativeCandidate === 'runtime'
+      || relativeCandidate.startsWith('runtime/')
+      || relativeCandidate === 'harness/changes'
+      || relativeCandidate.startsWith('harness/changes/');
+    if (isHarnessArtifact || isGovernedTarget(root, absoluteCandidate)) targets.push(absoluteCandidate);
   }
   return [...new Set(targets.filter(Boolean))];
 }

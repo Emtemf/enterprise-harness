@@ -16,10 +16,12 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
 
 ## 开始
 
-1. 运行 `status` 和 `workflow status --json`。
-2. 有 active change 时恢复 currentGap，不重复已完成阶段。
-3. 没有 change 时生成安全 changeId，并运行 `start-change`。
-4. 根据 stage 加载对应阶段 skill。
+1. 运行 `status` 和 `workflow status --json`；二者已经包含已完成阶段的 audit 摘要。
+2. `status=blocked` 时只执行返回的 `nextAction`，不得按投影 stage/nextEntry 继续；用
+   `workflow audit <change-id> --json` 查看完整 blocker 并修复最早失败阶段。
+3. 有 active change 且 audit pass 时恢复 currentGap，不重复已完成阶段。
+4. 没有 change 时生成安全 changeId，并运行 `start-change`。
+5. 根据 stage 加载对应阶段 skill。
 
 ## 阶段
 

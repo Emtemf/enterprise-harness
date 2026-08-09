@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- strict change 的 `workflow status` 与普通 `status` 现在先消费已完成阶段 audit；历史 evidence
+  blocker 会覆盖 `state.json` 的投影 stage，普通 `status --json` 也在顶层返回 `status` 与
+  `blockers`，将阻断态 `nextStage` 清空，并给出唯一 audit 恢复动作，不再错误推荐进入 TDD。
+- doctor 新增 Claude Code 最低版本检查；低于 2.1.218 时 fail-loud，无法探测 CLI 时给 warning。
+
+### Changed
+
+- 用户与架构文档明确最低 Claude Code 版本为 2.1.218，并明确 Claude Code-only 指 agent
+  宿主边界；操作系统 CI 可移植性不代表支持其他 agent harness。
+
 ## [0.3.13] - 2026-08-05
 
 ## [0.3.12] - 2026-08-04

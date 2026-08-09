@@ -1,0 +1,37 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4de3d931-8518-4e7b-a741-692b87f00a07",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:clarify-synthesizer",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Synthesize the confirmed clarify scope and exploration evidence into durable clarify artifacts, including requirements.md with seven-dimension ambiguity scoring and updated minimum discovery evidence.",
+    "evidence": [
+      "Created /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a81398b35297a017a/harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md with confirmed scope, no-compatibility constraint, brownfield facts, acceptance baseline, full seven-dimension scoring, overall=3.9, weakest dimension, unresolved high-risk ambiguities, and user confirmation status.",
+      "Updated /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a81398b35297a017a/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md from the existing template with exploration facts from run_41897503-c302-461f-aa6b-96bc9c011cf3 and current change context.",
+      "Requirements explicitly recorded that no dimension is N/A for this change because durable workflow/state/handoff/receipt/projection contracts are in scope even without business SQL tables.",
+      "Requirements explicitly recorded that clarify is not route-ready yet because unresolved high-risk ambiguity remains and Data/SQL clarity plus Interface/API clarity are still scored 3."
+    ],
+    "context": [
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a81398b35297a017a/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4de3d931-8518-4e7b-a741-692b87f00a07/input.json and validated changeId=EH-WORKFLOW-TECPC-20260806, stage=clarify, behavior=clarify.synthesize, role=execute, agent.type=enterprise-harness:clarify-synthesizer, agent.skill=harness-stage-executor.",
+      "Input handoff had no inputRefs, so synthesis used the current change artifacts and the user-directed exploration result path: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a81398b35297a017a/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json, change.md, GUIDE.md, evidence/minimum-discovery-exploration.md, and runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json.",
+      "Consumed only the minimum stable specs needed for clarify synthesis: harness/specs/workflow.md, ambiguity-scoring.md, agents-and-handoff.md, state-schema.md, and harness/behavior-checks.json.",
+      "Remaining uncertainty is substantive rather than procedural: the exact durable schema/artifact boundary for the breaking redesign is still the highest-risk unresolved ambiguity."
+    ],
+    "path": "Validated the handoff identity, read the current change scaffold plus the referenced exploration result and clarify contracts, synthesized confirmed user scope and evidence into requirements.md, updated the minimum discovery evidence template, and self-checked that the seven dimensions, overall score, weakest dimension, unresolved high-risk ambiguity, and user confirmation status are all present.",
+    "correction": "No execution failure. Recovery for the parent orchestrator is to run the independent clarify reviewer next, then continue clarify with exactly one next question focused on the durable contract boundary before attempting route."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md"
+  ],
+  "blockers": [],
+  "summary": "Clarify artifacts were synthesized successfully. requirements.md now captures the user-confirmed breaking governance redesign scope, explicit no-compatibility constraint, evidence-backed seven-dimension ambiguity scoring, and a single next-question direction. minimum-discovery-exploration.md was also filled from the existing template. Clarify is still not ready for route because the durable contract boundary, route complexity contract, and ambiguity-probe runtime contract remain high-risk unresolved ambiguities.",
+  "recordedAt": "2026-08-06T07:42:23.115Z",
+  "resultDigest": "b41e0f20629733cd5deb664793d321704300e19d28e8d203356c52bcb710f1fd"
+}

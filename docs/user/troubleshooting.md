@@ -83,6 +83,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-AUDIT-ARTIFACT-003` | 已完成阶段缺少必需 artifact | 运行 `workflow audit <change-id>` 定位文件，并回到该阶段以新 run 产出 |
 | `EH-AUDIT-STATE-004` | state 投影不满足阶段完成谓词 | 不手改 state；补齐 evidence 后运行该阶段对应 lifecycle/workflow 命令 |
 | `EH-AUDIT-STATE-005` | `workflow.stage` 非法，audit 不能确定所处阶段 | 运行 `workflow status --json` 对照 state schema；通过受支持的 workflow 决策恢复合法 stage，不手改投影 |
+| `EH-AUDIT-RUNTIME-006` | status 无法完成 durable evidence audit | 运行 `workflow audit <change-id> --json`，修复首个无效 artifact/handoff 后重试 status |
 | `EH-AGENT-BINDING-003` | dispatch/start/result 不一致 | trace runId |
 | `EH-SUBAGENT-RESULT-004` | result 无法解析 | 按 skill schema 返回 |
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |

@@ -1,0 +1,40 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_5572c983-5ac0-4a72-8e86-cb47b868a48d",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Amend Task 00 plan minimally so receipt scope is measured baseline-relative to task start, with focused RED coverage and matching legacy frozen argv/brief, without altering state.",
+    "evidence": [
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/runtime/tdd-run.mjs",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/runtime/lib/tdd-receipts.mjs",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/runtime/lib/git-evidence.mjs",
+      "Attempted Edit on /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "Post-write hook blocked with existing change-level errors: invalid state PLANNED; schema-mismatched reviews/design-reviewer.json and reviews/plan-critic.json; clarify ambiguity table incomplete; change.md router score table missing; validation.md sections empty"
+    ],
+    "context": [
+      "HANDOFF_INPUT: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_5572c983-5ac0-4a72-8e86-cb47b868a48d/input.json",
+      "No inputRefs were provided in input.json",
+      "Consumed stable refs: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/specs/workflow.md and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/specs/agents-and-handoff.md",
+      "Consumed current change metadata: /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/ACTIVE_CHANGE and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a66d7c0eaef777f63/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "Uncertainty: because the post-write hook blocked the attempted plan edit, no durable amended artifact can be asserted"
+    ],
+    "path": "Validated the handoff identity, inspected the current Task 00 plan, frozen commands, and receipt/path-measurement implementation, then attempted the minimal plan edit first at tasks.md. The repository post-write governance hook rejected the write due pre-existing change-level blockers unrelated to the requested Task 00 amendment. Per instructions, I did not edit state.json or legacy review projections, so I stopped rather than fabricate plan completion.",
+    "correction": "EH-PLAN-WRITE-001: Repair or bypass the pre-existing change-level governance blockers with an approved writable change snapshot, then rerun plan.produce so Task 00 can be durably amended in tasks.md and task-commands.json. Required intended amendment remains: add runtime/lib/git-evidence.mjs to Task 00 scope, switch Task 00 legacy argv/brief to the focused bootstrap smoke, and require baseline-relative changedPaths that exclude pre-task active-change snapshot artifacts."
+  },
+  "outputRefs": [],
+  "blockers": [
+    "EH-PLAN-WRITE-001: post-write governance hook blocks durable edits for EH-WORKFLOW-TECPC-20260806 because the existing change bundle fails state/review/clarify/route/validation checks"
+  ],
+  "summary": "Plan amendment was analyzed and prepared, but no durable Task 00 update could be produced because writing the plan artifact is blocked by pre-existing governance errors on the active change. No state edits were made.",
+  "recordedAt": "2026-08-06T14:15:12.112Z",
+  "resultDigest": "b937f6d44eefcd4b5e05116fd2aa1a3aa2bdbf10d33b961e6bc57701187ef110"
+}

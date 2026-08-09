@@ -1,0 +1,49 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_755c64b5-6064-498b-bc2a-0724307e2b8f",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立复核 Task 1 rerun 的 executor result，确认权威审批来源、冻结 argv 阻断真因，以及是否发生越界实现。",
+    "evidence": [
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/input.json`：executor 输入明确要求把 `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json` 与 `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json` 作为 authoritative approvals；executor result 也仅把这两份 run-contract checker pass 作为审批依据，没有把 legacy `reviews/*.json` 当 gate。",
+      "已核验 `runtime/tdd-run.mjs` 与 `runtime/lib/tdd-receipts.mjs`：`tdd-run.mjs` 在子命令启动前先用 `allowedTaskCommand(...)` 校验 frozen argv；`loadTaskCommand(...)` 只接受 `task-commands.json.schemaVersion === 1`，且仅支持 `redCommand/greenCommand/refactorCommand/(verifyCommand)` 这一旧结构；receipt 校验也只支持单组三阶段 `RED/GREEN/REFACTOR`。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json`：Task 1 使用 `schemaVersion: 2` 的 `commands[]`，包含多组 `RED/GREEN/REFACTOR` 以及最终 `VERIFY`，与当前 runner/receipt 合同不兼容；因此 executor 遇到的 `child argv differs from the frozen task command` 是真实 frozen-argv/runtime blocker，而不是任务使用错误。",
+      "已核验共享 receipt `../.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json`：该 receipt 绑定旧 agent `a91c5151f4f0b83ec` 和旧 worktree `/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec`，不属于本次 rerun；executor result 未把它当作本次有效 RED/GREEN/REFACTOR 证据，这一处理正确。",
+      "已核验 `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/result.json`：`outputRefs` 为空，仅报告启动前 blocker；未声明新的 receipt、未声明实现提交、未声明 source code 产物，因此本次 rerun 没有可归因的 out-of-scope implementation。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "runtime/tdd-run.mjs",
+      "runtime/lib/tdd-receipts.mjs",
+      "../.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json"
+    ],
+    "path": "verdict=pass。该 executor rerun 正确把 `run_876.../check.json` 与 `run_702.../check.json` 视为权威审批，没有误用 legacy `reviews/*.json`。失败点也确实是 runtime 对 frozen command schema 的兼容缺口：当前 runner 仅支持 schemaVersion 1 的单组三阶段命令，而 Task 1 已被冻结为 schemaVersion 2 的多命令序列，所以阻断发生在子测试启动之前。当前共享 receipt 属于旧 agent/旧 worktree，不能充当本 rerun 证据；本 rerun 也未产出实现改动。",
+    "correction": "先让 `runtime/tdd-run.mjs` 与 `runtime/lib/tdd-receipts.mjs` 支持 `schemaVersion: 2` 的 `commands[]` 和多段 `RED/GREEN/REFACTOR/VERIFY` 冻结合同；随后以当前 executor 重新开始 Task 1，并清理或轮换旧 receipt `../.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json`，确保新 receipt 绑定当前 run/agent/worktree/argv/HEAD。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_79f08fe6-c01a-4081-9b28-44714c31ba0b/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_70228289-3263-4c37-81b5-0dd2db2ba4d2/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "runtime/tdd-run.mjs",
+    "runtime/lib/tdd-receipts.mjs"
+  ],
+  "blockers": [],
+  "summary": "pass：executor 正确依赖 `run_876...` 与 `run_702...` 的权威 checker pass；本次失败是真实的 frozen-argv/runtime schema mismatch，不是任务误用，且未发生越界实现。",
+  "recordedAt": "2026-08-06T12:22:36.237Z",
+  "resultDigest": "771c689d98009ba994b9dc7f123331faa4706530ff99680eafbce7f876de79fe"
+}

@@ -18,6 +18,77 @@ const root = projectRoot();
 const managed = isHarnessManaged(root);
 const trackingChanges = hasChangeTracking(root);
 
+function changeWriteScope(target) {
+  const canonicalTarget = canonicalPath(target);
+  const changesDir = canonicalPath(path.join(root, 'harness', 'changes'));
+  if (!pathIsWithin(canonicalTarget, changesDir)) return 'outside-change';
+  const relative = path.relative(changesDir, canonicalTarget).replaceAll('\\', '/');
+  const [, ...changeRelative] = relative.split('/');
+  const artifactPath = changeRelative.join('/');
+  if (!artifactPath) return 'change-root';
+  if (artifactPath === 'runs' || artifactPath.startsWith('runs/')) return 'volatile-evidence';
+  if (artifactPath === 'evidence/workflow-events.jsonl') return 'volatile-evidence';
+  if (artifactPath === 'evidence/bootstrap-recovery' || artifactPath.startsWith('evidence/bootstrap-recovery/')) return 'stable-evidence';
+  if (artifactPath === 'evidence/tdd' || artifactPath.startsWith('evidence/tdd/')) return 'stable-evidence';
+  if (/^evidence\/[^/]+-exploration\.md$/u.test(artifactPath)) return 'stable-evidence';
+  return 'authority';
+}
+
+function activeChangeWriteScope(active, target) {
+  if (!active?.ok) return 'outside-active-change';
+  const activeChangeDir = canonicalPath(path.join(root, 'harness', 'changes', active.changeId));
+  return pathIsWithin(canonicalPath(target), activeChangeDir)
+    ? changeWriteScope(target)
+    : 'outside-active-change';
+}
+
+function requiresFullChangeValidation(active, target) {
+  const relative = path.relative(root, canonicalPath(target)).replaceAll('\\', '/');
+  const isRuntimeControlPlane = relative === 'runtime' || relative.startsWith('runtime/');
+  return isGovernedTarget(root, target)
+    || isRuntimeControlPlane
+    || changeWriteScope(target) === 'authority';
+}
+
+function changeIdForTarget(target) {
+  const canonicalTarget = canonicalPath(target);
+  const changesDir = canonicalPath(path.join(root, 'harness', 'changes'));
+  if (!pathIsWithin(canonicalTarget, changesDir)) return null;
+  const [changeId] = path.relative(changesDir, canonicalTarget).split(path.sep);
+  return changeId || null;
+}
+
+function markValidationStale(statePath) {
+  if (!fs.existsSync(statePath)) return;
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  if (!state.validation) return;
+  state.validation.status = 'stale';
+  state.validation.digest = null;
+  state.validation.validatedAt = null;
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n', 'utf-8');
+}
+
+function invalidateAffectedValidations(active, target) {
+  const relative = path.relative(root, canonicalPath(target)).replaceAll('\\', '/');
+  const isRuntimeControlPlane = relative === 'runtime' || relative.startsWith('runtime/');
+  if (isRuntimeControlPlane) {
+    const changesDir = path.join(root, 'harness', 'changes');
+    if (!fs.existsSync(changesDir)) return;
+    for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) markValidationStale(path.join(changesDir, entry.name, 'state.json'));
+    }
+    return;
+  }
+  const scope = changeWriteScope(target);
+  if (scope !== 'authority' && scope !== 'stable-evidence' && !isGovernedTarget(root, target)) return;
+  const changeId = changeIdForTarget(target);
+  if (changeId) {
+    markValidationStale(path.join(root, 'harness', 'changes', changeId, 'state.json'));
+    return;
+  }
+  if (active?.ok && isGovernedTarget(root, target)) markValidationStale(active.statePath);
+}
+
 // A target project with no harness/changes/ at all has no change-lifecycle state to
 // validate against; no-op gracefully rather than reading stdin for nothing.
 if (!managed && !trackingChanges) {
@@ -28,6 +99,7 @@ for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
 let incrementalTargets = [];
 let attributionBlocked = false;
+let potentialBashWrite = false;
 if (raw) {
   let event;
   try {
@@ -40,7 +112,8 @@ if (raw) {
     if (dedupGuard('post-write', event.tool_use_id, event.cwd)) process.exit(0);
     const targets = extractHookTargets(root, event);
     const active = loadActiveChange(root);
-    if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
+    potentialBashWrite = event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command);
+    if (potentialBashWrite) {
       const before = consumeHookSnapshot(root, event.tool_use_id);
       if (!before && !hookSnapshotAlreadyConsumed(root, event.tool_use_id)) {
         attributionBlocked = true;
@@ -80,15 +153,7 @@ if (raw) {
     }
     incrementalTargets = [...new Set(targets.map((target) => canonicalPath(target)))];
     for (const target of targets) {
-      const canonicalTarget = canonicalPath(target);
-      const activeChangeDir = active.ok ? canonicalPath(path.join(root, 'harness', 'changes', active.changeId)) : null;
-      const touchesActiveChange = activeChangeDir && pathIsWithin(canonicalTarget, activeChangeDir);
-      if ((isGovernedTarget(root, target) || touchesActiveChange) && active.ok && active.data.validation) {
-        active.data.validation.status = 'stale';
-        active.data.validation.digest = null;
-        active.data.validation.validatedAt = null;
-        fs.writeFileSync(active.statePath, JSON.stringify(active.data, null, 2) + '\n', 'utf-8');
-      }
+      invalidateAffectedValidations(active, target);
     }
   } catch (error) {
     const active = loadActiveChange(root);
@@ -112,7 +177,8 @@ if (attributionBlocked) {
   console.error('BLOCK [EH-HOOK-SNAPSHOT-010] Bash 写入无法完整归因；查看 violation ledger 后重试。');
   process.exit(2);
 }
-const touchesGoverned = incrementalTargets.some((target) => isGovernedTarget(root, target));
+const fullValidationTargets = incrementalTargets.filter((target) => requiresFullChangeValidation(loadActiveChange(root), target));
+const touchesGoverned = fullValidationTargets.some((target) => isGovernedTarget(root, target));
 const semanticProblems = touchesGoverned ? [
   ...validateOpenApiLight(root),
   ...validateGenericControllerConsistency(root),
@@ -123,7 +189,10 @@ if (semanticProblems.length) {
   // exit 1 会被当成普通失败并放行，等于治理检查形同虚设。
   process.exit(2);
 }
-const problems = [
+const shouldRunFullChangeValidation = !raw
+  || (potentialBashWrite && incrementalTargets.length === 0)
+  || fullValidationTargets.length > 0;
+const problems = !shouldRunFullChangeValidation ? [] : [
   // validateStructure checks this repo's own fixed file list; only meaningful once a
   // target project has fully onboarded (harness/changes/ + harness/specs/ both present).
   ...(managed ? validateStructure(root).map((m) => `${m.kind}:${m.path}`) : []),

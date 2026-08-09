@@ -1,0 +1,50 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_e2c2d6ef-d121-483f-8c4b-468de32964ca",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 Task 00 executor result、TDD receipt、implementation commit 与冻结 brief/scope/acceptance 的一致性",
+    "evidence": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/result.json",
+      ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "git evidence: commit 99ce8429108f8b1e576ec88f02a674d0be3dca12 exists on branch tdd-task-00-bootstrap-v2-sequencing, its parent is e3f491670aa61902330b742a2c41db5d36d25863, and the commit file list is limited to runtime/lib/tdd-receipts.mjs, runtime/tdd-run.mjs, runtime/test/task-command-v2-sequencing-smoke.mjs, runtime/test/tdd-receipt-contract-smoke.mjs",
+      "receipt executions prove real TDD order and exits: RED argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,red] exitCode=1; GREEN argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,green] exitCode=0; REFACTOR argv=[node,runtime/test/task-command-v2-sequencing-smoke.mjs,verify] exitCode=0; receipt headBefore/headAfter=e3f491670aa61902330b742a2c41db5d36d25863"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_e2c2d6ef-d121-483f-8c4b-468de32964ca/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/input.json"
+    ],
+    "path": "Receipt/result/commit jointly prove the executor used the frozen Task 00 argv, preserved real RED nonzero then GREEN/REFACTOR zero in order, and produced a locatable implementation commit that matches the four scoped runtime files. The implementation also matches the frozen brief/design intent by adding execution-index command resolution, sequence validation, repeated RED/GREEN/REFACTOR support plus terminal VERIFY support, while retaining legacy triplet coverage. However, pass is blocked because the final TDD receipt changedPaths surface is not limited to the Task 00 scope.",
+    "correction": "EH-TDD-SCOPE-001: rerun Task 00 in a clean executor worktree so the emitted receipt changedPaths contains only the four Task 00 touched files. Reset or isolate unrelated change artifacts before invoking node runtime/tdd-run.mjs, then resubmit the new receipt/result to an independent checker."
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_d261446a-cd78-4dda-844a-ad914a7527ac/result.json",
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json"
+  ],
+  "blockers": [
+    {
+      "code": "EH-TDD-SCOPE-001",
+      "message": "receipt changedPaths exceeds the frozen Task 00 scope",
+      "evidence": [
+        "Task 00 touched-file scope is limited to runtime/tdd-run.mjs, runtime/lib/tdd-receipts.mjs, runtime/test/task-command-v2-sequencing-smoke.mjs, runtime/test/tdd-receipt-contract-smoke.mjs",
+        "The receipt .git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json records many additional changedPaths under harness/changes/EH-WORKFLOW-TECPC-20260806/, including state.json, reviews/design-reviewer.json, reviews/plan-critic.json, validation.md, and numerous runs/* artifacts"
+      ],
+      "recovery": "Re-execute the task from a scope-clean worktree and regenerate the receipt so changedPaths is confined to the four approved runtime files; then hand off the new result/receipt for fresh independent review."
+    }
+  ],
+  "summary": "Block: the implementation commit is locatable and the receipt proves real RED -> GREEN -> REFACTOR with correct frozen argv, but the final Task 00 receipt records many out-of-scope changed paths, so the executor result does not satisfy the task-scope contract.",
+  "recordedAt": "2026-08-06T13:14:38.457Z",
+  "resultDigest": "335ec5d2e4e0406e05930ffa74a5f1bee4d793885ef91e8e8b4f609e84dde51c"
+}

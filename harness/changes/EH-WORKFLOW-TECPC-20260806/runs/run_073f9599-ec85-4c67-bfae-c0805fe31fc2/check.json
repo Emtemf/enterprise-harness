@@ -1,0 +1,66 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_073f9599-ec85-4c67-bfae-c0805fe31fc2",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md 在 hook-registry inventory 更正后，是否满足 design.produce 的完整性、事实性、适用性、迁移/fail-loud/test/rollback 覆盖与可进入 plan 的边界清晰度要求。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md:47-50 的 inventory 与权威源一致：harness/behavior-checks.json 当前为 14 behaviors，.claude-plugin/plugin.json 为 15 agents / 9 skills，harness/reviewers/catalog.json 为 5 reviewer entries，harness/plugin/hooks-manifest.json 为 9 hook groups / 12 registrations；inventory correction 已生效。",
+      "已核验 harness/specs/architecture.md:17-26 明确仓库分层为 spec/rule/skill/agent/hook/runtime，且规定“任何长 schema 只能在 spec/runtime 有一个权威来源”。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md:149-160 将 `harness/governance/manifest.json` 设计为新的仓库级唯一真相源，负责 stage/behavior/agent/checker/hook/decision/import/probe policy；但 design.md:65-71 的影响矩阵未纳入 harness/specs/architecture.md，正文也未冻结该新 authority 与现有 architecture contract 的对齐方式。",
+      "已核验 harness/templates/design.md:72-77 模板要求显式给出“架构边界 / Layer ownership / Object / mapper responsibility / Error handling boundary”；当前 design.md 已覆盖错误模型、测试、迁移、rollback，但未以明确架构边界章节冻结 spec/rule/skill/agent/hook/runtime 的 ownership 迁移。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_073f9599-ec85-4c67-bfae-c0805fe31fc2/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/specs/architecture.md",
+      "harness/templates/design.md",
+      "harness/behavior-checks.json",
+      ".claude-plugin/plugin.json",
+      "harness/reviewers/catalog.json",
+      "harness/plugin/hooks-manifest.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json"
+    ],
+    "path": "verdict=block。design.md 在目标、证据、测试、migration/fail-loud/rollback、API=public none / data=SQL none 的适用性判断上整体充分，且 registry inventory 已按 explorer advisory 更正；但它把新的 authoritative long-schema 下沉到 `harness/governance/manifest.json`，同时没有把 harness/specs/architecture.md 纳入受影响合同，也没有明确冻结 spec/rule/skill/agent/hook/runtime 的新 ownership 边界。这会让后续 plan 在 manifest、checkpoint、state projection、hook projection 与 spec narrative 之间继续存在跨层泄漏和 authority 冲突，因此当前设计仍不足以放行。",
+    "correction": "补一次 design 修订后再重审：1) 显式把 harness/specs/architecture.md 纳入 impacted spec 并说明要如何更新；2) 明确冻结 manifest/checkpoint/state/projection 在 spec、runtime、hook 等层的 authority 与生成/验证/投影责任；3) 解释 `harness/governance/manifest.json` 为什么符合、或如何修改“任何长 schema 只能在 spec/runtime 有一个权威来源”的架构合同；4) 若 Java 式 object/mapper 概念不适用，明确写 N/A，并给出本仓库对应的 artifact writer / import validator / reconcile owner。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+    "harness/specs/architecture.md",
+    "harness/templates/design.md",
+    "harness/behavior-checks.json",
+    ".claude-plugin/plugin.json",
+    "harness/reviewers/catalog.json",
+    "harness/plugin/hooks-manifest.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_eb23fc0a-18d0-4f34-89a4-7651e87bd524/result.json"
+  ],
+  "blockers": [
+    {
+      "code": "EH-DESIGN-ARCH-001",
+      "reason": "设计引入新的仓库级唯一真相源 `harness/governance/manifest.json`，但未与现有 architecture contract 的 authority 规则完成对齐，导致后续 plan 的 source-of-truth 与层边界仍不清晰。",
+      "evidence": [
+        "harness/specs/architecture.md:17-26",
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md:65-71",
+        "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md:149-160",
+        "harness/templates/design.md:72-77"
+      ],
+      "recovery": "修订 design.md，显式补 architecture.md 影响与新层边界 ownership，说明 manifest/checkpoint/state/projection 的 authority 落点与 spec/runtime/hook 的责任分工后重跑 design.check。"
+    }
+  ],
+  "summary": "block：design.md 已完成 inventory 更正且覆盖 test/migration/fail-loud/rollback，但新增 `harness/governance/manifest.json` 作为唯一真相源时，未同步冻结与 harness/specs/architecture.md 的 authority 对齐和层边界 ownership，存在关键架构边界遗漏，暂不能进入 plan。",
+  "recordedAt": "2026-08-06T10:05:18.684Z",
+  "resultDigest": "129b17d22e45c1f722ed35823876c5c1472f082f08f6c7b53848db64fb676588"
+}

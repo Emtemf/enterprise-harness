@@ -1,0 +1,40 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_09e7a555-4d5c-4818-8fd3-37ff56e1f71e",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "完成 task-00-bootstrap-v2-command-sequencing rerun，并把 receipt.changedPaths 收敛到 RED baseline 之后的 task 增量。",
+    "evidence": [
+      "RED/GREEN/REFACTOR receipt: /home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json",
+      "RED execution exit=1，证明未修复时 pre-existing active-change metadata 仍泄漏进 changedPaths",
+      "GREEN execution exit=0，证明 commands[] sequencing 与 baseline filtering 生效",
+      "REFACTOR execution exit=0，证明 verify smoke 全绿",
+      "Direct regression: node /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ae13eefd8ff5862c7/runtime/test/tdd-receipt-contract-smoke.mjs verify => exit 0",
+      "Implementation commit 95690858d3cf34f299552147615345bfaa249bd2 on branch tdd-task-00-baseline-scope"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_e2c2d6ef-d121-483f-8c4b-468de32964ca/check.json"
+    ],
+    "path": "先用新的 sequencing smoke 制造真实 RED，再在 git-evidence 中加入 pre-existing active-change metadata 排除与 baseline-relative changedPaths，随后跑 GREEN/REFACTOR，并扩充 receipt contract smoke 回归，最后提交实现 commit。",
+    "correction": "无 fresh blocker。注意最终 receipt.changedPaths 是相对 RED baseline 的增量，故比 implementation commit 文件列表更窄；checker 应以 baseline-relative 语义解读，而不是要求与 commit file list 完全相等。"
+  },
+  "outputRefs": [
+    ".git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-00-bootstrap-v2-command-sequencing.json"
+  ],
+  "blockers": [],
+  "summary": "Task 00 已在隔离 worktree 完成真实 RED->GREEN->REFACTOR，并提交 commit 95690858d3cf34f299552147615345bfaa249bd2。runtime 现支持 legacy triplet 与 commands[] sequencing 共存；RED 前会捕获 git-status baseline，receipt.changedPaths 仅保留 baseline 之后的 task 增量并排除 pre-existing active-change metadata。建议下一步派独立 checker 校验该 receipt 与实现 commit。",
+  "recordedAt": "2026-08-06T14:42:45.578Z",
+  "resultDigest": "e22a72314075e437cdadab00fbb4ee6b590ebab0c15c59810b850f4fb88e20db"
+}

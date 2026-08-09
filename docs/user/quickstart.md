@@ -2,7 +2,7 @@
 
 ## 前置要求
 
-- Claude Code
+- Claude Code 2.1.218 或更高版本（`background: false` 与 nested subagent 所需）
 - Git
 - Node.js 20 或 22
 - Java 项目建议提供 `./mvnw`
@@ -93,5 +93,8 @@ enterprise-harness trace --change <change-id> --mermaid
 `workflow audit` 会交叉检查阶段 artifact、state、executor/checker handoff 和 agent ledger；
 它比聊天进度可靠。完整阶段说明见[七阶段工作流](workflow.md)与
 [阶段时序、事件与产物合同](../../harness/specs/stage-observability.md)。
+
+两个 status 命令都应先读取顶层 `status`。若为 `blocked`，只执行返回的 `nextAction`，不要按
+投影的 `stage` 或 `nextStage` 直接进入后续阶段。
 
 `doctor` 默认离线。只有显式运行 `doctor --online` 才检查 Context7 网络能力。

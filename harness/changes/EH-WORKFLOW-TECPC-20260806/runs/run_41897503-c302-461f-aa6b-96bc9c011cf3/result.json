@@ -1,0 +1,41 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_41897503-c302-461f-aa6b-96bc9c011cf3",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "审计 EH-WORKFLOW-TECPC-20260806 的 clarify/route 治理：TECPC、hooks、handoff、fork 隔离、CodeGraph-first、route/ambiguity 量化与真实执行缺口。",
+    "evidence": [
+      "CodeGraph-first 已执行：codegraph_status 成功，但警告索引属于 /home/wula/IdeaProjects/sdd 而非当前 worktree；随后用 codegraph_explore/search/callers 审核 ambiguity/router-score/handoff/agent-evidence 等核心符号。",
+      "fallback 仅限 CodeGraph 不擅长的 Markdown/JSON/frontmatter/hook 注册与当前 ledger：已读取 harness/specs、behavior-checks.json、hooks-manifest/.claude settings/hooks.json、相关 skills/agents、runtime hooks/lib、选定 smoke tests、当前 change 资产与 agent ledger。",
+      "真实 ledger 证据显示当前 change 曾多次在 WorktreeCreate hook 失败：EH-AGENT-FAILURE-009，原因是 ACTIVE_CHANGE state.json 在 parent HEAD 不可见。",
+      "workflow audit 证明当前 clarify stage 仍 block：缺 requirements.md、clarify.synthesize execute/check、clarify.explore-code execute/check；普通 audit 总 verdict 仍 pass，因为尚无 completed stage。",
+      "MCP CodeGraph 调用后当前 ledger 仍未出现 codegraph-attempt；结合 pre-explore 注册 matcher 只覆盖 Grep|Read|Glob|Bash，可判定 MCP CodeGraph receipt 路径存在落地缺口。"
+    ],
+    "context": [
+      "输入 handoff: harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/input.json",
+      "当前 change durable state: harness/changes/EH-WORKFLOW-TECPC-20260806/state.json, change.md, GUIDE.md, evidence/minimum-discovery-exploration.md",
+      "关键合同: harness/specs/workflow.md, agents-and-handoff.md, stage-observability.md, hooks.md, ambiguity-scoring.md, state-schema.md, upstream-mapping.md",
+      "关键实现: runtime/lib/{handoff,workflow,workflow-audit,stage-contract,ambiguity,router-score,execution-prerequisites,checks,spawn-depth,codegraph-index,agent-evidence}.mjs 与 runtime/hooks/*",
+      "未决不确定性：CodeGraph index 属于别的 worktree；MCP matcher 漏配是高可信推断但未做 hook dispatcher 插桩；当前 handoff 缺 durable exploration brief/inputRefs。"
+    ],
+    "path": "先用 CodeGraph 审核运行时符号与调用关系；因 JSON/Markdown/frontmatter 与真实 ledger/matcher 细节不足，再限域 Read/Bash 审核合同、注册、测试与当前 change 证据；最后用 workflow audit 和 agent ledger 交叉验证“已实现的 gate”与“真实运行过的 gate”。",
+    "correction": "若主 orchestrator 继续推进，应优先处理三类缺口：1) 给 clarify.explore-code 提供 durable exploration brief/inputRefs；2) 修复 MCP CodeGraph 未落 codegraph-attempt 的 hook matcher/接线；3) 修 WorktreeCreate 对 parent HEAD 的 ACTIVE_CHANGE state 依赖，否则 clarify executor/checker 会继续在真实派发前失败。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md"
+  ],
+  "blockers": [],
+  "summary": "clarify/route 治理骨架已基本落在 behavior registry + handoff + hooks + workflow audit 上：独立 executor/checker、TECPC 非空、routeReady 只能用户确认、ambiguity 七维硬 gate、stop/completion freshness 都有机械实现。当前 change 仍是 scaffold-only，且历史真实派发已被 WorktreeCreate fail-closed 卡住。最大的实现缺口有四个：MCP CodeGraph 调用看起来没有进入 pre-explore 记账；doctor 不能识别 codegraph 索引与当前 worktree 不匹配；route score 只有“填满表”没有阈值/一致性/证据硬检查；Socratic/weakest/单题提问仍主要是 skill/reviewer 约束而非 runtime gate。",
+  "recordedAt": "2026-08-06T07:31:46.236Z",
+  "resultDigest": "1b2a7ae97650b71b75878d19e77f89260025526e4b3309c9c108214c0044d3d9"
+}

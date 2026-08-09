@@ -1,0 +1,35 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_eb23fc0a-18d0-4f34-89a4-7651e87bd524",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "design",
+  "behavior": "design.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:design-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "按 handoff 指定范围产出 design.md，完整冻结本次 breaking governance redesign 的目标、权威合同、stage/checkpoint/import 模型、worktree snapshot 修复、CodeGraph index/receipt 规则、registry/probe、route 六维、clarify interview evidence、audit/current-stage/auto-stop、数据/CLI/hook/error/migration/tests/rollback，并给出 public API/SQL 的 evidence-based none 结论。",
+    "evidence": [
+      "已消费 authoritative inputRefs：harness/changes/EH-WORKFLOW-TECPC-20260806/{requirements.md,change.md,state.json}、harness/templates/design.md、以及两组 design.explore-code execute/check artifacts。",
+      "已额外读取稳定合同与现状实现：harness/specs/{workflow.md,agents-and-handoff.md,evidence.md,state-schema.md,ambiguity-scoring.md,stage-observability.md}，以及 runtime/lib/{stage-contract.mjs,workflow-audit.mjs,ambiguity.mjs,router-score.mjs,execution-prerequisites.mjs,codegraph-index.mjs}、runtime/hooks/{worktree-create.mjs,pre-explore.mjs}、runtime/evidence-import.mjs、harness/behavior-checks.json、harness/reviewers/catalog.json、.claude-plugin/plugin.json、harness/plugin/hooks-manifest.json。",
+      "已产出 durable artifact：harness/changes/EH-WORKFLOW-TECPC-20260806/design.md。",
+      "design.md 明确冻结了：单一 governance manifest、每阶段 TECPC checkpoint、inline intake+clarify / forked remaining stages、generic import modes、worktree snapshot fix、same-worktree CodeGraph validity、full hook/agent/checker registry + boot probe、route 六维 strict schema、clarify interview evidence + phase-correct scoring、audit 默认纳入 current stage + auto-stop、error taxonomy、migration/fail-loud/rollback、以及 public HTTP/OpenAPI=none / SQL DB=none 的证据化结论。"
+    ],
+    "context": [
+      "最小权威输入来自 HANDOFF_INPUT 中列出的 8 个 inputRefs。",
+      "关键 brownfield 事实来自已检查通过的 design.explore-code 结果：run_8681dbde-b57f-4d22-8bf8-987e35c33c6d/result.json + run_2123a5ab-8b40-41da-95ac-1ba8d78b7d18/check.json；run_03abfcb3-4bff-4e15-a964-980671937151/result.json + run_4293de43-9885-4e86-bfe8-d62296b9116b/check.json。",
+      "非阻断说明：最初按用户提示尝试写入共享 checkout 路径 `/home/wula/IdeaProjects/sdd/harness/changes/.../design.md`，被隔离 worktree 约束拒绝；随后按运行合同写入当前 worktree 副本，这是本 run 唯一允许且成功的 durable artifact 位置。"
+    ],
+    "path": "先读取 handoff input 与全部 inputRefs，随后补读 design 模板与稳定治理规范，并针对 explorer/checker 已指出的争议点最小化核对 runtime 现状实现，再按模板组织完整设计。方案上选择“单一 governance manifest + stage checkpoint + 通用 import policy”，因为只有该路径能一次性收敛 stage/source-of-truth 分裂、worktree snapshot 缺陷、CodeGraph wrong-worktree 漂移、route/clarify 合同裂缝与 audit current-stage 双口径问题。下一步应由独立 design-reviewer 仅消费该 design artifact 做 gate 检查。",
+    "correction": "本执行无 blocker。若 checker 认为需在共享 checkout 也可见，恢复动作不是重跑设计，而是由主 orchestrator 依据治理运行环境决定后续同步/集成方式；执行者本 run 不能越过 worktree 隔离直接写共享 checkout。若 reviewer 发现具体合同字段需收紧，应在 design checker 结论中指出精确节位，由后续 design 修订 run 重新产出，不得让实现阶段自行解释或补设计。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+  ],
+  "blockers": [],
+  "summary": "已完成 design.produce：在当前 worktree 下产出 `harness/changes/EH-WORKFLOW-TECPC-20260806/design.md`，完整覆盖用户确认的 breaking redesign 范围。设计选择单一 governance manifest + 每阶段 TECPC checkpoint + 通用 artifact import/writeback 模型，并明确修复 WorktreeCreate parent-HEAD 依赖、将 CodeGraph attempt 升级为 same-worktree valid-index 绑定、统一 hook/agent/checker registry 与 boot-time probe、冻结 route 六维 strict schema、clarify interview evidence/phase-correct scoring、以及 audit 默认纳入 current stage 和 auto-stop。文档还显式给出 public HTTP/OpenAPI=none、SQL DB=none、CLI/hook/file-backed durable contracts=applicable 的证据化结论，并包含错误模型、迁移、fail-loud、测试与回滚。",
+  "recordedAt": "2026-08-06T09:47:10.335Z",
+  "resultDigest": "61bdfbe568f871aef7c96f4060f10ae97055e5a8349f5f598c1546323a37ba21"
+}

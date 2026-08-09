@@ -1,0 +1,178 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_1b3716f3-df73-4677-a432-6039d305d29a",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "worktreePath": "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec",
+  "gitCommonDir": "/home/wula/IdeaProjects/sdd/.git",
+  "branch": "tdd/task-01-snapshot-import-state-atomicity",
+  "receiptRefs": {
+    "red": [
+      "/home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json"
+    ],
+    "green": [
+      "/home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json"
+    ],
+    "refactor": [
+      "/home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json"
+    ],
+    "verify": [
+      "/home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json"
+    ]
+  },
+  "implementationCommit": "e3baf3a480af93a073885f99174c9bf13cf029e7",
+  "changedPaths": [
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/evidence-import.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/hooks/worktree-create.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/artifact-import.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/checks.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/state-projection-store.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/tdd-receipts.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/workflow.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/lib/worktree-snapshot.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/tdd-run.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/test/artifact-import-contract-smoke.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/test/state-projection-atomicity-smoke.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/test/worktree-snapshot-import-smoke.mjs",
+    "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a91c5151f4f0b83ec/runtime/workflow.mjs"
+  ],
+  "commandExits": [
+    {
+      "id": "artifact-import-red",
+      "phase": "RED",
+      "argv": [
+        "node",
+        "runtime/test/artifact-import-contract-smoke.mjs",
+        "red"
+      ],
+      "exitCode": 1
+    },
+    {
+      "id": "artifact-import-green",
+      "phase": "GREEN",
+      "argv": [
+        "node",
+        "runtime/test/artifact-import-contract-smoke.mjs",
+        "green"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "artifact-import-refactor-verify",
+      "phase": "REFACTOR",
+      "argv": [
+        "node",
+        "runtime/test/artifact-import-contract-smoke.mjs",
+        "verify"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "worktree-snapshot-red",
+      "phase": "RED",
+      "argv": [
+        "node",
+        "runtime/test/worktree-snapshot-import-smoke.mjs",
+        "red"
+      ],
+      "exitCode": 1
+    },
+    {
+      "id": "worktree-snapshot-green",
+      "phase": "GREEN",
+      "argv": [
+        "node",
+        "runtime/test/worktree-snapshot-import-smoke.mjs",
+        "green"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "worktree-snapshot-refactor-verify",
+      "phase": "REFACTOR",
+      "argv": [
+        "node",
+        "runtime/test/worktree-snapshot-import-smoke.mjs",
+        "verify"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "state-projection-red",
+      "phase": "RED",
+      "argv": [
+        "node",
+        "runtime/test/state-projection-atomicity-smoke.mjs",
+        "red"
+      ],
+      "exitCode": 1
+    },
+    {
+      "id": "state-projection-green",
+      "phase": "GREEN",
+      "argv": [
+        "node",
+        "runtime/test/state-projection-atomicity-smoke.mjs",
+        "green"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "state-projection-refactor-verify",
+      "phase": "REFACTOR",
+      "argv": [
+        "node",
+        "runtime/test/state-projection-atomicity-smoke.mjs",
+        "verify"
+      ],
+      "exitCode": 0
+    },
+    {
+      "id": "receipt-regression-verify",
+      "phase": "VERIFY",
+      "argv": [
+        "node",
+        "runtime/test/tdd-receipt-contract-smoke.mjs",
+        "verify"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "postCommitStatus": [
+    "?? harness/changes/EH-WORKFLOW-TECPC-20260806/"
+  ],
+  "tecpc": {
+    "target": "完成 Task 1：shared durable worker artifact importer、parent working tree snapshot continuity、atomic state/checkpoint publish，并让 tdd-run/receipt 能消费 schemaVersion 2 的整条 frozen command 序列。",
+    "evidence": [
+      "正式 receipt：/home/wula/IdeaProjects/sdd/.git/enterprise-harness/receipts/EH-WORKFLOW-TECPC-20260806/tdd/task-01-snapshot-import-state-atomicity.json，含 10 条执行记录（3 组 RED/GREEN/REFACTOR + 1 条 VERIFY）。",
+      "实现提交：e3baf3a480af93a073885f99174c9bf13cf029e7。",
+      "artifact-import-contract：RED=1，GREEN=0，REFACTOR=0。",
+      "worktree-snapshot-import：RED=1，GREEN=0，REFACTOR=0。",
+      "state-projection-atomicity：RED=1，GREEN=0，REFACTOR=0。",
+      "tdd-receipt-contract VERIFY=0，证明多阶段 receipt / frozen argv 回归仍通过。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "harness/command-policy.json"
+    ],
+    "path": "先写 3 个新 smoke；第一次正式 RED 暴露 tdd-run 仅支持老 3-phase receipt / schemaVersion 1 freeze，于是先在任务 scope 内补齐 sequenced frozen commands + multi-step receipt 支持；随后依次交付 shared artifact importer、snapshot spool/import、state/checkpoint atomic publish，并按 frozen argv 全链执行到 VERIFY；最后在隔离分支提交实现。",
+    "correction": "当前 worktree 的既有 active-change 资产仍触发 post-write 提醒：state.json=PLANNED 的现存 change 目录未同步引入 design review / clarify / route / validation 事实，且该 `harness/changes/EH-WORKFLOW-TECPC-20260806/` 在本 worktree 仍是未跟踪目录。恢复建议：主 orchestrator 使用本次新落地的 snapshot/import 机制重建或修复当前 change 资产后，再派发 task-02；不要把这些旧资产提醒误判为本次实现 commit 的失败。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1b3716f3-df73-4677-a432-6039d305d29a/result.json"
+  ],
+  "blockers": [],
+  "nextStep": "主 orchestrator 先决定是否用新 snapshot/import 机制修复当前 worktree 的 change 资产，再继续 task-02-manifest-and-phase-checkpoints。",
+  "summary": "Task 1 已完成并提交。runtime 现在支持 schemaVersion 2 多命令 frozen argv receipt、shared artifact importer、parent working tree snapshot continuity、以及 atomic state/checkpoint publish。正式 TDD 证据在单一 receipt 中完整闭环；实现 commit 为 e3baf3a480af93a073885f99174c9bf13cf029e7。唯一残留是当前 worktree 下旧的 change 资产仍触发现有 post-write gate 提醒，建议由主编排器在进入 task-02 前用新机制重建/修复。",
+  "recordedAt": "2026-08-06T11:36:58.732Z",
+  "resultDigest": "b7074899c158a147eba72775871402703288c358e2f3bdb5c3f8c9c24dab4577"
+}

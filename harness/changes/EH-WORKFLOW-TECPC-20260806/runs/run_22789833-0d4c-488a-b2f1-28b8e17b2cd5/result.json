@@ -1,0 +1,51 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_22789833-0d4c-488a-b2f1-28b8e17b2cd5",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Update only plan artifacts so plan approval is expressed from valid design/plan run-contract checker evidence, while copied legacy reviews are marked non-authoritative until Task 1 bootstrap import/normalization resolves them.",
+    "evidence": [
+      "Updated `harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md` metadata from draft/false gate wording to `approved-run-contract-bootstrap-pending`, citing authoritative checker passes at `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json` and `harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json`.",
+      "Updated Task 1 in `harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md` to consume both authoritative `runs/*/check.json` approvals and copied `reviews/*.json` projections, and to produce verified-import normalization/backlinks so stale false review fields no longer block TDD entry.",
+      "Updated `task-brief-01-snapshot-import-state-atomicity.md` to explicitly distinguish run-contract approval evidence from copied legacy review projections and to assign bootstrap normalization/import responsibility to Task 1.",
+      "Updated `task-brief-02-manifest-and-phase-checkpoints.md`, `task-brief-03-codegraph-probe-and-registry.md`, `task-brief-04-route-and-clarify-quant-models.md`, and `task-brief-05-audit-stop-skills-docs-packaging-regression.md` so downstream tasks consume Task 1-normalized review projections or original `runs/*/check.json` sources, never raw copied `reviews/*.json`.",
+      "Did not edit `state.json` or `reviews/*.json`; repeated post-write hook output continued to report their pre-existing invalid/legacy state, which is now captured in plan text as Task 1 bootstrap scope rather than as a false plan-approval blocker."
+    ],
+    "context": [
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_22789833-0d4c-488a-b2f1-28b8e17b2cd5/input.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a936945d19d4a5f26/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json"
+    ],
+    "path": "Read the existing plan artifacts plus the independent design-reviewer and plan-critic pass artifacts, then edited only tasks/brief plan documents to: 1) preserve exact argv/task order, 2) mark design/critic approval as valid at run-contract level, 3) classify copied `reviews/*.json` as legacy non-authoritative projections, and 4) make Task 1 the bootstrap importer/normalizer required before later tasks consume review projections.",
+    "correction": "No state or reviewer evidence was fabricated or edited. Post-write hook warnings still report pre-existing invalid `state.json`, copied legacy review envelopes, and stale clarify/route/validation artifacts. Recovery remains the same as the updated plan now states: start TDD with Task 1 on run-contract approval, use the verified importer/bootstrap path to normalize/import legacy review projections with backlinks to `runs/*/check.json`, and leave state/review truth to later durable import/reconcile rather than hand-editing those files."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md"
+  ],
+  "blockers": [],
+  "summary": "Plan artifacts now treat `runs/run_876e34ac-bc9e-4b65-a3ed-41892666336a/check.json` and `runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/check.json` as the valid design/critic approval sources, remove stale false plan-gate wording, and make copied `reviews/*.json` explicit legacy projections that Task 1 must normalize/import before downstream tasks consume them.",
+  "recordedAt": "2026-08-06T11:56:31.583Z",
+  "resultDigest": "1378c2b655732e1c312f01b10333a8e24146442a25b0a63f9926a87d78c31aff"
+}

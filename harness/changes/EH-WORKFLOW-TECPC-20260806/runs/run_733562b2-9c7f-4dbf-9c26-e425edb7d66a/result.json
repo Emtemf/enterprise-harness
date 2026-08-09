@@ -1,0 +1,38 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_733562b2-9c7f-4dbf-9c26-e425edb7d66a",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Amend planning artifacts minimally so TDD can start with a zero-dependency bootstrap Task 00 using the current runner-compatible frozen command schema, and make Task 01 depend on Task 00 while preserving later exact command coverage.",
+    "evidence": [
+      "Updated /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md to add Task 00 `task-00-bootstrap-v2-command-sequencing`, its touched files/consumes/produces/test-first RED-GREEN-REFACTOR order/exact argv/acceptance checks, and to change Task 01 to depend on Task 00.",
+      "Updated /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json to set a runner-compatible bootstrap bridge and freeze Task 00 as legacy `redCommand`/`greenCommand`/`refactorCommand` argv while leaving later tasks' `commands[]` payloads intact.",
+      "Read current runner contract in /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/runtime/tdd-run.mjs and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/runtime/lib/tdd-receipts.mjs, confirming pre-change support was legacy schemaVersion 1 triplets only.",
+      "Observed repeated post-write hook warnings against pre-existing invalid change assets (state/reviews/clarify/validation) outside the scope of this plan amendment; no state or evidence projection files were edited."
+    ],
+    "context": [
+      "Consumed handoff input /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_733562b2-9c7f-4dbf-9c26-e425edb7d66a/input.json",
+      "Consumed active change pointer /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/ACTIVE_CHANGE and state projection /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "Consumed stable contracts /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/specs/workflow.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/specs/state-schema.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/specs/testing.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/specs/evidence.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/specs/agents-and-handoff.md, /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/behavior-checks.json, and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/.claude/skills/harness-plan/SKILL.md",
+      "Consumed existing plan artifacts /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md and /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "Consumed receipt contract regression file /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acd0c33525a9b4b62/runtime/test/tdd-receipt-contract-smoke.mjs"
+    ],
+    "path": "Used a minimal plan-only bridge: add Task 00 in tasks.md with one legacy RED/GREEN/REFACTOR triplet that the current runner can execute, convert task-commands.json into a bootstrap-compatible bridge by freezing Task 00 in legacy fields, and preserve later task `commands[]` coverage so Task 00 can implement sequence-aware v2 parsing/validation in runtime/tdd-run.mjs and runtime/lib/tdd-receipts.mjs.",
+    "correction": "No hidden remediation was applied to the pre-existing invalid state/review/clarify/validation artifacts reported by post-write hooks. Independent plan-critic review is still required next, and any downstream blocker caused by those legacy artifacts must be handled explicitly rather than by editing state projections."
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json"
+  ],
+  "blockers": [],
+  "summary": "Plan amended with a zero-dependency Task 00 bootstrap bridge using current legacy frozen-command fields, Task 01 now depends on Task 00, and later tasks keep their existing exact `commands[]` coverage for the runtime upgrade to consume.",
+  "recordedAt": "2026-08-06T12:30:06.143Z",
+  "resultDigest": "4cef90f892fd1700cbadbee90aabb568ad23df2ca215681306432676b296ee99"
+}

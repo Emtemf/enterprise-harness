@@ -8,7 +8,8 @@
     "win32"
   ],
   "requiredRuntime": {
-    "node": ">=20"
+    "node": ">=20",
+    "claudeCode": ">=2.1.218"
   },
   "requiredProjectFiles": [
     "CLAUDE.md",

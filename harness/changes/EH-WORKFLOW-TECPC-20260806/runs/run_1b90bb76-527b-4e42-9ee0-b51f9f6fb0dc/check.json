@@ -1,0 +1,54 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_1b90bb76-527b-4e42-9ee0-b51f9f6fb0dc",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查本次 clarify.explore-code 的产出是否已为七维澄清、事实依据与用户 scope 确认提供可消费的 durable 基础。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/state.json：workflow.clarifyReady=false、workflow.userConfirmedScope=false、workflow.routeReady=false，说明当前没有达成 clarify 退出条件。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/change.md：原始需求、业务结果、非目标、路由评分表均为空模板，无法为 Target、Scope、Acceptance criteria 等维度提供事实依据。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md：仍是空模板，Codegraph Attempt、Context7、Impact Summary、Unknowns、Decisions Required 均未填写，无法支撑七维评分。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/GUIDE.md：明确把 requirements.md 作为“需求澄清”入口，但 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md 实际不存在。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json：executor 主要产出的是 clarify/route 治理审计结论，而不是当前 change 的七维澄清结果；其中指出 requirements.md、clarify.synthesize execute/check 缺失，这与 durable 资产现状一致。"
+    ],
+    "context": [
+      "harness/specs/ambiguity-scoring.md",
+      "harness/specs/workflow.md",
+      "harness/specs/state-schema.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/GUIDE.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json"
+    ],
+    "path": "本次 executor 结果可证明“当前 clarify 尚未完成且存在可操作缺口”，但它没有把这些发现沉淀成 requirements.md、七维评分、weakest dimension、单一待问问题或用户 scope 确认。因此 present holes 虽然是 actionable 的，scope 仍未被建立，clarify 不能通过。",
+    "correction": "先由 clarify.synthesize 基于已探索事实生成 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md，完整写出七维分数、逐维依据、Overall=七维平均值、weakest dimension、唯一下一问、未决高风险歧义；再获取并落盘真实用户 scope confirmation，随后再做独立 clarify-review。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/change.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/GUIDE.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_41897503-c302-461f-aa6b-96bc9c011cf3/result.json",
+    "harness/specs/ambiguity-scoring.md",
+    "harness/specs/workflow.md",
+    "harness/specs/state-schema.md"
+  ],
+  "blockers": [
+    "EH-CLARIFY-REQUIREMENTS-MISSING: 缺少 requirements.md；当前没有七维评分、Overall、weakest dimension 或逐维依据。恢复：生成 harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md，并按 ambiguity-scoring 合同逐项填写。",
+    "EH-CLARIFY-EVIDENCE-EMPTY: 探索证据模板未填写，当前没有 durable facts 支撑 Target、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria、Constraint/risk 七维。恢复：把 run_41897503 的有效探索结论沉淀到 harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/minimum-discovery-exploration.md，并在 requirements.md 中逐维引用。",
+    "EH-CLARIFY-SCOPE-UNCONFIRMED: 没有真实用户 scope confirmation 的 durable 证据；state.json 仍显示 userConfirmedScope=false。恢复：基于 weakest dimension 只问一个关键问题，得到用户明确确认后再把确认结果投影到 durable 资产与 state.json。",
+    "EH-CLARIFY-HIGH-RISK-GAPS: Data/SQL、Interface/API、Acceptance criteria、Constraint/risk 等关键维度目前均无可追溯事实，不满足“关键维度均不低于 4”的前置条件。恢复：先补事实，再评分；若维度不适用，必须在 requirements.md 写明 N/A 的事实依据，而不是省略。"
+  ],
+  "summary": "block：executor 结果证明当前 clarify 仍停留在治理审计和模板脚手架阶段；缺少 requirements.md、七维评分、事实依据和用户 scope 确认。缺口是可操作的，但 scope 尚未建立，不能进入 route。",
+  "recordedAt": "2026-08-06T07:36:13.076Z",
+  "resultDigest": "0015e06a2d4ada7aba113e075812247e9b36c93e4c8e3464ce384b915235ed0f"
+}

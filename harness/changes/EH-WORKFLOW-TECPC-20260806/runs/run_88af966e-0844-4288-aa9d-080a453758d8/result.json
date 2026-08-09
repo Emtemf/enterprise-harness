@@ -1,0 +1,37 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_88af966e-0844-4288-aa9d-080a453758d8",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "Verify that the amended Task 00 measurement-bug delta is consistently represented across tasks.md, task-brief-00, and task-commands.json, while keeping the frozen argv unchanged.",
+    "evidence": [
+      "Reviewed tasks.md: Task 00 Touched Files include runtime/lib/git-evidence.mjs, and Produces now require baseline-relative changed-path computation so receipts only report files modified after task start rather than the pre-existing active-change snapshot.",
+      "Reviewed task-brief-00-bootstrap-v2-command-sequencing.md: Task 00 scope matches tasks.md by including runtime/lib/git-evidence.mjs in Touched Files and the same baseline-relative changed-path semantics in Produces.",
+      "Reviewed task-commands.json: Task 00 still uses the unchanged legacy redCommand/greenCommand/refactorCommand triplet with argv [node, runtime/test/task-command-v2-sequencing-smoke.mjs, red|green|verify], and no command-freeze changes were introduced.",
+      "Attempted to write the only output artifact at harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_88af966e-0844-4288-aa9d-080a453758d8/result.json, but the post-write hook blocked durability on pre-existing change-level governance defects."
+    ],
+    "context": [
+      "Consumed harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_88af966e-0844-4288-aa9d-080a453758d8/input.json.",
+      "Consumed harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md.",
+      "Consumed harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md.",
+      "Consumed harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json.",
+      "Consumed harness/specs/agents-and-handoff.md for result-envelope requirements."
+    ],
+    "path": "Validated the handoff identity, cross-checked the three Task 00 planning artifacts, confirmed the git-evidence plus baseline-relative changed-path delta is present in the scope documents, and confirmed the frozen argv stayed unchanged. I then attempted to write only the result artifact, but the repository post-write governance hook blocked it for unrelated pre-existing change-state/review/validation defects. Per handoff instructions, I did not attempt any state or review repairs.",
+    "correction": "BLOCKED by [EH-PLAN-WRITE-BLOCK-001]. Recovery: parent orchestrator must reconcile the pre-existing change-level governance blockers reported by the post-write hook, then rerun this executor to durably record the same verification result. Do not repair state/review artifacts within this execution."
+  },
+  "outputRefs": [],
+  "blockers": [
+    "[EH-PLAN-WRITE-BLOCK-001] Post-write hook rejected the result artifact because change EH-WORKFLOW-TECPC-20260806 has pre-existing governance defects: invalid state.json state=PLANNED for current gate expectations; schema-mismatched reviews/design-reviewer.json and reviews/plan-critic.json missing reviewerId/findings/evidence/reviewedAt; incomplete clarify ambiguity scoring and missing overall score; missing router score table in change.md; empty validation.md Commands Executed, Final Verdict, and Review Verdicts sections."
+  ],
+  "summary": "Task 00's delta is represented correctly in tasks.md and task-brief-00, and task-commands.json remains unchanged; however, durable recording of this result was blocked by pre-existing change-level governance hook failures, so no durable output artifact can be claimed from this run.",
+  "recordedAt": "2026-08-06T14:21:30.631Z",
+  "resultDigest": "b987f62c7918b4fcb65db9b8779ca74995964f461b9bd12022929fddb76242b2"
+}

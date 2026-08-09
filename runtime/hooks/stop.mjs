@@ -13,12 +13,20 @@ function printHandoffGuidance(root) {
   if (guidance.workflowStage) {
     console.error(`- 当前 workflow stage：${guidance.workflowStage}`);
     console.error(`- 建议下次从：${guidance.nextEntry} 恢复`);
+    console.error(`- 下一步动作：${guidance.nextAction}`);
   }
   // 闭环五检进度卡
   try {
     const active = loadActiveChange(root);
     if (active.ok) {
-      const card = renderTECPCCard(root, active.changeId, active.data);
+      const card = renderTECPCCard(root, active.changeId, active.data, {
+        workflowResult: {
+          stage: guidance.workflowStage,
+          currentGap: guidance.currentGap,
+          nextAction: guidance.nextAction,
+          audit: guidance.audit,
+        },
+      });
       console.error(card);
     }
   } catch (error) {
