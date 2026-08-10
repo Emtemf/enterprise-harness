@@ -1,16 +1,16 @@
 # 当前研发快照
 
-更新时间：2026-08-10（0.3.14 development）
+更新时间：2026-08-10（0.3.18 development）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.14
+- 当前版本：0.3.18
 - 当前阶段：hook 瘦身 + 阶段链验证 skill 驱动（KISS 重构）
 - 当前目标：hook 薄壳化进 lib；静态阶段链（ambiguity/router/design/plan/codegraph）由
-  `enterprise-harness validate` 在阶段边界验证并落 marker，pre-write 只留瞬间 gate + 轻查 marker
-- active change：`EH-WORKFLOW-TECPC-20260806`，投影 stage 为 tdd，但 completed-stage audit
-  仍为 block（含 codegraph-attempt 历史缺口）；恢复入口以 `workflow audit EH-WORKFLOW-TECPC-20260806 --json`
-  为准，不进入 TDD
+  `enterprise-harness validate` 在阶段边界验证并落 marker，pre-write 只留瞬间 gate + 轻查 marker；
+  clarify 并入 harness 入口；新增 WorktreeRemove hook 清理 worktree 残留
+- active change：无（`EH-WORKFLOW-TECPC-20260806` 已于 0.3.18 归档，使命已完成——其 scope
+  harness governance breaking redesign 已由实际代码重构替代）
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
 ## 0.3.2 路径重构的遗留漂移（0.3.8 修复）
@@ -90,6 +90,7 @@ tdd 写代码 ──→ pre-write hook ──→ ① 动态瞬间 gate（agent �
 当前 change `EH-WORKFLOW-TECPC-20260806` 在 tdd 阶段但缺 `codegraph-attempt` ledger
 （历史 clarify 用旧 hook，CodeGraph 查询未落账），`validate` 因此 block。按「不兼容历史」
 决策（无实际用户）保留严格行为；该缺口正是本 change 要修的 CodeGraph-first 契约缺陷本身。
+该 change 已于 0.3.18 归档（见 0.3.18 小节）。
 
 ## 0.3.16 clarify 合并进 harness + 认知负载清理
 
@@ -138,6 +139,24 @@ MCP 的用法只写在 code-explore agent 定义里，harness 没把它传给 or
 - 各 stage skill（route/design/plan/tdd/verify）已是指令式，仅保留必要的「上下文边界」
   约束，无需改动。
 - 全量 115 smoke 绿。
+
+## 0.3.18 归档 minimum-discovery change + WorktreeRemove hook
+
+### 归档
+
+`EH-WORKFLOW-TECPC-20260806`（minimum-discovery 探索性 change）历史证据链断裂（早期
+半截 handoff：clarify.synthesize/route.decide/design.produce 缺有效 checker pass），
+audit block。其 scope（harness governance breaking redesign）已被实际代码重构替代——
+hook 瘦身、validate CLI、clarify 合并都是它的产物，使命已完成。按用户决策归档
+（`lifecycle archive --force`），不再修复推进。
+
+### WorktreeRemove hook
+
+根因：`createWorktree` 把 active change 快照 `cpSync` 进 worktree，产生 untracked 改动，
+Claude Code 自动清理判定「有改动」永不触发，worktree 残留（实测 55 个）。修复：新增
+`WorktreeRemove` hook（fail-open 副作用清理），事件触发时删除 worktree 里 harness/ 镜像
+（主仓库有权威副本），保留 agent 真实代码改动供人工恢复。manifest/settings.json/hooks.json
+注册，hook-dedup-guard EXEMPT 加 worktree-remove（幂等）。
 
 ## 判据
 
