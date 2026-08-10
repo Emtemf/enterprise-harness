@@ -4,6 +4,27 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Hook 架构重构：12 个 hook 从 ~925 行降到 ~185 行薄壳。stdin 解析统一走
+  `runtime/lib/hook-input.mjs`，策略函数在 `runtime/lib/hooks/*.mjs`（返回
+  `{exitCode, stdout, stderr}`），可单测、好定位。
+- 静态阶段链验证改为 skill 驱动：新增 `enterprise-harness validate` CLI，在
+  plan freeze 后验证 ambiguity/router/design/plan/codegraph 完整性并落
+  `evidence/stage-gate.json` marker。pre-write 只留动态瞬间 gate（agent 绑定
+  tdd-executor / RED receipt / currentTask）+ 轻查 marker，不再每次写文件全量重算阶段链。
+- marker digest 只覆盖 requirements/change/design/tasks + reviews/*，排除 state
+  动态字段与 evidence/tdd receipts——tdd 中途写证据不会误使 marker 失效。
+- worktree-create 逻辑从 hook 抽到 `runtime/lib/worktree.mjs`，hook 变薄壳。
+- clarify SOP 借鉴 grill-me 的 design-tree/frontier 机制重写：探索并行启动、
+  先问不依赖代码事实的维度、探索 checker 通过前不问用户。
+- 原子写兼容 Windows：`renameSync` 在目标存在时先 unlink 再 rename（EPERM）。
+- ambiguity/router gate 在 `routeReady=true` 后跳过，clarify 边界之后不再误 block。
+
+### Fixed
+
+- 修复 active change 资产状态（state PLANNED→TASKED、reviews 格式、评分维度对齐）。
+
 ## [0.3.14] - 2026-08-09
 
 ### Fixed
