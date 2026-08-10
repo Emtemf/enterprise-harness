@@ -346,3 +346,26 @@ export function createWorktree(event) {
     throw error;
   }
 }
+
+/**
+ * Clean up a worktree that harness snapshot its active change into. The change
+ * directory under `harness/` is a mirror of the parent repo's authoritative copy;
+ * it is what makes Claude Code's automatic cleanup treat the worktree as "dirty"
+ * and leave it behind. Removing the mirror lets the worktree be reclaimed.
+ *
+ * This is a WorktreeRemove side-effect handler: failures are best-effort and must
+ * not block the removal. Only `harness/` (snapshot content) is touched — real
+ * agent code changes outside harness/ are left alone for manual recovery.
+ *
+ * @param {object} event parsed WorktreeRemove hook event with { hook_event_name, cwd }
+ */
+export function cleanupWorktree(event) {
+  if (event.hook_event_name !== 'WorktreeRemove') return { exitCode: 0 };
+  const cwd = String(event.cwd || '').trim();
+  if (!cwd || !lstatEntry(cwd)) return { exitCode: 0 };
+  const childHarness = path.join(cwd, 'harness');
+  if (lstatEntry(childHarness)) {
+    fs.rmSync(childHarness, { recursive: true, force: true });
+  }
+  return { exitCode: 0 };
+}
