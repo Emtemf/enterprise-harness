@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.18] - 2026-08-10
+
 ### Changed
 
 - `harness` 入口 skill 指令化：删除「为什么不 fork」「设计树/frontier 定义」等解释性

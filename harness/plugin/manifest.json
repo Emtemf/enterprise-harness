@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness-runtime",
-  "version": "0.3.17",
+  "version": "0.3.18",
   "description": "Portable runtime adapter for the Enterprise Harness project contract.",
   "supportedOs": [
     "linux",
