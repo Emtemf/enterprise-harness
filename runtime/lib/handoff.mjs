@@ -49,8 +49,22 @@ export function handoffResultPath(root, changeId, runId, role = 'execute') {
 function atomicWriteJson(target, value) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
-  fs.renameSync(temporary, target);
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+    try {
+      fs.renameSync(temporary, target);
+    } catch (renameError) {
+      // Windows: renameSync throws EPERM when the target already exists; unlink first then retry.
+      if (renameError.code === 'EPERM' || renameError.code === 'EEXIST') {
+        fs.unlinkSync(target);
+        fs.renameSync(temporary, target);
+      } else {
+        throw renameError;
+      }
+    }
+  } finally {
+    try { fs.rmSync(temporary, { force: true }); } catch { /* ignore */ }
+  }
 }
 
 export function createHandoffInput(root, {

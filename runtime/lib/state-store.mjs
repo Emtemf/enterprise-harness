@@ -32,7 +32,17 @@ export function atomicWriteJson(file, value) {
   );
   try {
     fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf-8', mode: 0o600 });
-    fs.renameSync(temporary, file);
+    try {
+      fs.renameSync(temporary, file);
+    } catch (renameError) {
+      // Windows: renameSync throws EPERM when the target already exists; unlink first then retry.
+      if (renameError.code === 'EPERM' || renameError.code === 'EEXIST') {
+        fs.unlinkSync(file);
+        fs.renameSync(temporary, file);
+      } else {
+        throw renameError;
+      }
+    }
   } finally {
     fs.rmSync(temporary, { force: true });
   }

@@ -113,6 +113,12 @@ export function validateAmbiguityGate(root, changeId, state = null) {
   if (state?.state === 'DRAFT') {
     return errors;
   }
+  // ambiguity gate 只在 clarify→route 边界有意义。
+  // routeReady=true 表示用户已确认 scope 并通过 route；之后继续强制 >=4 没有意义，
+  // 反而会因为 phase-boundary 合理低分（design/plan 尚未冻结的细节）持续 block。
+  if (state?.workflow?.routeReady === true) {
+    return errors;
+  }
   const file = requirementsPath(root, changeId);
   if (!fs.existsSync(file)) {
     errors.push(`${changeId}: 缺少 requirements.md，无法消费歧义评分`);

@@ -15,6 +15,7 @@ const commands = {
   sync: ['sync.mjs'],
   install: ['install.mjs'],
   verify: ['verify.mjs'],
+  validate: ['validate.mjs'],
   'setup-local-adapter': ['setup-local-adapter.mjs'],
   'start-change': ['start-change.mjs'],
   'release-local': ['release-local.mjs'],
