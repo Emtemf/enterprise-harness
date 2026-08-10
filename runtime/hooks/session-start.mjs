@@ -29,20 +29,21 @@ if (spawnDepth.ok !== true) {
 
 const summary = buildStatusSummary(root);
 
-// TECPC 卡：当前阶段、证据、缺口、下一步动作。这是会话首屏最有价值的单块信息。
+// stage/恢复入口/下一步动作在任何会话都输出（有无 active change 都用 fallback）：
+// 这些是恢复指针，release worktree 等无 change 场景也必须给出来。
+const workflowResult = summary.activeChange ?? {};
+console.log(`[Harness Workflow] 当前 stage: ${workflowResult.workflowStage || '未识别'}`);
+console.log(`[Harness Workflow] 推荐恢复入口: ${workflowResult.nextEntry || '/harness'}`);
+console.log(`[Harness Workflow] 下一步动作: ${summary.nextAction}`);
+
+// TECPC 卡：当前阶段、证据、缺口。有 active change 时才渲染，否则给入口提示。
 try {
   const active = loadActiveChange(root);
   if (active.ok) {
     const card = renderTECPCCard(root, active.changeId, active.data, {
-      workflowResult: summary.activeChange ?? {},
+      workflowResult,
     });
     console.log(`[Harness 闭环五检]\n${card}`);
-    // 下一步动作：blocked 时是 audit 恢复命令，否则是 nextEntry。测试 contract 守护这一行。
-    console.log(`[Harness Workflow] 下一步动作: ${summary.nextAction}`);
-    // 恢复入口 + 当前 stage：status CLI 已有完整输出，这里只给最薄的两行恢复指针。
-    const workflowResult = summary.activeChange ?? {};
-    console.log(`[Harness Workflow] 当前 stage: ${workflowResult.workflowStage || '未识别'}`);
-    console.log(`[Harness Workflow] 推荐恢复入口: ${workflowResult.nextEntry || '/harness'}`);
     const guideReminder = computeGuideReminder(root, active.changeId);
     if (guideReminder) {
       console.log(`[Harness Workflow] GUIDE 提醒: ${guideReminder}`);
