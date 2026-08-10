@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 新增 `WorktreeRemove` hook 清理 worktree 中 active change 镜像。根因：`createWorktree`
+  把 active change 快照复制进 worktree，产生 untracked 改动，Claude Code 自动清理判定
+  「有改动」永不触发，导致 worktree 残留（实测 55 个）。现在 WorktreeRemove 事件触发时
+  删除 worktree 里 `harness/` 镜像（主仓库有权威副本），保留 agent 真实代码改动供人工
+  恢复。
+
+### Changed
+
+- 归档 `EH-WORKFLOW-TECPC-20260806`（minimum-discovery 探索性 change）：历史证据链断裂
+  （早期半截 handoff 缺 checker pass），其 scope（harness governance breaking redesign）
+  已被实际代码重构替代，使命已完成。
+
 ## [0.3.18] - 2026-08-10
 
 ### Changed
