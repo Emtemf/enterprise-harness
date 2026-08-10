@@ -63,8 +63,15 @@ assert.ok(scripts.size > 0, 'no hook scripts found in settings.json');
 const unguarded = [];
 for (const script of scripts) {
   if (EXEMPT.has(script)) continue;
-  const source = fs.readFileSync(path.join(repoRoot, 'runtime/hooks', script), 'utf-8');
-  if (!DEDUP_CALL.test(source)) unguarded.push(script);
+  // Dedup lives in the lib the hook delegates to; the hook file itself is a thin shell.
+  const candidates = [
+    path.join(repoRoot, 'runtime/hooks', script),
+    path.join(repoRoot, 'runtime/lib/hooks', script),
+  ];
+  const sources = candidates
+    .filter((file) => fs.existsSync(file))
+    .map((file) => fs.readFileSync(file, 'utf-8'));
+  if (!sources.some((source) => DEDUP_CALL.test(source))) unguarded.push(script);
 }
 assert.deepEqual(
   unguarded,

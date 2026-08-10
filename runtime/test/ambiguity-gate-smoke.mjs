@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const preWritePath = path.join(repoRoot, 'runtime', 'hooks', 'pre-write.mjs');
+const validatePath = path.join(repoRoot, 'runtime', 'validate.mjs');
 const mode = process.argv[2];
 
 function writeJson(file, data) {
@@ -58,11 +58,10 @@ function baseState() {
   };
 }
 
-function runPreWrite(tempRoot, filePath) {
-  return spawnSync('node', [preWritePath], {
+function runValidate(tempRoot) {
+  return spawnSync('node', [validatePath, 'fixture-change'], {
     cwd: tempRoot,
     encoding: 'utf-8',
-    input: JSON.stringify({ tool_input: { file_path: filePath } }),
   });
 }
 
@@ -79,8 +78,7 @@ try {
     fs.writeFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), 'fixture-change\n', 'utf-8');
     writeJson(path.join(changeDir, 'state.json'), baseState());
     writeText(path.join(changeDir, 'requirements.md'), `# Requirements\n\n## E 证据\n\n### 歧义评分\n| 维度 | 分数(0-5) | 说明 |\n|------|----------|------|\n| T 目标 clarity | 5 | ok |\n| Scope clarity | 3 | low |\n| User/actor clarity | 5 | ok |\n| Data/SQL clarity | 5 | ok |\n| Interface/API clarity | 5 | ok |\n| Acceptance criteria clarity | 5 | ok |\n| Constraint/risk clarity | 5 | ok |\n| **Overall** | 4 | mixed |\n`);
-    writeText(path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'), '// fixture\n');
-    const result = runPreWrite(tempRoot, path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'));
+    const result = runValidate(tempRoot);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /歧义评分未达标/);
   });

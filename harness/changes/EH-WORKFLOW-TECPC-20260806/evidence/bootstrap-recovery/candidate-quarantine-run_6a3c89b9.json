@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "bootstrap-plan-candidate-quarantine",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "decision": {
+    "authorizedBy": "user explicit selection: retain as candidate only",
+    "recordedAt": "2026-08-09T09:14:58.009Z",
+    "authorityStatus": "not-approved-not-a-tdd-input"
+  },
+  "sourcePublication": {
+    "receipt": "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/plan-publication-run_6a3c89b9.json",
+    "executorRunId": "run_6a3c89b9-ae87-457d-a858-8d3c37e7b054",
+    "checkerRunId": "run_54a5df31-2879-40ac-b37c-106bc7aeb5a6",
+    "checkerVerdict": "block"
+  },
+  "candidate": {
+    "files": [
+      {
+        "sourcePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+        "candidatePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/candidates/plan-revision-run_6a3c89b9/tasks.md",
+        "digest": "f26658063ce9d470d62fabd643c24541ff7d4a36ec23ba1c5bd5a0b0a6f06908"
+      },
+      {
+        "sourcePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+        "candidatePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/candidates/plan-revision-run_6a3c89b9/task-commands.json",
+        "digest": "6749a49feec13528428b322264dfa9da38d15fd129175b1fddef804da14601d1"
+      },
+      {
+        "sourcePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+        "candidatePath": "harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/candidates/plan-revision-run_6a3c89b9/task-brief-00-bootstrap-v2-command-sequencing.md",
+        "digest": "86e497a10687ca2243424e694bd7a6095375c5545e3868a413672fbb11ee3f00"
+      }
+    ],
+    "reason": "Preserve the proposed recovery-importer plan without allowing it to assert approval, freeze TDD commands, or replace the authoritative plan."
+  },
+  "restoredAuthority": {
+    "files": [
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+        "digest": "edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f"
+      },
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+        "digest": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd"
+      },
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+        "digest": "d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d"
+      }
+    ],
+    "source": "git HEAD",
+    "reason": "The authority paths must retain their prior plan until a new plan revision satisfies an independent checker pass/advisory and is promoted through a compliant mechanism."
+  },
+  "requiredNextAction": "Create a new plan revision that incorporates EH-PLAN-BOOTSTRAP-PUBLISH-001 and EH-PLAN-BOOTSTRAP-SOURCE-002, then obtain an independent pass/advisory before any TDD dispatch."
+}

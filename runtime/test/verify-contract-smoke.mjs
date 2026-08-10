@@ -8,7 +8,7 @@ const mode = process.argv[2];
 const specPath = path.join(repoRoot, 'harness', 'specs', 'verify-contract.md');
 const skillPath = path.join(repoRoot, '.claude', 'skills', 'harness-verify', 'SKILL.md');
 const reviewerPath = path.join(repoRoot, '.claude', 'agents', 'verification-reviewer.md');
-const stopPath = path.join(repoRoot, 'runtime', 'hooks', 'stop.mjs');
+const stopPath = path.join(repoRoot, 'runtime', 'lib', 'hooks', 'stop.mjs');
 
 function readText(file) {
   return fs.readFileSync(file, 'utf-8');

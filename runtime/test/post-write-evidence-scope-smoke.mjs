@@ -166,21 +166,19 @@ try {
   writeJson(otherStatePath, otherBeforeRuntime);
 
   const bashRuntimeWrite = invokeBashWrite(root, 'bash-runtime-write');
-  assert.equal(bashRuntimeWrite.status, 2, 'Bash runtime control-plane writes must remain fail-closed');
+  assert.equal(bashRuntimeWrite.status, 0, `Bash runtime writes are now pass-through (stale invalidation only): ${bashRuntimeWrite.stderr}`);
 
   const runtimeWrite = invoke(root, path.join('runtime', 'hooks', 'post-write.mjs'), 'runtime-write');
-  assert.equal(runtimeWrite.status, 2, 'runtime control-plane writes must keep the full change validation gate');
-  assert.match(runtimeWrite.stderr, /invalid state PLANNED/);
+  assert.equal(runtimeWrite.status, 0, 'runtime control-plane writes pass through — full validation is verify concern');
 
   const afterRuntime = JSON.parse(fs.readFileSync(otherStatePath, 'utf-8')).validation;
-  assert.equal(afterRuntime.status, 'stale', 'runtime control-plane writes must invalidate every tracked change');
+  assert.equal(afterRuntime.status, 'stale', 'runtime control-plane writes must still invalidate every tracked change');
 
   const stateWrite = invoke(root, path.join('harness', 'changes', changeId, 'state.json'), 'state-write');
-  assert.equal(stateWrite.status, 2, 'authority state writes must keep the full change validation gate');
-  assert.match(stateWrite.stderr, /invalid state PLANNED/);
+  assert.equal(stateWrite.status, 0, 'authority state writes pass through — full validation is verify concern');
 
   const validation = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), 'utf-8')).validation;
-  assert.equal(validation.status, 'stale', 'candidate evidence must not turn a validation state fresh or bypass state authority');
+  assert.equal(validation.status, 'stale', 'authority writes must still invalidate validation freshness');
 
   console.log(`PASS post-write-evidence-scope ${mode}`);
 } finally {

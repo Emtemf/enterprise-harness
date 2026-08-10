@@ -1,0 +1,24 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "tdd.execute-task",
+    "evidence": [],
+    "context": [],
+    "path": "execute tdd.execute-task",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [],
+  "inputDigests": {},
+  "createdAt": "2026-08-09T08:25:36.033Z"
+}

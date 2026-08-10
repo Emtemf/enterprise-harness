@@ -1,0 +1,39 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4822b06b-1bc7-4806-bcf3-0097ebef374a",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "task-00-bootstrap-v2-command-sequencing",
+    "evidence": [],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json"
+    ],
+    "path": "execute plan.produce",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json"
+  ],
+  "inputDigests": {
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md": "edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md": "d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json": "2c960b5659dce1916eb1ffc63a2ca39ee3d024f9ef87148f95e3838ce66ced11"
+  },
+  "createdAt": "2026-08-09T08:34:55.478Z"
+}

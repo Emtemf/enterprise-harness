@@ -1,0 +1,61 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_46cf1821-6adb-4450-a308-0d0ab36571d1",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:implementation-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4 是否因 tdd.execute-task handoff 缺少冻结任务输入而正确停止，并定位最小修复面。",
+    "evidence": [
+      "已核验 checker 输入 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/input.json：role=check，parentRunId=run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4，且 inputRefs 仅绑定被检查 executor result。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/input.json 中记录的 digest=bba7e5ca52a4027060feee861e193aef1c04543d5f84045ef7b74086830630ec，与 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/result.json 的实算 sha256 一致。",
+      "已核验被检查 execute 输入 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/input.json：inputRefs=[]，inputDigests={}，tecpc.target='tdd.execute-task'，没有 task-id、没有 task brief、没有 task-commands、没有 tasks/design/command-policy 绑定。",
+      "已核验被检查 execute 结果 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/result.json：明确声明缺失 task-id、touched-files、test-first-order、red-evidence-point、green-evidence-point、project-native-build-command、scope；未生成 receipt，implementationCommit=null，changedPaths=[]，符合“未获合法冻结输入即不得进入 RED”的停止行为。",
+      "同一 change 中存在更完整的对照 handoff：harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1f812538-658a-478d-a071-6f26f4e28358/input.json，其 tecpc.target 为具体 task，且 inputRefs 绑定了 task brief、task-commands.json、tasks.md、design.md、harness/command-policy.json；这证明当前 run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4 的缺失不是任务本身无冻结资产，而是 handoff generator/contract 未把它们正式装入 execute handoff。",
+      "已核验 runtime/handoff.mjs：CLI create 在未显式传 --target 时会把 target 默认成 behavior（`target || behavior`），因此即使 execute handoff 没有任何 task-specific 输入，也会被伪装成“有 target”而通过创建。",
+      "已核验 runtime/lib/handoff.mjs：当前只做通用 schema 校验，未对 tdd.execute-task 做 behavior-specific 输入约束；因此不会要求 task selection、task brief、task-commands 或 sequencing 绑定。",
+      "已核验 runtime/lib/handoff-guidance.mjs：对 execute agent 仅建议 `enterprise-harness handoff create <change> <stage> <behavior> execute`，不会附带 tdd.execute-task 所需的 --target/--input-ref，从而直接诱发本次空 handoff。",
+      "已核验 .claude/agents/tdd-executor.md 与 harness/specs/tdd-execution.md：上层合同已经明确要求 task-id、touched-files、test-first-order、scope 以及冻结 literal argv；问题在 handoff 生成与运行时校验未落实，而不是 executor 误解合同。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1f812538-658a-478d-a071-6f26f4e28358/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "runtime/handoff.mjs",
+      "runtime/lib/handoff.mjs",
+      "runtime/lib/handoff-guidance.mjs",
+      ".claude/agents/tdd-executor.md",
+      "harness/specs/tdd-execution.md"
+    ],
+    "path": "结论为 pass：run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4 的阻断是正确的，而且必须发生在执行前。该 run 没有合法 task selection，也没有把 task brief、task-commands.json、tasks.md 等冻结输入通过 inputRefs+digest 绑定进 handoff，因此 executor 不能合法推导 touched-files、scope、test-first order，更不能运行 RED/GREEN/REFACTOR exact argv。没有 receipt、没有 implementation commit、没有 changedPaths 正是正确结果。最小修复面不在 executor，而在 handoff 生成与校验：1) runtime/handoff.mjs 不应再用 behavior 名默认填充 tdd.execute-task 的 target；2) runtime/lib/handoff.mjs 应为 tdd.execute-task 增加 behavior-specific 输入契约，至少要求显式 task selection，并要求 inputRefs 绑定匹配 task 的 task brief 与 task-commands.json；若继续沿用当前执行模型，建议同时要求 tasks.md 与 harness/command-policy.json，design.md 可按实际 gate 需要决定是否必需；3) runtime/lib/handoff-guidance.mjs 应输出带 task-id 与必需 --input-ref 的命令，而不是裸 `... execute`。exact command sequencing 的权威源应继续是 task-commands.json；task brief 负责说明 test-first order 和 scope，不能只靠 `target=tdd.execute-task` 这种泛化字符串代替。",
+    "correction": "恢复动作：先修 handoff generator/contract，再重派本 task。最小复现建议：1) 复现当前缺陷，用 `node runtime/handoff.mjs create EH-WORKFLOW-TECPC-20260806 tdd tdd.execute-task execute` 生成 execute handoff；可观察到 target 被默认成 `tdd.execute-task` 且 inputRefs 为空，随后 executor 只能像 run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4 一样阻断。2) 修复后，此命令应直接 fail，或必须要求显式 task-id/--target 与至少 `--input-ref harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md`、`--input-ref harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json`；若按当前执行合同继续收紧，补上 `tasks.md` 与 `harness/command-policy.json`。3) 增加针对 tdd.execute-task 的 smoke：拒绝空 inputRefs+泛化 target；拒绝 task-id 与 task-brief 不匹配；拒绝缺失 task-commands.json；确认 guidance 为 tdd-executor 生成带 task-specific refs 的 create 命令。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_1f812538-658a-478d-a071-6f26f4e28358/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "runtime/handoff.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lib/handoff-guidance.mjs",
+    ".claude/agents/tdd-executor.md",
+    "harness/specs/tdd-execution.md"
+  ],
+  "blockers": [],
+  "summary": "pass：run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4 因 tdd.execute-task handoff 未绑定 task selection、task brief、task-commands 和 sequencing 输入而在执行前正确停止。最小修复面在 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs；无需修改 executor。",
+  "recordedAt": "2026-08-09T08:34:35.945Z",
+  "resultDigest": "4acbe5a7f0393384b82be143b0b60440d2d55de7c348d1b134e30f7cd1279a47"
+}

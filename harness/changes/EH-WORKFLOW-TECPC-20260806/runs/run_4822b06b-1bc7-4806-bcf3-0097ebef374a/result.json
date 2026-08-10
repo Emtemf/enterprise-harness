@@ -1,0 +1,38 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4822b06b-1bc7-4806-bcf3-0097ebef374a",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "修复 task-00-bootstrap-v2-command-sequencing 的计划冻结范围，使 executor 后续能合法实现 v2 command sequencing 与 tdd.execute-task handoff bridge。",
+    "evidence": [
+      "已更新 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md 的 Task 00 计划块：把 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs 纳入 touched files、consumes、produces、acceptance checks，并把验证 smoke 改为 runtime/test/task-00-bootstrap-bridge-smoke.mjs。",
+      "已更新 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json 的 task-00 冻结 argv：RED=[\"node\",\"runtime/test/task-00-bootstrap-bridge-smoke.mjs\",\"red\"]，GREEN=[\"node\",\"runtime/test/task-00-bootstrap-bridge-smoke.mjs\",\"green\"]，REFACTOR=[\"node\",\"runtime/test/task-00-bootstrap-bridge-smoke.mjs\",\"verify\"]。",
+      "已更新 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md：目标、touched files、test-first order、RED/GREEN/REFACTOR 预期与 acceptance checks 现在同时覆盖 v2 commands[] sequencing、baseline-relative changed paths，以及 task-specific tdd.execute-task handoff creation、validation、guidance。",
+      "未修改任何 runtime 生产代码；本次只修订计划资产，并保持 task-01 及后续 task 不变。"
+    ],
+    "context": [
+      "输入 handoff: harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/input.json",
+      "消费的最小输入: harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md, harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json, harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md, harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json",
+      "checker 结论被用于锁定最小修复面：只补 task-00 对 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs 及其 smoke 的计划覆盖，不扩张到实现层。",
+      "未决事项：post-write hook 持续报告该 change 既有的 state、review、clarify、validation 元数据问题；这些不在本次指令允许修复的范围内。"
+    ],
+    "path": "按 handoff 指令只执行 plan.produce：先核验输入与 checker 结论，再最小化修订 task-00 的 tasks.md、task-commands.json 和 task brief，把 handoff bridge 约束与精确 RED/GREEN/REFACTOR argv 冻结进计划；后续应交由独立 plan-critic 复核。",
+    "correction": "本次计划修订已完成，但 post-write hook 仍暴露该 change 现存的非本次范围问题：state.json 状态、legacy reviews 元数据、clarify/router 评分与 validation.md 块不满足当前校验。若上游要求 clean hook 或 fresh validation，需由主 orchestrator 另行恢复这些 change-level 资产；本执行者未擅自修改它们。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md"
+  ],
+  "blockers": [],
+  "summary": "已完成 task-00 计划级修复：把 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs 与新的 task-00 bootstrap bridge smoke 纳入受控范围，并把 task-00 冻结 argv 改为 node runtime/test/task-00-bootstrap-bridge-smoke.mjs {red|green|verify}；后续任务保持不变。",
+  "recordedAt": "2026-08-09T08:39:34.185Z",
+  "resultDigest": "fa1e2694497ffb2081d0ae847f23cefb731eacc63f3308dcd8623a4dfd2c44b0"
+}

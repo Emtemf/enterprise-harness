@@ -1,0 +1,61 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ae6ff2c5-ff59-4a2d-900d-aae19fb7d071",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "追踪 EH-WORKFLOW-TECPC-20260806 的设计缺陷实现根因，聚焦 PLANNED state/schema/transition、EH-AUDIT-HANDOFF-002、clarify.synthesize execute/check 链、design-reviewer/plan-critic review schema 与 validation.md 生成/校验裂缝。",
+    "evidence": [
+      "CodeGraph-first 已执行，但 codegraph_status/codegraph_explore 明确提示索引来自 /home/wula/IdeaProjects/sdd，而非当前 worktree /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-aa2c723d168211a65；因此最终事实改用定点 Read/rg。",
+      "runtime/lib/workflow.mjs:249-255 将 freeze-plan 结果写成 state=PLANNED + workflow.stage=tdd；runtime/lib/checks.mjs:198-200,267-285 却不接受 PLANNED，只接受 TASKED/EXECUTING 并据此检查 plan artifacts。",
+      "harness/schemas/state.schema.json:20-36 仍允许 PLANNED 且 schemaVersion 最大值仍为 3；harness/templates/state.json:1-59 已是 schemaVersion 4，证明 state 合同至少分成两代并未统一。",
+      "目标 change 的 state.json:2-57 真实落在 schemaVersion=4/state=PLANNED/workflow.stage=tdd 的裂缝中，解释了 post-write 对 invalid state PLANNED 的直接报错。",
+      "reviews/design-reviewer.json:1-67 与 reviews/plan-critic.json:1-53 是完整 handoff checker envelope，不是 checks.mjs:261-285,320-333 和 harness/templates/review-verdict.json:1-13 要求的 reviewerId/findings/evidence/reviewedAt 投影。",
+      "workflow-audit.mjs:47-60 只有 pass/advisory checker 才能满足 EH-AUDIT-HANDOFF-002；run_0da8bbfa.../check.json:38-54 对 clarify.synthesize 给出 block，因此 clarify completed-stage audit 必然继续阻断。",
+      "run_c9c98893.../result.json:13-29 明说 clarify.synthesize execute 不改 state.json；run_0da8bbfa.../check.json:13-36 指出 requirements 与 state 不自洽且评分证据不足，说明 clarify blocker 从未真正 durable 收口。",
+      "checks.mjs:679-736 对所有非 DRAFT change 强制要求 validation.md 非空内容；lifecycle.mjs:64-73 仅复制空模板，lifecycle.mjs:176-193 仅刷新 state.validation，不填充 validation.md，形成 freshness 与文档证据脱钩。",
+      "现有测试只覆盖 audit handoff 语义、validation 空段落与 stage progression；未覆盖 freeze-plan state 枚举一致性、checker result 到 reviews/*.json 的投影、clarify block 后禁止后续推进。"
+    ],
+    "context": [
+      "消费了 handoff input /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-aa2c723d168211a65/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae6ff2c5-ff59-4a2d-900d-aae19fb7d071/input.json。",
+      "只读范围限定在目标 change 资产、runtime/lib、runtime/test、harness/templates、harness/schemas 与行为注册文件。",
+      "未修改任何文件；未创建额外 artifact。",
+      "关键不确定项是权威 plan 后状态应保留 PLANNED 还是统一迁到 TASKED，以及 reviews/*.json 应存 projection 还是 handoff envelope。"
+    ],
+    "path": "先按要求执行 CodeGraph-first，确认当前 worktree 缺少本地索引且远端索引指向另一 worktree；随后仅对目标 change 和相关 runtime/spec 做定点 Read 与窄范围 rg。结论显示问题不是单点 bug，而是 state 合同、review 投影、clarify durable 化、validation 责任边界四处漂移叠加；下一步应由设计/实现侧先确定两个权威决策：plan 后 state 枚举，以及 reviews/*.json 的权威形状。",
+    "correction": "无执行失败。恢复建议：不要先局部修单个报错；应先统一 post-plan state 权威值与 review projection 合同，再补阶段推进和 validation gate 的 stage-aware 约束，否则会在别处继续复燃。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/validation.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_c9c98893-80f4-4173-b7df-6642e2edc0b5/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0da8bbfa-9d7c-4fc9-aa6d-d039aa007bcb/check.json",
+    "runtime/lib/workflow.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/lib/checks.mjs",
+    "runtime/lib/ambiguity.mjs",
+    "runtime/lib/router-score.mjs",
+    "runtime/lifecycle.mjs",
+    "harness/templates/state.json",
+    "harness/templates/review-verdict.json",
+    "harness/templates/validation.md",
+    "harness/schemas/state.schema.json",
+    "runtime/test/workflow-audit-smoke.mjs",
+    "runtime/test/workflow-stage-progression-smoke.mjs",
+    "runtime/test/workflow-status-audit-block-smoke.mjs",
+    "runtime/test/verify-validation-content-smoke.mjs",
+    "runtime/test/task-review-binding-smoke.mjs"
+  ],
+  "blockers": [],
+  "summary": "根因是多处合同漂移叠加：freeze-plan 仍写旧态 PLANNED，而 artifact validator 已迁到 TASKED/EXECUTING；reviews/design-reviewer.json 与 reviews/plan-critic.json 落盘的是 handoff checker envelope，不是 validator 期待的 review-verdict projection；clarify.synthesize 的独立 checker 实际是 block，但 state 后续仍被推进；validation.md 空模板在非 DRAFT 阶段即被强制校验，而 lifecycle validated 只刷新 state.validation 不生成文档内容。现有测试覆盖 audit/validation 空段落/planReady 推进，但未覆盖 state 枚举一致性、checker->review projection、clarify block 阻断后续推进。",
+  "recordedAt": "2026-08-09T08:13:43.474Z",
+  "resultDigest": "56810e51149975a504ab868aab9d19ef9d5866e6142fee265f1d83befed5a69a"
+}

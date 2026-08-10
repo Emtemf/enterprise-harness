@@ -1,0 +1,54 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_6bae8016-2bd4-4457-be7d-48ff03214231",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 task-00 的计划修复是否已经把 tdd.execute-task handoff 空输入缺陷合法、最小、可验证地冻结进计划",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/input.json 第 31-35 行：输入 digests 分别为 tasks.md=edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f、task-commands.json=1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd、task-brief-00=d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d。",
+      "已实算当前 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md、harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json、harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md 的 sha256，结果与上述输入 digest 完全一致，说明 run_4822b06b-1bc7-4806-bcf3-0097ebef374a 声称的计划修订没有体现在当前计划资产中。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md 第 23-69 行：Task 00 仍只授权 runtime/test/task-command-v2-sequencing-smoke.mjs、runtime/tdd-run.mjs、runtime/lib/tdd-receipts.mjs、runtime/lib/git-evidence.mjs、runtime/test/tdd-receipt-contract-smoke.mjs；Produces 与 Acceptance Checks 仍是 commands[] sequencing 与 baseline-relative changed-path 主题，没有 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs，也没有 task-specific handoff validation/guidance 的验收项。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json 第 7-22 行：Task 00 冻结的 RED/GREEN/REFACTOR argv 仍是 node runtime/test/task-command-v2-sequencing-smoke.mjs {red|green|verify}；不存在针对 handoff bridge 的 smoke 路径，也不存在覆盖 create/validate/guidance 的最小命令序列。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md 第 8-68 行：Goal、Touched Files、Test-first Order、RED/GREEN/REFACTOR 预期、Acceptance Checks 仍围绕 legacy triplet 与 v2 commands[] sequencing；未把 tdd.execute-task handoff 的显式 task selection、必需 inputRefs、task brief/task-id 匹配、guidance 生成 task-specific create 命令写进任务说明。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json 第 18-23 行与第 38-39 行：上一次独立检查已把最小修复面明确锁定为 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs，以及拒绝泛化 target/空 inputRefs/缺 task-commands 的 smoke；当前 Task 00 计划没有吸收这些约束。",
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md 第 176-183 行：runtime/lib/handoff.mjs 目前仍分配在 Task 02，而不是 Task 00；这与 run_4822b06b-1bc7-4806-bcf3-0097ebef374a/result.json 对“Task 00 计划已纳入 handoff bridge 相关文件”的声明直接冲突。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6bae8016-2bd4-4457-be7d-48ff03214231/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/result.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md"
+    ],
+    "path": "结论为 block。当前三份 Task 00 计划资产彼此内部一致，但它们一致地描述的是旧的 v2 command sequencing/bootstrap 范围，而不是本次要求修复的 tdd.execute-task handoff 空输入缺陷。由于 touched files 未授权 handoff 相关实现面，冻结 argv 未指向 handoff bridge smoke，acceptance criteria 未要求拒绝泛化 target/空 inputRefs/brief 与 task-id 不匹配/缺 task-commands，也未要求 guidance 生成带 task-specific refs 的命令，因此下游 executor 仍无法在不猜测的前提下对该缺陷执行真实 RED→GREEN→REFACTOR。另一个关键问题是：run_4822... 的 result.json 声称已更新计划资产，但当前 digest 证明这些资产没有变化。",
+    "correction": "恢复动作：重新执行 plan.produce，并真实改写 Task 00 的三份计划资产。最小必需修复为：1) 在 tasks.md 与 task brief 中把 Task 00 的 touched files/consumes/produces 明确改为 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs，以及一个专用于 handoff bridge 的 smoke；如不同时解决 sequencing，则移除 runtime/lib/git-evidence.mjs 等无关 scope。2) 在 task-commands.json 冻结与该 smoke 一一对应的 RED/GREEN/REFACTOR exact argv。3) 在 acceptance criteria 中显式要求：拒绝未显式 task-id/--target 的 tdd.execute-task handoff；拒绝缺 task brief 或 task-commands.json 的 inputRefs；拒绝 task-id 与 task brief 不匹配；guidance 必须输出带 task-specific --input-ref 的 create 命令。4) 解决 runtime/lib/handoff.mjs 当前仍归属 Task 02 的冲突，使 Task 00 的 scope 与后续任务边界一致。完成后再提交新的独立 checker 复核。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6bae8016-2bd4-4457-be7d-48ff03214231/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/input.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_4822b06b-1bc7-4806-bcf3-0097ebef374a/result.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_46cf1821-6adb-4450-a308-0d0ab36571d1/check.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md"
+  ],
+  "blockers": [
+    "EH-PLAN-HANDOFF-SCOPE-001: Task 00 当前未授权 runtime/handoff.mjs、runtime/lib/handoff.mjs、runtime/lib/handoff-guidance.mjs 或 handoff bridge smoke，不能合法覆盖 tdd.execute-task handoff 空输入缺陷。",
+    "EH-PLAN-HANDOFF-ARGV-002: Task 00 冻结 argv 仍绑定 runtime/test/task-command-v2-sequencing-smoke.mjs，缺少能证明 handoff create/validate/guidance 缺陷的真实 RED 路径。",
+    "EH-PLAN-HANDOFF-ACCEPTANCE-003: Acceptance criteria 未冻结 task-specific handoff 合同：显式 task selection、必需 inputRefs、task brief/task-id 匹配、缺 task-commands 拒绝、guidance 输出精确 create 命令。",
+    "EH-PLAN-RESULT-MISMATCH-004: run_4822b06b-1bc7-4806-bcf3-0097ebef374a/result.json 宣称已更新三份计划资产，但当前文件 digest 与其输入 digest 完全相同，结果声明缺少对应 artifact 证据支持。"
+  ],
+  "summary": "block：Task 00 计划并未修复到 handoff 空输入缺陷。当前 tasks.md、task-commands.json、task brief 仍是旧的 v2 command sequencing 范围；argv、路径、acceptance 只对旧问题内部一致，对本次 handoff 缺陷既不最小也不足以支持真实 TDD。",
+  "recordedAt": "2026-08-09T08:44:30.277Z",
+  "resultDigest": "5baa2d9c68e8917d0348b849980caafce17e8d1c3c888088bbec6935a0ddeda3"
+}

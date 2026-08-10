@@ -1,0 +1,34 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "tdd",
+  "behavior": "tdd.execute-task",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:tdd-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "执行 task-00-bootstrap-v2-command-sequencing 的冻结 TDD 子流程，并产出 RED/GREEN/REFACTOR receipt 与实现提交。",
+    "evidence": [
+      "读取 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-acfb6a94de1ea3ca1/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae2d3217-5795-4aa8-aee3-9888e8ea10c4/input.json，确认 inputRefs 为空",
+      "执行 find 命令确认 change 目录下存在 tasks/task-brief/task-commands 文件，但它们未被 handoff 正式引用",
+      "执行 git rev-parse --git-common-dir，得到 /home/wula/IdeaProjects/sdd/.git"
+    ],
+    "context": [
+      "唯一权威输入为 HANDOFF_INPUT",
+      "HANDOFF_INPUT 未提供任何 inputRefs",
+      "缺少 task 执行所需最小字段：task-id、touched-files、test-first-order、red-evidence-point、green-evidence-point、project-native-build-command、scope"
+    ],
+    "path": "在不违反 stage-executor 合同的前提下先验证 handoff 完整性；因正式输入缺失，停止于执行前并返回 blocker，等待 orchestrator 重新发起包含完整 task 冻结输入的 handoff。",
+    "correction": "EH-TDD-HANDOFF-INPUT-MISSING：由主 orchestrator 重新生成 handoff，在 inputRefs 或正式载荷中补齐 task brief、tasks、task-commands 及必需字段后重试；在此之前不得声称 RED/GREEN/REFACTOR 完成。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    "EH-TDD-HANDOFF-INPUT-MISSING"
+  ],
+  "summary": "本次未执行 TDD。原因是 HANDOFF_INPUT 只有 changeId/run 元数据，inputRefs 为空，且缺失 task 执行最小字段，无法合法读取冻结 brief 或运行 exact argv。未修改代码，未生成 receipt，未提交实现。",
+  "recordedAt": "2026-08-09T08:27:06.394Z",
+  "resultDigest": "935357adad4e13e6b8a5bbb7b45ebf6ee8eada793699d937aa533dc82f123f59"
+}

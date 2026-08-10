@@ -1,0 +1,62 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_a3ebd597-0025-43d0-9135-75269afea1e1",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 clarify.explore-code 根因探索是否已为 post-plan state、review 文件形状、阶段推进证据、validation gate 阶段四个漂移点提供足够事实，并据此形成最小安全的设计判定。",
+    "evidence": [
+      "已核验 runs/run_a3ebd597-0025-43d0-9135-75269afea1e1/input.json 记录的 inputDigests，与 runs/run_ae6ff2c5-ff59-4a2d-900d-aae19fb7d071/result.json 的实际 SHA-256 一致。",
+      "已核验 runtime/lib/workflow.mjs:249-255 在 freeze-plan 时写入 workflow.planReady=true、state=PLANNED、workflow.stage=tdd；而 runtime/lib/checks.mjs:198-200,267-285 只接受 TASKED/EXECUTING 并据此要求 tasks/review，说明 writer 与 validator 漂移已被准确定位。",
+      "已核验 harness/templates/review-verdict.json 与 runtime/lib/checks.mjs:261-285,320-333 明确消费 reviewerId/findings/evidence/reviewedAt 投影；但 reviews/design-reviewer.json 与 reviews/plan-critic.json 实际落盘为完整 handoff checker envelope，说明 review projection 与 review evidence 被混淆。",
+      "已核验 runtime/workflow.mjs:166-220 的 applyDecision 直接应用 confirm-route/approve/freeze-plan 等决策，没有把阶段推进绑定到独立 checker 非 block 结果；而 runtime/lib/workflow-audit.mjs:47-60 已把 execute+independent check 视为阶段闭环证据。",
+      "已核验 runtime/lib/checks.mjs:679-790 对所有非 DRAFT change 强制 validation.md 非空；同时 runtime/lifecycle.mjs:64-74 仅复制 validation 模板，176-203 只刷新 state.validation，不会在 clarify/route/design/plan/tdd 阶段填充 validation.md，说明 validation 内容 gate 被错误前移。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_a3ebd597-0025-43d0-9135-75269afea1e1/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae6ff2c5-ff59-4a2d-900d-aae19fb7d071/result.json",
+      "runtime/lib/workflow.mjs",
+      "runtime/workflow.mjs",
+      "runtime/lib/checks.mjs",
+      "runtime/lib/workflow-audit.mjs",
+      "runtime/lib/handoff.mjs",
+      "runtime/lifecycle.mjs",
+      "harness/schemas/state.schema.json",
+      "harness/templates/state.json",
+      "harness/templates/review-verdict.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/validation.md"
+    ],
+    "path": "verdict=pass。该次根因探索已充分支撑四个权威合同裁决：1) plan 后状态以 PLANNED+planReady+tdd-stage 为权威；2) runs/*/check.json 是权威 reviewer evidence，reviews/*.json 仅是 imported projection；3) 任何阶段推进都必须绑定当前阶段 required behavior 的 execute+独立 checker pass/advisory+必需 artifact；4) validation.md 的内容 gate 只应在 verify/validated 边界生效。最小安全修复顺序是先统一 writer/validator/advance gate，再补 importer 和 smoke 覆盖。",
+    "correction": "若进入实现，不要先局部压掉单个报错。应先统一 post-plan state、review projection、stage-advance guard、validation gate 四个 authority；读取侧可短期兼容历史 TASKED 或旧 review 文件，但新写入必须收敛到单一合同。"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ae6ff2c5-ff59-4a2d-900d-aae19fb7d071/result.json",
+    "runtime/lib/workflow.mjs",
+    "runtime/workflow.mjs",
+    "runtime/lib/checks.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lifecycle.mjs",
+    "harness/schemas/state.schema.json",
+    "harness/templates/state.json",
+    "harness/templates/review-verdict.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/state.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/design-reviewer.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/reviews/plan-critic.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/validation.md"
+  ],
+  "blockers": [],
+  "summary": "pass：根因探索对 post-plan state、review 文件形状、阶段推进证据、validation gate 阶段四个漂移点都给出了充分且可追溯的事实，足以支持最小安全的统一合同裁决。",
+  "recordedAt": "2026-08-09T08:23:26.440Z",
+  "resultDigest": "764a07e2e56398f7cb1fca708131b956dd41f84996d2812aa75be85ef891219e"
+}

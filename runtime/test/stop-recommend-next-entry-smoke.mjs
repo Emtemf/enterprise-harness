@@ -7,6 +7,7 @@ import * as workflow from '../lib/workflow.mjs';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
 const stopPath = path.resolve(repoRoot, 'runtime/hooks/stop.mjs');
+const stopLibPath = path.resolve(repoRoot, 'runtime/lib/hooks/stop.mjs');
 
 function assert(condition, message) {
   if (!condition) {
@@ -46,13 +47,15 @@ function contractHolds() {
     `Expected workflow.recommendNextEntry to return /harness for unknown stage, got ${fallbackEntry}`,
   );
 
-  const stopText = fs.readFileSync(stopPath, 'utf-8');
+  // The hook is now a thin shell; the policy lives in lib/hooks/stop.mjs. Guard
+  // the lib (not the hook) against a local recommendNextEntry hardcoding /harness.
+  const stopText = fs.readFileSync(stopLibPath, 'utf-8');
   const hasLocalOverride = /function\s+recommendNextEntry\s*\(\s*_stage\s*\)\s*\{\s*return\s+['"]\/harness['"]\s*;?\s*\}/.test(stopText);
-  assert(!hasLocalOverride, 'stop.mjs should not contain a local recommendNextEntry returning /harness statically');
+  assert(!hasLocalOverride, 'lib/hooks/stop.mjs should not contain a local recommendNextEntry returning /harness statically');
 
   const hasWorkflowImport = /import\s*\{[^}]*recommendNextEntry[^}]*\}\s*from\s*['"][^'"]*workflow\.mjs['"]/.test(stopText);
   const hasRecoveryHelperImport = /import\s*\{[^}]*buildRecoveryGuidance[^}]*\}\s*from\s*['"][^'"]*recovery-guidance\.mjs['"]/.test(stopText);
-  assert(hasWorkflowImport || hasRecoveryHelperImport, 'stop.mjs should import recommendNextEntry directly or consume buildRecoveryGuidance');
+  assert(hasWorkflowImport || hasRecoveryHelperImport, 'lib/hooks/stop.mjs should import recommendNextEntry directly or consume buildRecoveryGuidance');
 }
 
 try {

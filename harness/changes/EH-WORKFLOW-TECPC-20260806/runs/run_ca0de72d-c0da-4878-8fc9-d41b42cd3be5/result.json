@@ -1,0 +1,40 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ca0de72d-c0da-4878-8fc9-d41b42cd3be5",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "为 bootstrap candidate 生成一个仅限 candidate-local 的 promotion manifest，明确 not-approved-not-a-tdd-input、三条 canonical target paths、每文件 SHA-256、source worktree canonical root 与 regular-file/realpath-in-root/no-symlink/no-.. 约束，并要求新的独立 plan-critic checker 以本次 executor run 为 parentRunId 给出 pass/advisory。",
+    "evidence": [
+      "已核验 input.json 身份字段：changeId=EH-WORKFLOW-TECPC-20260806，stage=plan，behavior=plan.produce，role=execute，agent.type=enterprise-harness:plan-executor，agent.skill=harness-stage-executor。",
+      "已消费最小输入：candidate-quarantine-run_6a3c89b9.json、run_54a5df31-2879-40ac-b37c-106bc7aeb5a6/check.json，以及 workflow/evidence/agents-and-handoff 稳定规范。",
+      "已从 quarantine artifact 提取唯一三条 canonical target paths 与 candidate SHA-256：tasks.md=f26658063ce9d470d62fabd643c24541ff7d4a36ec23ba1c5bd5a0b0a6f06908，task-commands.json=6749a49feec13528428b322264dfa9da38d15fd129175b1fddef804da14601d1，task-brief-00-bootstrap-v2-command-sequencing.md=86e497a10687ca2243424e694bd7a6095375c5545e3868a413672fbb11ee3f00；并提取 restoring base digests：tasks.md=edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f，task-commands.json=1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd，task-brief-00-bootstrap-v2-command-sequencing.md=d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d。",
+      "已从历史 check 提取 source executor worktree canonical root 线索：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-ad23e48cda53a9f0a；并把 run_54 block 仅作为 risk input、不得作为 promotion approval 纳入拟写 manifest。",
+      "已尝试写入 candidate-local manifest 到 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/candidates/plan-revision-run_6a3c89b9/promotion-manifest-run_ca0de72d-c0da-4878-8fc9-d41b42cd3be5.json。",
+      "PostToolUse write hook 阻断：现有 change 元数据校验失败，包括 state.json invalid state PLANNED、reviews/design-reviewer.json 与 reviews/plan-critic.json 缺少/错误 reviewerId 与 reviewedAt 等字段、clarify ambiguity/routing/validation sections 缺失；因此本次 manifest 不能作为 durable success artifact 宣称产出。"
+    ],
+    "context": [
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_ca0de72d-c0da-4878-8fc9-d41b42cd3be5/input.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/changes/EH-WORKFLOW-TECPC-20260806/evidence/bootstrap-recovery/candidate-quarantine-run_6a3c89b9.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_54a5df31-2879-40ac-b37c-106bc7aeb5a6/check.json",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/specs/workflow.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/specs/evidence.md",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1c920f0d58114c89/harness/specs/agents-and-handoff.md"
+    ],
+    "path": "按 handoff 仅执行 plan.produce，并把 manifest 设计为 candidate-local、只覆盖三条权威 plan target paths、绑定 restoring base digests、要求 temp+fsync+rename 与不可覆写 promotion receipt，以及新的独立 plan-critic(parentRunId=本次 run)。但写入阶段被 repo 现有 state/reviews/clarify/validation hook gate 阻断，所以本次 run 只能返回 blocker，不能把该 manifest 交给后续 checker。",
+    "correction": "EH-PLAN-MANIFEST-WRITE-BLOCKED：先修复当前 active change 的既有 gate blocker（state/reviews/clarify/route/validation 元数据不合法），或在不违背合同的前提下由主 orchestrator 提供可通过 hook 的合法变更状态；随后重跑本一行为同一路径写入 manifest，再派发新的独立 plan-critic checker，且其 parentRunId 必须指向 run_ca0de72d-c0da-4878-8fc9-d41b42cd3be5 的成功重试 run。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    "EH-PLAN-MANIFEST-WRITE-BLOCKED: post-write hook blocked durable creation of the candidate-local promotion manifest because the existing change state/reviews/clarify/route/validation artifacts are already invalid."
+  ],
+  "summary": "已完成 manifest 设计与写入尝试所需的最小事实收集，但 candidate-local promotion manifest 的 durable 落盘被现有 change 元数据 hook 阻断；当前不能宣称产出可供独立 plan checker 审查的 manifest。",
+  "recordedAt": "2026-08-09T09:18:36.204Z",
+  "resultDigest": "a8c18c080977d2cab8d1376c4726c8f2506e17520757938c5dd5c5cd3c98a55c"
+}

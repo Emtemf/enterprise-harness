@@ -1,0 +1,53 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_54a5df31-2879-40ac-b37c-106bc7aeb5a6",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:plan-critic",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立检查 run_6a3c89b9-ae87-457d-a858-8d3c37e7b054 的 Task 00 recovery importer 计划是否可执行、是否足以解除隔离 plan 输出无法权威发布的死锁，以及是否存在安全或后续 importer 设计冲突。",
+    "evidence": [
+      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/result.json：executor 自述已把 Task 00 改成 bootstrap recovery importer，并仅输出三份计划资产。",
+      "已核验另一 executor worktree 中真正修改后的三份资产：Task 00 已收敛为 runtime/lib/bootstrap-recovery-import.mjs、runtime/evidence-import.mjs、runtime/cli.mjs、runtime/test/bootstrap-recovery-import-smoke.mjs，并明确冻结 RED/GREEN/REFACTOR argv 与 pass/advisory、SHA-256、白名单、冲突拒绝、temp+rename、durable receipt。",
+      "已核验当前主线仍是旧计划：harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md、task-commands.json、task-brief-00-bootstrap-v2-command-sequencing.md 仍描述 sequencing bridge，而非 recovery importer。",
+      "已实算 SHA-256：executor worktree 分别为 tasks=f26658063ce9d470d62fabd643c24541ff7d4a36ec23ba1c5bd5a0b0a6f06908、task-commands=6749a49feec13528428b322264dfa9da38d15fd129175b1fddef804da14601d1、task-brief=86e497a10687ca2243424e694bd7a6095375c5545e3868a413672fbb11ee3f00；当前主线分别为 tasks=edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f、task-commands=1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd、task-brief=d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d，证明新计划只存在于隔离 worktree，未成为当前权威计划。",
+      "已核验 design.md 第 319-337 行：设计将 tasks.md 归入 direct-write，通用 import CLI 初版只覆盖 tdd-receipt/worktree-snapshot；当前 Task 00 实际是在 direct-write 资产上引入 bootstrap import 例外，但该例外尚未被显式制度化。"
+    ],
+    "context": [
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_54a5df31-2879-40ac-b37c-106bc7aeb5a6/input.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/result.json",
+      ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+    ],
+    "path": "结论为 block。executor worktree 内的三份计划资产本身已经把 Task 00 收敛到用户授权的窄范围 recovery importer，RED→GREEN→REFACTOR、文件路径、consumes/produces、验收项都比当前主线清晰，且边界基本避免与 Task 01 通用 importer 重叠。但它们仍只存在于隔离 worktree；当前主线权威计划仍是旧的 sequencing bridge。也就是说，这份“用于解锁计划发布死锁”的新计划，自己并没有以当前 run-contract 可消费的 durable artifact 形式被发布出来，下游执行者在权威主线里仍无法合法开始 importer TDD，死锁没有被本次 plan 结果真正解除。另一个缺口是 source artifact 安全合同：现在冻结了 target whitelist、冲突拒绝、SHA-256 和 checker 绑定，但没有把 source outputRefs 的 canonical repo-relative 路径、source-root 约束、symlink/path traversal 拒绝写死，仍要求实现者自行补脑。",
+    "correction": "恢复动作：1) 先补一个 authority 可直接消费的 durable promotion artifact，让 checker/主线能不依赖人工搜索 worktree 就唯一定位并发布这三份修改后的计划资产；否则当前主线无法从旧 sequencing 计划合法切换到 importer 计划。2) 在 Task 00 acceptance 中显式冻结 source 校验合同：source outputRefs 必须精确等于这三条 repo-relative 计划路径，规范化后必须仍位于 source executor worktree root 内，并拒绝 symlink/path traversal。3) 在 design 或 tasks metadata 中注明这是 direct-write taxonomy 的临时 bootstrap 例外，以及 Task 01 将如何吸收/替换该桥。完成后再提交新的独立 checker。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/result.json",
+    ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+    ".claude/worktrees/agent-ad23e48cda53a9f0a/harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
+  ],
+  "blockers": [
+    "EH-PLAN-BOOTSTRAP-PUBLISH-001: executor worktree 的新 Task 00 计划没有通过当前 run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/result.json 暴露为 authority 可消费的 durable artifact；当前权威主线仍是旧 sequencing bridge，所述 bootstrap importer 计划无法在不越权的前提下开始执行，隔离 plan 输出发布死锁仍在。",
+    "EH-PLAN-BOOTSTRAP-SOURCE-002: Task 00 对 importer 的安全合同仍缺 source artifact canonicalization/root/symlink 拒绝规则；对文件导入能力来说，这会留下路径逃逸与实现猜测面。"
+  ],
+  "summary": "block：executor worktree 内的 Task 00 计划方向和粒度基本正确，但它尚未以当前权威主线可消费的形式替代旧计划，因此不能实际解除这次 plan 发布死锁；同时 source artifact 的路径安全合同还需写实。",
+  "recordedAt": "2026-08-09T09:06:38.571Z",
+  "resultDigest": "c91b5a3e4aecfe6ea8f8e02ba1bdd540d87109279a48bd836b69c2601146e399"
+}

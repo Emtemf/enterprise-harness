@@ -3,7 +3,7 @@
   "revision": 7,
   "changeId": "EH-WORKFLOW-TECPC-20260806",
   "tier": "L3",
-  "state": "PLANNED",
+  "state": "TASKED",
   "owner": "harness-governance",
   "impact": {
     "api": "yes",

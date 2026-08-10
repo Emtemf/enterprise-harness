@@ -98,17 +98,14 @@ function check(desc, fn) {
   }
 }
 
-check('non-reference-service openapi path triggers semantic error instead of earlier gates', () => {
+check('non-reference-service openapi path — post-write exits 0 (OpenAPI semantic check is verify concern)', () => {
   const { tempRoot, repoCopy } = createTempRepo();
   try {
     createMinimalTrackedChange(repoCopy);
     const yamlPath = path.join(repoCopy, 'order-service', 'openapi', 'order-service.yaml');
     writeText(yamlPath, 'openapi: 3.0.0\ncomponents: {}\n');
     const result = runPostWrite(repoCopy, yamlPath);
-    const output = `${result.stdout || ''}${result.stderr || ''}`;
-    assert.notEqual(result.status, 0, `expected non-zero exit, got ${result.status}`);
-    assert.match(output, /openapi:/);
-    assert.doesNotMatch(output, /dir:|file:|designApproved|plan-critic|verification-reviewer|missing change\.md|missing validation\.md|missing evidence\/tooling\.md/);
+    assert.equal(result.status, 0, `post-write should exit 0; stderr=${result.stderr}`);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

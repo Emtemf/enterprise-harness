@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const preWritePath = path.join(repoRoot, 'runtime', 'hooks', 'pre-write.mjs');
+const validatePath = path.join(repoRoot, 'runtime', 'validate.mjs');
 const mode = process.argv[2];
 
 function writeJson(file, data) {
@@ -36,8 +36,8 @@ function baseState() {
     workflow: { stage: 'route', clarifyReady: true, userConfirmedScope: true, planReady: false, tddStatus: 'not-started', nextEntry: '/harness-clarify' },
   };
 }
-function runPreWrite(tempRoot, filePath) {
-  return spawnSync('node', [preWritePath], { cwd: tempRoot, encoding: 'utf-8', input: JSON.stringify({ tool_input: { file_path: filePath } }) });
+function runValidate(tempRoot) {
+  return spawnSync('node', [validatePath, 'fixture-change'], { cwd: tempRoot, encoding: 'utf-8' });
 }
 if (!['red','green','verify'].includes(mode)) {
   console.error('Usage: node runtime/test/router-score-gate-smoke.mjs <red|green|verify>');
@@ -51,8 +51,7 @@ try {
     fs.writeFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), 'fixture-change\n', 'utf-8');
     writeJson(path.join(changeDir, 'state.json'), baseState());
     writeText(path.join(changeDir, 'change.md'), `# Change\n\n## 初步路由\n\n### Router 评分\n| 维度 | 分数(0-5) | 说明 |\n|------|----------|------|\n| Scope complexity | 5 | high |\n| Impact breadth | 4 | ok |\n| Unknowns / ambiguity |  | missing |\n| API / data risk | 5 | high |\n| Test / rollback complexity | 4 | ok |\n| **Overall** | 4 | mixed |\n`);
-    writeText(path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'), '// fixture\n');
-    const result = runPreWrite(tempRoot, path.join(tempRoot, 'src', 'main', 'java', 'Foo.java'));
+    const result = runValidate(tempRoot);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /route 评分未填写完整/);
   });

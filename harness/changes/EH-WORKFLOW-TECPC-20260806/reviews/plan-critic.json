@@ -1,53 +1,8 @@
 {
-  "handoffVersion": 1,
-  "runId": "run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7",
   "changeId": "EH-WORKFLOW-TECPC-20260806",
-  "stage": "plan",
-  "behavior": "plan.produce",
-  "role": "check",
-  "agent": {
-    "type": "enterprise-harness:plan-critic",
-    "skill": "harness-stage-checker"
-  },
-  "tecpc": {
-    "target": "独立核验修正后的 schema-5 redesign plan 是否已消除上轮关键阻塞项，并可被下游执行者在不猜测的前提下按 RED → GREEN → REFACTOR 执行。",
-    "evidence": [
-      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：plan metadata 明确 `repo root for every frozen argv: .`、`path policy: all touched files / consumes / produces are repository-relative`，且 `design-review-imported: false`、`design-approved: false`，不再伪称 design 已批准。",
-      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：Task 1 仍被固定为首任务，并明确其目标是 shared durable artifact importer、parent-working-tree snapshot continuity 与 atomic state/checkpoint advancement，符合“先修历史 state/evidence divergence 基础设施”的要求。",
-      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json：五个 task 都已冻结 exact argv，且包含此前缺失的 `route-stage-separation-verify` 与 `external-project-maven-lifecycle-e2e` 命令。",
-      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md 到 task-brief-05-audit-stop-skills-docs-packaging-regression.md：每个新增行为都具备独立 RED 命令、对应最小 GREEN 实现范围、以及 REFACTOR/VERIFY 顺序，不再把关键测试面推迟到首个 GREEN 之后补写。",
-      "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md：design 仍是待独立 review 的状态；plan 文本与此保持一致，只把自己标记为 corrected-draft-plan，并显式禁止在 design review durable import 前把该计划当作 approved plan 使用。"
-    ],
-    "context": [
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_7cc149db-4e4c-46b4-83c5-43ac6f3329a7/input.json",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_19ef75ae-5b52-47e1-89d6-c311dad6466b/result.json",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_0948a719-c498-49c9-84aa-4aa96290f2bf/check.json",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
-      "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
-    ],
-    "path": "本次修正已实质消除上轮 4 个计划级 blocker：1) 所有计划路径与 repo root 改为仓库相对，不再绑定瞬时 worktree；2) plan 不再伪称 design 已批准，而是显式声明 draft/pending review；3) Task 2-5 的关键行为均补齐独立 RED 证据路径；4) task-commands.json 已冻结此前缺失的 route-stage-separation 与 external-project maven lifecycle 命令。基于当前计划文本，下游 executor 能按串行依赖和 exact argv 执行，无需自行猜测 cwd、审批状态或补测试顺序。",
-    "correction": "虽可判定 plan 文本本身可执行，但 `reviews/design-reviewer.json` 尚未 durable import，且 change 目录里仍存在历史 clarify/route/validation 证据缺口。恢复动作不是重写 plan，而是在后续治理流中先补齐 design review import 与缺失的 change-level durable evidence，再把该 corrected-draft-plan 升格为可用 gate。"
-  },
+  "reviewerId": "plan-critic",
   "verdict": "pass",
-  "outputRefs": [
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_19ef75ae-5b52-47e1-89d6-c311dad6466b/result.json",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-02-manifest-and-phase-checkpoints.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-03-codegraph-probe-and-registry.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-04-route-and-clarify-quant-models.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-05-audit-stop-skills-docs-packaging-regression.md",
-    "harness/changes/EH-WORKFLOW-TECPC-20260806/design.md"
-  ],
-  "blockers": [],
-  "summary": "pass：修正后的 plan 已补齐 repo-relative 路径、真实的 design gate 状态、每个关键行为的 RED→GREEN→REFACTOR 路径，以及此前缺失的 route-stage-separation 与 maven lifecycle 验证命令；历史 change-level 证据缺口已被明确隔离为后续 gate 事项，而非当前计划文本缺陷。",
-  "recordedAt": "2026-08-06T10:58:40.658Z",
-  "resultDigest": "c38f10663d182375a3047218c7db077d43c2b427b8fd298463a5c00aaf4dbfc6"
+  "findings": "本次修正已实质消除上轮 4 个计划级 blocker：1) 所有计划路径与 repo root 改为仓库相对，不再绑定瞬时 worktree；2) plan 不再伪称 design 已批准，而是显式声明 draft/pending review；3) Task 2-5 的关键行为均补齐独立 RED 证据路径；4) task-commands.json 已冻结此前缺失的 route-stage-separation 与 external-project maven lifecycle 命令。基于当前计划文本，下游 executor 能按串行依赖和 exact argv 执行，无需自行猜测 cwd、审批状态或补测试顺序。",
+  "evidence": "已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：plan metadata 明确 `repo root for every frozen argv: .`、`path policy: all touched files / consumes / produces are repository-relative`，且 `design-review-imported: false`、`design-approved: false`，不再伪称 design 已批准。; 已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md：Task 1 仍被固定为首任务，并明确其目标是 shared durable artifact importer、parent-working-tree snapshot continuity 与 atomic state/checkpoint advancement，符合“先修历史 state/evidence divergence 基础设施”的要求。; 已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json：五个 task 都已冻结 exact argv，且包含此前缺失的 `route-stage-separation-verify` 与 `external-project-maven-lifecycle-e2e` 命令。; 已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-01-snapshot-import-state-atomicity.md 到 task-brief-05-audit-stop-skills-docs-packaging-regression.md：每个新增行为都具备独立 RED 命令、对应最小 GREEN 实现范围、以及 REFACTOR/VERIFY 顺序，不再把关键测试面推迟到首个 GREEN 之后补写。; 已核验 harness/changes/EH-WORKFLOW-TECPC-20260806/design.md：design 仍是待独立 review 的状态；plan 文本与此保持一致，只把自己标记为 corrected-draft-plan，并显式禁止在 design review durable import 前把该计划当作 approved plan 使用。",
+  "reviewedAt": "2026-08-06T10:58:40.658Z"
 }

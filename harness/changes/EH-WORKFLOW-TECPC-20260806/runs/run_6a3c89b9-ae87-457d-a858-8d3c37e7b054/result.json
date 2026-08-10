@@ -1,0 +1,40 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_6a3c89b9-ae87-457d-a858-8d3c37e7b054",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "plan",
+  "behavior": "plan.produce",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:plan-executor",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "将 Task 00 的三份计划资产收敛为唯一新增 bootstrap 能力：窄范围、可审计的 recovery importer，并冻结覆盖原有 v2 command sequencing 与 handoff 输入问题的 exact RED/GREEN/REFACTOR smoke argv。",
+    "evidence": [
+      "已修订 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md 的计划头与 Task 00 区块：Task 00 现在只授权 bootstrap recovery importer 范围，Touched Files 收敛为 runtime/lib/bootstrap-recovery-import.mjs、runtime/evidence-import.mjs、runtime/cli.mjs、runtime/test/bootstrap-recovery-import-smoke.mjs；Consumes/Produces/Test-first Order/Acceptance Checks 明确冻结了 executor run + 独立 checker(pass/advisory) 绑定、SHA-256 校验、拒绝 checker block、拒绝非父绑定、拒绝非白名单路径、拒绝目标已有不同内容、temp+rename 原子发布、durable recovery receipt(run/check/digest/provenance)。",
+      "已修订 harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json 的 Task 00 冻结 argv：RED=[\"node\",\"runtime/test/bootstrap-recovery-import-smoke.mjs\",\"red\"]，GREEN=[\"node\",\"runtime/test/bootstrap-recovery-import-smoke.mjs\",\"green\"]，REFACTOR=[\"node\",\"runtime/test/bootstrap-recovery-import-smoke.mjs\",\"verify\"]。",
+      "已修订 harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md：Goal/Bootstrap Note/Touched Files/Consumes/Produces/Test-first Order/RED-GREEN-REFACTOR expectations/Acceptance Checks 现均限定为 bootstrap recovery importer，并清楚说明它只是让先前卡在隔离 worktree 外的 v2 commands sequencing 与 handoff-input 修订成为权威计划输入的桥接能力。",
+      "为保持计划内部一致性，已同步修订 harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md 中 Task 01 的依赖表述，使其消费前提改为 Task 00 bootstrap recovery importer，而不是旧的 sequencing bridge。",
+      "未修改任何 runtime 实现、测试实现、state.json、reviews/*.json 或 validation 资产；用户要求的范围限制已保持。"
+    ],
+    "context": [
+      "已消费输入 handoff: harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/input.json",
+      "已消费当前计划资产: harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md、harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json、harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+      "已消费独立 checker 约束: harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_6bae8016-2bd4-4457-be7d-48ff03214231/check.json",
+      "辅助读取了设计背景: harness/changes/EH-WORKFLOW-TECPC-20260806/design.md",
+      "未决不确定性：post-write hook 继续报告该 change 既有的 state/review/clarify/validation 元数据问题；这些问题在本次用户显式限制下未被修改。"
+    ],
+    "path": "先校验 handoff 元数据与最小输入，再依据当前独立 checker 的 block 结论把 Task 00 从旧的 sequencing bridge 改写为唯一 bootstrap recovery importer；随后冻结新的 smoke argv，并同步 task brief 与 Task 01 依赖措辞以保持三份计划资产一致。下一步应交由独立 plan-critic 复核，而不是由本执行者自审。",
+    "correction": "本次只完成隔离 worktree 中的计划资产修订。不得将其视为权威主 worktree 已更新。若后续要求 clean hook / fresh validation / authority publish，主 orchestrator 需单独处理当前 change 既有的 state.json、reviews/*.json、clarify/router 评分与 validation.md 校验问题；这些都不在本次允许范围内。"
+  },
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md"
+  ],
+  "blockers": [],
+  "summary": "已在隔离 worktree 内完成 Task 00 三份计划资产修订：Task 00 现唯一新增 bootstrap 能力为可审计 recovery importer，冻结了 bootstrap-recovery-import-smoke 的 exact RED/GREEN/REFACTOR argv，并把 checker 绑定、SHA-256、白名单、冲突拒绝、temp+rename、durable recovery receipt 全部写入任务计划；未改 state/reviews/validation，也不声称主 worktree 已更新。",
+  "recordedAt": "2026-08-09T09:01:02.833Z",
+  "resultDigest": "8a6f4ab476eada5d7d5ac5061ccca273864393dac55a717d4c053255226aecc8"
+}

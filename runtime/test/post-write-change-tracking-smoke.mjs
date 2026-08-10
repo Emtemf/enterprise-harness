@@ -70,15 +70,17 @@ function check(desc, fn) {
   }
 }
 
-check('scenario 1: harness/changes without harness/specs must still report missing change evidence', () => {
+// post-write no longer runs full change validation (moved to runtime/verify.mjs).
+// It only does: stale invalidation + Bash attribution + TECPC card output.
+// Scenarios 1 and 3 now verify that post-write exits 0 and defers deep checks to verify.
+
+check('scenario 1: harness/changes without harness/specs — post-write exits 0 (validation is verify concern)', () => {
   withTempRoot((tempRoot) => {
     const changeId = 'fixture-change';
     writeJson(path.join(tempRoot, 'harness', 'changes', changeId, 'state.json'), baseState());
     writeText(path.join(tempRoot, 'harness', 'changes', changeId, 'change.md'), '# Change\n');
-    // deliberately omit validation.md and evidence/tooling.md
     const result = runPostWrite(tempRoot);
-    assert.notEqual(result.status, 0, `expected non-zero exit, got ${result.status}`);
-    assert.match(result.stdout + result.stderr, /validation\.md/);
+    assert.equal(result.status, 0, `post-write should exit 0; stderr=${result.stderr}`);
   });
 });
 
@@ -89,14 +91,12 @@ check('scenario 2: no harness/ at all must safely no-op', () => {
   });
 });
 
-check('scenario 3: isHarnessManaged=true but missing a requiredPaths() file must still run validateStructure', () => {
+check('scenario 3: isHarnessManaged=true with missing required file — post-write exits 0 (structure check is verify concern)', () => {
   withTempRoot((tempRoot) => {
     fs.mkdirSync(path.join(tempRoot, 'harness', 'changes'), { recursive: true });
     fs.mkdirSync(path.join(tempRoot, 'harness', 'specs'), { recursive: true });
-    // deliberately do not create AGENTS.md (one of requiredPaths()'s required files)
     const result = runPostWrite(tempRoot);
-    assert.notEqual(result.status, 0, `expected non-zero exit, got ${result.status}`);
-    assert.match(result.stdout + result.stderr, /file:AGENTS\.md/);
+    assert.equal(result.status, 0, `post-write should exit 0; stderr=${result.stderr}`);
   });
 });
 

@@ -11,7 +11,12 @@ import { tddReceiptSpoolPath } from '../lib/tdd-receipts.mjs';
 
 const runtimeRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const hook = path.join(runtimeRoot, 'hooks', 'pre-write.mjs');
+const validateCli = path.join(runtimeRoot, 'validate.mjs');
 const changeId = 'gate-probe';
+
+function runValidate(root) {
+  return spawnSync(process.execPath, [validateCli, changeId], { cwd: root, encoding: 'utf-8', shell: false });
+}
 
 function run(root, command, args = []) {
   const result = spawnSync(command, args, { cwd: root, encoding: 'utf-8', shell: false });
@@ -135,6 +140,9 @@ try {
   let result = hookCall(root, { tool_name: 'Write', tool_input: { file_path: target } });
   assert.equal(result.status, 2, 'forged state projections must not authorize a main-thread write');
   seedAuthorizedEvidence(root);
+  // 静态阶段链现在由 CLI validate 在阶段边界验证并落 marker；pre-write 只查 marker。
+  const validated = runValidate(root);
+  assert.equal(validated.status, 0, validated.stderr || validated.stdout);
   result = hookCall(root, { tool_name: 'Write', agent_id: 'executor-1', tool_input: { file_path: target } });
   assert.equal(result.status, 0, result.stderr);
   result = hookCall(root, { tool_name: 'NotebookEdit', agent_id: 'executor-1', tool_input: { notebook_path: path.join(root, 'src/test/java/demo/App.ipynb') } });
@@ -150,7 +158,13 @@ try {
   fs.rmSync(planReview);
   result = hookCall(root, { tool_name: 'Write', agent_id: 'executor-1', tool_input: { file_path: target } });
   assert.equal(result.status, 2, 'stage=tdd must not skip a missing plan review');
+  assert.match(result.stderr, /stage-evidence-digest-mismatch/, 'deleting a stage-chain review must invalidate the stage gate marker');
   fs.writeFileSync(planReview, saved);
+  // 恢复 review 后 marker 仍须重新 validate 才 fresh。
+  const revalidated = runValidate(root);
+  assert.equal(revalidated.status, 0, revalidated.stderr || revalidated.stdout);
+  result = hookCall(root, { tool_name: 'Write', agent_id: 'executor-1', tool_input: { file_path: target } });
+  assert.equal(result.status, 0, result.stderr);
   console.log('PASS cumulative-write-gate verify');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

@@ -1,0 +1,34 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_cbd5e68c-8f03-4d62-8d5d-2cbbf2e19314",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "解释 post-write 为何对 candidate/evidence append-only 写入执行全 change/完成态式验证，并给出不削弱 authority gate 的最小修复设计。",
+    "evidence": [
+      "已确认调用链：post-write.mjs:81-90 对 active change 内任意写入做 validation stale 回写；post-write.mjs:125-138 无 target 缩窄地执行 validateArtifactStates/validateReviewVerdicts/validateChangeEvidence。",
+      "已确认错误来源：checks.mjs:195-318 负责 state/design/plan 约束；checks.mjs:320-333 负责 review verdict 基础字段；checks.mjs:679-793 负责 ambiguity/router/validation.md 合同。",
+      "已确认 verify 复用同一组全量 validator：verify.mjs:39-52。",
+      "已确认受治理源码的真正防线在 pre-write + execution-prerequisites：pre-write.mjs:42-66，execution-prerequisites.mjs:44-80。",
+      "已确认 validation digest 目前仍把大多数 evidence/** 纳入输入，仅排除 workflow-events.jsonl：checks.mjs:178-183。"
+    ],
+    "context": [
+      "HANDOFF_INPUT 无 inputRefs；本次依据用户给定 exploration brief 和最小稳定规范执行只读探索。",
+      "CodeGraph 首次尝试成功返回定位，但索引属于父仓库而非当前 worktree；关键事实已回退到 Read 精确确认。",
+      "未修改任何文件；未创建 durable artifact。"
+    ],
+    "path": "先用 CodeGraph 定位 post-write/checks/verify/pre-write 相关符号，再用 Read 精确确认行号与调用链。结论是：问题来自 post-write 对全 change validators 缺少 path-classification，而不是单个 candidate 文件被误判为 authority。建议最小修复只改 post-write 的目标分类，并配套调整 checks.mjs 的 validation digest 范围；verify/stop 与 pre-write/execution-prerequisites 保持不动。",
+    "correction": "无执行失败；唯一可信度降级来自 worktree-local CodeGraph 索引缺失。若要提升置信度，应先在当前 worktree 初始化 codegraph 索引后再复核未读文件的影响面。"
+  },
+  "outputRefs": [],
+  "blockers": [],
+  "summary": "post-write 目前对任何 change-tracking 仓库写入都会无差别跑 validateArtifactStates/validateReviewVerdicts/validateChangeEvidence，因此 candidate/evidence append-only 写入会被现有坏 state/reviews/clarify/validation 资产连坐阻断。最小安全修复是按写入路径区分 authority vs appendOnlyEvidence：仅当触达 state/reviews/validation/requirements/change/design/tasks/evidence/tooling.md 或 repo/runtime/governed source 时才跑全量 validator；纯 runs/** 与非 tooling.md 的 evidence/** 仅保留归因/快照安全检查，不触发全 change 验证，并同步把这类 append-only evidence 从 computeValidationDigest 中排除。pre-write、execution-prerequisites、verify、stop 不应放松。",
+  "recordedAt": "2026-08-09T09:30:52.632Z",
+  "resultDigest": "371d52847c13eec617ae0a4f2b01ba517a5724638145ab68a8d480dd094c3f6b"
+}

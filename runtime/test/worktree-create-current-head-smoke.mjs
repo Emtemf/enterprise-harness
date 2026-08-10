@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2] || 'verify';
 const hookPath = path.join(repoRoot, 'runtime', 'hooks', 'worktree-create.mjs');
-const hookSource = fs.readFileSync(hookPath, 'utf-8');
+const worktreeLibPath = path.join(repoRoot, 'runtime', 'lib', 'worktree.mjs');
+// Injection env vars live in the lib (where the logic moved); the hook is a thin wrapper.
+const worktreeLibSource = fs.readFileSync(worktreeLibPath, 'utf-8');
 
 function run(command, args, cwd, options = {}) {
   return spawnSync(command, args, {
@@ -135,7 +137,7 @@ function readBranchHead(root, branchName) {
 }
 
 function verifyInjectionContractPresent() {
-  assert.match(hookSource, /HARNESS_WORKTREE_CREATE_TEST_/u, 'worktree-create must expose fail-closed test-only injection hooks for deterministic compensation coverage');
+  assert.match(worktreeLibSource, /HARNESS_WORKTREE_CREATE_TEST_/u, 'worktree lib must expose fail-closed test-only injection hooks for deterministic compensation coverage');
 }
 
 function verifySuccessScenario(root) {

@@ -10,6 +10,8 @@
 
 ## Commands Executed
 
+Validation pending — change is in TASKED state, verify stage not yet reached.
+
 ## Clarify / Requirements Confirmation
 
 ## Unit Tests
@@ -28,6 +30,9 @@
 
 ## Review Verdicts
 
+design-reviewer: pass (see reviews/design-reviewer.json)
+plan-critic: pass (see reviews/plan-critic.json)
+
 ## Stage Gate Summary
 - clarify:
 - design:
@@ -40,3 +45,5 @@
 ## Failures and Retries
 
 ## Final Verdict
+
+Pending — change is in TASKED state, verify stage not yet reached.

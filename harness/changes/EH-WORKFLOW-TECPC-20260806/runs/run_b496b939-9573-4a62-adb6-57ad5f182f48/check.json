@@ -1,0 +1,50 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_b496b939-9573-4a62-adb6-57ad5f182f48",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 post-write deadlock 的根因、append-only evidence/runs 分类边界，以及最小安全修复范围",
+    "evidence": [
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/hooks/post-write.mjs:81-90 对 active change 内任意触达统一写回 validation=stale；126-134 又不区分 target 地总是执行 validateArtifactStates/validateReviewVerdicts/validateChangeEvidence，因此 runs/evidence 的 append-only 写入会被同 change 其他无关缺陷连坐阻断。",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/lib/checks.mjs:156-193 的 computeValidationDigest 只遍历 direct files、reviews/**、evidence/**、specs/**；未遍历 runs/**，且仅显式排除 evidence/workflow-events.jsonl，说明 runs/** 已天然不在 validation digest 内。",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/lib/handoff.mjs:215-287 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/lib/workflow-audit.mjs:19-70,85-160 对 runs/** 做 canonical path、behavior registry、agent/skill、inputDigest、checker parentRunId/result 绑定校验；放宽 post-write 对 runs/** 的全 change 验证不会放松 authority/runtime gate。",
+      "/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/harness/specs/evidence.md:29-30 要求 validation digest 覆盖稳定 artifact；/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/lib/checks.mjs:464-497 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/harness/specs/tdd-execution.md:73-74 说明 evidence/tdd/*.json 是 verify/Stop/archive 消费的 durable imported evidence，不能按“non-tooling evidence/** 全排除 digest”处理。"
+    ],
+    "context": [
+      "已独立核验 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_cbd5e68c-8f03-4d62-8d5d-2cbbf2e19314/result.json 与源码/合同文件；未采信 executor 的未证明推断。",
+      "受消费的最小引用：post-write hook、checks digest/evidence 校验、pre-write/execution-prerequisites gate、handoff/workflow-audit authority 校验、evidence/tdd 合同。"
+    ],
+    "path": "根因判断成立：问题在 post-write 缺少路径分类，而不在 pre-write 或 verify。 但修复范围必须收窄并拆成两条规则：第一，是否把 validation 置 stale 应与 digest 覆盖对齐；第二，是否跑全 change validators 只能对 authority-bearing 路径触发。最小安全修复只需改 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-abe1f226c39dc0ee2/runtime/hooks/post-write.mjs 的路径分类逻辑：1) authority 文件/受治理源码（state.json、requirements.md、change.md、design.md、tasks.md、validation.md、reviews/**、evidence/tooling.md、governed source）=> stale + 全量 validator；2) stable append-only evidence（至少将 evidence/tdd/** 与 exploration briefs 作为显式 allowlist，而不是“所有 non-tooling evidence”）=> stale 但不跑全量 validator；3) volatile operational evidence（runs/**、evidence/workflow-events.jsonl）=> 不 stale、也不跑全量 validator。verify/pre-write/execution-prerequisites/handoff/workflow-audit 不应放松。computeValidationDigest 对 runs/** 无需改动；对 evidence/** 不能 blanket exclusion，只能维持或新增极小的显式 volatile allowlist。",
+    "correction": "恢复动作：不要直接按 executor 结果实现“pure runs/** 与 non-tooling evidence/** 一并从 full validation 与 validation digest 排除”。先把修复范围重冻为仅 post-write 路径分类，并补齐反例测试：1) 写 runs/** 不再被无关 state/review/clarify/validation 缺陷阻断；2) forged runs/** 仍被 handoff/workflow audit BLOCK；3) VALIDATED 后改写 evidence/tdd/*.json 会触发 stale 或 verify digest mismatch；4) authority 文件写入仍保持现有阻断。"
+  },
+  "verdict": "block",
+  "outputRefs": [
+    "harness/changes/EH-WORKFLOW-TECPC-20260806/runs/run_cbd5e68c-8f03-4d62-8d5d-2cbbf2e19314/result.json",
+    "runtime/hooks/post-write.mjs",
+    "runtime/hooks/pre-write.mjs",
+    "runtime/lib/checks.mjs",
+    "runtime/lib/execution-prerequisites.mjs",
+    "runtime/lib/gates.mjs",
+    "runtime/lib/handoff.mjs",
+    "runtime/lib/workflow-audit.mjs",
+    "runtime/verify.mjs",
+    "harness/specs/evidence.md",
+    "harness/specs/stage-observability.md",
+    "harness/specs/tdd-execution.md"
+  ],
+  "blockers": [
+    "executor summary 将“non-tooling evidence/**”统一视作 append-only 并建议从 validation digest 排除；这与 runtime/lib/checks.mjs:156-193 和 harness/specs/evidence.md:29-30 的稳定 artifact contract 不一致。",
+    "evidence/tdd/*.json 是 verify/Stop/archive 消费的 durable authority；若 blanket 排除出 digest，将削弱 fresh validation 对 durable evidence 变更的检测。",
+    "runs/** 已不在 computeValidationDigest 范围内；把 digest 变更列为 runs 修复的一部分不是最小范围，也混淆了 authority 校验与 freshness 计算这两个独立问题。"
+  ],
+  "summary": "BLOCK: post-write 对全 change validators 缺少路径分类，确实是 append-only 写入 deadlock 的根因；但 executor 给出的“non-tooling evidence/** + runs/** 一并放宽并排除 digest”过宽。安全最小修复应只收敛在 runtime/hooks/post-write.mjs 的三类路径分类：runs/** 继续由 handoff/audit 守护且无需 digest 改动，authoritative evidence 不能 blanket 排除出 digest。",
+  "recordedAt": "2026-08-09T09:37:03.109Z",
+  "resultDigest": "06dbbf94349579c3c29f71602cd98c72a8f2cafa2dcad9cd3298fbab9d87e758"
+}

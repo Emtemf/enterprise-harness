@@ -30,28 +30,13 @@
 ### Router 评分
 | 维度 | 分数(0-5) | 说明 |
 |------|----------|------|
-| Boundary breadth | 4 | 同一 service 内跨 `harness/specs`、runtime library、hooks、stage handoff、audit/doctor/evidence surface 的多层联动，不是单模块修补。 |
-| Durable contract / data scope | 5 | `state.json`、handoff input/result、receipts、ledgers、audit projections、stage artifacts 全部在 scope 内，并允许 coordinated redesign。 |
-| Interface / API contract breadth | 4 | intake/clarify、forked executor、independent checker、probe/hook、audit/doctor、resume/recovery 等多类 harness-facing interface 都会发生 breaking contract change。 |
-| Architecture execution impact | 4 | inline clarify 与 forked follow-up stages 的执行边界、stage TECPC/checkpoint/auto-block、worktree snapshot/artifact import repair 都触达架构级执行模型。 |
-| Governance / rule enforcement | 5 | TECPC completeness、CodeGraph-first receipts、ambiguity probing、registry/probe/hooks/checkers 强制化从软约束升级为 fail-loud runtime rule。 |
-| Verification / recovery complexity | 4 | 需要统一 recoverable fail-loud contract、cross-artifact consistency 与 blocked/resume path，验证面覆盖 audit/doctor/workflow projection。 |
-| **Overall** | **26 / 30** | 达到本仓库治理路由模型的 `L3` 阈值。 |
+| Scope complexity | 4 | 全 durable-contract surface 明确在 scope 内：state.json、handoff input/result、receipts、ledger、audit projections、stage artifacts 联动重设计，不是单模块补丁。 |
+| Impact breadth | 5 | API、data、architecture、rule 四个 impact 维度全部为 yes，且允许 coordinated breaking redesign。 |
+| Unknowns / ambiguity | 3 | clarify 阶段已确认用户意图与边界，剩余不确定性集中在 design/plan 应冻结的 schema/payload/argv 细节，而非业务意图未解决。 |
+| API / data risk | 5 | harness-facing workflow contracts 全面 breaking change；state.json、handoff、receipt、ledger、audit projection 一并重设计。 |
+| Test / rollback complexity | 4 | 需统一 recoverable fail-loud contract、cross-artifact consistency 与 blocked/resume path，验证面覆盖 audit/doctor/workflow projection 与回滚路径。 |
+| **Overall** | **21 / 25** | 达到本仓库治理路由模型的 L3 阈值。 |
 
-评分模型说明（仅适用于本仓库的 governance routing，不宣称是通用行业标准）：
-- 单维分档：
-  - `0` = 无影响或纯描述修正。
-  - `1` = 局部、非权威、单文件/单文档修正。
-  - `2` = 单模块内的加法或低风险 contract 调整，无阶段级联动。
-  - `3` = 同层多模块变更，或单个 authoritative contract 发生实质调整。
-  - `4` = 同一 service 内跨层联动，或 breaking change 触及多个 authoritative boundary。
-  - `5` = 多个 authoritative contracts 联合重设计，且直接改变 blocking / recovery / audit 语义。
-- Tier 阈值：
-  - `L0`：总分 `0-4`，且所有维度 `<=1`，impact 四维均为 `no`。
-  - `L1`：总分 `5-10`，最大单维 `<=2`，最多一个 impact 维度为 `yes`。
-  - `L2`：总分 `11-18`，或存在单维 `3-4`，但仍是单一层面/有限联动，impact 为 `yes` 的维度不超过两个。
-  - `L3`：总分 `>=19`，或任一维度为 `5`，或 impact 为 `yes` 的维度达到三个及以上，或目标本身是 authoritative governance contract 的 breaking redesign。
-- 本变更命中 `L3` 的具体原因：总分 `26`；impact 四维全部为 `yes`；并且 scope 明确允许对 authoritative governance contracts 做 coordinated breaking redesign。
 
 ## 最小探索证据
 - `harness/changes/EH-WORKFLOW-TECPC-20260806/requirements.md`

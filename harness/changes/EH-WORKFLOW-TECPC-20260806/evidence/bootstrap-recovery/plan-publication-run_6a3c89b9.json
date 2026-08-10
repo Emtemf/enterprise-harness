@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "authorized-bootstrap-plan-publication",
+  "changeId": "EH-WORKFLOW-TECPC-20260806",
+  "authorizedBy": "user-explicit-option-1-2026-08-09",
+  "source": {
+    "executorRunId": "run_6a3c89b9-ae87-457d-a858-8d3c37e7b054",
+    "executorWorktree": ".claude/worktrees/agent-ad23e48cda53a9f0a",
+    "checkerRunId": "run_54a5df31-2879-40ac-b37c-106bc7aeb5a6",
+    "checkerVerdict": "block",
+    "checkerParentRunId": "run_6a3c89b9-ae87-457d-a858-8d3c37e7b054",
+    "checkerBlockers": [
+      "EH-PLAN-BOOTSTRAP-PUBLISH-001: executor worktree 的新 Task 00 计划没有通过当前 run_6a3c89b9-ae87-457d-a858-8d3c37e7b054/result.json 暴露为 authority 可消费的 durable artifact；当前权威主线仍是旧 sequencing bridge，所述 bootstrap importer 计划无法在不越权的前提下开始执行，隔离 plan 输出发布死锁仍在。",
+      "EH-PLAN-BOOTSTRAP-SOURCE-002: Task 00 对 importer 的安全合同仍缺 source artifact canonicalization/root/symlink 拒绝规则；对文件导入能力来说，这会留下路径逃逸与实现猜测面。"
+    ]
+  },
+  "publication": {
+    "paths": [
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/tasks.md",
+        "sourceDigest": "f26658063ce9d470d62fabd643c24541ff7d4a36ec23ba1c5bd5a0b0a6f06908",
+        "prePublicationTargetDigest": "edb1fef95745cb0ecf84af16d4eed65735fbf6610d5d16e8406dcaaa90ae858f",
+        "publishedDigest": "f26658063ce9d470d62fabd643c24541ff7d4a36ec23ba1c5bd5a0b0a6f06908"
+      },
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-commands.json",
+        "sourceDigest": "6749a49feec13528428b322264dfa9da38d15fd129175b1fddef804da14601d1",
+        "prePublicationTargetDigest": "1fa2ace1f253e68e3262de54b562482916975dd12de7fd6421c2b6886531effd",
+        "publishedDigest": "6749a49feec13528428b322264dfa9da38d15fd129175b1fddef804da14601d1"
+      },
+      {
+        "path": "harness/changes/EH-WORKFLOW-TECPC-20260806/task-brief-00-bootstrap-v2-command-sequencing.md",
+        "sourceDigest": "86e497a10687ca2243424e694bd7a6095375c5545e3868a413672fbb11ee3f00",
+        "prePublicationTargetDigest": "d31c2424e765b27de278692dc419c2a4feba086102a4c32b35523475cf254d9d",
+        "publishedDigest": "86e497a10687ca2243424e694bd7a6095375c5545e3868a413672fbb11ee3f00"
+      }
+    ],
+    "atomicity": "per-file-copy-to-exclusive-temp-then-rename",
+    "publishedAt": "2026-08-09T09:13:01.581Z"
+  },
+  "exception": {
+    "reason": "Bootstrap circularity: no existing authority publication mechanism could publish the isolated plan output required to authorize implementing that mechanism.",
+    "limits": [
+      "exactly three listed plan assets",
+      "one non-repeatable receipt",
+      "no state/review/validation/runtime source publication",
+      "source root containment and symlink rejection enforced"
+    ],
+    "followUp": "A new independent plan review must consume the authority-published artifacts before TDD begins."
+  }
+}

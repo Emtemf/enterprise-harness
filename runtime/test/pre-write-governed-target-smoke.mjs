@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preWritePath = path.join(repoRoot, 'runtime', 'hooks', 'pre-write.mjs');
+const validatePath = path.join(repoRoot, 'runtime', 'validate.mjs');
 const mode = process.argv[2];
 
 if (!['red', 'green', 'verify'].includes(mode)) {
@@ -56,6 +57,13 @@ function runPreWrite(tempRoot, filePath) {
     cwd: tempRoot,
     encoding: 'utf-8',
     input: JSON.stringify({ tool_name: 'Write', tool_input: { file_path: filePath } }),
+  });
+}
+
+function runValidate(tempRoot) {
+  return spawnSync('node', [validatePath, 'fixture-change'], {
+    cwd: tempRoot,
+    encoding: 'utf-8',
   });
 }
 
@@ -179,18 +187,17 @@ check('G: route stage — missing tier must BLOCK', () => {
   });
 });
 
-check('H: design stage — missing design.md must BLOCK', () => {
+check('H: design stage — missing design.md must BLOCK (validate CLI)', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       state: 'SPECIFIED',
       workflow: { stage: 'design', clarifyReady: true, userConfirmedScope: true, planReady: false, tddStatus: 'not-started', nextEntry: '/harness-design' },
     }));
-    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
-    writeText(target, '// fixture\n');
-    const result = runPreWrite(tempRoot, target);
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md'), '# Requirements\n');
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'change.md'), '# Change\n');
+    const result = runValidate(tempRoot);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
-    assert.match(result.stderr, /BLOCK/);
-    assert.match(result.stderr, /design\.md/);
+    assert.match(result.stderr, /missing design\.md/);
   });
 });
 
@@ -226,7 +233,7 @@ check('J: all projections without authoritative agent evidence must BLOCK', () =
   });
 });
 
-check('K: codegraph evidence missing must BLOCK', () => {
+check('K: codegraph evidence missing must BLOCK (validate CLI)', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState({
       tooling: { codegraph: { status: 'unknown', queries: [], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
@@ -234,11 +241,9 @@ check('K: codegraph evidence missing must BLOCK', () => {
     writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
     writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'tasks.md'), '# Tasks\n');
     writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md'), '# Requirements\n');
-    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
-    writeText(target, '// fixture\n');
-    const result = runPreWrite(tempRoot, target);
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'change.md'), '# Change\n');
+    const result = runValidate(tempRoot);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
-    assert.match(result.stderr, /BLOCK/);
     assert.match(result.stderr, /CodeGraph/i);
   });
 });
