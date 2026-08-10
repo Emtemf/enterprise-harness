@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.16] - 2026-08-10
+
 ### Added
 
 - doctor 在 active change 处于 tdd/verify 阶段时检查 `evidence/stage-gate.json`
