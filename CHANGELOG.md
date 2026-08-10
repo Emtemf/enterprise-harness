@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- doctor 在 active change 处于 tdd/verify 阶段时检查 `evidence/stage-gate.json`
+  marker 是否 fresh；缺失或过期时 warn 并提示运行 `enterprise-harness validate`，
+  让 pre-write 阻断的原因可提前诊断。
+- 用户文档补充 `validate` 用法：`docs/user/workflow.md` 命令列表与 tdd 段、
+  `docs/user/troubleshooting.md` 新增『写受治理路径被 pre-write 阻断』排查节。
+
 ## [0.3.15] - 2026-08-10
 
 ### Changed
