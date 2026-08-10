@@ -115,8 +115,29 @@ SKILL.md 正文。
 
 ### 遗留
 
-skill `scripts/` 迁移（确定性逻辑从 SKILL.md 正文抽到各 skill 的 scripts/）是下一批工作，
-见 task #2。
+skill `scripts/` 迁移已否决（用户判断：skill 只引用 runtime CLI 不重复实现已合规，
+过度抽 scripts/ 反而增加认知负载）。
+
+## 0.3.17 skill 指令化：删解释、补 codegraph 用法
+
+### 问题
+
+harness skill 正文夹带大量「解释为什么」：为什么不 fork、设计树/frontier 概念定义、
+「探索是你的职责」等。这些是背景知识不是可执行指令；官方规范要求
+「Only add context Claude doesn't already have」+ 正文做导航。同时代码探索用 codegraph
+MCP 的用法只写在 code-explore agent 定义里，harness 没把它传给 orchestrator。
+
+### 改动
+
+- harness/SKILL.md 从 173 行降到 112 行：删除「为什么不 fork」「设计树/frontier 定义」
+  等解释段，保留可执行步骤。
+- 补「代码探索」指令：派 `enterprise-harness:code-explore`，它对符号/调用链/影响面使用
+  codegraph MCP（`codegraph_explore`/`search`/`callers`/`callees`/`impact`），codegraph
+  不可用才 fallback 到 grep/Read；主对话不直接 grep。
+- 保留被测试守护的核心约束（worktree 只提供文件隔离、subagent 提供上下文隔离）。
+- 各 stage skill（route/design/plan/tdd/verify）已是指令式，仅保留必要的「上下文边界」
+  约束，无需改动。
+- 全量 115 smoke 绿。
 
 ## 判据
 
