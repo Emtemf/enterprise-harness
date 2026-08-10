@@ -11,12 +11,20 @@ enterprise-harness workflow status <change-id> --json
 # 已完成阶段的文件、state、executor result、独立 checker result 是否都齐全
 enterprise-harness workflow audit <change-id>
 
+# 写代码前必须通过静态阶段链验证（ambiguity/router/design/plan/codegraph），落 stage-gate marker
+enterprise-harness validate <change-id>
+
 # 从真实 agent ledger 渲染实际发生过的时序图，而不是理想流程图
 enterprise-harness trace --change <change-id> --mermaid
 ```
 
 `workflow audit` 返回 `0` 表示已完成阶段的证据符合合同；返回 `2` 表示有阻断项，输出会明确
 指出缺少的 artifact、execute result、checker result、parent run 关联或 state predicate。
+
+`validate` 在 plan 冻结后、tdd 写代码前运行一次：它验证静态阶段链完整性并写入
+`evidence/stage-gate.json`。之后写受治理路径（`src/main/java`、`src/test/java`、`openapi`）
+时，pre-write 门禁只轻查这个 marker 是否存在且未过期，不再每次写文件全量重算阶段链。
+若 marker 缺失或阶段链证据变化，pre-write 会阻断并提示先运行 `validate`。
 
 读取 `workflow status --json` 或普通 `status --json` 时先看顶层字段。若 `status=blocked`，
 不要根据 `stage`、`nextStage` 或 `projectedNextEntry` 继续执行；此时只执行顶层 `nextAction`，
@@ -72,11 +80,16 @@ enterprise-harness trace --change <change-id> --mermaid
 
 目的：用真实测试驱动实现。
 
+前置：静态阶段链必须已通过 `enterprise-harness validate <change-id>` 并落 marker。若
+marker 缺失，第一次写受治理路径会被 pre-write 阻断。
+
 用户需要：通常无需操作，除非构建命令或环境不明确。
 
 成功表现：隔离 executor 按冻结 argv 完成 RED、GREEN、REFACTOR，并生成 receipt；独立 checker 检查结果。
 
-阻断恢复：根据 receipt、runId 和错误码修复，不接受“已运行”的文本自报。
+阻断恢复：根据 receipt、runId 和错误码修复，不接受“已运行”的文本自报。若被
+pre-write 以 `stage-evidence-digest-mismatch` 阻断，说明阶段链证据（plan/reviews）已
+变化，重新运行 `validate` 后再写。
 
 ## verify
 

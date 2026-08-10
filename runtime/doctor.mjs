@@ -6,6 +6,8 @@ import { readLocalAdapter, resolveLocalAdapterPath } from './lib/local-adapter.m
 import { evaluateSpawnDepth } from './lib/spawn-depth.mjs';
 import { evaluateCodegraphIndex } from './lib/codegraph-index.mjs';
 import { evaluateClaudeCodeVersion } from './lib/claude-version.mjs';
+import { loadActiveChange } from './lib/gates.mjs';
+import { stageGateIsFresh, stageGateMarkerPath } from './lib/execution-prerequisites.mjs';
 
 const repoRoot = process.cwd();
 const online = process.argv.includes('--online');
@@ -140,6 +142,25 @@ if (fs.existsSync(activeChangePath)) {
     ok: activeChange.length > 0,
     detail: activeChange,
   });
+  // stage-gate marker 诊断：写代码阶段（tdd/verify）前静态阶段链必须已通过 validate。
+  // pre-write 会在 marker 缺失/过期时 block；doctor 在这里提前暴露为什么。
+  const activeState = loadActiveChange(repoRoot);
+  if (activeState.ok) {
+    const stage = activeState.data?.workflow?.stage;
+    if (['tdd', 'verify'].includes(stage)) {
+      const gate = stageGateIsFresh(repoRoot, activeState.changeId, activeState.data);
+      const markerPath = stageGateMarkerPath(repoRoot, activeState.changeId);
+      checks.push({
+        kind: 'state',
+        name: 'stage-gate',
+        ok: gate.fresh,
+        severity: gate.fresh ? 'info' : 'warn',
+        detail: gate.fresh
+          ? `marker fresh: ${markerPath.replace(path.join(repoRoot, path.sep), '')}`
+          : `静态阶段链未通过（${gate.reason}）。运行: enterprise-harness validate ${activeState.changeId}`,
+      });
+    }
+  }
 }
 
 const hardFailed = checks.filter((item) => !item.ok && (item.severity ?? 'error') === 'error');

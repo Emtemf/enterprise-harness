@@ -128,6 +128,23 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-COMPLETION-AGENT-112` | agent 缺少结束事件 | 完成或显式失败该 run |
 | `EH-COMPLETION-API-113` | API 检查失败或 unsupported | 补齐可解析输入或配置专用 checker |
 
+### 写受治理路径被 pre-write 阻断
+
+写 `src/main/java`、`src/test/java` 或 `openapi` 时若 pre-write 提示「静态阶段链未通过验证
+(missing-or-invalid-marker)」或「stage-evidence-digest-mismatch」：
+
+```bash
+# 缺失 marker：plan 冻结后还没验证过
+enterprise-harness validate <change-id>
+
+# digest 不匹配：阶段链证据（plan/reviews）已变化，重新验证
+enterprise-harness validate <change-id>
+```
+
+`validate` 通过后写 `evidence/stage-gate.json`；之后 pre-write 只轻查该 marker 是否存在且
+未过期，不再每次写文件全量重算阶段链。若改了 plan 或 reviews，marker 会自动失效，需重新
+`validate`。
+
 ## Issue 最小信息
 
 - 错误码和完整 recovery 行。
