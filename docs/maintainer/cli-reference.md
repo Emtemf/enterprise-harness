@@ -12,6 +12,7 @@ Commands:
 - sync
 - install
 - verify
+- validate
 - setup-local-adapter
 - start-change
 - release-local

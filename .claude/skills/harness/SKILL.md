@@ -31,8 +31,13 @@ clarify → route → design → plan → tdd → verify → archive
 
 每个阶段使用对应阶段的 `harness-<stage>` skill（如 design 阶段用 `harness-design`）。其中：
 
-- `harness-clarify` 在主对话内运行，因为它要和用户一问一答。
-- `harness-route`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify` 以 `context: fork` 在隔离 subagent 中运行，只把压缩结论交回主对话，阶段 SOP 全文不进入主上下文。
+- clarify 在主对话内 inline 运行（不 fork），因为它要和用户一问一答。
+  SOP 见 `harness-clarify`：设计树 + frontier 机制，探索并行启动，不依赖代码事实的维度
+  （Target/Scope/Constraint）可在探索结果回来前先问，依赖代码事实的维度（Data/Interface/
+  Acceptance）等 checker 通过后再进入 frontier。探索和整理通过隔离 subagent 完成，
+  主对话不直接 grep/read。
+- `harness-route`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify` 以
+  `context: fork` 在隔离 subagent 中运行，只把压缩结论交回主对话，阶段 SOP 全文不进入主上下文。
 
 forked 阶段没有用户通道。它们返回的待确认项由你负责向用户提问，例如 route 的 tier 与影响矩阵确认、`workflow.routeReady` 的置位。forked skill 不得自行代替用户确认。
 

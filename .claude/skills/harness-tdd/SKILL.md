@@ -30,6 +30,11 @@ agent: general-purpose
 
 ## 动作
 
+0. 前置：静态阶段链必须已通过 `validate` 验证并落 marker：
+   ```bash
+   enterprise-harness validate <change-id>
+   ```
+   若 marker 缺失（plan 阶段未调 validate），先跑它；否则 tdd 写受治理路径会被 pre-write block。
 1. 创建 execute handoff。
 2. 必须派 `enterprise-harness:tdd-executor`，使用 worktree isolation。
 3. executor 依次通过 `tdd-run` 执行 RED、GREEN、REFACTOR。
@@ -38,6 +43,10 @@ agent: general-purpose
 6. executor 提交实现并返回 receipt refs、commit 和 changed paths。
 7. 集成后运行 `evidence-import`。
 8. 创建 check handoff，派 `implementation-reviewer`。
+
+> 注意：tdd 阶段写 `evidence/tdd/**` 和 receipt 不会使 stage-gate marker 失效——marker digest
+> 只覆盖 requirements/change/design/tasks + reviews，不含 evidence 和 state 动态字段。
+> 若重新设计/改 plan（reviews 或阶段链证据变化），须重新 `validate`。
 
 ## 产出
 

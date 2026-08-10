@@ -58,9 +58,13 @@ agent: general-purpose
 
 ## 下一阶段
 
-plan pass 后，主 orchestrator 必须执行：
+plan pass 后，主 orchestrator 必须依次执行：
 ```bash
 enterprise-harness workflow decide <change-id> freeze-plan
+enterprise-harness validate <change-id>
 ```
-此命令将 `planReady` 置 true 并推进到 tdd 阶段。若漏执行，state.json 的 gate 保持 false，链路会卡在 plan。
+第一条将 `planReady` 置 true 并推进到 tdd 阶段；第二条验证静态阶段链
+（requirements/change/design/tasks/reviews 完整性）并落 `evidence/stage-gate.json` marker。
+pre-write hook 只查这个 marker，不再每次写文件全量重算阶段链。若漏执行 validate，
+tdd 阶段第一次写受治理路径会被 pre-write block。
 需要返工时用 `revise-plan`。

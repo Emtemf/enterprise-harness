@@ -1,14 +1,16 @@
 # 当前研发快照
 
-更新时间：2026-08-09（0.3.13 development）
+更新时间：2026-08-10（0.3.14 development）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.13
-- 当前阶段：strict audit recovery convergence
-- 当前目标：统一 status、SessionStart、Stop、verify 与 TECPC 卡片的 audit-first 恢复口径
+- 当前版本：0.3.14
+- 当前阶段：hook 瘦身 + 阶段链验证 skill 驱动（KISS 重构）
+- 当前目标：hook 薄壳化进 lib；静态阶段链（ambiguity/router/design/plan/codegraph）由
+  `enterprise-harness validate` 在阶段边界验证并落 marker，pre-write 只留瞬间 gate + 轻查 marker
 - active change：`EH-WORKFLOW-TECPC-20260806`，投影 stage 为 tdd，但 completed-stage audit
-  仍为 block；恢复入口以 `workflow audit EH-WORKFLOW-TECPC-20260806 --json` 为准，不进入 TDD
+  仍为 block（含 codegraph-attempt 历史缺口）；恢复入口以 `workflow audit EH-WORKFLOW-TECPC-20260806 --json`
+  为准，不进入 TDD
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
 ## 0.3.2 路径重构的遗留漂移（0.3.8 修复）
@@ -44,6 +46,50 @@
 ### 已知缺口
 
 - Context7 仍走 CLI（`runtime/context7.mjs` + doctor/sync/registry/launcher smoke），未改 MCP。这是刻意设计，非缺陷。
+
+## 0.3.14 Hook 瘦身 + 阶段链验证 skill 驱动（KISS 重构）
+
+### 问题
+
+hook 太厚、每次写文件全量重算静态阶段链（ambiguity/router/design/plan/codegraph），
+token 浪费且与 skill 职责重叠。此前只做了代码位置移动（hook→lib），触发机制没变——「歪了」。
+
+### 架构变更：静态阶段链由 skill 驱动，hook 只留瞬间 gate
+
+```
+plan freeze ──→ enterprise-harness validate（新 CLI）──→ evidence/stage-gate.json marker
+                                                              │ digest 只覆盖静态证据
+tdd 写代码 ──→ pre-write hook ──→ ① 动态瞬间 gate（agent 绑定 tdd-executor / RED / currentTask）
+                                    ② marker 存在 + digest 匹配（轻查，不重算阶段链）
+                                    ③ marker 缺失/过期 → block，提示先跑 validate
+```
+
+- **hook 薄壳化**：12 个 hook 从 925 行降到 ~185 行；stdin 解析统一走
+  `runtime/lib/hook-input.mjs`；策略函数在 `runtime/lib/hooks/*.mjs`（返回
+  `{exitCode, stdout, stderr}`），可单测、好定位。
+- **`validateStageChain`**（原 `validateExecutionPrerequisites` 拆分）：只依赖已批准的
+  静态证据，由 `validate` CLI 在 plan freeze 后、tdd 开始前验证一次，落 marker。
+- **`validateDynamicWriteGates`**：agent 归属 / RED / currentTask，每次写受治理路径当场查。
+- **marker digest 只覆盖** requirements/change/design/tasks + reviews/*，**刻意排除**
+  state 动态字段（currentTask/redVerified）与 evidence/tdd receipts —— tdd 中途写证据
+  不误伤 marker；改 plan/reviews 才使 digest 失效、必须重新 validate。
+- **skill 更新**：`harness-plan` freeze 后调 `validate`；`harness-tdd` 步骤 0 前置 validate。
+
+### 测试调整
+
+- 阶段 gate 测试（ambiguity/router）改指 `validate` CLI；pre-write 测试保留 12 个 fail-closed
+  场景，H/K 改指 validate。
+- `cumulative-write-gate` 端到端：validate 落 marker → pre-write 放行 → 删除 plan-critic
+  → digest mismatch → block → 恢复 + revalidate → 放行。
+- 4 个扫描 hook 源码的测试（dedup guard、recommendNextEntry、completion predicate 等）
+  扫描目标从 `runtime/hooks/` 改到 `runtime/lib/hooks/`。
+- 全量 115 smoke 绿，release verify 绿，打包含 validate.mjs 与全部 lib/hooks。
+
+### 遗留
+
+当前 change `EH-WORKFLOW-TECPC-20260806` 在 tdd 阶段但缺 `codegraph-attempt` ledger
+（历史 clarify 用旧 hook，CodeGraph 查询未落账），`validate` 因此 block。按「不兼容历史」
+决策（无实际用户）保留严格行为；该缺口正是本 change 要修的 CodeGraph-first 契约缺陷本身。
 
 ## 判据
 
