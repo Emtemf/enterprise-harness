@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `harness` 入口 skill 指令化：删除「为什么不 fork」「设计树/frontier 定义」等解释性
+  段落（官方规范：Only add context Claude doesn't already have），保留可执行步骤。
+- 补「代码探索」指令：代码探索派 `code-explore` 使用 **codegraph MCP** 查询符号/调用链/
+  影响面（`codegraph_explore`/`search`/`callers`/`callees`/`impact`），codegraph 不可用
+  才 fallback 到 grep/Read，主对话不直接 grep。
+
 ## [0.3.17] - 2026-08-10
 
 ### Changed
