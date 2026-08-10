@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.19] - 2026-08-10
+
 ### Fixed
 
 - 新增 `WorktreeRemove` hook 清理 worktree 中 active change 镜像。根因：`createWorktree`
