@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 合并 clarify 进 `harness` 入口 skill，删除独立 `harness-clarify` skill。clarify SOP
+  （design-tree/frontier 机制、探索顺序、执行流、七维评分）并入 harness 的 clarify 小节，
+  消除「两个 skill 管一份 SOP」的认知负载。clarify 的 `nextEntry` 从 `/harness-clarify`
+  改为 `/harness`，相关目录存在性检查、specs 时序图和角色表同步更新。
+
 ## [0.3.16] - 2026-08-10
 
 ### Added
