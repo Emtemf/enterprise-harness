@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-08-10
+
 ### Changed
 
 - 合并 clarify 进 `harness` 入口 skill，删除独立 `harness-clarify` skill。clarify SOP
