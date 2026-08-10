@@ -34,8 +34,7 @@ testRefs:
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant M as Main agent /harness
-  participant C as harness-clarify (inline)
+  participant M as Main agent /harness (clarify inline)
   participant S as forked stage skill
   participant E as registry executor
   participant K as independent checker
@@ -43,19 +42,19 @@ sequenceDiagram
   participant D as Durable change directory
 
   U->>M: /enterprise-harness:harness
-  M->>C: clarify（可与用户一问一答）
-  C->>R: handoff create execute
+  M->>M: clarify（可与用户一问一答）
+  M->>R: handoff create execute
   R->>D: runs/<executor-run>/input.json
-  C->>E: Agent(HANDOFF_INPUT=...)
+  M->>E: Agent(HANDOFF_INPUT=...)
   R->>R: PreAgent / SubagentStart / PreExplore hooks
   E->>D: 业务 artifact + HANDOFF_RESULT
   R->>D: runs/<executor-run>/result.json + ledger stop
-  C->>R: handoff create check <executor-run>
+  M->>R: handoff create check <executor-run>
   R->>D: runs/<checker-run>/input.json
-  C->>K: 独立 Agent(HANDOFF_INPUT=...)
+  M->>K: 独立 Agent(HANDOFF_INPUT=...)
   K->>D: checker verdict + HANDOFF_RESULT
   R->>D: runs/<checker-run>/check.json + ledger stop
-  C->>U: 一个澄清问题或 scope confirmation
+  M->>U: 一个澄清问题或 scope confirmation
   U->>M: confirm
   M->>R: workflow decide
   R->>D: state.json + workflow-events.jsonl
@@ -78,8 +77,7 @@ sequenceDiagram
 
 | 角色 | 所在上下文 | 可以做什么 | 不可以做什么 |
 |---|---|---|---|
-| Main agent `/harness` | 用户主对话 | 创建/恢复 change；展示 evidence；询问 scope/route 确认；执行合法 `workflow decide` | 直接做代码探索、实现、代替 checker verdict |
-| `harness-clarify` | 主对话 inline | 一次问一个问题；展示七维评分；安排探索与 synthesis/check | 自行代替用户确认 scope |
+| Main agent `/harness`（含 clarify） | 用户主对话 | 创建/恢复 change；一问一答澄清 scope；展示七维评分；安排探索与 synthesis/check；询问 scope/route 确认；执行合法 `workflow decide` | 直接做代码探索、实现、代替 checker verdict、自行代替用户确认 scope |
 | route/design/plan/tdd/verify skill | `context: fork` | 读取最小 handoff；安排 executor 与 checker；返回压缩结论 | 直接获得用户确认；executor 自审 |
 | registry executor | 独立 subagent | 按 input.json 做一个 behavior；写业务 artifact；输出 TECPC result | 自审；跳过 HANDOFF_RESULT |
 | registry checker | 与 executor 不同的独立 run | 只消费 executor result/artifact；输出 pass/block/advisory | 重做 executor 工作；直接实现 |

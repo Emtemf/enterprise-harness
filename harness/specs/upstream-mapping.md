@@ -78,7 +78,7 @@ testRefs:
 - 不照搬原仓库全部上下文设定
 
 ### 当前映射
-- `harness-clarify` 中的 clarify 策略
+- `harness` 中的 clarify 策略
 - `ambiguity-scoring.md`
 - weakest dimension targeting
 - 一次一问、用户修正评分

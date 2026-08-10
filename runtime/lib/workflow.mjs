@@ -42,7 +42,7 @@ export function inferWorkflowStage(changeId, data) {
 export function recommendNextEntry(stage, data = null) {
   if (data?.workflow?.nextEntry && data?.workflow?.stage === stage) return data.workflow.nextEntry;
   switch (stage) {
-    case 'clarify': return '/harness-clarify';
+    case 'clarify': return '/harness';
     case 'route': return '/harness-route';
     case 'design': return '/harness-design';
     case 'plan': return '/harness-plan';
@@ -241,7 +241,7 @@ export function applyClarityConfirmationDecision(data, decision) {
     data.workflow.clarifyReady = false;
     data.workflow.userConfirmedScope = false;
     data.workflow.stage = 'clarify';
-    data.workflow.nextEntry = '/harness-clarify';
+    data.workflow.nextEntry = '/harness';
   }
   return data;
 }
@@ -299,7 +299,7 @@ export function applyScopeConfirmationDecision(data, decision) {
   if (decision === 'revise-scope') {
     data.workflow.userConfirmedScope = false;
     data.workflow.stage = 'clarify';
-    data.workflow.nextEntry = '/harness-clarify';
+    data.workflow.nextEntry = '/harness';
   }
   return data;
 }

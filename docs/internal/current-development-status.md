@@ -91,6 +91,33 @@ tdd 写代码 ──→ pre-write hook ──→ ① 动态瞬间 gate（agent �
 （历史 clarify 用旧 hook，CodeGraph 查询未落账），`validate` 因此 block。按「不兼容历史」
 决策（无实际用户）保留严格行为；该缺口正是本 change 要修的 CodeGraph-first 契约缺陷本身。
 
+## 0.3.16 clarify 合并进 harness + 认知负载清理
+
+### 问题
+
+`harness-clarify` 独立存在导致认知负载：harness 入口引用它，两个 skill 管同一份 clarify
+SOP，割裂。用户明确「既然 clarify 合并了就不要出现了」。同时按 Claude Code 官方 skill
+规范核对：一个 skill 应聚焦一个领域，确定性逻辑放 skill 的 `scripts/` 子目录而非塞进
+SKILL.md 正文。
+
+### 改动
+
+- 删除 `harness-clarify` skill 目录，clarify SOP（design-tree/frontier 机制、探索顺序、
+  执行流、七维）并入 `harness` skill 的 clarify 小节。harness 是唯一入口，不再引用独立
+  clarify skill。
+- `workflow.mjs` 的 clarify `nextEntry` 从 `/harness-clarify` 改为 `/harness`；
+  `start-change.mjs` 提示同步；`checks.mjs` 必需路径、`plugin.json` skills 列表、
+  `upstream/registry.json`、`specs/agents-and-handoff.md`、`specs/upstream-mapping.md`、
+  `specs/stage-observability.md`（时序图 participant C→M、角色表）全部移除 harness-clarify。
+- 相关测试（plugin-entry-agent、subagent-contract、ambiguity/router/session-log/
+  recommend-next-action/workflow-next-entry）的目录存在性检查与 nextEntry 断言更新。
+- 全量 115 smoke 绿。
+
+### 遗留
+
+skill `scripts/` 迁移（确定性逻辑从 SKILL.md 正文抽到各 skill 的 scripts/）是下一批工作，
+见 task #2。
+
 ## 判据
 
 改动后必须查 CI 实际结论（`gh run list`），本地测试全绿不构成完成证据。

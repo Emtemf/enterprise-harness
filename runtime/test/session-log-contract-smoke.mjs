@@ -43,7 +43,7 @@ try {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' },
     tooling: { codegraph: { status: 'available', queries: [], fallbackReason: null }, documentation: { status: 'not-needed', libraries: [] } },
     validation: { status: 'missing', digest: null, validatedAt: null },
-    workflow: { stage: 'clarify', clarifyReady: false, userConfirmedScope: false, planReady: false, tddStatus: 'not-started', nextEntry: '/harness-clarify' },
+    workflow: { stage: 'clarify', clarifyReady: false, userConfirmedScope: false, planReady: false, tddStatus: 'not-started', nextEntry: '/harness' },
   }, null, 2) + '\n');
   fs.writeFileSync(path.join(tempRoot, 'harness', 'ACTIVE_CHANGE'), changeId + '\n');
 

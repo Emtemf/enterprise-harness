@@ -18,7 +18,7 @@ try {
     'workflow decide c2 freeze-slice',
   );
   assert.equal(
-    recommendNextAction('c3', { workflow: { stage: 'clarify', nextEntry: '/harness-clarify' } }, 'clarify', 'clarify 尚未达标。', {
+    recommendNextAction('c3', { workflow: { stage: 'clarify', nextEntry: '/harness' } }, 'clarify', 'clarify 尚未达标。', {
       defaultDecision: 'answer-next-question',
       options: ['answer-next-question', 'narrow-scope'],
     }),

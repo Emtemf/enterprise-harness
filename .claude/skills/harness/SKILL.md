@@ -21,7 +21,8 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
    `workflow audit <change-id> --json` 查看完整 blocker 并修复最早失败阶段。
 3. 有 active change 且 audit pass 时恢复 currentGap，不重复已完成阶段。
 4. 没有 change 时生成安全 changeId，并运行 `start-change`。
-5. 根据 stage 加载对应阶段 skill。
+5. 根据 stage 进入对应阶段。clarify 在本 skill 内 inline 完成；route/design/plan/tdd/verify
+   加载对应的 `harness-<stage>` forked skill。
 
 ## 阶段
 
@@ -29,17 +30,72 @@ backend 优先运行 `enterprise-harness <command>`；只有本仓库开发时�
 clarify → route → design → plan → tdd → verify → archive
 ```
 
-每个阶段使用对应阶段的 `harness-<stage>` skill（如 design 阶段用 `harness-design`）。其中：
-
-- clarify 在主对话内 inline 运行（不 fork），因为它要和用户一问一答。
-  SOP 见 `harness-clarify`：设计树 + frontier 机制，探索并行启动，不依赖代码事实的维度
-  （Target/Scope/Constraint）可在探索结果回来前先问，依赖代码事实的维度（Data/Interface/
-  Acceptance）等 checker 通过后再进入 frontier。探索和整理通过隔离 subagent 完成，
-  主对话不直接 grep/read。
+- clarify 在主对话内 inline 运行（不 fork），因为它要和用户一问一答。SOP 见下方「clarify」小节。
 - `harness-route`、`harness-design`、`harness-plan`、`harness-tdd`、`harness-verify` 以
   `context: fork` 在隔离 subagent 中运行，只把压缩结论交回主对话，阶段 SOP 全文不进入主上下文。
 
 forked 阶段没有用户通道。它们返回的待确认项由你负责向用户提问，例如 route 的 tier 与影响矩阵确认、`workflow.routeReady` 的置位。forked skill 不得自行代替用户确认。
+
+## clarify
+
+### 为什么不 fork
+
+clarify 的核心行为是一问一答。forked subagent 没有用户对话通道，所以 inline 运行。
+探索和整理**必须**委托隔离 subagent——保护主上下文预算、满足 pre-explore gate。
+
+### 核心机制：设计树 + frontier
+
+把需求看作**设计树**：每个维度/决策下面挂着依赖它的子问题。
+**frontier** = 当前可以问的维度——前提条件已满足、不依赖其他未解决维度。
+
+每轮：
+1. 并行启动所有必要探索（代码 + 文档），不等探索完成就先问 frontier 里**不依赖代码事实**的维度。
+2. 探索结果回来后，frontier 向外扩展，问下一批因此解锁的维度。
+3. 每轮只问 frontier 中**最薄弱的一个维度**，并附上推荐答案。
+
+原则：**探索是你的职责，不是用户的。** 能用 subagent 查到的，不问用户。
+
+### 探索顺序约束
+
+**在至少一个 exploration brief 的 checker 返回 pass/advisory 之前，不得问代码相关维度。**
+Target/Scope/Constraint 维度不依赖代码事实，可以先问；Data/Interface/Acceptance 通常要等探索结论。
+
+### 执行流
+
+1. **评估 frontier**：把七维分成两类——无需代码事实（T 目标、Scope、Constraint/risk）可立即问；
+   依赖代码事实（Data/SQL、Interface/API、Acceptance criteria）等探索。
+2. **并行启动探索**：对每个事实缺口创建 exploration brief，对 `clarify.explore-code` 创建 execute
+   handoff 派 `enterprise-harness:code-explore`，对 `clarify.research-docs` 派
+   `enterprise-harness:doc-research`；探索运行期间同步推进不依赖它的 frontier。
+3. **问 frontier 最薄弱维度**：每次一个问题，格式：
+
+   ```
+   ❓ **<维度名>**：<问题正文，可含选项 A/B/C>
+
+   ➡️ 推荐：<你的推荐答案及理由>
+   ```
+
+4. **探索回来扩展 frontier**：checker pass → 依赖该事实的维度进入 frontier。
+5. **综合与评分**：每轮用户回答后对 `clarify.synthesize` 创建 execute handoff 派
+   `clarify-synthesizer` 更新 requirements 和七维评分；等 result.json 后创建 check handoff
+   派 `clarify-reviewer` 独立检查。展示评分表 + overall + weakest + 下一问。
+6. **达标与确认**：全部维度 >= 4 且无高风险歧义后，展示完整评分 + 依据，请用户确认 scope
+   （`confirm-scope` 与 `confirm-clarity` 是两个独立动作）。
+
+### 七维
+
+| 维度 | 通常依赖代码探索 |
+|------|-----------------|
+| T 目标 clarity | 否 |
+| Scope clarity | 是（codegraph） |
+| User/actor clarity | 否 |
+| Data/SQL clarity | 是 |
+| Interface/API clarity | 是 |
+| Acceptance criteria clarity | 是 |
+| Constraint/risk clarity | 否 |
+
+所有维度 >= 4、无 unresolved high-risk ambiguity、用户明确确认 scope 后 clarify 才 pass。
+评分合同见 `harness/specs/ambiguity-scoring.md`。
 
 ## 隔离接力
 

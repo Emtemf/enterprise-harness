@@ -10,7 +10,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const plugin = JSON.parse(read('.claude-plugin/plugin.json'));
 const stageSkills = [
-  'harness', 'harness-clarify', 'harness-route', 'harness-design', 'harness-plan',
+  'harness', 'harness-route', 'harness-design', 'harness-plan',
   'harness-tdd', 'harness-verify',
 ];
 const workerSkills = ['harness-stage-executor', 'harness-stage-checker'];

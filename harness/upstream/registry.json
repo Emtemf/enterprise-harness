@@ -32,7 +32,7 @@
       "status": "reference-only",
       "notes": [
         "Clarify enhancement only: Socratic interviewing technique for requirement clarification.",
-        "Informs harness-clarify clarify stage; do not import the skill verbatim."
+        "Informs harness clarify stage; do not import the skill verbatim."
       ],
       "lastReviewed": "2026-07-21",
       "observedVersions": [

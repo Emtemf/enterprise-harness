@@ -23,7 +23,7 @@ main conversation
    └─ checker   (isolated subagent)
 ```
 
-`harness` 与 `harness-clarify` 必须留在主对话，因为它们要和用户一问一答；forked subagent 没有用户通道。route、design、plan、tdd、verify 以 `context: fork` + `background: false` 运行。
+`harness` 必须留在主对话，因为 clarify 阶段要和用户一问一答；forked subagent 没有用户通道。route、design、plan、tdd、verify 以 `context: fork` + `background: false` 运行。
 
 forked 阶段仍必须派自己的 executor 和 checker，因此 subagent 生成深度至少需要 2。到达深度上限时 `Agent` 工具会被静默收走，forked 阶段就会自写自审、塌成单一上下文 —— 这是本合同不接受的降级。本仓库用 `.claude/settings.json` 的 `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 兜住；该文件由 `bin/generate-hooks.mjs` 生成，不要手改。
 
