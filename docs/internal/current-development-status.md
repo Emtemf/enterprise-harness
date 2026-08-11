@@ -1,11 +1,11 @@
 # 当前研发快照
 
-更新时间：2026-08-11（0.4.0 redesign candidate，release 前基线 0.3.19）
+更新时间：2026-08-11（0.4.0 released）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.4.0 candidate（package/release projection 在 release commit 更新）
-- 当前阶段：0.4 truth layer + session concurrency + MCP policy + profile/worktree seam
+- 当前版本：0.4.0
+- 当前阶段：0.4 truth layer + session concurrency + MCP policy + profile/worktree seam（已发布）
 - active change：无
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
@@ -188,7 +188,7 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - `required-paths-skills-sync-smoke` PASS（8 harness skills in sync）
 - 全量 smoke suite 绿
 
-## 0.4.0 breaking redesign candidate（本轮）
+## 0.4.0 breaking redesign（已发布）
 
 已落地并进入发布前验证：
 
@@ -200,7 +200,7 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - Claude Code native `worktree.baseRef=head` 配置投影；现有 custom worktree hooks 暂保留兼容测试覆盖，后续版本再移除。
 - artifact invalidation、active-v4 boundary、native worktree、project profile 和 stale lock 场景测试。
 
-尚未在本次 release 中完成的后续 breaking cleanup：
+尚未在本次 0.4.0 release 中完成的后续 breaking cleanup：
 
 - route 从用户可见 stage 收敛为内部 classify action。
 - GUIDE.md 生成与旧 workflow projection 的最终移除。
