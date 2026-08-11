@@ -23,15 +23,16 @@ model: sonnet
 
 你通常会收到一个 task brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声计划审查，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
 
-## 输入重点
+## 输入
+
+**路径解析**：读取 `HANDOFF_INPUT` 的 `input.json` → `inputRefs` 获取完整路径；无 handoff 时从提示取 `changeId`，在 `harness/changes/<changeId>/` 下查找。禁止使用裸文件名。
 
 优先阅读：
-
-- task brief
-- `tasks.md` / `plan.md`
-- 对应 `design.md`
-- 对应 `spec.md`
-- 工作流与测试规则
+- task brief（来自 inputRefs 或提示）
+- tasks / plan artifact
+- design artifact
+- spec artifact
+- 工作流与测试规则（稳定规范）
 
 ## 审查清单
 

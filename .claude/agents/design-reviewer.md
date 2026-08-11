@@ -19,14 +19,15 @@ model: sonnet
 
 确认设计是否足以支持后续 plan 与实现，并且没有跨层泄漏或关键遗漏。
 
-## 输入重点
+## 输入
+
+**路径解析**：读取 `HANDOFF_INPUT` 的 `input.json` → `inputRefs` 获取完整路径；无 handoff 时从提示取 `changeId`，在 `harness/changes/<changeId>/` 下查找。禁止使用裸文件名。
 
 优先阅读：
-
-- `design.md`
-- 相关 `spec.md`
-- `state.json`
-- Java 架构规则与 API 契约规则
+- design artifact
+- spec / requirements artifact
+- state.json
+- Java 架构规则与 API 契约规则（稳定规范，不在 change 目录）
 
 ## 审查清单
 

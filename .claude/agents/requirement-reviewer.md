@@ -23,14 +23,15 @@ model: sonnet
 - 被放进了合理的 tier（L0/L1/L2/L3）
 - 没有遗漏会改变后续路径的关键依赖或决策
 
-## 输入重点
+## 输入
+
+**路径解析**：读取 `HANDOFF_INPUT` 的 `input.json` → `inputRefs` 获取完整路径；无 handoff 时从提示取 `changeId`，在 `harness/changes/<changeId>/` 下查找。禁止使用裸文件名。
 
 优先阅读：
-
-- 当前 `change.md`
-- 当前 `state.json`
-- 相关 exploration / evidence
-- 相关稳定规则与 specs
+- change artifact（路由段）
+- state.json
+- exploration / evidence artifacts
+- 稳定规则与 specs
 
 ## 审查清单
 

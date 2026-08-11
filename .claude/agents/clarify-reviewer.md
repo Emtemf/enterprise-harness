@@ -24,13 +24,14 @@ model: sonnet
 - 没有遗留未解决的高风险歧义
 - 用户已明确确认 scope
 
-## 输入重点
+## 输入
+
+**路径解析**：读取 `HANDOFF_INPUT` 的 `input.json` → `inputRefs` 获取完整路径；无 handoff 时从提示取 `changeId`，在 `harness/changes/<changeId>/` 下查找。禁止使用裸文件名。
 
 优先阅读：
-
-- 当前 `requirements.md` 与七维评分
-- 相关 exploration / evidence
-- 当前 `state.json` 的 clarify 投影
+- requirements artifact（含七维评分）
+- exploration / evidence artifacts
+- state.json 的 clarify 投影
 
 ## 审查清单
 

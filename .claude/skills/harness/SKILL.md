@@ -85,44 +85,17 @@ T 目标、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria�
 6. 派 registry 指定 checker。
 7. 只有 checker pass 才推进。
 
-### behavior 速查（最常见错误）
+### behavior 速查
 
-`<behavior>` 是 `stage.action` 格式，**不是 agent 名**。
+`<behavior>` 是 `stage.action` 格式，**不是 agent 名**。写错时 `pre-agent` 会 BLOCK 并打印正确命令。
 
-| 想做什么 | 正确 behavior | 错误写法 |
-|---|---|---|
-| clarify 阶段探索代码 | `clarify.explore-code` | `code-explore` |
-| clarify 阶段查外部文档 | `clarify.research-docs` | `doc-research` |
-| clarify 阶段更新需求 | `clarify.synthesize` | `clarify-synthesizer` |
-| route 阶段探索代码 | `route.explore-code` | `code-explore` |
-| route 阶段路由决策 | `route.decide` | `route-decider` |
-| design 阶段产出设计 | `design.produce` | `design-executor` |
-| design 阶段探索代码 | `design.explore-code` | `code-explore` |
-| design 阶段 API 检查 | `design.check-api` | `api-consistency-reviewer` |
-| plan 阶段产出计划 | `plan.produce` | `plan-executor` |
-| tdd 阶段执行任务 | `tdd.execute-task` | `tdd-executor` |
-| verify 阶段收集验证 | `verify.collect` | `verification-executor` |
-| verify 阶段 API 检查 | `verify.check-api` | `api-consistency-reviewer` |
-
-写错时 `pre-agent` 会 BLOCK 并打印正确命令。完整列表见 `harness/behavior-checks.json`。
+完整映射表：`.claude/skills/harness/refs/behavior-map.md`
 
 ## 阶段推进
 
-推进命令按阶段不同。用 `enterprise-harness workflow status <change-id>` 读
-`pendingDecision.options`（唯一权威决策集合）；不在其中的决策直接失败。
+用 `enterprise-harness workflow status <change-id>` 读 `pendingDecision.options`；不在其中的决策直接失败。
 
-| 阶段 | pass 决策 | block/返工决策 | 推进 gate |
-|---|---|---|---|
-| clarify | `confirm-clarity`，随后 `confirm-scope` | `narrow-scope` / `revise-scope` | `clarifyReady` + `userConfirmedScope` |
-| route | `confirm-route` | `revise-route` | `routeReady` |
-| design | `approve`（或 `freeze-slice`） | `request-changes` / `reject` / `revise-slice` | `designApproved` |
-| plan | `freeze-plan` | `revise-plan` | `planReady` |
-| tdd | `enter-verify` | `revise-task` | `tddStatus === 'refactor-verified'` |
-| verify | 先 `lifecycle validated`，再 `enter-archive` | `revise-verification` | `validation.status === 'fresh'` |
-
-`confirm-clarity` 只置 `clarifyReady`；scope 须用户单独 `confirm-scope`。
-`tddStatus` 由真实 receipt 驱动；`validation.status` 由 `lifecycle validated` 重算。
-executor 与 checker 必须是不同 subagent/run。worktree 只提供文件隔离；subagent 提供上下文隔离。
+完整决策表：`.claude/skills/harness/refs/stage-decisions.md`
 
 ## 输出
 

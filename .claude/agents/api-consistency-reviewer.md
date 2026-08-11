@@ -19,14 +19,14 @@ model: sonnet
 
 确认 OpenAPI / YAML 与实现仍保持一致，并能支撑后续验证。
 
-## 输入重点
+## 输入
+
+**路径解析**：读取 `HANDOFF_INPUT` 的 `input.json` → `inputRefs` 获取完整路径。OpenAPI YAML、controller、DTO 是目标项目文件，从 inputRefs 指定的项目路径读取，不在 change 目录。禁止猜测路径。
 
 优先阅读：
-
-- owned OpenAPI YAML
-- controller
-- request / response DTO
-- design 中的 API contract 段落
+- inputRefs 指向的 OpenAPI YAML
+- inputRefs 指向的 controller、request/response DTO
+- design artifact 中的 API contract 段落
 - API 规则与验证结果
 
 ## 审查清单

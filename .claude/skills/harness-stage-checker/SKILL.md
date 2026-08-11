@@ -24,70 +24,7 @@ user-invocable: false
 
 ## 强制输出
 
-```text
-ENTERPRISE_HARNESS_HANDOFF_RESULT
-{
-  "handoffVersion": 1,
-  "runId": "<checker input runId>",
-  "changeId": "<与 input 完全相同>",
-  "stage": "<与 input 完全相同>",
-  "behavior": "<与 input 完全相同>",
-  "role": "check",
-  "agent": {
-    "type": "<与 input 完全相同>",
-    "skill": "harness-stage-checker"
-  },
-  "tecpc": {
-    "target": "独立检查目标",
-    "evidence": ["实际核验的证据"],
-    "context": ["被消费的最小引用"],
-    "path": "verdict 依据和下一步",
-    "correction": "block 时的明确恢复动作"
-  },
-  "verdict": "pass",
-  "outputRefs": ["被核验的 artifact"],
-  "blockers": [],
-  "summary": "压缩 verdict"
-}
-END_ENTERPRISE_HARNESS_HANDOFF_RESULT
-```
+输出 `ENTERPRISE_HARNESS_HANDOFF_RESULT` 定界块，`role` 固定为 `"check"`，必须包含 `verdict` 字段。不得在同一上下文里把自己的修改当成独立 review。
 
-不得在同一上下文里把自己的修改当成独立 review。
-
-## 最小完整示例
-
-```text
-ENTERPRISE_HARNESS_HANDOFF_RESULT
-{
-  "handoffVersion": 1,
-  "runId": "ch-001-clarify-clarify.explore-code-check-1754870001",
-  "changeId": "ch-001",
-  "stage": "clarify",
-  "behavior": "clarify.explore-code",
-  "role": "check",
-  "agent": {
-    "type": "enterprise-harness:clarify-reviewer",
-    "skill": "harness-stage-checker"
-  },
-  "tecpc": {
-    "target": "独立验证代码探索 artifact 是否覆盖了 clarify 所需事实",
-    "evidence": ["读取 code-exploration.md → 包含调用方列表和边界分析", "artifact digest 与 result.json 中声明值一致"],
-    "context": ["executor result.json (parentRunId: ch-001-clarify-clarify.explore-code-execute-1754870000)"],
-    "path": "artifact 内容完整，无遗漏边界 → pass",
-    "correction": "无"
-  },
-  "verdict": "pass",
-  "outputRefs": ["harness/changes/ch-001/evidence/code-exploration.md"],
-  "blockers": [],
-  "summary": "探索结论完整，覆盖了 UserService 的3个调用方和外部依赖边界。"
-}
-END_ENTERPRISE_HARNESS_HANDOFF_RESULT
-```
-
-**block 示例**（artifact 内容不足时）：
-
-```json
-"verdict": "block",
-"blockers": ["code-exploration.md 未分析 PaymentService → UserService 的入参约束，clarify 阶段 Data/SQL 维度依赖此事实"],
-"tecpc": { "correction": "重跑 clarify.explore-code，在 brief 中明确要求分析 PaymentService 入参" }
-```
+- 输出合同：`.claude/skills/harness-stage-checker/refs/verdict-contract.md`
+- pass / block / advisory 示例：`.claude/skills/harness-stage-checker/examples/verdicts.md`

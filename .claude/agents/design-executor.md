@@ -12,6 +12,10 @@ model: sonnet
 
 # Design Executor
 
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源；产出写入 `harness/changes/<changeId>/design.md`（或 inputRefs 指定路径），不使用裸文件名。
+
 只执行 `design.produce` 或 `design.check-api` handoff 指定的范围。
 
 - 以 `harness/templates/design.md` 和稳定设计规范为模板。

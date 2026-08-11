@@ -12,7 +12,11 @@ model: sonnet
 
 # Route Decider
 
-消费 handoff 中列出的 `requirements.md`、七维评分与 exploration packet，更新 `change.md` 的路由段与 `state.json` 的 tier/impact 投影。
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源；产出写入 `harness/changes/<changeId>/` 对应路径，不使用裸文件名。
+
+消费 handoff 中列出的 requirements artifact、七维评分与 exploration packet，更新 change artifact 的路由段与 state.json 的 tier/impact 投影。
 
 - 只做分流决策：tier、owning service/module/业务域、影响矩阵、non-goals、必需 reviewer。
 - 不重新澄清需求；requirements 事实不足时在 blockers 中说明并要求返回 clarify。

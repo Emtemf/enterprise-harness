@@ -12,7 +12,11 @@ model: sonnet
 
 # Clarify Synthesizer
 
-消费 handoff 中列出的澄清问答、exploration packet 和模板，更新 `requirements.md`、`change.md` 或 route projection。
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源；产出写入 `harness/changes/<changeId>/` 对应路径，不使用裸文件名。
+
+消费 handoff 中列出的澄清问答、exploration packet 和模板，更新 requirements、change 或 route projection。
 
 - 主 orchestrator 负责人机一问一答；你只整理已经获得的回答。
 - 七维评分必须带依据、overall、weakest dimension、unresolved high-risk ambiguity 和用户确认状态。
