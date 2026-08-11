@@ -1,16 +1,12 @@
 # 当前研发快照
 
-更新时间：2026-08-10（0.3.18 development）
+更新时间：2026-08-11（0.3.19 post-release）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.18
-- 当前阶段：hook 瘦身 + 阶段链验证 skill 驱动（KISS 重构）
-- 当前目标：hook 薄壳化进 lib；静态阶段链（ambiguity/router/design/plan/codegraph）由
-  `enterprise-harness validate` 在阶段边界验证并落 marker，pre-write 只留瞬间 gate + 轻查 marker；
-  clarify 并入 harness 入口；新增 WorktreeRemove hook 清理 worktree 残留
-- active change：无（`EH-WORKFLOW-TECPC-20260806` 已于 0.3.18 归档，使命已完成——其 scope
-  harness governance breaking redesign 已由实际代码重构替代）
+- 当前版本：0.3.19
+- 当前阶段：skill 分层 + agent 认知负载清理（已完成）
+- active change：无
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
 ## 0.3.2 路径重构的遗留漂移（0.3.8 修复）
@@ -158,9 +154,41 @@ Claude Code 自动清理判定「有改动」永不触发，worktree 残留（�
 （主仓库有权威副本），保留 agent 真实代码改动供人工恢复。manifest/settings.json/hooks.json
 注册，hook-dedup-guard EXEMPT 加 worktree-remove（幂等）。
 
-## 判据
+## 0.3.19 skill 分层 + agent 路径协议（认知负载清理）
 
-改动后必须查 CI 实际结论（`gh run list`），本地测试全绿不构成完成证据。
+### 问题
+
+skill 全部内容塞在单个 SKILL.md（行为表、契约模板、示例全混），无分层；
+15 个 agent 硬编码裸文件名（`requirements.md`、`design.md` 等），不知道从哪个 change 目录读取，每次需求对应的文件路径会变却无法动态定位；
+smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验，导致之前出现的漂移问题无法及时发现。
+
+### 改动
+
+**skill 子目录结构化**：
+- `harness/refs/behavior-map.md`：behavior 速查表从 SKILL.md 提取（stage.action 正确写法）
+- `harness/refs/stage-decisions.md`：阶段推进决策表从 SKILL.md 提取
+- `harness-stage-executor/refs/result-contract.md`：HANDOFF_RESULT 输出合同独立文件
+- `harness-stage-executor/examples/minimal.md`：execute/blocker 最小完整示例
+- `harness-stage-checker/refs/verdict-contract.md`：checker verdict 合同独立文件
+- `harness-stage-checker/examples/verdicts.md`：pass/block/advisory 三种示例
+- 三个 SKILL.md 瘦身（131→104、97→40、93→30 行），重内容移至 refs/examples
+
+**agent 动态路径修复（全部 15 个 agent）**：
+- 7 个 reviewer：`HANDOFF_INPUT → inputRefs → 完整路径`，禁止裸文件名
+- 4 个 executor（synthesizer/design-executor/plan-executor/route-decider）：新增输入协议段
+- 4 个剩余 agent（code-explore/doc-research/tdd-executor/verification-executor）：明确 `inputRefs` 路径格式 `harness/changes/<changeId>/<artifact>` 和产出路径
+
+**守卫**：
+- 新增 `runtime/test/required-paths-skills-sync-smoke.mjs`：双向校验 `requiredPaths()` 中 harness* 条目与磁盘实际 skill 目录是否完全同步，任何漂移在 CI 立即 FAIL
+- 删除废弃 stub `.claude/skills/harness-clarify/`（0.3.16 已合并入 harness，stub 让 skill-registry-contract-smoke 失败）
+
+### 判据
+
+- `skill-registry-contract-smoke` PASS（8 skills）
+- `required-paths-skills-sync-smoke` PASS（8 harness skills in sync）
+- 全量 smoke suite 绿
+
+
 
 动态状态只读取：
 
