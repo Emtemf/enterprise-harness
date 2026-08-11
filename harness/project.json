@@ -1,0 +1,23 @@
+{
+  "profileVersion": 1,
+  "language": "java",
+  "build": "maven",
+  "productionRoots": [
+    "src/main/java"
+  ],
+  "testRoots": [
+    "src/test/java"
+  ],
+  "apiRoots": [
+    "openapi"
+  ],
+  "productionPaths": [
+    "**/src/main/java/**"
+  ],
+  "testPaths": [
+    "**/src/test/java/**"
+  ],
+  "apiPaths": [
+    "**/openapi/**"
+  ]
+}

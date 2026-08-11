@@ -1,11 +1,11 @@
 # 当前研发快照
 
-更新时间：2026-08-11（0.3.19 post-release）
+更新时间：2026-08-11（0.4.0 redesign candidate，release 前基线 0.3.19）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.3.19
-- 当前阶段：skill 分层 + agent 认知负载清理（已完成）
+- 当前版本：0.4.0 candidate（package/release projection 在 release commit 更新）
+- 当前阶段：0.4 truth layer + session concurrency + MCP policy + profile/worktree seam
 - active change：无
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
 
@@ -188,13 +188,37 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - `required-paths-skills-sync-smoke` PASS（8 harness skills in sync）
 - 全量 smoke suite 绿
 
+## 0.4.0 breaking redesign candidate（本轮）
+
+已落地并进入发布前验证：
+
+- controller/subject common-dir 边界、State v5 envelope、session binding、change lock 和 stale recovery。
+- requirements/design/plan/evidence/validation dependency invalidation 与 controlled rewind。
+- research packet、CodeGraph/Context7 alias policy、digest-bound waiver、archive/abandon 语义。
+- session 优先的 current-change resolution；`ACTIVE_CHANGE` 仅保留无 session 环境的兼容 fallback。
+- `harness/project.json` profile v1，集中 Java/Maven 与受治理路径边界。
+- Claude Code native `worktree.baseRef=head` 配置投影；现有 custom worktree hooks 暂保留兼容测试覆盖，后续版本再移除。
+- artifact invalidation、active-v4 boundary、native worktree、project profile 和 stale lock 场景测试。
+
+尚未在本次 release 中完成的后续 breaking cleanup：
+
+- route 从用户可见 stage 收敛为内部 classify action。
+- GUIDE.md 生成与旧 workflow projection 的最终移除。
+- 9 Skill / 5 Agent surface 的完整合并，以及 custom worktree hook 的最终删除。
+- 实际外部 CI 结论与 nightly Claude eval。
 
 
 动态状态只读取：
 
 ```text
-harness/ACTIVE_CHANGE
+<git-common-dir>/enterprise-harness/sessions/<session-id>.json
 harness/changes/<change-id>/state.json
+```
+
+无 session 环境才读取兼容指针：
+
+```text
+harness/ACTIVE_CHANGE
 ```
 
 完成本轮后应刷新 active change evidence，再由 completion predicate 决定 verify/archive。

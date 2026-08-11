@@ -1,0 +1,36 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ab78afcf-241e-4f02-a9d3-643418ee92b2",
+  "changeId": "redesign-040",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "校验 redesign-040 的 design.explore-code handoff 是否提供了可执行的代码探索目标；成功条件是要么产出可置信 exploration packet，要么返回明确 blocker 与恢复动作。",
+    "evidence": [
+      "codegraph_status(projectPath=/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1cfa8a26366e55cd) → 索引可用但属于 /home/wula/IdeaProjects/sdd 主工作树，不是当前 worktree",
+      "codegraph_explore(query=createHandoffInput loadHandoffInput validateHandoffResult runtime/lib/handoff.mjs) → 确认 executor 仅以 target+inputRefs 为权威输入，且 HANDOFF_RESULT 的 TECPC 字段不得为空",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1cfa8a26366e55cd/harness/changes/redesign-040/runs/run_ab78afcf-241e-4f02-a9d3-643418ee92b2/input.json → inputRefs=[]，无具体 question/scope/目标代码路径",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1cfa8a26366e55cd/harness/behavior-checks.json → design.explore-code 的受治理产物是 evidence/*-exploration.md",
+      "Read /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1cfa8a26366e55cd/.claude/rules/10-exploration.md → exploration brief 需围绕 question/scope/facts/uncertainties/impact/sources/suggestedUserQuestion",
+      "命令 node runtime/handoff.mjs validate harness/changes/redesign-040/runs/run_ab78afcf-241e-4f02-a9d3-643418ee92b2/input.json → PASS handoff contract"
+    ],
+    "context": [
+      "唯一权威输入是 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a1cfa8a26366e55cd/harness/changes/redesign-040/runs/run_ab78afcf-241e-4f02-a9d3-643418ee92b2/input.json；inputRefs 为空",
+      "未决不确定性：没有具体探索 brief，且当前 CodeGraph 索引不属于当前 worktree，后续若探索分支特有改动需先补索引或接受较低置信度"
+    ],
+    "path": "先做 CodeGraph-first 检查 handoff/runtime 合同，再读取 HANDOFF_INPUT、行为注册表与 exploration 规则，并用 CLI 校验 handoff schema；由于没有可执行的 exploration brief，停止在 blocker，而不是伪造代码探索结论。下一步应由主 orchestrator 补充具体 question/scope 或 inputRefs 后重新派发。",
+    "correction": "BLOCK [EH-HANDOFF-SCHEMA-002] 当前 handoff 虽通过结构校验，但缺少可执行的 exploration brief。请在 target 或 inputRefs 中补充具体 question、scope、相关模块/符号/路径或需求文件后，以新 attempt 重派 design.explore-code；若依赖当前 worktree 独有改动，先在该 worktree 建立 CodeGraph 索引。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    "input.json 没有提供可执行的代码探索问题：inputRefs 为空，target 仅为通用占位值 design.explore-code，无法形成可信的 design-stage exploration packet。"
+  ],
+  "summary": "blocker：redesign-040 的本次 design.explore-code handoff 只有合法 envelope，没有具体 exploration brief；当前无法进入业务代码探索，需由主 orchestrator 补充 question/scope 或 inputRefs 后重派。",
+  "recordedAt": "2026-08-11T09:14:38.124Z",
+  "resultDigest": "2855e1d398749ea4ee319e4698deaadf6732f4e1819bb38d17009714ff2251d0"
+}

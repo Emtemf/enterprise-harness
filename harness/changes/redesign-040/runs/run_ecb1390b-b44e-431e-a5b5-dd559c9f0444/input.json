@@ -1,0 +1,30 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_ecb1390b-b44e-431e-a5b5-dd559c9f0444",
+  "changeId": "redesign-040",
+  "stage": "route",
+  "behavior": "route.decide",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_defcca07-6cda-4444-9a6e-96564e44bee7",
+  "agent": {
+    "type": "enterprise-harness:requirement-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "route.decide",
+    "evidence": [],
+    "context": [
+      "harness/changes/redesign-040/runs/run_defcca07-6cda-4444-9a6e-96564e44bee7/result.json"
+    ],
+    "path": "check route.decide",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/redesign-040/runs/run_defcca07-6cda-4444-9a6e-96564e44bee7/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/redesign-040/runs/run_defcca07-6cda-4444-9a6e-96564e44bee7/result.json": "36e132bd8d76857b2adef2561aed9181fd6406558d23af3716b010cc5523a0ab"
+  },
+  "createdAt": "2026-08-11T08:52:45.802Z"
+}

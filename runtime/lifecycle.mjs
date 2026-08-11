@@ -7,6 +7,7 @@ import { computeValidationDigest } from './lib/checks.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
 import { buildWorkflowResult } from './lib/workflow.mjs';
 import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
+import { listSessions, unbindSession } from './lib/sessions.mjs';
 
 const repoRoot = process.cwd();
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -206,10 +207,20 @@ function cmdMarkValidationStale(changeId) {
 const archiveDir = path.join(repoRoot, 'harness', 'archive');
 const testDir = path.join(repoRoot, 'runtime', 'test');
 
+function clearSessionBindings(changeId) {
+  for (const binding of listSessions(repoRoot)) {
+    if (binding.changeId === changeId) unbindSession(repoRoot, binding.sessionId);
+  }
+}
+
 // 自动归档：把已 VALIDATED 的 change 物理移到 harness/archive/，置 ARCHIVED，清 active 指针。
 function cmdArchive(changeId, force = false) {
   if (!changeId) {
     console.error('BLOCK: archive 需要 <changeId>。');
+    process.exit(2);
+  }
+  if (force) {
+    console.error('BLOCK EH-ARCHIVE-FORCE-001: archive --force 已移除；未完成 change 请使用 abandon <changeId> <reason>。');
     process.exit(2);
   }
   const srcDir = changePath(changeId);
@@ -244,12 +255,53 @@ function cmdArchive(changeId, force = false) {
   writeJson(statePath, data);
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(srcDir, destDir);
+  clearSessionBindings(changeId);
   // 5. 若归档的是当前 active change，清空指针。
   if (fs.existsSync(activeFile)) {
     const active = fs.readFileSync(activeFile, 'utf-8').trim();
     if (active === changeId) fs.rmSync(activeFile);
   }
   console.log(`Archived: ${changeId} -> harness/archive/${changeId}`);
+}
+
+function cmdAbandon(changeId, reason = '') {
+  if (!changeId || !reason.trim()) {
+    console.error('BLOCK EH-ABANDON-001: abandon 需要 <changeId> <reason>。');
+    process.exit(2);
+  }
+  const srcDir = changePath(changeId);
+  const statePath = path.join(srcDir, 'state.json');
+  if (!fs.existsSync(statePath)) {
+    console.error(`BLOCK EH-ABANDON-001: change 不存在或缺少 state.json：${changeId}`);
+    process.exit(2);
+  }
+  const data = readJson(statePath);
+  if (data.lifecycle === 'archived' || data.state === 'ARCHIVED') {
+    console.error(`BLOCK EH-ABANDON-001: 已归档 change 不能 abandon：${changeId}`);
+    process.exit(2);
+  }
+  const date = new Date().toISOString().slice(0, 10);
+  const destination = resolveChild(archiveDir, `${date}-${changeId}`, 'archiveId');
+  if (fs.existsSync(destination)) {
+    console.error(`BLOCK EH-ABANDON-001: abandon 目标已存在：${destination}`);
+    process.exit(2);
+  }
+  const next = {
+    ...data,
+    state: 'ABANDONED',
+    status: 'abandoned',
+    lifecycle: 'abandoned',
+    abandonReason: reason.trim(),
+    abandonedAt: new Date().toISOString(),
+  };
+  writeJson(statePath, next);
+  fs.mkdirSync(archiveDir, { recursive: true });
+  fs.renameSync(srcDir, destination);
+  clearSessionBindings(changeId);
+  if (fs.existsSync(activeFile) && fs.readFileSync(activeFile, 'utf-8').trim() === changeId) {
+    fs.rmSync(activeFile);
+  }
+  console.log(`Abandoned: ${changeId} -> harness/archive/${date}-${changeId}`);
 }
 
 function isReferencedByTests(changeId) {
@@ -374,10 +426,11 @@ switch (action) {
   case 'validated': cmdMarkValidated(args[0], args[1], args[2]); break;
   case 'validation-stale': cmdMarkValidationStale(args[0]); break;
   case 'archive': cmdArchive(args[0], args.includes('--force')); break;
+  case 'abandon': cmdAbandon(args[0], args.slice(1).join(' ')); break;
   case 'lesson-add': cmdLessonAdd(args[0], args[1], args[2], args[3], args[4]); break;
   case 'lesson-list': cmdLessonList(args[0]); break;
   default:
     console.log('Usage: node runtime/lifecycle.mjs <action> ...');
-    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale, archive, lesson-add, lesson-list');
+    console.log('Actions: scaffold, exploration, state, active, show-active, impact, current-task, review-verdict, design-approved, red-verified, reviewed, validated, validation-stale, archive, abandon, lesson-add, lesson-list');
     process.exit(1);
 }

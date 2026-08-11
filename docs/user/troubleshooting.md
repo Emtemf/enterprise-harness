@@ -96,6 +96,22 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-STATE-LOCK-012` | 同一状态文件正在被另一进程更新 | 等待当前写入完成后重试 |
 | `EH-EVENT-ID-013` | append-only event 缺少幂等 ID | 通过 runtime 重新生成事件 |
 | `EH-STATE-REVISION-014` | state revision 已变化 | 重新读取状态并重放当前决策 |
+| `EH-STATE-V5-001` | active change 不是 State schema v5 或 v5 真相层不完整 | active v4 走显式转换/阻断；旧 archive 只读 |
+| `EH-REWIND-001` | controlled rewind 目标不是上游 stage 或 stage 不存在 | 只回退到仍由 evidence 支持的上游 gate，不删除历史 evidence |
+| `EH-SESSION-CONFLICT-001` | session 已绑定到另一个 change/worktree | 查看 `enterprise-harness sessions list`，使用新的 sessionId |
+| `EH-SESSION-INPUT-001` | session binding 缺少 worktree 或 controller revision | 通过 `enterprise-harness sessions bind` 提供完整绑定信息 |
+| `EH-SESSION-WORKTREE-001` | session binding 与当前 worktree/subject 不一致 | 在当前 worktree 使用对应 session，或重新 bind；不要跨 worktree 复用 session id |
+| `EH-SESSION-AUTH-001` | session CLI 试图管理其他 session 或未绑定 session | 使用当前 sessionId，或显式设置本机受控 `ENTERPRISE_HARNESS_SESSION_ADMIN=true` |
+| `EH-CHANGE-LOCK-001` | change 正被其他 session 写入 | 等待或结束持有锁的 session，不使用 last-write-wins |
+| `EH-CHANGE-LOCK-002` | 非锁持有者尝试释放 change lock | 使用原 session 释放，或清理失效运行态后重试 |
+| `EH-CHANGE-LOCK-003` | session 尚未绑定就尝试获取 change lock | 先用当前 session 绑定 change/worktree，再获取锁 |
+| `EH-CONTROLLER-SUBJECT-001` | controller 与 subject 指向同一根目录 | 配置稳定 released controller，再治理 subject working tree |
+| `EH-RESEARCH-PACKET-001` | research packet 缺事实、来源策略或 fallback 记录 | 重新生成统一 packet，不把 MCP 原文当编排指令 |
+| `EH-MCP-POLICY-001` | MCP provider/capability 记录不符合统一策略 | 通过 mcp-policy 使用 codegraph/context7 capability alias |
+| `EH-WAIVER-001` | waiver 无效、缺批准人或未绑定 artifact digest | 创建绑定当前 artifact digest 的结构化 waiver |
+| `EH-ARCHIVE-FORCE-001` | `archive --force` 已删除 | 未完成 change 使用 `abandon <changeId> <reason>` |
+| `EH-ABANDON-001` | abandon 参数/生命周期无效 | 提供明确 reason，只对 active 未归档 change 执行 |
+| `EH-PROJECT-PROFILE-001` | `harness/project.json` 缺少字段、格式无效或版本不支持 | 按 profile v1 补齐 language、build、productionRoots、testRoots 和 apiRoots |
 | `EH-VERIFY-TECP-015` | verify 无法渲染 TECPC 卡 | 检查 active change 状态结构 |
 | `EH-POST-WRITE-TECP-016` | post-write 无法渲染 TECPC 卡 | 查看诊断后重新运行 status |
 | `EH-HOOK-INPUT-017` | Claude Code hook 输入不是合法 JSON | 保留原始 hook 事件并重试 |

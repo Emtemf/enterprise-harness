@@ -29,6 +29,7 @@ Commands:
 - evidence-import
 - handoff
 - trace
+- sessions
 - migrate-evidence-policy
 ```
 

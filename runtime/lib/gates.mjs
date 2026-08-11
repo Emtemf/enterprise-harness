@@ -1,24 +1,64 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { migrateAndPersist } from './state-migration.mjs';
+import { readSession, sessionIdFromEnv } from './sessions.mjs';
+import { loadProjectProfile } from './project-profile.mjs';
 
-export function loadActiveChange(root) {
+export function loadActiveChange(root, options = {}) {
+  const sessionId = sessionIdFromEnv(options.env || process.env);
+  if (sessionId) {
+    const binding = readSession(root, sessionId, options);
+    if (!binding) return { ok: false, reason: 'missing-session-binding', sessionId };
+    const currentRoot = canonicalPath(root);
+    const bindingRoot = canonicalPath(binding.worktreePath);
+    const subjectRoot = canonicalPath(binding.subjectRoot || binding.worktreePath);
+    if (currentRoot !== bindingRoot || currentRoot !== subjectRoot) {
+      return {
+        ok: false,
+        reason: 'session-worktree-mismatch',
+        errorCode: 'EH-SESSION-WORKTREE-001',
+        sessionId,
+        worktreePath: binding.worktreePath,
+        subjectRoot: binding.subjectRoot || null,
+      };
+    }
+    return loadChangeState(root, binding.changeId, { ...options, sessionId, binding });
+  }
+
   const activeFile = path.join(root, 'harness', 'ACTIVE_CHANGE');
   if (!fs.existsSync(activeFile)) {
     return { ok: false, reason: 'missing-active-change' };
   }
   const changeId = fs.readFileSync(activeFile, 'utf-8').trim();
   if (!changeId) return { ok: false, reason: 'empty-active-change' };
+  return loadChangeState(root, changeId, options);
+}
+
+function loadChangeState(root, changeId, metadata = {}) {
   const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
   if (!fs.existsSync(statePath)) return { ok: false, reason: 'missing-state', changeId, statePath };
   let data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
   data = migrateAndPersist(data, statePath);
-  return { ok: true, changeId, statePath, data };
+  if (metadata.requireV5 && data.schemaVersion === 4) {
+    return {
+      ok: false,
+      reason: 'active-state-v4',
+      errorCode: 'EH-STATE-V5-001',
+      changeId,
+      statePath,
+    };
+  }
+  return {
+    ok: true,
+    changeId,
+    statePath,
+    data,
+    ...(metadata.sessionId ? { sessionId: metadata.sessionId } : {}),
+    ...(metadata.binding ? { binding: metadata.binding } : {}),
+  };
 }
 
 export const GOVERNANCE_BLOCKLIST = new Set(['target', 'build', 'node_modules', '.git', 'dist', 'out']);
-const MAIN_PATTERN = ['src', 'main', 'java'];
-const TEST_PATTERN = ['src', 'test', 'java'];
 
 function canonicalPath(targetPath) {
   const resolved = path.resolve(targetPath);
@@ -48,7 +88,16 @@ function findSubsequence(segments, pattern) {
   return -1;
 }
 
-// Detects whether `target` falls under a Java-convention governed root (src/main/java,
+function findConfiguredMatch(segments, roots) {
+  return roots
+    .map((rootPath) => {
+      const pattern = rootPath.split('/');
+      return { pattern, index: findSubsequence(segments, pattern) };
+    })
+    .filter((entry) => entry.index !== -1)
+    .sort((a, b) => a.index - b.index)[0] || null;
+}
+
 // src/test/java, or an openapi contract directory) anywhere in the project tree, without
 // scanning the filesystem. The blocklist only applies to ancestor segments (before the
 // matched pattern) so that generated/vendor directories are excluded while business package
@@ -60,14 +109,15 @@ function detectGovernedKind(root, target) {
   if (rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) return null;
   const segments = rel.split(path.sep);
 
-  const mainIdx = findSubsequence(segments, MAIN_PATTERN);
-  const testIdx = findSubsequence(segments, TEST_PATTERN);
-  const openapiIdx = segments.indexOf('openapi');
+  const profile = loadProjectProfile(root);
+  const mainMatch = findConfiguredMatch(segments, profile.productionRoots);
+  const testMatch = findConfiguredMatch(segments, profile.testRoots);
+  const apiMatch = findConfiguredMatch(segments, profile.apiRoots);
 
   const candidates = [];
-  if (mainIdx !== -1) candidates.push({ kind: 'main', start: mainIdx, end: mainIdx + MAIN_PATTERN.length });
-  if (testIdx !== -1) candidates.push({ kind: 'test', start: testIdx, end: testIdx + TEST_PATTERN.length });
-  if (openapiIdx !== -1) candidates.push({ kind: 'openapi', start: openapiIdx, end: openapiIdx + 1 });
+  if (mainMatch) candidates.push({ kind: 'main', start: mainMatch.index, end: mainMatch.index + mainMatch.pattern.length });
+  if (testMatch) candidates.push({ kind: 'test', start: testMatch.index, end: testMatch.index + testMatch.pattern.length });
+  if (apiMatch) candidates.push({ kind: 'openapi', start: apiMatch.index, end: apiMatch.index + apiMatch.pattern.length });
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => a.start - b.start);

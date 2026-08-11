@@ -40,6 +40,7 @@ const outputs = [
     // silently, which would collapse both roles into one context.
     value: {
       env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' },
+      worktree: { baseRef: 'head' },
       ...render('$CLAUDE_PROJECT_DIR'),
     },
   },

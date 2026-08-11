@@ -15,6 +15,7 @@
     "CLAUDE.md",
     ".claude/settings.json",
     "harness/config.yaml",
+    "harness/project.json",
     "harness/specs/architecture.md",
     "harness/specs/workflow.md"
   ],
@@ -39,6 +40,7 @@
     "upstreamCheck": "node runtime/upstream-check.mjs",
     "lifecycle": "node runtime/cli.mjs lifecycle",
     "workflow": "node runtime/cli.mjs workflow",
+    "sessions": "node runtime/cli.mjs sessions",
     "context7": "node runtime/cli.mjs context7",
     "handoff": "node runtime/cli.mjs handoff",
     "trace": "node runtime/cli.mjs trace <run-id> [change-id]"
@@ -46,7 +48,7 @@
   "requiredEnvVars": [],
   "notes": [
     "Project secrets must not be committed to the repository.",
-    "Context7 may run through CLI wrappers when MCP is not configured.",
+    "Context7 MCP uses CONTEXT7_API_KEY from the environment when configured; official docs or CLI are explicit fallbacks.",
     "This manifest describes the portable runtime layer, not the repo contract itself."
   ]
 }

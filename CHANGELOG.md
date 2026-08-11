@@ -4,6 +4,33 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-11
+
+### Added
+
+- State v5 truth-layer primitives with controller/subject separation, common-dir session bindings,
+  change locks, stale-lock recovery, artifact dependency invalidation, controlled rewind, and
+  archive/abandon lifecycle semantics.
+- Unified CodeGraph/Context7 research packets, MCP capability aliases, digest-bound waivers, and
+  explicit degraded/fallback evidence handling.
+- `harness/project.json` profile v1 to centralize project language, build, governed roots, and
+  future profile evolution without introducing a workflow DSL.
+- Native Claude Code `worktree.baseRef=head` projection while retaining compatibility coverage for
+  the existing worktree hook seam during migration.
+
+### Changed
+
+- Session-bound current-change resolution now takes precedence over the legacy `ACTIVE_CHANGE`
+  pointer when a Claude session ID is available.
+- Writes to requirements, design, plan, evidence, or validation artifacts propagate stale status
+  through the dependency graph instead of preserving misleading downstream validation.
+- Active State v4 can be explicitly blocked by the State v5 gate; archived v4 remains read-only
+  compatible.
+
+### Removed
+
+- `archive --force`; incomplete work must use explicit `abandon <change-id> <reason>`.
+
 ## [0.3.19] - 2026-08-10
 
 ### Fixed

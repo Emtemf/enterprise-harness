@@ -38,6 +38,9 @@ jobs:
       - name: P0 acceptance
         run: npm run prepublish-check
 
+      - name: Verify generated documentation
+        run: npm run docs:check
+
       - name: Verify release surface
         run: node runtime/cli.mjs verify --release-surface
 

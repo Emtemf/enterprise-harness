@@ -1,0 +1,45 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_b8c964dd-fd42-4931-a252-15e22089d689",
+  "changeId": "redesign-040",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 run_60cf6cf2-64b0-4e74-a022-8933ba9b497a 是否因 design.explore-code handoff 缺少最小 exploration brief 而正确停止，并确认当前 design 阶段不会凭猜测推进代码探索。",
+    "evidence": [
+      "读取 harness/changes/redesign-040/runs/run_b8c964dd-fd42-4931-a252-15e22089d689/input.json：role=check，parentRunId=run_60cf6cf2-64b0-4e74-a022-8933ba9b497a，且 inputRefs 仅绑定被检查 executor result。",
+      "实算 sha256：harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json = 28c6c526b1e607848af94cf84f5eddb3f4803acd4149a28f34789ee7be841f1c，与 checker input 中记录 digest 一致。",
+      "读取 harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/input.json：inputRefs=[]、inputDigests={}、tecpc.target 仅为占位值 \"design.explore-code\"，没有 question、scope、目标模块/符号/路径或 requirements/design 级 authoritative brief。",
+      "读取 harness/behavior-checks.json：design.explore-code 的受治理产物是 evidence/*-exploration.md；读取 .claude/rules/10-exploration.md：exploration brief 至少要围绕 question、scope、facts、uncertainties、impact、sources、suggestedUserQuestion 组织，当前 execute handoff 不具备这些最小输入。",
+      "读取 harness/changes/redesign-040/requirements.md 与 harness/changes/redesign-040/state.json：该 change 在 design 阶段的 impact.api/data/architecture/rule 均为 yes，且 designApproved=false，说明更不能在没有 brief 的情况下盲目扫描代码并自造结论。",
+      "读取 harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json：outputRefs=[]，blockers 明确指出缺少最小 exploration brief/inputRefs；在上述输入缺口下，停止于 blocker 而非伪造 exploration packet，符合合同。"
+    ],
+    "context": [
+      "checker input: harness/changes/redesign-040/runs/run_b8c964dd-fd42-4931-a252-15e22089d689/input.json",
+      "parent execute input: harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/input.json",
+      "parent execute result: harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json",
+      "authoritative change artifacts: harness/changes/redesign-040/requirements.md, harness/changes/redesign-040/state.json"
+    ],
+    "path": "结论为 pass：本次检查对象不是 design 是否已完成，而是 parent executor 是否在输入不足时正确停止。独立核验表明 execute handoff 确实没有最小 exploration brief，也没有 inputRefs 绑定任何可消费的需求或代码范围。按 codegraph-first 与 exploration brief 合同，executor 不应自行猜题、扩 scope 或盲扫仓库。parent result 以 blocker 停止且未伪造 outputRefs，是正确行为。后续若要继续 design.explore-code，应由主 orchestrator 重新生成新的 execute handoff，并显式绑定具体 question、scope、目标模块/符号/路径及与 redesign-040 直接相关的 authoritative 输入。",
+    "correction": "无"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/redesign-040/runs/run_b8c964dd-fd42-4931-a252-15e22089d689/input.json",
+    "harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/input.json",
+    "harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json",
+    "harness/changes/redesign-040/requirements.md",
+    "harness/changes/redesign-040/state.json",
+    "harness/behavior-checks.json",
+    ".claude/rules/10-exploration.md"
+  ],
+  "blockers": [],
+  "summary": "pass：run_60cf6cf2-64b0-4e74-a022-8933ba9b497a 因 design.explore-code handoff 未绑定最小 exploration brief 而正确停止；当前不能推进代码探索，但 executor 的阻断判断本身是正确的。",
+  "recordedAt": "2026-08-11T09:23:42.092Z",
+  "resultDigest": "7aa9b7d49351284a623c18288eb7f2c8494845764340a7cb09252afe1dbaa8ac"
+}

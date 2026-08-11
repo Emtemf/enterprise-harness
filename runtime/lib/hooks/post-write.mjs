@@ -13,6 +13,7 @@ import {
 } from '../hook-snapshots.mjs';
 import { canonicalPath, pathIsWithin } from '../safe-paths.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
+import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
 
 export function postWrite({ root, raw }) {
   const managed = isHarnessManaged(root);
@@ -65,14 +66,20 @@ export function postWrite({ root, raw }) {
     return changeId || null;
   }
 
-  function markValidationStale(statePath) {
+  function markValidationStale(statePath, target) {
     if (!fs.existsSync(statePath)) return;
     const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    if (!state.validation) return;
-    state.validation.status = 'stale';
-    state.validation.digest = null;
-    state.validation.validatedAt = null;
-    fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n', 'utf-8');
+    const changeDir = path.dirname(statePath);
+    const artifact = artifactNameForPath(path.relative(changeDir, target));
+    const next = artifact
+      ? invalidateStateArtifacts(state, [artifact])
+      : {
+        ...state,
+        validation: state.validation
+          ? { ...state.validation, status: 'stale', digest: null, validatedAt: null }
+          : state.validation,
+      };
+    fs.writeFileSync(statePath, JSON.stringify(next, null, 2) + '\n', 'utf-8');
   }
 
   function invalidateAffectedValidations(active, target) {
@@ -82,7 +89,7 @@ export function postWrite({ root, raw }) {
       const changesDir = path.join(root, 'harness', 'changes');
       if (!fs.existsSync(changesDir)) return;
       for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
-        if (entry.isDirectory()) markValidationStale(path.join(changesDir, entry.name, 'state.json'));
+        if (entry.isDirectory()) markValidationStale(path.join(changesDir, entry.name, 'state.json'), target);
       }
       return;
     }
@@ -90,10 +97,10 @@ export function postWrite({ root, raw }) {
     if (scope !== 'authority' && scope !== 'stable-evidence' && !isGovernedTarget(root, target)) return;
     const changeId = changeIdForTarget(target);
     if (changeId) {
-      markValidationStale(path.join(root, 'harness', 'changes', changeId, 'state.json'));
+      markValidationStale(path.join(root, 'harness', 'changes', changeId, 'state.json'), target);
       return;
     }
-    if (active?.ok && isGovernedTarget(root, target)) markValidationStale(active.statePath);
+    if (active?.ok && isGovernedTarget(root, target)) markValidationStale(active.statePath, target);
   }
 
   try {

@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_13a25a44-6ddb-43f0-bb84-4a8b94101d56",
+  "changeId": "redesign-040",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_7486294f-d7d6-4cc5-8875-34ff0744d11a",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "clarify.synthesize",
+    "evidence": [],
+    "context": [],
+    "path": "check clarify.synthesize",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/redesign-040/runs/run_7486294f-d7d6-4cc5-8875-34ff0744d11a/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/redesign-040/runs/run_7486294f-d7d6-4cc5-8875-34ff0744d11a/result.json": "7305963e4c40289c579a63968e25727dfa8bfb5fb3bd45c1cb6f4941dfe2f840"
+  },
+  "createdAt": "2026-08-11T08:27:06.846Z"
+}

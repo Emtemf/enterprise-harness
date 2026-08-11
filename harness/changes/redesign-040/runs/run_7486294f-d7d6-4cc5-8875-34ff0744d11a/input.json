@@ -1,0 +1,24 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_7486294f-d7d6-4cc5-8875-34ff0744d11a",
+  "changeId": "redesign-040",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": "run_4fe5c832-8e72-4888-a728-1a4ba92e7717",
+  "agent": {
+    "type": "enterprise-harness:clarify-synthesizer",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "clarify.synthesize",
+    "evidence": [],
+    "context": [],
+    "path": "execute clarify.synthesize",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [],
+  "inputDigests": {},
+  "createdAt": "2026-08-11T08:13:11.525Z"
+}

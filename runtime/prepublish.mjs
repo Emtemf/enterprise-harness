@@ -9,6 +9,7 @@ const commands = [
   ['runtime/cli.mjs', 'sync', '--json'],
   ['runtime/cli.mjs', 'verify', '--release-surface'],
   ['runtime/upstream-check.mjs', '--json'],
+  ['runtime/test/docs-consistency-smoke.mjs', 'verify'],
 ];
 
 console.log('Enterprise Harness Prepublish Check');

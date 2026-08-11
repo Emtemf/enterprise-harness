@@ -1,0 +1,35 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_4fe5c832-8e72-4888-a728-1a4ba92e7717",
+  "changeId": "redesign-040",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "扫描 sdd 工作区中 Enterprise Harness Claude Code plugin 的当前实现，压缩梳理 0.4 Phase 1-3（controller/subject、自举边界；State v5/session concurrency/dependency invalidation/archive-abandon；CodeGraph/Context7 fact lanes/fallback/waiver）相关现状、可复用模块、差异与迁移风险。",
+    "evidence": [
+      "codegraph_status 显示索引可用但绑定父仓 /home/wula/IdeaProjects/sdd，而非当前 worktree；已记录为可信度限制。",
+      "codegraph_explore/search/callers 覆盖了 runtime/lib/gates.mjs、runtime/lib/workflow.mjs、runtime/lib/worktree.mjs、runtime/lib/agent-evidence.mjs、bin/package.mjs、runtime/prepublish.mjs、release/package/test 相关符号与文件。",
+      "Bash: git worktree list --porcelain 证实父仓与当前 worktree HEAD 同为 27a18a2f2c8d2f4ae4f2b75ab9510fc453a8d070，降低本次 codegraph worktree 漂移风险。",
+      "Bash: node runtime/cli.mjs status --json 证实动态真相为 redesign-040 / DRAFT / clarify / paused / currentGap=缺少 requirements.md。",
+      "Read fallback 仅用于 codegraph 未覆盖的当前 worktree 精确内容与 Markdown/spec/template：确认 ACTIVE_CHANGE 单指针、state template/schema/migration 漂移、pre-explore/post-write/worktree/handoff/release 细节，以及 change scaffold 仍基本为空模板。",
+      "只读合同：本次未写入 change artifact，outputRefs=[]。"
+    ],
+    "context": [
+      "权威输入：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9bf367237b64377b/harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/input.json",
+      "inputRefs 为空；0.4 Phase 1-3 目标来自 handoff prompt，而不是仓库内已落盘 brief/design。",
+      "当前动态状态来源于 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9bf367237b64377b/harness/ACTIVE_CHANGE 与 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9bf367237b64377b/harness/changes/redesign-040/state.json。"
+    ],
+    "path": "先按合同读取 HANDOFF_INPUT；随后 CodeGraph-first 扫描 runtime/state/worktree/handoff/release/skills/agents/tests；因 CodeGraph 索引非 worktree-local，且需确认当前 worktree 的模板/spec/Markdown/on-disk 细节，降级到少量 Read/Bash 做精确核对；返回压缩 exploration packet 供主 orchestrator 进入 clarify/route 设计决策。",
+    "correction": "无阻断。本次主要限制是 CodeGraph 索引非 worktree-local；如后续需要对当前分支做更高置信度的符号级影响分析，应先在 /home/wula/IdeaProjects/sdd/.claude/worktrees/agent-a9bf367237b64377b 执行 worktree-local codegraph init -i，再重复相同查询。"
+  },
+  "outputRefs": [],
+  "blockers": [],
+  "summary": "当前实现已具备 stage/behavior/handoff/ledger/worktree/release 的治理骨架，可复用点集中在 runtime/lib/handoff.mjs、state-store.mjs、agent-evidence.mjs、worktree.mjs 与 package/release 验证链；但 0.4 Phase 1-3 的核心差异仍然明显：控制面还是 stage/behavior registry 而非 controller/subject，自举只是最小 bootstrap marker；状态层仍是 ACTIVE_CHANGE 单指针 + 局部 CAS，session 只用于 dedup/ledger，dependency invalidation 还是路径级 stale 广播，archive 只有归档没有 abandon；CodeGraph/Context7 虽已分 lane，但事实记录仍是粗粒度 tooling 字段与模板段落，waiver 也未形成结构化可审计对象。最大迁移风险是 state 版本真相已漂移（template/state=4、schema max=3、migration 只到 3、runtime strict>=4）以及并发写路径并未统一走 CAS。",
+  "recordedAt": "2026-08-11T08:12:26.561Z",
+  "resultDigest": "ddbfddddb36e9d8580aad9396791dd9ddb8ab45898d48051945867afb168cd3e"
+}

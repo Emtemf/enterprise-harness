@@ -1,0 +1,41 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_13a25a44-6ddb-43f0-bb84-4a8b94101d56",
+  "changeId": "redesign-040",
+  "stage": "clarify",
+  "behavior": "clarify.synthesize",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 clarify.synthesize 产出的 requirements/change/state 是否满足 route 前澄清质量要求",
+    "evidence": [
+      "读取 harness/changes/redesign-040/requirements.md：七维评分齐全（119-141 行），且 A-E 五个组件覆盖 controller/subject、自举边界、State v5/concurrency、dependency invalidation/rewind、archive/abandon、research packet/waiver 的 Goal/Scope/Constraints/Acceptance/Context（54-104 行）。",
+      "读取 harness/changes/redesign-040/requirements.md：关键维度 Target/Scope/User-actor/Data-SQL/Interface-API/Acceptance/Constraint-risk 均为 4 或 5；同时明确字段级 schema、锁格式、CLI 参数、digest 算法、迁移脚本、错误面留给 design（42-43、73-84、93-104 行），未把 design 细节误当 requirements。",
+      "读取 harness/changes/redesign-040/change.md：route 内容仅为“初步路由/最终路由待独立 route executor/checker 确认”（17-18、35-36、57-60 行），未把 clarify 投影伪装成 route 结论。",
+      "读取 harness/changes/redesign-040/state.json：workflow.userConfirmedScope=true、workflow.routeReady=false（45-52 行），说明已记录 scope confirmation，但未越权写 routeReady。",
+      "读取 harness/changes/redesign-040/evidence/workflow-events.jsonl：存在 confirm-scope durable decision 事件（第 2 行），可作为当前 scope confirmed 的正式证据。",
+      "读取 harness/changes/redesign-040/runs/run_7486294f-d7d6-4cc5-8875-34ff0744d11a/result.json：parent result 自述“用户已在主会话确认”且 summary 声称 scope confirmed=true（21-25、33 行），但该 result 未直接引用 scope-confirmation artifact，且 recordedAt 早于当前 workflow-events 中的 confirm-scope 事件时间（34 行 vs workflow-events 第 2 行），审计链可补强。",
+      "读取 harness/changes/redesign-040/requirements.md：weakest dimension 被写成仅 Data/SQL（132 行），但 User/actor、Data/SQL、Interface/API 三项同为 4 分（125-127 行），表述不够精确。"
+    ],
+    "context": [
+      "parent executor result: harness/changes/redesign-040/runs/run_7486294f-d7d6-4cc5-8875-34ff0744d11a/result.json"
+    ],
+    "path": "当前 durable artifacts 已满足 clarify 的核心门槛：七维完整、关键维度均>=4、五个高风险主题都有可执行边界、requirements 与 design 分界清楚、state 中 routeReady 仍为 false，因此不阻断进入独立 route。需要补充的是审计表达：scope confirmation 的正式证据实际落在 workflow-events/state，而不是 parent result 自身；同时 weakest dimension 存在 4 分并列，当前写法不够精确。",
+    "correction": "建议在后续 route handoff 或审计补记中显式引用 harness/changes/redesign-040/evidence/workflow-events.jsonl 的 confirm-scope 事件作为 scope confirmation 依据，并将 harness/changes/redesign-040/requirements.md 第 132 行改为列出全部并列 weakest dimensions，或说明为何只将 Data/SQL 视为主 weakest。"
+  },
+  "verdict": "advisory",
+  "outputRefs": [
+    "harness/changes/redesign-040/requirements.md",
+    "harness/changes/redesign-040/change.md",
+    "harness/changes/redesign-040/state.json",
+    "harness/changes/redesign-040/evidence/workflow-events.jsonl",
+    "harness/changes/redesign-040/runs/run_7486294f-d7d6-4cc5-8875-34ff0744d11a/result.json"
+  ],
+  "blockers": [],
+  "summary": "advisory：clarify 质量总体达标，可进入独立 route；但 parent result 对 scope confirmation 的引用不够可追溯，且 weakest dimension 存在并列 4 分却只写了 Data/SQL。",
+  "recordedAt": "2026-08-11T08:34:13.618Z",
+  "resultDigest": "1fb38df438696eaa7c6847d6c0b35239bceb374f9f33a08b03f9ea22a9d5abab"
+}

@@ -67,6 +67,9 @@ T 目标、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria�
 
 受治理行为：
 
+- executor 与 checker 必须是不同 subagent/run；checker 只消费 result artifact，不消费 executor 聊天上下文。
+- worktree 只提供文件隔离；subagent 提供上下文隔离。
+
 1. 生成 brief。
 2. 创建 execute handoff：
 

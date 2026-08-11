@@ -1,0 +1,39 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_defcca07-6cda-4444-9a6e-96564e44bee7",
+  "changeId": "redesign-040",
+  "stage": "route",
+  "behavior": "route.decide",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:route-decider",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "基于已确认 requirements、clarify 评分与 exploration packet，产出 route tier、owning surface、impact matrix、non-goals 与 required reviewers 的 durable 投影，且不写 workflow.routeReady=true。",
+    "evidence": [
+      "读取 harness/changes/redesign-040/requirements.md：七维评分关键项均 >=4，userConfirmedScope=true，且 requirements 末尾已投影 L3 / API=yes / Data=yes / Architecture=yes / Rule=yes。",
+      "读取 harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json：确认现状硬信号包括 ACTIVE_CHANGE 单指针、state version drift、路径级 stale、archive-only、research tooling/waiver 粗粒度。",
+      "读取 harness/changes/redesign-040/runs/run_13a25a44-6ddb-43f0-bb84-4a8b94101d56/check.json：clarify checker verdict=advisory，未阻断 route，仅提示 scope 证据引用与 weakest-dimension 表达可补强。",
+      "读取 harness/changes/redesign-040/evidence/workflow-events.jsonl：存在 confirm-scope durable decision，可支撑 route 前置 userConfirmedScope=true。",
+      "写入 harness/changes/redesign-040/change.md：补全最终路由，逐项写明 API/Data/Architecture/Rule 的硬信号依据、required reviewers 与 pending confirm-route 约束。",
+      "写入 harness/changes/redesign-040/state.json：将 impact 四维从 unknown 投影为 yes/yes/yes/yes，保留 workflow.routeReady=false，并写入 routingReason。"
+    ],
+    "context": [
+      "input.json#inputRefs: requirements.md, state.json, clarify exploration result, clarify checker result, workflow-events.jsonl",
+      "未重新澄清需求；route 依据仅来自 durable artifacts。",
+      "未决项保留给 design：字段级 state v5 schema、迁移脚本、lock file 结构、CLI 细节兼容策略。"
+    ],
+    "path": "校验 handoff 元数据后，消费 requirements + clarify artifacts + workflow evidence；因 route 前置已满足且四个 impact 维度有明确硬信号，直接写 change.md 路由段与 state tier/impact projection；下一步交给独立 requirement-reviewer 复核，再等待用户 confirm-route 决定是否写 routeReady。",
+    "correction": "无阻断；若 checker 认定任一 impact 依据不足或 reviewer 组合不完整，应返回 block 并回到 clarify/route 补证，但不得由本 executor 擅自写 workflow.routeReady=true。"
+  },
+  "outputRefs": [
+    "harness/changes/redesign-040/change.md",
+    "harness/changes/redesign-040/state.json",
+    "harness/changes/redesign-040/runs/run_defcca07-6cda-4444-9a6e-96564e44bee7/result.json"
+  ],
+  "blockers": [],
+  "summary": "route projection completed: redesign-040 remains L3, owned by Enterprise Harness controller/runtime + workflow/state/evidence truth layer + plugin/spec/tests, with API/Data/Architecture/Rule all marked yes and required reviewers captured; workflow.routeReady remains false pending independent route check and user confirm-route.",
+  "recordedAt": "2026-08-11T08:48:37.000Z",
+  "resultDigest": "decdf6a1e5106484036b36fa49139bccb8895dcd615f054f370bc2b97feb9bb8"
+}

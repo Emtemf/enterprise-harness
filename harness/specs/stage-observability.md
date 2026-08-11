@@ -121,7 +121,8 @@ sequenceDiagram
 | plan | `tasks.md`；`task-commands.json`；`reviews/plan-critic.json` | ✓ `planReady` | `plan.produce` | — | `freeze-plan` |
 | tdd | executor output refs；真实 TDD receipt spool；实现改动 | ✓ `currentTask`；✓ `tddStatus=refactor-verified` | `tdd.execute-task`（每 task） | — | `enter-verify` |
 | verify | `validation.md`；validation digest；适用 review verdict | ✓ `validation.status=fresh` + digest | `verify.collect` | `verify.explore-code`；API 时 `verify.check-api` | 先 `lifecycle validated`，再 `enter-archive` |
-| archive | 物理移动至 `harness/archive/<id>/`；清 `ACTIVE_CHANGE` | 统一 completion predicate + schema 4 audit ✓ | — | — | `lifecycle archive <id>` |
+| archive | 物理移动至 `harness/archive/<id>/`；清理对应 session binding/lock | 统一 completion predicate + schema 5 audit ✓ | — | — | `lifecycle archive <id>` |
+| abandon | 未完成 change 以日期前缀移动至 `harness/archive/`；保留 evidence，写入 reason，不得伪装完成 | `lifecycle abandon <id> <reason>`；不参与 completion predicate | — | — | `lifecycle abandon <id> <reason>` |
 
 ## 如何证明“符合预期”
 

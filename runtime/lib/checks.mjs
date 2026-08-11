@@ -81,6 +81,7 @@ export function requiredPaths() {
       '.claude/skills/harness-stage-executor/SKILL.md',
       '.claude/skills/harness-stage-checker/SKILL.md',
       'harness/config.yaml',
+      'harness/project.json',
       'harness/templates/state.json',
       'harness/schemas/state.schema.json',
       'harness/templates/change.md',
@@ -194,7 +195,7 @@ export function validateArtifactStates(root) {
   const changesDir = path.join(root, 'harness', 'changes');
   if (!fs.existsSync(changesDir)) return [];
   const allowedTiers = new Set(['L0', 'L1', 'L2', 'L3']);
-  const allowedStates = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','BLOCKED','REJECTED']);
+  const allowedStates = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','ABANDONED','BLOCKED','REJECTED']);
   const designGatedStates = new Set(['TASKED','EXECUTING']);
   const allowedImpact = new Set(['yes','no','unknown']);
   const allowedValidation = new Set(['missing','fresh','stale']);

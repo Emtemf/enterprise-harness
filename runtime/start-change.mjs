@@ -3,6 +3,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { assertSafeId } from './lib/safe-paths.mjs';
+import { bindSession, readSession, sessionIdFromEnv } from './lib/sessions.mjs';
 
 const repoRoot = process.cwd();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd。
@@ -35,15 +36,39 @@ function run(args) {
   }
 }
 
+function assertSessionCanBind() {
+  const sessionId = sessionIdFromEnv();
+  if (!sessionId) return;
+  const existing = readSession(repoRoot, sessionId);
+  if (existing && (existing.changeId !== changeId || existing.worktreePath !== repoRoot)) {
+    throw new Error(`EH-SESSION-CONFLICT-001: ${sessionId} is already bound to ${existing.changeId}`);
+  }
+}
+
+function bindCurrentSession() {
+  const sessionId = sessionIdFromEnv();
+  if (!sessionId) return;
+  const binding = bindSession(repoRoot, {
+    sessionId,
+    changeId,
+    worktreePath: process.env.ENTERPRISE_HARNESS_WORKTREE_PATH || repoRoot,
+    subjectRoot: repoRoot,
+    controllerRevision: process.env.ENTERPRISE_HARNESS_CONTROLLER_REVISION || 'released-controller',
+  });
+  console.log(`Session bound: ${binding.sessionId} -> ${binding.changeId}`);
+}
+
 console.log('Enterprise Harness Start Change');
 console.log(`Repo: ${repoRoot}`);
 console.log(`changeId=${changeId} owner=${owner} tier=${tier}`);
 
+assertSessionCanBind();
 run(['scaffold', changeId, owner, tier, topic]);
 if (topic && topic !== '-' && topic !== 'none') {
   run(['exploration', changeId, topic]);
 }
 run(['active', changeId]);
+bindCurrentSession();
 
 console.log('Next Steps:');
 console.log('- 在 Claude Code 会话中，从 /harness 继续推进 clarify。');

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 5,
+  "revision": 6,
+  "changeId": "redesign-040",
+  "tier": "L3",
+  "state": "DRAFT",
+  "status": "active",
+  "lifecycle": "active",
+  "owner": "wula",
+  "controller": {
+    "mode": "released-controller",
+    "revision": "0.3.19",
+    "subjectRoot": "/home/wula/IdeaProjects/sdd"
+  },
+  "sessionBinding": null,
+  "changeLock": null,
+  "artifacts": {
+    "requirements": {
+      "path": "requirements.md",
+      "digest": null
+    },
+    "design": {
+      "path": "design.md",
+      "digest": null
+    },
+    "plan": {
+      "path": "tasks.md",
+      "digest": null
+    }
+  },
+  "dependencies": {
+    "requirements": [],
+    "design": [
+      "requirements"
+    ],
+    "plan": [
+      "design"
+    ],
+    "evidence": [
+      "plan"
+    ],
+    "validation": [
+      "requirements",
+      "design",
+      "plan",
+      "evidence"
+    ]
+  },
+  "blocker": null,
+  "impact": {
+    "api": "yes",
+    "data": "yes",
+    "architecture": "yes",
+    "rule": "yes"
+  },
+  "tooling": {
+    "codegraph": {
+      "status": "unknown",
+      "queries": [],
+      "fallbackReason": null
+    },
+    "documentation": {
+      "status": "unknown",
+      "libraries": []
+    }
+  },
+  "decisions": [],
+  "blockers": [],
+  "approvals": {},
+  "gates": {
+    "designApproved": false,
+    "redVerified": false,
+    "redTask": null,
+    "redEvidenceRef": null
+  },
+  "currentTask": null,
+  "tddEvidence": {
+    "worktreeUsed": false,
+    "commandExecuted": null,
+    "commandOutputSummary": null,
+    "evidencePath": null,
+    "authority": "runtime-receipt-only"
+  },
+  "goal": "architecture",
+  "successCriteria": [],
+  "routingReason": "L3 route projection: all four hard-signal dimensions are present. API changes affect controller-facing status/doctor/workflow, archive/abandon, and research/waiver command/output contracts; data changes introduce State schema v5, session binding, change lock, ledger, and digest dependency artifacts; architecture changes redefine controller/subject boundary and concurrency/truth-layer ownership; rule changes alter stale/rewind/gate/fallback/waiver/archive semantics. Pending user confirm-route; workflow.routeReady remains false.",
+  "workflow": {
+    "stage": "design",
+    "clarifyReady": true,
+    "userConfirmedScope": true,
+    "routeReady": true,
+    "planReady": false,
+    "tddStatus": "not-started",
+    "nextEntry": "/harness-design"
+  },
+  "validation": {
+    "status": "stale",
+    "digest": null,
+    "validatedAt": null
+  },
+  "lastEventId": "wf_5c51d61d-d5ab-496e-8c76-8c0ff151b992"
+}

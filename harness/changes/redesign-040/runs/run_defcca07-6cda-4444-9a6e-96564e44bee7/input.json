@@ -1,0 +1,42 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_defcca07-6cda-4444-9a6e-96564e44bee7",
+  "changeId": "redesign-040",
+  "stage": "route",
+  "behavior": "route.decide",
+  "role": "execute",
+  "attempt": 1,
+  "parentRunId": null,
+  "agent": {
+    "type": "enterprise-harness:route-decider",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "route.decide",
+    "evidence": [],
+    "context": [
+      "harness/changes/redesign-040/requirements.md",
+      "harness/changes/redesign-040/state.json",
+      "harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json",
+      "harness/changes/redesign-040/runs/run_13a25a44-6ddb-43f0-bb84-4a8b94101d56/check.json",
+      "harness/changes/redesign-040/evidence/workflow-events.jsonl"
+    ],
+    "path": "execute route.decide",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/redesign-040/requirements.md",
+    "harness/changes/redesign-040/state.json",
+    "harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json",
+    "harness/changes/redesign-040/runs/run_13a25a44-6ddb-43f0-bb84-4a8b94101d56/check.json",
+    "harness/changes/redesign-040/evidence/workflow-events.jsonl"
+  ],
+  "inputDigests": {
+    "harness/changes/redesign-040/requirements.md": "13afa5bd2813ef772d4ac27a6015159621a0b02609e83cd9f01511204423ad0a",
+    "harness/changes/redesign-040/state.json": "4bd044121576be895f9133ec13df7c55b483b26b46dc2d2f3aedb093970309a2",
+    "harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json": "99e8e346971f848c4d4a3bc024d5b3ffc46a07b3ee59eee024777dc76b9c1416",
+    "harness/changes/redesign-040/runs/run_13a25a44-6ddb-43f0-bb84-4a8b94101d56/check.json": "b75072c64b465aa473bdfb3b7b386719a08fc65716ec5ed050d7e9a0c25c6f80",
+    "harness/changes/redesign-040/evidence/workflow-events.jsonl": "34f9334c48656f27f4ea01ab160836fe8d81b7cbb02c1419190e2f8ae8a13f2f"
+  },
+  "createdAt": "2026-08-11T08:42:20.230Z"
+}

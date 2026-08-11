@@ -1,0 +1,37 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_60cf6cf2-64b0-4e74-a022-8933ba9b497a",
+  "changeId": "redesign-040",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "对 redesign-040 的 design.explore-code 执行最小可信代码探索；成功条件是收到可查询的 brief/inputRefs，并基于 CodeGraph 产出 question/scope/facts/uncertainties/impact。",
+    "evidence": [
+      "读取 input.json：behavior=design.explore-code，agent.type=enterprise-harness:code-explore，inputRefs=[]",
+      "读取结果合同：/home/wula/IdeaProjects/sdd/.claude/skills/harness-stage-executor/refs/result-contract.md",
+      "读取最小示例：/home/wula/IdeaProjects/sdd/.claude/skills/harness-stage-executor/examples/minimal.md",
+      "读取 handoff 规范：/home/wula/IdeaProjects/sdd/harness/specs/agents-and-handoff.md",
+      "CodeGraph attempt：codegraph_status(projectPath=/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-aa2391be7de67ff64) → index available but belongs to /home/wula/IdeaProjects/sdd"
+    ],
+    "context": [
+      "唯一权威输入：/home/wula/IdeaProjects/sdd/.claude/worktrees/agent-aa2391be7de67ff64/harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/input.json",
+      "inputRefs 为空，未提供人类可读 brief",
+      "CodeGraph 索引与当前 worktree 不一致，若后续要探索当前 worktree 独有改动，需要先接受该风险或重建索引"
+    ],
+    "path": "先校验 handoff 身份字段，再按 CodeGraph-first 仅做 codegraph_status 可用性确认；因没有 brief/target，未执行盲目 codegraph_explore，也未降级到 Bash/Read 业务代码扫描；下一步应由主 orchestrator 补充最小 exploration brief 后重新派发 execute。",
+    "correction": "EH-INPUT-EXPLORE-001：design.explore-code 缺少最小 brief 与 inputRefs。恢复动作：在 input.json 或其 inputRefs 中提供要回答的问题、目标模块/符号/路径及与 redesign-040 的关联，再重新派发。EH-CODEGRAPH-CTX-001：当前 CodeGraph 索引来自不同 worktree，如需覆盖本 worktree 独有改动，应先在该 worktree 初始化本地索引。"
+  },
+  "outputRefs": [],
+  "blockers": [
+    "input.json 未提供 design.explore-code 的最小 exploration brief，且 inputRefs 为空，无法形成可信的 CodeGraph 查询。",
+    "CodeGraph 索引可用但来自不同 git working tree；即使补齐 brief，若目标涉及本 worktree 独有改动，结果仍可能不完整。"
+  ],
+  "summary": "blocker：本次 design.explore-code 没有最小 brief 或 inputRefs，我只能确认 handoff 身份与 CodeGraph 状态，不能执行有效代码探索。请补充问题、目标模块/符号/路径及相关输入后重派；另注意当前 CodeGraph 索引来自不同 worktree。",
+  "recordedAt": "2026-08-11T09:16:30.881Z",
+  "resultDigest": "de8cca924bf035975bd1afeaef3ebb753d98aafd8b31114f5cc41d21798f4d44"
+}

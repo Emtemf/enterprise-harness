@@ -15,12 +15,14 @@ Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需
 当前主要支持：
 
 - Claude Code plugin。
-- Java、Spring Boot、Maven 项目。
-- `src/main/java/**`、`src/test/java/**`、`openapi/**` 约定路径。
-- CodeGraph-first 代码探索。
-- Context7-first 外部库和框架资料查询。
-- `clarify → route → design → plan → tdd → verify → archive` 七阶段流程。
+- Java、Spring Boot、Maven 项目；路径和构建边界可通过 `harness/project.json` profile v1 调整。
+- `src/main/java/**`、`src/test/java/**`、`openapi/**` 默认约定路径。
+- CodeGraph-first 代码探索，关键事实在当前源码中做 scoped confirmation。
+- Context7 MCP-first 外部库和框架资料查询；未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
+- State v5、session binding、change lock、artifact stale propagation 和 controlled rewind。
+- 0.4 目标 happy path：`clarify → classify → design → plan → implement → verify → archive`；当前 runtime 暂保留 `route` / `tdd` 兼容投影。
 - executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
+- Claude Code 原生 `worktree.baseRef=head`，worktree 只做代码隔离，不承载 change 真相。
 - 同一 Claude Code plugin 的 Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
 
 “Claude Code-only” 是当前明确的产品边界：暂不设计 Codex、OpenCode、Gemini CLI 等其他
@@ -32,11 +34,11 @@ agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin �
 
 要求：
 
-- Claude Code 2.1.218 或更高版本（当前验证版本：2.1.226）
+- Claude Code 2.1.218 或更高版本（当前验证版本：2.1.227）
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper
-- CodeGraph；涉及外部文档时建议提供 Context7 CLI
+- CodeGraph MCP；需要外部文档时配置 Context7 MCP 与 `CONTEXT7_API_KEY`，未配置时可使用官方文档 fallback。
 
 从 GitHub marketplace 安装：
 

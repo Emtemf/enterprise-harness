@@ -32,6 +32,7 @@ const commands = {
   'evidence-import': ['evidence-import.mjs'],
   handoff: ['handoff.mjs'],
   trace: ['trace.mjs'],
+  sessions: ['sessions.mjs'],
   'migrate-evidence-policy': ['migrate-evidence-policy.mjs'],
 };
 

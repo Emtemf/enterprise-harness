@@ -5,9 +5,8 @@
 - Java/后端默认 CodeGraph-first。
 - fallback 前同一 agent 必须留下 CodeGraph attempt 和原因。
 - 外部库、框架、SDK、版本行为默认 Context7-first。
-- Context7 通过 CLI 提供（`enterprise-harness context7 <library|docs>`，底层 `npx -y ctx7`），
-  不是已注册的 MCP server；`.mcp.json` 只声明 codegraph。
-- Context7 不足时才查官方文档或官方源码。
+- Context7 默认通过 `.mcp.json` 的 MCP server 查询，并用 `runtime/lib/mcp-policy.mjs` 的 `docs.resolve` / `docs.query` alias；需要 `CONTEXT7_API_KEY` 时从环境变量读取。
+- Context7 MCP 不可用或结果不足时才查官方文档、官方源码或 `enterprise-harness context7 <library|docs>` CLI，并在 packet 中记录 fallback/degraded 原因。
 - 一份 exploration brief 只包含 question、scope、facts、uncertainties、impact、sources 和 suggestedUserQuestion。
 - Bash 探索豁免按每个目标路径判断；混合业务路径时不能因 README/docs token 整体豁免。
 

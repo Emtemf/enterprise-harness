@@ -1,0 +1,28 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_b8c964dd-fd42-4931-a252-15e22089d689",
+  "changeId": "redesign-040",
+  "stage": "design",
+  "behavior": "design.explore-code",
+  "role": "check",
+  "attempt": 1,
+  "parentRunId": "run_60cf6cf2-64b0-4e74-a022-8933ba9b497a",
+  "agent": {
+    "type": "enterprise-harness:design-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "design.explore-code",
+    "evidence": [],
+    "context": [],
+    "path": "check design.explore-code",
+    "correction": "return blocker with an EH-* code and recovery action"
+  },
+  "inputRefs": [
+    "harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json"
+  ],
+  "inputDigests": {
+    "harness/changes/redesign-040/runs/run_60cf6cf2-64b0-4e74-a022-8933ba9b497a/result.json": "28c6c526b1e607848af94cf84f5eddb3f4803acd4149a28f34789ee7be841f1c"
+  },
+  "createdAt": "2026-08-11T09:16:52.136Z"
+}

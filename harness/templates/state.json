@@ -1,10 +1,28 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "revision": 1,
   "changeId": "<change-id>",
   "tier": "L1",
   "state": "DRAFT",
+  "status": "active",
+  "lifecycle": "active",
   "owner": "<owner>",
+  "controller": {
+    "mode": "released-controller",
+    "revision": null,
+    "subjectRoot": null
+  },
+  "sessionBinding": null,
+  "changeLock": null,
+  "artifacts": {},
+  "dependencies": {
+    "requirements": [],
+    "design": ["requirements"],
+    "plan": ["design"],
+    "evidence": ["plan"],
+    "validation": ["requirements", "design", "plan", "evidence"]
+  },
+  "blocker": null,
   "impact": {
     "api": "unknown",
     "data": "unknown",

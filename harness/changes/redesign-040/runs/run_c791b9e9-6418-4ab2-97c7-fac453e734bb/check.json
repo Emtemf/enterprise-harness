@@ -1,0 +1,37 @@
+{
+  "handoffVersion": 1,
+  "runId": "run_c791b9e9-6418-4ab2-97c7-fac453e734bb",
+  "changeId": "redesign-040",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "check",
+  "agent": {
+    "type": "enterprise-harness:clarify-reviewer",
+    "skill": "harness-stage-checker"
+  },
+  "tecpc": {
+    "target": "独立核验 parent explore-code result 是否满足 CodeGraph-first、明确 fallback、覆盖 Phase 1-3 所需 runtime/state/worktree/handoff/release/research 事实，并以压缩 packet 交付",
+    "evidence": [
+      "checker input.json 的 inputDigests 声明 harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json 摘要为 99e8e346971f848c4d4a3bc024d5b3ffc46a07b3ee59eee024777dc76b9c1416；实算 SHA-256 一致。",
+      "parent result.json 的 tecpc.evidence 明确记录先做 codegraph_status，再做 codegraph_explore/search/callers，覆盖 runtime/lib/gates.mjs、runtime/lib/workflow.mjs、runtime/lib/worktree.mjs、runtime/lib/agent-evidence.mjs、bin/package.mjs、runtime/prepublish.mjs、release/package/test。",
+      "parent result.json 的 tecpc.path 明确写明“CodeGraph-first 扫描”；随后因索引绑定父仓而非当前 worktree，且需确认当前 worktree 的模板/spec/Markdown/on-disk 细节，才降级到少量 Read/Bash。",
+      "parent result.json 的 tecpc.evidence 与 summary 覆盖 runtime/state/worktree/handoff/release/research：runtime 治理骨架与可复用模块；state 的 ACTIVE_CHANGE 单指针、template/schema/migration 漂移、strict>=4 与并发/CAS 问题；worktree 的 git worktree list --porcelain 事实；handoff 的 runtime/lib/handoff.mjs；release 的 package/release validation chain；research 的 CodeGraph/Context7 fact lanes/fallback/waiver 结论。",
+      "parent run 目录只有 input.json 与 result.json，且 parent result.json 采用 evidence/context/path/summary 的压缩结构，outputRefs=[]；未返回未经压缩的 source dump。"
+    ],
+    "context": [
+      "checker input: harness/changes/redesign-040/runs/run_c791b9e9-6418-4ab2-97c7-fac453e734bb/input.json",
+      "executor result: harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json",
+      "supporting spec: harness/specs/upstream-mapping.md"
+    ],
+    "path": "digest 一致，且 parent artifact 同时满足 CodeGraph-first、显式 fallback 原因、Phase 1-3 关键事实覆盖与压缩交付，因此可判定通过。",
+    "correction": "无"
+  },
+  "verdict": "pass",
+  "outputRefs": [
+    "harness/changes/redesign-040/runs/run_4fe5c832-8e72-4888-a728-1a4ba92e7717/result.json"
+  ],
+  "blockers": [],
+  "summary": "pass：parent explore-code result 满足 CodeGraph-first、显式 fallback、Phase 1-3 关键事实覆盖和压缩 packet 交付要求。",
+  "recordedAt": "2026-08-11T08:38:42.496Z",
+  "resultDigest": "6284cbf2448917f8558b5349cc8ccd1589b4c61169bb578b64806513c2214748"
+}

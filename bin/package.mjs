@@ -26,7 +26,12 @@ const ALLOWED_TREES = [
   'harness/upstream',
   'bin',
 ];
-const ALLOWED_HARNESS_FILES = ['harness/behavior-checks.json', 'harness/capabilities.json', 'harness/config.yaml'];
+const ALLOWED_HARNESS_FILES = [
+  'harness/behavior-checks.json',
+  'harness/capabilities.json',
+  'harness/config.yaml',
+  'harness/project.json',
+];
 const EXCLUDED_PREFIXES = ['runtime/test/', 'runtime/.bootstrap-ran'];
 
 let outDir = path.join(repoRoot, 'dist');

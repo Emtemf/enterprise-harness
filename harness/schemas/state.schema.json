@@ -17,7 +17,7 @@
     "blockers"
   ],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "schemaVersion": { "type": "integer", "minimum": 1, "maximum": 5 },
     "revision": { "type": "integer", "minimum": 1 },
     "changeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
     "tier": { "enum": ["L0", "L1", "L2", "L3"] },
@@ -32,9 +32,18 @@
         "REVIEWED",
         "VALIDATED",
         "ARCHIVED",
+        "ABANDONED",
         "REJECTED"
       ]
     },
+    "status": { "enum": ["active", "archived", "abandoned"] },
+    "lifecycle": { "enum": ["active", "archived", "abandoned"] },
+    "controller": { "type": "object", "additionalProperties": true },
+    "sessionBinding": { "type": ["object", "null"], "additionalProperties": true },
+    "changeLock": { "type": ["object", "null"], "additionalProperties": true },
+    "artifacts": { "type": "object", "additionalProperties": true },
+    "dependencies": { "type": "object", "additionalProperties": true },
+    "blocker": { "type": ["object", "null"], "additionalProperties": true },
     "currentTask": { "type": ["string", "null"] },
     "impact": {
       "type": "object",
