@@ -25,6 +25,13 @@ model: sonnet
 - 结论必须标注 library / version / query / source
 - 不返回大段原文给主 orchestrator
 
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
+- 调研目标在 `tecpc.target` 字段
+- 补充上下文在 `inputRefs` 指向的 artifact 文件（路径格式：`harness/changes/<changeId>/<artifact>`）
+- 产出写入 `harness/changes/<changeId>/evidence/tooling.md` 或 `inputRefs` 指定路径，不使用裸文件名
+
 ## 输入期待
 
 你通常会收到一个 exploration brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声文档调研，应先指出缺少最小 brief，而不是默认吞下整段大上下文。

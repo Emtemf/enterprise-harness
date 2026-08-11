@@ -32,6 +32,13 @@ model: sonnet
 - 不返回大段源码 dump 给主 orchestrator
 - 不得因为"Prompt 里没写用 codegraph"而跳过 codegraph——这是你的默认行为，不需要外部指令提醒
 
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
+- `inputRefs` 中的路径是相对于项目根目录的完整路径，格式为 `harness/changes/<changeId>/<artifact>`
+- 探索目标通常在 `tecpc.target` 字段，补充上下文在 `inputRefs` 指向的 artifact 文件
+- 产出写入 `harness/changes/<changeId>/evidence/<name>.md`，不使用裸文件名
+
 ## 输入期待
 
 你通常会收到一个 exploration brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声探索，应先指出缺少最小 brief，而不是默认吞下整段大上下文。

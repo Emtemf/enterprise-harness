@@ -40,21 +40,24 @@ isolation: worktree
 - 主返回值必须是压缩摘要，不得把整段构建日志原样倾倒给主上下文
 - 若缺少必要输入（task 描述、命令、scope），应明确返回 blocker，而不是猜测继续
 
+## 输入协议
+
+读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
+- `inputRefs` 中包含 task brief 路径，格式为 `harness/changes/<changeId>/briefs/<task-id>.md`
+- task brief 中包含 `change-id`、`task-id`、`touched-files`、`red-evidence-point`、`green-evidence-point`、`project-native-build-command`
+- TDD 产出写入 `harness/changes/<changeId>/evidence/tdd/` 目录，不使用裸文件名
+
 ## 输入期待
 
-你通常会收到一个 task brief，而不是整段主会话上下文。若没有 brief 但任务显然需要高噪声执行上下文，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
+你通常会收到一个 task brief（via inputRefs），而不是整段主会话上下文。若 inputRefs 中无 task brief，应明确返回 blocker，而不是猜测继续。
 
 ## 输入要求
 
-输入至少应明确给出：
-- `change-id`
-- `task-id`
-- `touched-files`
-- `test-first-order`
-- `red-evidence-point`
-- `green-evidence-point`
-- `project-native-build-command`
-- `scope`
+从 inputRefs 指向的 task brief 中读取：
+- `change-id`、`task-id`
+- `touched-files`、`test-first-order`
+- `red-evidence-point`、`green-evidence-point`
+- `project-native-build-command`、`scope`
 
 若上述字段缺失，必须返回 blocker，而不是猜测继续。
 
