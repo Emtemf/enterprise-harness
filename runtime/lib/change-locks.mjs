@@ -12,8 +12,12 @@ function guardPath(file) {
 export function acquireChangeLock(root, changeId, sessionId, options = {}) {
   assertSafeId(changeId, 'changeId');
   assertSafeId(sessionId, 'sessionId');
-  if (!readSession(root, sessionId, options)) {
+  const binding = readSession(root, sessionId, options);
+  if (!binding) {
     throw new Error(`EH-CHANGE-LOCK-003: ${sessionId} must be bound before locking ${changeId}`);
+  }
+  if (binding.changeId !== changeId) {
+    throw new Error(`EH-CHANGE-LOCK-004: ${sessionId} is bound to ${binding.changeId}, not ${changeId}`);
   }
   const paths = ensureRuntimePaths(root, options);
   const file = paths.lockPath(changeId);

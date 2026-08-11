@@ -20,11 +20,17 @@ try {
   assert.deepEqual(readSession(root, 'session-a'), first);
   bindSession(root, {
     sessionId: 'session-b',
+    changeId: 'change-a',
+    worktreePath: root,
+    controllerRevision: '0.4.0-dev',
+  });
+  bindSession(root, {
+    sessionId: 'session-c',
     changeId: 'change-b',
     worktreePath: root,
     controllerRevision: '0.4.0-dev',
   });
-  assert.equal(listSessions(root).length, 2);
+  assert.equal(listSessions(root).length, 3);
   assert.throws(
     () => bindSession(root, {
       sessionId: 'session-a',
@@ -40,6 +46,10 @@ try {
   assert.throws(
     () => acquireChangeLock(root, 'change-a', 'session-b'),
     /EH-CHANGE-LOCK-001/u,
+  );
+  assert.throws(
+    () => acquireChangeLock(root, 'change-a', 'session-c'),
+    /EH-CHANGE-LOCK-004/u,
   );
   releaseChangeLock(root, 'change-a', 'session-a');
   assert.equal(fs.existsSync(paths.lockPath('change-a')), false);

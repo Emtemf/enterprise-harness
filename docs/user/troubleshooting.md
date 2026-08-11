@@ -105,6 +105,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CHANGE-LOCK-001` | change 正被其他 session 写入 | 等待或结束持有锁的 session，不使用 last-write-wins |
 | `EH-CHANGE-LOCK-002` | 非锁持有者尝试释放 change lock | 使用原 session 释放，或清理失效运行态后重试 |
 | `EH-CHANGE-LOCK-003` | session 尚未绑定就尝试获取 change lock | 先用当前 session 绑定 change/worktree，再获取锁 |
+| `EH-CHANGE-LOCK-004` | session 绑定的 change 与请求锁定的 change 不一致 | 只能由绑定到同一 change 的 session 获取锁 |
 | `EH-CONTROLLER-SUBJECT-001` | controller 与 subject 指向同一根目录 | 配置稳定 released controller，再治理 subject working tree |
 | `EH-RESEARCH-PACKET-001` | research packet 缺事实、来源策略或 fallback 记录 | 重新生成统一 packet，不把 MCP 原文当编排指令 |
 | `EH-MCP-POLICY-001` | MCP provider/capability 记录不符合统一策略 | 通过 mcp-policy 使用 codegraph/context7 capability alias |
