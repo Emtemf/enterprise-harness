@@ -74,8 +74,6 @@ T 目标、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria�
    enterprise-harness handoff create <change-id> <stage> <behavior> execute
    ```
 
-   `<behavior>` 不是 agent 名。合法取值见 `harness/behavior-checks.json`，例如代码探索是
-   `clarify.explore-code` 而非 `code-explore`。写错时 `pre-agent` 会 BLOCK 并给出正确命令。
 3. 派 registry 指定 executor，prompt 原样包含上一步输出的 `HANDOFF_INPUT=<path>` 行。
 4. 等待 result，不重复相同工作。
 5. 用 executor run id 创建 check handoff：
@@ -86,6 +84,27 @@ T 目标、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria�
 
 6. 派 registry 指定 checker。
 7. 只有 checker pass 才推进。
+
+### behavior 速查（最常见错误）
+
+`<behavior>` 是 `stage.action` 格式，**不是 agent 名**。
+
+| 想做什么 | 正确 behavior | 错误写法 |
+|---|---|---|
+| clarify 阶段探索代码 | `clarify.explore-code` | `code-explore` |
+| clarify 阶段查外部文档 | `clarify.research-docs` | `doc-research` |
+| clarify 阶段更新需求 | `clarify.synthesize` | `clarify-synthesizer` |
+| route 阶段探索代码 | `route.explore-code` | `code-explore` |
+| route 阶段路由决策 | `route.decide` | `route-decider` |
+| design 阶段产出设计 | `design.produce` | `design-executor` |
+| design 阶段探索代码 | `design.explore-code` | `code-explore` |
+| design 阶段 API 检查 | `design.check-api` | `api-consistency-reviewer` |
+| plan 阶段产出计划 | `plan.produce` | `plan-executor` |
+| tdd 阶段执行任务 | `tdd.execute-task` | `tdd-executor` |
+| verify 阶段收集验证 | `verify.collect` | `verification-executor` |
+| verify 阶段 API 检查 | `verify.check-api` | `api-consistency-reviewer` |
+
+写错时 `pre-agent` 会 BLOCK 并打印正确命令。完整列表见 `harness/behavior-checks.json`。
 
 ## 阶段推进
 

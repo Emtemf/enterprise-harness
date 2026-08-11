@@ -64,3 +64,34 @@ END_ENTERPRISE_HARNESS_HANDOFF_RESULT
 ```
 
 缺少输入时返回 blocker envelope，不得只回复 `done`、`pass` 或猜测补齐。
+
+## 最小完整示例
+
+```text
+ENTERPRISE_HARNESS_HANDOFF_RESULT
+{
+  "handoffVersion": 1,
+  "runId": "ch-001-clarify-clarify.explore-code-execute-1754870000",
+  "changeId": "ch-001",
+  "stage": "clarify",
+  "behavior": "clarify.explore-code",
+  "role": "execute",
+  "agent": {
+    "type": "enterprise-harness:code-explore",
+    "skill": "harness-stage-executor"
+  },
+  "tecpc": {
+    "target": "探索 UserService 的依赖边界，确认是否有外部调用方",
+    "evidence": ["codegraph_explore UserService → 返回3个调用方", "harness/changes/ch-001/evidence/code-exploration.md 已写入"],
+    "context": ["input.json#inputRefs[0]: requirements.md"],
+    "path": "codegraph_explore → 发现依赖，fallback 未触发 → 返回主 orchestrator",
+    "correction": "无阻断"
+  },
+  "outputRefs": ["harness/changes/ch-001/evidence/code-exploration.md"],
+  "blockers": [],
+  "summary": "UserService 有3个调用方（OrderController、PaymentService、AdminController）；无外部跨服务依赖。"
+}
+END_ENTERPRISE_HARNESS_HANDOFF_RESULT
+```
+
+**关键点**：`runId` 与 `input.json` 中的值完全相同；`outputRefs` 只列实际写入的文件；`blockers` 为空时设为 `[]` 不得省略。
