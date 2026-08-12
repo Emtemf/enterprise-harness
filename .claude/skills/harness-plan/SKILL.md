@@ -22,49 +22,73 @@ agent: general-purpose
 
 ## 输入
 
-- approved design 和 digest
-- impact/reviewer requirements
-- project command policy
+- approved design + digest
+- impact / reviewer requirements
+- project command policy（`harness/command-policy.json`）
 
 ## 动作
 
 1. 为每个 task 生成 task brief。
-2. 对 `plan.produce` 创建 execute handoff，派 `plan-executor` 生成：
-   - taskId 和目标
-   - touched files
-   - test-first order
-   - RED/GREEN evidence point
-   - dependencies
-   - acceptance
-3. 在 `task-commands.json` 冻结每个 task 的 red/green/refactor 或 verify exact argv。
-4. Maven argv 必须符合 `harness/command-policy.json`。
-5. 等待 `plan.produce` 的 `result.json` 后，以其 runId 创建 check handoff，派 `plan-critic`
-   独立检查可执行性和遗漏；只有 `check.json` verdict 为 pass/advisory 才可 `freeze-plan`。
+2. 创建 execute handoff，派 `plan-executor`：
+   ```bash
+   enterprise-harness handoff create <change-id> plan plan.produce execute
+   ```
+3. 等 `plan.produce/result.json`，以其 runId 创建 check handoff，派 `plan-critic`。
+4. 只有 check.json verdict 为 pass 或 advisory 才可 `freeze-plan`。
+
+## Task 必须包含的字段
+
+每个 task 在 `tasks.md` 中需包含：
+
+| 字段 | 说明 |
+|------|------|
+| taskId | 唯一标识，如 `task-001` |
+| goal | 单一可测试目标 |
+| touchedFiles | 精确文件路径列表 |
+| testFirst | 必须先写的测试文件 |
+| redEvidence | RED 断言描述（不接受"运行测试失败"） |
+| dependencies | 前置 taskId 列表 |
+| acceptance | 明确通过标准 |
+
+## task-commands.json 冻结格式
+
+```json
+{
+  "task-001": {
+    "red":      ["mvn", "test", "-pl", "module", "-Dtest=FooTest#testBar"],
+    "green":    ["mvn", "test", "-pl", "module", "-Dtest=FooTest#testBar"],
+    "refactor": ["mvn", "verify", "-pl", "module"]
+  }
+}
+```
+
+- 数组元素是 exact argv，runner 以 `spawnSync` 无 shell 执行
+- Java/Maven 必须符合 `harness/command-policy.json`
+- 不接受自然语言命令描述
 
 ## 产出
 
-- `tasks.md`
-- task briefs
-- `task-commands.json`
-- plan checker verdict
+- `tasks.md`（含所有 task brief）
+- `task-commands.json`（冻结 red/green/refactor argv）
+- `plan.produce` result.json + `plan-critic` check.json
 
-## 阻断
+## 阻断条件
 
 - design 未 pass
 - task 无具体测试或 RED 点
-- 命令只写自然语言
-- task 太大或顺序不明确
+- 命令只写自然语言描述
+- task 太大（单 task 超过1个原子变更）或顺序不明确
 - checker block
 
 ## 下一阶段
 
-plan pass 后，主 orchestrator 必须依次执行：
+plan pass 后，主 orchestrator 依次执行：
+
 ```bash
 enterprise-harness workflow decide <change-id> freeze-plan
 enterprise-harness validate <change-id>
 ```
-第一条将 `planReady` 置 true 并推进到 tdd 阶段；第二条验证静态阶段链
-（requirements/change/design/tasks/reviews 完整性）并落 `evidence/stage-gate.json` marker。
-pre-write hook 只查这个 marker，不再每次写文件全量重算阶段链。若漏执行 validate，
-tdd 阶段第一次写受治理路径会被 pre-write block。
-需要返工时用 `revise-plan`。
+
+第一条置 `planReady=true` 推进到 tdd；第二条验证静态阶段链并落 `evidence/stage-gate.json` marker。
+pre-write hook 只查这个 marker，不每次重算阶段链。漏执行 `validate` 会导致 tdd 阶段首次写受治理路径被 block。
+返工用 `revise-plan`。

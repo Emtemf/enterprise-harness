@@ -92,16 +92,16 @@ T 目标、Scope、User/actor、Data/SQL、Interface/API、Acceptance criteria�
 
 `<behavior>` 是 `stage.action` 格式，**不是 agent 名**。写错时 `pre-agent` 会 BLOCK 并打印正确命令。
 
-完整映射表：`.claude/skills/harness/refs/behavior-map.md`
+完整映射表：`.claude/skills/harness/reference/behavior-map.md`
 
 ## 阶段推进
 
 用 `enterprise-harness workflow status <change-id>` 读 `pendingDecision.options`；不在其中的决策直接失败。
 
-完整决策表：`.claude/skills/harness/refs/stage-decisions.md`
+完整决策表：`.claude/skills/harness/reference/stage-decisions.md`
 
 ## 输出
 
 只向用户输出：changeId、stage、currentGap、本轮 evidence、checker verdict、一个下一动作或一个澄清问题。
 
-不要复制 ledger、schema 或 hook 全文。长期合同见 `harness/specs/workflow.md` 和 `harness/specs/agents-and-handoff.md`。
+不要复制 ledger、schema 或 hook 全文。
