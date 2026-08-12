@@ -98,9 +98,9 @@ try {
   const eventsText = fs.readFileSync(eventsPath, 'utf-8');
   const ok =
     statusBefore?.pendingDecision?.kind === 'scope-confirmation' &&
-    decideResult?.stage === 'route' &&
+    decideResult?.stage === 'classify' &&
     stateAfter.workflow?.userConfirmedScope === true &&
-    stateAfter.workflow?.stage === 'route' &&
+    stateAfter.workflow?.stage === 'classify' &&
     eventsText.includes('"type":"decision"');
 
   if (mode === 'red') {

@@ -59,8 +59,8 @@ try {
   // 每一步：断言该 stage 确实给出 pendingDecision，然后执行它并确认 stage 前进。
   const steps = [
     { decision: 'confirm-clarity', from: 'clarify', to: 'clarify' },
-    { decision: 'confirm-scope', from: 'clarify', to: 'route' },
-    { decision: 'confirm-route', from: 'route', to: 'design' },
+    { decision: 'confirm-scope', from: 'clarify', to: 'classify' },
+    { decision: 'confirm-route', from: 'classify', to: 'design' },
     { decision: 'approve', from: 'design', to: 'plan' },
     { decision: 'freeze-plan', from: 'plan', to: 'tdd' },
   ];

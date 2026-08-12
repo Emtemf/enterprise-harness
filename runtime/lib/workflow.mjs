@@ -339,8 +339,8 @@ export function applyScopeConfirmationDecision(data, decision) {
   if (decision === 'confirm-scope') {
     data.workflow.userConfirmedScope = true;
     if (data.workflow.clarifyReady) {
-      data.workflow.stage = 'route';
-      data.workflow.nextEntry = '/harness-route';
+      data.workflow.stage = 'classify';
+      data.workflow.nextEntry = '/harness';
     }
   }
   if (decision === 'revise-scope') {
