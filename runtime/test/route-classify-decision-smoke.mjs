@@ -14,6 +14,7 @@ try {
   const classified = classifyChange(state);
   const next = applyRouteConfirmationDecision({ ...state, workflow: { ...state.workflow } }, 'confirm-route', classified);
   assert.equal(next.workflow.routeReady, true);
+  assert.deepEqual(next.classification, classified);
   assert.deepEqual(next.workflow.classification, classified);
   assert.equal(next.workflow.stage, 'design');
   assert.equal(next.workflow.nextEntry, '/harness-design');

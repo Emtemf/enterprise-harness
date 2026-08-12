@@ -44,6 +44,7 @@
     "artifacts": { "type": "object", "additionalProperties": true },
     "dependencies": { "type": "object", "additionalProperties": true },
     "blocker": { "type": ["object", "null"], "additionalProperties": true },
+    "classification": { "type": ["object", "null"], "additionalProperties": true },
     "currentTask": { "type": ["string", "null"] },
     "impact": {
       "type": "object",

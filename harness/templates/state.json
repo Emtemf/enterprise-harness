@@ -29,6 +29,7 @@
     "architecture": "unknown",
     "rule": "unknown"
   },
+  "classification": null,
   "tooling": {
     "codegraph": {
       "status": "unknown",

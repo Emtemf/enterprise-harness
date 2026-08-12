@@ -198,7 +198,7 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - session 优先的 current-change resolution；`ACTIVE_CHANGE` 仅保留无 session 环境的兼容 fallback。
 - `harness/project.json` profile v1，集中 Java/Maven 与受治理路径边界。
 - Claude Code native `worktree.baseRef=head` 配置投影；现有 custom worktree hooks 暂保留兼容测试覆盖，后续版本再移除。
-- GUIDE projection 已在 post-release slice 移除：scaffold 不再生成，status/SessionStart 不再暴露 guideReminder。
+- route 确认现在会持久化内部 classification 到 state root 与 workflow projection；`routeReady` / `/harness-route` 仍作为兼容入口。
 - classify 已增加为内部 action：输出 tier、impact、requiredReviews 和固定 workflow topology；route 兼容 stage 暂未删除。
 
 尚未在本次 0.4.0 release 中完成的后续 breaking cleanup：

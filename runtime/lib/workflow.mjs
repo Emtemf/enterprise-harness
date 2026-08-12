@@ -323,7 +323,8 @@ export function applyScopeConfirmationDecision(data, decision) {
 export function applyRouteConfirmationDecision(data, decision, classification = null) {
   if (decision === 'confirm-route') {
     data.workflow.routeReady = true;
-    data.workflow.classification = classification || classifyChange(data);
+    data.classification = classification || classifyChange(data);
+    data.workflow.classification = data.classification;
     data.workflow.stage = 'design';
     data.workflow.nextEntry = '/harness-design';
   }
