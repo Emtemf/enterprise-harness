@@ -4,7 +4,6 @@ import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
 import { evaluateSpawnDepth } from '../lib/spawn-depth.mjs';
-import { computeGuideReminder } from '../lib/workflow.mjs';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -44,10 +43,6 @@ try {
       workflowResult,
     });
     console.log(`[Harness 闭环五检]\n${card}`);
-    const guideReminder = computeGuideReminder(root, active.changeId);
-    if (guideReminder) {
-      console.log(`[Harness Workflow] GUIDE 提醒: ${guideReminder}`);
-    }
   } else {
     console.log('[Harness 入口] 无 active change — 运行 /harness 开始或恢复工作流。');
   }

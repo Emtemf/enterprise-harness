@@ -60,41 +60,21 @@ try {
   const scaffold = runScaffold(repoCopy, changeId);
   const guidePath = path.join(repoCopy, 'harness', 'changes', changeId, 'GUIDE.md');
   const guideExists = fs.existsSync(guidePath);
-  const guideText = guideExists ? fs.readFileSync(guidePath, 'utf-8') : '';
-  const hasNoPlaceholders = guideExists && !guideText.includes('{{');
-  const hasChangeId = guideText.includes(changeId);
-  const hasTier = guideText.includes('L2');
-  const hasUnknownImpact = guideText.includes('unknown');
-  const hasCommands = requiredCommandLines.every((line) => guideText.includes(line));
-  const ok =
-    scaffold.status === 0 &&
-    guideExists &&
-    hasNoPlaceholders &&
-    hasChangeId &&
-    hasTier &&
-    hasUnknownImpact &&
-    hasCommands;
+  const hasNoGuideProjection = !guideExists;
+  const ok = scaffold.status === 0 && hasNoGuideProjection;
 
   if (mode === 'red') {
     if (!ok) {
-      fail('Expected scaffold-guide contract to fail before implementation');
+      pass('Red precondition holds: scaffold still generates GUIDE.md.');
     }
-    pass('Red precondition no longer holds.');
+    fail('Expected GUIDE projection contract to fail before implementation');
   }
 
   if (!ok) {
-    const failures = [];
-    if (scaffold.status !== 0) failures.push(`scaffold exited ${scaffold.status}: ${(scaffold.stderr || scaffold.stdout || '').trim()}`);
-    if (!guideExists) failures.push('GUIDE.md was not generated');
-    if (guideExists && !hasNoPlaceholders) failures.push('GUIDE.md still contains {{ placeholders');
-    if (guideExists && !hasChangeId) failures.push('GUIDE.md is missing change-id value');
-    if (guideExists && !hasTier) failures.push('GUIDE.md is missing tier value');
-    if (guideExists && !hasUnknownImpact) failures.push('GUIDE.md is missing unknown impact defaults');
-    if (guideExists && !hasCommands) failures.push('GUIDE.md is missing required acceptance command lines');
-    fail(`Expected scaffold-guide contract to pass:\n${failures.join('\n')}`);
+    fail(`Expected scaffold to omit GUIDE.md, exists=${guideExists}`);
   }
 
-  pass(mode === 'green' ? 'Green scaffold-guide contract smoke passed.' : 'Scaffold-guide contract verify smoke passed.');
+  pass(mode === 'green' ? 'Green GUIDE projection removal smoke passed.' : 'GUIDE projection removal verify smoke passed.');
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }

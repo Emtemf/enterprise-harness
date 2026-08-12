@@ -8,7 +8,6 @@ const repoRoot = path.resolve(import.meta.dirname, '../..');
 const statusPath = path.join(repoRoot, 'runtime', 'status.mjs');
 const sessionStartPath = path.join(repoRoot, 'runtime', 'hooks', 'session-start.mjs');
 const mode = process.argv[2];
-const reminderLine = 'GUIDE.md 导航卡';
 const expectedGap = '缺少 design.md。';
 
 function copyDir(src, dest) {
@@ -105,9 +104,8 @@ try {
   const missingGuideOk =
     statusJson.status === 0 &&
     parsed?.currentGap === expectedGap &&
-    parsed?.activeChange?.guideReminder &&
-    String(sessionStart.stdout || '').includes(reminderLine) &&
-    String(sessionStart.stdout || '').includes(expectedGap);
+    !parsed?.activeChange?.guideReminder &&
+    !String(sessionStart.stdout || '').includes('GUIDE 提醒');
 
   writeChange(repoCopy, changeId, true);
   const statusJsonWithGuide = spawnSync('node', [path.join(repoCopy, 'runtime', 'status.mjs'), '--json'], {
@@ -134,12 +132,12 @@ try {
     const failures = [];
     if (statusJson.status !== 0) failures.push('status --json failed for missing-guide scenario');
     if (parsed?.currentGap !== expectedGap) failures.push(`currentGap changed: expected ${expectedGap}, got ${parsed?.currentGap}`);
-    if (!parsed?.activeChange?.guideReminder) failures.push('missing-guide scenario did not expose activeChange.guideReminder');
-    if (!String(sessionStart.stdout || '').includes(reminderLine)) failures.push('SessionStart output is missing GUIDE reminder line');
+    if (!parsed?.activeChange || Object.hasOwn(parsed.activeChange, 'guideReminder')) failures.push('status summary still exposes GUIDE projection');
+    if (String(sessionStart.stdout || '').includes('GUIDE 提醒')) failures.push('SessionStart still emits GUIDE projection reminder');
     if (!String(sessionStart.stdout || '').includes(expectedGap)) failures.push('SessionStart output no longer includes original currentGap line');
     if (statusJsonWithGuide.status !== 0) failures.push('status --json failed for with-guide scenario');
     if (parsedWithGuide?.currentGap !== expectedGap) failures.push(`currentGap changed with GUIDE present: expected ${expectedGap}, got ${parsedWithGuide?.currentGap}`);
-    if (parsedWithGuide?.activeChange?.guideReminder) failures.push('with-guide scenario should not expose guideReminder');
+    if (parsedWithGuide?.activeChange && Object.hasOwn(parsedWithGuide.activeChange, 'guideReminder')) failures.push('with-guide summary still exposes guideReminder');
     fail(`Expected guide-reminder contract to pass:\n${failures.join('\n')}`);
   }
 

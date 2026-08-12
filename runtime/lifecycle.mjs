@@ -75,18 +75,7 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic 
   }
 
   const guideTarget = path.join(changeDir, 'GUIDE.md');
-  if (!fs.existsSync(guideTarget)) {
-    const state = readJson(statePath);
-    const guideTemplate = fs.readFileSync(path.join(templatesDir, 'guide.md'), 'utf-8');
-    const guideText = guideTemplate
-      .replaceAll('{{CHANGE_ID}}', String(changeId))
-      .replaceAll('{{TIER}}', String(tier))
-      .replaceAll('{{IMPACT_API}}', String(state.impact?.api ?? 'unknown'))
-      .replaceAll('{{IMPACT_DATA}}', String(state.impact?.data ?? 'unknown'))
-      .replaceAll('{{IMPACT_ARCHITECTURE}}', String(state.impact?.architecture ?? 'unknown'))
-      .replaceAll('{{IMPACT_RULE}}', String(state.impact?.rule ?? 'unknown'));
-    fs.writeFileSync(guideTarget, guideText, 'utf-8');
-  }
+  if (fs.existsSync(guideTarget)) fs.rmSync(guideTarget);
 
   console.log(`Scaffold ready: ${changeDir}`);
 }

@@ -34,9 +34,6 @@ function activeChangeSummary(root) {
       approvals: {},
       currentTask: null,
       workflowStage: null,
-      nextEntry: '/harness',
-      recommendedLane: null,
-      guideReminder: null,
       currentGap: '当前没有 active change。',
     };
   }
@@ -53,7 +50,6 @@ function activeChangeSummary(root) {
     workflowStage: workflow.stage,
     nextEntry: workflow.nextEntry,
     recommendedLane: workflow.recommendedLane,
-    guideReminder: computeGuideReminder(root, active.changeId),
     currentGap: workflow.currentGap,
     nextAction: workflow.nextAction,
     workflowStatus: workflow.status,
@@ -145,8 +141,6 @@ export function renderStatusSummary(summary) {
     summary.nextStage ? `- ${summary.nextStage}` : null,
     '当前缺口',
     `- ${summary.currentGap}`,
-    summary.activeChange?.guideReminder ? 'GUIDE 提醒' : null,
-    summary.activeChange?.guideReminder ? `- ${summary.activeChange.guideReminder}` : null,
     summary.recommendedLane ? '推荐探索通道' : null,
     summary.recommendedLane ? `- ${summary.recommendedLane}` : null,
     '推荐恢复入口',
