@@ -3,9 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { bindSession, listSessions } from '../lib/sessions.mjs';
 
-const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname);
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-abandon-'));
 try {
   fs.mkdirSync(path.join(root, 'harness', 'changes', 'unfinished'), { recursive: true });

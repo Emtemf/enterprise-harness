@@ -7,11 +7,11 @@ import { controllerDescriptor, assertControllerSubjectBoundary } from '../lib/co
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-controller-'));
 try {
   const descriptor = controllerDescriptor(root, {
-    controllerRoot: '/opt/enterprise-harness/0.4.0',
+    controllerRoot: path.join(path.parse(root).root, 'opt', 'enterprise-harness', '0.4.0'),
     subjectRoot: root,
     source: 'released-controller',
   });
-  assert.equal(descriptor.controllerRoot, '/opt/enterprise-harness/0.4.0');
+  assert.equal(descriptor.controllerRoot, path.join(path.parse(root).root, 'opt', 'enterprise-harness', '0.4.0'));
   assert.equal(descriptor.subjectRoot, root);
   assert.equal(descriptor.controllerRoot === descriptor.subjectRoot, false);
   assert.doesNotThrow(() => assertControllerSubjectBoundary(descriptor));
