@@ -320,9 +320,10 @@ export function applyScopeConfirmationDecision(data, decision) {
   return data;
 }
 
-export function applyRouteConfirmationDecision(data, decision) {
+export function applyRouteConfirmationDecision(data, decision, classification = null) {
   if (decision === 'confirm-route') {
     data.workflow.routeReady = true;
+    data.workflow.classification = classification || classifyChange(data);
     data.workflow.stage = 'design';
     data.workflow.nextEntry = '/harness-design';
   }

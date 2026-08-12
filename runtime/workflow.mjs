@@ -185,7 +185,7 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'route-confirmation') {
-    applyRouteConfirmationDecision(data, decision);
+    applyRouteConfirmationDecision(data, decision, classifyChange(data));
   }
 
   if (pending.kind === 'execution-readiness') {
