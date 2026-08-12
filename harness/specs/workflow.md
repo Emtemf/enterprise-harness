@@ -19,8 +19,10 @@ testRefs:
 唯一状态流：
 
 ```text
-clarify → route → design → plan → tdd → verify → archive
+clarify → classify → design → plan → implement → verify → archive
 ```
+
+`route` 是 0.3/早期 0.4 状态的兼容 projection，不再是新 State v5 的 authoritative stage。有效的 `state.classification` 是 classify 的 durable output；只有缺少该 output 的历史状态才回落到 `route` gate，以保证只读兼容而不静默越过旧边界。
 
 ## clarify
 
@@ -42,7 +44,13 @@ route 是独立 gate，不是 clarify 的尾巴。clarify 回答“需求是什�
   design 在 `routeReady` 为 false 时不可进入。
 - 恢复入口是 `/harness-route`，不复用 clarify 入口。
 
-route 事实不足时返回 clarify，不用推测补齐。
+## route compatibility
+
+旧 route 资产继续可读，但不再定义新 State v5 的主流程：
+
+- 旧状态仍可通过 `confirm-route` / `revise-route` 和 `/harness-route` 修复或补齐 classification。
+- 新状态优先消费 `state.classification`；`routeReady` 只是兼容投影，不得被当成唯一分类真相。
+- route 事实不足时返回 clarify，不用推测补齐。
 
 ## design
 
