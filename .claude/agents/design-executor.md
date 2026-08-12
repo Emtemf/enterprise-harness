@@ -18,6 +18,7 @@ model: sonnet
 只执行 `design.produce` 或 `design.check-api` handoff 指定的范围。
 
 - 以 `harness/templates/design.md` 和稳定设计规范为模板。
+- 输出 `HANDOFF_RESULT` 前按需读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。
 - API、SQL/数据不适用时也必须给出有证据的 `none` 结论。
 - 每个关键设计决策都要绑定来源、验证方法和纠正路径。
 - 成稿交还主 orchestrator，由独立 design reviewer 检查；不得自批。

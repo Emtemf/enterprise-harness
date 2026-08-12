@@ -38,6 +38,10 @@ model: sonnet
 6. compatibility 策略是否自洽
 7. 是否存在“实现会抛错，但 contract 没描述”的情况
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 verdict 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 输出结构化 verdict：

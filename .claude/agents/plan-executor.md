@@ -18,5 +18,6 @@ model: sonnet
 只执行 `plan.produce`。
 
 - 每个 task 必须有 touched files、consumes/produces、test-first order、RED/GREEN/REFACTOR、真实 argv 和 acceptance checks。
+- 输出 `HANDOFF_RESULT` 前按需读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。
 - Java/Maven 项目必须使用目标项目真实 `mvn test`/`mvn verify` 命令，不得用 harness smoke 冒充。
 - 计划成稿后交由独立 `plan-critic`，不得自批。

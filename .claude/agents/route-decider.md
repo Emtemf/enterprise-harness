@@ -22,4 +22,5 @@ model: sonnet
 - tier 判定必须与 API/data/architecture/rule 的硬信号一致，并写明每个维度的依据。
 - 四个 impact 维度不得留 `unknown`；无法判定时记为 blocker，不猜测。
 - 不得自行把 `workflow.routeReady` 置为 true；该标志只能由用户确认后经 workflow decide 写入。
-- 严格遵循预加载的 `harness protocol executor contract` 输出合同。
+- 严格遵循预加载的 `harness protocol executor contract` 输出合同；需要具体字段时读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`。
+- 需要最小完整结果示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。

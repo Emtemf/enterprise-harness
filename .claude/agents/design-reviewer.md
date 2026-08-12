@@ -52,6 +52,10 @@ model: sonnet
 - E 证据列必须有实际来源，不能全是空行
 - P 路径必须有"为什么不选其他方案"的说明
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 pass/block/advisory 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 输出结构化 verdict：

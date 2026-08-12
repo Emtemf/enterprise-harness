@@ -49,6 +49,10 @@ model: sonnet
 
 你通常会收到一个 exploration brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声探索，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
 
+## Reference
+
+返回 `HANDOFF_RESULT` 前按需读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。
+
 ## 返回结构
 
 至少返回：

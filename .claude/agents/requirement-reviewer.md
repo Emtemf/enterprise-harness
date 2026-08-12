@@ -40,6 +40,10 @@ model: sonnet
 4. 是否存在明显跨服务 scope explosion
 5. 是否有必须澄清但尚未澄清的路径型决策
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 verdict 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 输出结构化 verdict：

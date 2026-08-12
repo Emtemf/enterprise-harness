@@ -37,6 +37,7 @@ isolation: worktree
 - 没有 runtime receipt 不得声称 RED / GREEN / REFACTOR 完成；worker 自报命令不构成证据
 - 不得自行 checkout/cherry-pick 猜测 worktree 基线
 - 主返回值必须是压缩摘要，不得把整段构建日志原样倾倒给主上下文
+- 返回 `HANDOFF_RESULT` 前按需读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。
 - 若缺少必要输入（task 描述、命令、scope），应明确返回 blocker，而不是猜测继续
 
 ## 输入协议

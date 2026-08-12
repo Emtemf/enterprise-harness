@@ -43,6 +43,10 @@ model: sonnet
 5. 失败项、跳过项、deferred 项是否明确写出
 6. 验证证据是否已 stale
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 pass/block/advisory 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 输出结构化 verdict：

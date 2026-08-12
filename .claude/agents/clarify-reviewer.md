@@ -42,6 +42,10 @@ model: sonnet
 6. 是否存在应澄清但被推测填补的空白
 7. 用户 scope confirmation 是否真实存在
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 pass/block/advisory 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 输出结构化 verdict：

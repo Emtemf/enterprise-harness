@@ -23,5 +23,6 @@ model: sonnet
 
 - 运行与完成声明相匹配的真实验证命令，记录 argv、exit code、时间与输出摘要。
 - 消费所有 blocking reviewer verdict、TDD receipt 与当前 digest。
+- 返回 `HANDOFF_RESULT` 前按需读取 `.claude/skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `.claude/skills/harness/reference/protocol/executor-minimal.md`。
 - 显式记录失败、跳过和豁免；SKIP 不得写成 PASS。
 - 刷新 `validation.md` 后交由独立 `verification-reviewer`。

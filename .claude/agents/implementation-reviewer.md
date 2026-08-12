@@ -27,6 +27,10 @@ model: sonnet
 5. `implementationCommit` 是否可定位（非空、可 `git show`）
 6. 实现与 design / acceptance criteria 是否一致
 
+## Reference
+
+输出 checker `HANDOFF_RESULT` 前读取 `.claude/skills/harness/reference/protocol/checker-verdict-contract.md`；需要 verdict 示例时读取 `.claude/skills/harness/reference/protocol/checker-verdicts.md`。
+
 ## 输出要求
 
 - `pass`：TDD 执行完整，receipt 有效，实现符合设计
