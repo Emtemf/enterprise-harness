@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-08-12
+
+### Changed
+
+- Clarify now uses Claude Code `AskUserQuestion` to ask one focused question at a time, with a recommended option.
+- Stage skills use compact per-step `Expect` / `Verify` checkpoints and few-shot handoff examples for weaker models.
+- User workflow documentation now explains the expected evidence and verification at each stage.
+- Post-write remains a thin hook shell while retaining the snapshot attribution gate and validation invalidation policy.
+
+### Fixed
+
+- Restored `SubagentStart` lifecycle evidence required by agent completion gates while retaining plugin-scoped MCP evidence matchers.
+
 ## [0.4.2] - 2026-08-12
 
 ### Fixed
