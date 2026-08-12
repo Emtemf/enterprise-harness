@@ -85,15 +85,17 @@ function inspectArtifacts(root, changeId, artifacts) {
 export function auditWorkflow(root, changeId, data, options = {}) {
   const registry = loadBehaviorRegistry(root);
   const currentStage = String(data?.workflow?.stage || 'clarify');
-  const invalidStage = !STAGE_ORDER.includes(currentStage);
-  const completed = new Set(completedStages(data, options.includeCurrent === true));
+  const legacyRouteProjection = currentStage === 'route';
+  const auditStage = legacyRouteProjection ? 'classify' : currentStage;
+  const invalidStage = !STAGE_ORDER.includes(auditStage);
+  const completed = new Set(completedStages({ ...data, workflow: { ...data.workflow, stage: auditStage } }, options.includeCurrent === true));
   const events = readAgentEvents(root, changeId);
   const stages = [];
 
   for (const stage of STAGE_ORDER) {
     const spec = STAGE_CONTRACTS[stage];
     const isCompleted = completed.has(stage);
-    const isCurrent = stage === currentStage;
+    const isCurrent = stage === auditStage;
     if (!isCompleted && !isCurrent) {
       stages.push({ stage, lifecycle: 'future', status: 'pending', artifacts: [], state: [], handoffs: [], events: [] });
       continue;
@@ -136,7 +138,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
     ? problem(
       'EH-AUDIT-STATE-005',
       `workflow.stage is invalid: ${currentStage}`,
-      `restore workflow.stage to one of: ${STAGE_ORDER.join(', ')}`,
+      `restore workflow.stage to one of: ${[...STAGE_ORDER, 'route'].join(', ')}`,
     )
     : null;
   const blockers = [
