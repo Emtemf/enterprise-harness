@@ -82,24 +82,6 @@
         "statusMessage": "校验 subagent 完成证据"
       }
     ],
-    "WorktreeCreate": [
-      {
-        "script": "worktree-create.mjs",
-        "timeout": 30,
-        "performanceBudgetMs": 2000,
-        "failMode": "fail-closed",
-        "statusMessage": "从父会话 HEAD 创建受控 worktree"
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "script": "worktree-remove.mjs",
-        "timeout": 10,
-        "performanceBudgetMs": 500,
-        "failMode": "fail-open",
-        "statusMessage": "清理 worktree 中 active change 镜像"
-      }
-    ],
     "TaskCompleted": [
       {
         "script": "task-completed.mjs",

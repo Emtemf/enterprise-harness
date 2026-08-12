@@ -6,8 +6,6 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd();
 const mode = process.argv[2] || 'verify';
 const requiredRuntime = [
-  'hooks/worktree-create.mjs',
-  'test/worktree-create-current-head-smoke.mjs',
   'test/plugin-entry-agent-contract-smoke.mjs',
   'test/portable-launcher-smoke.mjs',
   'test/subagent-contract-smoke.mjs',
@@ -21,7 +19,6 @@ for (const relative of requiredRuntime) {
 const components = [
   'plugin-entry-agent-contract-smoke.mjs',
   'portable-launcher-smoke.mjs',
-  'worktree-create-current-head-smoke.mjs',
   'subagent-contract-smoke.mjs',
   'agent-lifecycle-hook-smoke.mjs',
   'route-stage-separation-smoke.mjs',

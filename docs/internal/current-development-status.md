@@ -197,11 +197,17 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - research packet、CodeGraph/Context7 alias policy、digest-bound waiver、archive/abandon 语义。
 - session 优先的 current-change resolution；`ACTIVE_CHANGE` 仅保留无 session 环境的兼容 fallback。
 - `harness/project.json` profile v1，集中 Java/Maven 与受治理路径边界。
-- Claude Code native `worktree.baseRef=head` 配置投影；现有 custom worktree hooks 暂保留兼容测试覆盖，后续版本再移除。
+- Claude Code native `worktree.baseRef=head` is now the only supported worktree creation path; custom Worktree hooks are removed from the 0.4 compatibility surface.
 - route 确认现在会持久化内部 classification 到 state root 与 workflow projection；`routeReady` / `/harness-route` 仍作为兼容入口。
 - classify 已增加为内部 action：输出 tier、impact、requiredReviews 和固定 workflow topology；已持久化到 State v5 后，classify 成为设计前的主要语义，旧 `route` 仅在无 classification 的历史状态上作为兼容 projection。
 
-### 当前工作区增量（classify authority projection）
+### Worktree migration increment
+
+- Claude Code native worktree support is now authoritative via `.claude/settings.json` `worktree.baseRef=head`.
+- Removed custom `WorktreeCreate` / `WorktreeRemove` registrations from source manifest, generated settings, and packaged hooks.
+- Removed the obsolete custom worktree hook scripts and `runtime/lib/worktree.mjs`; the compatibility smoke now guards the absence of those overrides.
+- The archived 0.3.x worktree history remains unchanged and is retained as historical evidence only.
+
 
 - `classification` 是 State v5 的 authoritative classification artifact；workflow status 与 `workflow classify` 优先消费已持久化 classification。
 - 对已具备有效 classification 的 State v5，设计阶段不再因 `routeReady=false` 回落到 route；`routeReady`、`confirm-route` 和 `/harness-route` 只保留为旧状态兼容路径。
@@ -209,7 +215,7 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - 新增 `classify-authority-smoke`，覆盖新旧状态的双路径行为。
 
 尚未在本次 0.4.0 release 中完成的后续 breaking cleanup：
-- 9 Skill / 5 Agent surface 的完整合并，以及 custom worktree hook 的最终删除。
+- 9 Skill / 5 Agent surface 的完整合并。
 - 实际外部 CI 结论与 nightly Claude eval。
 
 

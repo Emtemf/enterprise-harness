@@ -114,30 +114,6 @@
         ]
       }
     ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/worktree-create.mjs\"",
-            "timeout": 30,
-            "statusMessage": "从父会话 HEAD 创建受控 worktree"
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/worktree-remove.mjs\"",
-            "timeout": 10,
-            "statusMessage": "清理 worktree 中 active change 镜像"
-          }
-        ]
-      }
-    ],
     "TaskCompleted": [
       {
         "hooks": [

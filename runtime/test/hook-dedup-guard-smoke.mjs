@@ -45,10 +45,6 @@ const EXEMPT = new Set([
   'subagent-start.mjs',
   'subagent-stop.mjs',
   'task-completed.mjs',
-  // Creates a worktree keyed on a path that already exists after the first run.
-  'worktree-create.mjs',
-  // Removes a harness/ mirror; a second fire is idempotent (dir already gone).
-  'worktree-remove.mjs',
 ]);
 
 const scripts = new Set();
