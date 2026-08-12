@@ -15,6 +15,7 @@ export function classifyChange(input) {
   if (normalizedImpact.api) requiredReviews.push('api');
   if (normalizedImpact.data) requiredReviews.push('data');
   if (normalizedImpact.architecture) requiredReviews.push('architecture');
+  if (normalizedImpact.security) requiredReviews.push('security');
   requiredReviews.push('final');
   return Object.freeze({
     tier: typeof input.tier === 'string' ? input.tier : 'L1',
@@ -24,13 +25,31 @@ export function classifyChange(input) {
   });
 }
 
+function hasPersistedClassification(data) {
+  const classification = data?.classification || data?.workflow?.classification;
+  return Boolean(
+    classification
+    && typeof classification === 'object'
+    && typeof classification.tier === 'string'
+    && classification.impact
+    && typeof classification.workflowTopology === 'string',
+  );
+}
+
+export function classificationFor(data) {
+  if (hasPersistedClassification(data)) {
+    return data.classification || data.workflow.classification;
+  }
+  return classifyChange(data || {});
+}
+
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
   const explicitStage = data.workflow?.stage;
   if (explicitStage === 'design' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope)) {
     return 'clarify';
   }
-  if (explicitStage === 'design' && !data.workflow?.routeReady) {
+  if (explicitStage === 'design' && !data.workflow?.routeReady && !hasPersistedClassification(data)) {
     return 'route';
   }
   if (explicitStage === 'plan' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope || !data.gates?.designApproved)) {
@@ -222,8 +241,10 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const auditGap = firstAuditBlocker
     ? `已完成阶段${firstBlockedStage ? ` ${firstBlockedStage}` : ''} 的权威证据审计失败：${firstAuditBlocker.code} ${firstAuditBlocker.message}；恢复：${firstAuditBlocker.recovery}`
     : currentGap;
+  const classification = classificationFor(data);
   return {
     changeId,
+    classification,
     state: data.state ?? null,
     stage,
     status: auditBlocked ? 'blocked' : inferRunnerStatus(stage, pendingDecision),

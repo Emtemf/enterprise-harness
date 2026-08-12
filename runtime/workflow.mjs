@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classifyChange, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
@@ -185,7 +185,7 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'route-confirmation') {
-    applyRouteConfirmationDecision(data, decision, classifyChange(data));
+    applyRouteConfirmationDecision(data, decision, classificationFor(data));
   }
 
   if (pending.kind === 'execution-readiness') {
@@ -240,7 +240,7 @@ switch (action) {
   case 'classify': {
     const changeId = resolveChangeId(args[0]);
     const data = loadChange(changeId);
-    const result = classifyChange({ tier: data.tier, impact: data.impact });
+    const result = classificationFor(data);
     process.stdout.write(JSON.stringify({ changeId, classification: result }, null, 2) + '\n');
     process.exit(0);
   }

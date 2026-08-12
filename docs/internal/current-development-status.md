@@ -199,11 +199,16 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - `harness/project.json` profile v1，集中 Java/Maven 与受治理路径边界。
 - Claude Code native `worktree.baseRef=head` 配置投影；现有 custom worktree hooks 暂保留兼容测试覆盖，后续版本再移除。
 - route 确认现在会持久化内部 classification 到 state root 与 workflow projection；`routeReady` / `/harness-route` 仍作为兼容入口。
-- classify 已增加为内部 action：输出 tier、impact、requiredReviews 和固定 workflow topology；route 兼容 stage 暂未删除。
+- classify 已增加为内部 action：输出 tier、impact、requiredReviews 和固定 workflow topology；已持久化到 State v5 后，classify 成为设计前的主要语义，旧 `route` 仅在无 classification 的历史状态上作为兼容 projection。
+
+### 当前工作区增量（classify authority projection）
+
+- `classification` 是 State v5 的 authoritative classification artifact；workflow status 与 `workflow classify` 优先消费已持久化 classification。
+- 对已具备有效 classification 的 State v5，设计阶段不再因 `routeReady=false` 回落到 route；`routeReady`、`confirm-route` 和 `/harness-route` 只保留为旧状态兼容路径。
+- 对没有 classification 的历史状态，仍保留 route gate，确保旧 archive/active 投影可读取而不静默越过旧边界。
+- 新增 `classify-authority-smoke`，覆盖新旧状态的双路径行为。
 
 尚未在本次 0.4.0 release 中完成的后续 breaking cleanup：
-
-- route 从用户可见 stage 收敛为内部 classify action。
 - 9 Skill / 5 Agent surface 的完整合并，以及 custom worktree hook 的最终删除。
 - 实际外部 CI 结论与 nightly Claude eval。
 
