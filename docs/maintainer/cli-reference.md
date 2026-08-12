@@ -21,6 +21,7 @@ Commands:
 - update-local
 - upgrade
 - migrate
+- migrate-v5
 - upstream-check
 - lifecycle
 - workflow

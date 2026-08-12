@@ -1,86 +1,83 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-11
+lastVerified: 2026-08-12
 implementationRefs:
-  - harness/templates/state.json
-  - harness/schemas/state.schema.json
-  - runtime/lib/state-migration.mjs
-  - runtime/lib/state-v5.mjs
-  - runtime/lib/sessions.mjs
-  - runtime/lib/change-locks.mjs
-  - runtime/lib/project-profile.mjs
+  - runtime/core/change-state.mjs
+  - runtime/compat/v5-migrate.mjs
+  - runtime/core/handoff-v2.mjs
+  - runtime/lib/state-store.mjs
 testRefs:
-  - runtime/test/state-migration-backward-compat-smoke.mjs
-  - runtime/test/state-v5-boundary-smoke.mjs
-  - runtime/test/session-concurrency-v5-smoke.mjs
-  - runtime/test/stale-change-lock-v5-smoke.mjs
-  - runtime/test/project-profile-v5-smoke.mjs
+  - runtime/test/v6-change-state-smoke.mjs
+  - runtime/test/v5-state-migration-smoke.mjs
+  - runtime/test/migrate-v5-cli-smoke.mjs
 ---
 
 # State Schema Contract
 
-机器可读真相层是 `harness/schemas/state.schema.json`；本文件说明迁移和并发语义。
+`schemaVersion: 6` is the authoritative state shape for new changes. The machine-readable
+schema belongs in `harness/schemas/state.schema.json`; this contract defines the rules that
+make its values meaningful.
 
-`state.json` 必须包含：
+## Minimal authoritative state
 
-- `schemaVersion`
-- `revision`
-- `changeId`
-- `tier`
-- `state`
-- `currentTask`
-- `workflow`
-- `impact`
-- `gates`
-- `approvals`
-- `validation`
-- `blockers`
+A v6 `state.json` contains only mechanical, revisioned facts:
 
-## State v5
+- identity: `changeId`, `revision`, `lifecycle`, `owner`, controller identity;
+- current lifecycle position: `stage` in `clarify → design → plan → implement → verify → archive`;
+- durable impact classification: `api`, `data`, `architecture`, `rule`, and `security`;
+- artifact index: `artifacts`, with paths and content digests where applicable;
+- active task/blocker and validation digest/status.
 
-0.4 的 active change 使用 `schemaVersion: 5`。v5 额外定义：
+Classification is durable but internal. It selects exploration and review rubrics; it is not a
+user-visible stage. TDD is an implementation method, not a lifecycle stage.
 
-- `status` / `lifecycle`：机械生命周期（`active`、`archived`、`abandoned`）
-- `controller`：当前治理 controller 的来源和 revision
-- `sessionBinding`：当前 session 的 change/worktree 绑定，运行态副本位于 git common dir
-- `changeLock`：change writer 的锁持有信息
-- `artifacts`：artifact 路径与 digest 的机械索引
-- `dependencies`：artifact dependency graph
-- `blocker`：当前阻断原因；详细证据仍在 runs/evidence
+A v6 state **must not** persist readiness or approval conclusions such as `routeReady`,
+`designApproved`, `planReady`, `redVerified`, `tddStatus`, or a list of required reviewers.
+Those conclusions are derived from the current artifact digests, receipt evidence, self-check,
+and independent review artifacts. Changing an input makes the conclusion stale without a
+second mutable boolean to repair.
 
-高阶的 ready/approved/stale 结论不能新增为第二份真相；应由 artifact digest、evidence 和独立 checker 推导。`state.json` 里的旧 workflow 字段在迁移窗口内只作为兼容投影，不能绕过 v5 gate。
+## Mutation rule
 
-active v4 不自动迁移到 v5，也不能通过 last-write-wins 直接覆盖。它必须经过显式转换或阻断；`harness/archive/**` 中的旧 v4 只读，可由 archive adapter 读取但不批量重写。
+`updateChangeState()` in `runtime/core/change-state.mjs` is the only v6 mutation primitive:
 
-## 并发运行态
+```text
+read latest → copy immutable input → mutate → validate v6 shape → revision + 1
+→ CAS under file lock → atomic write → append idempotent event
+```
 
-`<git-common-dir>/enterprise-harness/sessions/` 保存 session binding，`locks/` 保存 change lock，`ledger/` 保存跨 worktree 运行证据。worktree 内的 change 目录不是 session binding 的权威来源。
+Callers provide an immutable update function; it must return a complete next value. A stale
+revision produces `EH-STATE-REVISION-014`; invalid state produces `EH-STATE-SCHEMA-018`.
+No caller may use direct `writeFile` for active v6 state. Events are durable audit records, not
+a second state model.
 
-项目路径和构建边界由 `harness/project.json` 的 profile v1 提供；缺失时使用 Java/Maven 默认 profile，格式错误则返回 `EH-PROJECT-PROFILE-001`。
+## Freshness
 
-change lock 默认只允许持有者释放；锁记录超过显式 stale threshold 后，只有确认 owner session 已解绑并提供 lock token 的运行态恢复命令才能清理 stale lock。恢复不会修改 change evidence，也不是通用 `--force` 绕过。
+Reviews, waivers, receipts, and validation bind to their input artifact digest. `fresh` therefore
+means the evidence was produced for exactly the material now being judged. `stale` is derived
+when an indexed input changes; it is never repaired by setting a ready/approved field.
 
-## Durable 与 volatile
+## Compatibility boundary
 
-Durable：用户决定、阶段、task、review projection、validation digest。
+- v4/v5 readers are compatibility-only and may explain historical state.
+- Archived historical changes are read-only and are never migrated in place.
+- An active v5 change requires explicit `enterprise-harness migrate-v5 <change-id> --confirm`.
+  The migration resets revision to 1, maps `route` to `design` and `tdd` to `implement`, adds
+  `impact.security: unknown`, clears derived artifacts, and makes validation stale.
+- `runtime/compat/**` is the sole place allowed to interpret legacy lifecycle projections.
 
-Volatile：显示卡、建议入口、运行时探测结果；不得进入 completion digest。
+## Common-dir runtime state
 
-## 并发
+Ephemeral coordination belongs outside worktrees:
 
-写入目标采用临时文件加 rename。状态更新必须比较 expected revision；event 使用唯一 eventId 并幂等去重。无法获得一致 revision 时 BLOCK，不做 last-write-wins。
+```text
+<git-common-dir>/enterprise-harness/
+├── sessions/
+├── locks/
+├── ledger/
+└── runs/<changeId>/<runId>/
+```
 
-`state.json` 只投影 evidence，不能用手工字段自证 gate。
-
-## Workflow 阶段标志
-
-`workflow` 的阶段就绪标志各自独立，不得相互替代：
-
-- `clarifyReady`：七维评分达标
-- `userConfirmedScope`：用户确认执行范围
-- `routeReady`：用户确认 tier 与影响面；design 的前置
-- `planReady`：task 与 exact argv 已冻结
-- `tddStatus`：真实 RED/GREEN/REFACTOR 进度
-
-design 要求 `clarifyReady`、`userConfirmedScope` 和 `routeReady` 同时为 true。缺任一项时 stage 回落到对应阶段，不得跳过。
+The change directory holds durable business artifacts. Session bindings, locks, leases, and
+handoff transport must not be treated as durable completion proof.

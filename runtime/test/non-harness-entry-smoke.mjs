@@ -30,7 +30,7 @@ fs.writeFileSync(path.join(targetProject, 'pom.xml'), '<project/>\n', 'utf-8');
 fs.writeFileSync(path.join(targetProject, 'CLAUDE.md'), '# Target Project\n', 'utf-8');
 
 function runNode(script, input='') {
-  return spawnSync('node', [path.join(repoRoot, 'runtime', script)], {
+  return spawnSync('node', [path.join(repoRoot, script)], {
     cwd: targetProject,
     encoding: 'utf-8',
     input,
@@ -38,9 +38,9 @@ function runNode(script, input='') {
 }
 
 try {
-  const sessionStart = runNode(path.join('hooks', 'session-start.mjs'));
-  const stop = runNode(path.join('hooks', 'stop.mjs'));
-  const postWrite = runNode(path.join('hooks', 'post-write.mjs'), JSON.stringify({ tool_input: { file_path: path.join(targetProject, 'src', 'A.java') } }));
+  const sessionStart = runNode(path.join('hooks', 'scripts', 'session-start.mjs'));
+  const stop = runNode(path.join('hooks', 'scripts', 'stop.mjs'));
+  const postWrite = runNode(path.join('hooks', 'scripts', 'post-write.mjs'), JSON.stringify({ tool_input: { file_path: path.join(targetProject, 'src', 'A.java') } }));
   const text = `${sessionStart.stdout}${sessionStart.stderr}\n${stop.stdout}${stop.stderr}\n${postWrite.stdout}${postWrite.stderr}`;
 
   const failures = [];

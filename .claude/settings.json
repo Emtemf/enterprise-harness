@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/session-start.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/session-start.mjs\"",
             "timeout": 30,
             "statusMessage": "加载 harness 启动检查"
           }
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/pre-agent.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/pre-agent.mjs\"",
             "timeout": 10,
             "statusMessage": "校验 scoped Agent 派发"
           }
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/pre-write.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/pre-write.mjs\"",
             "timeout": 30,
             "statusMessage": "执行写入前治理检查"
           }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/pre-explore.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/pre-explore.mjs\"",
             "timeout": 10,
             "statusMessage": "检查代码探索是否已委托 subagent"
           }
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/research-evidence.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/research-evidence.mjs\"",
             "timeout": 10,
             "statusMessage": "记录代码与文档研究证据"
           }
@@ -69,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/post-agent.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/post-agent.mjs\"",
             "timeout": 10,
             "statusMessage": "绑定 Agent 派发证据"
           }
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/post-write.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/post-write.mjs\"",
             "timeout": 60,
             "statusMessage": "执行写入后治理检查"
           }
@@ -93,7 +93,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/research-evidence.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/research-evidence.mjs\"",
             "timeout": 10,
             "statusMessage": "记录研究工具失败证据"
           }
@@ -104,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/agent-failure.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/agent-failure.mjs\"",
             "timeout": 10,
             "statusMessage": "记录 Agent 失败与恢复入口"
           }
@@ -117,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/subagent-start.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/subagent-start.mjs\"",
             "timeout": 10,
             "statusMessage": "记录 subagent 启动证据"
           }
@@ -129,7 +129,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/subagent-stop.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/subagent-stop.mjs\"",
             "timeout": 10,
             "statusMessage": "校验 subagent 完成证据"
           }
@@ -141,7 +141,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/task-completed.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/task-completed.mjs\"",
             "timeout": 10,
             "statusMessage": "校验执行与独立检查接力"
           }
@@ -153,7 +153,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/stop.mjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/hooks/scripts/stop.mjs\"",
             "timeout": 30,
             "statusMessage": "检查完成前验证状态"
           }

@@ -34,5 +34,5 @@ handoff guidance，stdout 为空 → 报错。
 
 ## 关联
 
-- `runtime/hooks/stop.mjs` 的 `allow()` 封装了 `{}` 输出
+- `hooks/scripts/stop.mjs` 的 `allow()` 封装了 `{}` 输出
 - `stop-handoff-smoke` 增加了“放行路径 stdout 必须是合法 JSON”的断言

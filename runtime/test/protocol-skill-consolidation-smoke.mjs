@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const skillsDir = path.join(root, '.claude', 'skills');
+const skillsDir = path.join(root, 'skills');
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin/plugin.json'), 'utf-8'));
 const registry = JSON.parse(fs.readFileSync(path.join(root, 'harness/behavior-checks.json'), 'utf-8'));
 

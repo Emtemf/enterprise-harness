@@ -12,7 +12,7 @@ function render(rootExpression) {
   const hooks = {};
   for (const [event, entries] of Object.entries(manifest.hooks || {})) {
     hooks[event] = entries.map((entry) => {
-      const command = `node "${rootExpression}/runtime/hooks/${entry.script}"`;
+      const command = `node "${rootExpression}/hooks/scripts/${entry.script}"`;
       const group = {
         hooks: [{
           type: 'command',

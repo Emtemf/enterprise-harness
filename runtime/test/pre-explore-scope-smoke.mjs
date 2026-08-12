@@ -54,7 +54,7 @@ if (failures.length) {
 // Bash 分支：探索判定必须看命令动作，而不是命令文本里出现了什么路径字符串。
 // 回归背景：早期用裸路径匹配，`git commit` 的 heredoc 消息里提到 src/test/java
 // 就会被判成探索并 BLOCK——提交修复本身都会被自己的网关拦住。
-const hookPath = path.join(repoRoot, 'runtime', 'hooks', 'pre-explore.mjs');
+const hookPath = path.join(repoRoot, 'hooks', 'scripts', 'pre-explore.mjs');
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'pre-explore-bash-'));
 try {
   spawnSync('git', ['init', '-q', '.'], { cwd: sandbox });

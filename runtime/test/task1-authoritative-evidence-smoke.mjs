@@ -6,20 +6,20 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd();
 const mode = process.argv[2] || 'verify';
 const requiredRuntime = [
-  'lib/evidence-policy.mjs',
-  'lib/agent-evidence.mjs',
-  'lib/git-evidence.mjs',
-  'lib/tdd-receipts.mjs',
-  'tdd-run.mjs',
-  'evidence-import.mjs',
-  'migrate-evidence-policy.mjs',
-  'hooks/pre-agent.mjs',
-  'hooks/post-agent.mjs',
-  'hooks/subagent-start.mjs',
-  'hooks/subagent-stop.mjs',
+  'runtime/lib/evidence-policy.mjs',
+  'runtime/lib/agent-evidence.mjs',
+  'runtime/lib/git-evidence.mjs',
+  'runtime/lib/tdd-receipts.mjs',
+  'runtime/tdd-run.mjs',
+  'runtime/evidence-import.mjs',
+  'runtime/migrate-evidence-policy.mjs',
+  'hooks/scripts/pre-agent.mjs',
+  'hooks/scripts/post-agent.mjs',
+  'hooks/scripts/subagent-start.mjs',
+  'hooks/scripts/subagent-stop.mjs',
 ];
 for (const relative of requiredRuntime) {
-  if (!fs.existsSync(path.join(root, 'runtime', relative))) {
+  if (!fs.existsSync(path.join(root, relative))) {
     console.error(`FAIL missing Task 1 runtime: ${relative}`);
     process.exit(1);
   }

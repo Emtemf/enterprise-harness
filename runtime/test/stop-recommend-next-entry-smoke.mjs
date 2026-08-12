@@ -6,7 +6,7 @@ import * as workflow from '../lib/workflow.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
-const stopPath = path.resolve(repoRoot, 'runtime/hooks/stop.mjs');
+const stopPath = path.resolve(repoRoot, 'hooks/scripts/stop.mjs');
 const stopLibPath = path.resolve(repoRoot, 'runtime/lib/hooks/stop.mjs');
 
 function assert(condition, message) {

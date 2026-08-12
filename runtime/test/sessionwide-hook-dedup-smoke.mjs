@@ -19,7 +19,7 @@ function fixture() {
 }
 
 function hook(root, script, payload) {
-  return spawnSync('node', [path.join(sourceRoot, 'runtime/hooks', script)], {
+  return spawnSync('node', [path.join(sourceRoot, 'hooks/scripts', script)], {
     cwd: root,
     encoding: 'utf-8',
     input: JSON.stringify(payload),
@@ -217,7 +217,7 @@ function hook(root, script, payload) {
     session_id: 'session-race',
     cwd: root,
   });
-  const script = path.join(sourceRoot, 'runtime/hooks/session-start.mjs');
+  const script = path.join(sourceRoot, 'hooks/scripts/session-start.mjs');
   const children = Array.from({ length: 8 }, () => spawn('node', [script], {
     cwd: root,
     stdio: ['pipe', 'pipe', 'pipe'],

@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const statusCliPath = path.join(repoRoot, 'runtime', 'status.mjs');
-const sessionStartPath = path.join(repoRoot, 'runtime', 'hooks', 'session-start.mjs');
+const sessionStartPath = path.join(repoRoot, 'hooks', 'scripts', 'session-start.mjs');
 const mode = process.argv[2];
 
 function copyDir(src, dest) {

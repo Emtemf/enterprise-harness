@@ -63,7 +63,7 @@ For plugin users, the entrypoint is: **install the plugin, then start from `/ent
 
 在这套骨架里：
 
-- 项目共享约定通过 `CLAUDE.md`、`.claude/rules/`、`.claude/agents/`、`harness/specs/`、`harness/templates/` 定义
+- 项目共享约定通过 `CLAUDE.md`、根目录 `skills/`、`agents/`、`hooks/`、`harness/specs/`、`harness/templates/` 定义
 - 每次变更可以沉淀到 `harness/changes/`，而不是只留在聊天上下文里
 - 代码探索默认走 **codegraph-first**
 - 外部库与框架文档默认走 **Context7-first**

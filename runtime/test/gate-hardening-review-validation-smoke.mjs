@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const verifyPath = path.join(repoRoot, 'runtime', 'verify.mjs');
-const stopPath = path.join(repoRoot, 'runtime', 'hooks', 'stop.mjs');
+const stopPath = path.join(repoRoot, 'hooks', 'scripts', 'stop.mjs');
 const fixturesRoot = path.join(repoRoot, 'runtime', 'test', 'fixtures');
 const mode = process.argv[2];
 

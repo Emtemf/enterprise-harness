@@ -10,12 +10,12 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 // Skills declared in requiredPaths() dirs
 const { dirs } = requiredPaths();
 const declaredSkills = dirs
-  .filter((d) => d.startsWith('.claude/skills/harness'))
+  .filter((d) => d.startsWith('skills/harness'))
   .map((d) => path.basename(d))
   .sort();
 
 // Skills that actually exist on disk
-const skillsDir = path.join(root, '.claude', 'skills');
+const skillsDir = path.join(root, 'skills');
 const actualSkills = fs.readdirSync(skillsDir, { withFileTypes: true })
   .filter((e) => e.isDirectory() && e.name.startsWith('harness'))
   .map((e) => e.name)

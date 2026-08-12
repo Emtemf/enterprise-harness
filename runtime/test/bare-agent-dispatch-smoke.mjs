@@ -9,7 +9,7 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sourceRoot = process.cwd();
-const preAgent = path.join(sourceRoot, 'runtime/hooks/pre-agent.mjs');
+const preAgent = path.join(sourceRoot, 'hooks/scripts/pre-agent.mjs');
 const changeId = 'bare-agent-probe';
 
 function makeRoot() {

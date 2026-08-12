@@ -16,7 +16,7 @@ for (const [label, hooks] of [
   assert.equal(Object.hasOwn(hooks, 'WorktreeCreate'), false, `${label} must use native WorktreeCreate`);
   assert.equal(Object.hasOwn(hooks, 'WorktreeRemove'), false, `${label} must use native WorktreeRemove`);
 }
-assert.equal(fs.existsSync(path.join(root, 'runtime/hooks/worktree-create.mjs')), false);
-assert.equal(fs.existsSync(path.join(root, 'runtime/hooks/worktree-remove.mjs')), false);
+assert.equal(fs.existsSync(path.join(root, 'hooks/scripts/worktree-create.mjs')), false);
+assert.equal(fs.existsSync(path.join(root, 'hooks/scripts/worktree-remove.mjs')), false);
 assert.deepEqual(settings.worktree, { baseRef: 'head' });
 console.log(`PASS native-worktree ${mode}`);

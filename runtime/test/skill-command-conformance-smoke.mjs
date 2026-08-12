@@ -50,7 +50,7 @@ if (knownDecisions.size === 0) {
   process.exit(1);
 }
 
-const skillsDir = path.join(repoRoot, '.claude', 'skills');
+const skillsDir = path.join(repoRoot, 'skills');
 const failures = [];
 
 for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
@@ -85,7 +85,7 @@ if (fs.existsSync(harnessSkill)) {
   for (const match of text.matchAll(/`(\w+Verified|\w+Ready|designApproved)`/gu)) {
     const name = match[1];
     if (!stateFields.has(name)) {
-      failures.push(`.claude/skills/harness/SKILL.md 引用了不存在的 gate "${name}"`);
+      failures.push(`skills/harness/SKILL.md 引用了不存在的 gate "${name}"`);
     }
   }
 }

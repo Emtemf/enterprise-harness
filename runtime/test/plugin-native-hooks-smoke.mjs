@@ -60,7 +60,7 @@ fs.mkdirSync(path.join(targetProject, 'src'), { recursive: true });
 fs.writeFileSync(path.join(targetProject, 'pom.xml'), '<project/>\n', 'utf-8');
 
 function runHook(script, input = '') {
-  return spawnSync('node', [path.join(repoRoot, 'runtime', 'hooks', script)], {
+  return spawnSync('node', [path.join(repoRoot, 'hooks', 'scripts', script)], {
     cwd: targetProject,
     encoding: 'utf-8',
     input,

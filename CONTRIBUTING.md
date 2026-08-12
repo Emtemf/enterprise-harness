@@ -12,10 +12,10 @@
 
 ## 仓库结构
 
-- `.claude/skills/`：阶段过程
-- `.claude/agents/`：agent 身份和工具权限
-- `.claude/rules/`：短小的自动约束
 - `harness/specs/`：长期合同
+- `skills/`：阶段过程
+- `agents/`：agent 身份和工具权限
+- `hooks/`：Claude Code host-boundary 适配
 - `runtime/`：确定性 backend 和 hooks
 - `harness/templates/`：安装时可复制模板
 - `docs/user/`：普通用户

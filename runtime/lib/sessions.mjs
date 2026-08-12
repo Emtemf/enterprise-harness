@@ -22,6 +22,9 @@ function normalizeBinding(input) {
     controllerRevision: input.controllerRevision,
     subjectRoot: input.subjectRoot ? path.resolve(input.subjectRoot) : path.resolve(input.worktreePath),
     boundAt: input.boundAt || new Date().toISOString(),
+    leaseExpiresAt: Number.isFinite(input.leaseExpiresAt)
+      ? input.leaseExpiresAt
+      : (Number.isFinite(input.now) ? input.now : Date.now()) + (Number.isFinite(input.leaseMs) ? input.leaseMs : 15 * 60 * 1000),
     bindingId: input.bindingId || randomUUID(),
   };
 }
@@ -46,9 +49,25 @@ export function persistSessionId(sessionId, env = process.env, fsModule = fs) {
   return { ok: true, status: existing.includes(line) ? 'already-present' : 'persisted', sessionId: normalized };
 }
 
+export function isSessionLeaseExpired(binding, { now = Date.now() } = {}) {
+  return !Number.isFinite(binding?.leaseExpiresAt) || now >= binding.leaseExpiresAt;
+}
+
+export function renewSessionLease(root, sessionId, { leaseMs = 15 * 60 * 1000, now = Date.now(), ...options } = {}) {
+  const paths = ensureRuntimePaths(root, options);
+  const file = paths.sessionPath(assertSafeId(sessionId, 'sessionId'));
+  if (!fs.existsSync(file)) throw new Error(`EH-SESSION-LEASE-023: ${sessionId} is not bound`);
+  return withFileLock(file, () => {
+    const current = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    const next = { ...current, leaseExpiresAt: now + leaseMs, heartbeatedAt: new Date(now).toISOString() };
+    atomicWriteJson(file, next);
+    return next;
+  });
+}
+
 export function bindSession(root, input, options = {}) {
   const paths = ensureRuntimePaths(root, options);
-  const binding = normalizeBinding(input);
+  const binding = normalizeBinding({ ...input, now: options.now, leaseMs: options.leaseMs });
   const file = paths.sessionPath(binding.sessionId);
   return withFileLock(file, () => {
     if (fs.existsSync(file)) {

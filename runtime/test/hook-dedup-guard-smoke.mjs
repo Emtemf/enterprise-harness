@@ -51,7 +51,7 @@ const scripts = new Set();
 for (const entries of Object.values(settings.hooks || {})) {
   for (const entry of entries) {
     for (const hook of (entry.hooks || [])) {
-      const match = /runtime\/hooks\/([\w-]+\.mjs)/u.exec(String(hook.command || ''));
+      const match = /hooks\/scripts\/([\w-]+\.mjs)/u.exec(String(hook.command || ''));
       if (match) scripts.add(match[1]);
     }
   }
@@ -63,7 +63,7 @@ for (const script of scripts) {
   if (EXEMPT.has(script)) continue;
   // Dedup lives in the lib the hook delegates to; the hook file itself is a thin shell.
   const candidates = [
-    path.join(repoRoot, 'runtime/hooks', script),
+    path.join(repoRoot, 'hooks/scripts', script),
     path.join(repoRoot, 'runtime/lib/hooks', script),
   ];
   const sources = candidates

@@ -1,65 +1,75 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-04
+lastVerified: 2026-08-12
 implementationRefs:
-  - harness/behavior-checks.json
+  - skills/harness/SKILL.md
+  - agents/
   - runtime/lib/handoff.mjs
-  - runtime/lib/agent-evidence.mjs
-  - runtime/lib/spawn-depth.mjs
+  - runtime/core/handoff-v2.mjs
 testRefs:
-  - runtime/test/agent-lifecycle-hook-smoke.mjs
-  - runtime/test/spawn-depth-guard-smoke.mjs
+  - runtime/test/handoff-contract-smoke.mjs
+  - runtime/test/handoff-v2-common-dir-smoke.mjs
+  - runtime/test/main-owned-decisions-smoke.mjs
 ---
 
 # Agents and Handoff Contract
 
-## 上下文隔离的两层
+## Authority boundaries
+
+The main `harness` skill is the only user-facing orchestrator. It owns questions, scope
+confirmation, state transitions, and recovery. A forked worker has no user dialogue authority:
+when it needs a user decision, it returns a compact `NEEDS_DECISION` record to main Harness.
+
+Skills carry methodology. Agents carry a distinct tool/context/isolation boundary. Runtime
+records transport and durable receipts. Hooks protect host boundaries only. No correctness claim
+may depend on a nested subagent being available: direct main-to-capability dispatch is the
+supported path.
+
+## Quality loop
+
+Every governed stage and implementation task follows:
 
 ```text
-main conversation
-└─ stage skill (context: fork)        ← 阶段 SOP 不进主上下文
-   ├─ executor  (isolated subagent)
-   └─ checker   (isolated subagent)
+execute → self-check artifact → independent review → TECPC → fresh evidence → next gate
 ```
 
-`harness` 必须留在主对话，因为 clarify 阶段要和用户一问一答；forked subagent 没有用户通道。route、design、plan、tdd、verify 以 `context: fork` + `background: false` 运行。
+The executor and reviewer are separate runs. Review consumes the executor result artifact and
+its input digests, never the executor conversation. A worker self-report is evidence, not a
+verdict.
 
-forked 阶段仍必须派自己的 executor 和 checker，因此 subagent 生成深度至少需要 2。到达深度上限时 `Agent` 工具会被静默收走，forked 阶段就会自写自审、塌成单一上下文 —— 这是本合同不接受的降级。本仓库用 `.claude/settings.json` 的 `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 兜住；该文件由 `bin/generate-hooks.mjs` 生成，不要手改。
+## Handoff versions
 
-已知缺口：`.claude/settings.json` 不在 `bin/package.mjs` 的发布白名单内，所以安装 plugin 的用户拿不到这个 guard。发布通道的兜底是 runtime 侧 fail-loud：`runtime/lib/spawn-depth.mjs` 求值当前深度，session-start hook 以 `EH-SPAWN-DEPTH-020` 报出，`doctor` 在深度低于 2 时判 fail。静默降级因此变成显式诊断。
+### v1 compatibility
 
-需要用户确认的动作（例如 route 的 tier 确认与 `workflow.routeReady` 置位）由主 orchestrator 承担，forked 阶段只返回待确认项。
+`runtime/lib/handoff.mjs` remains the reader/writer for active v4/v5 behavior-registry runs.
+It is compatibility transport only; v6 core does not derive lifecycle authority from it.
 
-## 每个受治理行为
+### v2 canonical transport
+
+`runtime/core/handoff-v2.mjs` writes run inputs beneath the git common directory:
 
 ```text
-orchestrator
-→ execute input
-→ isolated executor
-→ result
-→ check input(parentRunId + result ref)
-→ isolated checker
-→ verdict
+<git-common-dir>/enterprise-harness/runs/<changeId>/<runId>/
+├── input.json
+├── result.json
+└── check.json
 ```
 
-executor 与 checker 使用不同 runId 和 subagent 上下文。checker 不读取 executor 聊天，只读取 digest 绑定的 result artifact。
+Workers locate v2 input by `changeId` and `runId`, not by a path relative to the controller or
+main checkout. Input contains identity, role, agent capability, TECPC, input references and
+digests. It is safe across native worktrees. `check` requires a `parentRunId` and consumes the
+execute result.
 
-executor/checker 对不得跨 stage 复用：同一对同时服务两个阶段时，后一阶段的 checker 会复核自己在前一阶段提供过的输入，失去独立视角。clarify 用 `clarify-synthesizer` / `clarify-reviewer`，route 用 `route-decider` / `requirement-reviewer`。
+## TECPC
 
-Handoff input 必含：
+Every result must contain Target, Evidence, Context, and Path. `correction` is `null` for
+`pass`; it is required and actionable for `advisory`, `block`, or recovery. `unsupported` is not
+silently converted into `pass`.
 
-- handoffVersion、runId、changeId
-- stage、behavior、role
-- parentRunId（checker）
-- agent type、preloaded skill
-- TECPC target/evidence/context/path/correction
-- inputRefs 和 digests
+## Capability direction
 
-Result 必须回显身份字段，并包含 outputRefs、blockers、summary；checker 还必须有 verdict。
-
-协议合同由 `harness` skill 的 `refs/protocol/` 提供；executor/checker 不再作为独立 Skill 暴露，`agent.skill` 统一记录为 `harness`，而 `role=execute|check` 与 behavior registry 继续区分两种运行合同。
-
-ledger 绑定 dispatch、toolUseId、start、agentId、result 和 stop。任一身份不一致均 BLOCK。
-
-brief 是 inputRef 的人类可读部分，不是第二套 schema。
+The 0.5 target agent surface is five capabilities: code exploration, documentation research,
+artifact work, implementation, and independent review. The current specialized v4/v5 agents are
+compatibility adapters during migration; new lifecycle correctness must use capability contracts,
+not the old role names or a persisted behavior stage graph.

@@ -1,44 +1,51 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-12
 implementationRefs:
   - runtime/lib/evidence-policy.mjs
   - runtime/lib/tdd-receipts.mjs
-  - runtime/lib/checks.mjs
+  - runtime/core/change-state.mjs
+  - runtime/core/handoff-v2.mjs
 testRefs:
   - runtime/test/evidence-policy-contract-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
+  - runtime/test/v6-change-state-smoke.mjs
 ---
 
 # Evidence Contract
 
-## Receipt
+## Evidence classes
 
-机器生成，记录 agent、worktree、command argv、exit、时间、HEAD/tree digest 和 changed paths。文本自报不算 receipt。
+- **Artifact** — requirements, design, task plan, self-check, review, validation, waiver, and
+  archive record. Each material conclusion binds to its input digest.
+- **Receipt** — machine-generated command provenance: actor/capability, worktree, exact argv,
+  exit code, timestamps, HEAD/tree digests, and changed paths. Narrative self-report is not a
+  receipt.
+- **Review** — an independent verdict that consumes a result artifact and its input digest.
+- **Ledger** — append-only operational telemetry (dispatch, binding, attempt, lifecycle, and
+  violation). It assists diagnosis but is not lifecycle correctness proof.
 
-## Ledger
+## TECPC
 
-append-only 记录 dispatch、start、binding、attempt、stop 和 violation。伪造 agentId、重放 runId 或不匹配 parentRunId 必须 BLOCK。
-
-## Policy
-
-目标仓库首次安装时基于自己的 Git HEAD 生成 sealed evidence policy。发布包不得携带源仓库 policy 或 legacyChangeIds。
+Every executor, self-check, reviewer, and recovery report carries Target, Evidence, Context, and
+Path. `correction` is `null` for a passing report and mandatory/actionable for `advisory`,
+`block`, `recovery`, or `unsupported`. `unsupported` is never promoted to pass.
 
 ## Freshness
 
-validation digest 覆盖稳定 artifact 和实现 commit。受治理写入后 validation 变 stale。
+A conclusion is fresh only when the current digest of each input it consumed still matches. A
+stable artifact or governed implementation write invalidates downstream conclusions by
+derivation. Do not repair freshness by flipping a state boolean.
 
 ## Completion
 
-completion 分层返回 `{code,status,path,message,recovery}`：
+Completion evaluates fresh artifacts, task receipts, self-checks, independent review, applicable
+API/data/security rubrics, validation, and archive evidence. The result has a stable
+`{code,status,path,message,recovery}` shape. A hook, worker chat message, or stale review alone
+cannot establish completion.
 
-- state
-- artifacts
-- reviews
-- TDD evidence
-- agent ledger
-- API contract
-- final completion
+## Distribution boundary
 
-`unsupported` 不能提升为 pass。
+A target repository creates its evidence policy from its own Git HEAD. Release artifacts never
+contain the source repository's active changes, archive, receipt spool, or evidence policy.

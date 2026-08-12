@@ -39,7 +39,8 @@ export function acquireChangeLock(root, changeId, sessionId, options = {}) {
     lockId: randomUUID(),
     changeId,
     sessionId,
-    acquiredAt: new Date().toISOString(),
+    acquiredAt: new Date(Number.isFinite(options.now) ? options.now : Date.now()).toISOString(),
+    leaseExpiresAt: (Number.isFinite(options.now) ? options.now : Date.now()) + (Number.isFinite(options.leaseMs) ? options.leaseMs : 15 * 60 * 1000),
   };
   try {
     atomicWriteJson(file, lock);
@@ -58,11 +59,12 @@ export function readChangeLock(root, changeId, options = {}) {
 }
 
 export function isChangeLockStale(lock, options = {}) {
-  if (!lock || typeof lock.acquiredAt !== 'string') return false;
-  const acquiredAt = Date.parse(lock.acquiredAt);
-  if (!Number.isFinite(acquiredAt)) return false;
-  const staleAfterMs = Number.isFinite(options.staleAfterMs) ? options.staleAfterMs : 60 * 60 * 1000;
+  if (!lock) return false;
   const now = Number.isFinite(options.now) ? options.now : Date.now();
+  const acquiredAt = Date.parse(lock.acquiredAt);
+  const staleAfterMs = Number.isFinite(options.staleAfterMs) ? options.staleAfterMs : 60 * 60 * 1000;
+  if (Number.isFinite(lock.leaseExpiresAt) && now >= lock.leaseExpiresAt) return true;
+  if (!Number.isFinite(acquiredAt)) return false;
   return now - acquiredAt >= staleAfterMs;
 }
 
@@ -86,6 +88,19 @@ export function recoverStaleChangeLock(root, changeId, options = {}) {
   if (guardAge < staleAfterMs) return false;
   fs.rmSync(guard, { recursive: true, force: true });
   return true;
+}
+
+export function renewChangeLockLease(root, changeId, sessionId, { leaseMs = 15 * 60 * 1000, now = Date.now(), ...options } = {}) {
+  assertSafeId(changeId, 'changeId');
+  assertSafeId(sessionId, 'sessionId');
+  const paths = runtimePaths(root, options);
+  const file = paths.lockPath(changeId);
+  if (!fs.existsSync(file)) throw new Error(`EH-CHANGE-LOCK-LEASE-024: ${changeId} is not locked`);
+  const lock = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  if (lock.sessionId !== sessionId) throw new Error(`EH-CHANGE-LOCK-002: ${changeId} is owned by ${lock.sessionId}`);
+  const next = { ...lock, leaseExpiresAt: now + leaseMs, heartbeatedAt: new Date(now).toISOString() };
+  atomicWriteJson(file, next);
+  return next;
 }
 
 export function releaseChangeLock(root, changeId, sessionId, options = {}) {

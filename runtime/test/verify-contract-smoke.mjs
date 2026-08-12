@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
 const specPath = path.join(repoRoot, 'harness', 'specs', 'verify-contract.md');
-const skillPath = path.join(repoRoot, '.claude', 'skills', 'harness-verify', 'SKILL.md');
-const reviewerPath = path.join(repoRoot, '.claude', 'agents', 'verification-reviewer.md');
+const skillPath = path.join(repoRoot, 'skills', 'harness-verify', 'SKILL.md');
+const reviewerPath = path.join(repoRoot, 'agents', 'verification-reviewer.md');
 const stopPath = path.join(repoRoot, 'runtime', 'lib', 'hooks', 'stop.mjs');
 
 function readText(file) {

@@ -4,8 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const sessionStartPath = path.join(repoRoot, 'runtime', 'hooks', 'session-start.mjs');
-const stopPath = path.join(repoRoot, 'runtime', 'hooks', 'stop.mjs');
+const sessionStartPath = path.join(repoRoot, 'hooks', 'scripts', 'session-start.mjs');
+const stopPath = path.join(repoRoot, 'hooks', 'scripts', 'stop.mjs');
 const mode = process.argv[2];
 const requiredStartTokens = ['[Harness Workflow] 当前 stage:', '[Harness Workflow] 推荐恢复入口:'];
 const requiredStopTokens = ['Stop handoff guidance'];

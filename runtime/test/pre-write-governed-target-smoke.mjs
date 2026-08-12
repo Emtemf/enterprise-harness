@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const preWritePath = path.join(repoRoot, 'runtime', 'hooks', 'pre-write.mjs');
+const preWritePath = path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs');
 const validatePath = path.join(repoRoot, 'runtime', 'validate.mjs');
 const mode = process.argv[2];
 

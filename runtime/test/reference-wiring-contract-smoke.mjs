@@ -3,19 +3,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const skillsRoot = path.join(root, '.claude', 'skills');
+const skillsRoot = path.join(root, 'skills');
 const referenceRoot = path.join(skillsRoot, 'harness', 'reference');
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const references = fs.readdirSync(referenceRoot, { recursive: true })
   .filter((entry) => entry.endsWith('.md'))
-  .map((entry) => `.claude/skills/harness/reference/${entry.replaceAll(path.sep, '/')}`)
+  .map((entry) => `skills/harness/reference/${entry.replaceAll(path.sep, '/')}`)
   .sort();
 const skillFiles = [
-  '.claude/skills/harness/SKILL.md',
-  '.claude/skills/harness-design/SKILL.md',
-  '.claude/skills/harness-plan/SKILL.md',
-  '.claude/skills/harness-tdd/SKILL.md',
-  '.claude/skills/harness-verify/SKILL.md',
+  'skills/harness/SKILL.md',
+  'skills/harness-design/SKILL.md',
+  'skills/harness-plan/SKILL.md',
+  'skills/harness-tdd/SKILL.md',
+  'skills/harness-verify/SKILL.md',
 ];
 const referenceNames = [
   'behavior-map.md',
@@ -26,20 +26,20 @@ const referenceNames = [
   'protocol/executor-result-contract.md',
 ];
 const referencePathVariants = (relative) => [
-  `.claude/skills/harness/reference/${relative}`,
+  `skills/harness/reference/${relative}`,
   `../harness/reference/${relative}`,
 ];
 const corpus = skillFiles.map(read).join('\n');
 
 assert.ok(references.length > 0, 'reference directory must contain markdown contracts');
 for (const reference of referenceNames) {
-  assert.ok(references.includes(`.claude/skills/harness/reference/${reference}`), `missing ${reference}`);
+  assert.ok(references.includes(`skills/harness/reference/${reference}`), `missing ${reference}`);
   assert.ok(
     referencePathVariants(reference).some((variant) => corpus.includes(variant)),
     `${reference} must be explicitly wired from a stage skill`,
   );
 }
-const behaviorMap = read('.claude/skills/harness/reference/behavior-map.md');
+const behaviorMap = read('skills/harness/reference/behavior-map.md');
 const registry = JSON.parse(read('harness/behavior-checks.json'));
 for (const behavior of Object.keys(registry.behaviors)) {
   assert.ok(behaviorMap.includes(`\`${behavior}\``), `${behavior} missing from behavior-map`);
@@ -66,31 +66,31 @@ const agentFiles = {
     'verification-reviewer',
   ],
 };
-const agentText = (name) => read(`.claude/agents/${name}.md`);
+const agentText = (name) => read(`agents/${name}.md`);
 for (const name of agentFiles.execute) {
   assert.ok(
-    agentText(name).includes('.claude/skills/harness/reference/protocol/executor-result-contract.md'),
+    agentText(name).includes('skills/harness/reference/protocol/executor-result-contract.md'),
     `${name} must point to the executor result contract`,
   );
   assert.ok(
-    agentText(name).includes('.claude/skills/harness/reference/protocol/executor-minimal.md'),
+    agentText(name).includes('skills/harness/reference/protocol/executor-minimal.md'),
     `${name} must point to the executor minimal example`,
   );
 }
 for (const name of agentFiles.checker) {
   assert.ok(
-    agentText(name).includes('.claude/skills/harness/reference/protocol/checker-verdict-contract.md'),
+    agentText(name).includes('skills/harness/reference/protocol/checker-verdict-contract.md'),
     `${name} must point to the checker verdict contract`,
   );
   assert.ok(
-    agentText(name).includes('.claude/skills/harness/reference/protocol/checker-verdicts.md'),
+    agentText(name).includes('skills/harness/reference/protocol/checker-verdicts.md'),
     `${name} must point to the checker verdict examples`,
   );
 }
 
-assert.match(read('.claude/skills/harness/SKILL.md'), /按需读取 reference/u);
-assert.match(read('.claude/skills/harness/SKILL.md'), /behavior-map\.md[\s\S]*stage-decisions\.md/u);
-assert.match(read('.claude/skills/harness-tdd/SKILL.md'), /executor-result-contract\.md[\s\S]*checker-verdict-contract\.md/u);
-assert.match(read('.claude/skills/harness-verify/SKILL.md'), /checker-verdicts\.md/u);
+assert.match(read('skills/harness/SKILL.md'), /按需读取 reference/u);
+assert.match(read('skills/harness/SKILL.md'), /behavior-map\.md[\s\S]*stage-decisions\.md/u);
+assert.match(read('skills/harness-tdd/SKILL.md'), /executor-result-contract\.md[\s\S]*checker-verdict-contract\.md/u);
+assert.match(read('skills/harness-verify/SKILL.md'), /checker-verdicts\.md/u);
 
 console.log(`PASS reference-wiring-contract verify (${references.length} references)`);

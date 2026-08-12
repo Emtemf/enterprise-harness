@@ -56,7 +56,7 @@
 
 在这套骨架里：
 
-- 项目共享约定由 `CLAUDE.md`、`.claude/rules/`、`.claude/agents/`、`harness/specs/`、`harness/templates/` 共同定义
+- 项目共享约定由 `CLAUDE.md`、根目录 `skills/`、`agents/`、`hooks/`、`harness/specs/`、`harness/templates/` 共同定义
 - 每台机器通过 Claude Code-only phase 1 的动作层 / maintainer layer 自己适配本地路径、工具、shell、环境变量和 secrets
 - 代码探索默认走 **codegraph-first**
 - 外部库与框架文档默认走 **Context7-first**

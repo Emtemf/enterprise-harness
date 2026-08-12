@@ -62,13 +62,13 @@ try {
   const workflow = buildWorkflowResult(root, changeId, state);
   const summary = buildStatusSummary(root, { sessionId: 'audit-block-smoke' });
   const card = renderTECPCCard(root, changeId, state, { workflowResult: workflow });
-  const sessionStart = spawnSync(process.execPath, [path.join(sourceRoot, 'runtime', 'hooks', 'session-start.mjs')], {
+  const sessionStart = spawnSync(process.execPath, [path.join(sourceRoot, 'hooks', 'scripts', 'session-start.mjs')], {
     cwd: root,
     encoding: 'utf-8',
     input: JSON.stringify({ hook_event_name: 'SessionStart', session_id: 'audit-block-smoke', cwd: root }),
     env: { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' },
   });
-  const stop = spawnSync(process.execPath, [path.join(sourceRoot, 'runtime', 'hooks', 'stop.mjs')], {
+  const stop = spawnSync(process.execPath, [path.join(sourceRoot, 'hooks', 'scripts', 'stop.mjs')], {
     cwd: root,
     encoding: 'utf-8',
     input: JSON.stringify({ hook_event_name: 'Stop', session_id: 'audit-block-smoke', cwd: root }),

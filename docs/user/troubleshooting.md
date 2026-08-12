@@ -122,6 +122,23 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-LIFECYCLE-TECP-019` | lifecycle 无法渲染 TECPC 卡 | 校验 change state |
 | `EH-SPAWN-DEPTH-020` | subagent 生成深度不足，forked 阶段会自写自审 | 设置 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=3` 后重启会话 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
+| `EH-STATE-MUTATE-015` | v6 state mutator 不是函数或未返回对象 | 使用 runtime 的不可变 mutator 并返回完整 state |
+| `EH-STATE-NOT-FOUND-016` | v6 mutation 找不到指定 change 的 state | 确认 changeId 已创建且仍为 active |
+| `EH-STATE-V6-017` | 正在对 v4/v5 state 使用 v6 mutation | 先对 active v5 change 显式执行迁移；archive 保持只读 |
+| `EH-STATE-SCHEMA-018` | v6 mutation 结果不满足 state schema | 修复 stage、impact、artifacts 或 validation 字段后重试 |
+| `EH-V5-MIGRATE-CONFIRM-019` | active v5 change 尚未得到显式迁移确认 | 明确确认迁移；不要静默改写历史 state |
+| `EH-V5-MIGRATE-020` | v5 migrator 收到的不是 schema v5 state | 使用相应兼容 reader/migrator，不要跨版本强迁移 |
+| `EH-V5-MIGRATE-021` | 尝试迁移 archived 或非 active historical change | archive 只读；仅 active change 可迁移 |
+| `EH-V5-MIGRATE-022` | 迁移后的 v6 state 不合法 | 修复源 state 的必要身份/impact 字段，再重试迁移 |
+| `EH-HANDOFF-V2-023` | handoff v2 role 非法 | 仅使用 `execute` 或 `check` |
+| `EH-HANDOFF-V2-024` | handoff v2 缺 agent type 或 skill | 提供已声明的 agent type 与 skill |
+| `EH-HANDOFF-V2-025` | handoff v2 缺 TECPC target | 明确写出本次执行的目标 |
+| `EH-HANDOFF-V2-026` | checker handoff 未关联 executor run | 提供 parentRunId 并消费该 run 的 result artifact |
+| `EH-HANDOFF-V2-027` | common-dir 中没有指定 handoff input | 确认 changeId/runId，重新创建 handoff |
+| `EH-HANDOFF-V2-028` | handoff input 版本不匹配 | 通过对应 v1/v2 reader 读取，不要混用版本 |
+| `EH-SESSION-LEASE-023` | session lease 不存在或已解绑 | 在当前会话重新绑定 change，再续约 |
+| `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
+| `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
 | `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |

@@ -31,7 +31,7 @@ try {
   const listed = new Set(manifest.files.map((entry) => entry.path));
   for (const required of [
     '.claude-plugin/plugin.json',
-    '.claude/skills/harness/SKILL.md',
+    'skills/harness/SKILL.md',
     'hooks/hooks.json',
     'runtime/cli.mjs',
     'harness/templates/state.json',

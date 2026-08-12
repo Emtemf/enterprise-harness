@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process';
 import { readAgentEvents } from '../lib/agent-evidence.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
-const hookPath = path.join(repoRoot, 'runtime', 'hooks', 'pre-explore.mjs');
+const hookPath = path.join(repoRoot, 'hooks', 'scripts', 'pre-explore.mjs');
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node runtime/test/codegraph-status-not-attempt-smoke.mjs <red|green|verify>');

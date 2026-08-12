@@ -16,9 +16,7 @@
 - 产品与用户入口：`README.md`、`docs/user/`
 - 维护文档：`docs/maintainer/`
 - 长期运行合同：`harness/specs/`
-- Claude 自动规则：`.claude/rules/`
-- 阶段过程：`.claude/skills/`
-- agent 身份与工具边界：`.claude/agents/`
+- Claude Code plugin assets：`skills/`、`agents/`、`hooks/`
 - 机械执行：`runtime/`
 - 动态 change：`harness/ACTIVE_CHANGE`、`harness/changes/<id>/state.json`
 

@@ -22,23 +22,23 @@ const check = () => {
   assert.equal(Object.hasOwn(plugin, 'commands'), false);
   assert.equal(fs.existsSync(path.join(root, '.claude-plugin/commands/harness.md')), false);
   for (const skill of stageSkills) {
-    const text = read(`.claude/skills/${skill}/SKILL.md`);
+    const text = read(`skills/${skill}/SKILL.md`);
     assert.match(text, /^---[\s\S]*?^name:\s*\S+/mu);
     assert.ok(text.includes('/enterprise-harness:harness'), `${skill} must name plugin entry`);
   }
   for (const skill of workerSkills) {
-    const text = read(`.claude/skills/${skill}/SKILL.md`);
+    const text = read(`skills/${skill}/SKILL.md`);
     assert.match(text, /^---[\s\S]*?^name:\s*\S+/mu);
     assert.match(text, /^user-invocable:\s*false$/mu, `${skill} is a worker contract, not a user entry`);
   }
   for (const agent of agents) {
-    const text = read(`.claude/agents/${agent}.md`);
+    const text = read(`agents/${agent}.md`);
     assert.match(text, new RegExp(`^name:\\s*${agent}$`, 'm'));
     assert.doesNotMatch(text, new RegExp(`^name:\\s*enterprise-harness:${agent}$`, 'm'));
   }
-  assert.match(read('.claude/agents/tdd-executor.md'), /^isolation:\s*worktree$/m);
-  assert.ok(read('.claude/rules/10-exploration.md').includes('enterprise-harness:code-explore'));
-  assert.doesNotMatch(stageSkills.map((skill) => read(`.claude/skills/${skill}/SKILL.md`)).join('\n'), /fallback.*general-purpose/iu);
+  assert.match(read('agents/tdd-executor.md'), /^isolation:\s*worktree$/m);
+  assert.ok(read('agents/code-explore.md').includes('name: code-explore'));
+  assert.doesNotMatch(stageSkills.map((skill) => read(`skills/${skill}/SKILL.md`)).join('\n'), /fallback.*general-purpose/iu);
 };
 try {
   check();

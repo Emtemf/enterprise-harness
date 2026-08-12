@@ -61,7 +61,7 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
 
   function invalidateAffectedValidations(active, target) {
     const relative = path.relative(canonicalRoot, canonicalPath(target)).replaceAll('\\', '/');
-    if (relative === 'runtime' || relative.startsWith('runtime/')) {
+    if (relative === 'runtime' || relative.startsWith('runtime/') || relative === 'hooks' || relative.startsWith('hooks/')) {
       if (!fs.existsSync(path.join(root, 'harness', 'changes'))) return;
       for (const entry of fs.readdirSync(path.join(root, 'harness', 'changes'), { withFileTypes: true })) {
         if (entry.isDirectory()) markValidationStale(path.join(root, 'harness', 'changes', entry.name, 'state.json'), target);

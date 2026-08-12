@@ -1,60 +1,57 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-10
+lastVerified: 2026-08-12
 implementationRefs:
-  - harness/plugin/hooks-manifest.json
-  - runtime/hooks
-  - runtime/lib/hooks
-  - runtime/lib/hook-input.mjs
+  - hooks/hooks.json
+  - hooks/scripts/
+  - runtime/lib/hooks/
+  - runtime/lib/sessions.mjs
+  - runtime/lib/change-locks.mjs
 testRefs:
   - runtime/test/hook-manifest-parity-smoke.mjs
-  - runtime/test/hook-snapshot-attribution-smoke.mjs
-  - runtime/test/hook-dedup-guard-smoke.mjs
+  - runtime/test/plugin-native-hooks-smoke.mjs
+  - runtime/test/runtime-leases-smoke.mjs
 ---
 
 # Hooks Contract
 
-权威 hook 表在 `harness/plugin/hooks-manifest.json`。每项定义 event、matcher、script、timeout、performance budget 和 fail mode。
+`hooks/hooks.json` is the plugin registration source and `hooks/scripts/` contains thin entry
+wrappers. Policy lives in `runtime/lib/hooks/`; wrappers only parse stdin, call policy, render the
+host result, and exit. Generated development settings are a local test projection, never the
+released controller path.
 
-## 分层原则
+## Allowed responsibilities
 
-hook 文件必须是**薄壳**：读 stdin → 委托 `runtime/lib/hooks/*.mjs` 的策略函数 → 输出 `{ exitCode, stdout?, stderr? }` → exit。
-stdin 解析和结果输出统一走 `runtime/lib/hook-input.mjs`（唯一契约点）。逻辑全部在 lib，可单测、好定位。
+Hooks may only perform host-boundary mechanics:
 
-| Hook 类别 | 输入 | 输出 | 默认 fail mode |
-|---|---|---|---|
-| pre-explore | tool event | allow/block + CodeGraph attempt | closed |
-| pre-write | tool event + before snapshot | allow/block | closed |
-| post-write | tool event + after snapshot | stale/violation | closed |
-| agent lifecycle | Agent/Subagent events | ledger + result | closed |
-| session/stop | durable state | status/recovery | session open; stop closed |
+- SessionStart health/lease initialization and recovery guidance;
+- synchronous path/policy guards for governed writes;
+- research and write receipt capture;
+- SessionEnd cleanup;
+- an implement-skill scoped write guard.
 
-## 静态阶段链 vs 动态瞬间 gate
+They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
+that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
+receipts, and independent reviews provide proof.
 
-写受治理路径（`src/main/java`、`src/test/java`、`openapi`）需要两类前置，职责分离：
+## Health and leases
 
-### 静态阶段链（ambiguity/router/design/plan 完整性）
+A governed execution requires a fresh hook-health handshake. If host configuration suppresses
+or disables hooks, the runtime must report that condition instead of claiming enforcement.
 
-- 只依赖已批准的 clarify/route/design/plan 证据，写代码过程中不变化。
-- 由 `enterprise-harness validate <change-id>` 在**阶段边界**（plan freeze 后、tdd 开始前）
-  显式验证，通过后落 `evidence/stage-gate.json` marker（含 changeDigest，只覆盖
-  requirements/change/design/tasks + reviews/*）。
-- pre-write **不重算**阶段链；只轻查 marker 存在且 digest 匹配当前静态证据。
-  marker 缺失/过期 → block，提示先运行 `validate`。
-- marker digest 刻意排除 state.json 动态字段（currentTask/redVerified）与 evidence/tdd receipts，
-  所以 tdd 中途写证据不会误使 marker 失效。
+Session and change-lock records live under the git common directory and carry an expiry lease.
+The holder renews it through a heartbeat; an expired lease is recoverable only through the
+runtime's explicit recovery path. A lease is operational coordination, not completion evidence.
 
-### 动态瞬间 gate（每次写都必须当场查）
+## Native worktrees
 
-- agent 绑定 `enterprise-harness:tdd-executor`
-- 写生产代码需当前 task 的真实 RED receipt
-- 写测试需归属某个 currentTask
+Harness uses native Claude Code worktrees. `worktree.baseRef: "head"` is a local setup concern;
+Harness does not replace native worktree creation and must preserve `.worktreeinclude` behavior.
+Worktrees isolate files, not reasoning context or review independence.
 
-## 探索豁免
+## Failure semantics
 
-探索豁免按每个解析路径判断；Bash 中出现一个 README token 不能豁免同命令的业务代码路径。无法解析的 fallback 探索 fail-closed。
-
-Bash 写入通过相同 toolUseId 的前后 snapshot 归因，覆盖 unstaged、staged、untracked、deleted、renamed 和 generated files。
-
-关键异常必须使用稳定错误码写 violation ledger，不允许空 `catch {}`。
+Every hook declaration records a bounded timeout and fail mode in
+`harness/plugin/hooks-manifest.json`. Critical parse/attribution errors use a stable error code;
+no critical `catch` may silently allow an ambiguous governed write.

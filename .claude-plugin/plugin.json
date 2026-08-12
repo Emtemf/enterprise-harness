@@ -15,28 +15,28 @@
     "enterprise-harness"
   ],
   "skills": [
-    "./.claude/skills/harness/",
-    "./.claude/skills/harness-design/",
-    "./.claude/skills/harness-plan/",
-    "./.claude/skills/harness-tdd/",
-    "./.claude/skills/harness-verify/"
+    "./skills/harness/",
+    "./skills/harness-design/",
+    "./skills/harness-plan/",
+    "./skills/harness-tdd/",
+    "./skills/harness-verify/"
   ],
   "agents": [
-    "./.claude/agents/code-explore.md",
-    "./.claude/agents/doc-research.md",
-    "./.claude/agents/clarify-synthesizer.md",
-    "./.claude/agents/route-decider.md",
-    "./.claude/agents/design-executor.md",
-    "./.claude/agents/plan-executor.md",
-    "./.claude/agents/clarify-reviewer.md",
-    "./.claude/agents/requirement-reviewer.md",
-    "./.claude/agents/design-reviewer.md",
-    "./.claude/agents/plan-critic.md",
-    "./.claude/agents/api-consistency-reviewer.md",
-    "./.claude/agents/verification-reviewer.md",
-    "./.claude/agents/tdd-executor.md",
-    "./.claude/agents/implementation-reviewer.md",
-    "./.claude/agents/verification-executor.md"
+    "./agents/code-explore.md",
+    "./agents/doc-research.md",
+    "./agents/clarify-synthesizer.md",
+    "./agents/route-decider.md",
+    "./agents/design-executor.md",
+    "./agents/plan-executor.md",
+    "./agents/clarify-reviewer.md",
+    "./agents/requirement-reviewer.md",
+    "./agents/design-reviewer.md",
+    "./agents/plan-critic.md",
+    "./agents/api-consistency-reviewer.md",
+    "./agents/verification-reviewer.md",
+    "./agents/tdd-executor.md",
+    "./agents/implementation-reviewer.md",
+    "./agents/verification-executor.md"
   ],
   "mcpServers": "./.mcp.json"
 }

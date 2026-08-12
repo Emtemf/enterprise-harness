@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const postWritePath = path.join(repoRoot, 'runtime', 'hooks', 'post-write.mjs');
+const postWritePath = path.join(repoRoot, 'hooks', 'scripts', 'post-write.mjs');
 const mode = process.argv[2];
 
 if (!['green', 'verify'].includes(mode)) {
@@ -74,8 +74,8 @@ function createFixture(change = changeId) {
   assert.equal(git.status, 0, `could not initialize fixture git repository: ${git.stderr}`);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId, 'evidence', 'tdd'), { recursive: true });
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId, 'runs'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'runtime', 'hooks'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'runtime', 'hooks', 'post-write.mjs'), '// fixture\n', 'utf-8');
+  fs.mkdirSync(path.join(root, 'hooks', 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'hooks', 'scripts', 'post-write.mjs'), '// fixture\n', 'utf-8');
   return root;
 }
 
@@ -93,7 +93,7 @@ function invoke(root, filePath, toolUseId) {
   });
 }
 
-function invokeBashWrite(root, toolUseId, command = 'cp /tmp/replacement runtime/hooks/post-write.mjs') {
+function invokeBashWrite(root, toolUseId, command = 'cp /tmp/replacement hooks/scripts/post-write.mjs') {
   const event = {
     tool_name: 'Bash',
     tool_use_id: toolUseId,
@@ -101,7 +101,7 @@ function invokeBashWrite(root, toolUseId, command = 'cp /tmp/replacement runtime
     cwd: root,
     tool_input: { command },
   };
-  spawnSync(process.execPath, [path.join(repoRoot, 'runtime', 'hooks', 'pre-write.mjs')], {
+  spawnSync(process.execPath, [path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs')], {
     cwd: root,
     encoding: 'utf-8',
     input: JSON.stringify(event),
@@ -168,7 +168,7 @@ try {
   const bashRuntimeWrite = invokeBashWrite(root, 'bash-runtime-write');
   assert.equal(bashRuntimeWrite.status, 0, `Bash runtime writes are now pass-through (stale invalidation only): ${bashRuntimeWrite.stderr}`);
 
-  const runtimeWrite = invoke(root, path.join('runtime', 'hooks', 'post-write.mjs'), 'runtime-write');
+  const runtimeWrite = invoke(root, path.join('hooks', 'scripts', 'post-write.mjs'), 'runtime-write');
   assert.equal(runtimeWrite.status, 0, 'runtime control-plane writes pass through — full validation is verify concern');
 
   const afterRuntime = JSON.parse(fs.readFileSync(otherStatePath, 'utf-8')).validation;

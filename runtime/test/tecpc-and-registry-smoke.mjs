@@ -61,7 +61,7 @@ for (const contract of Object.values(registry.behaviors || {})) {
   agentsByStage.get(contract.stage).add(contract.checker);
 }
 
-const skillsDir = path.join(repoRoot, '.claude', 'skills');
+const skillsDir = path.join(repoRoot, 'skills');
 for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const stage = entry.name.match(/^harness-(clarify|route|design|plan|tdd|verify)$/u)?.[1];

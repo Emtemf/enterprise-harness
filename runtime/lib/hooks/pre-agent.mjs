@@ -15,7 +15,7 @@ export function preAgent({ root, event }) {
   if (event.tool_name !== 'Agent') return { exitCode: 0 };
 
   // Agent types arrive scoped (`enterprise-harness:code-explore`) when loaded as a plugin and
-  // bare (`code-explore`) when the same definitions load from this repo's own .claude/agents.
+  // bare (`code-explore`) when the same definitions load from this repo's own agents directory.
   // Both spellings denote the same governed agent, so normalize instead of demanding a prefix
   // the local registry cannot resolve — the handoff evidence below is what actually gates.
   const requestedRaw = String(event.tool_input?.subagent_type || '').trim();

@@ -1,6 +1,6 @@
 # Claude Code 运行合同
 
-本仓库开发 Enterprise Harness Claude Code plugin。长期合同在 `harness/specs/`，Claude 自动加载规则在 `.claude/rules/`，动态状态在 active change 资产中。
+本仓库开发 Enterprise Harness Claude Code plugin。长期合同在 `harness/specs/`，插件资产在根目录 `skills/`、`agents/` 与 `hooks/`，动态状态在 active change 资产中。
 
 ## 唯一入口
 

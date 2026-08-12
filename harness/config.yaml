@@ -73,8 +73,8 @@ reviewers:
 
 rules:
   workflow:
-    - Use `.claude/rules/` as the runtime governance source.
-    - Keep `CLAUDE.md` compact and route details into rules and specs.
+    - Use `harness/specs/` as the long-lived governance source; skills and agents carry executable methodology.
+    - Keep `CLAUDE.md` compact and route details into specs and plugin assets.
     - Persist active changes under `harness/changes/`.
     - Treat `harness/archive/` as immutable history.
   analysis:

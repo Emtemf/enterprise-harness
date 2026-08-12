@@ -10,7 +10,7 @@ import { normalizeDigestContent, normalizeDigestPath } from '../lib/checks.mjs';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const verifyPath = path.join(repoRoot, 'runtime', 'verify.mjs');
 const lifecyclePath = path.join(repoRoot, 'runtime', 'lifecycle.mjs');
-const postWritePath = path.join(repoRoot, 'runtime', 'hooks', 'post-write.mjs');
+const postWritePath = path.join(repoRoot, 'hooks', 'scripts', 'post-write.mjs');
 const mode = process.argv[2];
 
 function copyDir(src, dest) {

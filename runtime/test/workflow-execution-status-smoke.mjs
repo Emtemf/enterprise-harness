@@ -115,10 +115,10 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const { tempRoot, repoCopy, changeId, changeDir } = setupTempRepo();
 try {
   const workflowStatus = parseJson(runWorkflow(repoCopy, ['status', changeId, '--json']));
-  const sessionStartPath = path.join(repoCopy, 'runtime', 'hooks', 'session-start.mjs');
+  const sessionStartPath = path.join(repoCopy, 'hooks', 'scripts', 'session-start.mjs');
   const sessionStart = spawnSync('node', [sessionStartPath], { cwd: repoCopy, encoding: 'utf-8' });
   const sessionText = `${sessionStart.stdout || ''}${sessionStart.stderr || ''}`;
-  const stopPath = path.join(repoCopy, 'runtime', 'hooks', 'stop.mjs');
+  const stopPath = path.join(repoCopy, 'hooks', 'scripts', 'stop.mjs');
   const stopResult = spawnSync('node', [stopPath], { cwd: repoCopy, encoding: 'utf-8' });
   const stopText = `${stopResult.stdout || ''}${stopResult.stderr || ''}`;
   const statusCli = spawnSync('node', [path.join(repoCopy, 'runtime', 'status.mjs')], { cwd: repoCopy, encoding: 'utf-8' });

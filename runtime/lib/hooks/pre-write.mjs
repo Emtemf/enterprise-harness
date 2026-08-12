@@ -24,7 +24,7 @@ export function preWrite({ root, event }) {
     const legacyAgentsRoot = path.resolve(root, 'agents');
     const archiveRoot = path.resolve(root, 'harness/archive');
     if (target === legacyRulesRoot || target.startsWith(`${legacyRulesRoot}${path.sep}`)) {
-      return block(root, 'rules/ 是历史目录；运行时规则必须写入 .claude/rules/。');
+      return block(root, 'rules/ 是历史目录；运行时规则必须写入 rules/。');
     }
     if (target === archiveRoot || target.startsWith(`${archiveRoot}${path.sep}`)) {
       return block(root, 'harness/archive/ 是冻结历史，不允许直接编辑。');

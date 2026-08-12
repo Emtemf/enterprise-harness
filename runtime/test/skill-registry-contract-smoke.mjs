@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const mode = process.argv[2] || 'verify';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const skillsDir = path.join(root, '.claude', 'skills');
+const skillsDir = path.join(root, 'skills');
 
 const dirs = fs.readdirSync(skillsDir, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
@@ -25,7 +25,7 @@ for (const dir of dirs) {
 }
 assert.deepEqual(nameMismatch, [], `skill name must match its directory:\n${nameMismatch.join('\n')}`);
 
-// bin/package.mjs whitelists .claude/skills as a whole tree, so a directory left
+// bin/package.mjs whitelists skills as a whole tree, so a directory left
 // behind by a rename is packaged and shipped without any error.
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8'));
 const registered = new Set((plugin.skills || []).map((entry) => path.basename(entry.replace(/\/+$/u, ''))));

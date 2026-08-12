@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
-const agentPath = path.join(repoRoot, '.claude', 'agents', 'tdd-executor.md');
+const agentPath = path.join(repoRoot, 'agents', 'tdd-executor.md');
 const specPath = path.join(repoRoot, 'harness', 'specs', 'tdd-execution.md');
-const skillPath = path.join(repoRoot, '.claude', 'skills', 'harness-tdd', 'SKILL.md');
+const skillPath = path.join(repoRoot, 'skills', 'harness-tdd', 'SKILL.md');
 
 function readText(file) {
   return fs.readFileSync(file, 'utf-8');

@@ -9,8 +9,9 @@ import { appendAgentEvent, gitCommonDir } from '../lib/agent-evidence.mjs';
 import { createEvidencePolicy } from '../lib/evidence-policy.mjs';
 import { tddReceiptSpoolPath } from '../lib/tdd-receipts.mjs';
 
-const runtimeRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const hook = path.join(runtimeRoot, 'hooks', 'pre-write.mjs');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const runtimeRoot = path.join(repoRoot, 'runtime');
+const hook = path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs');
 const validateCli = path.join(runtimeRoot, 'validate.mjs');
 const changeId = 'gate-probe';
 
@@ -108,7 +109,14 @@ function fixture() {
 }
 
 function hookCall(root, event) {
-  return spawnSync(process.execPath, [hook], { cwd: root, input: JSON.stringify(event), encoding: 'utf-8', shell: false });
+  const { ENTERPRISE_HARNESS_SESSION_ID: _harnessSessionId, CLAUDE_SESSION_ID: _claudeSessionId, ...env } = process.env;
+  return spawnSync(process.execPath, [hook], {
+    cwd: root,
+    input: JSON.stringify(event),
+    encoding: 'utf-8',
+    shell: false,
+    env,
+  });
 }
 
 function bind(root, agentId, type) {

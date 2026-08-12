@@ -17,7 +17,7 @@ for (const entries of Object.values(manifest.hooks)) {
   for (const entry of entries) {
     assert.ok(Number.isInteger(entry.performanceBudgetMs) && entry.performanceBudgetMs > 0);
     assert.ok(['fail-open', 'fail-closed'].includes(entry.failMode));
-    assert.ok(fs.existsSync(path.join(root, 'runtime', 'hooks', entry.script)));
+    assert.ok(fs.existsSync(path.join(root, 'hooks', 'scripts', entry.script)));
   }
 }
 console.log(`PASS hook-manifest-parity ${mode}`);

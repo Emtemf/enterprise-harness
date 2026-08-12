@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-const postWritePath = path.join(repoRoot, 'runtime', 'hooks', 'post-write.mjs');
+const postWritePath = path.join(repoRoot, 'hooks', 'scripts', 'post-write.mjs');
 const mode = process.argv[2];
 
 if (!['red', 'green', 'verify'].includes(mode)) {

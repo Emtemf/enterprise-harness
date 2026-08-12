@@ -35,13 +35,13 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const pluginJson = JSON.parse(fs.readFileSync(path.join(repoRoot, '.claude-plugin', 'plugin.json'), 'utf-8'));
 const declaredAgents = pluginJson.agents || [];
 const requiredAgents = [
-  './.claude/agents/code-explore.md',
-  './.claude/agents/doc-research.md',
-  './.claude/agents/tdd-executor.md',
-  './.claude/agents/design-executor.md',
-  './.claude/agents/plan-executor.md',
-  './.claude/agents/implementation-reviewer.md',
-  './.claude/agents/verification-executor.md',
+  './agents/code-explore.md',
+  './agents/doc-research.md',
+  './agents/tdd-executor.md',
+  './agents/design-executor.md',
+  './agents/plan-executor.md',
+  './agents/implementation-reviewer.md',
+  './agents/verification-executor.md',
 ];
 
 const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-agent-surface-home-'));
@@ -66,8 +66,8 @@ try {
   const pluginListJson = JSON.parse(pluginList.stdout || '[]');
   const installed = pluginListJson.find((p) => p.id === 'enterprise-harness@enterprise-harness');
   const installPath = installed?.installPath;
-  // agents 收敛为单一来源 .claude/agents/；安装后文件保留在该子目录下。
-  const installedAgentsDir = installPath ? path.join(installPath, '.claude', 'agents') : null;
+  // agents 收敛为单一来源 agents/；安装后文件保留在该子目录下。
+  const installedAgentsDir = installPath ? path.join(installPath, 'agents') : null;
   const installedAgents = installedAgentsDir && fs.existsSync(installedAgentsDir)
     ? fs.readdirSync(installedAgentsDir).sort()
     : [];

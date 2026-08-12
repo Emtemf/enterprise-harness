@@ -24,6 +24,7 @@ const commands = {
   'update-local': ['update-local.mjs'],
   upgrade: ['upgrade.mjs'],
   migrate: ['migrate.mjs'],
+  'migrate-v5': ['migrate-v5.mjs'],
   'upstream-check': ['upstream-check.mjs'],
   lifecycle: ['lifecycle.mjs'],
   workflow: ['workflow.mjs'],

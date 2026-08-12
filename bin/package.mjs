@@ -13,9 +13,8 @@ const args = process.argv.slice(2);
 const ROOT_FILES = ['package.json', 'README.md', 'CHANGELOG.md', 'LICENSE', '.mcp.json'];
 const ALLOWED_TREES = [
   '.claude-plugin',
-  '.claude/skills',
-  '.claude/agents',
-  '.claude/rules',
+  'skills',
+  'agents',
   'hooks',
   'runtime',
   'harness/plugin',

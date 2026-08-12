@@ -32,7 +32,7 @@ function fixture() {
 }
 
 function hook(root, script, payload) {
-  return spawnSync('node', [path.join(sourceRoot, 'runtime/hooks', script)], {
+  return spawnSync('node', [path.join(sourceRoot, 'hooks/scripts', script)], {
     cwd: root,
     encoding: 'utf-8',
     input: JSON.stringify(payload),

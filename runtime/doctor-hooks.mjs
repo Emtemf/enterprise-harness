@@ -23,7 +23,7 @@ for (const src of settingsSources) {
   }
   // 展开 $CLAUDE_PROJECT_DIR（settings.json 用它），只对指向本仓库 stop.mjs 的命令实跑。
   const expanded = src.command.replace(/\$\{?CLAUDE_PROJECT_DIR\}?/g, repoRoot);
-  const isHarnessStop = expanded.includes('runtime/hooks/stop.mjs');
+  const isHarnessStop = expanded.includes('hooks/scripts/stop.mjs');
   if (isHarnessStop) {
     const scriptPath = extractScriptPath(expanded);
     const res = spawnSync('node', [scriptPath], { input: '{}', encoding: 'utf-8' });

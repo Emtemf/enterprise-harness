@@ -9,19 +9,18 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const files = [
-  '.claude/skills/harness/SKILL.md',
-  '.claude/rules/10-exploration.md',
-  '.claude/agents/code-explore.md',
+  'skills/harness/SKILL.md',
+  'agents/code-explore.md',
   'docs/user/troubleshooting.md',
 ];
 const corpus = files.map(read).join('\n');
 const checks = () => {
   assert.ok(corpus.includes('enterprise-harness:code-explore'));
   assert.ok(corpus.includes('CodeGraph-first') || corpus.includes('codegraph-first'));
-  assert.match(corpus, /主 orchestrator[\s\S]{0,80}(?:不重复|不得.*重复)/u);
+  assert.ok(corpus.includes('不重做已完成阶段'));
   assert.match(corpus, /当前用户|目标项目|真实工作区/u);
-  assert.ok(read('.claude/skills/harness/SKILL.md').includes('executor 与 checker 必须是不同 subagent/run'));
-  assert.ok(read('.claude/skills/harness/SKILL.md').includes('worktree 只提供文件隔离；subagent 提供上下文隔离'));
+  assert.ok(read('skills/harness/SKILL.md').includes('executor 与 checker 必须是不同 subagent/run'));
+  assert.ok(read('skills/harness/SKILL.md').includes('worktree 只提供文件隔离；subagent 提供上下文隔离'));
   assert.doesNotMatch(corpus, /subagent_type:\s*`?code-explore`?/u);
 };
 try {
