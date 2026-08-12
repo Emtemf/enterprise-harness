@@ -50,13 +50,15 @@ enterprise-harness handoff create <change-id> <stage> <behavior> execute   # 输
 enterprise-harness handoff create <change-id> <stage> <behavior> check <executor-run-id>
 ```
 
+## 按需读取 reference
+
+不要默认加载全部 reference；按当前动作读取：
+
+- 创建 handoff 或不确定 `stage.action`：读 `.claude/skills/harness/reference/behavior-map.md`
+- 推进 workflow 或判断 blocker 后下一决策：读 `.claude/skills/harness/reference/stage-decisions.md`
+- 需要完整 execute/check 输出格式：转到对应 stage skill 读取 protocol reference。
+
 `<behavior>` 是 `stage.action` 格式（不是 agent 名）；写错时 pre-agent hook 打印正确命令。
-完整映射 → `.claude/skills/harness/reference/behavior-map.md`
-
-## 阶段决策
-
-`enterprise-harness workflow status <change-id>` 读 `pendingDecision.options`；不在其中的决策失败。
-完整表 → `.claude/skills/harness/reference/stage-decisions.md`
 
 ## 输出规则
 

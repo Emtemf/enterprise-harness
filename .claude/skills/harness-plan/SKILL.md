@@ -11,6 +11,13 @@ agent: general-purpose
 
 由 `/enterprise-harness:harness` 派发的 forked subagent，无用户对话通道。权威输入只有 change 目录的 durable artifact。
 
+## 按需 reference
+
+- 创建 `plan.produce` handoff：读 `../harness/reference/behavior-map.md`
+- execute result：读 `../harness/reference/protocol/executor-result-contract.md`
+- checker verdict：读 `../harness/reference/protocol/checker-verdict-contract.md`；示例读 `../harness/reference/protocol/checker-verdicts.md`
+- `freeze-plan` 前：读 `../harness/reference/stage-decisions.md`
+
 ## Step 1: 产出 tasks
 
 ```bash

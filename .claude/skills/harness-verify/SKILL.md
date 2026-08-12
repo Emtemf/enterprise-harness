@@ -11,6 +11,12 @@ agent: general-purpose
 
 由 `/enterprise-harness:harness` 派发的 forked subagent，无用户对话通道。权威输入只有 durable artifact、receipt、ledger。
 
+## 按需 reference
+
+- 创建 `verify.collect` / `verify.check-api` handoff：读 `../harness/reference/behavior-map.md`
+- checker 输出：读 `../harness/reference/protocol/checker-verdict-contract.md`；pass/block/advisory 示例读 `../harness/reference/protocol/checker-verdicts.md`
+- 进入 archive 前：读 `../harness/reference/stage-decisions.md`
+
 ## 开始前：完成态检查清单
 
 ```bash

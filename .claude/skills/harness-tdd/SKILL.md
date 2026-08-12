@@ -11,6 +11,13 @@ agent: general-purpose
 
 由 `/enterprise-harness:harness` 派发的 forked subagent，无用户对话通道。权威输入只有 change 目录的 durable artifact。
 
+## 按需 reference
+
+- 创建 `tdd.execute-task` handoff：读 `../harness/reference/behavior-map.md`
+- executor 输出：读 `../harness/reference/protocol/executor-result-contract.md`；最小示例读 `../harness/reference/protocol/executor-minimal.md`
+- implementation review：读 `../harness/reference/protocol/checker-verdict-contract.md`；verdict 示例读 `../harness/reference/protocol/checker-verdicts.md`
+- `enter-verify` 前：读 `../harness/reference/stage-decisions.md`
+
 ## 前置
 
 ```bash

@@ -165,13 +165,10 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 ### 改动
 
 **skill 子目录结构化**：
-- `harness/refs/behavior-map.md`：behavior 速查表从 SKILL.md 提取（stage.action 正确写法）
-- `harness/refs/stage-decisions.md`：阶段推进决策表从 SKILL.md 提取
-- `harness-stage-executor/refs/result-contract.md`：HANDOFF_RESULT 输出合同独立文件
-- `harness-stage-executor/examples/minimal.md`：execute/blocker 最小完整示例
-- `harness-stage-checker/refs/verdict-contract.md`：checker verdict 合同独立文件
-- `harness-stage-checker/examples/verdicts.md`：pass/block/advisory 三种示例
-- 三个 SKILL.md 瘦身（131→104、97→40、93→30 行），重内容移至 refs/examples
+- `.claude/skills/harness/reference/behavior-map.md`：behavior 速查表（stage.action 正确写法）
+- `.claude/skills/harness/reference/stage-decisions.md`：阶段推进决策表
+- `.claude/skills/harness/reference/protocol/`：executor/checker 的 HANDOFF_RESULT 合同与示例
+- 五个 stage SKILL.md 只保留导航、步骤和门槛；详细合同与示例放在 reference/，按动作按需读取
 
 **agent 动态路径修复（全部 15 个 agent）**：
 - 7 个 reviewer：`HANDOFF_INPUT → inputRefs → 完整路径`，禁止裸文件名

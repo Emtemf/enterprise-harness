@@ -11,6 +11,12 @@ agent: general-purpose
 
 由 `/enterprise-harness:harness` 派发的 forked subagent，无用户对话通道。权威输入只有 change 目录的 durable artifact。
 
+## 按需 reference
+
+- 行为名不确定：读 `../harness/reference/behavior-map.md`
+- execute/check 输出：读 `../harness/reference/protocol/executor-result-contract.md` 或 `../harness/reference/protocol/checker-verdict-contract.md`
+- API scope 判断与 `design.check-api`：读 `../harness/reference/stage-decisions.md`
+
 ## 开始前：确认 scope
 
 如果 requirements 中不明确，调用 `AskUserQuestion` tool：
