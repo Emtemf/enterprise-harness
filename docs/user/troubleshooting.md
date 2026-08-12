@@ -113,6 +113,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-ARCHIVE-FORCE-001` | `archive --force` 已删除 | 未完成 change 使用 `abandon <changeId> <reason>` |
 | `EH-ABANDON-001` | abandon 参数/生命周期无效 | 提供明确 reason，只对 active 未归档 change 执行 |
 | `EH-PROJECT-PROFILE-001` | `harness/project.json` 缺少字段、格式无效或版本不支持 | 按 profile v1 补齐 language、build、productionRoots、testRoots 和 apiRoots |
+| `EH-CLASSIFY-001` | classify 缺少有效 change 输入 | 提供当前 change 的 tier/impact 输入后重试 |
 | `EH-VERIFY-TECP-015` | verify 无法渲染 TECPC 卡 | 检查 active change 状态结构 |
 | `EH-POST-WRITE-TECP-016` | post-write 无法渲染 TECPC 卡 | 查看诊断后重新运行 status |
 | `EH-HOOK-INPUT-017` | Claude Code hook 输入不是合法 JSON | 保留原始 hook 事件并重试 |

@@ -76,6 +76,6 @@ CodeGraph 与 Context7 是一级事实通道。research packet 记录 question�
 
 Claude Code 原生 worktree 配置由生成的 `.claude/settings.json` 提供 `worktree.baseRef=head`。Harness 不再把 worktree 当作 change 真相，也不复制完整 change 目录；session binding、锁和 durable artifacts 仍由 common-dir 与主 subject 管理。
 
-0.4 的 happy path 可以线性显示为 `clarify → design → plan → implement → verify → archive`，但 artifact dependency graph 允许上游修改后 controlled rewind。tier 只影响 interview 深度、review 数量和 validation 强度，不改变 workflow topology。
+0.4 的 happy path 可以线性显示为 `clarify → classify → design → plan → implement → verify → archive`，其中 classify 是内部 action；当前 runtime 暂保留 `route` / `tdd` 兼容投影。tier 只影响 interview 深度、review 数量和 validation 强度，不改变 workflow topology。
 
 三条防复发规则：新增 Hook 必须保护无法可靠放在 Skill 边界的不变量；新增 durable field 必须只有一个 authoritative owner；新增 Agent 必须拥有不同的 context/tool/isolation boundary，纯领域知识应放入 Skill 或 reference。

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadActiveChange } from './gates.mjs';
-import { buildWorkflowResult, computeGuideReminder } from './workflow.mjs';
+import { buildWorkflowResult } from './workflow.mjs';
 import { renderTECPCCard } from './tecp-card.mjs';
 
 function readText(file) {

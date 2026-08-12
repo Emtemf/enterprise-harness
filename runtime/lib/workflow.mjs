@@ -2,8 +2,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { auditWorkflow } from './workflow-audit.mjs';
 
-export function computeGuideReminder() {
-  return null;
+export function classifyChange(input) {
+  if (!input || typeof input !== 'object') throw new Error('EH-CLASSIFY-001: change classification input is required');
+  const impact = input.impact || {};
+  const normalizedImpact = {
+    api: impact.api === true || impact.api === 'yes',
+    data: impact.data === true || impact.data === 'yes',
+    architecture: impact.architecture === true || impact.architecture === 'yes',
+    security: impact.security === true || impact.security === 'yes',
+  };
+  const requiredReviews = ['design'];
+  if (normalizedImpact.api) requiredReviews.push('api');
+  if (normalizedImpact.data) requiredReviews.push('data');
+  if (normalizedImpact.architecture) requiredReviews.push('architecture');
+  requiredReviews.push('final');
+  return Object.freeze({
+    tier: typeof input.tier === 'string' ? input.tier : 'L1',
+    impact: Object.freeze(normalizedImpact),
+    requiredReviews: Object.freeze(requiredReviews),
+    workflowTopology: 'clarify -> design -> plan -> implement -> verify -> archive',
+  });
 }
 
 export function inferWorkflowStage(changeId, data) {

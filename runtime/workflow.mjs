@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classifyChange, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
@@ -225,7 +225,7 @@ const [, , action, ...args] = process.argv;
 if (!action || action === '--help' || action === '-h') {
   console.log('Enterprise Harness Workflow');
   console.log('Usage: node runtime/workflow.mjs <run|resume|status|audit|decide|note|session-log|brief> [args]');
-  console.log('  run <change-id> [owner] [tier] [topic]');
+  console.log('  classify <change-id>');
   console.log('  resume [change-id]');
   console.log('  status [change-id] [--json]');
   console.log('  audit [change-id] [--json]');
@@ -237,6 +237,13 @@ if (!action || action === '--help' || action === '-h') {
 }
 
 switch (action) {
+  case 'classify': {
+    const changeId = resolveChangeId(args[0]);
+    const data = loadChange(changeId);
+    const result = classifyChange({ tier: data.tier, impact: data.impact });
+    process.stdout.write(JSON.stringify({ changeId, classification: result }, null, 2) + '\n');
+    process.exit(0);
+  }
   case 'run': {
     const [changeId, owner = 'harness-governance', tier = 'L3', topic = 'workflow-run'] = args;
     if (!changeId) {
