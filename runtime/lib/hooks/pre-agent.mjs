@@ -1,7 +1,5 @@
 import {
-  activeChangeId,
   appendAgentEvent,
-  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
 } from '../agent-evidence.mjs';
@@ -11,7 +9,7 @@ import {
 } from '../handoff.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
 import { formatHandoffGuidance, suggestHandoffCommand } from '../handoff-guidance.mjs';
-import path from 'node:path';
+import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
 
 export function preAgent({ root, event }) {
   if (event.tool_name !== 'Agent') return { exitCode: 0 };
@@ -23,10 +21,9 @@ export function preAgent({ root, event }) {
   const requestedRaw = String(event.tool_input?.subagent_type || '').trim();
   if (!isHarnessAgentType(requestedRaw)) return { exitCode: 0 };
 
+  const repoRoot = hookRepoRoot(root, event);
   const cwd = event.cwd || root;
-  const commonDir = gitCommonDir(cwd);
-  const repoRoot = path.resolve(commonDir, '..');
-  const changeId = activeChangeId(repoRoot);
+  const changeId = hookChangeId(repoRoot, event);
   if (!changeId) {
     return {
       exitCode: 2,

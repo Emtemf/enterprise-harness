@@ -9,7 +9,7 @@
   ],
   "requiredRuntime": {
     "node": ">=20",
-    "claudeCode": ">=2.1.218"
+    "claudeCode": ">=2.1.219"
   },
   "requiredProjectFiles": [
     "CLAUDE.md",

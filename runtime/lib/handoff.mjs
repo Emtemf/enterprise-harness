@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { normalizeAgentType, sha256 } from './agent-evidence.mjs';
+import { gitCommonDir, normalizeAgentType, sha256 } from './agent-evidence.mjs';
 import {
   assertSafeId,
   assertSafeRunId,
@@ -40,6 +40,13 @@ export function runDir(root, changeId, runId) {
 
 export function handoffInputPath(root, changeId, runId) {
   return path.join(runDir(root, changeId, runId), 'input.json');
+}
+
+export function handoffSpoolDir(root, changeId, runId) {
+  assertSafeId(changeId, 'changeId');
+  assertSafeRunId(runId);
+  const commonDir = gitCommonDir(root);
+  return resolveChild(path.join(commonDir, 'enterprise-harness', 'runs', changeId), runId, 'runId');
 }
 
 export function handoffResultPath(root, changeId, runId, role = 'execute') {
@@ -148,7 +155,15 @@ export function createHandoffInput(root, {
   };
   const targetPath = handoffInputPath(root, changeId, runId);
   atomicWriteJson(targetPath, envelope);
-  return { envelope, path: targetPath };
+  const spoolPath = path.join(handoffSpoolDir(root, changeId, runId), 'task-brief.md');
+  if (effectiveInputRefs.length > 0) {
+    fs.mkdirSync(path.dirname(spoolPath), { recursive: true });
+    const briefRefs = effectiveInputRefs.filter((ref) => /(?:^|\/)briefs\/task-/u.test(ref));
+    if (briefRefs.length > 0) {
+      fs.writeFileSync(spoolPath, briefRefs.map((ref) => `# Task input\n\nSource: ${ref}\n\n${fs.readFileSync(resolveWithin(root, ref, 'inputRef'), 'utf-8')}`).join('\n\n'), 'utf-8');
+    }
+  }
+  return { envelope, path: targetPath, spoolPath };
 }
 
 export function parseHandoffInputMarker(prompt) {

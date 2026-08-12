@@ -1,18 +1,18 @@
 import {
-  activeChangeId,
   appendAgentEvent,
   isHarnessAgentType,
   normalizeAgentType,
   readAgentEvents,
 } from '../agent-evidence.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
+import { hookChangeId } from '../hook-change.mjs';
 
 export function agentFailure({ root, event }) {
   if (event.tool_name !== 'Agent') return { exitCode: 0 };
   const requested = normalizeAgentType(event.tool_input?.subagent_type);
   if (!isHarnessAgentType(requested)) return { exitCode: 0 };
 
-  const changeId = activeChangeId(root);
+  const changeId = hookChangeId(root, event);
   if (!changeId) return { exitCode: 0 };
   const dispatch = [...readAgentEvents(root, changeId)].reverse().find((item) => (
     item.kind === 'dispatch'

@@ -1,5 +1,4 @@
 import { hasChangeTracking } from '../checks.mjs';
-import { loadActiveChange } from '../gates.mjs';
 import {
   appendAgentEvent,
   normalizeAgentType,
@@ -12,6 +11,7 @@ import {
   isExplorationTargetExempt,
   hasUnboundedExplorationScope,
 } from '../hook-targets.mjs';
+import { loadHookChange, hookSessionId } from '../hook-change.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 
 export function preExplore({ root, event }) {
@@ -43,7 +43,7 @@ export function preExplore({ root, event }) {
     return { exitCode: 0 };
   }
 
-  const active = loadActiveChange(root);
+  const active = loadHookChange(root, event);
   if (!active.ok) {
     return {
       exitCode: 2,

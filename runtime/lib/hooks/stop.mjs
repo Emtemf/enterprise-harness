@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateCompletionPredicate, validateCompletionReviewers } from '../checks.mjs';
-import { loadActiveChange } from '../gates.mjs';
+import { loadHookChange } from '../hook-change.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { buildRecoveryGuidance } from '../recovery-guidance.mjs';
 import { sessionDedupGuard, stopEventIdentity } from '../hook-dedup.mjs';
@@ -18,9 +18,9 @@ export function stop({ root, event }) {
 
   const changesDir = path.join(root, 'harness', 'changes');
   if (!fs.existsSync(changesDir)) return allow();
-  const active = loadActiveChange(root);
+  const active = loadHookChange(root, event);
   if (!active.ok) {
-    printHandoffGuidance(root);
+    printHandoffGuidance(root, event);
     return allow();
   }
   const changeDir = path.join(changesDir, active.changeId);
@@ -55,8 +55,8 @@ export function stop({ root, event }) {
   return allow();
 }
 
-function printHandoffGuidance(root) {
-  const guidance = buildRecoveryGuidance(root);
+function printHandoffGuidance(root, event = {}) {
+  const guidance = buildRecoveryGuidance(root, event);
   console.error('Stop handoff guidance:');
   console.error(`- ${guidance.assetGuidance}`);
   if (guidance.workflowStage) {
@@ -66,7 +66,7 @@ function printHandoffGuidance(root) {
   }
   // 闭环五检进度卡
   try {
-    const active = loadActiveChange(root);
+    const active = loadHookChange(root, event);
     if (active.ok) {
       const card = renderTECPCCard(root, active.changeId, active.data, {
         workflowResult: {

@@ -1,4 +1,4 @@
-export const MINIMUM_CLAUDE_CODE_VERSION = '2.1.218';
+export const MINIMUM_CLAUDE_CODE_VERSION = '2.1.219';
 
 function parseVersion(value) {
   const match = String(value || '').match(/\b(\d+)\.(\d+)\.(\d+)\b/u);

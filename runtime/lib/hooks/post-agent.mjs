@@ -1,13 +1,11 @@
 import {
-  activeChangeId,
   appendAgentEvent,
-  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
   readAgentEvents,
 } from '../agent-evidence.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
-import path from 'node:path';
+import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
 
 export function postAgent({ root, event }) {
   if (event.tool_name !== 'Agent') return { exitCode: 0 };
@@ -15,9 +13,8 @@ export function postAgent({ root, event }) {
   const requestedRaw = String(event.tool_input?.subagent_type || '').trim();
   if (!isHarnessAgentType(requestedRaw)) return { exitCode: 0 };
   const cwd = event.cwd || root;
-  const commonDir = gitCommonDir(cwd);
-  const repoRoot = path.resolve(commonDir, '..');
-  const changeId = activeChangeId(repoRoot);
+  const repoRoot = hookRepoRoot(root, event);
+  const changeId = hookChangeId(repoRoot, event);
   const agentId = event.tool_response?.agentId || event.tool_response?.agent_id;
   if (!changeId || !event.tool_use_id || !agentId) {
     return {

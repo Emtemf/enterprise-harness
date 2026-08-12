@@ -1,7 +1,5 @@
 import {
-  activeChangeId,
   appendAgentEvent,
-  gitCommonDir,
   isHarnessAgentType,
   normalizeAgentType,
   sha256,
@@ -14,7 +12,7 @@ import {
   validateHandoffResult,
 } from '../handoff.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
-import path from 'node:path';
+import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
 
 export function subagentStop({ root, event }) {
   const observedRaw = String(event.agent_type || '').trim();
@@ -24,9 +22,8 @@ export function subagentStop({ root, event }) {
   const cwd = event.cwd || root;
   // When the subagent runs in a worktree, process.cwd() is the worktree dir but
   // handoff inputs and agent events live in the main repo. Resolve via git common dir.
-  const commonDir = gitCommonDir(cwd);
-  const repoRoot = path.resolve(commonDir, '..');
-  const changeId = activeChangeId(repoRoot);
+  const repoRoot = hookRepoRoot(root, event);
+  const changeId = hookChangeId(repoRoot, event);
   if (!changeId || !event.agent_id) return { exitCode: 0 };
 
   const parsed = parseHandoffResult(message);

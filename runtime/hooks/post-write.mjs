@@ -8,8 +8,14 @@ const root = projectRoot();
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const raw = Buffer.concat(chunks).toString('utf-8').trim();
+let event = null;
+try {
+  event = raw ? JSON.parse(raw) : null;
+} catch {
+  event = null;
+}
 
-const result = postWrite({ root, raw });
+const result = postWrite({ root, raw, event });
 if (result.stdout) process.stdout.write(`${result.stdout}\n`);
 if (result.stderr) process.stderr.write(`${result.stderr}\n`);
 process.exit(result.exitCode);

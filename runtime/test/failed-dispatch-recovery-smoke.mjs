@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHandoffInput } from '../lib/handoff.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const sourceRoot = process.cwd();
 const changeId = 'failed-dispatch-probe';
@@ -21,6 +22,12 @@ function fixture() {
     path.join(root, 'harness/behavior-checks.json'),
   );
   spawnSync('git', ['init', '-q'], { cwd: root, shell: false });
+  bindSession(root, {
+    sessionId: 'session-failed',
+    changeId,
+    worktreePath: root,
+    controllerRevision: '0.4.0-dev',
+  }, { commonDir: path.join(root, '.git') });
   return root;
 }
 

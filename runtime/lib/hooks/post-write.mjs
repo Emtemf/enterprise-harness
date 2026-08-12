@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { hasChangeTracking, isHarnessManaged } from '../checks.mjs';
-import { loadActiveChange, isGovernedTarget } from '../gates.mjs';
+import { isGovernedTarget } from '../gates.mjs';
+import { loadHookChange, hookRepoRoot } from '../hook-change.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { appendAgentEvent } from '../agent-evidence.mjs';
 import { extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
@@ -15,7 +16,7 @@ import { canonicalPath, pathIsWithin } from '../safe-paths.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
 
-export function postWrite({ root, raw }) {
+export function postWrite({ root, raw, event: inputEvent = null }) {
   const managed = isHarnessManaged(root);
   const trackingChanges = hasChangeTracking(root);
   // No change tracking at all: nothing to validate or invalidate.
@@ -23,9 +24,9 @@ export function postWrite({ root, raw }) {
 
   if (!raw) return { status: 'allow', exitCode: 0, stdout: renderTecpcCard(root) };
 
-  let event;
+  let hookEvent;
   try {
-    event = JSON.parse(raw);
+    hookEvent = JSON.parse(raw);
   } catch (error) {
     return {
       status: 'block',
@@ -34,7 +35,7 @@ export function postWrite({ root, raw }) {
     };
   }
 
-  if (dedupGuard('post-write', event.tool_use_id, event.cwd)) return { status: 'allow', exitCode: 0 };
+  if (dedupGuard('post-write', hookEvent.tool_use_id, hookEvent.cwd)) return { status: 'allow', exitCode: 0 };
 
   const canonicalRoot = canonicalPath(root);
 
@@ -104,23 +105,23 @@ export function postWrite({ root, raw }) {
   }
 
   try {
-    const targets = extractHookTargets(root, event);
-    const active = loadActiveChange(root);
-    const potentialBashWrite = event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command);
+    const targets = extractHookTargets(root, hookEvent);
+    const active = loadHookChange(root, inputEvent || hookEvent);
+    const potentialBashWrite = hookEvent.tool_name === 'Bash' && isPotentialWriteBash(hookEvent.tool_input?.command);
     let attributionBlocked = false;
     if (potentialBashWrite) {
-      const before = consumeHookSnapshot(root, event.tool_use_id);
-      if (!before && !hookSnapshotAlreadyConsumed(root, event.tool_use_id)) {
+      const before = consumeHookSnapshot(root, hookEvent.tool_use_id);
+      if (!before && !hookSnapshotAlreadyConsumed(root, hookEvent.tool_use_id)) {
         attributionBlocked = true;
         if (active.ok) {
           appendAgentEvent(root, active.changeId, {
             kind: 'violation',
             violation: 'missing-bash-write-snapshot',
             errorCode: 'EH-HOOK-SNAPSHOT-010',
-            sessionId: event.session_id,
-            toolUseId: event.tool_use_id || null,
-            agentId: event.agent_id || null,
-            cwd: event.cwd || root,
+            sessionId: hookEvent.session_id,
+            toolUseId: hookEvent.tool_use_id || null,
+            agentId: hookEvent.agent_id || null,
+            cwd: hookEvent.cwd || root,
           });
         }
       }
@@ -136,10 +137,10 @@ export function postWrite({ root, raw }) {
             kind: 'violation',
             violation: 'unparsed-governed-bash-write',
             errorCode: 'EH-HOOK-POST-WRITE-011',
-            sessionId: event.session_id,
-            toolUseId: event.tool_use_id || null,
-            agentId: event.agent_id || null,
-            cwd: event.cwd || root,
+            sessionId: hookEvent.session_id,
+            toolUseId: hookEvent.tool_use_id || null,
+            agentId: hookEvent.agent_id || null,
+            cwd: hookEvent.cwd || root,
             target: path.relative(root, target).replaceAll('\\', '/'),
           });
         }
@@ -157,16 +158,16 @@ export function postWrite({ root, raw }) {
       invalidateAffectedValidations(active, target);
     }
   } catch (error) {
-    const active = loadActiveChange(root);
+    const active = loadHookChange(root, inputEvent || hookEvent);
     if (active.ok) {
       appendAgentEvent(root, active.changeId, {
         kind: 'violation',
         violation: 'post-write-attribution-failed',
         errorCode: 'EH-HOOK-POST-WRITE-011',
-        sessionId: event?.session_id,
-        toolUseId: event?.tool_use_id || null,
-        agentId: event?.agent_id || null,
-        cwd: event?.cwd || root,
+        sessionId: hookEvent.session_id,
+        toolUseId: hookEvent.tool_use_id || null,
+        agentId: hookEvent.agent_id || null,
+        cwd: hookEvent.cwd || root,
         detail: error.message,
       });
     }
@@ -182,7 +183,7 @@ export function postWrite({ root, raw }) {
 
 function renderTecpcCard(root) {
   try {
-    const active = loadActiveChange(root);
+    const active = loadHookChange(root, inputEvent || hookEvent);
     if (active.ok) {
       return `[Harness 闭环五检]\n${renderTECPCCard(root, active.changeId, active.data)}`;
     }

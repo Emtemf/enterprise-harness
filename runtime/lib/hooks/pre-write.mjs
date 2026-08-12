@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { loadActiveChange, isGovernedTarget } from '../gates.mjs';
+import { loadHookChange } from '../hook-change.mjs';
+import { isGovernedTarget } from '../gates.mjs';
 import { stageGateIsFresh, validateDynamicWriteGates } from '../execution-prerequisites.mjs';
 import { extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
 import { captureGovernedSnapshot, writeHookSnapshot } from '../hook-snapshots.mjs';
@@ -38,7 +39,7 @@ export function preWrite({ root, event }) {
       }
       continue;
     }
-    const active = loadActiveChange(root);
+    const active = loadHookChange(root, event);
     if (!active.ok) return block(root, '修改受治理路径前必须设置有效的 harness/ACTIVE_CHANGE。');
     if (['DRAFT', 'ARCHIVED', 'REJECTED'].includes(active.data.state)) {
       return block(root, `active change 状态 ${active.data.state} 不允许受治理写入。`, active);

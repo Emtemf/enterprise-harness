@@ -14,15 +14,24 @@ export function loadActiveChange(root, options = {}) {
     const currentRoot = canonicalPath(root);
     const bindingRoot = canonicalPath(binding.worktreePath);
     const subjectRoot = canonicalPath(binding.subjectRoot || binding.worktreePath);
-    if (currentRoot !== bindingRoot || currentRoot !== subjectRoot) {
-      return {
-        ok: false,
-        reason: 'session-worktree-mismatch',
-        errorCode: 'EH-SESSION-WORKTREE-001',
+    if (currentRoot !== bindingRoot && currentRoot !== subjectRoot) {
+      if (options.allowBoundWorktree !== true) {
+        return {
+          ok: false,
+          reason: 'session-worktree-mismatch',
+          errorCode: 'EH-SESSION-WORKTREE-001',
+          sessionId,
+          worktreePath: binding.worktreePath,
+          subjectRoot: binding.subjectRoot || null,
+        };
+      }
+      return loadChangeState(binding.subjectRoot || binding.worktreePath, binding.changeId, {
+        ...options,
         sessionId,
-        worktreePath: binding.worktreePath,
-        subjectRoot: binding.subjectRoot || null,
-      };
+        binding,
+        resolvedFromBoundSubject: true,
+        eventRoot: root,
+      });
     }
     return loadChangeState(root, binding.changeId, { ...options, sessionId, binding });
   }

@@ -1,11 +1,11 @@
 import {
-  activeChangeId,
   readAgentEvents,
 } from '../agent-evidence.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
+import { hookChangeId } from '../hook-change.mjs';
 
-export function taskCompleted({ root }) {
-  const changeId = activeChangeId(root);
+export function taskCompleted({ root, event = {} }) {
+  const changeId = hookChangeId(root, event);
   if (!changeId) return { exitCode: 0 };
 
   const events = readAgentEvents(root, changeId);

@@ -13,6 +13,7 @@ import {
   HANDOFF_RESULT_END,
   HANDOFF_RESULT_START,
 } from '../lib/handoff.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const sourceRoot = process.cwd();
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-agent-hooks-'));
@@ -25,6 +26,12 @@ fs.copyFileSync(
   path.join(root, 'harness/behavior-checks.json'),
 );
 spawnSync('git', ['init', '-q'], { cwd: root });
+bindSession(root, {
+  sessionId: 'session-1',
+  changeId,
+  worktreePath: root,
+  controllerRevision: '0.4.0-dev',
+}, { commonDir: path.join(root, '.git') });
 
 function hook(script, payload) {
   return spawnSync('node', [path.join(sourceRoot, 'runtime/hooks', script)], {

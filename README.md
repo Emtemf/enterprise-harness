@@ -34,7 +34,7 @@ agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin �
 
 要求：
 
-- Claude Code 2.1.218 或更高版本（当前验证版本：2.1.227）
+- Claude Code 2.1.219 或更高版本（当前验证版本：2.1.227）
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper

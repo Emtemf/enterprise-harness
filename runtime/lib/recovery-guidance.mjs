@@ -1,8 +1,8 @@
-import { loadActiveChange } from './gates.mjs';
+import { loadHookChange } from './hook-change.mjs';
 import { buildWorkflowResult } from './workflow.mjs';
 
-export function buildRecoveryGuidance(root) {
-  const active = loadActiveChange(root);
+export function buildRecoveryGuidance(root, event = {}) {
+  const active = loadHookChange(root, event);
   if (!active.ok) {
     return {
       present: false,

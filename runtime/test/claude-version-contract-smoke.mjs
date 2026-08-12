@@ -9,14 +9,14 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 }
 
 try {
-  assert.equal(MINIMUM_CLAUDE_CODE_VERSION, '2.1.218');
+  assert.equal(MINIMUM_CLAUDE_CODE_VERSION, '2.1.219');
   assert.deepEqual(evaluateClaudeCodeVersion({ status: 0, stdout: '2.1.226 (Claude Code)' }), {
     ok: true,
     severity: 'info',
     status: 'supported',
     detectedVersion: '2.1.226',
-    minimumVersion: '2.1.218',
-    detail: 'Claude Code 2.1.226 meets required >=2.1.218',
+    minimumVersion: '2.1.219',
+    detail: 'Claude Code 2.1.226 meets required >=2.1.219',
   });
   assert.equal(evaluateClaudeCodeVersion({ status: 0, stdout: '2.1.217 (Claude Code)' }).severity, 'error');
   assert.equal(evaluateClaudeCodeVersion({ status: 127, error: { message: 'not found' } }).severity, 'warn');

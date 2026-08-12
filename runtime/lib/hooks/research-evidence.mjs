@@ -1,4 +1,4 @@
-import { loadActiveChange } from '../gates.mjs';
+import { loadHookChange } from '../hook-change.mjs';
 import { appendAgentEvent, sha256 } from '../agent-evidence.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 
@@ -19,9 +19,7 @@ export function researchEvidence({ root, event, success }) {
   if (!provider) return { exitCode: 0 };
   if (dedupGuard('research-evidence', event.tool_use_id, event.cwd)) return { exitCode: 0 };
 
-  const active = loadActiveChange(root, {
-    sessionId: typeof event.session_id === 'string' ? event.session_id : undefined,
-  });
+  const active = loadHookChange(root, event);
   if (!active.ok) return { exitCode: 0 };
 
   const input = event.tool_input && typeof event.tool_input === 'object' ? event.tool_input : {};

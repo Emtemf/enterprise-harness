@@ -8,6 +8,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { readAgentEvents } from '../lib/agent-evidence.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const hookPath = path.join(repoRoot, 'runtime', 'hooks', 'pre-explore.mjs');
@@ -23,6 +24,12 @@ const agentId = 'code-explore-agent';
 
 try {
   spawnSync('git', ['init', '-q', '.'], { cwd: root });
+  bindSession(root, {
+    sessionId: 'codegraph-ledger-session',
+    changeId,
+    worktreePath: root,
+    controllerRevision: '0.4.0-dev',
+  }, { commonDir: path.join(root, '.git') });
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
   fs.mkdirSync(path.join(root, 'harness', 'specs'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`, 'utf-8');
