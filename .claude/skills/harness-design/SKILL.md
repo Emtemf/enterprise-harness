@@ -1,6 +1,6 @@
 ---
 name: harness-design
-description: Enterprise Harness design 阶段。把已确认 requirements 转成接口、错误、数据/SQL、架构、兼容性和测试设计，并要求独立 design reviewer。
+description: design 阶段：把 confirmed requirements 转成可验证的接口、数据、架构设计，通过独立 reviewer。
 user-invocable: false
 context: fork
 background: false
@@ -9,73 +9,88 @@ agent: general-purpose
 
 # Harness Design
 
-由 plugin 入口 `/enterprise-harness:harness`（本仓库开发为 `/harness`）按当前 stage 加载。
+由 `/enterprise-harness:harness` 派发的 forked subagent，无用户对话通道。权威输入只有 change 目录的 durable artifact。
 
-## 上下文边界
+## 开始前：确认 scope
 
-你在 forked subagent 中运行，没有主会话历史，也没有和用户对话的通道。
+如果 requirements 中不明确，调用 `AskUserQuestion` tool：
 
-- 权威输入只有 change 目录里的 durable artifact，不是聊天记录。
-- 需要用户决策时在 blockers 里写明，交主 orchestrator 去问。
-- 你仍可派 executor 和 checker subagent，这是本阶段的核心要求。
-- 返回给主 orchestrator 的是压缩结论，不是设计全文。
+```yaml
+questions:
+  - question: "这次变更是否触及外部 API 合同（新增/修改 endpoint、DTO、错误码）？"
+    header: "API scope"
+    options:
+      - label: "是 — 需要 OpenAPI + api-consistency-reviewer (Recommended)"
+        description: "requirements Interface/API 维度有分数时选此"
+      - label: "否 — 仅内部实现"
+      - label: "不确定 — 查 requirements Interface/API 评分"
+  - question: "是否需要 DB schema 变更或 migration？"
+    header: "DB scope"
+    options:
+      - label: "是 — 需要 migration + rollback 设计 (Recommended)"
+        description: "requirements Data/SQL 维度有分数时选此"
+      - label: "否 — 无 DB 变更"
+```
 
-## 输入
+## Step 1: 探索（如需）
 
-- approved requirements + scope confirmation、tier、impact
-- relevant code/doc exploration（exploration packet）
-- `harness/templates/design.md`（设计模板）
+接口、数据或调用方事实不足时：
 
-## 动作
+```bash
+enterprise-harness handoff create <change-id> design design.explore-code execute
+# subagent: enterprise-harness:code-explore
+enterprise-harness handoff create <change-id> design design.explore-code check <runId>
+# subagent: enterprise-harness:design-reviewer
+```
 
-1. 若接口、数据或调用方事实不足，先生成 exploration brief：
-   - 代码事实：`design.explore-code` execute（`enterprise-harness:code-explore`）→ check（`design-reviewer`）
-   - 外部资料：`design.research-docs` execute（`enterprise-harness:doc-research`）→ check（`design-reviewer`）
-2. 创建 execute handoff，派 `design-executor`：
-   ```bash
-   enterprise-harness handoff create <change-id> design design.produce execute
-   ```
-3. 等 `design.produce/result.json`，以其 runId 创建 check handoff，派 `design-reviewer`。
-4. API 有变化时，对 `design.check-api` 走 execute（`design-executor`）→ check（`api-consistency-reviewer`）。
-5. blocker 修复后使用新 run 重审，不复用旧 runId。
+▸ **Expect**: `evidence/<id>-exploration.md` 写入，verdict=pass。
 
-## 设计必须覆盖的维度
+## Step 2: 产出设计
 
-| 维度 | 必需条件 |
+```bash
+enterprise-harness handoff create <change-id> design design.produce execute
+# subagent: enterprise-harness:design-executor，消费 harness/templates/design.md
+```
+
+设计必须覆盖适用维度（不适用写 `N/A + 原因`）：
+
+| 维度 | 关键产出 |
 |------|---------|
-| goals / non-goals | 明确范围边界 |
+| goals / non-goals | 明确边界 |
 | component boundaries | 分层依赖方向（domain 不依赖 Spring/DB/HTTP） |
-| API request/response/error | path、method、DTO、HTTP status、错误码 |
-| auth / idempotency | 鉴权方式、幂等键 |
+| API request/response/error | path · DTO · HTTP status · 错误码 |
+| auth / idempotency | 鉴权方式 · 幂等键 |
 | caller compatibility | 不破坏已有合同 |
-| schema / SQL / index | 表结构、索引策略 |
-| migration / rollback | 迁移脚本、回滚路径 |
-| concurrency / transaction | 隔离级别、锁策略 |
-| test strategy | 单元、集成、契约测试点 |
-| observability | 日志、指标、trace 锚点 |
+| schema / migration / rollback | 迁移脚本 · 回滚路径 |
+| concurrency / transaction | 隔离级别 · 锁策略 |
+| test strategy | 单元 · 集成 · 契约测试点 |
 
-不适用的维度需在设计中显式标注 N/A 并说明原因。
+▸ **Expect**: `design.md` 写入，outputRefs 非空。
 
-## 产出
+## Step 3: 独立 review
 
-- `design.md`（完整设计文档）
-- exploration refs（适用时）
-- `design.produce` result.json + `design-reviewer` check.json
-- `design.check-api` result.json + `api-consistency-reviewer` check.json（适用时）
+```bash
+enterprise-harness handoff create <change-id> design design.produce check <executor-runId>
+# subagent: enterprise-harness:design-reviewer
+```
 
-## 阻断条件
+▸ **Expect**: verdict=pass。block → 用**新 run** 修复后重审，不复用旧 runId。
 
-- requirements 未确认
-- API 或 data 适用但未设计
-- 只有文字描述，无可验证取舍（如"考虑加索引"）
-- reviewer 非 pass
+## Step 4: API contract check（API scope=是 时）
 
-## 下一阶段
+```bash
+enterprise-harness handoff create <change-id> design design.check-api execute
+# subagent: enterprise-harness:design-executor
+enterprise-harness handoff create <change-id> design design.check-api check <runId>
+# subagent: enterprise-harness:api-consistency-reviewer
+```
 
-design pass 后，主 orchestrator 执行：
+▸ **Expect**: verdict=pass。`unsupported` 不得提升为 pass。
+
+## 完成
 
 ```bash
 enterprise-harness workflow decide <change-id> approve
 ```
 
-此命令置 `designApproved=true` 并推进到 plan 阶段。漏执行会使 gate 保持 false，链路卡在 design。
+▸ **Verify**: `workflow status <change-id>` 显示 stage=plan，`designApproved=true`。

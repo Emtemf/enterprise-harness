@@ -40,7 +40,7 @@ enterprise-harness trace --change <change-id> --mermaid
 
 目的：把需求变成可执行范围。
 
-用户需要：逐次回答一个关键问题，并最终确认 scope。
+用户需要：逐次回答一个关键问题，并最终确认 scope。澄清问题使用 Claude Code 原生 `AskUserQuestion`，每轮只呈现最弱的一个维度，并把推荐选项放在第一项。
 
 成功表现：七维歧义评分全部有依据，关键维度均不低于 4。
 
@@ -72,7 +72,7 @@ enterprise-harness trace --change <change-id> --mermaid
 
 用户需要：确认顺序和交付边界。
 
-成功表现：每个 task 有目标、文件范围、测试、RED 点、exact argv 和验收。
+成功表现：每个 task 有目标、文件范围、测试、RED 点、exact argv 和验收。plan skill 以短 JSON few-shot 展示冻结命令格式，并在每步给出 `Expect` / `Verify`。
 
 阻断恢复：拆小任务或补齐依赖。
 
@@ -85,7 +85,7 @@ marker 缺失，第一次写受治理路径会被 pre-write 阻断。
 
 用户需要：通常无需操作，除非构建命令或环境不明确。
 
-成功表现：隔离 executor 按冻结 argv 完成 RED、GREEN、REFACTOR，并生成 receipt；独立 checker 检查结果。
+成功表现：隔离 executor 按冻结 argv 完成 RED、GREEN、REFACTOR，并生成 receipt；独立 checker 检查结果。tdd skill 内含最小 HANDOFF_RESULT few-shot；RED 必须是目标断言的真实非零失败，不能用无条件退出伪造。
 
 阻断恢复：根据 receipt、runId 和错误码修复，不接受“已运行”的文本自报。若被
 pre-write 以 `stage-evidence-digest-mismatch` 阻断，说明阶段链证据（plan/reviews）已
