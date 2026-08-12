@@ -31,7 +31,7 @@ try {
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /HANDOFF_INPUT=/);
   assert.match(run.stdout, /agent=enterprise-harness:design-executor/);
-  assert.match(run.stdout, /skill=harness-stage-executor/);
+  assert.match(run.stdout, /skill=harness/);
   const marker = run.stdout.match(/HANDOFF_INPUT=([^\n]+)/)?.[1];
   assert.ok(marker);
   const input = JSON.parse(fs.readFileSync(path.join(root, marker), 'utf-8'));

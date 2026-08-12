@@ -7,7 +7,6 @@ tools:
   - Edit
   - Write
 skills:
-  - harness-stage-executor
 model: sonnet
 isolation: worktree
 ---

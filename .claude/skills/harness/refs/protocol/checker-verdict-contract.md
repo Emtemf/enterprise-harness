@@ -13,7 +13,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "role": "check",
   "agent": {
     "type": "<与 input 完全相同>",
-    "skill": "harness-stage-checker"
+    "skill": "harness"
   },
   "tecpc": {
     "target": "独立检查目标",

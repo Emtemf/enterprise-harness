@@ -6,7 +6,6 @@ tools:
   - Write
   - Edit
 skills:
-  - harness-stage-executor
 model: sonnet
 ---
 

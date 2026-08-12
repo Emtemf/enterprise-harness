@@ -26,7 +26,7 @@ const input = {
   stage: 'design',
   behavior: 'design.produce',
   role: 'execute',
-  agent: { type: 'enterprise-harness:design-executor', skill: 'harness-stage-executor' },
+  agent: { type: 'enterprise-harness:design-executor', skill: 'harness' },
 };
 const withTecpc = (tecpc) => ({
   ...input,

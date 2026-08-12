@@ -214,7 +214,13 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - 对没有 classification 的历史状态，仍保留 route gate，确保旧 archive/active 投影可读取而不静默越过旧边界。
 - 新增 `classify-authority-smoke`，覆盖新旧状态的双路径行为。
 
-尚未在本次 0.4.0 release 中完成的后续 breaking cleanup：
+### Protocol skill consolidation
+
+- `harness-stage-executor` and `harness-stage-checker` are removed as standalone plugin skills.
+- Their durable contracts moved to `.claude/skills/harness/refs/protocol/`.
+- Behavior registry now binds both execute and check runs to the shared `harness` contract; `role` remains the protocol discriminator.
+- Agent capability boundaries remain separate by agent type and context; this change removes only duplicated protocol-skill packaging.
+
 - 9 Skill / 5 Agent surface 的完整合并。
 - 实际外部 CI 结论与 nightly Claude eval。
 

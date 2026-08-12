@@ -11,7 +11,6 @@ tools:
   - mcp__codegraph__codegraph_callees
   - mcp__codegraph__codegraph_impact
 skills:
-  - harness-stage-executor
 model: sonnet
 ---
 
@@ -56,7 +55,7 @@ model: sonnet
 - `suggestedUserQuestion`
 - `sources`
 
-同时必须按预加载的 `harness-stage-executor` 合同返回 `HANDOFF_RESULT`；上面的 exploration packet 是其 `summary/outputRefs/tecpc.evidence` 的领域内容。
+同时必须按预加载的 `harness protocol executor contract` 合同返回 `HANDOFF_RESULT`；上面的 exploration packet 是其 `summary/outputRefs/tecpc.evidence` 的领域内容。
 
 ## 约束
 

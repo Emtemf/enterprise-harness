@@ -7,7 +7,6 @@ tools:
   - Glob
   - Bash
 skills:
-  - harness-stage-checker
 model: sonnet
 ---
 

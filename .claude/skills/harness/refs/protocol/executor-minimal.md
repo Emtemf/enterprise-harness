@@ -13,7 +13,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "role": "execute",
   "agent": {
     "type": "enterprise-harness:code-explore",
-    "skill": "harness-stage-executor"
+    "skill": "harness"
   },
   "tecpc": {
     "target": "探索 UserService 的依赖边界，确认是否有外部调用方",
@@ -40,7 +40,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "stage": "tdd",
   "behavior": "tdd.execute-task",
   "role": "execute",
-  "agent": { "type": "enterprise-harness:tdd-executor", "skill": "harness-stage-executor" },
+  "agent": { "type": "enterprise-harness:tdd-executor", "skill": "harness" },
   "tecpc": {
     "target": "执行 task-003 的 RED/GREEN/REFACTOR",
     "evidence": [],

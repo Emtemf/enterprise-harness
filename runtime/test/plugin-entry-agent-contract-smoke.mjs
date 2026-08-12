@@ -13,7 +13,7 @@ const stageSkills = [
   'harness', 'harness-route', 'harness-design', 'harness-plan',
   'harness-tdd', 'harness-verify',
 ];
-const workerSkills = ['harness-stage-executor', 'harness-stage-checker'];
+const workerSkills = [];
 const agents = [
   'code-explore', 'doc-research', 'tdd-executor', 'design-reviewer',
   'api-consistency-reviewer', 'plan-critic', 'verification-reviewer',

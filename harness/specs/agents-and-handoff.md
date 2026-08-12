@@ -58,6 +58,8 @@ Handoff input 必含：
 
 Result 必须回显身份字段，并包含 outputRefs、blockers、summary；checker 还必须有 verdict。
 
+协议合同由 `harness` skill 的 `refs/protocol/` 提供；executor/checker 不再作为独立 Skill 暴露，`agent.skill` 统一记录为 `harness`，而 `role=execute|check` 与 behavior registry 继续区分两种运行合同。
+
 ledger 绑定 dispatch、toolUseId、start、agentId、result 和 stop。任一身份不一致均 BLOCK。
 
 brief 是 inputRef 的人类可读部分，不是第二套 schema。

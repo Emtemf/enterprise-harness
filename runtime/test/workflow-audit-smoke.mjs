@@ -110,7 +110,7 @@ try {
   const routeCheckResultPath = path.join(runDir(routeCheck.runId), 'check.json');
   const originalCheckInput = JSON.parse(fs.readFileSync(routeCheckInputPath, 'utf-8'));
   const originalCheckResult = JSON.parse(fs.readFileSync(routeCheckResultPath, 'utf-8'));
-  const forgedInput = { ...originalCheckInput, agent: { type: 'enterprise-harness:route-decider', skill: 'harness-stage-executor' } };
+  const forgedInput = { ...originalCheckInput, agent: { type: 'enterprise-harness:route-decider', skill: 'invalid-skill' } };
   const forgedResult = { ...originalCheckResult, agent: forgedInput.agent };
   fs.writeFileSync(routeCheckInputPath, JSON.stringify(forgedInput, null, 2), 'utf-8');
   fs.writeFileSync(routeCheckResultPath, JSON.stringify(forgedResult, null, 2), 'utf-8');

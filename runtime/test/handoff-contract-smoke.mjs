@@ -67,7 +67,7 @@ try {
     agentType: 'enterprise-harness:design-executor',
   });
   assert.equal(loaded.ok, true, loaded.problems?.join('; '));
-  assert.equal(loaded.envelope.agent.skill, 'harness-stage-executor');
+  assert.equal(loaded.envelope.agent.skill, 'harness');
 
   const result = {
     ...execute.envelope,
@@ -97,7 +97,7 @@ try {
     parentRunId: execute.envelope.runId,
   });
   assert.equal(check.envelope.agent.type, 'enterprise-harness:design-reviewer');
-  assert.equal(check.envelope.agent.skill, 'harness-stage-checker');
+  assert.equal(check.envelope.agent.skill, 'harness');
   assert.equal(check.envelope.parentRunId, execute.envelope.runId);
   assert.ok(check.envelope.inputRefs.some((ref) => ref.includes(execute.envelope.runId)));
   assert.equal(loadHandoffInput(root, path.relative(root, check.path)).ok, true);
@@ -106,7 +106,7 @@ try {
   assert.ok(validateHandoffResult(invalid, execute.envelope).includes('runId does not match input'));
 
   const tampered = JSON.parse(fs.readFileSync(execute.path, 'utf-8'));
-  tampered.agent.skill = 'harness-stage-checker';
+  tampered.agent.skill = 'invalid-skill';
   fs.writeFileSync(execute.path, `${JSON.stringify(tampered, null, 2)}\n`);
   assert.ok(loadHandoffInput(root, path.relative(root, execute.path)).problems
     .includes('agent.skill does not match behavior registry'));

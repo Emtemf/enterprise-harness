@@ -6,7 +6,6 @@ tools:
   - Write
   - Edit
 skills:
-  - harness-stage-executor
 model: sonnet
 ---
 
@@ -21,4 +20,4 @@ model: sonnet
 - 主 orchestrator 负责人机一问一答；你只整理已经获得的回答。
 - 七维评分必须带依据、overall、weakest dimension、unresolved high-risk ambiguity 和用户确认状态。
 - 不能把不适用维度直接省略；应写明 N/A 的事实依据并按规范评分。
-- 严格遵循预加载的 `harness-stage-executor` 输出合同。
+- 严格遵循预加载的 `harness protocol executor contract` 输出合同。

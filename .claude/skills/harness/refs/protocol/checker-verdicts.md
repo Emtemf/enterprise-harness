@@ -13,7 +13,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "role": "check",
   "agent": {
     "type": "enterprise-harness:clarify-reviewer",
-    "skill": "harness-stage-checker"
+    "skill": "harness"
   },
   "tecpc": {
     "target": "独立验证代码探索 artifact 是否覆盖了 clarify 所需事实",
@@ -43,7 +43,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "role": "check",
   "agent": {
     "type": "enterprise-harness:clarify-reviewer",
-    "skill": "harness-stage-checker"
+    "skill": "harness"
   },
   "tecpc": {
     "target": "独立验证代码探索 artifact 是否覆盖了 clarify 所需事实",

@@ -20,9 +20,7 @@
     "./.claude/skills/harness-design/",
     "./.claude/skills/harness-plan/",
     "./.claude/skills/harness-tdd/",
-    "./.claude/skills/harness-verify/",
-    "./.claude/skills/harness-stage-executor/",
-    "./.claude/skills/harness-stage-checker/"
+    "./.claude/skills/harness-verify/"
   ],
   "agents": [
     "./.claude/agents/code-explore.md",

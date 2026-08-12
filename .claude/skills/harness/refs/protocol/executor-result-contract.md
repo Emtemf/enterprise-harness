@@ -13,7 +13,7 @@ ENTERPRISE_HARNESS_HANDOFF_RESULT
   "role": "execute",
   "agent": {
     "type": "<与 input 完全相同>",
-    "skill": "harness-stage-executor"
+    "skill": "harness"
   },
   "tecpc": {
     "target": "本行为目标和成功条件",

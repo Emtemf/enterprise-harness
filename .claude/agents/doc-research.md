@@ -5,7 +5,6 @@ tools:
   - Read
   - Bash
 skills:
-  - harness-stage-executor
 model: sonnet
 ---
 
@@ -48,7 +47,7 @@ model: sonnet
 - `suggestedUserQuestion`
 - `sources`
 
-同时必须按预加载的 `harness-stage-executor` 合同返回 `HANDOFF_RESULT`。
+同时必须按预加载的 `harness protocol executor contract` 合同返回 `HANDOFF_RESULT`。
 
 ## 约束
 

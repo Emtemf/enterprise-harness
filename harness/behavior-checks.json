@@ -14,113 +14,113 @@
     "clarify.explore-code": {
       "stage": "clarify",
       "executor": "enterprise-harness:code-explore",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:clarify-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/*-exploration.md"
     },
     "clarify.research-docs": {
       "stage": "clarify",
       "executor": "enterprise-harness:doc-research",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:clarify-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/tooling.md"
     },
     "clarify.synthesize": {
       "stage": "clarify",
       "executor": "enterprise-harness:clarify-synthesizer",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:clarify-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "requirements.md"
     },
     "route.decide": {
       "stage": "route",
       "executor": "enterprise-harness:route-decider",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:requirement-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "change.md"
     },
     "route.explore-code": {
       "stage": "route",
       "executor": "enterprise-harness:code-explore",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:requirement-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/*-exploration.md"
     },
     "design.produce": {
       "stage": "design",
       "executor": "enterprise-harness:design-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:design-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "design.md"
     },
     "design.explore-code": {
       "stage": "design",
       "executor": "enterprise-harness:code-explore",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:design-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/*-exploration.md"
     },
     "design.research-docs": {
       "stage": "design",
       "executor": "enterprise-harness:doc-research",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:design-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/tooling.md"
     },
     "design.check-api": {
       "stage": "design",
       "executor": "enterprise-harness:design-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:api-consistency-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "reviews/api-consistency-reviewer.json"
     },
     "plan.produce": {
       "stage": "plan",
       "executor": "enterprise-harness:plan-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:plan-critic",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "tasks.md"
     },
     "tdd.execute-task": {
       "stage": "tdd",
       "executor": "enterprise-harness:tdd-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:implementation-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/tdd-*.json"
     },
     "verify.collect": {
       "stage": "verify",
       "executor": "enterprise-harness:verification-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:verification-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "validation.md"
     },
     "verify.check-api": {
       "stage": "verify",
       "executor": "enterprise-harness:verification-executor",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:api-consistency-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "reviews/api-consistency-reviewer.json"
     },
     "verify.explore-code": {
       "stage": "verify",
       "executor": "enterprise-harness:code-explore",
-      "executorSkill": "harness-stage-executor",
+      "executorSkill": "harness",
       "checker": "enterprise-harness:verification-reviewer",
-      "checkerSkill": "harness-stage-checker",
+      "checkerSkill": "harness",
       "artifact": "evidence/*-exploration.md"
     }
   }
