@@ -52,6 +52,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/runtime/hooks/research-evidence.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录代码与文档研究证据"
+          }
+        ],
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/runtime/hooks/post-agent.mjs\"",
             "timeout": 10,
             "statusMessage": "绑定 Agent 派发证据"
@@ -72,6 +83,17 @@
       }
     ],
     "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/runtime/hooks/research-evidence.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录研究工具失败证据"
+          }
+        ],
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*"
+      },
       {
         "hooks": [
           {

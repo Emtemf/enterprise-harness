@@ -6,6 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { buildWorkflowResult } from '../lib/workflow.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 import { renderTECPCCard } from '../lib/tecp-card.mjs';
 
 const mode = process.argv[2];
@@ -50,9 +51,16 @@ try {
     validation: { status: 'stale' },
   };
   fs.writeFileSync(path.join(changeDir, 'state.json'), JSON.stringify(state, null, 2));
+  const commonDir = path.join(root, '.git');
+  bindSession(root, {
+    sessionId: 'audit-block-smoke',
+    changeId,
+    worktreePath: root,
+    controllerRevision: '0.4.0-dev',
+  }, { commonDir });
 
   const workflow = buildWorkflowResult(root, changeId, state);
-  const summary = buildStatusSummary(root);
+  const summary = buildStatusSummary(root, { sessionId: 'audit-block-smoke' });
   const card = renderTECPCCard(root, changeId, state, { workflowResult: workflow });
   const sessionStart = spawnSync(process.execPath, [path.join(sourceRoot, 'runtime', 'hooks', 'session-start.mjs')], {
     cwd: root,

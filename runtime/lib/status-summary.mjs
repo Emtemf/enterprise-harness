@@ -22,8 +22,8 @@ function parseDevelopmentSnapshot(text) {
   };
 }
 
-function activeChangeSummary(root) {
-  const active = loadActiveChange(root);
+function activeChangeSummary(root, options = {}) {
+  const active = loadActiveChange(root, options);
   if (!active.ok) {
     return {
       present: false,
@@ -57,14 +57,14 @@ function activeChangeSummary(root) {
   };
 }
 
-export function buildStatusSummary(root) {
+export function buildStatusSummary(root, options = {}) {
   const snapshotPath = path.join(root, 'docs', 'internal', 'current-development-status.md');
   const snapshotText = readText(snapshotPath);
   const progressSnapshot = parseDevelopmentSnapshot(snapshotText);
-  const activeChange = activeChangeSummary(root);
+  const activeChange = activeChangeSummary(root, options);
   let tecpCard = null;
   if (activeChange.present) {
-    const active = loadActiveChange(root);
+    const active = loadActiveChange(root, options);
     if (active.ok) {
       try {
         tecpCard = renderTECPCCard(root, active.changeId, active.data, {

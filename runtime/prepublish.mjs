@@ -1,7 +1,15 @@
 import process from 'node:process';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const repoRoot = process.cwd();
+const controllerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-controller-'));
+const childEnv = {
+  ...process.env,
+  ENTERPRISE_HARNESS_CONTROLLER_ROOT: controllerRoot,
+};
 const commands = [
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
@@ -14,7 +22,7 @@ const commands = [
 
 console.log('Enterprise Harness Prepublish Check');
 for (const args of commands) {
-  const child = spawnSync('node', args, { cwd: repoRoot, encoding: 'utf-8' });
+  const child = spawnSync('node', args, { cwd: repoRoot, encoding: 'utf-8', env: childEnv });
   process.stdout.write(child.stdout || '');
   process.stderr.write(child.stderr || '');
   if (child.status !== 0) {
@@ -25,6 +33,7 @@ const pluginValidation = spawnSync('claude', ['plugin', 'validate', '.'], {
   cwd: repoRoot,
   encoding: 'utf-8',
   shell: process.platform === 'win32',
+  env: childEnv,
 });
 process.stdout.write(pluginValidation.stdout || '');
 process.stderr.write(pluginValidation.stderr || '');

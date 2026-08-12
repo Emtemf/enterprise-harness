@@ -30,11 +30,25 @@ try {
     controllerRevision: '0.4.0-dev',
   }, { commonDir });
   const previous = process.env.ENTERPRISE_HARNESS_SESSION_ID;
-  process.env.ENTERPRISE_HARNESS_SESSION_ID = 'session-b';
+  delete process.env.ENTERPRISE_HARNESS_SESSION_ID;
   try {
-    const bound = loadActiveChange(root, { commonDir });
+    const bound = loadActiveChange(root, {
+      commonDir,
+      env: {},
+      sessionId: 'session-b',
+    });
     assert.equal(bound.ok, true);
     assert.equal(bound.changeId, 'change-b');
+  } finally {
+    if (previous === undefined) delete process.env.ENTERPRISE_HARNESS_SESSION_ID;
+    else process.env.ENTERPRISE_HARNESS_SESSION_ID = previous;
+  }
+
+  process.env.ENTERPRISE_HARNESS_SESSION_ID = 'session-b';
+  try {
+    const envBound = loadActiveChange(root, { commonDir });
+    assert.equal(envBound.ok, true);
+    assert.equal(envBound.changeId, 'change-b');
   } finally {
     if (previous === undefined) delete process.env.ENTERPRISE_HARNESS_SESSION_ID;
     else process.env.ENTERPRISE_HARNESS_SESSION_ID = previous;

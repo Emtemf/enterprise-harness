@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { canonicalPath } from './safe-paths.mjs';
+import { canonicalPath, pathIsWithin } from './safe-paths.mjs';
 
 export function controllerDescriptor(subjectRoot, options = {}) {
   const subject = path.resolve(options.subjectRoot || subjectRoot);
@@ -19,8 +19,8 @@ export function assertControllerSubjectBoundary(descriptor) {
   }
   const controller = canonicalPath(descriptor.controllerRoot);
   const subject = canonicalPath(descriptor.subjectRoot);
-  if (controller === subject) {
-    throw new Error('EH-CONTROLLER-SUBJECT-001: controller and subject must be distinct');
+  if (controller === subject || pathIsWithin(controller, subject) || pathIsWithin(subject, controller)) {
+    throw new Error('EH-CONTROLLER-SUBJECT-001: controller and subject must be separate non-containing roots');
   }
   return true;
 }

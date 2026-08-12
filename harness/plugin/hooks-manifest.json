@@ -38,6 +38,14 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*",
+        "script": "research-evidence.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-open",
+        "statusMessage": "记录代码与文档研究证据"
+      },
+      {
         "matcher": "Agent",
         "script": "post-agent.mjs",
         "timeout": 10,
@@ -55,6 +63,14 @@
       }
     ],
     "PostToolUseFailure": [
+      {
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*",
+        "script": "research-evidence.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-open",
+        "statusMessage": "记录研究工具失败证据"
+      },
       {
         "matcher": "Agent",
         "script": "agent-failure.mjs",

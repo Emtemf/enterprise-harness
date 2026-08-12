@@ -32,6 +32,20 @@ export function sessionIdFromEnv(env = process.env) {
   return assertSafeId(value, 'sessionId');
 }
 
+export function persistSessionId(sessionId, env = process.env, fsModule = fs) {
+  const normalized = assertSafeId(sessionId, 'sessionId');
+  const envFile = typeof env.CLAUDE_ENV_FILE === 'string' ? env.CLAUDE_ENV_FILE.trim() : '';
+  if (!envFile) return { ok: false, status: 'not-configured', sessionId: normalized };
+
+  const line = `export ENTERPRISE_HARNESS_SESSION_ID='${normalized}'\n`;
+  const existing = fsModule.existsSync(envFile) ? fsModule.readFileSync(envFile, 'utf-8') : '';
+  if (!existing.includes(line)) {
+    fsModule.mkdirSync(path.dirname(envFile), { recursive: true });
+    fsModule.appendFileSync(envFile, line, { mode: 0o600 });
+  }
+  return { ok: true, status: existing.includes(line) ? 'already-present' : 'persisted', sessionId: normalized };
+}
+
 export function bindSession(root, input, options = {}) {
   const paths = ensureRuntimePaths(root, options);
   const binding = normalizeBinding(input);

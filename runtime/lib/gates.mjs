@@ -5,7 +5,9 @@ import { readSession, sessionIdFromEnv } from './sessions.mjs';
 import { loadProjectProfile } from './project-profile.mjs';
 
 export function loadActiveChange(root, options = {}) {
-  const sessionId = sessionIdFromEnv(options.env || process.env);
+  const sessionId = options.sessionId
+    ? sessionIdFromEnv({ ENTERPRISE_HARNESS_SESSION_ID: options.sessionId })
+    : sessionIdFromEnv(options.env || process.env);
   if (sessionId) {
     const binding = readSession(root, sessionId, options);
     if (!binding) return { ok: false, reason: 'missing-session-binding', sessionId };

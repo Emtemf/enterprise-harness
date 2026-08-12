@@ -76,8 +76,12 @@ fs.copyFileSync(path.join(fixturesRoot, 'local-adapter-missing-fields.json'), ad
 const bootstrapMarker = path.join(repoCopy, 'runtime', '.bootstrap-ran');
 fs.writeFileSync(bootstrapMarker, 'fixture-bootstrap\n', 'utf-8');
 
+const controllerRoot = path.join(tempRoot, 'released-controller');
+fs.mkdirSync(controllerRoot, { recursive: true });
+
 const env = {
   HARNESS_LOCAL_ADAPTER: adapterPath,
+  ENTERPRISE_HARNESS_CONTROLLER_ROOT: controllerRoot,
   PATH: `${stubsDir}:${process.env.PATH}`,
 };
 

@@ -8,8 +8,13 @@ import { controllerDescriptor, assertControllerSubjectBoundary } from './lib/con
 
 const repoRoot = process.cwd();
 const runtimePaths = ensureRuntimePaths(repoRoot);
+const controllerRoot = process.env.ENTERPRISE_HARNESS_CONTROLLER_ROOT
+  || process.env.CLAUDE_PLUGIN_ROOT;
+if (!controllerRoot) {
+  throw new Error('EH-CONTROLLER-SUBJECT-002: ENTERPRISE_HARNESS_CONTROLLER_ROOT or CLAUDE_PLUGIN_ROOT must point to an installed released controller');
+}
 const descriptor = controllerDescriptor(repoRoot, {
-  controllerRoot: process.env.ENTERPRISE_HARNESS_CONTROLLER_ROOT || path.join(repoRoot, 'runtime'),
+  controllerRoot,
   subjectRoot: repoRoot,
   source: process.env.ENTERPRISE_HARNESS_CONTROLLER_SOURCE || 'released-controller',
   controllerRevision: process.env.ENTERPRISE_HARNESS_CONTROLLER_REVISION || '0.4.0-dev',

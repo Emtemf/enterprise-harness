@@ -16,7 +16,11 @@ try {
   assert.equal(descriptor.controllerRoot === descriptor.subjectRoot, false);
   assert.doesNotThrow(() => assertControllerSubjectBoundary(descriptor));
   assert.throws(
-    () => assertControllerSubjectBoundary({ ...descriptor, controllerRoot: root }),
+    () => assertControllerSubjectBoundary({ ...descriptor, controllerRoot: path.join(root, 'runtime') }),
+    /EH-CONTROLLER-SUBJECT-001/u,
+  );
+  assert.throws(
+    () => assertControllerSubjectBoundary({ ...descriptor, subjectRoot: path.dirname(descriptor.controllerRoot) }),
     /EH-CONTROLLER-SUBJECT-001/u,
   );
   console.log('PASS controller-subject-boundary verify');

@@ -1,9 +1,11 @@
 ---
 name: doc-research
 description: 只读文档调研 worker。用于 Context7-first / vendor docs / SDK/version behavior 调研，并返回压缩 exploration packet。默认只读，不负责实现修复。
-tools:
-  - Read
-  - Bash
+disallowedTools:
+  - Write
+  - Edit
+  - NotebookEdit
+  - Agent
 skills:
 model: sonnet
 ---

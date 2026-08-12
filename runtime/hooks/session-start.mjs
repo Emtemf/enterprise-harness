@@ -4,6 +4,7 @@ import { renderTECPCCard } from '../lib/tecp-card.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
 import { sessionDedupGuard, sessionStartEventIdentity } from '../lib/hook-dedup.mjs';
 import { evaluateSpawnDepth } from '../lib/spawn-depth.mjs';
+import { persistSessionId } from '../lib/sessions.mjs';
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
@@ -15,6 +16,8 @@ try {
 }
 
 const root = projectRoot();
+const sessionId = typeof event.session_id === 'string' ? event.session_id.trim() : '';
+if (sessionId) persistSessionId(sessionId, process.env);
 if (sessionDedupGuard('session-start', sessionStartEventIdentity(event), event.cwd || root)) process.exit(0);
 
 // 启动 banner：sessionwide 去重测试以它为锚点断言并发只打印一次，不能删。
@@ -26,7 +29,7 @@ if (spawnDepth.ok !== true) {
   console.log(`[Harness 隔离能力 EH-SPAWN-DEPTH-020] ${spawnDepth.detail}`);
 }
 
-const summary = buildStatusSummary(root);
+const summary = buildStatusSummary(root, { sessionId });
 
 // stage/恢复入口/下一步动作在任何会话都输出（有无 active change 都用 fallback）：
 // 这些是恢复指针，release worktree 等无 change 场景也必须给出来。
@@ -37,7 +40,7 @@ console.log(`[Harness Workflow] 下一步动作: ${summary.nextAction}`);
 
 // TECPC 卡：当前阶段、证据、缺口。有 active change 时才渲染，否则给入口提示。
 try {
-  const active = loadActiveChange(root);
+  const active = loadActiveChange(root, { sessionId });
   if (active.ok) {
     const card = renderTECPCCard(root, active.changeId, active.data, {
       workflowResult,

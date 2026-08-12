@@ -106,7 +106,8 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CHANGE-LOCK-002` | 非锁持有者尝试释放 change lock | 使用原 session 释放，或清理失效运行态后重试 |
 | `EH-CHANGE-LOCK-003` | session 尚未绑定就尝试获取 change lock | 先用当前 session 绑定 change/worktree，再获取锁 |
 | `EH-CHANGE-LOCK-004` | session 绑定的 change 与请求锁定的 change 不一致 | 只能由绑定到同一 change 的 session 获取锁 |
-| `EH-CONTROLLER-SUBJECT-001` | controller 与 subject 指向同一根目录 | 配置稳定 released controller，再治理 subject working tree |
+| `EH-CONTROLLER-SUBJECT-001` | controller 与 subject 指向同一根目录，或一方位于另一方内部 | 配置稳定 released controller，再治理 subject working tree |
+| `EH-CONTROLLER-SUBJECT-002` | bootstrap 未配置独立 released controller | 设置 `ENTERPRISE_HARNESS_CONTROLLER_ROOT` 或由 plugin 提供的 `CLAUDE_PLUGIN_ROOT`，指向安装的 immutable controller，不要指向 subject/runtime |
 | `EH-RESEARCH-PACKET-001` | research packet 缺事实、来源策略或 fallback 记录 | 重新生成统一 packet，不把 MCP 原文当编排指令 |
 | `EH-MCP-POLICY-001` | MCP provider/capability 记录不符合统一策略 | 通过 mcp-policy 使用 codegraph/context7 capability alias |
 | `EH-WAIVER-001` | waiver 无效、缺批准人或未绑定 artifact digest | 创建绑定当前 artifact digest 的结构化 waiver |
