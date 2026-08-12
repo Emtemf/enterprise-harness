@@ -7,7 +7,7 @@ const registry = JSON.parse(fs.readFileSync(path.join(root, 'harness/behavior-ch
 const pluginHooks = JSON.parse(fs.readFileSync(path.join(root, 'hooks/hooks.json'), 'utf-8')).hooks;
 const localHooks = JSON.parse(fs.readFileSync(path.join(root, '.claude/settings.json'), 'utf-8')).hooks;
 
-for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'Stop']) {
+for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'SubagentStop', 'TaskCompleted', 'Stop']) {
   assert.ok(pluginHooks[event]?.length, `plugin hook missing ${event}`);
   assert.ok(localHooks[event]?.length, `local hook missing ${event}`);
 }

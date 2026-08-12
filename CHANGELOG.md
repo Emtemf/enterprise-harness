@@ -4,6 +4,27 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-12
+
+### Fixed
+
+- Context7 MCP no longer requires `CONTEXT7_API_KEY` to start; anonymous access works out of the
+  box, the key is optional for higher rate limits. Removes the `Authorization` header from
+  `.mcp.json`.
+- Research-evidence hook and hooks manifest matcher now accept plugin-scoped MCP tool names
+  (`mcp__plugin_enterprise-harness_codegraph__*` / `mcp__plugin_enterprise-harness_context7__*`)
+  in addition to bare user-level names, so evidence recording works when CodeGraph/Context7 are
+  bundled as plugin MCP servers rather than installed at user scope.
+- `code-explore` agent tools list now includes plugin-scoped CodeGraph tool names so the agent can
+  reach CodeGraph whether it is installed at user or plugin scope.
+
+### Removed
+
+- `SubagentStart` hook: pure trace event with no gate value. Every SubagentStart fired a Node
+  subprocess that only appended a `start` ledger entry; downstream consumers (SubagentStop,
+  post-agent, task-completed) never required the `start` entry to be present. Removing it reduces
+  per-agent-dispatch overhead without changing correctness.
+
 ## [0.4.1] - 2026-08-12
 
 ## [0.4.0] - 2026-08-11

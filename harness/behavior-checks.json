@@ -3,7 +3,6 @@
   "description": "Governed behavior registry. The main harness orchestrator dispatches executors and independent checkers; hooks enforce every handoff edge.",
   "lifecycleHooks": [
     "PreToolUse:Agent",
-    "SubagentStart",
     "SubagentStop",
     "PostToolUse:Agent",
     "PostToolUseFailure:Agent",

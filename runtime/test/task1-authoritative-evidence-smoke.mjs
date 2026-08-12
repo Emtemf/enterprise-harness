@@ -15,7 +15,6 @@ const requiredRuntime = [
   'migrate-evidence-policy.mjs',
   'hooks/pre-agent.mjs',
   'hooks/post-agent.mjs',
-  'hooks/subagent-start.mjs',
   'hooks/subagent-stop.mjs',
 ];
 for (const relative of requiredRuntime) {

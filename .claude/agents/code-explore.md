@@ -10,6 +10,12 @@ tools:
   - mcp__codegraph__codegraph_callers
   - mcp__codegraph__codegraph_callees
   - mcp__codegraph__codegraph_impact
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_status
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_search
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_explore
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_callers
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_callees
+  - mcp__plugin_enterprise-harness_codegraph__codegraph_impact
 skills:
 model: sonnet
 ---

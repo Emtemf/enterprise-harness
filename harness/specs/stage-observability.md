@@ -46,7 +46,7 @@ sequenceDiagram
   M->>R: handoff create execute
   R->>D: runs/<executor-run>/input.json
   M->>E: Agent(HANDOFF_INPUT=...)
-  R->>R: PreAgent / SubagentStart / PreExplore hooks
+  R->>R: PreAgent / PreExplore hooks
   E->>D: 业务 artifact + HANDOFF_RESULT
   R->>D: runs/<executor-run>/result.json + ledger stop
   M->>R: handoff create check <executor-run>
@@ -92,8 +92,7 @@ sequenceDiagram
 |---|---|---|---|
 | 1 | main/stage skill | `handoff create … execute` → `runs/<execute-run>/input.json` | 输入缺 behavior/stage/target/refs 时 BLOCK |
 | 2 | PreToolUse:Agent | ledger `dispatch`（runId、behavior、agent、input path） | 没有 `HANDOFF_INPUT` 或 agent/stage 不匹配时 BLOCK |
-| 3 | SubagentStart | ledger `start` | 输入损坏时 BLOCK |
-| 4 | code-explore only | ledger `codegraph-attempt` | fallback 前同 agent 没有 attempt 时 BLOCK |
+| 3 | code-explore only | ledger `codegraph-attempt` | fallback 前同 agent 没有 attempt 时 BLOCK |
 | 5 | executor | change artifact；最后一条消息的 `HANDOFF_RESULT` | 没有 TECPC、空 evidence、path/context、outputRefs 或 summary 时 BLOCK |
 | 6 | SubagentStop | `runs/<execute-run>/result.json`；ledger `stop` | 非法 HANDOFF_RESULT 记 `violation` 并 BLOCK |
 | 7 | main/stage skill | `handoff create … check <execute-run>` → `runs/<check-run>/input.json` | parent `result.json` 不存在时 BLOCK |

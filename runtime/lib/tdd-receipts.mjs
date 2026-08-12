@@ -20,7 +20,6 @@ const TASK1_BOOTSTRAP_PATHS = new Set([
   'runtime/evidence-import.mjs',
   'runtime/hooks/post-agent.mjs',
   'runtime/hooks/pre-agent.mjs',
-  'runtime/hooks/subagent-start.mjs',
   'runtime/hooks/subagent-stop.mjs',
   'runtime/lib/agent-evidence.mjs',
   'runtime/lib/evidence-policy.mjs',

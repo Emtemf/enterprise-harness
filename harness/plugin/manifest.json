@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness-runtime",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Portable runtime adapter for the Enterprise Harness project contract.",
   "supportedOs": [
     "linux",
@@ -48,7 +48,7 @@
   "requiredEnvVars": [],
   "notes": [
     "Project secrets must not be committed to the repository.",
-    "Context7 MCP uses CONTEXT7_API_KEY from the environment when configured; official docs or CLI are explicit fallbacks.",
+    "Context7 MCP is anonymous by default; CONTEXT7_API_KEY in the environment is optional and only needed for higher rate limits.",
     "This manifest describes the portable runtime layer, not the repo contract itself."
   ]
 }

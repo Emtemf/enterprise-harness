@@ -106,13 +106,6 @@ assert.equal(hook('pre-agent.mjs', {
   },
 }).status, 0);
 
-assert.equal(hook('subagent-start.mjs', {
-  hook_event_name: 'SubagentStart',
-  session_id: 'session-1',
-  agent_id: 'agent-execute',
-  agent_type: 'enterprise-harness:code-explore',
-}).status, 0);
-
 const malformed = hook('subagent-stop.mjs', {
   hook_event_name: 'SubagentStop',
   session_id: 'session-1',
@@ -165,12 +158,6 @@ assert.equal(hook('pre-agent.mjs', {
     subagent_type: 'enterprise-harness:clarify-reviewer',
     prompt: `HANDOFF_INPUT=${checkMarker}\nCheck the executor result.`,
   },
-}).status, 0);
-assert.equal(hook('subagent-start.mjs', {
-  hook_event_name: 'SubagentStart',
-  session_id: 'session-1',
-  agent_id: 'agent-check',
-  agent_type: 'enterprise-harness:clarify-reviewer',
 }).status, 0);
 assert.equal(hook('subagent-stop.mjs', {
   hook_event_name: 'SubagentStop',

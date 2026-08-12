@@ -38,7 +38,7 @@ agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin �
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper
-- CodeGraph MCP；需要外部文档时配置 Context7 MCP 与 `CONTEXT7_API_KEY`，未配置时可使用官方文档 fallback。
+- CodeGraph MCP；需要外部文档时配置 Context7 MCP，无需 API Key（匿名可用，有 Key 时从环境变量 `CONTEXT7_API_KEY` 读取以获取更高额度）。
 
 从 GitHub marketplace 安装：
 

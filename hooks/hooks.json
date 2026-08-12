@@ -57,7 +57,7 @@
             "statusMessage": "记录代码与文档研究证据"
           }
         ],
-        "matcher": "mcp__codegraph__.*|mcp__context7__.*"
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*|mcp__plugin_enterprise-harness_codegraph__.*|mcp__plugin_enterprise-harness_context7__.*"
       },
       {
         "hooks": [
@@ -92,7 +92,7 @@
             "statusMessage": "记录研究工具失败证据"
           }
         ],
-        "matcher": "mcp__codegraph__.*|mcp__context7__.*"
+        "matcher": "mcp__codegraph__.*|mcp__context7__.*|mcp__plugin_enterprise-harness_codegraph__.*|mcp__plugin_enterprise-harness_context7__.*"
       },
       {
         "hooks": [
@@ -104,18 +104,6 @@
           }
         ],
         "matcher": "Agent"
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/runtime/hooks/subagent-start.mjs\"",
-            "timeout": 10,
-            "statusMessage": "记录 subagent 启动证据"
-          }
-        ]
       }
     ],
     "SubagentStop": [

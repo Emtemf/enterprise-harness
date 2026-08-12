@@ -2,15 +2,22 @@ import { loadHookChange } from '../hook-change.mjs';
 import { appendAgentEvent, sha256 } from '../agent-evidence.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 
+const PLUGIN_SCOPE = 'mcp__plugin_enterprise-harness_';
+
 function providerFor(toolName) {
   if (toolName.startsWith('mcp__codegraph__')) return 'codegraph';
   if (toolName.startsWith('mcp__context7__')) return 'context7';
+  if (toolName.startsWith(`${PLUGIN_SCOPE}codegraph__`)) return 'codegraph';
+  if (toolName.startsWith(`${PLUGIN_SCOPE}context7__`)) return 'context7';
   return null;
 }
 
 function capabilityFor(toolName, provider) {
-  const prefix = `mcp__${provider}__`;
-  return toolName.startsWith(prefix) ? toolName.slice(prefix.length) : toolName;
+  const prefixes = [`mcp__${provider}__`, `${PLUGIN_SCOPE}${provider}__`];
+  for (const prefix of prefixes) {
+    if (toolName.startsWith(prefix)) return toolName.slice(prefix.length);
+  }
+  return toolName;
 }
 
 export function researchEvidence({ root, event, success }) {
