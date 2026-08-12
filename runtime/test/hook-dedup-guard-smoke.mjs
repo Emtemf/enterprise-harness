@@ -42,6 +42,7 @@ const EXEMPT = new Set([
   'pre-agent.mjs',
   'post-agent.mjs',
   'agent-failure.mjs',
+  'subagent-start.mjs',
   'subagent-stop.mjs',
   'task-completed.mjs',
 ]);

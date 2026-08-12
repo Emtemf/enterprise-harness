@@ -112,6 +112,18 @@
         "matcher": "Agent"
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/runtime/hooks/subagent-start.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 subagent 启动证据"
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
         "hooks": [

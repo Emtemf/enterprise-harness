@@ -80,6 +80,15 @@
         "statusMessage": "记录 Agent 失败与恢复入口"
       }
     ],
+    "SubagentStart": [
+      {
+        "script": "subagent-start.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 subagent 启动证据"
+      }
+    ],
     "SubagentStop": [
       {
         "script": "subagent-stop.mjs",
