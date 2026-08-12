@@ -36,6 +36,9 @@ jobs:
       - name: Initialize CodeGraph index
         run: codegraph init
 
+      - name: Configure released controller fixture
+        run: node --input-type=module -e "import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; const controller = path.join(os.tmpdir(), 'enterprise-harness-controller'); fs.mkdirSync(controller, { recursive: true }); fs.appendFileSync(process.env.GITHUB_ENV, 'ENTERPRISE_HARNESS_CONTROLLER_ROOT=' + controller + os.EOL);"
+
       - name: Bootstrap runtime
         run: node runtime/cli.mjs bootstrap
 
