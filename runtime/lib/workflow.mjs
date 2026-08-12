@@ -46,6 +46,8 @@ export function classificationFor(data) {
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
   const explicitStage = data.workflow?.stage;
+  if (explicitStage === 'route' && hasPersistedClassification(data)) return 'design';
+  if (explicitStage === 'route') return 'route';
   if (explicitStage === 'design' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope)) {
     return 'clarify';
   }
@@ -77,7 +79,7 @@ export function inferWorkflowStage(changeId, data) {
 export function recommendNextEntry(stage, data = null) {
   if (data?.workflow?.nextEntry && data?.workflow?.stage === stage) return data.workflow.nextEntry;
   switch (stage) {
-    case 'clarify': return '/harness';
+    case 'classify': return '/harness';
     case 'route': return '/harness-route';
     case 'design': return '/harness-design';
     case 'plan': return '/harness-plan';
@@ -94,7 +96,7 @@ export function recommendExplorationLane(stage, data = null) {
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
     return 'code-explore';
   }
-  if (stage === 'route') return 'code-explore';
+  if (stage === 'classify') return 'code-explore';
   if (stage === 'design') {
     if (data?.impact?.api === 'yes' || data?.impact?.data === 'yes') return 'code-explore';
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
@@ -138,6 +140,14 @@ export function inferPendingDecision(changeId, data, stage, currentGap, shouldSu
   if (stage === 'route' && !data.workflow?.routeReady) {
     return {
       kind: 'route-confirmation',
+      message: currentGap,
+      options: ['confirm-route', 'revise-route', 'stop'],
+      evidence: [`harness/changes/${changeId}/change.md`],
+    };
+  }
+  if (stage === 'classify' && !hasPersistedClassification(data)) {
+    return {
+      kind: 'classification-confirmation',
       message: currentGap,
       options: ['confirm-route', 'revise-route', 'stop'],
       evidence: [`harness/changes/${changeId}/change.md`],
@@ -416,6 +426,7 @@ export function inferCurrentGap(root, changeId, data, workflowStage) {
       if (!data.workflow?.userConfirmedScope) return '用户尚未确认执行范围。';
       return 'clarify 已就绪，可推进到 route。';
     case 'route':
+      if (hasPersistedClassification(data)) return 'classify 已完成，下一步应进入 design。';
       if (!data.workflow?.clarifyReady) return 'clarify 结果尚未可消费。';
       if (!data.workflow?.userConfirmedScope) return '执行范围尚未被用户确认。';
       if (!data.workflow?.routeReady) return 'route 尚未确认 tier 与影响面。';

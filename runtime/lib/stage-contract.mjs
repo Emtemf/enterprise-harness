@@ -8,7 +8,7 @@
 // optionalBehaviors 只在该能力被实际派发后才要求闭环；requiredBehaviors 则是阶段
 // 进入下一阶段前不可缺少的最小闭环。不要从 SKILL.md 正则推导这份合同：skill 是给模型
 // 的操作指令，runtime 需要一个稳定、可测试、机器可读的判定源。
-export const STAGE_ORDER = ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive'];
+export const STAGE_ORDER = ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive'];
 
 export const STAGE_CONTRACTS = Object.freeze({
   clarify: {
@@ -20,10 +20,10 @@ export const STAGE_CONTRACTS = Object.freeze({
     requiredBehaviors: ['clarify.synthesize'],
     optionalBehaviors: ['clarify.explore-code', 'clarify.research-docs'],
   },
-  route: {
+  classify: {
     artifacts: ['change.md'],
     state: (data) => [
-      ['workflow.routeReady', data.workflow?.routeReady === true],
+      ['classification', Boolean(data.classification?.tier && data.classification?.impact)],
       ['impact.api', data.impact?.api !== 'unknown'],
       ['impact.data', data.impact?.data !== 'unknown'],
       ['impact.architecture', data.impact?.architecture !== 'unknown'],

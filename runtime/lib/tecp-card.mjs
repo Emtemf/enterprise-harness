@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { inferWorkflowStage, inferCurrentGap, recommendNextEntry } from './workflow.mjs';
 
-const STAGES = ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive'];
+const STAGES = ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive'];
 
 const STAGE_ARTIFACTS = {
   clarify: ['requirements.md'],
-  route: [],
+  classify: [],
   design: ['design.md'],
   plan: ['tasks.md'],
   tdd: [],
@@ -31,8 +31,8 @@ function stageIsComplete(changeDir, stage, data, currentIdx) {
     return artifacts.every((a) => artifactExists(changeDir, a));
   }
   switch (stage) {
-    case 'route':
-      return data.tier && ['L0', 'L1', 'L2', 'L3'].includes(data.tier);
+    case 'classify':
+      return Boolean(data.classification?.tier);
     case 'tdd':
       return data.workflow?.tddStatus === 'refactor-verified';
     default:

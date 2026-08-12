@@ -164,7 +164,7 @@ check('Ladder: all 7 stages in order', () => {
     setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
     const card = renderTECPCCard(tmp, 'test', state);
-    for (const s of ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']) {
+    for (const s of ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive']) {
       if (!card.includes(s)) failures.push(`card missing stage: ${s}`);
     }
   } finally { cleanup(tmp); }

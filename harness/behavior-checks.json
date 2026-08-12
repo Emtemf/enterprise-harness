@@ -36,7 +36,7 @@
       "artifact": "requirements.md"
     },
     "route.decide": {
-      "stage": "route",
+      "stage": "classify",
       "executor": "enterprise-harness:route-decider",
       "executorSkill": "harness",
       "checker": "enterprise-harness:requirement-reviewer",
@@ -44,7 +44,7 @@
       "artifact": "change.md"
     },
     "route.explore-code": {
-      "stage": "route",
+      "stage": "classify",
       "executor": "enterprise-harness:code-explore",
       "executorSkill": "harness",
       "checker": "enterprise-harness:requirement-reviewer",

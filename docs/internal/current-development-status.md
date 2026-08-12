@@ -214,7 +214,13 @@ smoke 测试缺对 `requiredPaths()` 与磁盘 skill 目录同步的双向校验
 - 对没有 classification 的历史状态，仍保留 route gate，确保旧 archive/active 投影可读取而不静默越过旧边界。
 - 新增 `classify-authority-smoke`，覆盖新旧状态的双路径行为。
 
-### Protocol skill consolidation
+### Classify surface consolidation
+
+- Removed the standalone `harness-route` Skill; classification is now represented by the shared `harness` entry and the internal `classify` action.
+- Behavior registry and stage audit use `classify` as the new-stage name for the former route decision behaviors.
+- Legacy `route` state values, `routeReady`, `confirm-route`, and `/harness-route` remain readable/operational only as compatibility paths for historical states.
+- The TECPC ladder and stage contract now display `classify` for new State v5 changes.
+
 
 - `harness-stage-executor` and `harness-stage-checker` are removed as standalone plugin skills.
 - Their durable contracts moved to `.claude/skills/harness/refs/protocol/`.

@@ -77,6 +77,11 @@ try {
     changeId,
     state: 'VALIDATED',
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' },
+    classification: {
+      tier: 'L1',
+      impact: { api: false, data: false, architecture: false, security: false },
+      workflowTopology: 'clarify -> design -> plan -> implement -> verify -> archive',
+    },
     gates: { designApproved: true },
     currentTask: 'task-1',
     workflow: {
@@ -89,7 +94,7 @@ try {
 
   const required = [
     ['clarify.synthesize', 'clarify'],
-    ['route.decide', 'route'],
+    ['route.decide', 'classify'],
     ['design.produce', 'design'],
     ['plan.produce', 'plan'],
     ['tdd.execute-task', 'tdd'],
@@ -103,7 +108,7 @@ try {
   }
 
   // 伪造 checker 为 executor 身份，即便 result 与 input 自洽，也必须被 registry 校验拒绝。
-  const routeCheck = complete.stages.find((stage) => stage.stage === 'route')?.handoffs
+  const routeCheck = complete.stages.find((stage) => stage.stage === 'classify')?.handoffs
     .find((handoff) => handoff.behavior === 'route.decide')?.checks[0];
   if (!routeCheck) fail('Could not locate completed route checker run');
   const routeCheckInputPath = path.join(runDir(routeCheck.runId), 'input.json');

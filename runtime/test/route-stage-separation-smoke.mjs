@@ -95,7 +95,7 @@ withRoot(() => {
   assert.notEqual(
     recommendNextEntry('route'),
     recommendNextEntry('clarify'),
-    'route correction must not collapse into the clarify entry',
+    'legacy route correction must remain distinguishable from clarify',
   );
 });
 

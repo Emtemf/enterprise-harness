@@ -17,7 +17,7 @@ import {
 export const HANDOFF_VERSION = 1;
 export const HANDOFF_RESULT_START = 'ENTERPRISE_HARNESS_HANDOFF_RESULT';
 export const HANDOFF_RESULT_END = 'END_ENTERPRISE_HARNESS_HANDOFF_RESULT';
-const STAGES = new Set(['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']);
+const STAGES = new Set(['clarify', 'classify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive']);
 const ROLES = new Set(['execute', 'check']);
 
 export function behaviorRegistryPath(root) {

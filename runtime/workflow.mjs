@@ -184,7 +184,7 @@ function applyDecision(changeId, decision, reason = null) {
     applyScopeConfirmationDecision(data, decision);
   }
 
-  if (pending.kind === 'route-confirmation') {
+  if (pending.kind === 'classification-confirmation' || pending.kind === 'route-confirmation') {
     applyRouteConfirmationDecision(data, decision, classificationFor(data));
   }
 

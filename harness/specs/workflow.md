@@ -4,7 +4,6 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-08-09
 implementationRefs:
   - .claude/skills/harness/SKILL.md
-  - .claude/skills/harness-route/SKILL.md
   - runtime/lib/workflow.mjs
   - runtime/lib/workflow-audit.mjs
   - runtime/lib/status-summary.mjs
@@ -42,13 +41,13 @@ route 是独立 gate，不是 clarify 的尾巴。clarify 回答“需求是什�
 - 四个 impact 维度不得留 `unknown`。
 - 用户确认路由后由 `workflow decide <change-id> confirm-route` 写入 `routeReady=true`；
   design 在 `routeReady` 为 false 时不可进入。
-- 恢复入口是 `/harness-route`，不复用 clarify 入口。
+- 恢复入口仍由 `/harness` 统一承载；旧状态的 `confirm-route` / `revise-route` 只作为 CLI 兼容决策，不再有独立 `/harness-route` Skill。
 
 ## route compatibility
 
 旧 route 资产继续可读，但不再定义新 State v5 的主流程：
 
-- 旧状态仍可通过 `confirm-route` / `revise-route` 和 `/harness-route` 修复或补齐 classification。
+- 旧状态仍可通过 `confirm-route` / `revise-route` 和统一 `/harness` 入口修复或补齐 classification。
 - 新状态优先消费 `state.classification`；`routeReady` 只是兼容投影，不得被当成唯一分类真相。
 - route 事实不足时返回 clarify，不用推测补齐。
 
