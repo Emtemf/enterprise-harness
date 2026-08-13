@@ -54,6 +54,7 @@
     "harness/reviewers",
     "harness/upstream",
     "harness/behavior-checks.json",
+    "harness/policy.json",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

@@ -9,6 +9,7 @@ import { consumeHookSnapshot, hookSnapshotAlreadyConsumed } from '../hook-snapsh
 import { canonicalPath, pathIsWithin } from '../safe-paths.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
+import { atomicWriteJson } from '../state-store.mjs';
 
 export function postWrite({ root, raw, event: inputEvent = null }) {
   if (!isHarnessManaged(root) && !hasChangeTracking(root)) return { status: 'allow', exitCode: 0 };
@@ -48,6 +49,9 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
 
   function markValidationStale(statePath, target) {
     if (!fs.existsSync(statePath)) return;
+    // post-write validation invalidation is a mechanical artifact→stale projection,
+    // not an authoritative state transition. It must not race with concurrent
+    // authoritative CAS mutations, so use atomic write rather than raw writeFile.
     const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     const changeDir = path.dirname(statePath);
     const artifact = artifactNameForPath(path.relative(changeDir, target));
@@ -56,7 +60,7 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
       : { ...state, validation: state.validation
           ? { ...state.validation, status: 'stale', digest: null, validatedAt: null }
           : state.validation };
-    fs.writeFileSync(statePath, JSON.stringify(next, null, 2) + '\n', 'utf-8');
+    atomicWriteJson(statePath, next);
   }
 
   function invalidateAffectedValidations(active, target) {

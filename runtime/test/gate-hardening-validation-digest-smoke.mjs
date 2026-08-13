@@ -82,11 +82,12 @@ function computePortableDigest(repoCopy, changeId) {
   hash.update('\n');
 
   const directFiles = ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md'];
+  const volatileEvidence = new Set(['evidence/workflow-events.jsonl']);
   const nestedFiles = [
     ...collectDigestFiles(changeDir, 'reviews'),
     ...collectDigestFiles(changeDir, 'evidence'),
     ...collectDigestFiles(changeDir, 'specs'),
-  ];
+  ].filter((relPath) => !volatileEvidence.has(relPath));
 
   for (const relPath of [...directFiles, ...nestedFiles]) {
     const fullPath = path.join(changeDir, ...relPath.split('/'));

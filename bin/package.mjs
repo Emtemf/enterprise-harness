@@ -29,6 +29,7 @@ const ALLOWED_HARNESS_FILES = [
   'harness/behavior-checks.json',
   'harness/capabilities.json',
   'harness/config.yaml',
+  'harness/policy.json',
   'harness/project.json',
 ];
 const EXCLUDED_PREFIXES = ['runtime/test/', 'runtime/.bootstrap-ran'];

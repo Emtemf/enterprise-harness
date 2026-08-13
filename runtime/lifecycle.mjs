@@ -8,6 +8,7 @@ import { renderTECPCCard } from './lib/tecp-card.mjs';
 import { buildWorkflowResult } from './lib/workflow.mjs';
 import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
 import { listSessions, unbindSession } from './lib/sessions.mjs';
+import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 
 const repoRoot = process.cwd();
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -91,25 +92,26 @@ function cmdExploration(changeId, topic) {
 }
 
 function cmdState(changeId, state, tier) {
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const data = readJson(statePath);
-  if (state === 'EXECUTING' && (!data.currentTask || !String(data.currentTask).trim())) {
+  const current = readJson(statePathFor(repoRoot, changeId));
+  if (state === 'EXECUTING' && (!current.currentTask || !String(current.currentTask).trim())) {
     console.error('BLOCK: 进入 EXECUTING 前必须先设置非空 currentTask。');
     process.exit(2);
   }
-  data.state = state;
-  if (tier) data.tier = tier;
-  writeJson(statePath, data);
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.state = state;
+    if (tier) data.tier = tier;
+    return data;
+  }, { type: 'state-change' });
   console.log(`State updated: ${changeId} -> ${state}${tier ? ` (${tier})` : ''}`);
   printTECPCCard(repoRoot, changeId);
 }
 
 function cmdCurrentTask(changeId, currentTask) {
   if (currentTask && currentTask.trim().length > 0) assertSafeId(currentTask, 'currentTask');
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const data = readJson(statePath);
-  data.currentTask = currentTask && currentTask.trim().length > 0 ? currentTask : null;
-  writeJson(statePath, data);
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.currentTask = currentTask && currentTask.trim().length > 0 ? currentTask : null;
+    return data;
+  }, { type: 'current-task-change' });
   console.log(`Current task updated: ${changeId}`);
 }
 
@@ -128,10 +130,10 @@ function cmdShowActive() {
 }
 
 function cmdImpact(changeId, api, dataImpact, architecture, rule) {
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const json = readJson(statePath);
-  json.impact = { api, data: dataImpact, architecture, rule };
-  writeJson(statePath, json);
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.impact = { api, data: dataImpact, architecture, rule };
+    return data;
+  }, { type: 'impact-change' });
   console.log(`Impact updated: ${changeId}`);
 }
 
@@ -148,48 +150,53 @@ function cmdReviewVerdict(changeId, reviewerId, verdict) {
 }
 
 function cmdMarkGate(changeId, gate, value, extra = null) {
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const data = readJson(statePath);
-  if (!data.gates) data.gates = {};
-  data.gates[gate] = value;
-  if (gate === 'redVerified' && value) {
-    data.gates.redTask = data.currentTask || null;
-    data.gates.redEvidenceRef = extra || null;
-  }
-  if (!data.workflow) data.workflow = {};
-  if (gate === 'redVerified' && value) data.workflow.tddStatus = 'red-verified';
-  writeJson(statePath, data);
+  saveChangeState(repoRoot, changeId, (data) => {
+    if (!data.gates) data.gates = {};
+    data.gates[gate] = value;
+    if (gate === 'redVerified' && value) {
+      data.gates.redTask = data.currentTask || null;
+      data.gates.redEvidenceRef = extra || null;
+    }
+    if (!data.workflow) data.workflow = {};
+    if (gate === 'redVerified' && value) data.workflow.tddStatus = 'red-verified';
+    return data;
+  }, { type: 'gate-update' });
   console.log(`Gate updated: ${changeId} -> ${gate}=${value}${extra ? ` (${extra})` : ''}`);
   printTECPCCard(repoRoot, changeId);
 }
 
 function cmdMarkValidated(changeId, _digest, date) {
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const json = readJson(statePath);
-  json.state = 'VALIDATED';
-  writeJson(statePath, json);
+  // Step 1: transition state to VALIDATED via CAS (digest computation must see VALIDATED on disk)
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.state = 'VALIDATED';
+    return data;
+  }, { type: 'state-validated' });
+  // Step 2: compute digest from the now-persisted VALIDATED state
   const computedDigest = computeValidationDigest(repoRoot, changeId);
   if (!computedDigest) {
     console.error(`BLOCK: 无法为 ${changeId} 计算 validation digest。`);
     process.exit(2);
   }
-  json.validation = {
-    status: 'fresh',
-    digest: computedDigest,
-    validatedAt: date || new Date().toISOString().slice(0, 10),
-  };
-  writeJson(statePath, json);
+  // Step 3: seal the digest via a second CAS
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.validation = {
+      status: 'fresh',
+      digest: computedDigest,
+      validatedAt: date || new Date().toISOString().slice(0, 10),
+    };
+    return data;
+  }, { type: 'validated' });
   console.log(`Validated: ${changeId}`);
 }
 
 function cmdMarkValidationStale(changeId) {
-  const statePath = path.join(changePath(changeId), 'state.json');
-  const json = readJson(statePath);
-  json.validation = json.validation || {};
-  json.validation.status = 'stale';
-  json.validation.digest = null;
-  json.validation.validatedAt = null;
-  writeJson(statePath, json);
+  saveChangeState(repoRoot, changeId, (data) => {
+    data.validation = data.validation || {};
+    data.validation.status = 'stale';
+    data.validation.digest = null;
+    data.validation.validatedAt = null;
+    return data;
+  }, { type: 'validation-stale' });
   console.log(`Validation marked stale: ${changeId}`);
 }
 
@@ -240,8 +247,10 @@ function cmdArchive(changeId, force = false) {
     process.exit(2);
   }
   // 4. 置 ARCHIVED 后物理移动。
-  data.state = 'ARCHIVED';
-  writeJson(statePath, data);
+  saveChangeState(repoRoot, changeId, (d) => {
+    d.state = 'ARCHIVED';
+    return d;
+  }, { type: 'archive' });
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(srcDir, destDir);
   clearSessionBindings(changeId);
@@ -275,15 +284,14 @@ function cmdAbandon(changeId, reason = '') {
     console.error(`BLOCK EH-ABANDON-001: abandon 目标已存在：${destination}`);
     process.exit(2);
   }
-  const next = {
-    ...data,
+  const next = saveChangeState(repoRoot, changeId, (d) => ({
+    ...d,
     state: 'ABANDONED',
     status: 'abandoned',
     lifecycle: 'abandoned',
     abandonReason: reason.trim(),
     abandonedAt: new Date().toISOString(),
-  };
-  writeJson(statePath, next);
+  }), { type: 'abandon' });
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(srcDir, destination);
   clearSessionBindings(changeId);

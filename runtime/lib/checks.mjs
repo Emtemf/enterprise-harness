@@ -77,6 +77,7 @@ export function requiredPaths() {
       'skills/archive/SKILL.md',
       'harness/config.yaml',
       'harness/project.json',
+      'harness/policy.json',
       'harness/templates/state.json',
       'harness/schemas/state.schema.json',
       'harness/templates/change.md',

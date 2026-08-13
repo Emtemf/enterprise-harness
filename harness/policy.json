@@ -1,0 +1,57 @@
+{
+  "policyVersion": 1,
+  "description": "v0.5 narrow policy mapping. Replaces behavior-checks.json as a workflow engine. Maps stages to capability requirements, governed paths, and review rubric selection. Does not define a stage graph or lifecycle transitions.",
+  "governedPaths": [
+    "src/main/java/**",
+    "src/test/java/**",
+    "openapi/**"
+  ],
+  "stages": {
+    "clarify": {
+      "facts": ["code-explore", "doc-research"],
+      "artifact": "requirements.md",
+      "rubrics": ["requirements"]
+    },
+    "design": {
+      "facts": ["code-explore", "doc-research"],
+      "artifact": "design.md",
+      "rubrics": ["design", "api", "data"]
+    },
+    "plan": {
+      "facts": ["code-explore"],
+      "artifact": "tasks.md",
+      "rubrics": ["plan"]
+    },
+    "implement": {
+      "facts": ["code-explore"],
+      "artifact": "evidence/tdd-*.json",
+      "rubrics": ["task"],
+      "writer": "implementer"
+    },
+    "verify": {
+      "facts": ["code-explore"],
+      "artifact": "validation.md",
+      "rubrics": ["final", "api", "security"]
+    },
+    "archive": {
+      "facts": [],
+      "artifact": null,
+      "rubrics": ["archive"]
+    }
+  },
+  "rubricToReviewer": {
+    "requirements": "reviewer",
+    "design": "reviewer",
+    "api": "reviewer",
+    "data": "reviewer",
+    "plan": "reviewer",
+    "task": "reviewer",
+    "final": "reviewer",
+    "security": "reviewer",
+    "archive": "reviewer"
+  },
+  "factLanes": {
+    "code": { "capability": "code-explore", "methodology": "explore-code", "first": "codegraph" },
+    "docs": { "capability": "doc-research", "methodology": "research-docs", "first": "context7" }
+  }
+}

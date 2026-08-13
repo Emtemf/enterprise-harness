@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { atomicWriteJson } from './state-store.mjs';
 
 function inferStageFromState(state) {
   const map = {
@@ -73,7 +74,7 @@ export function migrateAndPersist(data, statePath) {
   const after = JSON.stringify(migrated);
   if (before !== after) {
     try {
-      fs.writeFileSync(statePath, JSON.stringify(migrated, null, 2) + '\n', 'utf-8');
+      atomicWriteJson(statePath, migrated);
     } catch (err) {
       console.error(`Warning: failed to persist state migration to ${statePath}: ${err.message}`);
     }
