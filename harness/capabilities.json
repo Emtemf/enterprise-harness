@@ -8,9 +8,9 @@
     {
       "id": "isolated-executor-checker-handoff",
       "testRefs": [
-        "runtime/test/task2-plugin-agent-smoke.mjs",
-        "runtime/test/failed-dispatch-recovery-smoke.mjs",
-        "runtime/test/bare-agent-dispatch-smoke.mjs"
+        "runtime/test/v05-capability-surface-smoke.mjs",
+        "runtime/test/handoff-v2-common-dir-smoke.mjs",
+        "runtime/test/failed-dispatch-recovery-smoke.mjs"
       ]
     },
     {

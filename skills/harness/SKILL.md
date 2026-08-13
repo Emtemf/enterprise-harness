@@ -1,66 +1,51 @@
 ---
 name: harness
-description: Enterprise Harness 唯一工作流入口。创建/恢复 change，按 clarify→route→design→plan→tdd→verify→archive 推进，为受治理行为派发隔离 executor/checker。
+description: Enterprise Harness user-facing entry point for the six-stage v0.5 lifecycle.
 ---
 
 # Harness
 
-主 orchestrator：用户交互 + 状态恢复 + handoff 派发 + 阶段推进。入口：`/enterprise-harness:harness`。
+Harness alone owns the conversation, scope confirmation, durable state transitions, and recovery.
+It drives the user-visible lifecycle:
 
-## 开始
-
-```bash
-enterprise-harness status && enterprise-harness workflow status --json
+```text
+clarify → design → plan → implement → verify → archive
 ```
 
-- `blocked` → 只执行 `nextAction`；`workflow audit <change-id> --json` 看 blocker。
-- 有 active change + audit pass → 恢复 currentGap，不重做已完成阶段。
-- 无 change → 生成安全 changeId，运行 `start-change`。
-- 按 stage：clarify 在本 skill 内；route/design/plan/tdd/verify 加载 `harness-<stage>` forked skill。
+Classification is recorded after clarify as an internal artifact; it selects impact-sensitive
+rubrics but is not displayed as a stage. TDD is a task strategy inside implement.
 
-## clarify
+## Intake and clarify
 
-1. 并行探索：代码 `clarify.explore-code` → `code-explore`；文档 `clarify.research-docs` → `doc-research`。
-2. 探索运行期间先问代码无关维度（T 目标、Scope、Constraint/risk）。**每轮只问最薄弱的一个维度**，调用 `AskUserQuestion` tool：
+1. Resume the active change and report one actionable blocker, or create a safe new change.
+2. Obtain code facts through `code-explore` and external facts through `doc-research` using v2
+   handoffs. Do not repeat a worker's exploration in the main context.
+3. Build the component × seven-dimension topology: target, scope, actor, data, interface,
+   acceptance, constraint/risk.
+4. Ask **one** highest-risk/weakest-frontier user question at a time with `AskUserQuestion`.
+   Never ask for facts already established by CodeGraph or documentation evidence.
+5. Persist requirements, scope confirmation, and classification only after self-check and an
+   independent `reviewer` verdict are fresh.
 
-   ```yaml
-   questions:
-     - question: "【维度名】<问题>"
-       header: "<≤4字标签>"
-       options:
-         - label: "<推荐选项> (Recommended)"
-           description: "<一句理由>"
-         - label: "<备选A>"
-         - label: "<备选B>"
-   ```
+## Stage orchestration
 
-3. 探索 checker pass 后，再问代码相关维度：Data/SQL、Interface/API、Acceptance criteria。
-4. 每轮回答后：`clarify.synthesize` → `clarify-synthesizer` 写 requirements + 七维评分；
-   等 result.json → `clarify.synthesize` check → `clarify-reviewer`。
-5. 全部七维 ≥ 4、无高风险歧义 → 展示评分 + 依据，请用户确认 scope。
+- **Design:** invoke `artifact-worker` with the `design` methodology, then independent `review`.
+- **Plan:** invoke `artifact-worker` with `plan`; each task freezes its RED point and exact argv.
+- **Implement:** invoke `implementer` with `implement` in a native worktree; require receipt,
+  self-check, and separate reviewer.
+- **Verify:** invoke `artifact-worker` with `verify`, run frozen validation argv, then final review.
+- **Archive:** invoke `artifact-worker` with `archive`; archive only after fresh completion evidence.
 
-七维：**T 目标 · Scope · User/actor · Data/SQL · Interface/API · Acceptance criteria · Constraint/risk**
+A forked capability returns `NEEDS_DECISION` when business input is absent. Harness translates it
+into one user question, records the answer, and creates a new run. It never delegates that dialogue.
 
-## 隔离接力
+## Evidence rule
 
-executor 与 checker 必须是不同 subagent/run；checker 只消费 result artifact。worktree 只提供文件隔离；subagent 提供上下文隔离。
+Every stage/task follows `execute → self-check → independent review → TECPC → fresh evidence`.
+The reviewer only consumes result artifacts and input digests. Do not claim progress from a chat
+answer, an agent lifecycle event, or a state boolean.
 
-```bash
-enterprise-harness handoff create <change-id> <stage> <behavior> execute   # 输出 HANDOFF_INPUT=<path>
-enterprise-harness handoff create <change-id> <stage> <behavior> check <executor-run-id>
-```
+## User output
 
-## 按需读取 reference
-
-不要默认加载全部 reference；按当前动作读取：
-
-- 创建 handoff 或不确定 `stage.action`：读 `skills/harness/reference/behavior-map.md`
-- 推进 workflow 或判断 blocker 后下一决策：读 `skills/harness/reference/stage-decisions.md`
-- 需要完整 execute/check 输出格式：转到对应 stage skill 读取 protocol reference。
-
-`<behavior>` 是 `stage.action` 格式（不是 agent 名）；写错时 pre-agent hook 打印正确命令。
-
-## 输出规则
-
-只向用户输出：changeId · stage · currentGap · 本轮 evidence · checker verdict · **一个**下一动作或**一个**澄清问题。
-不输出 ledger、schema、hook 全文。
+Keep every response to: `changeId`, current stage, one evidence-backed status, and exactly one
+next action or one question.

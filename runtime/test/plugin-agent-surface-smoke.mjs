@@ -37,11 +37,9 @@ const declaredAgents = pluginJson.agents || [];
 const requiredAgents = [
   './agents/code-explore.md',
   './agents/doc-research.md',
-  './agents/tdd-executor.md',
-  './agents/design-executor.md',
-  './agents/plan-executor.md',
-  './agents/implementation-reviewer.md',
-  './agents/verification-executor.md',
+  './agents/artifact-worker.md',
+  './agents/implementer.md',
+  './agents/reviewer.md',
 ];
 
 const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-agent-surface-home-'));
@@ -81,11 +79,9 @@ try {
   for (const agentFile of [
     'code-explore.md',
     'doc-research.md',
-    'tdd-executor.md',
-    'design-executor.md',
-    'plan-executor.md',
-    'implementation-reviewer.md',
-    'verification-executor.md',
+    'artifact-worker.md',
+    'implementer.md',
+    'reviewer.md',
   ]) {
     if (!installedAgents.includes(agentFile)) failures.push(`installed plugin missing ${agentFile}`);
   }
