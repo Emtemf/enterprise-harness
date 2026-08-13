@@ -1,11 +1,9 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "revision": 1,
   "changeId": "<change-id>",
-  "tier": "L1",
-  "state": "DRAFT",
-  "status": "active",
   "lifecycle": "active",
+  "stage": "clarify",
   "owner": "<owner>",
   "controller": {
     "mode": "released-controller",
@@ -14,22 +12,18 @@
   },
   "sessionBinding": null,
   "changeLock": null,
-  "artifacts": {},
-  "dependencies": {
-    "requirements": [],
-    "design": ["requirements"],
-    "plan": ["design"],
-    "evidence": ["plan"],
-    "validation": ["requirements", "design", "plan", "evidence"]
-  },
-  "blocker": null,
   "impact": {
     "api": "unknown",
     "data": "unknown",
     "architecture": "unknown",
-    "rule": "unknown"
+    "rule": "unknown",
+    "security": "unknown"
   },
   "classification": null,
+  "currentTask": null,
+  "executionStrategy": null,
+  "artifacts": {},
+  "blocker": null,
   "tooling": {
     "codegraph": {
       "status": "unknown",
@@ -40,35 +34,6 @@
       "status": "unknown",
       "libraries": []
     }
-  },
-  "decisions": [],
-  "blockers": [],
-  "approvals": {},
-  "gates": {
-    "designApproved": false,
-    "redVerified": false,
-    "redTask": null,
-    "redEvidenceRef": null
-  },
-  "currentTask": null,
-  "tddEvidence": {
-    "worktreeUsed": false,
-    "commandExecuted": null,
-    "commandOutputSummary": null,
-    "evidencePath": null,
-    "authority": "runtime-receipt-only"
-  },
-  "goal": null,
-  "successCriteria": [],
-  "routingReason": null,
-  "workflow": {
-    "stage": "clarify",
-    "clarifyReady": false,
-    "userConfirmedScope": false,
-    "routeReady": false,
-    "planReady": false,
-    "tddStatus": "not-started",
-    "nextEntry": "/harness"
   },
   "validation": {
     "status": "missing",

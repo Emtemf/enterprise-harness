@@ -10,8 +10,9 @@ const packagedHooks = readJson('hooks/hooks.json');
 
 for (const [name, config] of [
   ['source hook manifest', manifest.hooks],
-  ['project settings', settings.hooks],
   ['packaged hook manifest', packagedHooks.hooks],
+  // v0.5: .claude/settings.json has no governance hooks (Controller/Subject isolation)
+  ['project settings', settings.hooks ?? {}],
 ]) {
   assert.equal(Object.hasOwn(config, 'WorktreeCreate'), false, `${name} must not override Claude Code native WorktreeCreate`);
   assert.equal(Object.hasOwn(config, 'WorktreeRemove'), false, `${name} must not override Claude Code native WorktreeRemove`);

@@ -21,12 +21,10 @@ const ALLOWED_TREES = [
   'harness/specs',
   'harness/schemas',
   'harness/templates',
-  'harness/reviewers',
   'harness/upstream',
   'bin',
 ];
 const ALLOWED_HARNESS_FILES = [
-  'harness/behavior-checks.json',
   'harness/capabilities.json',
   'harness/config.yaml',
   'harness/policy.json',

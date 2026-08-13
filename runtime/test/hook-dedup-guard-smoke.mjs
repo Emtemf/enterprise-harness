@@ -2,53 +2,34 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// When this repo is opened with the plugin also enabled, both the plugin manifest and
-// .claude/settings.json register the same hooks and the host fires each one twice.
-//
-// The guard that used to live here (`test -z "$CLAUDE_PLUGIN_ROOT" && ... || true`)
-// could never work: CLAUDE_PLUGIN_ROOT is injected per-plugin, and a settings.json hook
-// belongs to no plugin, so the variable is always empty and the guard always passed.
-// Dedup has to happen inside the hook scripts, keyed on the event identity that both
-// channels observe alike.
+// v0.5 Controller/Subject isolation: .claude/settings.json must NOT contain
+// governance hooks. The candidate tree must not self-govern. Governance hooks
+// belong exclusively in the plugin's hooks/hooks.json.
 
 const repoRoot = process.cwd();
 const settings = JSON.parse(fs.readFileSync('.claude/settings.json', 'utf-8'));
 
-const withDeadGuard = [];
-for (const [event, entries] of Object.entries(settings.hooks || {})) {
-  for (const entry of entries) {
-    for (const hook of (entry.hooks || [])) {
-      const cmd = String(hook.command || '');
-      if (cmd.includes('CLAUDE_PLUGIN_ROOT')) {
-        withDeadGuard.push(`${event}/${entry.matcher || '*'}: ${cmd.slice(0, 80)}`);
-      }
-    }
-  }
-}
+// settings.json must have no hooks at all
 assert.equal(
-  withDeadGuard.length,
-  0,
-  `settings.json hooks must not rely on a CLAUDE_PLUGIN_ROOT guard (it is always empty there):\n${withDeadGuard.join('\n')}`,
+  settings.hooks,
+  undefined,
+  '.claude/settings.json must not contain governance hooks (Controller/Subject isolation)',
 );
 
-// Every hook script reachable from settings.json must claim the event before acting,
-// so a second channel firing the same event becomes a no-op.
+// settings.json must still carry project-level config
+assert.ok(settings.env?.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH, 'settings.json must carry spawn depth env');
+assert.equal(settings.worktree?.baseRef, 'head', 'settings.json must carry worktree.baseRef=head');
+
+// Plugin hooks.json: every non-exempt hook must still have a dedup guard
+const hooksJson = JSON.parse(fs.readFileSync('hooks/hooks.json', 'utf-8'));
 const DEDUP_CALL = /\b(dedupGuard|sessionDedupGuard)\s*\(/u;
 const EXEMPT = new Set([
-  // Agent-lifecycle hooks are exempt because a second fire is already idempotent in
-  // outcome: the ledger is append-only and every consumer resolves the latest event
-  // per agentId, and the allow/block verdict is a pure function of that state. Adding a
-  // marker-file guard here would instead risk skipping a real event in the chain.
-  'pre-agent.mjs',
-  'post-agent.mjs',
-  'agent-failure.mjs',
-  'subagent-start.mjs',
-  'subagent-stop.mjs',
-  'task-completed.mjs',
+  'pre-agent.mjs', 'post-agent.mjs', 'agent-failure.mjs',
+  'subagent-start.mjs', 'subagent-stop.mjs', 'task-completed.mjs',
 ]);
 
 const scripts = new Set();
-for (const entries of Object.values(settings.hooks || {})) {
+for (const entries of Object.values(hooksJson.hooks || {})) {
   for (const entry of entries) {
     for (const hook of (entry.hooks || [])) {
       const match = /hooks\/scripts\/([\w-]+\.mjs)/u.exec(String(hook.command || ''));
@@ -56,12 +37,11 @@ for (const entries of Object.values(settings.hooks || {})) {
     }
   }
 }
-assert.ok(scripts.size > 0, 'no hook scripts found in settings.json');
+assert.ok(scripts.size > 0, 'no hook scripts found in hooks.json');
 
 const unguarded = [];
 for (const script of scripts) {
   if (EXEMPT.has(script)) continue;
-  // Dedup lives in the lib the hook delegates to; the hook file itself is a thin shell.
   const candidates = [
     path.join(repoRoot, 'hooks/scripts', script),
     path.join(repoRoot, 'runtime/lib/hooks', script),
@@ -74,7 +54,7 @@ for (const script of scripts) {
 assert.deepEqual(
   unguarded,
   [],
-  `these hooks run twice under duplicate registration with no dedup guard: ${unguarded.join(', ')}`,
+  `these plugin hooks have no dedup guard: ${unguarded.join(', ')}`,
 );
 
 console.log(`PASS hook-dedup-guard ${process.argv[2] || 'verify'}`);

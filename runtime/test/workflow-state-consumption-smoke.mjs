@@ -11,9 +11,9 @@ const files = {
   checks: path.join(repoRoot, 'runtime', 'lib', 'checks.mjs'),
 };
 const expected = {
-  currentChangeState: ['"workflow"', '"clarifyReady": false', '"userConfirmedScope": false', '"planReady": false'],
-  workflowHelper: ['data.workflow?.stage', 'data?.workflow?.nextEntry', 'inferWorkflowStage', 'recommendNextEntry'],
-  checks: ['allowedWorkflowStages', 'allowedTddStatuses', 'workflow.clarifyReady requires workflow.userConfirmedScope'],
+  currentChangeState: ['"schemaVersion": 6', '"lifecycle": "active"', '"stage": "clarify"', '"executionStrategy": null'],
+  workflowHelper: ['inferWorkflowStage', 'recommendNextEntry', 'classificationFor', 'buildWorkflowResult'],
+  checks: ['v6Stages', 'isV6', "'schemaVersion','changeId','lifecycle','stage'"],
 };
 
 function readText(file) {

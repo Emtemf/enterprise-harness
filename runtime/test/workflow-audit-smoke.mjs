@@ -64,7 +64,7 @@ function runDir(runId) {
 try {
   fs.mkdirSync(changeDir, { recursive: true });
   fs.mkdirSync(path.join(root, 'harness', 'specs'), { recursive: true });
-  fs.cpSync(path.join(repoRoot, 'harness', 'behavior-checks.json'), path.join(root, 'harness', 'behavior-checks.json'));
+  fs.cpSync(path.join(repoRoot, 'runtime/compat/v5/behavior-checks.json'), path.join(root, 'runtime/compat/v5/behavior-checks.json'));
   for (const file of ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'task-commands.json', 'validation.md']) {
     fs.writeFileSync(path.join(changeDir, file), '# Evidence\n', 'utf-8');
   }

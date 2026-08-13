@@ -3,13 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const registry = JSON.parse(fs.readFileSync(path.join(root, 'harness/behavior-checks.json'), 'utf-8'));
+const registry = JSON.parse(fs.readFileSync(path.join(root, 'runtime/compat/v5/behavior-checks.json'), 'utf-8'));
 const pluginHooks = JSON.parse(fs.readFileSync(path.join(root, 'hooks/hooks.json'), 'utf-8')).hooks;
-const localHooks = JSON.parse(fs.readFileSync(path.join(root, '.claude/settings.json'), 'utf-8')).hooks;
+const settings = JSON.parse(fs.readFileSync(path.join(root, '.claude/settings.json'), 'utf-8'));
+
+// v0.5: governance hooks live ONLY in plugin hooks.json, not settings.json
+assert.equal(settings.hooks, undefined, 'settings.json must not contain governance hooks (Controller/Subject isolation)');
 
 for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'Stop']) {
   assert.ok(pluginHooks[event]?.length, `plugin hook missing ${event}`);
-  assert.ok(localHooks[event]?.length, `local hook missing ${event}`);
 }
 for (const [name, behavior] of Object.entries(registry.behaviors)) {
   assert.ok(behavior.stage, `${name} missing stage`);

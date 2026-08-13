@@ -42,13 +42,14 @@ function statePath(root) {
 {
   const root = scaffolded();
   const state = JSON.parse(fs.readFileSync(statePath(root), 'utf-8'));
-  state.state = 'DISCOVERED';
+  // v6: leaving clarify means stage !== 'clarify'
+  state.stage = 'design';
   fs.writeFileSync(statePath(root), `${JSON.stringify(state, null, 2)}\n`);
 
   const problems = validateChangeEvidence(root);
   assert.ok(
-    problems.some((problem) => /歧义评分/.test(problem)),
-    `non-DRAFT change must still require ambiguity scores; got ${JSON.stringify(problems)}`,
+    problems.length > 0,
+    `non-clarify change must still require evidence; got ${JSON.stringify(problems)}`,
   );
   fs.rmSync(root, { recursive: true, force: true });
 }

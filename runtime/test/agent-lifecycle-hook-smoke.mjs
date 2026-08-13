@@ -22,7 +22,7 @@ fs.mkdirSync(path.join(root, 'harness/changes', changeId), { recursive: true });
 fs.writeFileSync(path.join(root, 'harness/ACTIVE_CHANGE'), `${changeId}\n`);
 fs.writeFileSync(path.join(root, 'harness/changes', changeId, 'state.json'), `${JSON.stringify({ changeId })}\n`);
 fs.copyFileSync(
-  path.join(sourceRoot, 'harness/behavior-checks.json'),
+  path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
   path.join(root, 'harness/behavior-checks.json'),
 );
 spawnSync('git', ['init', '-q'], { cwd: root });

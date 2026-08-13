@@ -53,7 +53,6 @@ export function requiredPaths() {
       'harness/templates',
       'harness/changes',
       'harness/specs',
-      'harness/reviewers',
       'runtime',
     ],
     files: [
@@ -89,15 +88,7 @@ export function requiredPaths() {
       'harness/templates/review-verdict.json',
       'harness/templates/exploration.md',
       'harness/templates/tooling-evidence.md',
-      'harness/reviewers/catalog.json',
       'harness/specs/architecture.md',
-      'harness/specs/workflow.md',
-      'harness/specs/state-schema.md',
-      'harness/specs/agents-and-handoff.md',
-      'harness/specs/hooks.md',
-      'harness/specs/evidence.md',
-      'harness/specs/testing.md',
-      'harness/specs/distribution-and-release.md',
       'harness/plugin/manifest.json',
       'runtime/doctor.mjs',
       'runtime/bootstrap.mjs',
@@ -190,13 +181,13 @@ export function computeValidationDigest(root, changeId) {
 export function validateArtifactStates(root) {
   const changesDir = path.join(root, 'harness', 'changes');
   if (!fs.existsSync(changesDir)) return [];
-  const allowedTiers = new Set(['L0', 'L1', 'L2', 'L3']);
-  const allowedStates = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','ABANDONED','BLOCKED','REJECTED']);
-  const designGatedStates = new Set(['TASKED','EXECUTING']);
   const allowedImpact = new Set(['yes','no','unknown']);
   const allowedValidation = new Set(['missing','fresh','stale']);
-  const allowedWorkflowStages = new Set(['clarify','route','design','plan','tdd','verify','archive']);
-  const allowedTddStatuses = new Set(['not-started','test-written','red-verified','green-verified','refactor-verified']);
+  const v6Stages = new Set(['clarify','design','plan','implement','verify','archive']);
+  const v6Lifecycles = new Set(['active','archived','abandoned']);
+  const v5Stages = new Set(['clarify','route','design','plan','tdd','verify','archive']);
+  const v5States = new Set(['DRAFT','DISCOVERED','CHANGE_APPROVED','SPECIFIED','DESIGN_APPROVED','TASKED','EXECUTING','REVIEWED','VALIDATED','ARCHIVED','ABANDONED','BLOCKED','REJECTED']);
+  const v5TddStatuses = new Set(['not-started','test-written','red-verified','green-verified','refactor-verified']);
   const errors = [];
   for (const entry of fs.readdirSync(changesDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
@@ -205,108 +196,83 @@ export function validateArtifactStates(root) {
     if (!fs.existsSync(statePath)) continue;
     let data;
     try { data = JSON.parse(fs.readFileSync(statePath, 'utf-8')); } catch (e) { errors.push(`${statePath}: invalid JSON`); continue; }
-    for (const key of ['schemaVersion','changeId','tier','state','impact','tooling','validation']) {
-      if (!(key in data)) errors.push(`${statePath}: missing ${key}`);
-    }
-    if (!allowedTiers.has(data.tier)) errors.push(`${statePath}: invalid tier ${data.tier}`);
-    if (!allowedStates.has(data.state)) errors.push(`${statePath}: invalid state ${data.state}`);
-    for (const key of ['api','data','architecture','rule']) {
-      if (!allowedImpact.has(data.impact?.[key])) errors.push(`${statePath}: invalid impact.${key}`);
-    }
-    if (!allowedValidation.has(data.validation?.status)) errors.push(`${statePath}: invalid validation.status ${data.validation?.status}`);
-    if (data.workflow) {
-      if (!allowedWorkflowStages.has(data.workflow.stage)) errors.push(`${statePath}: invalid workflow.stage ${data.workflow.stage}`);
-      if (typeof data.workflow.clarifyReady !== 'boolean') errors.push(`${statePath}: invalid workflow.clarifyReady`);
-      if (typeof data.workflow.userConfirmedScope !== 'boolean') errors.push(`${statePath}: invalid workflow.userConfirmedScope`);
-      if (typeof data.workflow.planReady !== 'boolean') errors.push(`${statePath}: invalid workflow.planReady`);
-      if (!allowedTddStatuses.has(data.workflow.tddStatus)) errors.push(`${statePath}: invalid workflow.tddStatus ${data.workflow.tddStatus}`);
-      if (typeof data.workflow.nextEntry !== 'string' || data.workflow.nextEntry.length === 0) errors.push(`${statePath}: invalid workflow.nextEntry`);
-      if (data.workflow.clarifyReady && !data.workflow.userConfirmedScope) errors.push(`${statePath}: workflow.clarifyReady requires workflow.userConfirmedScope`);
-    }
-    const designPath = path.join(changeDir, 'design.md');
-    const designReviewPath = path.join(changeDir, 'reviews', 'design-reviewer.json');
-    const tasksPath = path.join(changeDir, 'tasks.md');
-    const planReviewPath = path.join(changeDir, 'reviews', 'plan-critic.json');
-    const designGateEnabled = data.gates?.designApproved === true || designGatedStates.has(data.state);
-    let designReview = null;
-    if (fs.existsSync(designReviewPath)) {
-      try {
-        designReview = JSON.parse(fs.readFileSync(designReviewPath, 'utf-8'));
-      } catch {
-        errors.push(`${designReviewPath}: invalid JSON`);
+
+    const isV6 = data.schemaVersion === 6;
+
+    if (isV6) {
+      // v6 validation: minimal, stage-based, no legacy booleans
+      for (const key of ['schemaVersion','changeId','lifecycle','stage','impact','validation']) {
+        if (!(key in data)) errors.push(`${statePath}: missing ${key}`);
       }
-    }
-    let planReview = null;
-    if (fs.existsSync(planReviewPath)) {
-      try {
-        planReview = JSON.parse(fs.readFileSync(planReviewPath, 'utf-8'));
-      } catch {
-        errors.push(`${planReviewPath}: invalid JSON`);
+      if (!v6Lifecycles.has(data.lifecycle)) errors.push(`${statePath}: invalid lifecycle ${data.lifecycle}`);
+      if (!v6Stages.has(data.stage)) errors.push(`${statePath}: invalid stage ${data.stage}`);
+      for (const key of ['api','data','architecture','rule','security']) {
+        if (!allowedImpact.has(data.impact?.[key])) errors.push(`${statePath}: invalid impact.${key}`);
       }
-    }
-    if (designGatedStates.has(data.state) && data.gates?.designApproved !== true) {
-      errors.push(`${statePath}: ${data.state} requires gates.designApproved=true`);
-    }
-    if (designGateEnabled && !fs.existsSync(designPath)) {
-      errors.push(`${statePath}: designApproved requires design.md`);
-    }
-    if (designGateEnabled && !designReview) {
-      errors.push(`${statePath}: designApproved requires reviews/design-reviewer.json`);
-    }
-    if (designReview) {
-      if (designReview.changeId !== data.changeId) errors.push(`${designReviewPath}: changeId mismatch`);
-      if (designReview.reviewerId !== 'design-reviewer') errors.push(`${designReviewPath}: reviewerId must be design-reviewer`);
-      if (designReview.verdict === 'block') errors.push(`${designReviewPath}: block verdict prevents design approval`);
-      if (!designReview.reviewedAt) errors.push(`${designReviewPath}: reviewedAt required for design approval`);
-    }
-    if (data.state === 'TASKED' || data.state === 'EXECUTING') {
-      if (!fs.existsSync(tasksPath)) {
-        errors.push(`${statePath}: ${data.state} requires tasks.md`);
-      } else {
-        const tasksText = fs.readFileSync(tasksPath, 'utf-8');
-        if (!tasksText.startsWith('# Tasks')) {
-          errors.push(`${statePath}: ${data.state} requires finalized tasks.md header (# Tasks)`);
+      if (!allowedValidation.has(data.validation?.status)) errors.push(`${statePath}: invalid validation.status ${data.validation?.status}`);
+    } else {
+      // v5 compat validation
+      const allowedTiers = new Set(['L0','L1','L2','L3']);
+      const designGatedStates = new Set(['TASKED','EXECUTING']);
+      for (const key of ['schemaVersion','changeId','tier','state','impact','tooling','validation']) {
+        if (!(key in data)) errors.push(`${statePath}: missing ${key}`);
+      }
+      if (!allowedTiers.has(data.tier)) errors.push(`${statePath}: invalid tier ${data.tier}`);
+      if (!v5States.has(data.state)) errors.push(`${statePath}: invalid state ${data.state}`);
+      for (const key of ['api','data','architecture','rule']) {
+        if (!allowedImpact.has(data.impact?.[key])) errors.push(`${statePath}: invalid impact.${key}`);
+      }
+      if (!allowedValidation.has(data.validation?.status)) errors.push(`${statePath}: invalid validation.status ${data.validation?.status}`);
+      if (data.workflow) {
+        if (!v5Stages.has(data.workflow.stage)) errors.push(`${statePath}: invalid workflow.stage ${data.workflow.stage}`);
+        if (typeof data.workflow.clarifyReady !== 'boolean') errors.push(`${statePath}: invalid workflow.clarifyReady`);
+        if (typeof data.workflow.userConfirmedScope !== 'boolean') errors.push(`${statePath}: invalid workflow.userConfirmedScope`);
+        if (typeof data.workflow.planReady !== 'boolean') errors.push(`${statePath}: invalid workflow.planReady`);
+        if (!v5TddStatuses.has(data.workflow.tddStatus)) errors.push(`${statePath}: invalid workflow.tddStatus ${data.workflow.tddStatus}`);
+        if (typeof data.workflow.nextEntry !== 'string' || data.workflow.nextEntry.length === 0) errors.push(`${statePath}: invalid workflow.nextEntry`);
+        if (data.workflow.clarifyReady && !data.workflow.userConfirmedScope) errors.push(`${statePath}: workflow.clarifyReady requires workflow.userConfirmedScope`);
+      }
+      const designPath = path.join(changeDir, 'design.md');
+      const designReviewPath = path.join(changeDir, 'reviews', 'design-reviewer.json');
+      const tasksPath = path.join(changeDir, 'tasks.md');
+      const planReviewPath = path.join(changeDir, 'reviews', 'plan-critic.json');
+      const designGateEnabled = data.gates?.designApproved === true || designGatedStates.has(data.state);
+      let designReview = null;
+      if (fs.existsSync(designReviewPath)) { try { designReview = JSON.parse(fs.readFileSync(designReviewPath, 'utf-8')); } catch { errors.push(`${designReviewPath}: invalid JSON`); } }
+      let planReview = null;
+      if (fs.existsSync(planReviewPath)) { try { planReview = JSON.parse(fs.readFileSync(planReviewPath, 'utf-8')); } catch { errors.push(`${planReviewPath}: invalid JSON`); } }
+      if (designGatedStates.has(data.state) && data.gates?.designApproved !== true) errors.push(`${statePath}: ${data.state} requires gates.designApproved=true`);
+      if (designGateEnabled && !fs.existsSync(designPath)) errors.push(`${statePath}: designApproved requires design.md`);
+      if (designGateEnabled && !designReview) errors.push(`${statePath}: designApproved requires reviews/design-reviewer.json`);
+      if (designReview) {
+        if (designReview.changeId !== data.changeId) errors.push(`${designReviewPath}: changeId mismatch`);
+        if (designReview.verdict === 'block') errors.push(`${designReviewPath}: block verdict prevents design approval`);
+      }
+      if (data.state === 'TASKED' || data.state === 'EXECUTING') {
+        if (!fs.existsSync(tasksPath)) {
+          errors.push(`${statePath}: ${data.state} requires tasks.md`);
+        } else if (/Status:\s*draft/.test(fs.readFileSync(tasksPath, 'utf-8'))) {
+          errors.push(`${statePath}: ${data.state} requires finalized tasks.md`);
         }
+        if (!planReview) errors.push(`${statePath}: ${data.state} requires reviews/plan-critic.json`);
+        if (!data.currentTask || !String(data.currentTask).trim()) errors.push(`${statePath}: ${data.state} requires non-empty currentTask`);
       }
-      if (!planReview) {
-        errors.push(`${statePath}: ${data.state} requires reviews/plan-critic.json`);
+      if (data.gates?.redVerified) {
+        if (!data.currentTask || !String(data.currentTask).trim()) errors.push(`${statePath}: redVerified requires non-empty currentTask`);
+        if (data.gates.redTask !== data.currentTask) errors.push(`${statePath}: redVerified requires gates.redTask to match currentTask`);
       }
+      if ((data.state === 'REVIEWED' || data.state === 'VALIDATED') && data.validation?.status !== 'fresh') errors.push(`${statePath}: ${data.state} requires fresh validation`);
     }
-    if (planReview) {
-      if (planReview.changeId !== data.changeId) errors.push(`${planReviewPath}: changeId mismatch`);
-      if (planReview.reviewerId !== 'plan-critic') errors.push(`${planReviewPath}: reviewerId must be plan-critic`);
-      if (planReview.verdict === 'block') errors.push(`${planReviewPath}: block verdict prevents TASKED/EXECUTING`);
-      if (!planReview.reviewedAt) errors.push(`${planReviewPath}: reviewedAt required for TASKED/EXECUTING`);
-    }
-    if (data.state === 'EXECUTING' && (!data.currentTask || typeof data.currentTask !== 'string' || data.currentTask.trim().length === 0)) {
-      errors.push(`${statePath}: EXECUTING requires non-empty currentTask`);
-    }
-    if (data.gates?.redVerified) {
-      if (!data.currentTask || !String(data.currentTask).trim()) {
-        errors.push(`${statePath}: redVerified requires non-empty currentTask`);
-      }
-      if (data.gates.redTask !== data.currentTask) {
-        errors.push(`${statePath}: redVerified requires gates.redTask to match currentTask`);
-      }
-      if (typeof data.gates.redEvidenceRef !== 'string' || data.gates.redEvidenceRef.trim().length === 0) {
-        errors.push(`${statePath}: redVerified requires non-empty gates.redEvidenceRef`);
-      }
-    }
-    if ((data.state === 'REVIEWED' || data.state === 'VALIDATED') && data.validation?.status !== 'fresh') {
-      errors.push(`${statePath}: ${data.state} requires fresh validation`);
-    }
+
+    // Common: validation digest check
     if (data.validation?.status === 'fresh') {
       if (!data.validation.digest || typeof data.validation.digest !== 'string') {
         errors.push(`${statePath}: fresh validation requires non-empty validation.digest`);
       } else {
         const computedDigest = computeValidationDigest(root, entry.name);
-        if (computedDigest && data.validation.digest !== computedDigest) {
-          errors.push(`${statePath}: validation digest mismatch`);
-        }
+        if (computedDigest && data.validation.digest !== computedDigest) errors.push(`${statePath}: validation digest mismatch`);
       }
-      if (!data.validation.validatedAt || typeof data.validation.validatedAt !== 'string') {
-        errors.push(`${statePath}: fresh validation requires non-empty validation.validatedAt`);
-      }
+      if (!data.validation.validatedAt || typeof data.validation.validatedAt !== 'string') errors.push(`${statePath}: fresh validation requires non-empty validation.validatedAt`);
     }
   }
   return errors;
@@ -329,7 +295,11 @@ function readReviewVerdictFile(file, allowed, errors) {
 }
 
 function requiredCompletionReviewers(root, changeId, state) {
-  const catalogPath = path.join(root, 'harness', 'reviewers', 'catalog.json');
+  // v0.5: reviewer catalog moved to runtime/compat/v5/. v6 uses policy.json rubric mapping.
+  // During migration, fall back to the v5 catalog if it exists.
+  const compatPath = path.join(root, 'runtime', 'compat', 'v5', 'reviewer-catalog.json');
+  const legacyPath = path.join(root, 'harness', 'reviewers', 'catalog.json');
+  const catalogPath = fs.existsSync(compatPath) ? compatPath : legacyPath;
   if (!fs.existsSync(catalogPath)) return [];
   let catalog;
   try {
@@ -706,7 +676,9 @@ export function validateChangeEvidence(root) {
 
     const validationPath = path.join(changeDir, 'validation.md');
     // DRAFT scaffold 的 validation.md 是空模板；验证证据要到 verify 阶段才存在。
-    if (state?.state !== 'DRAFT' && fs.existsSync(validationPath)) {
+    // v6: stage=clarify is the DRAFT equivalent.
+    const isDraft = state?.state === 'DRAFT' || state?.stage === 'clarify' || state?.lifecycle === 'active' && state?.stage === 'clarify';
+    if (!isDraft && fs.existsSync(validationPath)) {
       const text = fs.readFileSync(validationPath, 'utf-8');
       if (!text.includes('## Commands Executed')) {
         errors.push(`${changeDir}: validation.md missing Commands Executed section`);

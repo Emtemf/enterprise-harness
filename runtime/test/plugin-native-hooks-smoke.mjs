@@ -37,15 +37,17 @@ for (const eventEntries of Object.values(hooksJson.hooks ?? {})) {
 const allUsePluginRoot = hookCommands.length > 0 && hookCommands.every((cmd) => cmd.includes('${CLAUDE_PLUGIN_ROOT}'));
 const nonePluginRelative = hookCommands.every((cmd) => !/node harness\//.test(cmd));
 
-// Contract 1b: 本地 .claude/settings.json 的 hook 必须用 $CLAUDE_PROJECT_DIR，
-// 不能用 ${CLAUDE_PLUGIN_ROOT}——后者只在插件 hooks/hooks.json 有效，settings.json
-// 里用它会报 "references ${CLAUDE_PLUGIN_ROOT} but the hook is not associated with a plugin"。
+// Contract 1b: v0.5 Controller/Subject isolation — .claude/settings.json
+// must NOT contain governance hooks at all. Only project-level config lives here.
 const settingsJson = JSON.parse(fs.readFileSync(path.join(repoRoot, '.claude', 'settings.json'), 'utf-8'));
+const settingsHasNoHooks = !settingsJson.hooks;
 const settingsCommands = [];
-for (const eventEntries of Object.values(settingsJson.hooks ?? {})) {
-  for (const entry of eventEntries) {
-    for (const hook of entry.hooks ?? []) {
-      if (hook.type === 'command') settingsCommands.push(hook.command);
+if (settingsJson.hooks) {
+  for (const eventEntries of Object.values(settingsJson.hooks)) {
+    for (const entry of eventEntries) {
+      for (const hook of entry.hooks ?? []) {
+        if (hook.type === 'command') settingsCommands.push(hook.command);
+      }
     }
   }
 }
@@ -76,8 +78,9 @@ try {
   const failures = [];
   if (!allUsePluginRoot) failures.push('hooks.json commands must use ${CLAUDE_PLUGIN_ROOT}');
   if (!nonePluginRelative) failures.push('hooks.json commands must not use project-relative "node harness/..." paths');
-  if (!settingsUseProjectDir) failures.push('.claude/settings.json commands must use $CLAUDE_PROJECT_DIR');
-  if (!settingsNoPluginRoot) failures.push('.claude/settings.json commands must NOT use ${CLAUDE_PLUGIN_ROOT} (only valid in plugin hooks.json)');
+  if (!settingsHasNoHooks) failures.push('.claude/settings.json must NOT contain governance hooks (Controller/Subject isolation)');
+  if (settingsCommands.length > 0 && !settingsUseProjectDir) failures.push('.claude/settings.json commands must use $CLAUDE_PROJECT_DIR');
+  if (settingsCommands.length > 0 && !settingsNoPluginRoot) failures.push('.claude/settings.json commands must NOT use ${CLAUDE_PLUGIN_ROOT}');
   if (sessionStart.status !== 0) failures.push(`session-start exit=${sessionStart.status}: ${sessionStart.stderr?.slice(0, 200)}`);
   if (!`${sessionStart.stdout}`.includes('/harness')) failures.push('session-start in target project must still point users to /harness');
   if (preWrite.status !== 0) failures.push(`pre-write exit=${preWrite.status}: ${preWrite.stderr?.slice(0, 200)}`);

@@ -5,7 +5,7 @@ import path from 'node:path';
 const root = process.cwd();
 const skillsDir = path.join(root, 'skills');
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin/plugin.json'), 'utf-8'));
-const registry = JSON.parse(fs.readFileSync(path.join(root, 'harness/behavior-checks.json'), 'utf-8'));
+const registry = JSON.parse(fs.readFileSync(path.join(root, 'runtime/compat/v5/behavior-checks.json'), 'utf-8'));
 
 for (const obsolete of ['harness-stage-executor', 'harness-stage-checker']) {
   assert.equal(fs.existsSync(path.join(skillsDir, obsolete)), false, `${obsolete} must not ship as a standalone skill`);

@@ -17,7 +17,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'handoff-contract-'));
 const changeId = 'handoff-probe';
 fs.mkdirSync(path.join(root, 'harness/changes', changeId), { recursive: true });
 fs.copyFileSync(
-  path.join(sourceRoot, 'harness/behavior-checks.json'),
+  path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
   path.join(root, 'harness/behavior-checks.json'),
 );
 

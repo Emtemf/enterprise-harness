@@ -136,6 +136,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-V2-026` | checker handoff 未关联 executor run | 提供 parentRunId 并消费该 run 的 result artifact |
 | `EH-HANDOFF-V2-027` | common-dir 中没有指定 handoff input | 确认 changeId/runId，重新创建 handoff |
 | `EH-HANDOFF-V2-028` | handoff input 版本不匹配 | 通过对应 v1/v2 reader 读取，不要混用版本 |
+| `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |
 | `EH-SESSION-LEASE-023` | session lease 不存在或已解绑 | 在当前会话重新绑定 change，再续约 |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |

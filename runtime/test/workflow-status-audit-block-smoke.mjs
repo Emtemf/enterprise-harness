@@ -23,9 +23,10 @@ const changeDir = path.join(root, 'harness', 'changes', changeId);
 try {
   fs.mkdirSync(changeDir, { recursive: true });
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'runtime/compat/v5'), { recursive: true });
   fs.copyFileSync(
-    path.join(sourceRoot, 'harness', 'behavior-checks.json'),
-    path.join(root, 'harness', 'behavior-checks.json'),
+    path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
+    path.join(root, 'runtime/compat/v5/behavior-checks.json'),
   );
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
   for (const name of ['requirements.md', 'change.md', 'design.md', 'tasks.md', 'validation.md']) {

@@ -1,84 +1,55 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://enterprise-harness.local/schemas/state.schema.json",
-  "title": "Enterprise Harness Change State",
+  "title": "Enterprise Harness v6 Change State",
   "type": "object",
   "required": [
     "schemaVersion",
     "revision",
     "changeId",
-    "tier",
-    "state",
+    "lifecycle",
+    "stage",
     "impact",
-    "workflow",
-    "gates",
-    "approvals",
-    "validation",
-    "blockers"
+    "validation"
   ],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "schemaVersion": { "const": 6 },
     "revision": { "type": "integer", "minimum": 1 },
     "changeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
-    "tier": { "enum": ["L0", "L1", "L2", "L3"] },
-    "state": {
-      "enum": [
-        "DRAFT",
-        "CLARIFIED",
-        "DESIGNED",
-        "DESIGN_APPROVED",
-        "PLANNED",
-        "EXECUTING",
-        "REVIEWED",
-        "VALIDATED",
-        "ARCHIVED",
-        "ABANDONED",
-        "REJECTED"
-      ]
-    },
-    "status": { "enum": ["active", "archived", "abandoned"] },
     "lifecycle": { "enum": ["active", "archived", "abandoned"] },
+    "stage": { "enum": ["clarify", "design", "plan", "implement", "verify", "archive"] },
+    "owner": { "type": ["string", "null"] },
     "controller": { "type": "object", "additionalProperties": true },
     "sessionBinding": { "type": ["object", "null"], "additionalProperties": true },
     "changeLock": { "type": ["object", "null"], "additionalProperties": true },
-    "artifacts": { "type": "object", "additionalProperties": true },
-    "dependencies": { "type": "object", "additionalProperties": true },
-    "blocker": { "type": ["object", "null"], "additionalProperties": true },
-    "classification": { "type": ["object", "null"], "additionalProperties": true },
-    "currentTask": { "type": ["string", "null"] },
     "impact": {
       "type": "object",
-      "required": ["api", "data", "architecture", "rule"],
+      "required": ["api", "data", "architecture", "rule", "security"],
       "properties": {
         "api": { "enum": ["yes", "no", "unknown"] },
         "data": { "enum": ["yes", "no", "unknown"] },
         "architecture": { "enum": ["yes", "no", "unknown"] },
-        "rule": { "enum": ["yes", "no", "unknown"] }
+        "rule": { "enum": ["yes", "no", "unknown"] },
+        "security": { "enum": ["yes", "no", "unknown"] }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
-    "workflow": {
-      "type": "object",
-      "required": ["stage", "nextEntry"],
-      "properties": {
-        "stage": { "enum": ["clarify", "route", "design", "plan", "tdd", "verify", "archive"] },
-        "nextEntry": { "type": "string" }
-      },
-      "additionalProperties": true
-    },
-    "gates": { "type": "object" },
-    "approvals": { "type": "object" },
+    "classification": { "type": ["object", "null"], "additionalProperties": true },
+    "currentTask": { "type": ["string", "null"] },
+    "executionStrategy": { "type": ["string", "null"], "enum": ["tdd", "regression", "characterization", "direct", "migration", "generation", null] },
+    "artifacts": { "type": "object", "additionalProperties": true },
+    "blocker": { "type": ["object", "null"], "additionalProperties": true },
+    "tooling": { "type": "object", "additionalProperties": true },
     "validation": {
       "type": "object",
-      "required": ["status"],
+      "required": ["status", "digest", "validatedAt"],
       "properties": {
         "status": { "enum": ["missing", "stale", "fresh"] },
         "digest": { "type": ["string", "null"] },
         "validatedAt": { "type": ["string", "null"], "format": "date-time" }
       },
-      "additionalProperties": true
-    },
-    "blockers": { "type": "array" }
+      "additionalProperties": false
+    }
   },
   "additionalProperties": true
 }

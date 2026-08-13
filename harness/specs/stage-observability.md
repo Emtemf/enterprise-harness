@@ -8,7 +8,7 @@ implementationRefs:
   - runtime/lib/status-summary.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
-  - harness/behavior-checks.json
+  - runtime/compat/v5/behavior-checks.json
 testRefs:
   - runtime/test/workflow-audit-smoke.mjs
   - runtime/test/workflow-status-audit-block-smoke.mjs

@@ -34,14 +34,13 @@ const outputs = [
     value: render('${CLAUDE_PLUGIN_ROOT}'),
   },
   {
+    // .claude/settings.json is project-level Claude Code config only.
+    // Governance hooks belong exclusively in the plugin's hooks/hooks.json.
+    // Controller/Subject isolation: the candidate tree must not self-govern.
     path: path.join(root, '.claude', 'settings.json'),
-    // Forked stage skills sit one layer down and must still dispatch their own
-    // executor and checker. At the spawn-depth limit the Agent tool is withheld
-    // silently, which would collapse both roles into one context.
     value: {
       env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' },
       worktree: { baseRef: 'head' },
-      ...render('$CLAUDE_PROJECT_DIR'),
     },
   },
 ];

@@ -21,11 +21,21 @@ const STAGES = new Set(['clarify', 'classify', 'route', 'design', 'plan', 'tdd',
 const ROLES = new Set(['execute', 'check']);
 
 export function behaviorRegistryPath(root) {
+  // v5 behavior-checks.json moved to runtime/compat/v5/. The active v0.5
+  // policy source is harness/policy.json. This reader is kept for v4/v5
+  // handoff compatibility only.
+  const compatPath = path.join(root, 'runtime', 'compat', 'v5', 'behavior-checks.json');
+  if (fs.existsSync(compatPath)) return compatPath;
+  // Legacy path for repos that haven't migrated yet
   return path.join(root, 'harness', 'behavior-checks.json');
 }
 
 export function loadBehaviorRegistry(root) {
-  return JSON.parse(fs.readFileSync(behaviorRegistryPath(root), 'utf-8'));
+  const p = behaviorRegistryPath(root);
+  if (!fs.existsSync(p)) {
+    throw new Error(`EH-V5-COMPAT-001: behavior-checks.json not found at ${p}; v0.5 uses harness/policy.json instead. Use handoff v2 for v6 changes.`);
+  }
+  return JSON.parse(fs.readFileSync(p, 'utf-8'));
 }
 
 export function runsDir(root, changeId) {

@@ -10,7 +10,7 @@ const packaged = JSON.parse(fs.readFileSync(path.join(root, 'hooks/hooks.json'),
 
 for (const [label, hooks] of [
   ['source', sourceManifest.hooks],
-  ['settings', settings.hooks],
+  ['settings', settings.hooks ?? {}],
   ['package', packaged.hooks],
 ]) {
   assert.equal(Object.hasOwn(hooks, 'WorktreeCreate'), false, `${label} must use native WorktreeCreate`);

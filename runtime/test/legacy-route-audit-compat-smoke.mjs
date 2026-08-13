@@ -10,7 +10,7 @@ const changeDir = path.join(root, 'harness', 'changes', changeId);
 try {
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.copyFileSync(
-    path.join(process.cwd(), 'harness/behavior-checks.json'),
+    path.join(process.cwd(), 'runtime/compat/v5/behavior-checks.json'),
     path.join(root, 'harness/behavior-checks.json'),
   );
   fs.mkdirSync(path.join(changeDir, 'evidence'), { recursive: true });

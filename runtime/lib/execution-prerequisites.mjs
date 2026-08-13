@@ -51,18 +51,51 @@ export function validateStageChain(root, changeId, state) {
   const policy = evidenceModeForChange(root, changeId);
   if (!policy.ok) problems.push(`sealed evidence policy unavailable: ${policy.problems.join('; ')}`);
   const changeDir = path.join(root, 'harness', 'changes', changeId);
+
+  // v6 stage-gate: artifact presence + independent review, not persisted booleans.
+  // v5 compat: still check the old gates if the state uses them.
+  const isV6 = state?.schemaVersion === 6;
+
   if (!fs.existsSync(path.join(changeDir, 'requirements.md'))) problems.push('missing requirements.md');
-  if (!state?.workflow?.userConfirmedScope || !state?.workflow?.clarifyReady) problems.push('clarify scope is not confirmed');
-  problems.push(...validateAmbiguityGate(root, changeId, state));
-  if (!['L0', 'L1', 'L2', 'L3'].includes(state?.tier)) problems.push('tier is missing');
-  problems.push(...validateRouterScore(root, changeId, state));
+
+  if (isV6) {
+    // v6: classification is an internal artifact, not a gate; check for it
+    if (!state?.classification) problems.push('classification is missing (internal durable action)');
+  } else {
+    // v5 compat: check the old gate fields
+    if (!state?.workflow?.userConfirmedScope || !state?.workflow?.clarifyReady) problems.push('clarify scope is not confirmed');
+    problems.push(...validateAmbiguityGate(root, changeId, state));
+    if (!['L0', 'L1', 'L2', 'L3'].includes(state?.tier)) problems.push('tier is missing');
+    problems.push(...validateRouterScore(root, changeId, state));
+  }
+
   if (!fs.existsSync(path.join(changeDir, 'design.md'))) problems.push('missing design.md');
-  readReview(changeDir, 'design-reviewer.json', problems);
-  if (state?.gates?.designApproved !== true) problems.push('gates.designApproved is not true');
+  // v6 review files use the canonical `reviewer` agent; v5 uses named reviewers.
+  // Try design.json first (v6), fall back to design-reviewer.json (v5) — only push a
+  // problem when neither exists to avoid a spurious "missing design.json" on v5 changes.
+  const designReviewNames = ['design.json', 'design-reviewer.json'];
+  const foundDesignName = designReviewNames.find((n) => fs.existsSync(path.join(changeDir, 'reviews', n)));
+  const designReview = foundDesignName
+    ? readReview(changeDir, foundDesignName, problems)
+    : (problems.push('missing reviews/design.json'), null);
+  if (isV6 && !state?.gates?.designApproved !== true) {
+    // v6: design review verdict is the gate, not a boolean
+    if (!designReview || !['pass', 'advisory'].includes(designReview.verdict)) {
+      // already pushed by readReview
+    }
+  } else if (!isV6 && state?.gates?.designApproved !== true) {
+    problems.push('gates.designApproved is not true');
+  }
+
   const tasksPath = path.join(changeDir, 'tasks.md');
   if (!fs.existsSync(tasksPath) || !fs.readFileSync(tasksPath, 'utf-8').startsWith('# Tasks')) problems.push('tasks.md is not finalized');
-  readReview(changeDir, 'plan-critic.json', problems);
-  if (state?.workflow?.planReady !== true) problems.push('workflow.planReady is not true');
+  // Same pattern for plan review: plan.json (v6) → plan-critic.json (v5).
+  const planReviewNames = ['plan.json', 'plan-critic.json'];
+  const foundPlanName = planReviewNames.find((n) => fs.existsSync(path.join(changeDir, 'reviews', n)));
+  if (foundPlanName) readReview(changeDir, foundPlanName, problems);
+  else problems.push('missing reviews/plan.json');
+  if (!isV6 && state?.workflow?.planReady !== true) problems.push('workflow.planReady is not true');
+
   const events = readAgentEvents(root, changeId);
   if (!events.some((item) => item.kind === 'codegraph-attempt'
       && item.agentId
@@ -79,8 +112,14 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
   const problems = [];
   if (!isGovernedTarget(root, target)) return problems;
   const agentId = String(event.agent_id || '').trim();
-  if (!agentId || !boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')) {
-    problems.push('tool event is not bound to an active enterprise-harness:tdd-executor');
+  // v0.5 canonical writer agent is `implementer`, not the legacy `tdd-executor`.
+  // Accept both during migration; after compat removal, only `implementer` remains.
+  const isAuthorized = agentId && (
+    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer') ||
+    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')
+  );
+  if (!isAuthorized) {
+    problems.push('tool event is not bound to an active enterprise-harness:implementer');
   }
   const events = readAgentEvents(root, changeId);
   if (requiredGateForTarget(root, target)?.needsRedVerified) {

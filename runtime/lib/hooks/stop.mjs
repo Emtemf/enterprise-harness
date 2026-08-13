@@ -51,7 +51,7 @@ export function stop({ root, event }) {
   if (state.state === 'EXECUTING') {
     console.error('Stop gate 提醒：仍有 change 处于 EXECUTING，请确认是否要结束在当前中间状态。');
   }
-  printHandoffGuidance(root);
+  printHandoffGuidance(root, event);
   return allow();
 }
 
