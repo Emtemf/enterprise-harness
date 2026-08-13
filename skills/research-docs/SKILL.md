@@ -1,6 +1,6 @@
 ---
 name: research-docs
-description: Context7-first external documentation research methodology for Enterprise Harness.
+description: Enterprise Harness Context7 优先的外部文档调研方法。
 user-invocable: false
 context: fork
 ---

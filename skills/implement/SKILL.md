@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Execute one frozen task using real RED, GREEN, refactor, and receipt evidence.
+description: 使用真实 RED/GREEN/重构收据执行一个冻结任务。
 user-invocable: false
 context: fork
 ---

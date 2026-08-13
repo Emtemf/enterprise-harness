@@ -1,6 +1,6 @@
 ---
 name: review
-description: Apply independent, digest-bound review rubrics to Harness artifacts and tasks.
+description: 对 Harness 制品和任务应用独立的 digest 绑定评审标准。
 user-invocable: false
 context: fork
 ---

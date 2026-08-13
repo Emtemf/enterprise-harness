@@ -1,6 +1,6 @@
 ---
 name: design
-description: Produce digest-bound, reviewable technical design artifacts.
+description: 生成 digest 绑定、可评审的技术设计制品。
 user-invocable: false
 context: fork
 ---

@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Executes one frozen implementation task in an isolated native worktree with real receipts.
+description: 在隔离 worktree 中执行一个冻结实现任务，并生成真实执行收据。
 tools:
   - Read
   - Bash

@@ -1,6 +1,6 @@
 ---
 name: explore-code
-description: CodeGraph-first code fact discovery methodology for Enterprise Harness.
+description: Enterprise Harness CodeGraph 优先的代码事实发现方法。
 user-invocable: false
 context: fork
 ---

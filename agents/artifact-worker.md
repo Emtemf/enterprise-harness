@@ -1,6 +1,6 @@
 ---
 name: artifact-worker
-description: Produces durable non-code Harness artifacts and self-check evidence from a v2 handoff.
+description: 从 v2 handoff 生成持久非代码 Harness 制品与自检证据。
 tools:
   - Read
   - Write

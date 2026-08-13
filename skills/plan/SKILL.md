@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Freeze independently executable, test-first implementation tasks.
+description: 冻结独立可执行、测试优先的实现任务列表。
 user-invocable: false
 context: fork
 ---

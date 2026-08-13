@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Assemble fresh validation and independent completion evidence.
+description: 汇集新鲜验证结果与独立完成证据。
 user-invocable: false
 context: fork
 ---

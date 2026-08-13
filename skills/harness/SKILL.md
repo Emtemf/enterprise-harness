@@ -1,6 +1,6 @@
 ---
 name: harness
-description: Enterprise Harness user-facing entry point for the six-stage v0.5 lifecycle.
+description: Enterprise Harness 六阶段 v0.5 生命周期的用户入口。
 ---
 
 # Harness

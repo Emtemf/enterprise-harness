@@ -1,6 +1,6 @@
 ---
 name: archive
-description: Validate completion evidence and preserve immutable change history.
+description: 校验完成证据并归档不可变的变更历史。
 user-invocable: false
 context: fork
 ---

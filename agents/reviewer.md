@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Independently reviews Harness artifacts and task results using digest-bound rubrics.
+description: 使用 digest 绑定的评审标准独立评审 Harness 制品与任务结果。
 tools:
   - Read
   - Bash
