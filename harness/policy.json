@@ -24,7 +24,7 @@
     },
     "implement": {
       "facts": ["code-explore"],
-      "artifact": "evidence/tdd-*.json",
+      "artifact": "evidence/execution/<task-id>.json",
       "rubrics": ["task"],
       "writer": "implementer"
     },

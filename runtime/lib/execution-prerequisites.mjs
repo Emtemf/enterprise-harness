@@ -7,6 +7,11 @@ import { boundHarnessAgent, readAgentEvents } from './agent-evidence.mjs';
 import { evidenceModeForChange } from './evidence-policy.mjs';
 import { isGovernedTarget, requiredGateForTarget } from './gates.mjs';
 import { readAndValidateTddReceipt, tddReceiptSpoolPath } from './tdd-receipts.mjs';
+import {
+  loadTaskExecutionStrategy,
+  readTaskExecutionReceipt,
+  requiredPrewriteEvidence,
+} from './task-execution.mjs';
 
 function readReview(changeDir, name, problems) {
   const file = path.join(changeDir, 'reviews', name);
@@ -22,6 +27,19 @@ function readReview(changeDir, name, problems) {
     problems.push(`reviews/${name} is invalid JSON`);
     return null;
   }
+}
+
+export function validateTaskExecutionEvidence(root, changeId, state, agentId) {
+  const taskId = String(state?.currentTask || '').trim();
+  if (!taskId) return ['currentTask is missing'];
+  const resolved = loadTaskExecutionStrategy(root, changeId, taskId, state?.executionStrategy);
+  if (!resolved.ok) return resolved.problems;
+  const phases = requiredPrewriteEvidence(resolved.strategy);
+  if (phases.length === 0) return [];
+  const receipt = readTaskExecutionReceipt(root, changeId, taskId, resolved.strategy);
+  if (!receipt.ok) return receipt.problems.map((problem) => `${resolved.strategy} receipt: ${problem}`);
+  if (agentId && receipt.receipt.agent?.id !== agentId) return ['execution receipt agent does not match tool event agent_id'];
+  return [];
 }
 
 export function validateTaskRedReceipt(root, changeId, state, agentId) {
@@ -122,7 +140,10 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
     problems.push('tool event is not bound to an active enterprise-harness:implementer');
   }
   const events = readAgentEvents(root, changeId);
-  if (requiredGateForTarget(root, target)?.needsRedVerified) {
+  if (state?.schemaVersion === 6) {
+    if (!String(state?.currentTask || '').trim()) problems.push('currentTask is missing');
+    else problems.push(...validateTaskExecutionEvidence(root, changeId, state, agentId));
+  } else if (requiredGateForTarget(root, target)?.needsRedVerified) {
     problems.push(...validateTaskRedReceipt(root, changeId, state, agentId));
   } else if (!String(state?.currentTask || '').trim()) {
     // 测试路径写入天然免 RED（RED 就是靠写测试产生的），但仍必须归属到某个 task，

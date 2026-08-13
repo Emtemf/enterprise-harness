@@ -32,24 +32,21 @@ Status: draft-plan
 2.
 3.
 
-**Test-first Order**
-1.
-2.
+**Execution Strategy**
+- `tdd` | `regression` | `characterization` | `direct` | `migration` | `generation`
+- 选择理由：
 
-**Project-native Build/Test Command**
-- Primary command: 
-- Why this command is authoritative for the target project: 
+**Strategy Evidence Point**
+- `tdd`: RED（失败）→ GREEN → REFACTOR
+- `regression`: REPRODUCE（复现失败）→ VERIFY
+- `characterization`: BASELINE → VERIFY
+- `direct`: VERIFY
+- `migration`: DRY_RUN → APPLY → ROLLBACK
+- `generation`: GENERATE → VERIFY
 
-**RED Evidence Point**
-- Command:
-- Expected failure:
-
-**GREEN Evidence Point**
-- Command:
-- Expected success:
-
-**Refactor Boundary**
-- 仅在全绿后允许进行的整理:
+**Frozen Validation Command**
+- Primary command:
+- Why this command is authoritative for the target project:
 
 **Acceptance Checks**
 - [ ]
