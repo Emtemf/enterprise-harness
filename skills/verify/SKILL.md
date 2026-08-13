@@ -8,8 +8,8 @@ context: fork
 # Verify
 
 Run the frozen validation commands and gather current task receipts, self-checks, reviews, waivers,
-and applicable API/data/security evidence. Validation must bind its input digests and explicitly
-record failures, skips, and unsupported inputs.
+and applicable API/data/security evidence. Validation must bind its input digests, remain **fresh**
+for the current tree, and explicitly record failures, skips, and unsupported inputs.
 
 ## Quality loop
 

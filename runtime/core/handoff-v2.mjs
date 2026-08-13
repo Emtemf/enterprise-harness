@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { assertSafeId, assertSafeRunId, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
-import { gitCommonDir } from '../lib/agent-evidence.mjs';
+import { gitCommonDir, normalizeAgentType } from '../lib/agent-evidence.mjs';
 import { atomicWriteJson } from '../lib/state-store.mjs';
 
 const ROLES = new Set(['execute', 'check']);
@@ -65,4 +65,43 @@ export function loadHandoffV2(root, changeId, runId) {
   const input = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   if (input.handoffVersion !== 2) throw new Error(`EH-HANDOFF-V2-028: expected v2 input, got v${input.handoffVersion}`);
   return input;
+}
+
+export function parseHandoffV2Marker(prompt) {
+  const match = String(prompt || '').match(/(?:^|\n)HANDOFF_INPUT\s*=\s*([^\s]+)\s*(?:\n|$)/);
+  return match?.[1] || null;
+}
+
+export function loadHandoffV2FromMarker(root, markerPath, expected = {}) {
+  const problems = [];
+  const absolute = path.resolve(root, markerPath || '');
+  const commonRuns = path.join(gitCommonDir(root), 'enterprise-harness', 'runs');
+  if (!absolute.startsWith(`${commonRuns}${path.sep}`)) {
+    return { ok: false, path: absolute, problems: ['input path is outside v2 common-dir runs'] };
+  }
+  if (!fs.existsSync(absolute)) return { ok: false, path: absolute, problems: ['input file does not exist'] };
+  let input;
+  try {
+    input = JSON.parse(fs.readFileSync(absolute, 'utf-8'));
+  } catch (error) {
+    return { ok: false, path: absolute, problems: [`invalid input JSON: ${error.message}`] };
+  }
+  if (input.handoffVersion !== 2) problems.push(`handoffVersion must be 2`);
+  if (expected.changeId && input.changeId !== expected.changeId) problems.push('changeId does not match active change');
+  if (expected.agentType && normalizeAgentType(input.agent?.type) !== normalizeAgentType(expected.agentType)) {
+    problems.push('agent.type does not match dispatch');
+  }
+  if (!input.agent?.type || !input.agent?.skill) problems.push('agent type and skill are required');
+  if (!['execute', 'check'].includes(input.role)) problems.push('role must be execute or check');
+  if (!input.tecpc?.target || !Array.isArray(input.inputRefs) || !input.inputDigests) {
+    problems.push('v2 TECPC target and input references are required');
+  }
+  for (const ref of input.inputRefs || []) {
+    try {
+      if (input.inputDigests?.[ref] !== sha256File(root, ref)) problems.push(`input digest is stale: ${ref}`);
+    } catch (error) {
+      problems.push(`input ref is unreadable: ${ref} (${error.message})`);
+    }
+  }
+  return { ok: problems.length === 0, path: absolute, envelope: input, problems };
 }

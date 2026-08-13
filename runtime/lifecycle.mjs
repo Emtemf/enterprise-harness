@@ -8,6 +8,7 @@ import { renderTECPCCard } from './lib/tecp-card.mjs';
 import { buildWorkflowResult } from './lib/workflow.mjs';
 import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
 import { listSessions, unbindSession } from './lib/sessions.mjs';
+import { updateChangeState } from './core/change-state.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 
 const repoRoot = process.cwd();
@@ -50,14 +51,13 @@ function changePath(changeId) {
   return resolveChild(changesDir, changeId, 'changeId');
 }
 
-function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic = '') {
+function cmdScaffold(changeId, owner = 'harness-governance', _tier = 'L1', topic = '') {
   const changeDir = ensureChangeDir(changeId);
   const statePath = path.join(changeDir, 'state.json');
   if (!fs.existsSync(statePath)) {
     const data = readJson(path.join(templatesDir, 'state.json'));
     data.changeId = changeId;
     data.owner = owner;
-    data.tier = tier;
     if (topic && topic !== '-' && topic !== 'none') {
       data.goal = topic;
     }
@@ -91,27 +91,41 @@ function cmdExploration(changeId, topic) {
   console.log(`Exploration ready: ${target}`);
 }
 
-function cmdState(changeId, state, tier) {
+const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
+
+function cmdStageAdvance(changeId, stage, tier) {
   const current = readJson(statePathFor(repoRoot, changeId));
-  if (state === 'EXECUTING' && (!current.currentTask || !String(current.currentTask).trim())) {
-    console.error('BLOCK: 进入 EXECUTING 前必须先设置非空 currentTask。');
-    process.exit(2);
+  if (current.schemaVersion === 6) {
+    if (!V6_STAGES.has(stage)) {
+      console.error(`BLOCK: v6 stage 必须是 ${[...V6_STAGES].join(', ')}，收到 ${stage}。`);
+      process.exit(2);
+    }
+    if (stage === 'implement' && (!current.currentTask || !String(current.currentTask).trim())) {
+      console.error('BLOCK: 进入 implement 前必须先设置非空 currentTask。');
+      process.exit(2);
+    }
+    updateChangeState(repoRoot, changeId, (data) => ({ ...data, stage }), { type: 'stage-advance' });
+    console.log(`Stage advanced: ${changeId} -> ${stage}`);
+  } else {
+    if (stage === 'EXECUTING' && (!current.currentTask || !String(current.currentTask).trim())) {
+      console.error('BLOCK: 进入 EXECUTING 前必须先设置非空 currentTask。');
+      process.exit(2);
+    }
+    saveChangeState(repoRoot, changeId, (data) => ({ ...data, state: stage, ...(tier ? { tier } : {}) }), { type: 'state-change' });
+    console.log(`State updated: ${changeId} -> ${stage}${tier ? ` (${tier})` : ''}`);
   }
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.state = state;
-    if (tier) data.tier = tier;
-    return data;
-  }, { type: 'state-change' });
-  console.log(`State updated: ${changeId} -> ${state}${tier ? ` (${tier})` : ''}`);
   printTECPCCard(repoRoot, changeId);
 }
 
 function cmdCurrentTask(changeId, currentTask) {
   if (currentTask && currentTask.trim().length > 0) assertSafeId(currentTask, 'currentTask');
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.currentTask = currentTask && currentTask.trim().length > 0 ? currentTask : null;
-    return data;
-  }, { type: 'current-task-change' });
+  const nextTask = currentTask?.trim() || null;
+  const current = readJson(statePathFor(repoRoot, changeId));
+  if (current.schemaVersion === 6) {
+    updateChangeState(repoRoot, changeId, (data) => ({ ...data, currentTask: nextTask }), { type: 'current-task-change' });
+  } else {
+    saveChangeState(repoRoot, changeId, (data) => ({ ...data, currentTask: nextTask }), { type: 'current-task-change' });
+  }
   console.log(`Current task updated: ${changeId}`);
 }
 
@@ -130,10 +144,13 @@ function cmdShowActive() {
 }
 
 function cmdImpact(changeId, api, dataImpact, architecture, rule) {
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.impact = { api, data: dataImpact, architecture, rule };
-    return data;
-  }, { type: 'impact-change' });
+  const current = readJson(statePathFor(repoRoot, changeId));
+  const impact = { ...current.impact, api, data: dataImpact, architecture, rule };
+  if (current.schemaVersion === 6) {
+    updateChangeState(repoRoot, changeId, (data) => ({ ...data, impact }), { type: 'impact-change' });
+  } else {
+    saveChangeState(repoRoot, changeId, (data) => ({ ...data, impact }), { type: 'impact-change' });
+  }
   console.log(`Impact updated: ${changeId}`);
 }
 
@@ -150,6 +167,11 @@ function cmdReviewVerdict(changeId, reviewerId, verdict) {
 }
 
 function cmdMarkGate(changeId, gate, value, extra = null) {
+  const current = readJson(statePathFor(repoRoot, changeId));
+  if (current.schemaVersion === 6) {
+    console.error(`BLOCK: ${gate} 是 v5 派生投影；v6 请通过 self-check/review/receipt 更新 durable evidence。`);
+    process.exit(2);
+  }
   saveChangeState(repoRoot, changeId, (data) => {
     if (!data.gates) data.gates = {};
     data.gates[gate] = value;
@@ -166,37 +188,49 @@ function cmdMarkGate(changeId, gate, value, extra = null) {
 }
 
 function cmdMarkValidated(changeId, _digest, date) {
-  // Step 1: transition state to VALIDATED via CAS (digest computation must see VALIDATED on disk)
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.state = 'VALIDATED';
-    return data;
-  }, { type: 'state-validated' });
-  // Step 2: compute digest from the now-persisted VALIDATED state
-  const computedDigest = computeValidationDigest(repoRoot, changeId);
-  if (!computedDigest) {
-    console.error(`BLOCK: 无法为 ${changeId} 计算 validation digest。`);
-    process.exit(2);
+  const current = readJson(statePathFor(repoRoot, changeId));
+  if (current.schemaVersion === 6) {
+    const computedDigest = computeValidationDigest(repoRoot, changeId);
+    if (!computedDigest) {
+      console.error(`BLOCK: 无法为 ${changeId} 计算 validation digest。`);
+      process.exit(2);
+    }
+    updateChangeState(repoRoot, changeId, (data) => ({
+      ...data,
+      validation: { status: 'fresh', digest: computedDigest, validatedAt: date || new Date().toISOString() },
+    }), { type: 'mark-validated' });
+  } else {
+    // v5 compat: two-step CAS so digest computation sees VALIDATED on disk
+    saveChangeState(repoRoot, changeId, (data) => {
+      data.state = 'VALIDATED';
+      return data;
+    }, { type: 'state-validated' });
+    const computedDigest = computeValidationDigest(repoRoot, changeId);
+    if (!computedDigest) {
+      console.error(`BLOCK: 无法为 ${changeId} 计算 validation digest。`);
+      process.exit(2);
+    }
+    saveChangeState(repoRoot, changeId, (data) => {
+      data.validation = {
+        status: 'fresh',
+        digest: computedDigest,
+        validatedAt: date || new Date().toISOString().slice(0, 10),
+      };
+      return data;
+    }, { type: 'validated' });
   }
-  // Step 3: seal the digest via a second CAS
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.validation = {
-      status: 'fresh',
-      digest: computedDigest,
-      validatedAt: date || new Date().toISOString().slice(0, 10),
-    };
-    return data;
-  }, { type: 'validated' });
   console.log(`Validated: ${changeId}`);
+  printTECPCCard(repoRoot, changeId);
 }
 
 function cmdMarkValidationStale(changeId) {
-  saveChangeState(repoRoot, changeId, (data) => {
-    data.validation = data.validation || {};
-    data.validation.status = 'stale';
-    data.validation.digest = null;
-    data.validation.validatedAt = null;
-    return data;
-  }, { type: 'validation-stale' });
+  const current = readJson(statePathFor(repoRoot, changeId));
+  const validation = { status: 'stale', digest: null, validatedAt: null };
+  if (current.schemaVersion === 6) {
+    updateChangeState(repoRoot, changeId, (data) => ({ ...data, validation }), { type: 'validation-stale' });
+  } else {
+    saveChangeState(repoRoot, changeId, (data) => ({ ...data, validation }), { type: 'validation-stale' });
+  }
   console.log(`Validation marked stale: ${changeId}`);
 }
 
@@ -227,13 +261,25 @@ function cmdArchive(changeId, force = false) {
     process.exit(2);
   }
   const data = readJson(statePath);
-  // 2. 归档与 verify/Stop 复用同一完成态谓词；任何失败都发生在状态或目录变更前。
+  const isV6 = data.schemaVersion === 6;
+  // 2. 完成态校验：v6 用 stage/validation 判断，v5 复用完成态谓词。
   if (!force) {
-    const completionProblems = validateCompletionPredicate(repoRoot, changeId, data);
-    if (completionProblems.length) {
-      console.error(`BLOCK: ${changeId} 未满足统一完成态条件。`);
-      for (const problem of completionProblems) console.error(`- ${problem}`);
-      process.exit(2);
+    if (isV6) {
+      if (data.stage !== 'verify' && data.stage !== 'archive') {
+        console.error(`BLOCK: v6 change must be at stage=verify before archive (current: ${data.stage})`);
+        process.exit(2);
+      }
+      if (data.validation?.status !== 'fresh') {
+        console.error('BLOCK: validation.status must be fresh before archive');
+        process.exit(2);
+      }
+    } else {
+      const completionProblems = validateCompletionPredicate(repoRoot, changeId, data);
+      if (completionProblems.length) {
+        console.error(`BLOCK: ${changeId} 未满足统一完成态条件。`);
+        for (const problem of completionProblems) console.error(`- ${problem}`);
+        process.exit(2);
+      }
     }
   }
   // 3. 被 runtime smoke 硬编码引用的 change 不能归档，否则会打断 smoke。
@@ -246,11 +292,15 @@ function cmdArchive(changeId, force = false) {
     console.error(`BLOCK: 归档目标已存在：harness/archive/${changeId}`);
     process.exit(2);
   }
-  // 4. 置 ARCHIVED 后物理移动。
-  saveChangeState(repoRoot, changeId, (d) => {
-    d.state = 'ARCHIVED';
-    return d;
-  }, { type: 'archive' });
+  // 4. 置归档态后物理移动。
+  if (isV6) {
+    updateChangeState(repoRoot, changeId, (d) => ({ ...d, stage: 'archive', lifecycle: 'archived' }), { type: 'archive' });
+  } else {
+    saveChangeState(repoRoot, changeId, (d) => {
+      d.state = 'ARCHIVED';
+      return d;
+    }, { type: 'archive' });
+  }
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(srcDir, destDir);
   clearSessionBindings(changeId);
@@ -284,14 +334,23 @@ function cmdAbandon(changeId, reason = '') {
     console.error(`BLOCK EH-ABANDON-001: abandon 目标已存在：${destination}`);
     process.exit(2);
   }
-  const next = saveChangeState(repoRoot, changeId, (d) => ({
-    ...d,
-    state: 'ABANDONED',
-    status: 'abandoned',
-    lifecycle: 'abandoned',
-    abandonReason: reason.trim(),
-    abandonedAt: new Date().toISOString(),
-  }), { type: 'abandon' });
+  const current = readJson(statePath);
+  if (current.schemaVersion === 6) {
+    updateChangeState(repoRoot, changeId, (d) => ({
+      ...d,
+      lifecycle: 'abandoned',
+      blocker: { code: 'EH-ABANDON-001', reason: reason.trim(), abandonedAt: new Date().toISOString() },
+    }), { type: 'abandon' });
+  } else {
+    saveChangeState(repoRoot, changeId, (d) => ({
+      ...d,
+      state: 'ABANDONED',
+      status: 'abandoned',
+      lifecycle: 'abandoned',
+      abandonReason: reason.trim(),
+      abandonedAt: new Date().toISOString(),
+    }), { type: 'abandon' });
+  }
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(srcDir, destination);
   clearSessionBindings(changeId);
@@ -411,7 +470,7 @@ const [, , action, ...args] = process.argv;
 switch (action) {
   case 'scaffold': cmdScaffold(args[0], args[1], args[2], args[3]); break;
   case 'exploration': cmdExploration(args[0], args[1]); break;
-  case 'state': cmdState(args[0], args[1], args[2]); break;
+  case 'state': cmdStageAdvance(args[0], args[1], args[2]); break;
   case 'active': cmdActive(args[0]); break;
   case 'show-active': cmdShowActive(); break;
   case 'impact': cmdImpact(args[0], args[1], args[2], args[3], args[4]); break;
@@ -419,7 +478,7 @@ switch (action) {
   case 'review-verdict': cmdReviewVerdict(args[0], args[1], args[2]); break;
   case 'design-approved': cmdMarkGate(args[0], 'designApproved', true); break;
   case 'red-verified': cmdMarkGate(args[0], 'redVerified', true, args[1] || null); break;
-  case 'reviewed': cmdState(args[0], 'REVIEWED', args[1]); break;
+  case 'reviewed': cmdStageAdvance(args[0], 'REVIEWED', args[1]); break;
   case 'validated': cmdMarkValidated(args[0], args[1], args[2]); break;
   case 'validation-stale': cmdMarkValidationStale(args[0]); break;
   case 'archive': cmdArchive(args[0], args.includes('--force')); break;

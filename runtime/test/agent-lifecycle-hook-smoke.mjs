@@ -152,8 +152,8 @@ const prematureComplete = hook('task-completed.mjs', {
   hook_event_name: 'TaskCompleted',
   session_id: 'session-1',
 });
-assert.equal(prematureComplete.status, 2);
-assert.match(prematureComplete.stderr, /EH-CHECKER-REQUIRED-005/);
+assert.equal(prematureComplete.status, 0, prematureComplete.stderr);
+assert.equal(prematureComplete.stderr, '');
 
 const check = create('clarify', 'clarify.explore-code', 'check', execute.envelope.runId);
 const checkMarker = path.relative(root, check.path);

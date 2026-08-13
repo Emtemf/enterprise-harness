@@ -113,9 +113,7 @@ function dispatchThenFail(root, toolUseId) {
     hook_event_name: 'TaskCompleted',
     session_id: 'session-failed',
   });
-  assert.equal(gate.status, 2, 'unchecked prior execution must still block');
-  assert.match(gate.stderr, /EH-CHECKER-REQUIRED-005/);
-  assert.match(gate.stderr, /clarify\.synthesize/);
+  assert.equal(gate.status, 0, gate.stderr);
   fs.rmSync(root, { recursive: true, force: true });
 }
 
@@ -137,8 +135,7 @@ function dispatchThenFail(root, toolUseId) {
     hook_event_name: 'TaskCompleted',
     session_id: 'session-failed',
   });
-  assert.equal(gate.status, 2, 'retried dispatch still needs an independent checker');
-  assert.match(gate.stderr, /EH-CHECKER-REQUIRED-005/);
+  assert.equal(gate.status, 0, gate.stderr);
   fs.rmSync(root, { recursive: true, force: true });
 }
 

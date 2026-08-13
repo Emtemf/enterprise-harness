@@ -8,38 +8,53 @@
 // optionalBehaviors 只在该能力被实际派发后才要求闭环；requiredBehaviors 则是阶段
 // 进入下一阶段前不可缺少的最小闭环。不要从 SKILL.md 正则推导这份合同：skill 是给模型
 // 的操作指令，runtime 需要一个稳定、可测试、机器可读的判定源。
-export const STAGE_ORDER = ['clarify', 'design', 'plan', 'implement', 'verify', 'archive'];
+export const STAGE_ORDER = ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive'];
 
 export const STAGE_CONTRACTS = Object.freeze({
   clarify: {
     artifacts: ['requirements.md'],
-    state: (data) => data.schemaVersion === 6
-      ? [['classification', Boolean(data.classification?.tier && data.classification?.impact)]]
-      : [
-        ['workflow.clarifyReady', data.workflow?.clarifyReady === true],
-        ['workflow.userConfirmedScope', data.workflow?.userConfirmedScope === true],
-      ],
+    state: (data) => [
+      ['workflow.clarifyReady', data.workflow?.clarifyReady === true],
+      ['workflow.userConfirmedScope', data.workflow?.userConfirmedScope === true],
+    ],
     requiredBehaviors: ['clarify.synthesize'],
     optionalBehaviors: ['clarify.explore-code', 'clarify.research-docs'],
   },
+  classify: {
+    artifacts: ['change.md'],
+    state: (data) => [
+      ['classification', Boolean(data.classification?.tier && data.classification?.impact)],
+      ['impact.api', data.impact?.api !== 'unknown'],
+      ['impact.data', data.impact?.data !== 'unknown'],
+      ['impact.architecture', data.impact?.architecture !== 'unknown'],
+      ['impact.rule', data.impact?.rule !== 'unknown'],
+    ],
+    requiredBehaviors: ['route.decide'],
+    optionalBehaviors: ['route.explore-code'],
+  },
   design: {
-    artifacts: ['design.md'],
-    state: () => [],
+    artifacts: ['design.md', 'reviews/design-reviewer.json'],
+    state: (data) => [
+      ['gates.designApproved', data.gates?.designApproved === true],
+    ],
     requiredBehaviors: ['design.produce'],
     optionalBehaviors: ['design.explore-code', 'design.research-docs', 'design.check-api'],
   },
   plan: {
-    artifacts: ['tasks.md'],
-    state: () => [],
+    artifacts: ['tasks.md', 'task-commands.json', 'reviews/plan-critic.json'],
+    state: (data) => [
+      ['workflow.planReady', data.workflow?.planReady === true],
+    ],
     requiredBehaviors: ['plan.produce'],
     optionalBehaviors: [],
   },
-  implement: {
+  tdd: {
     artifacts: [],
     state: (data) => [
+      ['workflow.tddStatus', data.workflow?.tddStatus === 'refactor-verified'],
       ['currentTask', Boolean(String(data.currentTask || '').trim())],
     ],
-    requiredBehaviors: ['implement.execute-task'],
+    requiredBehaviors: ['tdd.execute-task'],
     optionalBehaviors: [],
   },
   verify: {
@@ -60,7 +75,7 @@ export const STAGE_CONTRACTS = Object.freeze({
 });
 
 export function completedStages(data, includeCurrent = false) {
-  const current = String(data?.stage ?? data?.workflow?.stage ?? 'clarify');
+  const current = String(data?.workflow?.stage || 'clarify');
   const index = STAGE_ORDER.indexOf(current);
   if (index < 0) return [];
   // 普通 audit 只审已离开的阶段；final completion 则连当前 verify 一并审，

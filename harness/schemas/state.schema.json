@@ -19,6 +19,7 @@
     "lifecycle": { "enum": ["active", "archived", "abandoned"] },
     "stage": { "enum": ["clarify", "design", "plan", "implement", "verify", "archive"] },
     "owner": { "type": ["string", "null"] },
+    "goal": { "type": ["string", "null"] },
     "controller": { "type": "object", "additionalProperties": true },
     "sessionBinding": { "type": ["object", "null"], "additionalProperties": true },
     "changeLock": { "type": ["object", "null"], "additionalProperties": true },
@@ -51,5 +52,5 @@
       "additionalProperties": false
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

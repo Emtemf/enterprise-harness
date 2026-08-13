@@ -2,14 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { inferWorkflowStage, inferCurrentGap, recommendNextEntry } from './workflow.mjs';
 
-const STAGES = ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive'];
+const V6_STAGES = ['clarify', 'design', 'plan', 'implement', 'verify', 'archive'];
+const V5_STAGES = ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive'];
 
 const STAGE_ARTIFACTS = {
   clarify: ['requirements.md'],
-  classify: [],
   design: ['design.md'],
   plan: ['tasks.md'],
-  tdd: [],
+  implement: [],
   verify: ['validation.md'],
   archive: [],
 };
@@ -18,8 +18,8 @@ function artifactExists(changeDir, name) {
   return fs.existsSync(path.join(changeDir, name));
 }
 
-function stageIsComplete(changeDir, stage, data, currentIdx) {
-  const stageIdx = STAGES.indexOf(stage);
+function stageIsComplete(changeDir, stage, data, currentIdx, stages) {
+  const stageIdx = stages.indexOf(stage);
   if (stageIdx < 0) return false;
   if (stageIdx > currentIdx) return false;
   if (stageIdx === currentIdx) {
@@ -31,23 +31,22 @@ function stageIsComplete(changeDir, stage, data, currentIdx) {
     return artifacts.every((a) => artifactExists(changeDir, a));
   }
   switch (stage) {
-    case 'classify':
-      return Boolean(data.classification?.tier);
-    case 'tdd':
-      return data.workflow?.tddStatus === 'refactor-verified';
+    case 'implement':
+      return Boolean(String(data.currentTask || '').trim());
     default:
       return true;
   }
 }
 
 function renderLadder(changeDir, data, currentStage, blockedStages = []) {
-  const currentIdx = STAGES.indexOf(currentStage);
+  const stages = data.schemaVersion === 6 ? V6_STAGES : V5_STAGES;
+  const currentIdx = stages.indexOf(currentStage);
   if (currentIdx < 0) return '';
   const blocked = new Set(blockedStages);
 
   const lines = [];
-  for (const stage of STAGES) {
-    const complete = stageIsComplete(changeDir, stage, data, currentIdx);
+  for (const stage of stages) {
+    const complete = stageIsComplete(changeDir, stage, data, currentIdx, stages);
     const isCurrent = stage === currentStage;
     let marker;
     if (blocked.has(stage)) {
@@ -106,10 +105,15 @@ function renderEvidenceSummary(data, workflowResult = null) {
   }
   const parts = [];
   if (data.validation?.status === 'fresh') parts.push('validation fresh');
-  if (data.gates?.designApproved) parts.push('design approved');
-  if (data.gates?.redVerified) parts.push('RED verified');
-  if (data.workflow?.tddStatus && data.workflow.tddStatus !== 'not-started') {
-    parts.push(`TDD: ${data.workflow.tddStatus}`);
+  if (data.schemaVersion !== 6) {
+    if (data.gates?.designApproved) parts.push('design approved');
+    if (data.gates?.redVerified) parts.push('RED verified');
+    if (data.workflow?.tddStatus && data.workflow.tddStatus !== 'not-started') {
+      parts.push(`TDD: ${data.workflow.tddStatus}`);
+    }
+  } else {
+    if (data.classification?.tier) parts.push(`tier: ${data.classification.tier}`);
+    if (data.artifacts && Object.values(data.artifacts).some((a) => a?.digest)) parts.push('artifacts present');
   }
   return parts.length > 0 ? parts.join(' | ') : '尚无证据';
 }

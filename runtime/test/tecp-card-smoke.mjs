@@ -142,10 +142,16 @@ check('E: card shows evidence summary', () => {
   } finally { cleanup(tmp); }
 });
 
-check('Ladder: correct ✓/▸/○ for stage=tdd', () => {
+check('Ladder: correct ✓/▸/○ for stage=implement', () => {
   const tmp = makeTmpDir();
   try {
-    setupChangeDir(tmp, 'test', baseState(), {
+    setupChangeDir(tmp, 'test', baseState({
+      schemaVersion: 6,
+      lifecycle: 'active',
+      stage: 'implement',
+      artifacts: {},
+      classification: { tier: 'L2', impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' } },
+    }), {
       'design.md': '# Design\n',
       'tasks.md': '# Tasks\n',
       'requirements.md': '# Req\n',
@@ -158,13 +164,19 @@ check('Ladder: correct ✓/▸/○ for stage=tdd', () => {
   } finally { cleanup(tmp); }
 });
 
-check('Ladder: all 7 stages in order', () => {
+check('Ladder: all 6 v6 stages in order', () => {
   const tmp = makeTmpDir();
   try {
-    setupChangeDir(tmp, 'test', baseState(), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
+    setupChangeDir(tmp, 'test', baseState({
+      schemaVersion: 6,
+      lifecycle: 'active',
+      stage: 'implement',
+      artifacts: {},
+      classification: { tier: 'L2', impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' } },
+    }), { 'design.md': '# D\n', 'tasks.md': '# T\n', 'requirements.md': '# R\n' });
     const state = JSON.parse(fs.readFileSync(path.join(tmp, 'harness', 'changes', 'test', 'state.json'), 'utf-8'));
     const card = renderTECPCCard(tmp, 'test', state);
-    for (const s of ['clarify', 'classify', 'design', 'plan', 'tdd', 'verify', 'archive']) {
+    for (const s of ['clarify', 'design', 'plan', 'implement', 'verify', 'archive']) {
       if (!card.includes(s)) failures.push(`card missing stage: ${s}`);
     }
   } finally { cleanup(tmp); }

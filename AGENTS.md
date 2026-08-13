@@ -18,7 +18,7 @@
 - 长期运行合同：`harness/specs/`
 - Claude Code plugin assets：`skills/`、`agents/`、`hooks/`
 - 机械执行：`runtime/`
-- 动态 change：`harness/ACTIVE_CHANGE`、`harness/changes/<id>/state.json`
+- 动态 change：`harness/changes/<id>/state.json`（v6，字段：stage/lifecycle/currentTask）；`harness/ACTIVE_CHANGE` 仅用于 v5 compat
 
 同一规则只能有一个权威来源。用户文档解释行为，不能复制 schema 或 runtime 输出全文。
 

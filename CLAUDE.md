@@ -10,7 +10,7 @@
 阶段顺序固定为：
 
 ```text
-clarify → route → design → plan → tdd → verify → archive
+clarify → design → plan → implement → verify → archive
 ```
 
 不得从普通对话直接跳进 design、实现或完成声明。
@@ -19,9 +19,9 @@ clarify → route → design → plan → tdd → verify → archive
 
 - 代码探索必须派 `enterprise-harness:code-explore` subagent。
 - 外部库、框架、SDK 和版本行为必须先尝试 Context7。
-- clarify 必须落盘七维歧义评分；关键维度均不低于 4，并由用户确认 scope 后才可 route。
+- clarify 必须落盘需求澄清结论（requirements.md）和 classification，确认 scope 后才可进入 design。
 - design 必须覆盖适用的接口、错误模型、数据与 SQL、迁移和兼容性。
-- TDD 必须由隔离 `tdd-executor` 执行任务冻结的 exact argv。
+- implement 使用隔离 worktree implementer；execution strategy 由 task 决定（tdd/direct/migration 等）。
 - Java/Maven 项目必须执行真实 `./mvnw` 或 `mvn` 的 `test`/`verify`。
 - executor 与 checker 必须使用不同 run；checker 从 result artifact 获取输入。
 - hooks 只做机械 gate、证据记录和恢复提示，不承担需求分析。
@@ -41,12 +41,12 @@ openapi/**
 写入前必须存在：
 
 - 有效 `harness/ACTIVE_CHANGE`
-- 已确认 clarify/route
+- 已确认 clarify
 - approved design 和 plan
 - 当前 task
 - scoped executor binding
 - 由 `code-explore` agent 留下的 CodeGraph attempt（fallback 探索时须为同一 agent）
-- 当前 task 的真实 RED receipt
+- 当前 task 有执行证据（receipt）
 
 不得通过修改 `state.json` 投影伪造上述证据。
 
@@ -67,7 +67,6 @@ openapi/**
 - 不要让主 orchestrator 重新做已委托的代码探索。
 - 不要把 `isolation: worktree` 当成上下文隔离；上下文隔离来自 forked stage skill 和独立 subagent。
 - 不要给 `harness` 加 `context: fork`；它需要用户对话通道。
-- 不要让 forked stage skill 代替用户确认 scope 或 route。
 - 不要手改 `.claude/settings.json`；它由 `bin/generate-hooks.mjs` 生成。
 - 不要接受 worker 自报的 RED/GREEN、review 或 validation。
 - 不要静默吞掉关键 hook 异常。

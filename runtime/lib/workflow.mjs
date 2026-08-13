@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { auditWorkflow } from './workflow-audit.mjs';
 
+const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
+
 export function classifyChange(input) {
   if (!input || typeof input !== 'object') throw new Error('EH-CLASSIFY-001: change classification input is required');
   const impact = input.impact || {};
@@ -45,6 +47,7 @@ export function classificationFor(data) {
 
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
+  if (data.schemaVersion === 6 && V6_STAGES.has(data.stage)) return data.stage;
   const explicitStage = data.workflow?.stage;
   if (explicitStage === 'route' && hasPersistedClassification(data)) return 'design';
   if (explicitStage === 'route') return 'route';
@@ -83,6 +86,7 @@ export function recommendNextEntry(stage, data = null) {
     case 'route': return '/harness-route';
     case 'design': return '/harness-design';
     case 'plan': return '/harness-plan';
+    case 'implement': return '/harness-implement';
     case 'tdd': return '/harness-tdd';
     case 'verify': return '/harness-verify';
     case 'archive': return '/harness';
@@ -120,6 +124,26 @@ export function recommendNextAction(changeId, data, stage, currentGap, pendingDe
 
 export function inferPendingDecision(changeId, data, stage, currentGap, shouldSuppressExecutionReadiness = () => false) {
   if (!stage || !data) return null;
+  if (data.schemaVersion === 6) {
+    if (stage === 'clarify') {
+      return {
+        kind: 'scope-confirmation',
+        message: currentGap,
+        options: ['confirm-scope', 'revise-scope'],
+        evidence: [`harness/changes/${changeId}/requirements.md`],
+      };
+    }
+    if (stage === 'verify' && data.validation?.status === 'fresh') {
+      return {
+        kind: 'verify-completion',
+        message: currentGap,
+        options: ['enter-archive', 'revise-verification'],
+        defaultDecision: 'enter-archive',
+        evidence: [`harness/changes/${changeId}/validation.md`],
+      };
+    }
+    return null;
+  }
   if (stage === 'clarify' && !data.workflow?.clarifyReady) {
     return {
       kind: 'requirement-clarification',
@@ -211,6 +235,7 @@ export function inferPendingDecision(changeId, data, stage, currentGap, shouldSu
 export function inferRunnerStatus(stage, pendingDecision) {
   if (stage === 'archive') return 'complete';
   if (pendingDecision) return 'paused';
+  if (stage === 'implement') return 'executing';
   return 'ready';
 }
 

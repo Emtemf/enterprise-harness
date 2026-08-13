@@ -295,6 +295,15 @@ function readReviewVerdictFile(file, allowed, errors) {
 }
 
 function requiredCompletionReviewers(root, changeId, state) {
+  if (state?.schemaVersion === 6) {
+    const policyPath = path.join(root, 'harness', 'policy.json');
+    try {
+      const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
+      return Array.isArray(policy.completionReviewers) ? policy.completionReviewers : [];
+    } catch {
+      return [];
+    }
+  }
   // v0.5: reviewer catalog moved to runtime/compat/v5/. v6 uses policy.json rubric mapping.
   // During migration, fall back to the v5 catalog if it exists.
   const compatPath = path.join(root, 'runtime', 'compat', 'v5', 'reviewer-catalog.json');
@@ -362,7 +371,26 @@ function completionResult(code, status, message, targetPath = null, recovery = n
 export function validateState(root, changeId, state) {
   const results = [];
   const changeDir = path.join(root, 'harness', 'changes', changeId);
-  if (state?.state !== 'VALIDATED') {
+  if (state?.schemaVersion === 6) {
+    if (!['verify', 'archive'].includes(state.stage)) {
+      results.push(completionResult(
+        'EH-COMPLETION-STATE-101',
+        'block',
+        `v6 stage must be verify or archive, got ${state?.stage}`,
+        path.join(changeDir, 'state.json'),
+        'complete verify and advance the v6 stage',
+      ));
+    }
+    if (state.lifecycle !== 'active' && state.lifecycle !== 'archived') {
+      results.push(completionResult(
+        'EH-COMPLETION-STATE-101',
+        'block',
+        `v6 lifecycle must be active or archived, got ${state?.lifecycle}`,
+        path.join(changeDir, 'state.json'),
+        'restore a valid v6 lifecycle',
+      ));
+    }
+  } else if (state?.state !== 'VALIDATED') {
     results.push(completionResult(
       'EH-COMPLETION-STATE-101',
       'block',
@@ -371,14 +399,14 @@ export function validateState(root, changeId, state) {
       'complete verify and persist a fresh VALIDATED state',
     ));
   }
-  for (const key of ['api', 'data', 'architecture', 'rule']) {
+  for (const key of ['api', 'data', 'architecture', 'rule', ...(state?.schemaVersion === 6 ? ['security'] : [])]) {
     if (state?.impact?.[key] === 'unknown' || !state?.impact?.[key]) {
       results.push(completionResult(
         'EH-COMPLETION-IMPACT-102',
         'block',
         `impact.${key} must be resolved`,
         path.join(changeDir, 'state.json'),
-        `resolve impact.${key} during route`,
+        `resolve impact.${key} during ${state?.schemaVersion === 6 ? 'clarify/classification' : 'route'}`,
       ));
     }
   }
@@ -569,15 +597,23 @@ export function validateTaskReviewBindings(root, changeId) {
 }
 
 export function validateFinalCompletion(root, changeId, state) {
-  const base = [
-    ...validateState(root, changeId, state),
-    ...validateArtifacts(root, changeId, state),
-    ...validateReviews(root, changeId, state),
-    ...validateTaskReviewBindings(root, changeId),
-    ...validateTddEvidence(root, changeId),
-    ...validateAgentLedger(root, changeId),
-    ...validateApiContract(root, state),
-  ];
+  const isV6 = state?.schemaVersion === 6;
+  const base = isV6
+    ? [
+      ...validateState(root, changeId, state),
+      ...validateArtifacts(root, changeId, state),
+      ...validateReviews(root, changeId, state),
+      ...validateApiContract(root, state),
+    ]
+    : [
+      ...validateState(root, changeId, state),
+      ...validateArtifacts(root, changeId, state),
+      ...validateReviews(root, changeId, state),
+      ...validateTaskReviewBindings(root, changeId),
+      ...validateTddEvidence(root, changeId),
+      ...validateAgentLedger(root, changeId),
+      ...validateApiContract(root, state),
+    ];
   // schema 4 起，阶段完成必须有可复核的 executor/checker handoff 闭环。
   // schema 3 及以前的 archive 没有 runs/ 是历史事实，audit 仍会如实报告 BLOCK，
   // 但不追溯性改变既有 completion predicate 或把旧 evidence 伪装成新证据。

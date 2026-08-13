@@ -6,6 +6,7 @@ import { assertSafeId, resolveChild } from '../lib/safe-paths.mjs';
 
 const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
 const V6_LIFECYCLES = new Set(['active', 'archived', 'abandoned']);
+const V6_LEGACY_FIELDS = new Set(['state', 'status', 'workflow', 'gates', 'approvals', 'tddEvidence', 'route']);
 const V6_IMPACT_VALUES = new Set(['yes', 'no', 'unknown']);
 
 export function statePathFor(root, changeId) {
@@ -21,6 +22,9 @@ export function eventLogPathFor(root, changeId) {
 export function validateV6State(state) {
   const problems = [];
   if (!state || typeof state !== 'object' || Array.isArray(state)) return ['state must be an object'];
+  for (const field of V6_LEGACY_FIELDS) {
+    if (field in state) problems.push(`legacy field is forbidden in v6 state: ${field}`);
+  }
   if (state.schemaVersion !== 6) problems.push('schemaVersion must be 6');
   if (!Number.isInteger(state.revision) || state.revision < 1) problems.push('revision must be a positive integer');
   try {

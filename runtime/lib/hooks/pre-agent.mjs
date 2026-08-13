@@ -1,8 +1,14 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   appendAgentEvent,
   isHarnessAgentType,
   normalizeAgentType,
 } from '../agent-evidence.mjs';
+import {
+  loadHandoffV2FromMarker,
+  parseHandoffV2Marker,
+} from '../../core/handoff-v2.mjs';
 import {
   loadHandoffInput,
   parseHandoffInputMarker,
@@ -33,7 +39,17 @@ export function preAgent({ root, event }) {
       ),
     };
   }
-  const marker = parseHandoffInputMarker(event.tool_input?.prompt);
+  const isV6 = (() => {
+    try {
+      const statePath = path.join(repoRoot, 'harness', 'changes', changeId, 'state.json');
+      return JSON.parse(fs.readFileSync(statePath, 'utf-8')).schemaVersion === 6;
+    } catch {
+      return false;
+    }
+  })();
+  const marker = isV6
+    ? parseHandoffV2Marker(event.tool_input?.prompt)
+    : parseHandoffInputMarker(event.tool_input?.prompt);
   if (!marker) {
     // The caller is being told to satisfy a rule it was never taught, so name the
     // exact command rather than leaving it to guess the behavior string.
@@ -47,10 +63,9 @@ export function preAgent({ root, event }) {
       ),
     };
   }
-  const loaded = loadHandoffInput(repoRoot, marker, {
-    changeId,
-    agentType: requestedRaw,
-  });
+  const loaded = isV6
+    ? loadHandoffV2FromMarker(repoRoot, marker, { changeId, agentType: requestedRaw })
+    : loadHandoffInput(repoRoot, marker, { changeId, agentType: requestedRaw });
   if (!loaded.ok) {
     return {
       exitCode: 2,

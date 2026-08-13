@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readAgentEvents } from './agent-evidence.mjs';
 import { loadBehaviorRegistry, loadHandoffInput, validateHandoffResult } from './handoff.mjs';
-import { completedStages, STAGE_CONTRACTS, STAGE_ORDER } from './stage-contract.mjs';
+import { completedStages as completedStagesV6, STAGE_CONTRACTS as STAGE_CONTRACTS_V6, STAGE_ORDER as STAGE_ORDER_V6 } from './stage-contract.mjs';
+import { completedStages as completedStagesV5, STAGE_CONTRACTS as STAGE_CONTRACTS_V5, STAGE_ORDER as STAGE_ORDER_V5 } from '../compat/v5/stage-contract.mjs';
 
 function readJson(file) {
   try {
@@ -83,17 +84,25 @@ function inspectArtifacts(root, changeId, artifacts) {
 }
 
 export function auditWorkflow(root, changeId, data, options = {}) {
-  const registry = loadBehaviorRegistry(root);
-  const currentStage = String(data?.workflow?.stage || 'clarify');
-  const legacyRouteProjection = currentStage === 'route';
-  const auditStage = legacyRouteProjection ? 'classify' : currentStage;
-  const invalidStage = !STAGE_ORDER.includes(auditStage);
-  const completed = new Set(completedStages({ ...data, workflow: { ...data.workflow, stage: auditStage } }, options.includeCurrent === true));
+  const isV6 = data?.schemaVersion === 6;
+  const registry = isV6 ? { behaviors: {} } : loadBehaviorRegistry(root);
+  const stageOrder = isV6 ? STAGE_ORDER_V6 : STAGE_ORDER_V5;
+  const stageContracts = isV6 ? STAGE_CONTRACTS_V6 : STAGE_CONTRACTS_V5;
+  const completedStageList = isV6 ? completedStagesV6 : completedStagesV5;
+  const v6Stage = isV6 ? data?.stage : null;
+  const currentStage = v6Stage || String(data?.workflow?.stage || 'clarify');
+  const auditStage = (currentStage === 'route' || currentStage === 'classify') ? 'clarify' : currentStage;
+  const invalidStage = !stageOrder.includes(auditStage);
+  const completed = new Set(completedStageList({
+    ...data,
+    stage: auditStage,
+    workflow: { ...data.workflow, stage: auditStage },
+  }, options.includeCurrent === true));
   const events = readAgentEvents(root, changeId);
   const stages = [];
 
-  for (const stage of STAGE_ORDER) {
-    const spec = STAGE_CONTRACTS[stage];
+  for (const stage of stageOrder) {
+    const spec = stageContracts[stage];
     const isCompleted = completed.has(stage);
     const isCurrent = stage === auditStage;
     if (!isCompleted && !isCurrent) {
@@ -107,7 +116,9 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       status: ok ? 'pass' : 'block',
       issue: ok ? null : problem('EH-AUDIT-STATE-004', `${field} does not meet the stage completion predicate`, `repair durable evidence and update through the supported runtime command`),
     }));
-    const behaviors = [...spec.requiredBehaviors, ...spec.optionalBehaviors];
+    const behaviors = isV6
+      ? []
+      : [...spec.requiredBehaviors, ...spec.optionalBehaviors];
     const handoffs = behaviors.map((behavior) => {
       const contract = registry.behaviors?.[behavior];
       const hasBeenDispatched = events.some((event) => event.kind === 'dispatch' && event.behavior === behavior);
@@ -137,8 +148,8 @@ export function auditWorkflow(root, changeId, data, options = {}) {
   const stageProblem = invalidStage
     ? problem(
       'EH-AUDIT-STATE-005',
-      `workflow.stage is invalid: ${currentStage}`,
-      `restore workflow.stage to one of: ${[...STAGE_ORDER, 'route'].join(', ')}`,
+      `stage is invalid: ${currentStage}`,
+      `restore stage to one of: ${stageOrder.join(', ')}`,
     )
     : null;
   const blockers = [

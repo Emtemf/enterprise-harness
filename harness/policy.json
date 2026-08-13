@@ -50,6 +50,7 @@
     "security": "reviewer",
     "archive": "reviewer"
   },
+  "completionReviewers": [],
   "factLanes": {
     "code": { "capability": "code-explore", "methodology": "explore-code", "first": "codegraph" },
     "docs": { "capability": "doc-research", "methodology": "research-docs", "first": "context7" }
