@@ -4,6 +4,50 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-13
+
+### Architecture
+
+Six-stage user-visible lifecycle: `clarify → design → plan → implement → verify → archive`.
+Classification is internal and durable. TDD is an implementation strategy, not a lifecycle stage.
+`route` and `tdd` exist only in v4/v5 compatibility readers.
+
+### Added
+
+- **State v6** (`runtime/core/change-state.mjs`): minimal revisioned state with
+  `updateChangeState()` as the sole mutation primitive (lock → copy → mutate → validate →
+  CAS → atomic write → event). No persisted ready/approved booleans; freshness is
+  digest-derived.
+- **Handoff v2** (`runtime/core/handoff-v2.mjs`): canonical run transport under
+  `<git-common-dir>/enterprise-harness/runs/`, safe across native worktrees.
+- **v5 → v6 migration** (`runtime/compat/v5-migrate.mjs`, `runtime/migrate-v5.mjs`):
+  explicit, confirmation-gated migration for active changes; archives stay read-only.
+- **Session and lock leases** with heartbeat renewal and expiry-based recovery.
+- **Nine canonical skills**: `harness`, `explore-code`, `research-docs`, `design`, `plan`,
+  `implement`, `review`, `verify`, `archive`.
+- **Five capability agents**: `code-explore`, `doc-research`, `artifact-worker`,
+  `implementer` (worktree-isolated, sole product-code writer), `reviewer`.
+- **Quality loop**: every stage/task requires `execute → self-check → independent review →
+  TECPC → fresh evidence`.
+- Native plugin layout regression smoke and v0.5 capability-surface smoke.
+
+### Changed
+
+- Plugin assets moved to root `skills/`, `agents/`, `hooks/scripts/`.
+- `harness` skill rewritten as the sole user-facing orchestrator for the six-stage lifecycle.
+- Forked methodology skills return `NEEDS_DECISION` instead of calling `AskUserQuestion`.
+- Hooks limited to host-boundary mechanics; agent lifecycle events are telemetry only.
+- Specs rewritten: workflow, state-schema, agents-and-handoff, hooks, evidence.
+- `runtime/compat/` isolates all v4/v5 legacy agents, skills, and contract tests.
+
+### Removed
+
+- `.claude/rules/` auto-loaded controller rules (replaced by specs and skill methodology).
+- Legacy `.claude/skills/` and `.claude/agents/` as plugin asset locations.
+- `runtime/hooks/` as hook script location (moved to `hooks/scripts/`).
+- Legacy stage skills (`harness-design`, `harness-plan`, `harness-tdd`, `harness-verify`)
+  from the canonical plugin surface (moved to `runtime/compat/skills/`).
+
 ## [0.4.3] - 2026-08-12
 
 ### Changed
