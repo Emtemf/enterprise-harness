@@ -4,6 +4,12 @@ import process from 'node:process';
 import { projectRoot } from './lib/checks.mjs';
 import { activeChangeId } from './lib/agent-evidence.mjs';
 import {
+  createHandoffV2,
+  loadHandoffV2FromMarker,
+  parseHandoffV2Marker,
+  v2RunDir,
+} from './core/handoff-v2.mjs';
+import {
   createHandoffInput,
   loadHandoffInput,
   runDir,
@@ -45,28 +51,55 @@ if (action === 'create') {
     else positional.push(value);
   }
   const [changeId = activeChangeId(root), stage, behavior, role = 'execute', parentRunId = null] = positional;
+  let isV6 = false;
+  try {
+    isV6 = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), 'utf-8')).schemaVersion === 6;
+  } catch {
+    isV6 = false;
+  }
   if (!changeId || !stage || !behavior) {
     console.error('Usage: handoff create <change-id> <stage> <behavior> <execute|check> [parent-run-id] [--input-ref <path>]');
     process.exit(1);
   }
   try {
-    const created = createHandoffInput(root, {
-      changeId,
-      stage,
-      behavior,
-      role,
-      parentRunId: parentRunId || null,
-      inputRefs,
-      target: target || behavior,
-      context: inputRefs,
-      pathSummary: pathSummary || `${role} ${behavior}`,
-      correction: correction || 'return blocker with an EH-* code and recovery action',
-      attempt,
-    });
+    const created = isV6
+      ? createHandoffV2(root, {
+        changeId,
+        stage,
+        behavior,
+        role,
+        parentRunId: parentRunId || null,
+        agent: {
+          type: role === 'check' ? 'enterprise-harness:reviewer' : 'enterprise-harness:artifact-worker',
+          skill: role === 'check' ? 'review' : stage,
+        },
+        inputRefs,
+        tecpc: {
+          target: target || behavior,
+          evidence: inputRefs,
+          context: inputRefs,
+          path: pathSummary || `${role} ${behavior}`,
+          correction: correction || null,
+        },
+      })
+      : createHandoffInput(root, {
+        changeId,
+        stage,
+        behavior,
+        role,
+        parentRunId: parentRunId || null,
+        inputRefs,
+        target: target || behavior,
+        context: inputRefs,
+        pathSummary: pathSummary || `${role} ${behavior}`,
+        correction: correction || 'return blocker with an EH-* code and recovery action',
+        attempt,
+      });
+    const envelope = created.envelope ?? created.input;
     console.log(`HANDOFF_INPUT=${path.relative(root, created.path)}`);
-    console.log(`runId=${created.envelope.runId}`);
-    console.log(`agent=${created.envelope.agent.type}`);
-    console.log(`skill=${created.envelope.agent.skill}`);
+    console.log(`runId=${envelope.runId}`);
+    console.log(`agent=${envelope.agent.type}`);
+    console.log(`skill=${envelope.agent.skill}`);
     process.exit(0);
   } catch (error) {
     console.error(`BLOCK [EH-HANDOFF-SCHEMA-002] ${error.message}`);
@@ -76,7 +109,12 @@ if (action === 'create') {
 
 if (action === 'validate') {
   const [inputPath, resultPath] = args;
-  const loaded = loadHandoffInput(root, inputPath);
+  const absoluteInput = path.resolve(root, inputPath || '');
+  const marker = parseHandoffV2Marker(`HANDOFF_INPUT=${absoluteInput}`);
+  const isV2 = marker && absoluteInput.includes(`${path.sep}enterprise-harness${path.sep}runs${path.sep}`);
+  const loaded = isV2
+    ? loadHandoffV2FromMarker(root, marker)
+    : loadHandoffInput(root, inputPath);
   const problems = [...(loaded.problems || [])];
   if (loaded.ok && resultPath) {
     try {
@@ -96,7 +134,8 @@ if (action === 'validate') {
 
 if (action === 'show') {
   const [changeId, runId] = args;
-  const dir = runDir(root, changeId, runId);
+  let dir = runDir(root, changeId, runId);
+  if (!fs.existsSync(dir)) dir = v2RunDir(root, changeId, runId);
   if (!fs.existsSync(dir)) {
     console.error(`Unknown run: ${runId}`);
     process.exit(1);
