@@ -19,7 +19,12 @@ try {
     inputRefs: ['harness/changes/handoff-v2/requirements.md'],
     tecpc: { target: 'map the target project', path: 'runtime/' },
   });
-  assert.match(created.path, /\.git\/enterprise-harness\/runs\/handoff-v2\/run_/u);
+  const expectedSegment = ['enterprise-harness', 'runs', 'handoff-v2'].join(path.sep);
+  assert.ok(
+    created.path.includes(`${path.sep}${expectedSegment}${path.sep}`)
+      && created.path.includes('.git'),
+    `v2 input must live under .git/enterprise-harness/runs; got ${created.path}`,
+  );
   assert.equal(fs.existsSync(path.join(root, 'harness', 'changes', 'handoff-v2', 'runs')), false, 'v2 must not create subject-local runs');
   assert.equal(v2InputPath(root, 'handoff-v2', created.runId), created.path);
   const loaded = loadHandoffV2(root, 'handoff-v2', created.runId);
