@@ -47,10 +47,16 @@ try { parsed = JSON.parse(res.stdout); } catch { /* leave null */ }
 if (!parsed) {
   failures.push('doctor-hooks --json should emit parseable JSON');
 } else {
-  const ours = parsed.findings.filter((f) => f.source && f.source.includes('enterprise-harness') || f.kind === 'settings');
-  if (ours.length === 0) failures.push('doctor-hooks should audit our own stop hooks');
-  const ourBad = ours.filter((f) => !f.ok);
-  if (ourBad.length > 0) failures.push('our own stop hooks must all be healthy (valid stdout): ' + JSON.stringify(ourBad.map((f) => f.detail)));
+  const ours = parsed.findings.filter((finding) => (
+    (finding.source && finding.source.includes('enterprise-harness')) || finding.kind === 'settings'
+  ));
+  const ourBad = ours.filter((finding) => !finding.ok);
+  if (ourBad.length > 0) failures.push('detected enterprise-harness stop hooks must be healthy: ' + JSON.stringify(ourBad.map((finding) => finding.detail)));
+  const pluginManifest = JSON.parse(fs.readFileSync(path.join(repoRoot, 'hooks', 'hooks.json'), 'utf-8'));
+  const pluginStopCommands = extractEventCommands(pluginManifest, 'Stop');
+  if (pluginStopCommands.length !== 1 || !pluginStopCommands[0].includes('/hooks/scripts/stop.mjs')) {
+    failures.push('generated plugin hooks must declare exactly one Stop guidance command');
+  }
 }
 
 const ok = failures.length === 0;
