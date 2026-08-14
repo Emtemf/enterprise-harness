@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/tecpc.schema.json",
+  "title": "Enterprise Harness TECPC",
+  "type": "object",
+  "required": ["target", "evidence", "context", "path", "correction"],
+  "properties": {
+    "target": { "type": "string", "minLength": 1 },
+    "evidence": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "context": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "path": { "type": "string" },
+    "correction": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

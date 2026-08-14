@@ -40,32 +40,25 @@ model: sonnet
 
 ## 输入协议
 
-读取 `HANDOFF_INPUT` 路径下的 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
+读取 `HANDOFF_INPUT` 路径下的 v2 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
 - `inputRefs` 中的路径是相对于项目根目录的完整路径，格式为 `harness/changes/<changeId>/<artifact>`
 - 探索目标通常在 `tecpc.target` 字段，补充上下文在 `inputRefs` 指向的 artifact 文件
-- 产出写入 `harness/changes/<changeId>/evidence/<name>.md`，不使用裸文件名
+- 只返回 schema-valid `ResearchPacket`；Main/Runtime 验证其来源与 digest 后，按需持久化 reference，不由本 Agent 写 evidence 文件
 
 ## 输入期待
 
 你通常会收到一个 exploration brief，而不是整段主会话上下文。若没有 brief 但任务显然是高噪声探索，应先指出缺少最小 brief，而不是默认吞下整段大上下文。
 
-## Reference
-
-返回 `HANDOFF_RESULT` 前按需读取 `skills/harness/reference/protocol/executor-result-contract.md`；需要最小示例时读取 `skills/harness/reference/protocol/executor-minimal.md`。
-
 ## 返回结构
 
-至少返回：
+只返回符合 `harness/schemas/research-packet.schema.json` 的 JSON `ResearchPacket`：
 
-- `question`
-- `scope`
-- `facts`
-- `uncertainties`
-- `impact`
-- `suggestedUserQuestion`
-- `sources`
+- `packetVersion: 1`、`type: "research-packet"`、`changeId`、`source: "code-explore"`。
+- `facts`：每条为可核验 claim 和非空 `sources`；不确定的内容放入 claim 的限定语，不能伪装成事实。
+- `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。
+- `collectedAt`：本次调研完成时间。
 
-同时必须按预加载的 `harness protocol executor contract` 合同返回 `HANDOFF_RESULT`；上面的 exploration packet 是其 `summary/outputRefs/tecpc.evidence` 的领域内容。
+不得返回旧 protocol result envelope、executor verdict 或 lifecycle 指令。Main/Runtime 是 ResearchPacket 的唯一验证、持久化和阶段决策 owner。
 
 ## 约束
 

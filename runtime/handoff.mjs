@@ -7,8 +7,11 @@ import {
   createHandoffV2,
   loadHandoffV2FromMarker,
   parseHandoffV2Marker,
+  persistHandoffV2Result,
   v2RunDir,
 } from './core/handoff-v2.mjs';
+import { resolveWithin } from './lib/safe-paths.mjs';
+import { selectReviewRubrics } from './lib/review-rubrics.mjs';
 import {
   createHandoffInput,
   loadHandoffInput,
@@ -22,8 +25,9 @@ const [action, ...args] = process.argv.slice(2);
 
 function help() {
   console.log('Enterprise Harness Handoff');
-  console.log('Usage: enterprise-harness handoff <create|validate|show|explain> ...');
+  console.log('Usage: enterprise-harness handoff <create|persist|validate|show|explain> ...');
   console.log('  create <change-id> <stage> <behavior> <execute|check> [parent-run-id] [--input-ref <path>] [--target <text>]');
+  console.log('  persist <change-id> <run-id> <result-path>');
   console.log('  validate <input-path> [result-path]');
   console.log('  show <change-id> <run-id>');
   console.log('  explain <error-code>');
@@ -51,12 +55,13 @@ if (action === 'create') {
     else positional.push(value);
   }
   const [changeId = activeChangeId(root), stage, behavior, role = 'execute', parentRunId = null] = positional;
-  let isV6 = false;
+  let state = null;
   try {
-    isV6 = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), 'utf-8')).schemaVersion === 6;
+    state = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), 'utf-8'));
   } catch {
-    isV6 = false;
+    state = null;
   }
+  const isV6 = state?.schemaVersion === 6;
   if (!changeId || !stage || !behavior) {
     console.error('Usage: handoff create <change-id> <stage> <behavior> <execute|check> [parent-run-id] [--input-ref <path>]');
     process.exit(1);
@@ -74,6 +79,7 @@ if (action === 'create') {
           skill: role === 'check' ? 'review' : stage,
         },
         inputRefs,
+        rubricIds: role === 'check' ? selectReviewRubrics({ stage, impact: state?.impact }) : [],
         tecpc: {
           target: target || behavior,
           evidence: inputRefs,
@@ -103,6 +109,24 @@ if (action === 'create') {
     process.exit(0);
   } catch (error) {
     console.error(`BLOCK [EH-HANDOFF-SCHEMA-002] ${error.message}`);
+    process.exit(2);
+  }
+}
+
+if (action === 'persist') {
+  const [changeId, runId, resultPath] = args;
+  if (!changeId || !runId || !resultPath) {
+    console.error('Usage: handoff persist <change-id> <run-id> <result-path>');
+    process.exit(1);
+  }
+  try {
+    const source = resolveWithin(root, resultPath, 'resultPath');
+    const result = JSON.parse(fs.readFileSync(source, 'utf-8'));
+    const persisted = persistHandoffV2Result(root, changeId, runId, result);
+    console.log(`HANDOFF_RESULT=${path.relative(root, persisted.path)}`);
+    process.exit(0);
+  } catch (error) {
+    console.error(`BLOCK ${error.message}`);
     process.exit(2);
   }
 }

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/handoff-v2.schema.json",
+  "title": "Enterprise Harness Handoff v2",
+  "type": "object",
+  "required": ["handoffVersion", "runId", "changeId", "stage", "behavior", "role", "parentRunId", "agent", "tecpc", "inputRefs", "inputDigests", "rubricIds", "createdAt"],
+  "properties": {
+    "handoffVersion": { "const": 2 },
+    "runId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+    "changeId": { "type": "string", "minLength": 1 },
+    "stage": { "enum": ["clarify", "design", "plan", "implement", "verify", "archive"] },
+    "behavior": { "type": "string", "minLength": 1 },
+    "role": { "enum": ["execute", "check"] },
+    "parentRunId": { "type": ["string", "null"], "pattern": "^run_[0-9a-f-]{36}$" },
+    "agent": { "type": "object", "required": ["type", "skill"], "properties": { "type": { "type": "string", "minLength": 1 }, "skill": { "type": "string", "minLength": 1 } }, "additionalProperties": false },
+    "tecpc": { "$ref": "tecpc.schema.json" },
+    "inputRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "inputDigests": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
+    "rubricIds": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    { "if": { "properties": { "role": { "const": "execute" } } }, "then": { "properties": { "parentRunId": { "const": null }, "rubricIds": { "maxItems": 0 } } } },
+    { "if": { "properties": { "role": { "const": "check" } } }, "then": { "properties": { "parentRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" }, "rubricIds": { "minItems": 1 } } } }
+  ],
+  "additionalProperties": false
+}

@@ -9,6 +9,7 @@ import { buildWorkflowResult } from './lib/workflow.mjs';
 import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
 import { listSessions, unbindSession } from './lib/sessions.mjs';
 import { updateChangeState } from './core/change-state.mjs';
+import { validateDesignStageGate } from './lib/stage-results.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 
 const repoRoot = process.cwd();
@@ -103,6 +104,14 @@ function cmdStageAdvance(changeId, stage, tier) {
     if (stage === 'implement' && (!current.currentTask || !String(current.currentTask).trim())) {
       console.error('BLOCK: 进入 implement 前必须先设置非空 currentTask。');
       process.exit(2);
+    }
+    if (current.stage === 'design' && stage === 'plan') {
+      const problems = validateDesignStageGate(repoRoot, changeId);
+      if (problems.length > 0) {
+        console.error('BLOCK: design→plan 需要 fresh StageResult、独立 ReviewResult 与 TECPC。');
+        for (const problem of problems) console.error(`- ${problem}`);
+        process.exit(2);
+      }
     }
     updateChangeState(repoRoot, changeId, (data) => ({ ...data, stage }), { type: 'stage-advance' });
     console.log(`Stage advanced: ${changeId} -> ${stage}`);

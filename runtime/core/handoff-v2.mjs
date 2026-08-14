@@ -4,6 +4,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { assertSafeId, assertSafeRunId, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
 import { gitCommonDir, normalizeAgentType } from '../lib/agent-evidence.mjs';
 import { atomicWriteJson } from '../lib/state-store.mjs';
+import { selectReviewRubrics } from '../lib/review-rubrics.mjs';
+import {
+  validateHandoffV2Contract,
+  validateResearchPacket,
+  validateReviewResult,
+  validateStageResult,
+} from '../lib/result-contract.mjs';
 
 const ROLES = new Set(['execute', 'check']);
 
@@ -27,7 +34,30 @@ function sha256File(root, ref) {
   return createHash('sha256').update(fs.readFileSync(target)).digest('hex');
 }
 
-export function createHandoffV2(root, { changeId, stage, behavior, role = 'execute', agent, inputRefs = [], parentRunId = null, tecpc }) {
+function sameDigestMap(left, right) {
+  const leftEntries = Object.entries(left || {}).sort(([a], [b]) => a.localeCompare(b));
+  const rightEntries = Object.entries(right || {}).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(leftEntries) === JSON.stringify(rightEntries);
+}
+
+function researchSourceForAgent(agentType) {
+  const normalized = normalizeAgentType(agentType);
+  if (normalized === 'enterprise-harness:code-explore') return 'code-explore';
+  if (normalized === 'enterprise-harness:doc-research') return 'doc-research';
+  return null;
+}
+
+export function createHandoffV2(root, {
+  changeId,
+  stage,
+  behavior,
+  role = 'execute',
+  agent,
+  inputRefs = [],
+  parentRunId = null,
+  tecpc,
+  rubricIds = role === 'check' ? selectReviewRubrics({ stage }) : [],
+}) {
   assertSafeId(changeId, 'changeId');
   if (!ROLES.has(role)) throw new Error(`EH-HANDOFF-V2-023: invalid role ${role}`);
   if (!agent?.type || !agent?.skill) throw new Error('EH-HANDOFF-V2-024: agent type and skill are required');
@@ -52,9 +82,12 @@ export function createHandoffV2(root, { changeId, stage, behavior, role = 'execu
     },
     inputRefs: [...inputRefs],
     inputDigests: Object.fromEntries(inputRefs.map((ref) => [ref, sha256File(root, ref)])),
+    rubricIds: [...rubricIds],
     createdAt: new Date().toISOString(),
   };
   const inputPath = v2InputPath(root, changeId, runId);
+  const problems = validateHandoffV2Contract(input);
+  if (problems.length > 0) throw new Error(`EH-HANDOFF-V2-029: ${problems.join('; ')}`);
   atomicWriteJson(inputPath, input);
   return { runId, path: inputPath, input };
 }
@@ -64,7 +97,95 @@ export function loadHandoffV2(root, changeId, runId) {
   if (!fs.existsSync(inputPath)) throw new Error(`EH-HANDOFF-V2-027: input does not exist for ${changeId}/${runId}`);
   const input = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   if (input.handoffVersion !== 2) throw new Error(`EH-HANDOFF-V2-028: expected v2 input, got v${input.handoffVersion}`);
+  const problems = validateHandoffV2Contract(input);
+  if (problems.length > 0) throw new Error(`EH-HANDOFF-V2-029: ${problems.join('; ')}`);
   return input;
+}
+
+export function persistHandoffV2Result(root, changeId, runId, result) {
+  const input = loadHandoffV2(root, changeId, runId);
+  const problems = [];
+  const target = v2ResultPath(root, changeId, runId, input.role);
+
+  if (input.role === 'execute') {
+    const researchSource = researchSourceForAgent(input.agent?.type);
+    if (researchSource) {
+      problems.push(...validateResearchPacket(root, result));
+      if (result?.changeId !== input.changeId || result?.source !== researchSource) {
+        problems.push('ResearchPacket does not bind the execute handoff agent');
+      }
+      if (!sameDigestMap(result?.inputDigests, input.inputDigests)
+          || JSON.stringify(result?.inputRefs) !== JSON.stringify(input.inputRefs)) {
+        problems.push('ResearchPacket inputs do not match the execute handoff');
+      }
+    } else {
+      problems.push(...validateStageResult(root, result));
+      if (result?.runId !== input.runId || result?.changeId !== input.changeId || result?.stage !== input.stage) {
+        problems.push('StageResult does not bind the execute handoff');
+      }
+      if (!sameDigestMap(result?.inputDigests, input.inputDigests)) {
+        problems.push('StageResult input digests do not match the execute handoff');
+      }
+      if (normalizeAgentType(result?.producer?.agentType) !== normalizeAgentType(input.agent?.type)
+          || result?.producer?.skill !== input.agent?.skill) {
+        problems.push('StageResult producer does not match handoff agent');
+      }
+    }
+  } else {
+    let parent;
+    try {
+      parent = loadHandoffV2(root, changeId, input.parentRunId);
+    } catch (error) {
+      problems.push(`parent handoff is invalid: ${error.message}`);
+    }
+    const parentPath = parent ? v2ResultPath(root, changeId, input.parentRunId, 'execute') : null;
+    let stageResult = null;
+    if (!parentPath || !fs.existsSync(parentPath)) {
+      problems.push('parent StageResult is missing');
+    } else {
+      try {
+        stageResult = JSON.parse(fs.readFileSync(parentPath, 'utf-8'));
+        problems.push(...validateStageResult(root, stageResult));
+        if (parent?.role !== 'execute') problems.push('parent handoff must have execute role');
+        if (stageResult?.runId !== parent?.runId || stageResult?.changeId !== parent?.changeId || stageResult?.stage !== parent?.stage) {
+          problems.push('parent StageResult does not bind the parent handoff');
+        }
+        if (!sameDigestMap(stageResult?.inputDigests, parent?.inputDigests)) {
+          problems.push('parent StageResult input digests do not match the parent handoff');
+        }
+        if (normalizeAgentType(stageResult?.producer?.agentType) !== normalizeAgentType(parent?.agent?.type)
+            || stageResult?.producer?.skill !== parent?.agent?.skill) {
+          problems.push('parent StageResult producer does not match the parent handoff');
+        }
+      } catch (error) {
+        problems.push(`parent StageResult is invalid JSON: ${error.message}`);
+      }
+    }
+    problems.push(...validateReviewResult(root, result, { stageResult }));
+    if (result?.runId !== input.runId || result?.changeId !== input.changeId || result?.stage !== input.stage
+        || result?.parentRunId !== input.parentRunId || result?.reviewedRunId !== input.parentRunId) {
+      problems.push('ReviewResult does not bind the check handoff');
+    }
+    if (normalizeAgentType(result?.reviewer?.agentType) !== normalizeAgentType(input.agent?.type)
+        || result?.reviewer?.skill !== input.agent?.skill) {
+      problems.push('ReviewResult reviewer does not match handoff agent');
+    }
+  }
+
+  if (problems.length > 0) throw new Error(`EH-HANDOFF-V2-030: ${problems.join('; ')}`);
+  if (fs.existsSync(target)) throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(result, null, 2)}\n`, { encoding: 'utf-8', mode: 0o600, flag: 'wx' });
+    fs.linkSync(temporary, target);
+  } catch (error) {
+    if (error.code === 'EEXIST') throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
+    throw error;
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+  return { input, path: target };
 }
 
 export function parseHandoffV2Marker(prompt) {
@@ -86,7 +207,7 @@ export function loadHandoffV2FromMarker(root, markerPath, expected = {}) {
   } catch (error) {
     return { ok: false, path: absolute, problems: [`invalid input JSON: ${error.message}`] };
   }
-  if (input.handoffVersion !== 2) problems.push(`handoffVersion must be 2`);
+  problems.push(...validateHandoffV2Contract(input));
   if (expected.changeId && input.changeId !== expected.changeId) problems.push('changeId does not match active change');
   if (expected.agentType && normalizeAgentType(input.agent?.type) !== normalizeAgentType(expected.agentType)) {
     problems.push('agent.type does not match dispatch');

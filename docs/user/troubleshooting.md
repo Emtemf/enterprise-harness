@@ -78,8 +78,9 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 |---|---|---|
 | `EH-HANDOFF-INPUT-001` | 缺少 handoff input | 重新创建 handoff |
 | `EH-HANDOFF-SCHEMA-002` | envelope 不合法 | 运行 handoff validate |
-| `EH-AUDIT-HANDOFF-001` | 阶段缺少有效 executor `result.json` | 用对应 behavior 创建 execute handoff，派 executor 并确保 `HANDOFF_RESULT` 被 SubagentStop 持久化 |
-| `EH-AUDIT-HANDOFF-002` | executor 没有绑定其 runId 的独立 checker pass/advisory | 用 executor runId 创建 check handoff，派 registry checker，保留 `check.json` |
+| `EH-AUDIT-HANDOFF-001` | v5 compatibility 阶段缺少有效 executor `result.json` | 仅对 `runtime/compat/v5/` 历史 handoff 生效；按对应 behavior 重新创建 execute handoff 并持久化 result |
+| `EH-AUDIT-HANDOFF-002` | v5 compatibility executor 缺少绑定 runId 的独立 checker | 仅对 `runtime/compat/v5/` 历史 handoff 生效；用 executor runId 创建 check handoff 并保留 `check.json` |
+| `EH-AUDIT-RESULT-007` | v6 阶段的结构化 result gate 未通过 | 修复列出的 StageResult、ReviewResult、TECPC 或 digest freshness 问题；重新生成独立 review 后重跑 `workflow audit <change-id>` |
 | `EH-AUDIT-ARTIFACT-003` | 已完成阶段缺少必需 artifact | 运行 `workflow audit <change-id>` 定位文件，并回到该阶段以新 run 产出 |
 | `EH-AUDIT-STATE-004` | state 投影不满足阶段完成谓词 | 不手改 state；补齐 evidence 后运行该阶段对应 lifecycle/workflow 命令 |
 | `EH-AUDIT-STATE-005` | `workflow.stage` 非法，audit 不能确定所处阶段 | 运行 `workflow status --json` 对照 state schema；通过受支持的 workflow 决策恢复合法 stage，不手改投影 |
@@ -136,6 +137,9 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-V2-026` | checker handoff 未关联 executor run | 提供 parentRunId 并消费该 run 的 result artifact |
 | `EH-HANDOFF-V2-027` | common-dir 中没有指定 handoff input | 确认 changeId/runId，重新创建 handoff |
 | `EH-HANDOFF-V2-028` | handoff input 版本不匹配 | 通过对应 v1/v2 reader 读取，不要混用版本 |
+| `EH-HANDOFF-V2-029` | Handoff v2 合同字段、角色关联或引用摘要不合法 | 重新创建符合 `harness/schemas/handoff-v2.schema.json` 的 handoff；check run 必须绑定不同的 executor runId，并刷新已变更的 input digest |
+| `EH-HANDOFF-V2-030` | 待持久化的 StageResult 或 ReviewResult 与 Handoff v2 不匹配 | 修正 result 的 runId、stage、agent/skill、parentRunId、artifact digest 与 schema；review 前先持久化对应 executor result |
+| `EH-HANDOFF-V2-031` | 尝试覆盖已持久化的 result evidence | 结果 evidence 不可覆盖；创建新的 execute/check run 并持久化新的 result |
 | `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |
 | `EH-SESSION-LEASE-023` | session lease 不存在或已解绑 | 在当前会话重新绑定 change，再续约 |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |

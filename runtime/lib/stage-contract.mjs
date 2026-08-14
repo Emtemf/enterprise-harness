@@ -1,46 +1,34 @@
-// 每个 workflow 阶段的可审计合同。
+// 每个 v6 workflow 阶段的可审计合同。
 //
 // 它回答三个不同问题：
-// 1. 当阶段完成时，state.json 必须呈现哪些 durable 投影？
+// 1. 当阶段完成时，state.json 必须呈现哪些 durable 状态？
 // 2. 哪些 change 内文件必须已经存在？
-// 3. 哪些 governed handoff behavior 必须已经产生 execute + 独立 check 证据？
+// 3. 哪些结构化 result gate 必须由 runtime 验证？
 //
-// optionalBehaviors 只在该能力被实际派发后才要求闭环；requiredBehaviors 则是阶段
-// 进入下一阶段前不可缺少的最小闭环。不要从 SKILL.md 正则推导这份合同：skill 是给模型
-// 的操作指令，runtime 需要一个稳定、可测试、机器可读的判定源。
+// Skill 是给模型的操作合同；这里是 runtime 的稳定、可测试机器判定源。v6 不得
+// 引用 v5 behavior registry、lifecycle callback 或 state projection 作为完成证据。
 export const STAGE_ORDER = ['clarify', 'design', 'plan', 'implement', 'verify', 'archive'];
 
 export const STAGE_CONTRACTS = Object.freeze({
   clarify: {
     artifacts: ['requirements.md'],
-    state: (data) => data.schemaVersion === 6
-      ? [['classification', Boolean(data.classification?.tier && data.classification?.impact)]]
-      : [
-        ['workflow.clarifyReady', data.workflow?.clarifyReady === true],
-        ['workflow.userConfirmedScope', data.workflow?.userConfirmedScope === true],
-      ],
-    requiredBehaviors: ['clarify.synthesize'],
-    optionalBehaviors: ['clarify.explore-code', 'clarify.research-docs'],
+    state: (data) => [['classification', Boolean(data.classification?.tier && data.classification?.impact)]],
+    resultGate: null,
   },
   design: {
     artifacts: ['design.md'],
     state: () => [],
-    requiredBehaviors: ['design.produce'],
-    optionalBehaviors: ['design.explore-code', 'design.research-docs', 'design.check-api'],
+    resultGate: 'design',
   },
   plan: {
     artifacts: ['tasks.md'],
     state: () => [],
-    requiredBehaviors: ['plan.produce'],
-    optionalBehaviors: [],
+    resultGate: null,
   },
   implement: {
     artifacts: [],
-    state: (data) => [
-      ['currentTask', Boolean(String(data.currentTask || '').trim())],
-    ],
-    requiredBehaviors: ['implement.execute-task'],
-    optionalBehaviors: [],
+    state: (data) => [['currentTask', Boolean(String(data.currentTask || '').trim())]],
+    resultGate: null,
   },
   verify: {
     artifacts: ['validation.md'],
@@ -48,14 +36,12 @@ export const STAGE_CONTRACTS = Object.freeze({
       ['validation.status', data.validation?.status === 'fresh'],
       ['validation.digest', Boolean(String(data.validation?.digest || '').trim())],
     ],
-    requiredBehaviors: ['verify.collect'],
-    optionalBehaviors: ['verify.explore-code', 'verify.check-api'],
+    resultGate: null,
   },
   archive: {
     artifacts: [],
     state: () => [],
-    requiredBehaviors: [],
-    optionalBehaviors: [],
+    resultGate: null,
   },
 });
 
@@ -63,7 +49,5 @@ export function completedStages(data, includeCurrent = false) {
   const current = String(data?.stage ?? data?.workflow?.stage ?? 'clarify');
   const index = STAGE_ORDER.indexOf(current);
   if (index < 0) return [];
-  // 普通 audit 只审已离开的阶段；final completion 则连当前 verify 一并审，
-  // 否则 state=VALIDATED 但还没有 verify.collect/check 也可能被误判完成。
   return STAGE_ORDER.slice(0, index + (includeCurrent ? 1 : 0));
 }

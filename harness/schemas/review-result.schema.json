@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/review-result.schema.json",
+  "title": "Enterprise Harness Review Result",
+  "type": "object",
+  "required": ["resultVersion", "type", "changeId", "stage", "runId", "parentRunId", "reviewer", "reviewedRunId", "reviewedArtifacts", "rubricIds", "tecpc", "verdict", "correction", "reviewedAt"],
+  "properties": {
+    "resultVersion": { "const": 1 },
+    "type": { "const": "review-result" },
+    "changeId": { "type": "string", "minLength": 1 },
+    "stage": { "enum": ["clarify", "design", "plan", "implement", "verify", "archive"] },
+    "runId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+    "parentRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+    "reviewer": { "$ref": "#/$defs/reviewer" },
+    "reviewedRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+    "reviewedArtifacts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/artifact" } },
+    "rubricIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "tecpc": { "$ref": "tecpc.schema.json" },
+    "verdict": { "enum": ["pass", "block", "unsupported"] },
+    "correction": { "type": ["string", "null"] },
+    "reviewedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "reviewer": { "type": "object", "required": ["agentType", "skill"], "properties": { "agentType": { "type": "string", "minLength": 1 }, "skill": { "type": "string", "minLength": 1 } }, "additionalProperties": false },
+    "artifact": { "type": "object", "required": ["path", "digest"], "properties": { "path": { "type": "string", "minLength": 1 }, "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

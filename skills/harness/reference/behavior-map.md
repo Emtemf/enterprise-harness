@@ -1,22 +1,13 @@
-# behavior 速查
+# Capability 与 run 速查
 
-`<behavior>` 是 `stage.action` 格式，**不是 agent 名**。写错时 `pre-agent` hook 会 BLOCK 并打印正确命令。
+v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 frontmatter 的 native `agent:` binding 决定 capability，runtime 只消费 Handoff v2、StageResult、ReviewResult、TECPC 与 digest freshness。
 
-| 想做什么 | 正确 behavior | 错误写法 |
-|---|---|---|
-| clarify 阶段探索代码 | `clarify.explore-code` | `code-explore` |
-| clarify 阶段查外部文档 | `clarify.research-docs` | `doc-research` |
-| clarify 阶段更新需求 | `clarify.synthesize` | `clarify-synthesizer` |
-| route 阶段探索代码 | `route.explore-code` | `code-explore` |
-| route 阶段路由决策 | `route.decide` | `route-decider` |
-| design 阶段产出设计 | `design.produce` | `design-executor` |
-| design 阶段探索代码 | `design.explore-code` | `code-explore` |
-| 设计阶段查外部文档 | `design.research-docs` | `doc-research` |
-| 设计阶段 API 检查 | `design.check-api` | `api-consistency-reviewer` |
-| plan 阶段产出计划 | `plan.produce` | `plan-executor` |
-| tdd 阶段执行任务 | `tdd.execute-task` | `tdd-executor` |
-| verify 阶段收集验证 | `verify.collect` | `verification-executor` |
-| verify 阶段 API 检查 | `verify.check-api` | `api-consistency-reviewer` |
-| verify 阶段探索代码 | `verify.explore-code` | `code-explore` |
+| 工作 | Skill | Capability agent | 结果 |
+|---|---|---|---|
+| 代码事实 | `explore-code` | `enterprise-harness:code-explore` | ResearchPacket |
+| 外部文档事实 | `research-docs` | `enterprise-harness:doc-research` | ResearchPacket |
+| 设计/计划/验证制品 | stage Skill | `enterprise-harness:artifact-worker` | StageResult |
+| 产品代码 | `implement` | `enterprise-harness:implementer` | task execution receipt |
+| 独立挑战 | `review` | `enterprise-harness:reviewer` | ReviewResult |
 
-完整注册表：`harness/behavior-checks.json`
+`classification` 是 clarify 后的内部制品；`tdd` 是 task execution strategy。它们不是 v6 lifecycle stage。

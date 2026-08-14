@@ -10,8 +10,11 @@ const settings = JSON.parse(fs.readFileSync(path.join(root, '.claude/settings.js
 // v0.5: governance hooks live ONLY in plugin hooks.json, not settings.json
 assert.equal(settings.hooks, undefined, 'settings.json must not contain governance hooks (Controller/Subject isolation)');
 
-for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'Stop']) {
+for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop']) {
   assert.ok(pluginHooks[event]?.length, `plugin hook missing ${event}`);
+}
+for (const event of ['SubagentStart', 'SubagentStop', 'TaskCompleted']) {
+  assert.equal(pluginHooks[event], undefined, `plugin must not use ${event} as a lifecycle authority`);
 }
 for (const [name, behavior] of Object.entries(registry.behaviors)) {
   assert.ok(behavior.stage, `${name} missing stage`);

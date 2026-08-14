@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/research-packet.schema.json",
+  "title": "Enterprise Harness Research Packet",
+  "type": "object",
+  "required": ["packetVersion", "type", "changeId", "source", "facts", "inputRefs", "inputDigests", "collectedAt"],
+  "properties": {
+    "packetVersion": { "const": 1 },
+    "type": { "const": "research-packet" },
+    "changeId": { "type": "string", "minLength": 1 },
+    "source": { "enum": ["code-explore", "doc-research"] },
+    "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+    "inputRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "inputDigests": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
+    "collectedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "fact": { "type": "object", "required": ["claim", "sources"], "properties": { "claim": { "type": "string", "minLength": 1 }, "sources": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

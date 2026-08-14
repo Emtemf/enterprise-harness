@@ -177,10 +177,11 @@ try {
   const stopValidatedStaleOutput = `${stopValidatedStaleResult.stdout || ''}${stopValidatedStaleResult.stderr || ''}`;
   const hasReviewerFailure = problems.some((problem) => problem.includes('review-validation-missing-api-review') && problem.includes('api-consistency-reviewer'));
   const hasVerifyStaleFailure = problems.some((problem) => problem.includes('review-validation-reviewed-stale') && problem.includes('REVIEWED requires fresh validation'));
-  const hasStopReviewerBlock = stopReviewerResult.status === 2 && stopReviewerOutput.includes('统一完成态条件未满足') && stopReviewerOutput.includes('review-validation-missing-api-review');
-  const hasStopReviewedStaleBlock = stopReviewedStaleResult.status === 2 && stopReviewedStaleOutput.includes('review-validation-reviewed-stale') && stopReviewedStaleOutput.includes('validation.status=stale');
-  const hasStopValidatedStaleBlock = stopValidatedStaleResult.status === 2 && stopValidatedStaleOutput.includes('review-validation-stale') && stopValidatedStaleOutput.includes('validation.status=stale');
-  const ok = verifyResult.status !== 0 && parsed && hasReviewerFailure && hasVerifyStaleFailure && hasStopReviewerBlock && hasStopReviewedStaleBlock && hasStopValidatedStaleBlock;
+  const stopResults = [stopReviewerResult, stopReviewedStaleResult, stopValidatedStaleResult];
+  const stopOutputs = [stopReviewerOutput, stopReviewedStaleOutput, stopValidatedStaleOutput];
+  const stopOnlyGuides = stopResults.every((result) => result.status === 0)
+    && stopOutputs.every((output) => output.includes('Stop handoff guidance'));
+  const ok = verifyResult.status !== 0 && parsed && hasReviewerFailure && hasVerifyStaleFailure && stopOnlyGuides;
 
   if (mode === 'red') {
     if (!ok) {
@@ -195,9 +196,7 @@ ${JSON.stringify({
   checks: {
     hasReviewerFailure,
     hasVerifyStaleFailure,
-    hasStopReviewerBlock,
-    hasStopReviewedStaleBlock,
-    hasStopValidatedStaleBlock,
+    stopOnlyGuides,
   },
   verifyStatus: verifyResult.status,
   verifyStderr: verifyResult.stderr,

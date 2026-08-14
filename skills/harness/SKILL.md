@@ -17,7 +17,7 @@ classification 在 clarify 后作为内部制品记录：它用于选择受影�
 
 1. 恢复 active change 并只报告一个可执行的 blocker；没有 active change 时创建安全的新 change。
 2. 通过带 v2 handoff 的 `code-explore` 获取代码事实，通过 `doc-research` 获取外部事实；主线程不得重复 worker 已完成的探索。
-3. 建立 component × 七维拓扑：目标、范围、参与者、数据、接口、验收、约束/风险。
+3. Round 0 建立 component topology：每个 component 记录目标、范围、约束、验收和业务上下文。frontier 是 `component × unresolved dimension`；API/Data 只在 impact 或事实显示相关时展开为条件分支。
 4. 每次仅用 `AskUserQuestion` 询问一个风险最高/最弱 frontier 的用户问题。已由 CodeGraph 或文档证据确认的事实不得再问用户。
 5. 只有 self-check 和独立 `reviewer` verdict 都 fresh 后，才持久化 requirements、范围确认与 classification。
 

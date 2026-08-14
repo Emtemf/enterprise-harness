@@ -1,85 +1,75 @@
-# Requirements（闭环五检驱动）
+# Requirements（v6 topology / frontier）
 
-## T 目标
+## 目标与验收
 
 ### 原始需求
-> 用户说了什么？
+> 用户说了什么？保留可追溯原文或脱敏摘要。
 
 ### 澄清后的目标
-> 经过澄清后，明确的目标是什么？
+> 明确要达成的业务结果，而不是先假定实现方案。
 
-### 成功标准
-> 做完什么算成功？验收条件是什么？
+### 验收
 
-## C 上下文
+- R1：可验证的验收要求。
+- R2：可验证的验收要求。
 
-### 业务上下文
-> 为什么要做这个？背景是什么？
+每项 requirement 使用稳定 `R*` 标识；Design、Plan 和验证证据必须引用这些标识。
 
-### 技术约束
-- 框架/SDK 限制：
-- 兼容性要求：
-- 性能要求：
+## 组件拓扑
 
-### 关键参与者
-- 用户：
-- 调用方：
+| Component | Goal | Scope | Constraints | Acceptance | Business context |
+|---|---|---|---|---|---|
+| component-id | | | | | |
 
-### 非目标
-> 明确不做什么，避免范围膨胀。
+先建立组件边界，再决定是否需要下钻。不要为不存在的 API、数据或角色问题填充模板。
 
-## E 证据
+## Frontier（component × unresolved dimension）
 
-### 探索发现
-> 代码探索和文档调研发现了什么？
-- codegraph 结果：
-- 文档调研结果：
+| Component | Unresolved dimension | Evidence / known fact | Risk | Next action |
+|---|---|---|---|---|
+| component-id | | | | ask / research / resolve |
 
-### 歧义评分
-| 维度 | 分数(0-5) | 说明 |
-|------|----------|------|
-| T 目标 clarity | | |
-| Scope clarity | | |
-| User/actor clarity | | |
-| Data/SQL clarity | | |
-| Interface/API clarity | | |
-| Acceptance criteria clarity | | |
-| Constraint/risk clarity | | |
-| **Overall** | | |
+- 每轮只推进一个最有影响的 frontier；一次一个用户问题。
+- 仅当它是真实业务选择时才向用户提问；代码、文档和版本事实先由 ResearchPacket 取得。
+- API/Data 是条件分支：仅在 impact 或事实显示相关时展开，不是固定必填维度。
 
-### 当前最弱维度
-- weakest：
-- weakest score：
-- 评分依据：
-- 下一问（一次一个）：
-- unresolved high-risk ambiguity：none / 具体说明
+## 事实、约束与条件分支
 
-## P 路由
+### ResearchPacket
 
-### 初步路由
+- packet ref：
+- code/document facts：
+- input digest：
+- 未确定事实与 fallback：
+
+### 条件分支
+
+- API/Data：适用 / 不适用；依据：
+- Architecture：适用 / 不适用；依据：
+- Rule：适用 / 不适用；依据：
+- Security：适用 / 不适用；依据：
+
+### 非目标与约束
+
+- 非目标：
+- 兼容性：
+- 性能与运行约束：
+- 风险与回滚边界：
+
+## Classification
+
 - tier：L0 / L1 / L2 / L3
-- 路由理由：
+- impact：api / data / architecture / rule / security
 - owning module / service：
+- classification evidence：
 
-### 影响矩阵
-| API | Data | Architecture | Rule |
-|-----|------|-------------|------|
-| yes/no | yes/no | yes/no | yes/no |
+Classification 是 clarify 后的内部 durable artifact，不是额外 lifecycle stage。
 
-### 需要确认的决策
-> 还有哪些关键决策需要用户确认？
+## 未决决策与确认
 
-### 假设
-> 我们做了哪些假设？后续需要验证。
-
-## 最终路由
-> clarify-ready 后的最终结论。
-
-## 需要继续澄清的问题
-> 仍待回答的问题（clarify 过程中逐步清空）。
-
-## 用户确认
-
-- confirmed: false
-- source:
-- confirmedAt:
+- unresolved high-risk decision：none / 具体说明
+- 当前下一问（一次一个）：
+- 假设及验证方式：
+- confirmed：false
+- source：
+- confirmedAt：

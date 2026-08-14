@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateCompletionPredicate, validateCompletionReviewers } from '../checks.mjs';
 import { loadHookChange } from '../hook-change.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { buildRecoveryGuidance } from '../recovery-guidance.mjs';
@@ -23,34 +22,8 @@ export function stop({ root, event }) {
     printHandoffGuidance(root, event);
     return allow();
   }
-  const changeDir = path.join(changesDir, active.changeId);
-  const validationPath = path.join(changeDir, 'validation.md');
-  const state = active.data;
-  if (!fs.existsSync(validationPath)) {
-    return {
-      exitCode: 2,
-      stderr: `BLOCK: ${changeDir} 缺少 validation.md，不能作为完成状态结束。`,
-    };
-  }
-  if ((state.state === 'VALIDATED' || state.state === 'REVIEWED') && state.validation?.status !== 'fresh') {
-    return {
-      exitCode: 2,
-      stderr: `BLOCK: ${changeDir} 的 validation.status=${state.validation?.status}，请先刷新验证证据。`,
-    };
-  }
-  const completionProblems = state.state === 'VALIDATED'
-    ? validateCompletionPredicate(root, active.changeId, state)
-    : state.state === 'REVIEWED'
-      ? validateCompletionReviewers(root, active.changeId, state)
-      : [];
-  if (completionProblems.length) {
-    const lines = [`BLOCK: ${changeDir} 的统一完成态条件未满足。`];
-    for (const problem of completionProblems) lines.push(`- ${problem}`);
-    return { exitCode: 2, stderr: lines.join('\n') };
-  }
-  if (state.state === 'EXECUTING') {
-    console.error('Stop gate 提醒：仍有 change 处于 EXECUTING，请确认是否要结束在当前中间状态。');
-  }
+  // Stop is never a lifecycle correctness authority. Runtime transition and completion
+  // commands consume fresh structured evidence; this hook only records recovery context.
   printHandoffGuidance(root, event);
   return allow();
 }

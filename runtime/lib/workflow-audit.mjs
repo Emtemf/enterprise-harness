@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readAgentEvents } from './agent-evidence.mjs';
 import { loadBehaviorRegistry, loadHandoffInput, validateHandoffResult } from './handoff.mjs';
+import { validateDesignStageGate } from './stage-results.mjs';
 import { completedStages as completedStagesV6, STAGE_CONTRACTS as STAGE_CONTRACTS_V6, STAGE_ORDER as STAGE_ORDER_V6 } from './stage-contract.mjs';
 import { completedStages as completedStagesV5, STAGE_CONTRACTS as STAGE_CONTRACTS_V5, STAGE_ORDER as STAGE_ORDER_V5 } from '../compat/v5/stage-contract.mjs';
 
@@ -83,6 +84,32 @@ function inspectArtifacts(root, changeId, artifacts) {
   });
 }
 
+const RESULT_GATE_VALIDATORS = Object.freeze({
+  design: validateDesignStageGate,
+});
+
+function inspectResultGate(root, changeId, resultGate) {
+  if (!resultGate) return [];
+  const validator = RESULT_GATE_VALIDATORS[resultGate];
+  if (!validator) {
+    return [{
+      gate: resultGate,
+      status: 'block',
+      issues: [problem('EH-AUDIT-RESULT-007', `unknown result gate ${resultGate}`, 'register a runtime validator for this stage contract')],
+    }];
+  }
+  const problems = validator(root, changeId);
+  return [{
+    gate: resultGate,
+    status: problems.length === 0 ? 'pass' : 'block',
+    issues: problems.map((detail) => problem(
+      'EH-AUDIT-RESULT-007',
+      `${resultGate} result gate failed: ${detail}`,
+      'produce a fresh StageResult and independent passing ReviewResult, then retry the audit',
+    )),
+  }];
+}
+
 export function auditWorkflow(root, changeId, data, options = {}) {
   const isV6 = data?.schemaVersion === 6;
   const registry = isV6 ? { behaviors: {} } : loadBehaviorRegistry(root);
@@ -106,7 +133,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
     const isCompleted = completed.has(stage);
     const isCurrent = stage === auditStage;
     if (!isCompleted && !isCurrent) {
-      stages.push({ stage, lifecycle: 'future', status: 'pending', artifacts: [], state: [], handoffs: [], events: [] });
+      stages.push({ stage, lifecycle: 'future', status: 'pending', artifacts: [], state: [], results: [], handoffs: [], events: [] });
       continue;
     }
 
@@ -116,6 +143,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       status: ok ? 'pass' : 'block',
       issue: ok ? null : problem('EH-AUDIT-STATE-004', `${field} does not meet the stage completion predicate`, `repair durable evidence and update through the supported runtime command`),
     }));
+    const results = isV6 ? inspectResultGate(root, changeId, spec.resultGate) : [];
     const behaviors = isV6
       ? []
       : [...spec.requiredBehaviors, ...spec.optionalBehaviors];
@@ -130,7 +158,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       const behaviorStage = registry.behaviors?.[event.behavior]?.stage;
       return behaviorStage === stage;
     }).map((event) => ({ kind: event.kind, behavior: event.behavior ?? null, runId: event.runId ?? null, agentId: event.agentId ?? null }));
-    const checked = [...artifacts, ...state, ...handoffs.filter((handoff) => handoff.required)];
+    const checked = [...artifacts, ...state, ...results, ...handoffs.filter((handoff) => handoff.required)];
     const blockers = checked.flatMap((item) => item.status === 'block' ? (item.issues ?? [item.issue]).filter(Boolean) : []);
     stages.push({
       stage,
@@ -138,6 +166,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       status: blockers.length ? 'block' : (isCompleted ? 'pass' : 'in-progress'),
       artifacts,
       state,
+      results,
       handoffs,
       events: stageEvents,
       blockers,
@@ -187,6 +216,7 @@ export function renderWorkflowAudit(audit) {
     lines.push(`[${stage.status.toUpperCase()}] ${stage.stage} (${stage.lifecycle})`);
     for (const artifact of stage.artifacts) lines.push(`  artifact ${artifact.status === 'pass' ? '✓' : '✗'} ${artifact.artifact}`);
     for (const state of stage.state) lines.push(`  state    ${state.status === 'pass' ? '✓' : '✗'} ${state.field}`);
+    for (const result of stage.results || []) lines.push(`  result   ${result.status === 'pass' ? '✓' : '✗'} ${result.gate}`);
     for (const handoff of stage.handoffs) {
       if (handoff.status === 'not-applicable') continue;
       lines.push(`  handoff  ${handoff.status === 'pass' ? '✓' : '✗'} ${handoff.behavior} execute=[${handoff.executions.join(', ') || '-'}] check=[${handoff.checks.map((check) => `${check.runId}:${check.verdict}`).join(', ') || '-'}]`);
