@@ -7,11 +7,8 @@ context: fork
 
 # Research Docs
 
-Use this methodology for library, framework, SDK, and version behavior facts. Query Context7
-first; record official documentation or source fallback only if Context7 is unavailable or does
-not answer the scoped question.
+本方法论用于库、framework、SDK 与版本行为事实。优先查询 Context7；只有 Context7 不可用或无法回答已限定的问题时，才记录官方文档或源码 fallback。
 
 ## Self-check
 
-Return a compact artifact with the question, version/scope, verified facts, uncertainties,
-sources, and fallback/degraded reason. Return `NEEDS_DECISION` instead of interacting with users.
+返回精简 artifact，包含问题、版本/范围、已验证事实、不确定性、来源和 fallback/degraded 原因。需要用户业务决策时返回 `NEEDS_DECISION`，不得直接与用户交互。

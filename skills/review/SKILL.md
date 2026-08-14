@@ -7,11 +7,8 @@ context: fork
 
 # Review
 
-The `reviewer` capability independently evaluates the supplied artifact/result, not the worker
-conversation. Select requirements, classification, design, plan, task, API, data, security,
-final, or archive-completeness rubrics from durable impact and task metadata.
+`reviewer` capability 独立评估提供的 artifact/result，而非 worker 对话。根据 durable impact 与 task metadata 选择 requirements、classification、design、plan、task、API、data、security、final 或 archive-completeness rubric。
 
 ## Output
 
-Return TECPC. Use `pass`, `advisory`, `block`, or `unsupported` accurately. `correction` is null
-only for pass; all other outcomes require actionable correction.
+返回 TECPC，并准确使用 `pass`、`advisory`、`block` 或 `unsupported`。只有 `pass` 可令 `correction` 为 null；其他所有结果都必须给出可执行 correction。

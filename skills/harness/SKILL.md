@@ -5,47 +5,36 @@ description: Enterprise Harness 六阶段 v0.5 生命周期的用户入口。
 
 # Harness
 
-Harness alone owns the conversation, scope confirmation, durable state transitions, and recovery.
-It drives the user-visible lifecycle:
+Harness 独占用户对话、范围确认、持久状态迁移与恢复职责。它驱动用户可见的生命周期：
 
 ```text
 clarify → design → plan → implement → verify → archive
 ```
 
-Classification is recorded after clarify as an internal artifact; it selects impact-sensitive
-rubrics but is not displayed as a stage. TDD is a task strategy inside implement.
+classification 在 clarify 后作为内部制品记录：它用于选择受影响面敏感的 rubric，但不显示为独立阶段。TDD 是 implement 内 task 的一种执行策略。
 
-## Intake and clarify
+## Intake 与 clarify
 
-1. Resume the active change and report one actionable blocker, or create a safe new change.
-2. Obtain code facts through `code-explore` and external facts through `doc-research` using v2
-   handoffs. Do not repeat a worker's exploration in the main context.
-3. Build the component × seven-dimension topology: target, scope, actor, data, interface,
-   acceptance, constraint/risk.
-4. Ask **one** highest-risk/weakest-frontier user question at a time with `AskUserQuestion`.
-   Never ask for facts already established by CodeGraph or documentation evidence.
-5. Persist requirements, scope confirmation, and classification only after self-check and an
-   independent `reviewer` verdict are fresh.
+1. 恢复 active change 并只报告一个可执行的 blocker；没有 active change 时创建安全的新 change。
+2. 通过带 v2 handoff 的 `code-explore` 获取代码事实，通过 `doc-research` 获取外部事实；主线程不得重复 worker 已完成的探索。
+3. 建立 component × 七维拓扑：目标、范围、参与者、数据、接口、验收、约束/风险。
+4. 每次仅用 `AskUserQuestion` 询问一个风险最高/最弱 frontier 的用户问题。已由 CodeGraph 或文档证据确认的事实不得再问用户。
+5. 只有 self-check 和独立 `reviewer` verdict 都 fresh 后，才持久化 requirements、范围确认与 classification。
 
-## Stage orchestration
+## 阶段编排
 
-- **Design:** invoke `artifact-worker` with the `design` methodology, then independent `review`.
-- **Plan:** invoke `artifact-worker` with `plan`; each task freezes its RED point and exact argv.
-- **Implement:** invoke `implementer` with `implement` in a native worktree; require receipt,
-  self-check, and separate reviewer.
-- **Verify:** invoke `artifact-worker` with `verify`, run frozen validation argv, then final review.
-- **Archive:** invoke `artifact-worker` with `archive`; archive only after fresh completion evidence.
+- **Design：** 以 `design` 方法论调用 `artifact-worker`，再进行独立 `review`。
+- **Plan：** 以 `plan` 调用 `artifact-worker`；每个 task 冻结 `executionStrategy` 与 exact argv。
+- **Implement：** 在原生 worktree 中以 `implement` 调用 `implementer`；要求 receipt、self-check 与独立 reviewer。
+- **Verify：** 以 `verify` 调用 `artifact-worker`，执行冻结的 validation argv，随后进行 final review。
+- **Archive：** 以 `archive` 调用 `artifact-worker`；只有 fresh completion evidence 完整时才归档。
 
-A forked capability returns `NEEDS_DECISION` when business input is absent. Harness translates it
-into one user question, records the answer, and creates a new run. It never delegates that dialogue.
+业务输入缺失时，forked capability 返回 `NEEDS_DECISION`。Harness 将其转换为一个用户问题，记录回答，再创建新的 run；不得把该对话委托给 worker。
 
-## Evidence rule
+## Evidence 规则
 
-Every stage/task follows `execute → self-check → independent review → TECPC → fresh evidence`.
-The reviewer only consumes result artifacts and input digests. Do not claim progress from a chat
-answer, an agent lifecycle event, or a state boolean.
+每个 stage/task 都遵循 `execute → self-check → independent review → TECPC → fresh evidence`。reviewer 只消费 result artifact 与 input digest。不得根据聊天回答、Agent lifecycle event 或 state boolean 声称进度。
 
-## User output
+## 用户输出
 
-Keep every response to: `changeId`, current stage, one evidence-backed status, and exactly one
-next action or one question.
+每次响应只包含：`changeId`、当前 stage、一条有证据支撑的状态，以及恰好一个 next action 或一个问题。

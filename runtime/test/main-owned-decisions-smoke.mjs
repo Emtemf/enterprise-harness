@@ -10,7 +10,7 @@ const reviewer = fs.readFileSync(path.join(root, 'agents', 'reviewer.md'), 'utf-
 for (const name of ['design', 'verify']) {
   const text = skill(name);
   assert.match(text, /NEEDS_DECISION/u, `${name} must return a decision request to main harness`);
-  assert.match(text, /main Harness prompts users|do not invoke user interaction/u, `${name} must reserve user interaction for main harness`);
+  assert.match(text, /只有主 Harness 可以向用户提问|不得在该 forked methodology 中调用用户交互工具/u, `${name} must reserve user interaction for main harness`);
 }
 assert.match(reviewer, /unsupported/u);
 assert.match(reviewer, /correction/u);

@@ -7,14 +7,8 @@ context: fork
 
 # Implement
 
-The `implementer` capability is the only v0.5 capability permitted to change product code. Work
-in a native isolated worktree when required. Execute the frozen exact argv and record a
-machine-generated receipt matching the task's `executionStrategy`: `tdd` uses meaningful RED →
-GREEN → REFACTOR; `regression` uses REPRODUCE → VERIFY; `characterization` uses BASELINE →
-VERIFY; `direct` uses VERIFY; `migration` uses DRY_RUN → APPLY → ROLLBACK; and `generation` uses
-GENERATE → VERIFY. Do not fabricate or require RED evidence for a non-TDD task.
+`implementer` capability 是 v0.5 中唯一允许修改产品代码的 capability。需要时在原生隔离 worktree 中执行。执行冻结的 exact argv，并记录符合 task `executionStrategy` 的 machine-generated receipt：`tdd` 使用真实 RED → GREEN → REFACTOR；`regression` 使用 REPRODUCE → VERIFY；`characterization` 使用 BASELINE → VERIFY；`direct` 使用 VERIFY；`migration` 使用 DRY_RUN → APPLY → ROLLBACK；`generation` 使用 GENERATE → VERIFY。不得伪造或为非 TDD task 强制要求 RED evidence。
 
 ## Quality loop
 
-Create a task self-check and obtain an independent reviewer verdict bound to the receipt and input
-digests. Do not claim task completion from chat output or worktree isolation alone.
+创建 task self-check，并获取绑定 receipt 与 input digest 的独立 reviewer verdict。不得仅凭聊天输出或 worktree isolation 声称 task 完成。

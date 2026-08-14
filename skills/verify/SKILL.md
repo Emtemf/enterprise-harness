@@ -7,11 +7,8 @@ context: fork
 
 # Verify
 
-Run the frozen validation commands and gather current task receipts, self-checks, reviews, waivers,
-and applicable API/data/security evidence. Validation must bind its input digests, remain **fresh**
-for the current tree, and explicitly record failures, skips, and unsupported inputs.
+执行冻结的 validation command，并汇集当前 task receipt、self-check、review、waiver 与适用的 API/data/security evidence。validation 必须绑定 input digest、对当前 tree 保持 **fresh**，并明确记录 failure、skip 与 unsupported input。
 
 ## Quality loop
 
-The final completion verdict requires an independent `reviewer` run. If a user decision is needed,
-return `NEEDS_DECISION`; do not invoke user interaction tools from this forked methodology.
+最终 completion verdict 必须来自独立 `reviewer` run。需要用户决策时返回 `NEEDS_DECISION`；不得在该 forked methodology 中调用用户交互工具。

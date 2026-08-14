@@ -7,11 +7,8 @@ context: fork
 
 # Archive
 
-Archive only after fresh verification and independent archive-completeness review satisfy the
-completion predicate. Preserve durable artifacts as immutable history, clear compatibility
-pointers only after the move, and use explicit abandonment for incomplete work.
+只有 fresh verification 与独立 archive-completeness review 满足 completion predicate 后才可归档。将 durable artifact 保留为不可变历史；只在物理移动后清理 compatibility pointer；未完成工作必须显式 abandon。
 
 ## Self-check
 
-Confirm no artifact is stale, all required TECPC/reviews are present, and the source/destination
-paths are safe. Return `NEEDS_DECISION` for an unresolved waiver or scope decision.
+确认不存在 stale artifact、所有必需 TECPC/review 均已存在，且 source/destination path 安全。未解决 waiver 或范围决策时返回 `NEEDS_DECISION`。

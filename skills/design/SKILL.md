@@ -7,11 +7,8 @@ context: fork
 
 # Design
 
-Produce the durable design from confirmed requirements and classification. Cover applicable
-interfaces, error model, authentication/idempotency, data/SQL, migration/rollback, compatibility,
-concurrency, component boundaries, and tests. Mark non-applicable areas as `N/A` with a reason.
+根据已确认的 requirements 和 classification 产出 durable design。覆盖适用的接口、错误模型、认证/幂等、数据/SQL、迁移/回滚、兼容性、并发、组件边界与测试。对不适用领域标注 `N/A` 并说明理由。
 
 ## Quality loop
 
-Write a self-check artifact, then request an independent review through a separate v2 run. A
-worker that lacks a business decision returns `NEEDS_DECISION`; only main Harness prompts users.
+写入 self-check artifact，再通过独立 v2 run 请求 independent review。缺少业务决策时 worker 返回 `NEEDS_DECISION`；只有主 Harness 可以向用户提问。

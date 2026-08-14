@@ -13,9 +13,9 @@ const corpus = files.map(read).join('\n');
 const checks = () => {
   assert.ok(corpus.includes('enterprise-harness:code-explore'));
   assert.ok(corpus.includes('CodeGraph-first') || corpus.includes('codegraph-first'));
-  assert.match(read('skills/harness/SKILL.md'), /Do not repeat.*exploration/u);
-  assert.match(read('skills/harness/SKILL.md'), /one.*question/u);
-  assert.match(read('skills/harness/SKILL.md'), /native worktree[\s\S]*separate reviewer/u);
+  assert.match(read('skills/harness/SKILL.md'), /不得重复 worker 已完成的探索/u);
+  assert.match(read('skills/harness/SKILL.md'), /每次仅用.*一个.*用户问题/u);
+  assert.match(read('skills/harness/SKILL.md'), /原生 worktree[\s\S]*独立 reviewer/u);
   assert.doesNotMatch(corpus, /subagent_type:\s*`?code-explore`?/u);
 };
 try {

@@ -7,11 +7,8 @@ context: fork
 
 # Explore Code
 
-Use this methodology only for code facts. Dispatch the `code-explore` capability directly from
-main Harness with a v2 handoff. Start with CodeGraph; fall back to focused Read/Grep only when
-the index is unavailable or insufficient, recording the fallback reason in the research artifact.
+本方法论只用于代码事实。主 Harness 通过 v2 handoff 直接派发 `code-explore` capability。先使用 CodeGraph；只有索引不可用或信息不足时，才回退到定向 Read/Grep，并在 research artifact 中记录 fallback 原因。
 
 ## Self-check
 
-Before returning, ensure the artifact states the question, scope, facts, uncertainties, impact,
-sources, and any suggested user question. Return `NEEDS_DECISION` rather than prompting a user.
+返回前确认 artifact 写明问题、范围、事实、不确定性、影响、来源和建议的用户问题。需要业务决策时返回 `NEEDS_DECISION`，不得直接询问用户。
