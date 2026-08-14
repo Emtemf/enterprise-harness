@@ -67,7 +67,7 @@ function createChange(repoCopy, changeId, state, options = {}) {
 }
 
 function runVerify(cwd) {
-  return spawnSync('node', [cliPath, 'verify', '--json'], {
+  return spawnSync(process.execPath, [cliPath, 'verify', '--json'], {
     cwd,
     encoding: 'utf-8',
   });
