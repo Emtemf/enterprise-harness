@@ -59,4 +59,4 @@ const child = spawnSync(process.execPath, [targetScript, ...rest], {
 });
 process.stdout.write(child.stdout || '');
 process.stderr.write(child.stderr || '');
-process.exit(child.status ?? 1);
+process.exitCode = child.status ?? 1;

@@ -29,9 +29,14 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 
 const problems = targets.flatMap((file) => {
   const source = fs.readFileSync(file, 'utf-8');
-  return source.includes("spawnSync('node'")
-    ? [`${path.relative(repoRoot, file)} launches a nested runtime through PATH instead of process.execPath`]
+  const relative = path.relative(repoRoot, file);
+  const fileProblems = source.includes("spawnSync('node'")
+    ? [`${relative} launches a nested runtime through PATH instead of process.execPath`]
     : [];
+  if (relative === path.join('runtime', 'cli.mjs') && source.includes('process.exit(child.status')) {
+    fileProblems.push(`${relative} forces exit before forwarded stdout and stderr can drain`);
+  }
+  return fileProblems;
 });
 
 if (mode === 'red') {
