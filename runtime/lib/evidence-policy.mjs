@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gitCommonDir } from './agent-evidence.mjs';
+import { readSession, sessionIdFromEnv } from './sessions.mjs';
 
 export const EVIDENCE_POLICY_PATH = path.join('harness', 'evidence-policy.json');
 
@@ -65,7 +66,7 @@ export function evidencePolicyDigest(policy) {
   return sha256(JSON.stringify(canonicalPolicy(policy)));
 }
 
-function committedChangeIds(root, baseline, strictChangeIds = []) {
+function committedChangeIds(root, baseline, strictChangeIds = [], options = {}) {
   const output = git(root, [
     'ls-tree',
     '-r',
@@ -76,9 +77,11 @@ function committedChangeIds(root, baseline, strictChangeIds = []) {
   ]);
   if (output === null) throw new Error('cannot inspect committed change baseline');
   const activePath = path.join(root, 'harness', 'ACTIVE_CHANGE');
-  const activeChange = fs.existsSync(activePath)
-    ? fs.readFileSync(activePath, 'utf-8').trim()
-    : null;
+  const sessionId = options.sessionId || sessionIdFromEnv(options.env || process.env);
+  const sessionBinding = sessionId ? readSession(root, sessionId, options) : null;
+  const activeChange = sessionId
+    ? (sessionBinding?.changeId || null)
+    : (fs.existsSync(activePath) ? fs.readFileSync(activePath, 'utf-8').trim() : null);
   const strict = new Set([activeChange, ...strictChangeIds].filter(Boolean));
   return [...new Set(output
     .split('\n')
@@ -153,7 +156,7 @@ export function readEvidencePolicy(root = process.cwd()) {
   }
 }
 
-export function createEvidencePolicy(root = process.cwd(), { strictChangeIds = [] } = {}) {
+export function createEvidencePolicy(root = process.cwd(), { strictChangeIds = [], ...options } = {}) {
   const policyPath = path.join(root, EVIDENCE_POLICY_PATH);
   if (fs.existsSync(policyPath)) {
     throw new Error(`sealed evidence policy already exists: ${policyPath}`);
@@ -165,7 +168,7 @@ export function createEvidencePolicy(root = process.cwd(), { strictChangeIds = [
     strictByDefault: true,
     sealed: true,
     legacyBaselineCommit: baseline,
-    legacyChangeIds: committedChangeIds(root, baseline, strictChangeIds),
+    legacyChangeIds: committedChangeIds(root, baseline, strictChangeIds, options),
   };
   policy.contentDigest = evidencePolicyDigest(policy);
   const problems = validateEvidencePolicy(root, policy);

@@ -20,7 +20,7 @@ try {
       fallbackReason: 'index is not worktree-local',
     },
     context: { headSha: 'abc123', libraryVersion: null },
-    artifact: { path: 'requirements.md', digest: 'digest-a' },
+    artifact: { path: 'requirements.md', digest: 'a'.repeat(64) },
   });
   assert.equal(validateResearchPacket(packet), true);
   assert.equal(packet.sourcePolicy.status, 'degraded');
@@ -31,11 +31,11 @@ try {
     scope: 'design',
     reason: 'CodeGraph index unavailable',
     approvedBy: 'user',
-    artifact: { path: 'requirements.md', digest: 'digest-a' },
+    artifact: { path: 'requirements.md', digest: 'a'.repeat(64) },
   });
   assert.equal(validateWaiver(waiver), true);
-  assert.equal(isWaiverFresh(waiver, { path: 'requirements.md', digest: 'digest-a' }), true);
-  assert.equal(isWaiverFresh(waiver, { path: 'requirements.md', digest: 'digest-b' }), false);
+  assert.equal(isWaiverFresh(waiver, { path: 'requirements.md', digest: 'a'.repeat(64) }), true);
+  assert.equal(isWaiverFresh(waiver, { path: 'requirements.md', digest: 'b'.repeat(64) }), false);
   assert.equal(isWaiverFresh(waiver, { path: 'design.md', digest: 'digest-a' }), false);
   console.log('PASS research-waiver-v5 verify');
 } finally {

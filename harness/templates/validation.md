@@ -1,42 +1,45 @@
 # Validation
 
-## Role Ownership
-- 主导角色：Quality Engineer 视角
-- 参与角色：Fullstack Developer / Principal Architect / Human User（最终业务验收）
-- 本阶段交接物：完成声明的验证与验收收口 `validation.md`
+## Target
 
+- Change:
+- Verification target:
 
-## Artifact Digest
+## Commands
 
-## Commands Executed
+| Frozen argv | Actual argv | Exit status | Evidence digest | Result |
+|---|---|---:|---|---|
 
-## Clarify / Requirements Confirmation
+## Results
 
-## Unit Tests
+- Task receipts:
+- Self-checks:
+- Independent reviews:
+- API/data/security evidence:
 
-## Unit Coverage
+## Freshness
 
-## Architecture Tests
+- Design/plan input digests:
+- Current tree digest:
+- Validation digest:
+- Executed at:
 
-## Integration Tests
+## Coverage and exceptions
 
-## Backend API E2E
+- Applicable rubrics:
+- N/A with reason:
+- Skipped checks with reason:
+- Unsupported inputs:
+- Waivers and expiry:
 
-## OpenAPI Contract
+## Correction and recovery
 
-## Google Java Style
+- Failures/retries:
+- Required correction:
+- Next action:
 
-## Review Verdicts
+## Final executor verdict
 
-## Stage Gate Summary
-- clarify:
-- design:
-- plan:
-- tdd:
-- verify:
+`pass` | `block` | `needs_decision`
 
-## Skipped Checks
-
-## Failures and Retries
-
-## Final Verdict
+> The final completion verdict belongs to the independent review and runtime CompletionProof, not this executor report.

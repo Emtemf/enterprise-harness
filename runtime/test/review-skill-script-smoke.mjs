@@ -34,6 +34,7 @@ try {
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
     tecpc, status: 'pass', needsDecision: null, completedAt: '2026-08-14T00:00:00.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));

@@ -1,12 +1,13 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { GOVERNANCE_BLOCKLIST, hasCurrentTaskTddExecutionEvidence } from './gates.mjs';
+import { GOVERNANCE_BLOCKLIST, hasCurrentTaskTddExecutionEvidence, loadActiveChange } from './gates.mjs';
 import { validateAmbiguityGate } from './ambiguity.mjs';
 import { validateRouterScore } from './router-score.mjs';
 import { evidenceModeForChange } from './evidence-policy.mjs';
 import { readAndValidateTddReceipt } from './tdd-receipts.mjs';
 import { auditWorkflow } from './workflow-audit.mjs';
+import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 
 export function projectRoot() {
   return process.cwd();
@@ -200,14 +201,21 @@ export function validateArtifactStates(root) {
     const isV6 = data.schemaVersion === 6;
 
     if (isV6) {
-      // v6 validation: minimal, stage-based, no legacy booleans
-      for (const key of ['schemaVersion','changeId','lifecycle','stage','impact','validation']) {
+      // v6 validation: classification artifact is the sole impact authority.
+      for (const key of ['schemaVersion', 'changeId', 'lifecycle', 'stage', 'artifacts', 'validation']) {
         if (!(key in data)) errors.push(`${statePath}: missing ${key}`);
       }
+      if (data.changeId !== entry.name) errors.push(`${statePath}: changeId does not match its directory`);
       if (!v6Lifecycles.has(data.lifecycle)) errors.push(`${statePath}: invalid lifecycle ${data.lifecycle}`);
       if (!v6Stages.has(data.stage)) errors.push(`${statePath}: invalid stage ${data.stage}`);
-      for (const key of ['api','data','architecture','rule','security']) {
-        if (!allowedImpact.has(data.impact?.[key])) errors.push(`${statePath}: invalid impact.${key}`);
+      let classification = null;
+      try {
+        classification = readClassificationArtifact(root, entry.name, data.artifacts?.classification);
+      } catch (error) {
+        errors.push(`${statePath}: invalid classification artifact (${error.message})`);
+      }
+      for (const key of ['api', 'data', 'architecture', 'rule', 'security']) {
+        if (!allowedImpact.has(classification?.impact?.[key])) errors.push(`${statePath}: invalid classification impact.${key}`);
       }
       if (!allowedValidation.has(data.validation?.status)) errors.push(`${statePath}: invalid validation.status ${data.validation?.status}`);
     } else {
@@ -371,6 +379,21 @@ function completionResult(code, status, message, targetPath = null, recovery = n
 export function validateState(root, changeId, state) {
   const results = [];
   const changeDir = path.join(root, 'harness', 'changes', changeId);
+  let impact = state?.impact;
+  if (state?.schemaVersion === 6) {
+    try {
+      impact = readClassificationArtifact(root, changeId, state.artifacts?.classification).impact;
+    } catch (error) {
+      results.push(completionResult(
+        'EH-COMPLETION-CLASSIFICATION-115',
+        'block',
+        `classification artifact is invalid: ${error.message}`,
+        path.join(changeDir, 'classification.json'),
+        'repair the canonical classification artifact and its state reference',
+      ));
+      impact = {};
+    }
+  }
   if (state?.schemaVersion === 6) {
     if (!['verify', 'archive'].includes(state.stage)) {
       results.push(completionResult(
@@ -400,7 +423,7 @@ export function validateState(root, changeId, state) {
     ));
   }
   for (const key of ['api', 'data', 'architecture', 'rule', ...(state?.schemaVersion === 6 ? ['security'] : [])]) {
-    if (state?.impact?.[key] === 'unknown' || !state?.impact?.[key]) {
+    if (impact?.[key] === 'unknown' || !impact?.[key]) {
       results.push(completionResult(
         'EH-COMPLETION-IMPACT-102',
         'block',
@@ -445,6 +468,9 @@ export function validateArtifacts(root, changeId, state) {
 }
 
 export function validateReviews(root, changeId, state) {
+  // v6 reviewer authority is the Handoff v2 ReviewResult consumed by each structured
+  // stage gate. policy.json completionReviewers and reviews/*.json are v5 projections.
+  if (state?.schemaVersion === 6) return [];
   return validateCompletionReviewers(root, changeId, state).map((message) => completionResult(
     'EH-COMPLETION-REVIEW-107',
     'block',
@@ -519,8 +545,16 @@ export function validateAgentLedger(root, changeId) {
   return results;
 }
 
-export function validateApiContract(root, state) {
-  if (state?.impact?.api !== 'yes') {
+export function validateApiContract(root, state, changeId = null) {
+  let impact = state?.impact;
+  if (state?.schemaVersion === 6) {
+    try {
+      impact = readClassificationArtifact(root, changeId, state.artifacts?.classification).impact;
+    } catch {
+      impact = {};
+    }
+  }
+  if (impact?.api !== 'yes') {
     return [completionResult('EH-COMPLETION-API-113', 'advisory', 'API impact is not applicable')];
   }
   const yamlFiles = findOpenApiYamlFiles(root);
@@ -603,7 +637,7 @@ export function validateFinalCompletion(root, changeId, state) {
       ...validateState(root, changeId, state),
       ...validateArtifacts(root, changeId, state),
       ...validateReviews(root, changeId, state),
-      ...validateApiContract(root, state),
+      ...validateApiContract(root, state, changeId),
     ]
     : [
       ...validateState(root, changeId, state),
@@ -795,11 +829,26 @@ export function validateChangeEvidence(root) {
   return errors;
 }
 
-export function activeChangeInfo(root) {
-  const file = path.join(root, 'harness', 'ACTIVE_CHANGE');
-  if (!fs.existsSync(file)) return { ok: false, message: '当前没有 active change。' };
-  const changeId = fs.readFileSync(file, 'utf-8').trim();
-  return { ok: changeId.length > 0, message: changeId || 'ACTIVE_CHANGE 为空。' };
+export function activeChangeInfo(root, options = {}) {
+  const active = loadActiveChange(root, options);
+  if (active.ok) {
+    return {
+      ok: true,
+      message: active.changeId,
+      changeId: active.changeId,
+      sessionId: active.sessionId || null,
+    };
+  }
+  return {
+    ok: false,
+    message: active.reason === 'missing-session-binding'
+      ? '当前 session 没有绑定 active change。'
+      : active.reason === 'missing-active-change'
+        ? '当前没有 active change。'
+        : `active change 不可用：${active.reason}`,
+    reason: active.reason,
+    sessionId: active.sessionId || null,
+  };
 }
 
 function findOpenApiYamlFiles(root) {

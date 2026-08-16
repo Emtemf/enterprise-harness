@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { updateChangeState } from '../core/change-state.mjs';
+import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-v6-state-'));
 try {
@@ -10,14 +11,16 @@ try {
   const changeDir = path.join(root, 'harness', 'changes', changeId);
   const statePath = path.join(changeDir, 'state.json');
   fs.mkdirSync(changeDir, { recursive: true });
+  const classificationReference = writeClassificationArtifact(root, changeId, {
+    impact: { api: 'unknown', data: 'unknown', architecture: 'unknown', rule: 'unknown', security: 'unknown' },
+  });
   fs.writeFileSync(statePath, `${JSON.stringify({
     schemaVersion: 6,
     revision: 1,
     changeId,
     lifecycle: 'active',
     stage: 'clarify',
-    impact: { api: 'unknown', data: 'unknown', architecture: 'unknown', rule: 'unknown', security: 'unknown' },
-    artifacts: {},
+    artifacts: { classification: classificationReference },
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2)}\n`, 'utf-8');
 
@@ -36,8 +39,7 @@ try {
     changeId,
     lifecycle: 'active',
     stage: 'clarify',
-    impact: { api: 'unknown', data: 'unknown', architecture: 'unknown', rule: 'unknown', security: 'unknown' },
-    artifacts: {},
+    artifacts: { classification: classificationReference },
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, 'mutator must not mutate the caller\'s input');
 
@@ -56,6 +58,21 @@ try {
       type: 'stale-write',
     }),
     /EH-STATE-REVISION-014/u,
+  );
+
+  assert.throws(
+    () => updateChangeState(root, changeId, (current) => {
+      fs.writeFileSync(statePath, `${JSON.stringify({ ...current, revision: current.revision + 1, stage: 'plan' }, null, 2)}\n`, 'utf-8');
+      return { ...current, stage: 'verify' };
+    }),
+    /EH-STATE-REVISION-014/u,
+    'a state revision changed between check and use must not accept the stale mutation',
+  );
+
+  fs.writeFileSync(statePath, `${JSON.stringify({ ...persisted, changeId: 'different-change' }, null, 2)}\n`, 'utf-8');
+  assert.throws(
+    () => updateChangeState(root, changeId, (current) => ({ ...current, stage: 'verify' })),
+    /EH-STATE-IDENTITY-019/u,
   );
 
   console.log('PASS v6-change-state verify');

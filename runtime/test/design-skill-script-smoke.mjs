@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -23,17 +24,17 @@ function run(script, args) {
 
 try {
   fs.mkdirSync(changeDir, { recursive: true });
+  const classificationReference = writeClassificationArtifact(fixture, changeId, {
+    impact: { api: 'yes', data: 'no', architecture: 'yes', rule: 'no', security: 'yes' },
+    decision: { impact: 'bounded' },
+  });
   fs.writeFileSync(path.join(changeDir, 'state.json'), JSON.stringify({
     schemaVersion: 6,
     revision: 1,
     changeId,
     lifecycle: 'active',
     stage: 'design',
-    impact: { api: 'yes', data: 'no', architecture: 'yes', rule: 'no', security: 'yes' },
-    classification: { impact: 'bounded' },
-    currentTask: null,
-    executionStrategy: null,
-    artifacts: {},
+    artifacts: { classification: classificationReference },
     blocker: null,
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2));

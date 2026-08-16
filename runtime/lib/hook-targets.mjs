@@ -3,6 +3,7 @@ import { isGovernedTarget } from './gates.mjs';
 
 const DIRECT_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
 const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i)|cp|mv|install|patch)\b|(?:^|[^>])>>?/u;
+const TASK_RUN_COMMAND = /(?:^|[\/\\])task-run\.mjs\b|\bcli\.mjs["']?\s+task-run\b/u;
 const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+|harness\/changes\/[^\s'";|<>]+|runtime\/[^\s'";|<>]+))/gu;
 const SHELL_TOKEN = /"([^"]*)"|'([^']*)'|([^\s;&|<>]+)/gu;
 
@@ -13,7 +14,8 @@ function absolute(root, value) {
 }
 
 export function isPotentialWriteBash(command) {
-  return WRITE_COMMAND.test(String(command || ''));
+  const value = String(command || '');
+  return WRITE_COMMAND.test(value) || TASK_RUN_COMMAND.test(value);
 }
 
 export function extractHookTargets(root, event) {

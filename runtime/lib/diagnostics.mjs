@@ -24,8 +24,12 @@ export const DIAGNOSTICS = Object.freeze({
     recovery: '针对 weakest dimension 一次只问一个问题，更新 requirements.md 后重新校验。',
   },
   'EH-TDD-RECEIPT-007': {
-    summary: '当前 task 缺少与 executor/run/argv 绑定的真实 RED/GREEN/REFACTOR receipt。',
-    recovery: '在 tdd-executor worktree 中通过 enterprise-harness tdd-run 执行冻结命令。',
+    summary: 'v5 compatibility task 缺少与 executor/run/argv 绑定的真实 RED/GREEN/REFACTOR receipt。',
+    recovery: '仅对 v5 change，在 tdd-executor worktree 中通过 enterprise-harness tdd-run 执行冻结命令；v6 使用 task-run。',
+  },
+  'EH-TASK-RECEIPT-025': {
+    summary: 'v6 implement task 的 strategy、Handoff、argv、phase chain 或 machine receipt 无效。',
+    recovery: '由绑定到 execute run 的 implementer 通过 enterprise-harness task-run 执行 frozen phase chain，并创建新的 run 修复失败执行。',
   },
   'EH-COMPLETION-GATE-008': {
     summary: 'Task/session 完成声明缺少累计 gate、独立检查或新鲜验证证据。',

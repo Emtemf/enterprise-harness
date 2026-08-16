@@ -6,17 +6,21 @@ implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
   - runtime/lib/hooks/
+  - runtime/lib/hook-health.mjs
   - runtime/lib/sessions.mjs
   - runtime/lib/change-locks.mjs
 testRefs:
   - runtime/test/hook-manifest-parity-smoke.mjs
   - runtime/test/plugin-native-hooks-smoke.mjs
   - runtime/test/runtime-leases-smoke.mjs
+  - runtime/test/hook-health-smoke.mjs
+  - runtime/test/hook-health-lifecycle-smoke.mjs
 ---
 
 # Hooks Contract
 
-`hooks/hooks.json` is the plugin registration source and `hooks/scripts/` contains thin entry
+`harness/plugin/hooks-manifest.json` is the sole maintained hook declaration; `bin/generate-hooks.mjs`
+generates the plugin registration at `hooks/hooks.json`. `hooks/scripts/` contains thin entry
 wrappers. Policy lives in `runtime/lib/hooks/`; wrappers only parse stdin, call policy, render the
 host result, and exit. Generated development settings are a local test projection, never the
 released controller path.
@@ -26,10 +30,13 @@ released controller path.
 Hooks may only perform host-boundary mechanics:
 
 - SessionStart health/lease initialization and recovery guidance;
-- synchronous path/policy guards for governed writes;
-- research and write receipt capture;
-- SessionEnd cleanup;
-- an implement-skill scoped write guard.
+- synchronous path/policy guards for governed `Write`/`Edit`/`NotebookEdit` operations;
+- research and governed-write receipt capture;
+- SessionEnd cleanup.
+
+Hooks deliberately do **not** gate ordinary reads, shell commands, or Agent dispatch. Skills and
+runtime contracts own CodeGraph-first delegation, Context7-first research, handoff binding,
+self-check, review, and lifecycle semantics.
 
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,

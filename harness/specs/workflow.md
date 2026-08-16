@@ -40,11 +40,12 @@ missing; they do not open user prompts. Freshness is derived from digests, not p
 
 ## Clarify
 
-Clarify establishes a requirements topology before asking questions. It combines CodeGraph-first
-project facts and Context7-first external facts with user intent. Assess component × target,
-scope, actor, data, interface, acceptance, and constraint/risk; ask one highest-risk/weakest
-frontier question at a time. Once the artifacts are sufficient, main Harness records the scope
-confirmation and durable classification.
+Clarify establishes a component topology before asking questions. For each component it assesses goal,
+scope, constraints, acceptance, and business/domain context. API and Data/SQL are conditional branches:
+they are expanded only when facts or impact make them relevant. CodeGraph-first project facts and
+Context7-first external facts are gathered by isolated workers; ask one highest-risk unresolved
+user-decision frontier at a time. Once the artifacts are sufficient, Main records scope confirmation
+and the durable classification artifact.
 
 ## Design
 
@@ -55,23 +56,27 @@ artifact plus its evidence digests, not the executor conversation.
 
 ## Plan
 
-Plan creates independently executable tasks. Each task identifies the target, minimal RED test,
-exact command argv, intended implementation surface, review rubric, verification condition, and
-rollback/recovery note. The plan's task evidence becomes stale when the design digest changes.
+Plan creates independently executable tasks. Each task identifies its target, execution strategy
+(`tdd`, `direct`, `migration`, or another declared strategy), exact command argv, intended
+implementation surface, review rubric, verification condition, and rollback/recovery note. A task
+using `tdd` also identifies its minimal RED test and required RED→GREEN evidence. The plan's task
+evidence becomes stale when the design digest changes.
 
 ## Implement
 
 Implementation proceeds task by task in an isolated native worktree when code changes are needed.
-A real RED receipt precedes the smallest GREEN implementation, then refactor and task review.
-The implementation capability is the only capability allowed to write product code. Worktree
-isolation does not establish reviewer independence.
+The declared execution strategy controls the task flow: a `tdd` task requires a real RED receipt
+before the smallest GREEN implementation and refactor; direct and migration tasks require their
+own explicit preconditions and receipts. The implementation capability is the only capability
+allowed to write product code. Worktree isolation does not establish reviewer independence.
 
 ## Verify
 
 Verify runs the frozen validation commands and aggregates task receipts, current artifact digests,
-self-checks, independent reviews, API/data/security rubrics, and waivers. `unsupported` cannot
-be elevated to `pass`. A fresh validation verdict is necessary but not sufficient without the
-independent completion review.
+self-checks, independent reviews, and applicable API/data/security rubrics. `unsupported` cannot
+be elevated to `pass`. Waivers fail closed until they are bound to trusted authorization evidence.
+A fresh validation verdict is necessary but not sufficient without the independent completion
+review.
 
 ## Archive
 

@@ -10,6 +10,8 @@ const childEnv = {
   ...process.env,
   ENTERPRISE_HARNESS_CONTROLLER_ROOT: controllerRoot,
 };
+delete childEnv.ENTERPRISE_HARNESS_SESSION_ID;
+delete childEnv.CLAUDE_SESSION_ID;
 const commands = [
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
@@ -20,25 +22,40 @@ const commands = [
   ['runtime/test/docs-consistency-smoke.mjs', 'verify'],
 ];
 
-console.log('Enterprise Harness Prepublish Check');
-for (const args of commands) {
-  const child = spawnSync(process.execPath, args, { cwd: repoRoot, encoding: 'utf-8', env: childEnv });
+function run(command, args) {
+  const child = spawnSync(command, args, {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    env: childEnv,
+  });
   process.stdout.write(child.stdout || '');
   process.stderr.write(child.stderr || '');
-  if (child.status !== 0) {
-    process.exit(child.status ?? 1);
+  return child.status ?? 1;
+}
+
+let status = 0;
+try {
+  console.log('Enterprise Harness Prepublish Check');
+  for (const args of commands) {
+    status = run(process.execPath, args);
+    if (status !== 0) break;
   }
+  if (status === 0) {
+    const pluginValidation = spawnSync('claude', ['plugin', 'validate', '.'], {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+      shell: process.platform === 'win32',
+      env: childEnv,
+    });
+    process.stdout.write(pluginValidation.stdout || '');
+    process.stderr.write(pluginValidation.stderr || '');
+    if (pluginValidation.status !== 0 || /warning/iu.test(`${pluginValidation.stdout || ''}\n${pluginValidation.stderr || ''}`)) {
+      console.error('Plugin validation must pass with zero warnings.');
+      status = pluginValidation.status || 1;
+    }
+  }
+  if (status === 0) console.log('Prepublish check complete.');
+} finally {
+  fs.rmSync(controllerRoot, { recursive: true, force: true });
 }
-const pluginValidation = spawnSync('claude', ['plugin', 'validate', '.'], {
-  cwd: repoRoot,
-  encoding: 'utf-8',
-  shell: process.platform === 'win32',
-  env: childEnv,
-});
-process.stdout.write(pluginValidation.stdout || '');
-process.stderr.write(pluginValidation.stderr || '');
-if (pluginValidation.status !== 0 || /warning/iu.test(`${pluginValidation.stdout || ''}\n${pluginValidation.stderr || ''}`)) {
-  console.error('Plugin validation must pass with zero warnings.');
-  process.exit(pluginValidation.status || 1);
-}
-console.log('Prepublish check complete.');
+process.exit(status);

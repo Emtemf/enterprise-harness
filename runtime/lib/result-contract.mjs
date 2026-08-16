@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { agentForV2Handoff } from '../core/handoff-agent.mjs';
 import { resolveWithin } from './safe-paths.mjs';
+import { isWaiverFresh, validateWaiver } from './waiver.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
 const RUN_ID = /^run_[0-9a-f-]{36}$/u;
@@ -11,20 +13,26 @@ const REVIEW_VERDICTS = new Set(['pass', 'block', 'unsupported']);
 const TECPC_FIELDS = new Set(['target', 'evidence', 'context', 'path', 'correction']);
 const ARTIFACT_FIELDS = new Set(['path', 'digest']);
 const ASSERTION_FIELDS = new Set(['id', 'verdict', 'evidence']);
+const SELF_CHECK_FIELDS = new Set(['verdict', 'findings', 'evidence']);
 const STAGE_RESULT_FIELDS = new Set([
   'resultVersion', 'type', 'changeId', 'stage', 'runId', 'producer', 'inputDigests',
-  'artifacts', 'assertions', 'tecpc', 'status', 'needsDecision', 'completedAt',
+  'artifacts', 'waivers', 'assertions', 'selfCheck', 'tecpc', 'status', 'needsDecision', 'completedAt',
 ]);
 const REVIEW_RESULT_FIELDS = new Set([
   'resultVersion', 'type', 'changeId', 'stage', 'runId', 'parentRunId', 'reviewer',
   'reviewedRunId', 'reviewedArtifacts', 'rubricIds', 'tecpc', 'verdict', 'correction', 'reviewedAt',
+]);
+const COMPLETION_PROOF_FIELDS = new Set([
+  'proofVersion', 'type', 'changeId', 'stage', 'executionRunId', 'reviewRunId', 'taskProofs', 'waivers',
+  'artifacts', 'target', 'evidence', 'context', 'path', 'createdAt',
 ]);
 const HANDOFF_V2_FIELDS = new Set([
   'handoffVersion', 'runId', 'changeId', 'stage', 'behavior', 'role', 'parentRunId',
   'agent', 'tecpc', 'inputRefs', 'inputDigests', 'rubricIds', 'createdAt',
 ]);
 const RESEARCH_PACKET_FIELDS = new Set([
-  'packetVersion', 'type', 'changeId', 'source', 'facts', 'inputRefs', 'inputDigests', 'collectedAt',
+  'packetVersion', 'type', 'changeId', 'source', 'question', 'scope', 'facts', 'uncertainties', 'authority',
+  'fallback', 'degraded', 'recommendedDecision', 'inputRefs', 'inputDigests', 'collectedAt',
 ]);
 const RESEARCH_FACT_FIELDS = new Set(['claim', 'sources']);
 const RESEARCH_SOURCES = new Set(['code-explore', 'doc-research']);
@@ -129,6 +137,39 @@ function validateArtifacts(root, artifacts, field, problems) {
   }
 }
 
+function validateWaivers(waivers, artifacts, field, problems) {
+  if (waivers === undefined) return;
+  if (!Array.isArray(waivers)) {
+    problems.push(`${field} must be an array`);
+    return;
+  }
+  if (waivers.length > 0) {
+    problems.push(
+      `${field}: waivers are disabled until trusted authorization evidence is available`,
+    );
+  }
+  const waiverIds = new Set();
+  for (const [index, waiver] of waivers.entries()) {
+    const waiverField = `${field}[${index}]`;
+    try {
+      validateWaiver(waiver);
+    } catch (error) {
+      problems.push(`${waiverField}: ${error.message}`);
+      continue;
+    }
+    if (waiverIds.has(waiver.waiverId)) problems.push(`${field} must not contain duplicate waiverId ${waiver.waiverId}`);
+    waiverIds.add(waiver.waiverId);
+    const artifact = (artifacts || []).find(({ path }) => path === waiver.artifact.path);
+    if (!artifact) {
+      problems.push(`${waiverField} artifact is not a stage result artifact: ${waiver.artifact.path}`);
+      continue;
+    }
+    if (!isWaiverFresh(waiver, artifact)) {
+      problems.push(`${waiverField} artifact digest is stale: ${waiver.artifact.path}`);
+    }
+  }
+}
+
 function validateAssertions(assertions, problems) {
   if (!Array.isArray(assertions) || assertions.length === 0) {
     problems.push('assertions must be a non-empty array');
@@ -147,6 +188,19 @@ function validateAssertions(assertions, problems) {
   }
 }
 
+function validateSelfCheck(selfCheck, problems) {
+  if (!isObject(selfCheck)) {
+    problems.push('selfCheck is required');
+    return;
+  }
+  rejectUnknownProperties(selfCheck, 'selfCheck', SELF_CHECK_FIELDS, problems);
+  if (!['pass', 'block'].includes(selfCheck.verdict)) problems.push('selfCheck has invalid verdict');
+  if (!Array.isArray(selfCheck.findings) || selfCheck.findings.some((finding) => typeof finding !== 'string' || !finding.trim())) {
+    problems.push('selfCheck.findings must be a string array');
+  }
+  validateStringArray(selfCheck.evidence, 'selfCheck.evidence', problems);
+}
+
 export function validateResearchPacket(root, packet) {
   const problems = [];
   if (!isObject(packet)) return ['research packet must be an object'];
@@ -155,6 +209,21 @@ export function validateResearchPacket(root, packet) {
   if (packet.type !== 'research-packet') problems.push('type must be research-packet');
   if (!String(packet.changeId || '').trim()) problems.push('changeId is required');
   if (!RESEARCH_SOURCES.has(packet.source)) problems.push(`invalid research source ${packet.source}`);
+  if (!String(packet.question || '').trim()) problems.push('question is required');
+  validateStringArray(packet.scope, 'scope', problems);
+  if (!Array.isArray(packet.uncertainties) || packet.uncertainties.some((item) => typeof item !== 'string' || !item.trim())) {
+    problems.push('uncertainties must be a string array');
+  }
+  const expectedAuthority = packet.source === 'code-explore' ? 'codegraph-first' : 'context7-first';
+  if (packet.authority !== expectedAuthority) problems.push(`authority must be ${expectedAuthority}`);
+  if (packet.fallback !== null && (typeof packet.fallback !== 'string' || !packet.fallback.trim())) {
+    problems.push('fallback must be null or a non-empty string');
+  }
+  if (typeof packet.degraded !== 'boolean') problems.push('degraded must be a boolean');
+  if (packet.degraded && packet.fallback === null) problems.push('degraded research requires fallback detail');
+  if (packet.recommendedDecision !== null && (typeof packet.recommendedDecision !== 'string' || !packet.recommendedDecision.trim())) {
+    problems.push('recommendedDecision must be null or a non-empty string');
+  }
   if (!Array.isArray(packet.facts) || packet.facts.length === 0) {
     problems.push('facts must be a non-empty array');
   } else {
@@ -196,11 +265,16 @@ export function validateStageResult(root, result) {
   validateProducer(result.producer, 'producer', problems);
   validateDigestMap(result.inputDigests, 'inputDigests', problems);
   validateArtifacts(root, result.artifacts, 'artifacts', problems);
+  validateWaivers(result.waivers, result.artifacts, 'waivers', problems);
   validateAssertions(result.assertions, problems);
+  validateSelfCheck(result.selfCheck, problems);
   problems.push(...validateTecpc(result.tecpc));
   if (!RESULT_STATUSES.has(result.status)) problems.push(`invalid status ${result.status}`);
   if (result.status === 'pass' && result.assertions?.some((assertion) => assertion?.verdict !== 'pass')) {
     problems.push('pass requires every assertion to pass');
+  }
+  if (result.status === 'pass' && result.selfCheck?.verdict !== 'pass') {
+    problems.push('pass requires selfCheck to pass');
   }
   if (result.status === 'needs_decision' && !String(result.needsDecision || '').trim()) {
     problems.push('needs_decision requires needsDecision');
@@ -247,6 +321,54 @@ export function validateReviewResult(root, result, { stageResult } = {}) {
   return problems;
 }
 
+export function validateCompletionProof(root, proof) {
+  const problems = [];
+  if (!isObject(proof)) return ['completion proof must be an object'];
+  rejectUnknownProperties(proof, 'completion proof', COMPLETION_PROOF_FIELDS, problems);
+  if (proof.proofVersion !== 1) problems.push('proofVersion must be 1');
+  if (proof.type !== 'completion-proof') problems.push('type must be completion-proof');
+  if (!String(proof.changeId || '').trim()) problems.push('changeId is required');
+  if (!STAGES.has(proof.stage)) problems.push(`invalid stage ${proof.stage}`);
+  if (proof.stage === 'implement') {
+    if (!Array.isArray(proof.taskProofs)) {
+      problems.push('implement completion proof requires taskProofs');
+    } else {
+      if (proof.taskProofs.length === 0) problems.push('implement completion proof requires taskProofs');
+      const taskIds = new Set();
+      for (const [index, taskProof] of proof.taskProofs.entries()) {
+      if (!isObject(taskProof)) {
+        problems.push(`taskProofs[${index}] must be an object`);
+        continue;
+      }
+      const taskProofFields = new Set(['taskId', 'executionRunId', 'reviewRunId', 'artifacts']);
+      rejectUnknownProperties(taskProof, `taskProofs[${index}]`, taskProofFields, problems);
+      for (const field of ['taskId', 'executionRunId', 'reviewRunId', 'artifacts']) {
+        if (!(field in taskProof)) problems.push(`taskProofs[${index}] is missing ${field}`);
+      }
+      if (!String(taskProof.taskId || '').trim()) problems.push(`taskProofs[${index}].taskId is required`);
+      if (taskIds.has(taskProof.taskId)) problems.push(`duplicate task proof ${taskProof.taskId}`);
+      taskIds.add(taskProof.taskId);
+      if (!RUN_ID.test(String(taskProof.executionRunId || ''))) problems.push(`taskProofs[${index}].executionRunId is invalid`);
+      if (!RUN_ID.test(String(taskProof.reviewRunId || ''))) problems.push(`taskProofs[${index}].reviewRunId is invalid`);
+      if (taskProof.executionRunId === taskProof.reviewRunId) problems.push(`taskProofs[${index}] requires independent runs`);
+      validateArtifacts(root, taskProof.artifacts, `taskProofs[${index}].artifacts`, problems);
+      }
+    }
+  } else {
+    if (!RUN_ID.test(String(proof.executionRunId || ''))) problems.push('executionRunId must be a v2 run id');
+    if (!RUN_ID.test(String(proof.reviewRunId || ''))) problems.push('reviewRunId must be a v2 run id');
+    if (proof.executionRunId === proof.reviewRunId) problems.push('completion proof requires independent execution and review runs');
+  }
+  validateArtifacts(root, proof.artifacts, 'artifacts', problems);
+  validateWaivers(proof.waivers, proof.artifacts, 'waivers', problems);
+  if (!String(proof.target || '').trim()) problems.push('target is required');
+  validateStringArray(proof.evidence, 'evidence', problems);
+  validateStringArray(proof.context, 'context', problems);
+  if (typeof proof.path !== 'string') problems.push('path must be a string');
+  if (!isIsoDate(proof.createdAt)) problems.push('createdAt must be an ISO timestamp');
+  return problems;
+}
+
 export function validateHandoffV2Contract(input) {
   const problems = [];
   if (!isObject(input)) return ['handoff must be an object'];
@@ -261,6 +383,16 @@ export function validateHandoffV2Contract(input) {
   if (input.role === 'check' && !RUN_ID.test(String(input.parentRunId || ''))) problems.push('check requires parentRunId');
   if (input.role === 'execute' && input.parentRunId !== null) problems.push('execute requires parentRunId=null');
   validateProducer({ agentType: input.agent?.type, skill: input.agent?.skill }, 'agent', problems);
+  if (STAGES.has(input.stage) && ROLES.has(input.role) && String(input.behavior || '').trim()) {
+    try {
+      const expectedAgent = agentForV2Handoff(input.stage, input.behavior, input.role);
+      if (input.agent?.type !== expectedAgent.type || input.agent?.skill !== expectedAgent.skill) {
+        problems.push(`agent must be ${expectedAgent.type} with skill ${expectedAgent.skill}`);
+      }
+    } catch (error) {
+      problems.push(error.message);
+    }
+  }
   problems.push(...validateTecpc(input.tecpc, { allowEmpty: true }));
   if (!Array.isArray(input.inputRefs) || input.inputRefs.some((ref) => typeof ref !== 'string' || !ref.trim())) {
     problems.push('inputRefs must be a string array');

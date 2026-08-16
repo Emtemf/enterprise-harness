@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const STAGES = ['clarify', 'route', 'design', 'plan', 'tdd', 'verify', 'archive'];
+const STAGES = ['clarify', 'design', 'plan', 'implement', 'verify', 'archive'];
 
 export function artifactDependencies() {
   return Object.freeze({

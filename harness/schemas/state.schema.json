@@ -9,7 +9,7 @@
     "changeId",
     "lifecycle",
     "stage",
-    "impact",
+    "artifacts",
     "validation"
   ],
   "properties": {
@@ -21,26 +21,32 @@
     "owner": { "type": ["string", "null"] },
     "goal": { "type": ["string", "null"] },
     "controller": { "type": "object", "additionalProperties": true },
-    "sessionBinding": { "type": ["object", "null"], "additionalProperties": true },
-    "changeLock": { "type": ["object", "null"], "additionalProperties": true },
-    "impact": {
-      "type": "object",
-      "required": ["api", "data", "architecture", "rule", "security"],
-      "properties": {
-        "api": { "enum": ["yes", "no", "unknown"] },
-        "data": { "enum": ["yes", "no", "unknown"] },
-        "architecture": { "enum": ["yes", "no", "unknown"] },
-        "rule": { "enum": ["yes", "no", "unknown"] },
-        "security": { "enum": ["yes", "no", "unknown"] }
-      },
-      "additionalProperties": false
-    },
-    "classification": { "type": ["object", "null"], "additionalProperties": true },
     "currentTask": { "type": ["string", "null"] },
     "executionStrategy": { "type": ["string", "null"], "enum": ["tdd", "regression", "characterization", "direct", "migration", "generation", null] },
-    "artifacts": { "type": "object", "additionalProperties": true },
+    "artifacts": {
+      "type": "object",
+      "required": ["classification"],
+      "properties": {
+        "classification": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["path", "digest"],
+              "properties": {
+                "path": { "type": "string", "pattern": "^harness/changes/[A-Za-z0-9][A-Za-z0-9._-]*/classification\\.json$" },
+                "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
     "blocker": { "type": ["object", "null"], "additionalProperties": true },
     "tooling": { "type": "object", "additionalProperties": true },
+    "migration": { "type": "object", "additionalProperties": true },
     "validation": {
       "type": "object",
       "required": ["status", "digest", "validatedAt"],

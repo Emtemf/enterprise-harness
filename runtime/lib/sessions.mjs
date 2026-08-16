@@ -5,6 +5,36 @@ import { atomicWriteJson, withFileLock } from './state-store.mjs';
 import { ensureRuntimePaths, runtimePaths } from './runtime-paths.mjs';
 import { assertSafeId } from './safe-paths.mjs';
 
+function validateStoredBinding(input, expectedSessionId) {
+  if (!input || input.schemaVersion !== 1) throw new Error('invalid schemaVersion');
+  const sessionId = assertSafeId(input.sessionId, 'sessionId');
+  if (sessionId !== expectedSessionId) throw new Error('sessionId mismatch');
+  const changeId = assertSafeId(input.changeId, 'changeId');
+  for (const [name, value] of [
+    ['worktreePath', input.worktreePath],
+    ['controllerRevision', input.controllerRevision],
+  ]) {
+    if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) {
+      throw new Error(`${name} is required`);
+    }
+  }
+  const worktreePath = path.resolve(input.worktreePath);
+  const subjectRoot = path.resolve(input.subjectRoot || input.worktreePath);
+  if (!path.isAbsolute(worktreePath) || !path.isAbsolute(subjectRoot)) {
+    throw new Error('binding roots must be absolute');
+  }
+  if (!Number.isFinite(input.leaseExpiresAt)) throw new Error('leaseExpiresAt is required');
+  if (typeof input.boundAt !== 'string' || input.boundAt.length === 0) throw new Error('boundAt is required');
+  return {
+    ...input,
+    schemaVersion: 1,
+    sessionId,
+    changeId,
+    worktreePath,
+    subjectRoot,
+  };
+}
+
 function normalizeBinding(input) {
   const sessionId = assertSafeId(input?.sessionId, 'sessionId');
   const changeId = assertSafeId(input?.changeId, 'changeId');
@@ -83,10 +113,18 @@ export function bindSession(root, input, options = {}) {
 }
 
 export function readSession(root, sessionId, options = {}) {
+  const normalizedSessionId = assertSafeId(sessionId, 'sessionId');
   const paths = runtimePaths(root, options);
-  const file = paths.sessionPath(sessionId);
+  const file = paths.sessionPath(normalizedSessionId);
   if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, 'utf-8'));
+  try {
+    return validateStoredBinding(
+      JSON.parse(fs.readFileSync(file, 'utf-8')),
+      normalizedSessionId,
+    );
+  } catch {
+    return null;
+  }
 }
 
 export function listSessions(root, options = {}) {
@@ -95,7 +133,8 @@ export function listSessions(root, options = {}) {
   return fs.readdirSync(paths.sessionDir)
     .filter((name) => name.endsWith('.json'))
     .sort()
-    .map((name) => JSON.parse(fs.readFileSync(path.join(paths.sessionDir, name), 'utf-8')));
+    .map((name) => readSession(root, name.slice(0, -5), options))
+    .filter(Boolean);
 }
 
 export function unbindSession(root, sessionId, options = {}) {

@@ -12,11 +12,12 @@ const DEVELOPMENT_ONLY_REQUIRED_PATHS = new Set([
   'CLAUDE.md',
   '.claude/settings.json',
   'harness/changes',
+  'harness/policy.json',
 ]);
 
-// 发布包刻意不包含 harness/changes/**。本地开发验证仍必须审计全部 change
+// 发布包刻意不包含开发态 change 与源仓库 policy。开发验证仍必须审计这些
 // 资产；发布验证只审计会进入包的 runtime、spec、template 与 plugin 合同，不能让
-// 一个未归档的开发 change 伪装成已发布内容或反过来阻断可发布的包。
+// 一个未归档的 change 伪装成已发布内容，也不能反向要求发布包携带源策略。
 function validateReleaseSurfaceStructure(repoRoot) {
   return validateStructure(repoRoot)
     .filter((missing) => !DEVELOPMENT_ONLY_REQUIRED_PATHS.has(missing.path));

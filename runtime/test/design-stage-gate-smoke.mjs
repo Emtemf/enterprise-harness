@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateDesignStageGate } from '../lib/stage-results.mjs';
+import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -41,6 +42,7 @@ try {
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -75,6 +77,8 @@ try {
     reviewedAt: '2026-08-14T00:00:01.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
+  appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
+  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-review' });
 
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
 

@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import {
+  V6_CAPABILITY_AGENT_TYPES,
+  isV6CapabilityAgentType,
+} from '../lib/agent-evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
@@ -20,11 +24,16 @@ const check = () => {
     assert.match(text, /^---[\s\S]*?^name:\s*\S+/mu);
     if (skill !== 'harness') assert.match(text, /^user-invocable:\s*false$/mu, `${skill} is methodology, not a user entry`);
   }
+  assert.deepEqual([...V6_CAPABILITY_AGENT_TYPES], agents);
   for (const agent of agents) {
     const text = read(`agents/${agent}.md`);
     assert.match(text, new RegExp(`^name:\\s*${agent}$`, 'm'));
     assert.doesNotMatch(text, new RegExp(`^name:\\s*enterprise-harness:${agent}$`, 'm'));
+    assert.equal(isV6CapabilityAgentType(agent), true);
+    assert.equal(isV6CapabilityAgentType(`enterprise-harness:${agent}`), true);
   }
+  assert.equal(isV6CapabilityAgentType('enterprise-harness:tdd-executor'), false);
+  assert.equal(isV6CapabilityAgentType('enterprise-harness:design-executor'), false);
   assert.match(read('agents/implementer.md'), /^isolation:\s*worktree$/m);
   assert.ok(read('agents/code-explore.md').includes('name: code-explore'));
   assert.match(read('skills/harness/SKILL.md'), /AskUserQuestion/u);

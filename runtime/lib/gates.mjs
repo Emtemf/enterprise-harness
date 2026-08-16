@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { migrateAndPersist } from './state-migration.mjs';
-import { readSession, sessionIdFromEnv } from './sessions.mjs';
+import { readSession, sessionIdFromEnv, isSessionLeaseExpired } from './sessions.mjs';
 import { loadProjectProfile } from './project-profile.mjs';
 
 export function loadActiveChange(root, options = {}) {
@@ -11,6 +11,15 @@ export function loadActiveChange(root, options = {}) {
   if (sessionId) {
     const binding = readSession(root, sessionId, options);
     if (!binding) return { ok: false, reason: 'missing-session-binding', sessionId };
+    if (isSessionLeaseExpired(binding)) {
+      return {
+        ok: false,
+        reason: 'expired-session-lease',
+        errorCode: 'EH-SESSION-LEASE-023',
+        sessionId,
+        changeId: binding.changeId,
+      };
+    }
     const currentRoot = canonicalPath(root);
     const bindingRoot = canonicalPath(binding.worktreePath);
     const subjectRoot = canonicalPath(binding.subjectRoot || binding.worktreePath);

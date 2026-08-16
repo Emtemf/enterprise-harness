@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {
   appendAgentEvent,
   isHarnessAgentType,
@@ -13,6 +14,68 @@ import {
 } from '../handoff.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
 import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
+import { loadHandoffV2, v2ResultPath } from '../../core/handoff-v2.mjs';
+
+function completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw, cwd, message }) {
+  const events = readAgentEvents(repoRoot, changeId);
+  const stoppedRuns = new Set(events
+    .filter((item) => item.kind === 'stop' && item.agentId === event.agent_id)
+    .map((item) => item.runId));
+  const candidates = events.filter((item) => (
+    item.kind === 'dispatch'
+    && item.sessionId === event.session_id
+    && item.requestedAgentType === normalized
+    && !stoppedRuns.has(item.runId)
+  )).flatMap((dispatch) => {
+    try {
+      const input = loadHandoffV2(repoRoot, changeId, dispatch.runId);
+      const resultPath = v2ResultPath(repoRoot, changeId, input.runId, input.role);
+      return fs.existsSync(resultPath) ? [{ dispatch, input, resultPath }] : [];
+    } catch {
+      return [];
+    }
+  });
+  if (candidates.length !== 1) {
+    const problems = [`expected one persisted v2 result for the active agent dispatch, found ${candidates.length}`];
+    appendAgentEvent(repoRoot, changeId, {
+      kind: 'violation',
+      violation: 'missing-or-ambiguous-v2-result',
+      sessionId: event.session_id,
+      agentId: event.agent_id,
+      observedAgentType: normalized,
+      rawObservedAgentType: observedRaw,
+      errorCode: 'EH-SUBAGENT-RESULT-004',
+      problems,
+      transcriptDigest: sha256(message),
+      cwd,
+    });
+    if (event.stop_hook_active) return { exitCode: 0 };
+    return {
+      exitCode: 0,
+      stdout: `${JSON.stringify({
+        decision: 'block',
+        reason: formatDiagnostic('EH-SUBAGENT-RESULT-004', problems[0], { changeId }),
+      })}\n`,
+    };
+  }
+  const [{ dispatch, input, resultPath }] = candidates;
+  appendAgentEvent(repoRoot, changeId, {
+    kind: 'stop',
+    sessionId: event.session_id,
+    agentId: event.agent_id,
+    observedAgentType: normalized,
+    rawObservedAgentType: observedRaw,
+    runId: input.runId,
+    behavior: input.behavior,
+    handoffRole: input.role,
+    handoffPath: resultPath,
+    parentRunId: input.parentRunId,
+    transcriptDigest: sha256(message),
+    cwd,
+  });
+  void dispatch;
+  return { exitCode: 0 };
+}
 
 export function subagentStop({ root, event }) {
   const observedRaw = String(event.agent_type || '').trim();
@@ -25,6 +88,18 @@ export function subagentStop({ root, event }) {
   const repoRoot = hookRepoRoot(root, event);
   const changeId = hookChangeId(repoRoot, event);
   if (!changeId || !event.agent_id) return { exitCode: 0 };
+  const hasV2Dispatch = readAgentEvents(repoRoot, changeId).some((item) => {
+    if (item.kind !== 'dispatch' || item.sessionId !== event.session_id
+      || item.requestedAgentType !== normalized) return false;
+    try {
+      return loadHandoffV2(repoRoot, changeId, item.runId).handoffVersion === 2;
+    } catch {
+      return false;
+    }
+  });
+  if (hasV2Dispatch) {
+    return completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw, cwd, message });
+  }
 
   const parsed = parseHandoffResult(message);
   const runId = parsed.value?.runId || null;

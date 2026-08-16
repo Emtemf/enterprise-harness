@@ -12,8 +12,11 @@ export const STAGE_ORDER = ['clarify', 'design', 'plan', 'implement', 'verify', 
 export const STAGE_CONTRACTS = Object.freeze({
   clarify: {
     artifacts: ['requirements.md'],
-    state: (data) => [['classification', Boolean(data.classification?.tier && data.classification?.impact)]],
-    resultGate: null,
+    state: (data) => [[
+      'artifacts.classification',
+      Boolean(data.artifacts?.classification?.path && data.artifacts?.classification?.digest),
+    ]],
+    resultGate: 'clarify',
   },
   design: {
     artifacts: ['design.md'],
@@ -23,12 +26,12 @@ export const STAGE_CONTRACTS = Object.freeze({
   plan: {
     artifacts: ['tasks.md'],
     state: () => [],
-    resultGate: null,
+    resultGate: 'plan',
   },
   implement: {
     artifacts: [],
     state: (data) => [['currentTask', Boolean(String(data.currentTask || '').trim())]],
-    resultGate: null,
+    resultGate: 'implement',
   },
   verify: {
     artifacts: ['validation.md'],
@@ -36,12 +39,12 @@ export const STAGE_CONTRACTS = Object.freeze({
       ['validation.status', data.validation?.status === 'fresh'],
       ['validation.digest', Boolean(String(data.validation?.digest || '').trim())],
     ],
-    resultGate: null,
+    resultGate: 'verify',
   },
   archive: {
     artifacts: [],
     state: () => [],
-    resultGate: null,
+    resultGate: 'archive',
   },
 });
 

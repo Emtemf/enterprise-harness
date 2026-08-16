@@ -1,14 +1,41 @@
 ---
 name: archive
-description: 校验完成证据并归档不可变的变更历史。
+description: 校验 fresh CompletionProof 后归档不可变的变更历史。
 user-invocable: false
 context: fork
+agent: enterprise-harness:artifact-worker
+background: false
 ---
 
 # Archive
 
-只有 fresh verification 与独立 archive-completeness review 满足 completion predicate 后才可归档。将 durable artifact 保留为不可变历史；只在物理移动后清理 compatibility pointer；未完成工作必须显式 abandon。
+本 Skill 是 Archive 阶段的完成性检查合同。它不制造验证结论，也不接受聊天中的“已完成”；只消费
+runtime 生成的 fresh CompletionProof、验证 artifact 和独立 archive-completeness review。未满足条件的
+change 必须保持 active 或显式 abandon，绝不能伪装归档。
 
-## Self-check
+## 归档前检查
 
-确认不存在 stale artifact、所有必需 TECPC/review 均已存在，且 source/destination path 安全。未解决 waiver 或范围决策时返回 `NEEDS_DECISION`。
+1. 验证当前 state 已由 runtime 推进到 `archive`；`archive` 命令必须先在 `verify` 阶段验证并持久化 fresh Verify CompletionProof，然后只推进 stage，不做物理移动。
+2. 读取并重新校验 Verify CompletionProof：execution run、review run、artifact/input digest、TECPC 与
+   `validation.status=fresh` 必须全部匹配当前 durable 文件。
+3. 确认所有适用 rubrics、receipt、scope decisions 和 required artifacts 已闭合；stale、missing、
+   `block`、任何非空 waiver 或 `unsupported` 一律阻断。
+4. 自检源/目标路径安全、归档目标不存在、历史目录不会覆盖；归档 evidence 不得从 `harness/archive/**`
+   修改或补造。
+
+## 质量闭环
+
+- 产出 archive StageResult：先运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，
+  它检查 verify CompletionProof 与 archive inputs；再用
+  `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
+  持久化 assertions、`selfCheck` 与 TECPC。
+- Main 创建独立 `review` check run；archive worker 的自检不是完成 verdict。
+- runtime 验证 fresh Archive StageResult + independent ReviewResult 后，Main 必须运行
+  `node runtime/lifecycle.mjs archive-finalize <change-id>`；该命令生成 Archive CompletionProof、CAS 更新
+  lifecycle、物理移动 change 并清理 compatibility pointer。移动后历史不可变。
+
+## 边界
+
+- 只清理 compatibility pointer，session/lease/lock 属于 common-dir coordination，不属于归档业务证据。
+- 不可逆/未完成内容使用 `abandon <changeId> <reason>`，保留原因和证据。
+- 需要用户决定保留、waive 或 abandon 的情况，返回明确 `NEEDS_DECISION` 给 Main；不自行询问用户。

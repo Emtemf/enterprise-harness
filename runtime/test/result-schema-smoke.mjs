@@ -14,6 +14,10 @@ const schemas = [
   ['review-result.schema.json', 'review-result'],
   ['tecpc.schema.json', null],
   ['handoff-v2.schema.json', null],
+  ['completion-proof.schema.json', 'completion-proof'],
+  ['waiver.schema.json', null],
+  ['task-execution-receipt.schema.json', null],
+  ['state.schema.json', null],
 ];
 
 for (const [name, type] of schemas) {

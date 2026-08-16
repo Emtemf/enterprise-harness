@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { assertSafeId, assertSafeRunId, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
+import { assertSafeId, assertSafeRunId, pathIsWithin, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
 import { gitCommonDir, normalizeAgentType } from '../lib/agent-evidence.mjs';
 import { atomicWriteJson } from '../lib/state-store.mjs';
 import { selectReviewRubrics } from '../lib/review-rubrics.mjs';
@@ -197,7 +197,7 @@ export function loadHandoffV2FromMarker(root, markerPath, expected = {}) {
   const problems = [];
   const absolute = path.resolve(root, markerPath || '');
   const commonRuns = path.join(gitCommonDir(root), 'enterprise-harness', 'runs');
-  if (!absolute.startsWith(`${commonRuns}${path.sep}`)) {
+  if (!pathIsWithin(absolute, commonRuns)) {
     return { ok: false, path: absolute, problems: ['input path is outside v2 common-dir runs'] };
   }
   if (!fs.existsSync(absolute)) return { ok: false, path: absolute, problems: ['input file does not exist'] };

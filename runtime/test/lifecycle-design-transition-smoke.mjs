@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -18,6 +20,12 @@ const changeId = 'design-transition';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const designRef = `harness/changes/${changeId}/design.md`;
+let classificationReference;
+const {
+  ENTERPRISE_HARNESS_SESSION_ID: _enterpriseHarnessSessionId,
+  CLAUDE_SESSION_ID: _claudeSessionId,
+  ...unboundEnv
+} = process.env;
 
 function state() {
   return {
@@ -26,9 +34,7 @@ function state() {
     changeId,
     lifecycle: 'active',
     stage: 'design',
-    impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
-    classification: { tier: 'L1', impact: 'low' },
-    artifacts: {},
+    artifacts: { classification: classificationReference },
     validation: { status: 'stale', digest: null, validatedAt: null },
   };
 }
@@ -38,15 +44,29 @@ function advance() {
     cwd: root,
     encoding: 'utf-8',
     shell: false,
+    env: unboundEnv,
   });
 }
 
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
+  classificationReference = writeClassificationArtifact(root, changeId, {
+    impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
+    decision: { tier: 'L1' },
+  });
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Design transition\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state(), null, 2)}\n`);
+
+  const directArchive = spawnSync(process.execPath, [lifecycle, 'state', changeId, 'archive'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: unboundEnv,
+  });
+  assert.equal(directArchive.status, 2, directArchive.stderr || directArchive.stdout);
+  assert.match(`${directArchive.stdout}\n${directArchive.stderr}`, /必须通过 archive 命令/u);
 
   const blocked = advance();
   assert.equal(blocked.status, 2, blocked.stderr || blocked.stdout);
@@ -78,6 +98,7 @@ try {
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -112,6 +133,8 @@ try {
     reviewedAt: '2026-08-14T00:00:01.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
+  appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
+  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-design-review' });
 
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);

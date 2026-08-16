@@ -1,65 +1,58 @@
-# Draft Tasks (Pending Design Approval)
+# Tasks
 
 Status: draft-plan
 
-> 当 design 已批准、`tasks.md` 被正式消费为 plan/task artifact，且 `plan-critic` verdict 非 `block` 后，再改为 `# Tasks`。
+> `tasks.md` is the immutable execution plan for the current design digest. Each task is independently executable and must name an execution strategy. A task is not frozen until its StageResult and independent review bind the current design digest.
 
-## Role Ownership
-- 主导角色：Fullstack Developer 视角
-- 参与角色：Quality Engineer
-- 本阶段交接物：开发详细设计 / 代码级执行切片 `tasks.md`
+## Plan inputs
 
-- clarify-ready:
-- design-approved:
-- plan-critic verdict:
-- current active change:
+- Design artifact: `harness/changes/<change-id>/design.md`
+- Design digest:
+- Classification artifact digest:
+- Plan review run:
 
-### Task 1: <任务名>
+## Task 1: <task-id — concise outcome>
 
-**Files**
-- Create: `<absolute-path>`
-- Modify: `<absolute-path>`
-- Test: `<absolute-path>`
+### Target and scope
 
-**Consumes**
-- <artifact / state / verdict>
+- Goal:
+- Modify:
+- Create:
+- Test:
+- Out of scope:
 
-**Produces**
-- <artifact / state / behavior>
+### Frozen inputs
 
-**Implementation Order**
-1.
-2.
-3.
+- Consumes:
+- Input digests:
+- Design decisions/requirements:
 
-**Execution Strategy**
-- `tdd` | `regression` | `characterization` | `direct` | `migration` | `generation`
-- 选择理由：
+### Execution strategy
 
-**Strategy Evidence Point**
-- `tdd`: RED（失败）→ GREEN → REFACTOR
-- `regression`: REPRODUCE（复现失败）→ VERIFY
-- `characterization`: BASELINE → VERIFY
-- `direct`: VERIFY
-- `migration`: DRY_RUN → APPLY → ROLLBACK
-- `generation`: GENERATE → VERIFY
+- Strategy: `tdd` | `regression` | `characterization` | `direct` | `migration` | `generation`
+- Why this strategy fits:
+- Strategy-specific precondition and receipt:
+  - `tdd`: a focused test is written and observed RED before GREEN → REFACTOR.
+  - `regression`: a known defect is REPRODUCEd before VERIFYing the fix.
+  - `characterization`: baseline behavior is captured before VERIFYing preserved behavior.
+  - `direct`: explicitly state why a RED receipt is not applicable and record VERIFY.
+  - `migration`: record DRY_RUN → APPLY → ROLLBACK.
+  - `generation`: record GENERATE → VERIFY.
 
-**Frozen Validation Command**
-- Primary command:
-- Why this command is authoritative for the target project:
+### Commands and verification
 
-**Acceptance Checks**
-- [ ]
-- [ ]
+- Frozen primary argv:
+- Additional argv:
+- Expected result:
+- Acceptance checks:
+- Recovery/rollback:
 
-**Review Target**
-- Reviewer:
-- Output:
+### Independent review
 
-- [ ] 写失败测试
-- [ ] 运行 RED 命令
-- [ ] 实现最小 GREEN 改动
-- [ ] 运行 GREEN 命令
-- [ ] 在全绿状态下重构
-- [ ] 运行定向验证
-- [ ] 运行 task review
+- Applicable rubrics:
+- Reviewer input artifacts:
+- Review completion condition:
+
+---
+
+Add one complete section per independently executable task. Do not use placeholders in a frozen plan.

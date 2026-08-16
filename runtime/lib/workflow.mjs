@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { auditWorkflow } from './workflow-audit.mjs';
+import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 
 const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
 
@@ -38,7 +39,13 @@ function hasPersistedClassification(data) {
   );
 }
 
-export function classificationFor(data) {
+export function classificationFor(data, root = null, changeId = null) {
+  if (data?.schemaVersion === 6) {
+    if (!root || !changeId || !data.artifacts?.classification) {
+      throw new Error('EH-CLASSIFICATION-AUTHORITY-005: v6 classification artifact reference is required');
+    }
+    return readClassificationArtifact(root, changeId, data.artifacts.classification);
+  }
   if (hasPersistedClassification(data)) {
     return data.classification || data.workflow.classification;
   }
@@ -94,7 +101,7 @@ export function recommendNextEntry(stage, data = null) {
   }
 }
 
-export function recommendExplorationLane(stage, data = null) {
+export function recommendExplorationLane(stage, data = null, classification = null) {
   if (!stage) return null;
   if (stage === 'clarify') {
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
@@ -102,7 +109,8 @@ export function recommendExplorationLane(stage, data = null) {
   }
   if (stage === 'classify') return 'code-explore';
   if (stage === 'design') {
-    if (data?.impact?.api === 'yes' || data?.impact?.data === 'yes') return 'code-explore';
+    const impact = classification?.impact || data?.impact || {};
+    if (impact.api === 'yes' || impact.data === 'yes' || impact.api === true || impact.data === true) return 'code-explore';
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
     return 'code-explore';
   }
@@ -241,8 +249,9 @@ export function inferRunnerStatus(stage, pendingDecision) {
 
 export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness = () => false) {
   const stage = inferWorkflowStage(changeId, data);
+  const classification = classificationFor(data, root, changeId);
   const nextEntry = recommendNextEntry(stage, data);
-  const recommendedLane = recommendExplorationLane(stage, data);
+  const recommendedLane = recommendExplorationLane(stage, data, classification);
   const currentGap = inferCurrentGap(root, changeId, data, stage);
   const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap, shouldSuppressExecutionReadiness);
   const nextAction = recommendNextAction(changeId, data, stage, currentGap, pendingDecision);
@@ -276,7 +285,6 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const auditGap = firstAuditBlocker
     ? `已完成阶段${firstBlockedStage ? ` ${firstBlockedStage}` : ''} 的权威证据审计失败：${firstAuditBlocker.code} ${firstAuditBlocker.message}；恢复：${firstAuditBlocker.recovery}`
     : currentGap;
-  const classification = classificationFor(data);
   return {
     changeId,
     classification,

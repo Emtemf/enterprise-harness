@@ -1,9 +1,23 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { atomicWriteJson } from '../lib/state-store.mjs';
 import { validateV6State } from '../core/change-state.mjs';
+import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
 
 function readJson(statePath) {
   return JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+}
+
+function projectRootForState(statePath, changeId) {
+  const changeDir = path.dirname(statePath);
+  const changesDir = path.dirname(changeDir);
+  const harnessDir = path.dirname(changesDir);
+  if (path.basename(changeDir) !== changeId
+    || path.basename(changesDir) !== 'changes'
+    || path.basename(harnessDir) !== 'harness') {
+    throw new Error('EH-V5-MIGRATE-023: state path must be harness/changes/<changeId>/state.json');
+  }
+  return path.dirname(harnessDir);
 }
 
 function stageForLegacyState(state) {
@@ -27,12 +41,7 @@ export function migrateV5State(statePath, { confirm = false } = {}) {
     throw new Error('EH-V5-MIGRATE-021: only active changes may migrate; archived history is read-only');
   }
   const impact = source.impact || {};
-  const next = {
-    schemaVersion: 6,
-    revision: 1,
-    changeId: source.changeId,
-    lifecycle: 'active',
-    stage: stageForLegacyState(source),
+  const classification = {
     impact: {
       api: impact.api || 'unknown',
       data: impact.data || 'unknown',
@@ -40,7 +49,19 @@ export function migrateV5State(statePath, { confirm = false } = {}) {
       rule: impact.rule || 'unknown',
       security: impact.security || 'unknown',
     },
-    artifacts: {},
+    ...(source.classification && typeof source.classification === 'object'
+      ? { decision: { ...source.classification } }
+      : {}),
+  };
+  const root = projectRootForState(statePath, source.changeId);
+  const classificationReference = writeClassificationArtifact(root, source.changeId, classification);
+  const next = {
+    schemaVersion: 6,
+    revision: 1,
+    changeId: source.changeId,
+    lifecycle: 'active',
+    stage: stageForLegacyState(source),
+    artifacts: { classification: classificationReference },
     validation: { status: 'stale', digest: null, validatedAt: null },
     migration: {
       sourceSchemaVersion: 5,

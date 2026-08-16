@@ -4,17 +4,63 @@ import { isGovernedTarget } from '../gates.mjs';
 import { stageGateIsFresh, validateDynamicWriteGates } from '../execution-prerequisites.mjs';
 import { extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
 import { captureGovernedSnapshot, writeHookSnapshot } from '../hook-snapshots.mjs';
+import { validateTaskRunLauncher } from '../task-run-authorization.mjs';
+import { boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 
 export function preWrite({ root, event }) {
   if (dedupGuard('pre-write', event.tool_use_id, event.cwd)) return { exitCode: 0 };
 
+  const activeForRunner = loadHookChange(root, event);
+  const agentId = String(event.agent_id || '').trim();
+  const v6Implementer = activeForRunner.ok
+    && activeForRunner.data?.schemaVersion === 6
+    && activeForRunner.data?.stage === 'implement'
+    && boundHarnessAgent(
+      root,
+      activeForRunner.changeId,
+      agentId,
+      'enterprise-harness:implementer',
+    );
+  if (event.tool_name === 'Bash' && v6Implementer) {
+    const launcher = validateTaskRunLauncher(
+      root,
+      event.tool_input?.command,
+      event,
+    );
+    if (!launcher.ok) {
+      return block(
+        root,
+        `受治理 implementer 的 Bash 只能启动 canonical task-run：${launcher.problems.join(' | ')}`,
+        activeForRunner,
+      );
+    }
+    const stageGate = stageGateIsFresh(
+      root,
+      activeForRunner.changeId,
+      activeForRunner.data,
+    );
+    if (!stageGate.fresh) {
+      return block(
+        root,
+        `静态阶段链未通过验证（${stageGate.reason}）。先运行: enterprise-harness validate ${activeForRunner.changeId}`,
+        activeForRunner,
+      );
+    }
+    try {
+      writeHookSnapshot(root, event.tool_use_id, captureGovernedSnapshot(root));
+    } catch (error) {
+      return block(root, `EH-HOOK-SNAPSHOT-010 无法建立 task-run 写入前快照：${error.message}`);
+    }
+    return { exitCode: 0 };
+  }
+
   if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
     try {
       writeHookSnapshot(root, event.tool_use_id, captureGovernedSnapshot(root));
     } catch (error) {
-      return block(`EH-HOOK-SNAPSHOT-010 无法建立 Bash 写入前快照：${error.message}`);
+      return block(root, `EH-HOOK-SNAPSHOT-010 无法建立 Bash 写入前快照：${error.message}`);
     }
   }
 

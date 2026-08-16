@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/waiver.schema.json",
+  "title": "Enterprise Harness Waiver",
+  "type": "object",
+  "required": ["schemaVersion", "waiverId", "rule", "scope", "reason", "approvedBy", "artifact", "createdAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "waiverId": { "type": "string", "minLength": 1 },
+    "rule": { "enum": ["RESEARCH_CODEGRAPH_REQUIRED", "RESEARCH_CONTEXT7_REQUIRED", "TDD_REQUIRED", "GENERATED_CODE", "CONFIGURATION_NOT_TESTABLE", "MIGRATION_EXCEPTION"] },
+    "scope": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "minLength": 1 },
+    "approvedBy": { "type": "string", "minLength": 1 },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "digest"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

@@ -25,9 +25,9 @@ try {
   const manifest = JSON.parse(fs.readFileSync(path.join(extract, 'manifest-files.json'), 'utf-8'));
   assert.equal(manifest.version, expectedVersion);
   assert.equal(
-    manifest.files.some((entry) => /^(?:harness\/(?:archive|changes|work|lessons)|PROGRESS\.md)/u.test(entry.path)),
+    manifest.files.some((entry) => /^(?:harness\/(?:archive|changes|work|lessons)|harness\/policy\.json|PROGRESS\.md)/u.test(entry.path)),
     false,
-    'artifact contains a forbidden development asset',
+    'artifact contains a forbidden development or source-policy asset',
   );
   const releaseVerification = spawnSync(process.execPath, ['runtime/verify.mjs', '--release-surface', '--json'], {
     cwd: extract,

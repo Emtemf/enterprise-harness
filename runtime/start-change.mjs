@@ -63,12 +63,12 @@ console.log(`Repo: ${repoRoot}`);
 console.log(`changeId=${changeId} owner=${owner} tier=${tier}`);
 
 assertSessionCanBind();
+bindCurrentSession();
 run(['scaffold', changeId, owner, tier, topic]);
 if (topic && topic !== '-' && topic !== 'none') {
   run(['exploration', changeId, topic]);
 }
 run(['active', changeId]);
-bindCurrentSession();
 
 console.log('Next Steps:');
 console.log('- 在 Claude Code 会话中，从 /harness 继续推进 clarify。');

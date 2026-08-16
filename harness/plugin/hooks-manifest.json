@@ -25,7 +25,7 @@
         "timeout": 30,
         "performanceBudgetMs": 150,
         "failMode": "fail-closed",
-        "statusMessage": "执行写入前治理检查"
+        "statusMessage": "保护受治理写入边界"
       },
       {
         "matcher": "Grep|Read|Glob|Bash",
@@ -43,7 +43,7 @@
         "timeout": 10,
         "performanceBudgetMs": 100,
         "failMode": "fail-open",
-        "statusMessage": "记录代码与文档研究证据"
+        "statusMessage": "记录研究工具证据"
       },
       {
         "matcher": "Write|Edit|NotebookEdit|Bash",
@@ -51,7 +51,7 @@
         "timeout": 60,
         "performanceBudgetMs": 500,
         "failMode": "fail-closed",
-        "statusMessage": "执行写入后治理检查"
+        "statusMessage": "记录受治理写入边界"
       }
     ],
     "PostToolUseFailure": [
