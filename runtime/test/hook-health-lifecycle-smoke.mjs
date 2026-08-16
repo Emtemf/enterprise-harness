@@ -3,13 +3,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { bindSession } from '../lib/sessions.mjs';
 import { recordHookHealth } from '../lib/hook-health.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
-const sourceRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
+const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-hook-health-lifecycle-'));
 const changeId = 'health-transition';

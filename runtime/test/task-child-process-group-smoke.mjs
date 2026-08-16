@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { withRecoverableTaskLock } from '../lib/task-lock.mjs';
 
 const mode = process.argv[2] || 'verify';
@@ -15,7 +16,7 @@ const intentPath = path.join(root, 'intent.json');
 const authorizationPath = path.join(root, 'authorization.json');
 const targetPath = path.join(root, 'detached-write.txt');
 const childPath = path.join(root, 'child.mjs');
-const wrapperPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'task-child.mjs');
+const wrapperPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'task-child.mjs');
 
 try {
   fs.writeFileSync(childPath, [

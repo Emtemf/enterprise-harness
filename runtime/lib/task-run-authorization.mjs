@@ -42,7 +42,7 @@ function tokenize(command) {
     }
     if (quote && input[index] !== quote) return null;
     const token = input.slice(start, index);
-    if (!token || token.includes('\\')) return null;
+    if (!token) return null;
     tokens.push(token);
     if (quote) index += 1;
   }

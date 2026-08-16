@@ -19,26 +19,51 @@ function processGroupAlive(pid) {
 }
 
 function tokenProcessIds(token) {
-  if (process.platform !== 'linux') return [];
+  if (!['linux', 'darwin'].includes(process.platform)) return [];
   const ids = [];
-  let entries;
+  let output;
+  if (process.platform === 'linux') {
+    let entries;
+    try {
+      entries = fs.readdirSync('/proc', { withFileTypes: true });
+    } catch {
+      return ids;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !/^\d+$/u.test(entry.name)) continue;
+      const pid = Number(entry.name);
+      if (pid === process.pid) continue;
+      try {
+        const environment = fs.readFileSync(`/proc/${pid}/environ`);
+        if (environment.toString('utf-8').split('\0').includes(
+          `ENTERPRISE_HARNESS_TASK_AUTH_TOKEN=${token}`,
+        )) ids.push(pid);
+      } catch (error) {
+        if (!['ENOENT', 'EACCES', 'ESRCH'].includes(error.code)) throw error;
+      }
+    }
+    return ids;
+  }
+
+  // macOS has no /proc, but BSD ps can include the process environment.
+  // Do not pass the token to ps itself, otherwise every scan would observe
+  // the short-lived inspection process as a matching task descendant.
   try {
-    entries = fs.readdirSync('/proc', { withFileTypes: true });
+    const env = { ...process.env };
+    delete env.ENTERPRISE_HARNESS_TASK_AUTH_TOKEN;
+    output = spawnSync('ps', ['-axeww', '-o', 'pid=,command='], {
+      encoding: 'utf-8',
+      env,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).stdout || '';
   } catch {
     return ids;
   }
-  for (const entry of entries) {
-    if (!entry.isDirectory() || !/^\d+$/u.test(entry.name)) continue;
-    const pid = Number(entry.name);
-    if (pid === process.pid) continue;
-    try {
-      const environment = fs.readFileSync(`/proc/${pid}/environ`);
-      if (environment.toString('utf-8').split('\0').includes(
-        `ENTERPRISE_HARNESS_TASK_AUTH_TOKEN=${token}`,
-      )) ids.push(pid);
-    } catch (error) {
-      if (!['ENOENT', 'EACCES', 'ESRCH'].includes(error.code)) throw error;
-    }
+  const marker = `ENTERPRISE_HARNESS_TASK_AUTH_TOKEN=${token}`;
+  for (const line of output.split('\n')) {
+    if (!line.includes(marker)) continue;
+    const match = line.trim().match(/^(\d+)\s/u);
+    if (match && Number(match[1]) !== process.pid) ids.push(Number(match[1]));
   }
   return ids;
 }
@@ -69,13 +94,64 @@ function waitForProcessGroupExit(pid, token, timeoutMs = 1_000) {
   }
 }
 
+function windowsDescendantProcessIds(rootPid) {
+  if (process.platform !== 'win32') return [];
+  let output;
+  try {
+    const result = spawnSync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress',
+    ], { encoding: 'utf-8', windowsHide: true });
+    if (result.status !== 0) return [];
+    output = result.stdout;
+  } catch {
+    return [];
+  }
+  let rows;
+  try {
+    const parsed = JSON.parse(output || '[]');
+    rows = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+  const children = new Map();
+  for (const row of rows) {
+    const pid = Number(row?.ProcessId);
+    const parentPid = Number(row?.ParentProcessId);
+    if (Number.isInteger(pid) && Number.isInteger(parentPid)) {
+      const siblings = children.get(parentPid) || [];
+      children.set(parentPid, [...siblings, pid]);
+    }
+  }
+  const pending = [rootPid];
+  const found = new Set();
+  while (pending.length) {
+    const parent = pending.shift();
+    for (const childPid of children.get(parent) || []) {
+      if (childPid === process.pid || found.has(childPid)) continue;
+      found.add(childPid);
+      pending.push(childPid);
+    }
+  }
+  return [...found];
+}
+
+function killWindowsProcess(pid) {
+  const result = spawnSync('taskkill.exe', ['/pid', String(pid), '/t', '/f'], {
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  if (result.error && result.error.code !== 'ENOENT') throw result.error;
+}
+
 function terminateDescendants(pid, token) {
   if (process.platform === 'win32') {
-    const result = spawnSync('taskkill.exe', ['/pid', String(pid), '/t', '/f'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-    if (result.error && result.error.code !== 'ENOENT') throw result.error;
+    for (const descendantPid of windowsDescendantProcessIds(pid)) {
+      killWindowsProcess(descendantPid);
+    }
+    killWindowsProcess(pid);
     return;
   }
   try {
