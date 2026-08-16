@@ -8,6 +8,8 @@ const mode = process.argv[2];
 const targets = [
   path.join(repoRoot, 'runtime', 'cli.mjs'),
   path.join(repoRoot, 'runtime', 'prepublish.mjs'),
+  path.join(repoRoot, 'runtime', 'update.mjs'),
+  path.join(repoRoot, 'runtime', 'doctor-hooks.mjs'),
 ];
 
 function fail(message) {
