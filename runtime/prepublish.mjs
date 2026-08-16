@@ -22,7 +22,7 @@ const commands = [
 
 console.log('Enterprise Harness Prepublish Check');
 for (const args of commands) {
-  const child = spawnSync('node', args, { cwd: repoRoot, encoding: 'utf-8', env: childEnv });
+  const child = spawnSync(process.execPath, args, { cwd: repoRoot, encoding: 'utf-8', env: childEnv });
   process.stdout.write(child.stdout || '');
   process.stderr.write(child.stderr || '');
   if (child.status !== 0) {

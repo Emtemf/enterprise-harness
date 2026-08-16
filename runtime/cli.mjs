@@ -53,7 +53,7 @@ if (!commands[subcommand]) {
 }
 
 const targetScript = path.join(runtimeDir, commands[subcommand][0]);
-const child = spawnSync('node', [targetScript, ...rest], {
+const child = spawnSync(process.execPath, [targetScript, ...rest], {
   cwd: targetCwd,
   encoding: 'utf-8',
 });
