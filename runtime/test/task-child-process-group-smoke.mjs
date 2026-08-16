@@ -23,7 +23,7 @@ try {
     "import { spawn } from 'node:child_process';",
     "const [target] = process.argv.slice(2);",
     "const script = `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(target)}, 'late'), 500);`;",
-    "const descendant = spawn(process.execPath, ['-e', script], { detached: true, stdio: 'ignore' });",
+    `const descendant = spawn(process.execPath, ['-e', script], { detached: ${process.platform === 'linux'}, stdio: 'ignore' });`,
     'descendant.unref();',
   ].join('\n'));
   fs.writeFileSync(intentPath, `${JSON.stringify({
