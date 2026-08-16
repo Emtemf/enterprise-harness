@@ -134,7 +134,19 @@ try {
   }
 
   if (!ok) {
-    fail('Expected DESIGN_APPROVED transition to be blocked when design reviewer verdict is missing or block');
+    const diagnostics = {
+      status: result.status,
+      signal: result.signal,
+      error: result.error?.message || null,
+      parsed: Boolean(parsed),
+      hasMissingReviewFailure,
+      hasMissingApprovalFailure,
+      hasBlockedReviewFailure,
+      problems,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+    fail(`Expected DESIGN_APPROVED transition to be blocked when design reviewer verdict is missing or block\n${JSON.stringify(diagnostics, null, 2)}`);
   }
 
   pass(mode === 'green' ? 'Green gate-hardening design gate smoke passed.' : 'Gate-hardening design gate verify smoke passed.');
