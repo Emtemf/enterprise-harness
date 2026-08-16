@@ -7,10 +7,15 @@ implementationRefs:
   - runtime/lib/tdd-receipts.mjs
   - runtime/core/change-state.mjs
   - runtime/core/handoff-v2.mjs
+  - runtime/lib/task-execution-receipt.mjs
+  - runtime/lib/waiver.mjs
+  - runtime/core/completion-proof.mjs
 testRefs:
   - runtime/test/evidence-policy-contract-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
   - runtime/test/v6-change-state-smoke.mjs
+  - runtime/test/task-execution-receipt-smoke.mjs
+  - runtime/test/waiver-result-contract-smoke.mjs
 ---
 
 # Evidence Contract
@@ -36,7 +41,11 @@ Path. `correction` is `null` for a passing report and mandatory/actionable for `
 
 A conclusion is fresh only when the current digest of each input it consumed still matches. A
 stable artifact or governed implementation write invalidates downstream conclusions by
-derivation. Do not repair freshness by flipping a state boolean.
+derivation. Do not repair freshness by flipping a state boolean. Waiver shape and artifact-digest
+freshness can be validated, but an `approvedBy` string is not trusted authorization evidence. Until
+runtime can bind a waiver to an immutable user/maintainer authorization record, any non-empty v6
+StageResult or CompletionProof waiver list fails closed. A waiver never changes a hard block into
+an advisory outcome.
 
 ## Completion
 

@@ -4,6 +4,32 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-17
+
+### Added
+
+- 为六阶段 Heavy-Skill 补齐 deterministic prepare/finalize scripts、assertions、self-check 与结构化结果持久化。
+- 新增 schema-backed `StageResult`、`ReviewResult`、`CompletionProof`、`TaskExecutionReceipt`、waiver 与 Classification artifact 合同。
+- 新增 canonical `task-run`，从冻结计划内部解析 execution strategy、阶段顺序与 exact argv，并在 git common directory 发布短期 runner authorization。
+- 新增 session-first、classification authority、archive/abandon transaction、受治理写入和 installed-plugin E2E 回归覆盖。
+
+### Changed
+
+- v6 阶段推进统一依赖 fresh artifact digests、独立 execute/check run、trusted agent binding 和 CompletionProof，不再接受 projection boolean 或 worker 自报完成。
+- Clarify 收敛为 topology/frontier 模型；`code-explore` 与 `doc-research` 只返回 ResearchPacket，业务决策仍由 Main 与用户确认。
+- Implement 的受治理路径只能由 canonical runner 的冻结子进程写入；直接 Write/Edit/NotebookEdit、外部 child argv、管道、重定向和命令串联均 fail-closed。
+- hooks 收敛为 host boundary、机械 gate、snapshot attribution 与恢复提示；v6 correctness authority 留在 runtime result/lifecycle gate。
+- Archive 改为 Verify completion 与 archive finalization 两阶段事务，并保持 v5 compatibility 只读隔离。
+
+### Fixed
+
+- 修复 reviewer 自建 check handoff、result caller 与 exact run/role/session 未绑定，以及缺少 completed agent evidence 时仍可推进的问题。
+- 修复 task receipt 与 handoff input digests、冻结 strategy/argv、时间戳和输出摘要绑定不足的问题。
+- 修复 Bash 子进程写入无法归因、validation freshness 未失效，以及 stale runner marker 可重放的问题。
+- 修复 archive/abandon 物理移动失败后 lifecycle 或 blocker 未按 CAS 回滚的问题。
+- 修复 stale active-change 阻断 worktree、session bootstrap 顺序、Classification artifact/state authority 漂移和 v5 migration 状态映射问题。
+- 修复 release allowlist、artifact validation、错误码文档和 installed-plugin Claude E2E 的可复现性。
+
 ## [0.5.0] - 2026-08-13
 
 ### Architecture

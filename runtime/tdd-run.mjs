@@ -65,6 +65,13 @@ if (!isSafeEvidenceId(changeId) || !isSafeEvidenceId(taskId)) {
 
 const root = process.cwd();
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
+const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
+if (fs.existsSync(statePath)) {
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  if (state.schemaVersion === 6) {
+    fail('tdd-run is v5 compatibility-only; State v6 must use task-run with an implementer Handoff v2 run');
+  }
+}
 const agentId = process.env.CLAUDE_AGENT_ID || process.env.HARNESS_TDD_EXECUTOR_ID;
 let binding = agentId
   ? startedHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')

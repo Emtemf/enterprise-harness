@@ -21,6 +21,17 @@ classification 在 clarify 后作为内部制品记录：它用于选择受影�
 4. 每次仅用 `AskUserQuestion` 询问一个风险最高/最弱 frontier 的用户问题。已由 CodeGraph 或文档证据确认的事实不得再问用户。
 5. 只有 self-check 和独立 `reviewer` verdict 都 fresh 后，才持久化 requirements、范围确认与 classification。
 
+## Clarify 结果闭环
+
+Clarify 的用户访谈仍由 Main Harness 直接负责，不把用户决策委托给 forked Agent。确认 scope 后，Main 必须：
+
+1. 将 requirements、topology、frontier、ResearchPacket 引用和 classification 写入 durable change artifacts。
+2. 使用 `${CLAUDE_SKILL_DIR}/scripts/finalize-clarify-result.mjs <change-id> <run-id>` 执行确定性 self-check；该脚本拒绝缺少目标、组件拓扑、验收、未决决策确认或过期 classification 的结果。
+3. 为 clarify 创建 `enterprise-harness:reviewer` 的独立 check handoff，使用 `requirements` 与 `classification` rubrics；reviewer 只读取冻结 artifacts，不重新采访用户。
+4. 只有 fresh Clarify StageResult、ReviewResult 和 CompletionProof 存在时，才允许 `clarify → design`。
+
+`finalize-clarify-result.mjs` 是 Main-owned artifact finalizer，不是新的 Agent 或 lifecycle stage。
+
 ## 阶段编排
 
 - **Design：** 以 `design` 方法论调用 `artifact-worker`，再进行独立 `review`。

@@ -26,7 +26,7 @@ for (const src of settingsSources) {
   const isHarnessStop = expanded.includes('hooks/scripts/stop.mjs');
   if (isHarnessStop) {
     const scriptPath = extractScriptPath(expanded);
-    const res = spawnSync('node', [scriptPath], { input: '{}', encoding: 'utf-8' });
+    const res = spawnSync(process.execPath, [scriptPath], { input: '{}', encoding: 'utf-8' });
     const verdict = classifyStopStdout(res.stdout);
     findings.push({
       source: src.source,
@@ -61,7 +61,7 @@ for (const plugin of enabled) {
     for (const cmd of stopCmds) {
       const expanded = cmd.replace(/\$\{?CLAUDE_PLUGIN_ROOT\}?/g, plugin.installPath);
       const scriptPath = extractScriptPath(expanded);
-      const res = spawnSync('node', [scriptPath], { input: '{}', encoding: 'utf-8' });
+      const res = spawnSync(process.execPath, [scriptPath], { input: '{}', encoding: 'utf-8' });
       const verdict = classifyStopStdout(res.stdout);
       findings.push({
         source: `plugin ${plugin.id}@${plugin.version}`,

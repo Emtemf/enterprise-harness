@@ -13,7 +13,7 @@ const files = {
 const expected = {
   currentChangeState: ['"schemaVersion": 6', '"lifecycle": "active"', '"stage": "clarify"', '"executionStrategy": null'],
   workflowHelper: ['inferWorkflowStage', 'recommendNextEntry', 'classificationFor', 'buildWorkflowResult'],
-  checks: ['v6Stages', 'isV6', "'schemaVersion','changeId','lifecycle','stage'"],
+  checks: ['v6Stages', "['schemaVersion', 'changeId', 'lifecycle', 'stage'"]
 };
 
 function readText(file) {

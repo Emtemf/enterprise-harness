@@ -5,7 +5,9 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { createHandoffV2, loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { appendAgentEvent, gitCommonDir } from '../lib/agent-evidence.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 
 const mode = process.argv[2];
@@ -17,18 +19,62 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-handoff-p
 const changeId = 'persist-result';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const designRef = `harness/changes/${changeId}/design.md`;
+const sessionId = 'handoff-persist-session';
 
-function persist(runId, source) {
+function authorize(input, agentId) {
+  const toolUseId = `tool-${input.runId}`;
+  appendAgentEvent(root, changeId, {
+    kind: 'dispatch',
+    sessionId,
+    toolUseId,
+    requestedAgentType: input.agent.type,
+    runId: input.runId,
+    behavior: input.behavior,
+    handoffRole: input.role,
+    parentRunId: input.parentRunId,
+    cwd: root,
+  });
+  appendAgentEvent(root, changeId, {
+    kind: 'start',
+    sessionId,
+    agentId,
+    observedAgentType: input.agent.type,
+    cwd: root,
+  });
+}
+
+function persist(runId, source, agentId) {
   return spawnSync(process.execPath, [handoffCli, 'persist', changeId, runId, source], {
     cwd: root,
     encoding: 'utf-8',
     shell: false,
+    env: {
+      ...process.env,
+      ENTERPRISE_HARNESS_SESSION_ID: sessionId,
+      CLAUDE_SESSION_ID: undefined,
+      CLAUDE_AGENT_ID: agentId,
+    },
   });
 }
 
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
+  fs.writeFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    revision: 1,
+    changeId,
+    lifecycle: 'active',
+    stage: 'design',
+    artifacts: { classification: null },
+    validation: { status: 'stale', digest: null, validatedAt: null },
+  }, null, 2)}\n`);
+  bindSession(root, {
+    sessionId,
+    changeId,
+    worktreePath: root,
+    controllerRevision: 'test-controller',
+  }, { commonDir: path.join(root, '.git') });
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Persist result\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   const tecpc = { target: 'persist design result', evidence: [designRef], context: [requirementsRef], path: designRef, correction: null };
@@ -50,6 +96,7 @@ try {
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -57,11 +104,15 @@ try {
   };
   fs.writeFileSync(path.join(root, 'stage-result.json'), JSON.stringify(stageResult));
 
-  const persistedStage = persist(execute.runId, 'stage-result.json');
+  const unauthorizedStage = persist(execute.runId, 'stage-result.json', 'agent-reviewer');
+  assert.equal(unauthorizedStage.status, 2);
+  assert.match(`${unauthorizedStage.stdout}\n${unauthorizedStage.stderr}`, /EH-HANDOFF-AUTH-033/u);
+  authorize(execute.input, 'agent-executor');
+  const persistedStage = persist(execute.runId, 'stage-result.json', 'agent-executor');
   assert.equal(persistedStage.status, 0, persistedStage.stderr || persistedStage.stdout);
   assert.deepEqual(JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, execute.runId), 'utf-8')), stageResult);
 
-  const duplicate = persist(execute.runId, 'stage-result.json');
+  const duplicate = persist(execute.runId, 'stage-result.json', 'agent-executor');
   assert.equal(duplicate.status, 2);
   assert.match(`${duplicate.stdout}\n${duplicate.stderr}`, /already exists/u);
 
@@ -75,9 +126,32 @@ try {
     inputRefs: [designRef],
     tecpc,
   });
+  const subagentCreatedCheck = spawnSync(process.execPath, [
+    handoffCli,
+    'create',
+    changeId,
+    'design',
+    'review',
+    'check',
+    execute.runId,
+    '--input-ref',
+    designRef,
+  ], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: {
+      ...process.env,
+      ENTERPRISE_HARNESS_SESSION_ID: sessionId,
+      CLAUDE_AGENT_ID: 'agent-executor',
+    },
+  });
+  assert.equal(subagentCreatedCheck.status, 2);
+  assert.match(`${subagentCreatedCheck.stdout}\n${subagentCreatedCheck.stderr}`, /EH-HANDOFF-AUTH-032/u);
+  authorize(check.input, 'agent-reviewer');
   const invalidReview = { ...stageResult, type: 'review-result', runId: check.runId };
   fs.writeFileSync(path.join(root, 'invalid-review.json'), JSON.stringify(invalidReview));
-  const rejected = persist(check.runId, 'invalid-review.json');
+  const rejected = persist(check.runId, 'invalid-review.json', 'agent-reviewer');
   assert.equal(rejected.status, 2);
   assert.equal(fs.existsSync(v2ResultPath(root, changeId, check.runId, 'check')), false);
 
@@ -98,7 +172,7 @@ try {
     reviewedAt: '2026-08-14T00:00:01.000Z',
   };
   fs.writeFileSync(path.join(root, 'review-result.json'), JSON.stringify(review));
-  const persistedReview = persist(check.runId, 'review-result.json');
+  const persistedReview = persist(check.runId, 'review-result.json', 'agent-reviewer');
   assert.equal(persistedReview.status, 0, persistedReview.stderr || persistedReview.stdout);
   assert.deepEqual(JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, check.runId, 'check'), 'utf-8')), review);
 
@@ -106,7 +180,7 @@ try {
     changeId,
     stage: 'clarify',
     behavior: 'explore-code',
-    agent: { type: 'enterprise-harness:code-explore', skill: 'code-explore' },
+    agent: { type: 'enterprise-harness:code-explore', skill: 'explore-code' },
     inputRefs: [requirementsRef],
     tecpc,
   });
@@ -115,15 +189,35 @@ try {
     type: 'research-packet',
     changeId,
     source: 'code-explore',
+    question: 'Is the design artifact present?',
+    scope: ['harness/changes/persist-result'],
     facts: [{ claim: 'design artifact is present', sources: [designRef] }],
+    uncertainties: [],
+    authority: 'codegraph-first',
+    fallback: null,
+    degraded: false,
+    recommendedDecision: null,
     inputRefs: [requirementsRef],
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     collectedAt: '2026-08-14T00:00:02.000Z',
   };
   fs.writeFileSync(path.join(root, 'research-packet.json'), JSON.stringify(packet));
-  const persistedPacket = persist(explore.runId, 'research-packet.json');
+  authorize(explore.input, 'agent-explorer');
+  const persistedPacket = persist(explore.runId, 'research-packet.json', 'agent-explorer');
   assert.equal(persistedPacket.status, 0, persistedPacket.stderr || persistedPacket.stdout);
   assert.deepEqual(JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, explore.runId), 'utf-8')), packet);
+
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-handoff-outside-'));
+  const commonRuns = path.join(gitCommonDir(root), 'enterprise-harness', 'runs', changeId);
+  const escapedRunId = 'run_00000000-0000-4000-8000-000000000001';
+  fs.mkdirSync(commonRuns, { recursive: true });
+  fs.symlinkSync(outside, path.join(commonRuns, escapedRunId), 'dir');
+  assert.throws(
+    () => loadHandoffV2(root, changeId, escapedRunId),
+    /outside|escapes|safe/u,
+    'a v2 run symlink escaping the common directory must be rejected',
+  );
+  fs.rmSync(outside, { recursive: true, force: true });
 
   console.log(`PASS handoff-v2-persist ${mode}`);
 } finally {

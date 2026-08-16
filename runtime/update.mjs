@@ -18,7 +18,7 @@ for (const args of [
   ['runtime/doctor.mjs'],
   ['runtime/upstream-check.mjs'],
 ]) {
-  const child = spawnSync('node', args, { cwd: repoRoot, encoding: 'utf-8' });
+  const child = spawnSync(process.execPath, args, { cwd: repoRoot, encoding: 'utf-8' });
   process.stdout.write(child.stdout || '');
   process.stderr.write(child.stderr || '');
   if (child.status !== 0) {

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { controlledRewind } from '../lib/artifacts.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -37,6 +38,14 @@ for (const file of canonicalFiles) {
   for (const token of forbidden) {
     assert.equal(token.test(text), false, `${path.relative(root, file)} must not contain ${token}`);
   }
+}
+
+for (const legacyStage of ['route', 'tdd']) {
+  assert.throws(
+    () => controlledRewind({ currentStage: legacyStage, targetStage: 'clarify' }),
+    /unknown workflow stage/u,
+    `${legacyStage} must not remain a canonical v6 lifecycle stage`,
+  );
 }
 
 console.log(`PASS reference-architecture ${mode}`);

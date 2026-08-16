@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readAgentEvents } from './agent-evidence.mjs';
 import { loadBehaviorRegistry, loadHandoffInput, validateHandoffResult } from './handoff.mjs';
-import { validateDesignStageGate } from './stage-results.mjs';
+import { requiredStageResultArtifacts, validateStageGate } from './stage-results.mjs';
 import { completedStages as completedStagesV6, STAGE_CONTRACTS as STAGE_CONTRACTS_V6, STAGE_ORDER as STAGE_ORDER_V6 } from './stage-contract.mjs';
 import { completedStages as completedStagesV5, STAGE_CONTRACTS as STAGE_CONTRACTS_V5, STAGE_ORDER as STAGE_ORDER_V5 } from '../compat/v5/stage-contract.mjs';
 
@@ -84,21 +84,22 @@ function inspectArtifacts(root, changeId, artifacts) {
   });
 }
 
-const RESULT_GATE_VALIDATORS = Object.freeze({
-  design: validateDesignStageGate,
-});
+function validateResultGate(root, changeId, stage) {
+  return validateStageGate(root, changeId, stage, {
+    requiredArtifactPaths: requiredStageResultArtifacts(changeId, stage),
+  });
+}
 
 function inspectResultGate(root, changeId, resultGate) {
   if (!resultGate) return [];
-  const validator = RESULT_GATE_VALIDATORS[resultGate];
-  if (!validator) {
+  if (!STAGE_ORDER_V6.includes(resultGate)) {
     return [{
       gate: resultGate,
       status: 'block',
       issues: [problem('EH-AUDIT-RESULT-007', `unknown result gate ${resultGate}`, 'register a runtime validator for this stage contract')],
     }];
   }
-  const problems = validator(root, changeId);
+  const problems = validateResultGate(root, changeId, resultGate);
   return [{
     gate: resultGate,
     status: problems.length === 0 ? 'pass' : 'block',
@@ -133,7 +134,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
     const isCompleted = completed.has(stage);
     const isCurrent = stage === auditStage;
     if (!isCompleted && !isCurrent) {
-      stages.push({ stage, lifecycle: 'future', status: 'pending', artifacts: [], state: [], results: [], handoffs: [], events: [] });
+      stages.push({ stage, resultGate: spec.resultGate, lifecycle: 'future', status: 'pending', artifacts: [], state: [], results: [], handoffs: [], events: [] });
       continue;
     }
 
@@ -162,6 +163,7 @@ export function auditWorkflow(root, changeId, data, options = {}) {
     const blockers = checked.flatMap((item) => item.status === 'block' ? (item.issues ?? [item.issue]).filter(Boolean) : []);
     stages.push({
       stage,
+      resultGate: spec.resultGate,
       lifecycle: isCompleted ? 'completed' : 'current',
       status: blockers.length ? 'block' : (isCompleted ? 'pass' : 'in-progress'),
       artifacts,

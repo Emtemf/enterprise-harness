@@ -1,0 +1,151 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { appendAgentEvent } from '../lib/agent-evidence.mjs';
+import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { sha256Artifact } from '../lib/result-contract.mjs';
+import { validateStageGate } from '../lib/stage-results.mjs';
+
+const mode = process.argv[2];
+if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-reviewer-authorization-'));
+const changeId = 'reviewer-authorization';
+const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+const designRef = `harness/changes/${changeId}/design.md`;
+
+function appendCompletedBinding(input, agentId, observedAgentType, sessionId = 'session-review') {
+  const toolUseId = `tool-${input.runId}-${agentId}`;
+  appendAgentEvent(root, changeId, {
+    kind: 'dispatch',
+    sessionId,
+    toolUseId,
+    requestedAgentType: observedAgentType,
+    runId: input.runId,
+    behavior: input.behavior,
+    handoffRole: input.role,
+    parentRunId: input.parentRunId,
+    handoffPath: v2ResultPath(root, changeId, input.runId, input.role),
+    cwd: root,
+  });
+  appendAgentEvent(root, changeId, {
+    kind: 'start',
+    sessionId,
+    agentId,
+    observedAgentType,
+    runId: input.runId,
+    handoffRole: input.role,
+    cwd: root,
+  });
+  appendAgentEvent(root, changeId, {
+    kind: 'stop',
+    sessionId,
+    agentId,
+    observedAgentType,
+    runId: input.runId,
+    handoffRole: input.role,
+    parentRunId: input.parentRunId,
+    cwd: root,
+  });
+  appendAgentEvent(root, changeId, {
+    kind: 'dispatch-binding',
+    sessionId,
+    toolUseId,
+    agentId,
+    requestedAgentType: observedAgentType,
+    runId: input.runId,
+    behavior: input.behavior,
+    handoffRole: input.role,
+    parentRunId: input.parentRunId,
+    cwd: root,
+  });
+}
+
+try {
+  assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
+  fs.mkdirSync(path.dirname(path.join(root, requirementsRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Independent review\n');
+  fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
+
+  const tecpc = {
+    target: 'authorize independent design review',
+    evidence: [designRef],
+    context: [requirementsRef],
+    path: designRef,
+    correction: null,
+  };
+  const execute = createHandoffV2(root, {
+    changeId,
+    stage: 'design',
+    behavior: 'design',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
+    inputRefs: [requirementsRef],
+    tecpc,
+  });
+  const artifacts = [{ path: designRef, digest: sha256Artifact(root, designRef) }];
+  const stageResult = {
+    resultVersion: 1,
+    type: 'stage-result',
+    changeId,
+    stage: 'design',
+    runId: execute.runId,
+    producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
+    inputDigests: { ...execute.input.inputDigests },
+    artifacts,
+    assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
+    tecpc,
+    status: 'pass',
+    needsDecision: null,
+    completedAt: '2026-08-16T00:00:00.000Z',
+  };
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));
+
+  const check = createHandoffV2(root, {
+    changeId,
+    stage: 'design',
+    behavior: 'review',
+    role: 'check',
+    parentRunId: execute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+    inputRefs: [designRef],
+    tecpc,
+  });
+  const review = {
+    resultVersion: 1,
+    type: 'review-result',
+    changeId,
+    stage: 'design',
+    runId: check.runId,
+    parentRunId: execute.runId,
+    reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
+    reviewedRunId: execute.runId,
+    reviewedArtifacts: artifacts,
+    rubricIds: [...check.input.rubricIds],
+    tecpc,
+    verdict: 'pass',
+    correction: null,
+    reviewedAt: '2026-08-16T00:00:01.000Z',
+  };
+  fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
+
+  const forged = validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef });
+  assert.match(forged.join('; '), /trusted.*agent binding|authorized.*reviewer/u);
+
+  appendCompletedBinding(execute.input, 'agent-shared', 'enterprise-harness:artifact-worker');
+  appendCompletedBinding(check.input, 'agent-shared', 'enterprise-harness:reviewer');
+  const selfApproved = validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef });
+  assert.match(selfApproved.join('; '), /distinct.*agent|same agent/u);
+
+  appendCompletedBinding(check.input, 'agent-reviewer', 'enterprise-harness:reviewer');
+  assert.deepEqual(
+    validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef }),
+    [],
+  );
+
+  console.log(`PASS reviewer-authorization ${mode}`);
+} finally {
+  fs.rmSync(root, { recursive: true, force: true });
+}

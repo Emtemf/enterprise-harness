@@ -42,7 +42,9 @@ harness/command-policy.json
 harness/changes/<change-id>/task-commands.json
 ```
 
-receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 digest。缺失时通常返回 `EH-TDD-RECEIPT-007`。
+receipt 必须记录 exact argv、exit code、时间、agent、worktree 和 digest。v6 使用 `task-run` 生成
+`runtime-runner` receipt；`tdd-run` 仅用于 v5 compatibility。缺失时通常返回
+`EH-TASK-RECEIPT-025`，旧 v5 流程则返回 `EH-TDD-RECEIPT-007`。
 
 ## 私有 marketplace 无法更新
 
@@ -89,10 +91,13 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-SUBAGENT-RESULT-004` | result 无法解析 | 按 skill schema 返回 |
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |
 | `EH-CLARIFY-AMBIGUITY-006` | 歧义评分不足 | 补 weakest dimension |
-| `EH-TDD-RECEIPT-007` | 缺少真实 TDD receipt | 用 tdd-run 执行冻结命令 |
+| `EH-TDD-RECEIPT-007` | v5 compatibility 流程缺少真实 TDD receipt | 仅在 v5 change 中用 tdd-run 执行冻结命令；v6 改用 task-run |
 | `EH-COMPLETION-GATE-008` | 完成证据不足 | workflow status |
 | `EH-AGENT-FAILURE-009` | agent 调用失败 | 修复后新 attempt |
 | `EH-HOOK-SNAPSHOT-010` | Bash 快照缺失 | 重试同一受控命令 |
+| `EH-HOOK-HEALTH-001` | SessionStart hook-health receipt 无效或无法写入 | 检查 sessionId、runtime common-dir 权限和 controller revision；修复后重新触发 SessionStart |
+| `EH-HOOK-HEALTH-002` | 当前 session 没有 fresh SessionStart hook-health receipt，或 hook 未启用 | 重新打开会话触发 SessionStart；绑定 session 的阶段推进必须先恢复 fresh receipt；未绑定的 admin 流程只会显示 advisory，不能宣称 hooks enforced |
+| `EH-TASK-RECEIPT-025` | implement task receipt 缺少策略要求的阶段、真实 argv 或 digest freshness | 按 `executionStrategy` 补齐 machine-generated receipt；TDD 必须有失败 RED，direct 必须记录 rationale，之后为每个 task 创建独立 review |
 | `EH-HOOK-POST-WRITE-011` | 写入归因失败 | 查看 violation ledger |
 | `EH-STATE-LOCK-012` | 同一状态文件正在被另一进程更新 | 等待当前写入完成后重试 |
 | `EH-EVENT-ID-013` | append-only event 缺少幂等 ID | 通过 runtime 重新生成事件 |
@@ -111,9 +116,12 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CONTROLLER-SUBJECT-002` | bootstrap 未配置独立 released controller | 设置 `ENTERPRISE_HARNESS_CONTROLLER_ROOT` 或由 plugin 提供的 `CLAUDE_PLUGIN_ROOT`，指向安装的 immutable controller，不要指向 subject/runtime |
 | `EH-RESEARCH-PACKET-001` | research packet 缺事实、来源策略或 fallback 记录 | 重新生成统一 packet，不把 MCP 原文当编排指令 |
 | `EH-MCP-POLICY-001` | MCP provider/capability 记录不符合统一策略 | 通过 mcp-policy 使用 codegraph/context7 capability alias |
-| `EH-WAIVER-001` | waiver 无效、缺批准人或未绑定 artifact digest | 创建绑定当前 artifact digest 的结构化 waiver |
+| `EH-SESSION-CHANGE-001` | 当前 session 绑定的 change 与请求修改的 change 不一致 | 使用正确的 session，或先为目标 change 建立新的 session binding |
+| `EH-WAIVER-001` | waiver 无效、未绑定 artifact digest，或缺少可信授权证据 | v6 当前对非空 waiver fail closed；不要用 `approvedBy` 字符串绕过 gate，先消除例外或等待受信授权制品支持 |
 | `EH-ARCHIVE-FORCE-001` | `archive --force` 已删除 | 未完成 change 使用 `abandon <changeId> <reason>` |
+| `EH-ARCHIVE-TRANSACTION-002` | archive 状态已推进但物理移动失败 | 修复 `harness/archive` 的目录类型或权限；runtime 会尝试 CAS 回滚为 active，若回滚也失败则先保留现场并人工恢复 state |
 | `EH-ABANDON-001` | abandon 参数/生命周期无效 | 提供明确 reason，只对 active 未归档 change 执行 |
+| `EH-ABANDON-TRANSACTION-002` | abandon 状态已写入但物理移动失败 | 修复归档目录后重试；runtime 会回滚 lifecycle 与 blocker，回滚失败时不要继续改写 change |
 | `EH-PROJECT-PROFILE-001` | `harness/project.json` 缺少字段、格式无效或版本不支持 | 按 profile v1 补齐 language、build、productionRoots、testRoots 和 apiRoots |
 | `EH-CLASSIFY-001` | classify 缺少有效 change 输入 | 提供当前 change 的 tier/impact 输入后重试 |
 | `EH-VERIFY-TECP-015` | verify 无法渲染 TECPC 卡 | 检查 active change 状态结构 |
@@ -126,11 +134,38 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-STATE-MUTATE-015` | v6 state mutator 不是函数或未返回对象 | 使用 runtime 的不可变 mutator 并返回完整 state |
 | `EH-STATE-NOT-FOUND-016` | v6 mutation 找不到指定 change 的 state | 确认 changeId 已创建且仍为 active |
 | `EH-STATE-V6-017` | 正在对 v4/v5 state 使用 v6 mutation | 先对 active v5 change 显式执行迁移；archive 保持只读 |
-| `EH-STATE-SCHEMA-018` | v6 mutation 结果不满足 state schema | 修复 stage、impact、artifacts 或 validation 字段后重试 |
+| `EH-STATE-SCHEMA-018` | v6 mutation 结果不满足 state schema | 修复 stage、artifacts 或 validation 字段后重试 |
+| `EH-STATE-IDENTITY-019` | `state.changeId` 与 `harness/changes/<changeId>/state.json` 的路径身份不一致 | 不要复制或手改其他 change 的 state；恢复当前目录对应的 changeId，并通过受支持的 runtime mutation 更新状态 |
 | `EH-V5-MIGRATE-CONFIRM-019` | active v5 change 尚未得到显式迁移确认 | 明确确认迁移；不要静默改写历史 state |
 | `EH-V5-MIGRATE-020` | v5 migrator 收到的不是 schema v5 state | 使用相应兼容 reader/migrator，不要跨版本强迁移 |
 | `EH-V5-MIGRATE-021` | 尝试迁移 archived 或非 active historical change | archive 只读；仅 active change 可迁移 |
-| `EH-V5-MIGRATE-022` | 迁移后的 v6 state 不合法 | 修复源 state 的必要身份/impact 字段，再重试迁移 |
+| `EH-V5-MIGRATE-022` | 迁移后的 v6 state 不合法 | 修复源 state 的必要身份/classification 数据，再重试迁移 |
+| `EH-V5-MIGRATE-023` | migration state path 不是 canonical `harness/changes/<changeId>/state.json` | 从 change 目录调用迁移；不要对任意 JSON 文件执行 state migration |
+| `EH-CLASSIFICATION-SCHEMA-001` | classification artifact 缺失或 impact matrix 不合法 | 修复 `classification.json` 的五个 impact 维度后重新生成 digest reference |
+| `EH-CLASSIFICATION-DIGEST-002` | state 中的 classification digest 与当前 artifact 不匹配 | 不要手改 artifact；重新执行 classification action 以更新 digest-bound reference |
+| `EH-CLASSIFICATION-REFERENCE-003` | state 未指向该 change 的 canonical classification artifact | 将 reference 恢复为 `harness/changes/<changeId>/classification.json` 与合法 SHA-256 |
+| `EH-CLASSIFICATION-READ-004` | digest-bound classification artifact 缺失 | 恢复或重新执行 classification，不能用 state projection 替代 artifact |
+| `EH-CLASSIFICATION-AUTHORITY-005` | v6 workflow/status 缺少 canonical classification artifact reference | 重新执行 classification action 并让 state.artifacts.classification 指向当前 digest；不要从旧 impact projection 推断 |
+| `EH-CLASSIFICATION-COMMIT-005` | classification artifact 更新与 state CAS 提交未能作为一个事务完成 | 保留 winning state，重新读取当前 revision 后重试 classification action；不要直接覆盖 classification.json |
+| `EH-COMPLETION-PROOF-001` | executor/self-check/review/artifact digest 未形成有效 CompletionProof | 修复最早的 StageResult 或 ReviewResult 问题后重新运行独立 review |
+| `EH-TRANSITION-001` | 请求了跳跃、回退或无效生命周期迁移 | 只沿 `clarify → design → plan → implement → verify → archive` 前进 |
+| `EH-HANDOFF-STAGE-001` | v2 handoff 使用了非六阶段的 stage | 使用六阶段名称；`route` 和 `tdd` 仅供兼容 reader 读取 |
+| `EH-PLAN-FINALIZE-001` | plan finalizer 的 handoff agent/role/stage 不匹配 | 创建 artifact-worker/plan 的 execute handoff |
+| `EH-PLAN-FINALIZE-002` | 缺少 `tasks.md` | 先产出当前 change 的任务制品 |
+| `EH-PLAN-FINALIZE-003` | task 形状、strategy、argv 或 recovery 不完整 | 修复冻结任务的必填节和未替换 placeholder |
+| `EH-PLAN-FINALIZE-004` | plan StageResult 不符合运行时合同 | 依据 diagnostics 修复 result 输入或 evidence |
+| `EH-IMPLEMENT-FINALIZE-001` | implement finalizer 的 handoff 不属于 implementer execute run | 创建 implementer/implement 的 execute handoff |
+| `EH-IMPLEMENT-FINALIZE-002` | task receipt 不在当前 change 的 canonical evidence 路径 | 将 machine receipt 写入 `evidence/tasks/<taskId>.json` |
+| `EH-IMPLEMENT-FINALIZE-003` | receipt 的 change/task/strategy/阶段链不完整，或输入 digest 不一致 | 修复 task 执行收据；TDD 的 RED 必须真实失败，后续阶段必须通过 |
+| `EH-IMPLEMENT-FINALIZE-004` | implement StageResult 不符合运行时合同 | 修复 receipt/evidence 后重新 finalise |
+| `EH-VERIFY-FINALIZE-001` | verify finalizer 的 handoff 不属于 verify execute run | 创建 artifact-worker/verify 的 execute handoff |
+| `EH-VERIFY-FINALIZE-002` | 缺少 `validation.md` | 先运行冻结 validation 并写入报告 |
+| `EH-VERIFY-FINALIZE-003` | validation 报告缺少命令、结果、新鲜度或例外记录 | 补全四个必填节并重新验证 |
+| `EH-VERIFY-FINALIZE-004` | verify StageResult 不符合运行时合同 | 修复 evidence/result 后重新 finalise |
+| `EH-ARCHIVE-FINALIZE-001` | archive finalizer 的 handoff 不匹配 | 创建 artifact-worker/archive 的 execute handoff |
+| `EH-ARCHIVE-FINALIZE-002` | 缺少 validation 或 verify CompletionProof | 修复 verify evidence 后重新运行 archive self-check |
+| `EH-ARCHIVE-FINALIZE-003` | verify CompletionProof 不是有效的 verify proof | 重新获得 fresh verify completion proof |
+| `EH-ARCHIVE-FINALIZE-004` | archive StageResult 不符合运行时合同 | 修复 archive evidence 后重新 finalise |
 | `EH-HANDOFF-V2-023` | handoff v2 role 非法 | 仅使用 `execute` 或 `check` |
 | `EH-HANDOFF-V2-024` | handoff v2 缺 agent type 或 skill | 提供已声明的 agent type 与 skill |
 | `EH-HANDOFF-V2-025` | handoff v2 缺 TECPC target | 明确写出本次执行的目标 |
@@ -140,6 +175,8 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-V2-029` | Handoff v2 合同字段、角色关联或引用摘要不合法 | 重新创建符合 `harness/schemas/handoff-v2.schema.json` 的 handoff；check run 必须绑定不同的 executor runId，并刷新已变更的 input digest |
 | `EH-HANDOFF-V2-030` | 待持久化的 StageResult 或 ReviewResult 与 Handoff v2 不匹配 | 修正 result 的 runId、stage、agent/skill、parentRunId、artifact digest 与 schema；review 前先持久化对应 executor result |
 | `EH-HANDOFF-V2-031` | 尝试覆盖已持久化的 result evidence | 结果 evidence 不可覆盖；创建新的 execute/check run 并持久化新的 result |
+| `EH-HANDOFF-AUTH-032` | subagent 尝试自行创建 reviewer check handoff | check run 只能由 Main/controller 创建；worker 返回 StageResult 后由 controller 派独立 reviewer |
+| `EH-HANDOFF-AUTH-033` | 持久化 result 的 caller 未绑定到 exact run/role/session | 使用 handoff 派发的同一 agent 与 session 持久化结果；不要复用其他 run 的身份或在 worker 结束后补写 |
 | `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |
 | `EH-SESSION-LEASE-023` | session lease 不存在或已解绑 | 在当前会话重新绑定 change，再续约 |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
@@ -163,11 +200,12 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-COMPLETION-REVIEW-107` | reviewer verdict 缺失或阻断 | 派独立 checker |
 | `EH-COMPLETION-REVIEW-114` | task review 未绑定执行 receipt digest | 对照已导入 receipt 重新 review 并写入 receiptDigest |
 | `EH-COMPLETION-POLICY-108` | evidence policy 不可用 | 在目标仓库初始化 policy |
-| `EH-COMPLETION-TDD-109` | TDD receipt 无效 | 用 tdd-run 重跑冻结命令 |
+| `EH-COMPLETION-TDD-109` | v5 compatibility TDD receipt 无效 | v5 用 tdd-run 重跑；v6 用 task-run 生成 canonical receipt |
 | `EH-COMPLETION-LEDGER-110` | agent ledger 损坏 | 隔离损坏事件并重跑 |
 | `EH-COMPLETION-VIOLATION-111` | ledger 有未解决违规 | 修复后创建新 run |
 | `EH-COMPLETION-AGENT-112` | agent 缺少结束事件 | 完成或显式失败该 run |
 | `EH-COMPLETION-API-113` | API 检查失败或 unsupported | 补齐可解析输入或配置专用 checker |
+| `EH-COMPLETION-CLASSIFICATION-115` | v6 change 的 canonical classification artifact 缺失、失效或 digest 不匹配 | 修复 `classification.json` 与 state 中的 digest-bound reference；不要使用旧的 state impact projection 替代 |
 
 ### 写受治理路径被 pre-write 阻断
 

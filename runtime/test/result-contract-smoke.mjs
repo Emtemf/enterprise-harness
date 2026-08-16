@@ -43,6 +43,7 @@ const stageResult = {
   inputDigests: { 'harness/changes/demo/requirements.md': 'a'.repeat(64) },
   artifacts: [{ path: artifact, digest: sha256Artifact(root, artifact) }],
   assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [artifact] }],
+  selfCheck: { verdict: 'pass', findings: [], evidence: [artifact] },
   tecpc,
   status: 'pass',
   needsDecision: null,
@@ -71,7 +72,14 @@ const researchPacket = {
   type: 'research-packet',
   changeId: 'demo',
   source: 'code-explore',
+  question: 'Where is the design module?',
+  scope: ['harness/changes/demo'],
   facts: [{ claim: 'Design module exists', sources: [artifact] }],
+  uncertainties: [],
+  authority: 'codegraph-first',
+  fallback: null,
+  degraded: false,
+  recommendedDecision: null,
   inputRefs: [requirements],
   inputDigests: { [requirements]: sha256Artifact(root, requirements) },
   collectedAt: '2026-08-14T00:00:00.000Z',
@@ -99,9 +107,17 @@ try {
   assert.deepEqual(validateResearchPacket(root, researchPacket), []);
   assert.deepEqual(validateHandoffV2Contract(handoff), []);
 
+  const missingResearchContext = structuredClone(researchPacket);
+  delete missingResearchContext.question;
+  assert.match(validateResearchPacket(root, missingResearchContext).join('\n'), /question is required/);
+
   const staleStage = structuredClone(stageResult);
   staleStage.artifacts[0].digest = 'b'.repeat(64);
   assert.match(validateStageResult(root, staleStage).join('\n'), /artifact digest is stale/);
+
+  const missingSelfCheck = structuredClone(stageResult);
+  delete missingSelfCheck.selfCheck;
+  assert.match(validateStageResult(root, missingSelfCheck).join('\n'), /selfCheck is required/);
 
   const selfReview = structuredClone(reviewResult);
   selfReview.runId = stageResult.runId;
@@ -110,6 +126,13 @@ try {
   const badPass = structuredClone(reviewResult);
   badPass.correction = 'unresolved issue';
   assert.match(validateReviewResult(root, badPass, { stageResult }).join('\n'), /pass requires correction=null/);
+
+  const legacyAgent = structuredClone(handoff);
+  legacyAgent.agent = { type: 'enterprise-harness:design-executor', skill: 'harness' };
+  assert.match(
+    validateHandoffV2Contract(legacyAgent).join('\n'),
+    /agent must be enterprise-harness:artifact-worker with skill design/u,
+  );
 
   const v1 = structuredClone(handoff);
   v1.handoffVersion = 1;

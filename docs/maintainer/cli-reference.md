@@ -26,6 +26,7 @@ Commands:
 - lifecycle
 - workflow
 - context7
+- task-run
 - tdd-run
 - evidence-import
 - handoff

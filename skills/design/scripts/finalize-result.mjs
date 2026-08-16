@@ -46,6 +46,11 @@ try {
     inputDigests: { [requirementRef]: sha256Artifact(root, requirementRef) },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: checks.map(({ id, verdict, evidence }) => ({ id, verdict, evidence })),
+    selfCheck: {
+      verdict: 'pass',
+      findings: [],
+      evidence: checks.flatMap(({ evidence }) => evidence),
+    },
     tecpc: {
       target: 'design artifact',
       evidence: [designRef],

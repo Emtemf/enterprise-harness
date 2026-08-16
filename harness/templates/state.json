@@ -10,19 +10,11 @@
     "revision": null,
     "subjectRoot": null
   },
-  "sessionBinding": null,
-  "changeLock": null,
-  "impact": {
-    "api": "unknown",
-    "data": "unknown",
-    "architecture": "unknown",
-    "rule": "unknown",
-    "security": "unknown"
-  },
-  "classification": null,
   "currentTask": null,
   "executionStrategy": null,
-  "artifacts": {},
+  "artifacts": {
+    "classification": null
+  },
   "blocker": null,
   "tooling": {
     "codegraph": {

@@ -14,12 +14,19 @@
       ]
     },
     {
-      "id": "seven-dimension-ambiguity-gate",
-      "testRefs": ["runtime/test/ambiguity-gate-smoke.mjs"]
+      "id": "topology-frontier-clarification",
+      "testRefs": [
+        "runtime/test/clarify-topology-template-smoke.mjs",
+        "runtime/test/clarify-stage-contract-smoke.mjs"
+      ]
     },
     {
-      "id": "real-frozen-tdd-command",
-      "testRefs": ["runtime/test/tdd-run-baseline-smoke.mjs"]
+      "id": "strategy-aware-task-runner",
+      "testRefs": [
+        "runtime/test/task-runner-v6-smoke.mjs",
+        "runtime/test/governed-task-run-write-gate-smoke.mjs",
+        "runtime/test/task-execution-authority-smoke.mjs"
+      ]
     },
     {
       "id": "incremental-hook-attribution",

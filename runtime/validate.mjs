@@ -11,9 +11,8 @@ import {
 } from './lib/execution-prerequisites.mjs';
 
 // `enterprise-harness validate <change-id> [--stage <stage>]`
-// 在阶段边界显式验证静态阶段链（ambiguity/router/design/plan），通过后落
-// evidence/stage-gate.json marker。pre-write hook 之后只轻查这个 marker，不再
-// 每次写文件全量重算阶段链。调用方是各阶段 skill（如 plan freeze 后、tdd 开始前）。
+// 在阶段边界验证 v6 classification + StageResult + independent ReviewResult，或验证 v5
+// compatibility 证据；通过后落 evidence/stage-gate.json。pre-write 之后只检查 marker freshness。
 
 const root = projectRoot();
 const [argChangeId] = process.argv.slice(2);
@@ -47,7 +46,7 @@ if (problems.length > 0) {
   process.exit(2);
 }
 
-const stage = stageArg || state?.workflow?.stage || 'current';
+const stage = stageArg || state?.stage || state?.workflow?.stage || 'current';
 const marker = {
   schemaVersion: 1,
   changeId,

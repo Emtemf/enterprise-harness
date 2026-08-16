@@ -11,6 +11,7 @@ import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
 import { compareAndSwapJson } from './lib/state-store.mjs';
+import { sessionIdFromEnv } from './lib/sessions.mjs';
 
 const root = projectRoot();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd（企业目标项目里 cwd 是用户项目根）。
@@ -23,6 +24,15 @@ function readJson(file) {
 }
 
 function setActiveChange(changeId) {
+  const sessionId = sessionIdFromEnv();
+  if (sessionId) {
+    const active = loadActiveChange(root, { sessionId });
+    if (!active.ok || active.changeId !== changeId) {
+      console.error(`BLOCK EH-SESSION-CHANGE-001: 当前 session 无法绑定 ${changeId}（${active.reason || `已绑定 ${active.changeId}`}）。`);
+      process.exit(2);
+    }
+    return;
+  }
   fs.writeFileSync(activeFile, `${changeId}\n`, 'utf-8');
 }
 
@@ -149,9 +159,25 @@ function saveChange(changeId, data, event) {
   );
 }
 
+function assertCurrentSessionChange(changeId, { allowUnbound = false } = {}) {
+  const sessionId = sessionIdFromEnv();
+  if (!sessionId) return;
+  const active = loadActiveChange(root, { sessionId });
+  if (!active.ok && allowUnbound && active.reason === 'missing-session-binding') return;
+  if (!active.ok) {
+    console.error(`BLOCK EH-SESSION-CHANGE-001: 当前 session 无法解析 active change（${active.reason}）。`);
+    process.exit(2);
+  }
+  if (active.changeId !== changeId) {
+    console.error(`BLOCK EH-SESSION-CHANGE-001: 当前 session 绑定 ${active.changeId}，不能操作 ${changeId}。`);
+    process.exit(2);
+  }
+}
+
 function resolveChangeId(candidate) {
   if (candidate) {
     assertSafeId(candidate, 'changeId');
+    assertCurrentSessionChange(candidate);
     return candidate;
   }
   const active = loadActiveChange(root);
@@ -185,7 +211,7 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'classification-confirmation' || pending.kind === 'route-confirmation') {
-    applyRouteConfirmationDecision(data, decision, classificationFor(data));
+    applyRouteConfirmationDecision(data, decision, classificationFor(data, root, changeId));
   }
 
   if (pending.kind === 'execution-readiness') {
@@ -240,7 +266,7 @@ switch (action) {
   case 'classify': {
     const changeId = resolveChangeId(args[0]);
     const data = loadChange(changeId);
-    const result = classificationFor(data);
+    const result = classificationFor(data, root, changeId);
     process.stdout.write(JSON.stringify({ changeId, classification: result }, null, 2) + '\n');
     process.exit(0);
   }
@@ -250,6 +276,7 @@ switch (action) {
       console.error('Usage: workflow run <change-id> [owner] [tier] [topic]');
       process.exit(1);
     }
+    assertCurrentSessionChange(changeId, { allowUnbound: !ensureChangeExists(changeId) });
     if (!ensureChangeExists(changeId)) {
       createChange(changeId, owner, tier, topic);
     } else {

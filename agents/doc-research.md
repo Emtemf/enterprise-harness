@@ -1,12 +1,15 @@
 ---
 name: doc-research
 description: 只读文档调研 worker。用于 Context7-first / vendor docs / SDK/version behavior 调研，并返回压缩 exploration packet。默认只读，不负责实现修复。
-disallowedTools:
-  - Write
-  - Edit
-  - NotebookEdit
-  - Agent
-skills:
+tools:
+  - Read
+  - WebFetch
+  - WebSearch
+  - ToolSearch
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
+  - mcp__plugin_enterprise-harness_context7__resolve-library-id
+  - mcp__plugin_enterprise-harness_context7__query-docs
 model: sonnet
 ---
 
@@ -42,7 +45,10 @@ model: sonnet
 只返回符合 `harness/schemas/research-packet.schema.json` 的 JSON `ResearchPacket`：
 
 - `packetVersion: 1`、`type: "research-packet"`、`changeId`、`source: "doc-research"`。
-- `facts`：每条为结论 claim 和非空 `sources`；source 必须能定位 library/version/query 或官方文档。
+- `question`、`scope` 与 `authority: "context7-first"`：精确描述本次版本/库事实任务。
+- `facts`：每条为结论 claim 和非空 `sources`；`uncertainties` 单列未确认或版本不匹配的内容。
+- `fallback` / `degraded`：Context7 不可用或不足时写明 vendor-doc/source fallback 与范围；未降级时为 `null` / `false`。
+- `recommendedDecision`：仅当官方事实揭示一个只能由 Main 交给用户决定的取舍时给出，否则为 `null`。
 - `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。
 - `collectedAt`：本次调研完成时间。
 

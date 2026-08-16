@@ -2,9 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { projectRoot } from './lib/checks.mjs';
-import { activeChangeId } from './lib/agent-evidence.mjs';
+import { activeChangeId, activeHandoffAgentBinding } from './lib/agent-evidence.mjs';
+import { sessionIdFromEnv } from './lib/sessions.mjs';
+import { loadActiveChange } from './lib/gates.mjs';
 import {
   createHandoffV2,
+  loadHandoffV2,
   loadHandoffV2FromMarker,
   parseHandoffV2Marker,
   persistHandoffV2Result,
@@ -12,6 +15,8 @@ import {
 } from './core/handoff-v2.mjs';
 import { resolveWithin } from './lib/safe-paths.mjs';
 import { selectReviewRubrics } from './lib/review-rubrics.mjs';
+import { readClassificationArtifact } from './core/classification-artifact.mjs';
+import { agentForV2Handoff } from './core/handoff-agent.mjs';
 import {
   createHandoffInput,
   loadHandoffInput,
@@ -22,6 +27,16 @@ import { diagnostic, DIAGNOSTICS } from './lib/diagnostics.mjs';
 
 const root = projectRoot();
 const [action, ...args] = process.argv.slice(2);
+
+function assertSessionChange(changeId) {
+  const sessionId = sessionIdFromEnv();
+  if (!sessionId) return;
+  const active = loadActiveChange(root, { sessionId });
+  if (!active.ok) throw new Error(`EH-SESSION-CHANGE-001: session cannot resolve active change (${active.reason})`);
+  if (active.changeId !== changeId) {
+    throw new Error(`EH-SESSION-CHANGE-001: session is bound to ${active.changeId}, not ${changeId}`);
+  }
+}
 
 function help() {
   console.log('Enterprise Harness Handoff');
@@ -62,32 +77,39 @@ if (action === 'create') {
     state = null;
   }
   const isV6 = state?.schemaVersion === 6;
+  let classification = null;
   if (!changeId || !stage || !behavior) {
     console.error('Usage: handoff create <change-id> <stage> <behavior> <execute|check> [parent-run-id] [--input-ref <path>]');
     process.exit(1);
   }
   try {
+    assertSessionChange(changeId);
+    if (isV6 && state?.artifacts?.classification) {
+      classification = readClassificationArtifact(root, changeId, state.artifacts.classification);
+    }
     const created = isV6
-      ? createHandoffV2(root, {
-        changeId,
-        stage,
-        behavior,
-        role,
-        parentRunId: parentRunId || null,
-        agent: {
-          type: role === 'check' ? 'enterprise-harness:reviewer' : 'enterprise-harness:artifact-worker',
-          skill: role === 'check' ? 'review' : stage,
-        },
-        inputRefs,
-        rubricIds: role === 'check' ? selectReviewRubrics({ stage, impact: state?.impact }) : [],
-        tecpc: {
-          target: target || behavior,
-          evidence: inputRefs,
-          context: inputRefs,
-          path: pathSummary || `${role} ${behavior}`,
-          correction: correction || null,
-        },
-      })
+      ? (() => {
+        if (role === 'check' && process.env.CLAUDE_AGENT_ID) {
+          throw new Error('EH-HANDOFF-AUTH-032: check handoffs are controller-created and cannot be created by a subagent');
+        }
+        return createHandoffV2(root, {
+          changeId,
+          stage,
+          behavior,
+          role,
+          parentRunId: parentRunId || null,
+          agent: agentForV2Handoff(stage, behavior, role),
+          inputRefs,
+          rubricIds: role === 'check' ? selectReviewRubrics({ stage, impact: classification?.impact }) : [],
+          tecpc: {
+            target: target || behavior,
+            evidence: inputRefs,
+            context: inputRefs,
+            path: pathSummary || `${role} ${behavior}`,
+            correction: correction || null,
+          },
+        });
+      })()
       : createHandoffInput(root, {
         changeId,
         stage,
@@ -120,6 +142,20 @@ if (action === 'persist') {
     process.exit(1);
   }
   try {
+    assertSessionChange(changeId);
+    const input = loadHandoffV2(root, changeId, runId);
+    const mainOwnedClarify = input.role === 'execute'
+      && input.stage === 'clarify'
+      && input.agent?.type === 'enterprise-harness:main';
+    if (!mainOwnedClarify) {
+      const binding = activeHandoffAgentBinding(root, changeId, input, {
+        agentId: process.env.CLAUDE_AGENT_ID,
+        sessionId: sessionIdFromEnv(),
+      });
+      if (!binding) {
+        throw new Error('EH-HANDOFF-AUTH-033: result persistence requires the active dispatched agent bound to this exact run and role');
+      }
+    }
     const source = resolveWithin(root, resultPath, 'resultPath');
     const result = JSON.parse(fs.readFileSync(source, 'utf-8'));
     const persisted = persistHandoffV2Result(root, changeId, runId, result);

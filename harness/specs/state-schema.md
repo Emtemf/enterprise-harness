@@ -25,12 +25,18 @@ A v6 `state.json` contains only mechanical, revisioned facts:
 
 - identity: `changeId`, `revision`, `lifecycle`, `owner`, controller identity;
 - current lifecycle position: `stage` in `clarify → design → plan → implement → verify → archive`;
-- durable impact classification: `api`, `data`, `architecture`, `rule`, and `security`;
-- artifact index: `artifacts`, with paths and content digests where applicable;
+- artifact index: `artifacts`, including the digest-bound `classification.json` reference;
 - active task/blocker and validation digest/status.
 
-Classification is durable but internal. It selects exploration and review rubrics; it is not a
-user-visible stage. TDD is an implementation method, not a lifecycle stage.
+`classification.json` is the authority for durable business classification: its `impact` matrix
+(`api`, `data`, `architecture`, `rule`, `security`) and any classification decision select
+exploration and review rubrics. `state.json` keeps only
+`artifacts.classification = { path, digest }` after clarification; it must not duplicate `impact`
+or `classification` fields. Before clarification completes, that reference is explicitly `null`.
+Session bindings and locks are common-dir coordination records, never state fields.
+
+Classification is durable but internal. It is not a user-visible stage. TDD is an implementation
+method, not a lifecycle stage.
 
 A v6 state **must not** persist readiness or approval conclusions such as `routeReady`,
 `designApproved`, `planReady`, `redVerified`, `tddStatus`, or a list of required reviewers.
@@ -54,17 +60,20 @@ a second state model.
 
 ## Freshness
 
-Reviews, waivers, receipts, and validation bind to their input artifact digest. `fresh` therefore
-means the evidence was produced for exactly the material now being judged. `stale` is derived
-when an indexed input changes; it is never repaired by setting a ready/approved field.
+Reviews, receipts, and validation bind to their input artifact digest. Waiver shape can likewise
+bind an artifact digest, but v6 does not accept a non-empty waiver list until trusted authorization
+evidence exists. `fresh` means the evidence was produced for exactly the material now being
+judged. `stale` is derived when an indexed input changes; it is never repaired by setting a
+ready/approved field.
 
 ## Compatibility boundary
 
 - v4/v5 readers are compatibility-only and may explain historical state.
 - Archived historical changes are read-only and are never migrated in place.
 - An active v5 change requires explicit `enterprise-harness migrate-v5 <change-id> --confirm`.
-  The migration resets revision to 1, maps `route` to `design` and `tdd` to `implement`, adds
-  `impact.security: unknown`, clears derived artifacts, and makes validation stale.
+  The migration resets revision to 1, maps `route` to `design` and `tdd` to `implement`, writes
+  a digest-bound `classification.json` from legacy impact/classification data, clears derived
+  artifacts, and makes validation stale.
 - `runtime/compat/**` is the sole place allowed to interpret legacy lifecycle projections.
 
 ## Common-dir runtime state

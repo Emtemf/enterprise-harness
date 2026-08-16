@@ -97,8 +97,8 @@ export function buildStatusSummary(root, options = {}) {
     truthSources: [
       {
         kind: 'dynamic',
-        paths: ['harness/ACTIVE_CHANGE', 'harness/changes/*/state.json'],
-        note: '当前动态状态以 active change 与 state.json 为准',
+        paths: ['<git-common-dir>/enterprise-harness/sessions/<sessionId>.json', 'harness/ACTIVE_CHANGE', 'harness/changes/*/state.json'],
+        note: '有 session 时以 common-dir 的 session binding 与绑定 change 的 state.json 为准；无 session 时兼容读取 active change',
       },
       {
         kind: 'static',

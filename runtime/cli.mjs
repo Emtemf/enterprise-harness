@@ -29,6 +29,7 @@ const commands = {
   lifecycle: ['lifecycle.mjs'],
   workflow: ['workflow.mjs'],
   context7: ['context7.mjs'],
+  'task-run': ['task-run.mjs'],
   'tdd-run': ['tdd-run.mjs'],
   'evidence-import': ['evidence-import.mjs'],
   handoff: ['handoff.mjs'],
@@ -53,10 +54,10 @@ if (!commands[subcommand]) {
 }
 
 const targetScript = path.join(runtimeDir, commands[subcommand][0]);
-const child = spawnSync('node', [targetScript, ...rest], {
+const child = spawnSync(process.execPath, [targetScript, ...rest], {
   cwd: targetCwd,
   encoding: 'utf-8',
 });
 process.stdout.write(child.stdout || '');
 process.stderr.write(child.stderr || '');
-process.exit(child.status ?? 1);
+process.exitCode = child.status ?? 1;

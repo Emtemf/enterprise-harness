@@ -1,99 +1,120 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-16
 implementationRefs:
+  - runtime/task-run.mjs
+  - runtime/lib/task-execution.mjs
+  - runtime/lib/task-execution-receipt.mjs
   - runtime/tdd-run.mjs
   - runtime/lib/tdd-receipts.mjs
 testRefs:
+  - runtime/test/task-runner-v6-smoke.mjs
+  - runtime/test/governed-task-run-write-gate-smoke.mjs
+  - runtime/test/task-execution-authority-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
 ---
 
-# TDD Execution Contract
+# Implement Task 执行合同
 
 ## 目标
 
-TDD 是由 Claude Code 专职 subagent 执行、由 runtime receipt 证明的机械流程，不接受 worker 自报的命令字符串作为证据。
+TDD 是 Implement task 的一种 execution strategy，不是 lifecycle stage，也不拥有独立的 v6
+capability agent。v6 的所有 strategy 都由 `enterprise-harness:implementer` 在隔离 worktree 中执行，
+并由同一套 machine-generated receipt 证明；worker 文本、聊天声明和手写 evidence 都不构成证据。
 
-## 角色与入口
+## v6 权威入口
 
-- plugin 阶段入口：`/enterprise-harness:harness-tdd`
-- 本仓库开发阶段入口：`/harness-tdd`
-- plugin executor subtype：`enterprise-harness:tdd-executor`
-- executor frontmatter：logical `name: tdd-executor`，并声明 `isolation: worktree`
-- 主 orchestrator：只负责串行派发、集成 implementation commit、独立 review、`evidence-import` 与集成复验
+Plan 必须在 `task-commands.json` 中为每个 task 冻结唯一 `executionStrategy`、phase chain、literal
+argv、输入引用和允许修改的路径。Implement Handoff v2 必须绑定当前 task 的 `state.json` 与
+`task-commands.json` digest。
 
-主对话不得直接修改生产代码，也不得把自己的 Bash 输出包装成 executor evidence。
-
-## worktree 基线
-
-Claude Code 默认隔离 worktree 可能从 default branch 创建。本项目注册受控 `WorktreeCreate` hook，必须从派发 cwd 的已提交 `HEAD` 创建新 branch/worktree，并精确校验 path、完整 branch ref、registration HEAD 与 captured parent HEAD。无法证明所有权时保留资源供人工恢复，不猜测清理。
-
-## 权威执行命令
-
-每个 task 在 `tasks.md` 冻结 RED/GREEN/REFACTOR 的 literal argv。executor 必须调用：
+每个 phase 调用：
 
 ```bash
-enterprise-harness tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
+enterprise-harness task-run \
+  <change-id> <task-id> <run-id> <phase>
 ```
 
-本仓库开发时的等价 fallback 是：
+本仓库开发时的等价入口：
 
 ```bash
-node runtime/cli.mjs tdd-run <change-id> <task-id> <red|green|refactor> -- <literal argv>
+node runtime/cli.mjs task-run \
+  <change-id> <task-id> <run-id> <phase>
 ```
 
-runner 以 `spawnSync(command, args, { shell: false })` 真实执行命令。Java/Maven task 必须在 tasks 中冻结并实际执行 `mvn test`、`mvn verify` 或项目 wrapper；不存在“文字声明已执行”的降级路径。
+`task-run` 在启动子进程前机械验证：
 
-## Receipt contract
+- active change、State v6、`stage=implement` 与 `currentTask`；
+- fresh Handoff v2 execute input；
+- Handoff agent/skill 为 `enterprise-harness:implementer` / `implement`；
+- agent dispatch/start 与同一个 run、同一个 worktree 绑定；
+- phase 顺序正确，并从冻结计划内部解析 child argv；launcher 拒绝外部 argv、管道、重定向和命令串联。
 
-receipt 写入 git common-dir spool，绑定：
+pre-write 对 v6 implementer fail closed：受治理路径不能通过 `Write` / `Edit` / `NotebookEdit`
+或任意 Bash 直接修改，只允许使用受信 runtime 的 canonical `task-run` launcher。runner 为子进程建立
+短期 common-dir authorization，成功、失败或 spawn 异常后都清理；遗留 marker 不能重放，也不能被
+后续 runner 静默覆盖。
 
-- change/task 与 scoped executor `agent_id`
-- worktree absolute path、git common dir、HEAD before/after、tree digest before/after
-- exact argv、exit code、开始/结束时间、stdout/stderr digest
-- 严格 RED → GREEN → REFACTOR 顺序
+子命令固定使用 `spawnSync(command, args, { shell: false })`，不经过 shell 拼接。Java/Maven task
+必须冻结并真实执行 `mvn test`、`mvn verify` 或项目 wrapper，不存在文字声明降级路径。
 
-RED 必须非零；GREEN 与 REFACTOR 必须为零。receipt 必须同时存在 dispatch binding、Start、Stop 与合法 agent result，且不能来自未绑定或已结束的 agent。
+## Strategy phase chain
 
-## 集成与导入
+| Strategy | Required receipt chain |
+|---|---|
+| `tdd` | RED → GREEN → REFACTOR |
+| `regression` | REPRODUCE → VERIFY |
+| `characterization` | BASELINE → VERIFY |
+| `direct` | frozen non-RED rationale → VERIFY |
+| `migration` | DRY_RUN → APPLY → ROLLBACK |
+| `generation` | GENERATE → VERIFY |
 
-executor 提交实现后，主 orchestrator 先把 implementation commit 集成到当前分支并完成独立 task review，然后执行：
+RED 与 REPRODUCE 必须非零；其他 phase 必须为零。失败、skip 和 unsupported 不能改写成 pass。
+`direct` 的 `strategyRationale` 必须在 plan 中冻结，并与最终 receipt 完全一致。
 
-```bash
-enterprise-harness evidence-import <change-id> <task-id>
+## Canonical receipt
+
+增量执行先写入 git common-dir：
+
+```text
+<git-common-dir>/enterprise-harness/receipts/<change-id>/tasks/<task-id>/<run-id>.json
 ```
 
-本仓库开发 fallback：
+完整 phase chain 通过后，runner 以 exclusive write 发布唯一 canonical artifact：
 
-```bash
-node runtime/cli.mjs evidence-import <change-id> <task-id>
+```text
+harness/changes/<change-id>/evidence/tasks/<task-id>.json
 ```
 
-importer 校验 spool、agent 生命周期、worktree/git common dir、implementation patch 与 integration HEAD，再原子写入 `harness/changes/<change-id>/evidence/tdd/<task-id>.json`。verify、Stop 与 archive 只消费 durable imported evidence，不相信 worker 文本中的 `command-executed`、`summary` 或 `evidence-path`。
+canonical receipt 只接受：
 
-## 已知缺口：runtime 自举
+- `provenance: runtime-runner`；
+- `agent.type: enterprise-harness:implementer`；
+- `executionStrategy` 与冻结 task 一致；
+- Handoff input digests 完全一致且 fresh；
+- worktree absolute path、git common dir、HEAD before/after、tree digest before/after；
+- baseline-relative changed paths；
+- 每个 phase 的 exact argv、exit code、时间和 stdout/stderr SHA-256；
+- 完成时间。
 
-修改 `runtime/**` 自身时，本合同存在未解决的自举边界：执行 SOP 的 runtime
-就是被修改的 runtime，隔离 executor 无法在不影响自身执行环境的前提下改写它。
+canonical receipt 已存在时不得覆盖；修复失败执行必须创建新的 execute run，而不是重写历史证据。
+Implement finalizer、CompletionProof 与独立 reviewer 都消费这一 canonical artifact。
 
-历史处置各不相同，均已记录而非掩盖：
+## v5 compatibility boundary
 
-- `plugin-runtime-agent-dispatch-hardening` Task 1 使用受限 `runner-bootstrap` provenance，
-  条件严格且只允许首个 task。
-- 同 change Task 5 由主 orchestrator 直接在 main 上以 TDD 方式完成，无 receipt，
-  记为该 change 的 W-2。
+`runtime/tdd-run.mjs`、`runtime/lib/tdd-receipts.mjs`、`evidence-import` 和
+`enterprise-harness:tdd-executor` 仅用于读取或完成历史 v5 TDD 流程。它们使用独立 spool 和
+`provenance: tdd-run`，不能生成或替代 v6 canonical task receipt，也不能通过 v6 completion gate。
 
-当前尚无正式轻量通道。在提供之前，涉及 runtime 自身的改动必须：
-
-- 仍然先写失败测试并确认真实 RED
-- 在 change 资产中显式记录执行方式与缺失的 receipt
-- 不得把这类执行伪装成隔离 executor 产出
+保留 compatibility 的目的只是恢复历史 active change，不是为新 change 提供第二套执行 authority。
 
 ## 禁止事项
 
-- 不运行真实命令就声称 RED/GREEN/REFACTOR
-- 用手填 `state.gates.redVerified` 替代 receipt
-- executor 自行 checkout/cherry-pick 猜测基线
-- 并行执行会互相覆盖 receipt 的 task
-- 缺独立 review 或 import 就进入 completion
+- 把 TDD 重新建模成 lifecycle stage；
+- 在 v6 派发 `tdd-executor` 修改产品代码；
+- 绕过 `task-run` 直接运行命令后手填 receipt；
+- 用 `state.gates.redVerified`、agent stop event 或聊天摘要替代 receipt；
+- 允许不同 run、不同 agent 或不同 worktree 续写同一 spool；
+- 覆盖已发布的 canonical receipt；
+- 缺独立 task review 和 CompletionProof 就进入 verify。

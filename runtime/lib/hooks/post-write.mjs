@@ -5,11 +5,43 @@ import { isGovernedTarget } from '../gates.mjs';
 import { loadHookChange, hookRepoRoot } from '../hook-change.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
-import { consumeHookSnapshot, hookSnapshotAlreadyConsumed } from '../hook-snapshots.mjs';
+import {
+  captureGovernedSnapshot,
+  consumeHookSnapshot,
+  diffGovernedSnapshots,
+  hookSnapshotAlreadyConsumed,
+} from '../hook-snapshots.mjs';
 import { canonicalPath, pathIsWithin } from '../safe-paths.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
 import { atomicWriteJson } from '../state-store.mjs';
+import { updateChangeState } from '../../core/change-state.mjs';
+
+export function markValidationStaleForWrite(root, statePath, target) {
+  if (!fs.existsSync(statePath)) return null;
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  const changeDir = path.dirname(statePath);
+  const artifact = artifactNameForPath(path.relative(changeDir, target));
+  const next = artifact
+    ? invalidateStateArtifacts(state, [artifact])
+    : { ...state, validation: state.validation
+        ? { ...state.validation, status: 'stale', digest: null, validatedAt: null }
+        : state.validation };
+  if (state.schemaVersion === 6) {
+    return updateChangeState(
+      root,
+      state.changeId,
+      () => next,
+      {
+        expectedRevision: state.revision,
+        type: 'validation-stale',
+        actor: 'post-write',
+      },
+    );
+  }
+  atomicWriteJson(statePath, next);
+  return next;
+}
 
 export function postWrite({ root, raw, event: inputEvent = null }) {
   if (!isHarnessManaged(root) && !hasChangeTracking(root)) return { status: 'allow', exitCode: 0 };
@@ -47,28 +79,12 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
     return changeId || null;
   }
 
-  function markValidationStale(statePath, target) {
-    if (!fs.existsSync(statePath)) return;
-    // post-write validation invalidation is a mechanical artifact→stale projection,
-    // not an authoritative state transition. It must not race with concurrent
-    // authoritative CAS mutations, so use atomic write rather than raw writeFile.
-    const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    const changeDir = path.dirname(statePath);
-    const artifact = artifactNameForPath(path.relative(changeDir, target));
-    const next = artifact
-      ? invalidateStateArtifacts(state, [artifact])
-      : { ...state, validation: state.validation
-          ? { ...state.validation, status: 'stale', digest: null, validatedAt: null }
-          : state.validation };
-    atomicWriteJson(statePath, next);
-  }
-
   function invalidateAffectedValidations(active, target) {
     const relative = path.relative(canonicalRoot, canonicalPath(target)).replaceAll('\\', '/');
     if (relative === 'runtime' || relative.startsWith('runtime/') || relative === 'hooks' || relative.startsWith('hooks/')) {
       if (!fs.existsSync(path.join(root, 'harness', 'changes'))) return;
       for (const entry of fs.readdirSync(path.join(root, 'harness', 'changes'), { withFileTypes: true })) {
-        if (entry.isDirectory()) markValidationStale(path.join(root, 'harness', 'changes', entry.name, 'state.json'), target);
+        if (entry.isDirectory()) markValidationStaleForWrite(root,path.join(root, 'harness', 'changes', entry.name, 'state.json'), target);
       }
       return;
     }
@@ -76,23 +92,31 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
     if (scope !== 'authority' && scope !== 'stable-evidence' && !isGovernedTarget(root, target)) return;
     const changeId = changeIdForTarget(target);
     if (changeId) {
-      markValidationStale(path.join(root, 'harness', 'changes', changeId, 'state.json'), target);
+      markValidationStaleForWrite(root,path.join(root, 'harness', 'changes', changeId, 'state.json'), target);
     } else if (active?.ok && isGovernedTarget(root, target)) {
-      markValidationStale(active.statePath, target);
+      markValidationStaleForWrite(root,active.statePath, target);
     }
   }
 
   // Bash writes must have a pre-write snapshot for attribution.
   // Missing snapshot = unattributed write → block.
+  let bashSnapshot = null;
   if (hookEvent.tool_name === 'Bash' && isPotentialWriteBash(hookEvent.tool_input?.command)) {
-    const before = consumeHookSnapshot(root, hookEvent.tool_use_id);
-    if (!before && !hookSnapshotAlreadyConsumed(root, hookEvent.tool_use_id)) {
+    bashSnapshot = consumeHookSnapshot(root, hookEvent.tool_use_id);
+    if (!bashSnapshot && !hookSnapshotAlreadyConsumed(root, hookEvent.tool_use_id)) {
       return { status: 'block', exitCode: 2, stderr: 'BLOCK [EH-HOOK-SNAPSHOT-010] Bash 写入无法完整归因；查看 violation ledger 后重试。' };
     }
   }
 
   try {
-    const targets = extractHookTargets(root, hookEvent);
+    const snapshotTargets = bashSnapshot
+      ? diffGovernedSnapshots(bashSnapshot, captureGovernedSnapshot(root))
+        .map((relative) => path.join(root, relative))
+      : [];
+    const targets = [...new Set([
+      ...extractHookTargets(root, hookEvent),
+      ...snapshotTargets,
+    ])];
     const active = loadHookChange(root, inputEvent || hookEvent);
     for (const target of targets) {
       invalidateAffectedValidations(active, target);

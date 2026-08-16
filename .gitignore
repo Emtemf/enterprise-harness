@@ -8,6 +8,9 @@ runtime/.bootstrap-ran
 # Claude Code local-only config
 .claude/settings.local.json
 
+# Local Codex adapter config (Claude Code is the supported product host)
+.codex/
+
 # CodeGraph local index
 .codegraph/
 

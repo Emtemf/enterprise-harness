@@ -13,11 +13,11 @@ background: false
 
 ## 执行顺序
 
-1. 运行 `scripts/prepare-input.mjs`，拒绝 stage 错误、缺 requirements 或 stale input。
-2. 按 `references/method.md` 形成 design；以 `references/artifact-contract.md` 约束产物形状。
-3. 仅在 impact 适用时加载条件分支：`references/api-design.md` 或 `references/data-design.md`。
-4. 依 `references/self-check.md` 自检，使用 `references/examples.md` 了解 trace 形状。
-5. 运行 `assert/artifact-shape.mjs`、`assert/requirement-coverage.mjs`、`assert/traceability.mjs`；全部通过后运行 `scripts/finalize-result.mjs` 生成 `StageResult`，再用 `node runtime/handoff.mjs persist <change-id> <run-id> <result-path>` 将其写入 execute run 的 immutable `result.json`。
+1. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs"`，拒绝 stage 错误、缺 requirements 或 stale input。
+2. 按 [设计方法](references/method.md) 形成 design；以 [artifact 合同](references/artifact-contract.md) 约束产物形状。
+3. 仅在 impact 适用时加载条件分支：[API 设计](references/api-design.md) 或 [数据设计](references/data-design.md)。
+4. 依 [self-check](references/self-check.md) 自检，使用 [trace 示例](references/examples.md) 了解 trace 形状。
+5. 运行 `node "${CLAUDE_SKILL_DIR}/assert/artifact-shape.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/requirement-coverage.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/traceability.mjs"`；全部通过后运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 `StageResult`，再用 `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 将其写入 execute run 的 immutable `result.json`。
 6. 将 result 交给独立 `review` run。只有 runtime 验证 fresh `StageResult + ReviewResult + TECPC` 后，才可从 design 进入 plan。
 
 ## 未决决策

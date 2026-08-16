@@ -3,15 +3,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { validateAmbiguityGate } from './ambiguity.mjs';
 import { validateRouterScore } from './router-score.mjs';
-import { boundHarnessAgent, readAgentEvents } from './agent-evidence.mjs';
+import { boundHarnessAgent, gitCommonDir, readAgentEvents } from './agent-evidence.mjs';
 import { evidenceModeForChange } from './evidence-policy.mjs';
 import { isGovernedTarget, requiredGateForTarget } from './gates.mjs';
 import { readAndValidateTddReceipt, tddReceiptSpoolPath } from './tdd-receipts.mjs';
+import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 import {
   loadTaskExecutionStrategy,
-  readTaskExecutionReceipt,
-  requiredPrewriteEvidence,
 } from './task-execution.mjs';
+import {
+  readTaskExecutionReceipt,
+} from './task-execution-receipt.mjs';
+import { validateStageGate } from './stage-results.mjs';
 
 function readReview(changeDir, name, problems) {
   const file = path.join(changeDir, 'reviews', name);
@@ -34,9 +37,12 @@ export function validateTaskExecutionEvidence(root, changeId, state, agentId) {
   if (!taskId) return ['currentTask is missing'];
   const resolved = loadTaskExecutionStrategy(root, changeId, taskId, state?.executionStrategy);
   if (!resolved.ok) return resolved.problems;
-  const phases = requiredPrewriteEvidence(resolved.strategy);
-  if (phases.length === 0) return [];
-  const receipt = readTaskExecutionReceipt(root, changeId, taskId, resolved.strategy);
+  const receipt = readTaskExecutionReceipt(root, changeId, taskId, {
+    expectedStrategy: resolved.strategy,
+    expectedAgent: agentId || null,
+    requireTrusted: true,
+    requireFreshInputs: true,
+  });
   if (!receipt.ok) return receipt.problems.map((problem) => `${resolved.strategy} receipt: ${problem}`);
   if (agentId && receipt.receipt.agent?.id !== agentId) return ['execution receipt agent does not match tool event agent_id'];
   return [];
@@ -62,8 +68,8 @@ export function validateTaskRedReceipt(root, changeId, state, agentId) {
 }
 
 // ── 静态阶段链：由 CLI `validate` 在阶段边界显式调用，验证通过后落 stage-gate marker ──
-// 这些检查只依赖已批准的 clarify/route/design/plan 证据，写代码过程中不会变化，
-// 所以不应每次 Write/Edit 都重跑（那是 pre-write 的旧行为，浪费且职责重叠）。
+// v6 消费 classification、StageResult、独立 ReviewResult 与 fresh digest；v5 compatibility
+// 才读取旧 ambiguity/router/review projection。写代码时 pre-write 只检查 marker freshness。
 export function validateStageChain(root, changeId, state) {
   const problems = [];
   const policy = evidenceModeForChange(root, changeId);
@@ -77,8 +83,17 @@ export function validateStageChain(root, changeId, state) {
   if (!fs.existsSync(path.join(changeDir, 'requirements.md'))) problems.push('missing requirements.md');
 
   if (isV6) {
-    // v6: classification is an internal artifact, not a gate; check for it
-    if (!state?.classification) problems.push('classification is missing (internal durable action)');
+    // v6: classification is an internal artifact, not a direct state field.
+    const reference = state?.artifacts?.classification;
+    if (!reference) {
+      problems.push('classification artifact reference is missing (internal durable action)');
+    } else {
+      try {
+        readClassificationArtifact(root, changeId, reference);
+      } catch (error) {
+        problems.push(`classification artifact is invalid: ${error.message}`);
+      }
+    }
   } else {
     // v5 compat: check the old gate fields
     if (!state?.workflow?.userConfirmedScope || !state?.workflow?.clarifyReady) problems.push('clarify scope is not confirmed');
@@ -87,32 +102,37 @@ export function validateStageChain(root, changeId, state) {
     problems.push(...validateRouterScore(root, changeId, state));
   }
 
-  if (!fs.existsSync(path.join(changeDir, 'design.md'))) problems.push('missing design.md');
-  // v6 review files use the canonical `reviewer` agent; v5 uses named reviewers.
-  // Try design.json first (v6), fall back to design-reviewer.json (v5) — only push a
-  // problem when neither exists to avoid a spurious "missing design.json" on v5 changes.
-  const designReviewNames = ['design.json', 'design-reviewer.json'];
-  const foundDesignName = designReviewNames.find((n) => fs.existsSync(path.join(changeDir, 'reviews', n)));
-  const designReview = foundDesignName
-    ? readReview(changeDir, foundDesignName, problems)
-    : (problems.push('missing reviews/design.json'), null);
-  if (isV6 && !state?.gates?.designApproved !== true) {
-    // v6: design review verdict is the gate, not a boolean
-    if (!designReview || !['pass', 'advisory'].includes(designReview.verdict)) {
-      // already pushed by readReview
-    }
-  } else if (!isV6 && state?.gates?.designApproved !== true) {
-    problems.push('gates.designApproved is not true');
-  }
+  if (isV6) {
+    const designRef = `harness/changes/${changeId}/design.md`;
+    const tasksRef = `harness/changes/${changeId}/tasks.md`;
+    problems.push(...validateStageGate(root, changeId, 'design', {
+      requiredArtifactPath: designRef,
+    }).map((problem) => `design gate: ${problem}`));
+    problems.push(...validateStageGate(root, changeId, 'plan', {
+      requiredArtifactPath: tasksRef,
+    }).map((problem) => `plan gate: ${problem}`));
+  } else {
+    if (!fs.existsSync(path.join(changeDir, 'design.md'))) problems.push('missing design.md');
+    const designReviewNames = ['design.json', 'design-reviewer.json'];
+    const foundDesignName = designReviewNames.find((name) => (
+      fs.existsSync(path.join(changeDir, 'reviews', name))
+    ));
+    if (foundDesignName) readReview(changeDir, foundDesignName, problems);
+    else problems.push('missing reviews/design.json');
+    if (state?.gates?.designApproved !== true) problems.push('gates.designApproved is not true');
 
-  const tasksPath = path.join(changeDir, 'tasks.md');
-  if (!fs.existsSync(tasksPath) || !fs.readFileSync(tasksPath, 'utf-8').startsWith('# Tasks')) problems.push('tasks.md is not finalized');
-  // Same pattern for plan review: plan.json (v6) → plan-critic.json (v5).
-  const planReviewNames = ['plan.json', 'plan-critic.json'];
-  const foundPlanName = planReviewNames.find((n) => fs.existsSync(path.join(changeDir, 'reviews', n)));
-  if (foundPlanName) readReview(changeDir, foundPlanName, problems);
-  else problems.push('missing reviews/plan.json');
-  if (!isV6 && state?.workflow?.planReady !== true) problems.push('workflow.planReady is not true');
+    const tasksPath = path.join(changeDir, 'tasks.md');
+    if (!fs.existsSync(tasksPath) || !fs.readFileSync(tasksPath, 'utf-8').startsWith('# Tasks')) {
+      problems.push('tasks.md is not finalized');
+    }
+    const planReviewNames = ['plan.json', 'plan-critic.json'];
+    const foundPlanName = planReviewNames.find((name) => (
+      fs.existsSync(path.join(changeDir, 'reviews', name))
+    ));
+    if (foundPlanName) readReview(changeDir, foundPlanName, problems);
+    else problems.push('missing reviews/plan.json');
+    if (state?.workflow?.planReady !== true) problems.push('workflow.planReady is not true');
+  }
 
   const events = readAgentEvents(root, changeId);
   if (!events.some((item) => item.kind === 'codegraph-attempt'
@@ -130,19 +150,24 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
   const problems = [];
   if (!isGovernedTarget(root, target)) return problems;
   const agentId = String(event.agent_id || '').trim();
-  // v0.5 canonical writer agent is `implementer`, not the legacy `tdd-executor`.
-  // Accept both during migration; after compat removal, only `implementer` remains.
   const isAuthorized = agentId && (
-    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer') ||
-    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor')
+    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer')
+    || (state?.schemaVersion !== 6
+      && boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor'))
   );
   if (!isAuthorized) {
     problems.push('tool event is not bound to an active enterprise-harness:implementer');
   }
   const events = readAgentEvents(root, changeId);
   if (state?.schemaVersion === 6) {
+    if (event.tool_name !== 'Bash') {
+      problems.push('v6 受治理路径只能由 canonical task-run 的冻结子进程写入');
+    }
     if (!String(state?.currentTask || '').trim()) problems.push('currentTask is missing');
-    else problems.push(...validateTaskExecutionEvidence(root, changeId, state, agentId));
+    else {
+      const task = loadTaskExecutionStrategy(root, changeId, state.currentTask, state?.executionStrategy);
+      if (!task.ok) problems.push(...task.problems);
+    }
   } else if (requiredGateForTarget(root, target)?.needsRedVerified) {
     problems.push(...validateTaskRedReceipt(root, changeId, state, agentId));
   } else if (!String(state?.currentTask || '').trim()) {
@@ -154,11 +179,93 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
 }
 
 // ── stage-gate marker ──
-// 只对静态阶段链证据计算 digest：requirements/change/design/tasks + reviews/*。
-// 刻意排除 state.json（含 currentTask/gates.redVerified 等 tdd 动态字段）、evidence/*
-// （含 tdd receipts）、validation.md（verify 阶段才写）——否则 tdd 中途写 evidence
-// 会让 marker 失效，把后续写代码误 block。
-const STAGE_GATE_FILES = ['requirements.md', 'change.md', 'design.md', 'tasks.md'];
+// digest 绑定静态 artifact、state 的阶段证据子集、v6 Design/Plan Handoff v2 结果、
+// agent-bound CodeGraph attempt 和 v5 compatibility reviews。刻意排除 currentTask、Implement run、
+// task receipt 与 validation.md，避免合法 task 派发或执行过程使 prerequisite marker 自失效。
+const STAGE_GATE_FILES = [
+  'requirements.md',
+  'change.md',
+  'classification.json',
+  'design.md',
+  'tasks.md',
+];
+const STRUCTURED_GATE_STAGES = new Set(['design', 'plan']);
+
+function updateHashWithFile(hash, label, file) {
+  hash.update(label);
+  hash.update('\n');
+  hash.update(fs.readFileSync(file));
+  hash.update('\n');
+}
+
+function updateHashWithStateEvidence(hash, changeDir) {
+  const statePath = path.join(changeDir, 'state.json');
+  if (!fs.existsSync(statePath)) return;
+  try {
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    const evidence = state.schemaVersion === 6
+      ? {
+        schemaVersion: state.schemaVersion,
+        changeId: state.changeId,
+        stage: state.stage,
+        classification: state.artifacts?.classification || null,
+      }
+      : {
+        schemaVersion: state.schemaVersion || null,
+        tier: state.tier || null,
+        workflow: {
+          userConfirmedScope: state.workflow?.userConfirmedScope === true,
+          clarifyReady: state.workflow?.clarifyReady === true,
+          planReady: state.workflow?.planReady === true,
+        },
+        designApproved: state.gates?.designApproved === true,
+      };
+    hash.update('state-evidence\n');
+    hash.update(JSON.stringify(evidence));
+    hash.update('\n');
+  } catch {
+    updateHashWithFile(hash, 'state.json', statePath);
+  }
+}
+
+function updateHashWithStructuredRuns(hash, root, changeId) {
+  const runsDir = path.join(gitCommonDir(root), 'enterprise-harness', 'runs', changeId);
+  if (!fs.existsSync(runsDir)) return;
+  for (const entry of fs.readdirSync(runsDir, { withFileTypes: true })
+    .filter((item) => item.isDirectory())
+    .sort((left, right) => left.name.localeCompare(right.name))) {
+    const runDir = path.join(runsDir, entry.name);
+    const inputPath = path.join(runDir, 'input.json');
+    if (!fs.existsSync(inputPath)) continue;
+    let input;
+    try {
+      input = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
+    } catch {
+      updateHashWithFile(hash, `runs/${entry.name}/input.json`, inputPath);
+      continue;
+    }
+    if (!STRUCTURED_GATE_STAGES.has(input.stage)) continue;
+    for (const fileEntry of fs.readdirSync(runDir, { withFileTypes: true })
+      .filter((item) => item.isFile())
+      .sort((left, right) => left.name.localeCompare(right.name))) {
+      updateHashWithFile(
+        hash,
+        `runs/${entry.name}/${fileEntry.name}`,
+        path.join(runDir, fileEntry.name),
+      );
+    }
+  }
+}
+
+function updateHashWithCodeGraphEvidence(hash, root, changeId) {
+  const attempts = readAgentEvents(root, changeId)
+    .filter((event) => event.kind === 'codegraph-attempt'
+      && event.agentId
+      && event.observedAgentType === 'enterprise-harness:code-explore');
+  hash.update('codegraph-attempts\n');
+  hash.update(JSON.stringify(attempts));
+  hash.update('\n');
+}
 
 export function computeStageGateDigest(root, changeId) {
   const changeDir = path.join(root, 'harness', 'changes', changeId);
@@ -166,24 +273,19 @@ export function computeStageGateDigest(root, changeId) {
   const hash = crypto.createHash('sha256');
   for (const rel of STAGE_GATE_FILES) {
     const full = path.join(changeDir, rel);
-    if (fs.existsSync(full)) {
-      hash.update(rel);
-      hash.update('\n');
-      hash.update(fs.readFileSync(full, 'utf-8'));
-      hash.update('\n');
-    }
+    if (fs.existsSync(full)) updateHashWithFile(hash, rel, full);
   }
+  updateHashWithStateEvidence(hash, changeDir);
   const reviewsDir = path.join(changeDir, 'reviews');
   if (fs.existsSync(reviewsDir)) {
-    for (const name of fs.readdirSync(reviewsDir).sort()) {
-      const full = path.join(reviewsDir, name);
-      if (!fs.statSync(full).isFile()) continue;
-      hash.update(`reviews/${name}`);
-      hash.update('\n');
-      hash.update(fs.readFileSync(full, 'utf-8'));
-      hash.update('\n');
+    for (const entry of fs.readdirSync(reviewsDir, { withFileTypes: true })
+      .filter((item) => item.isFile())
+      .sort((left, right) => left.name.localeCompare(right.name))) {
+      updateHashWithFile(hash, `reviews/${entry.name}`, path.join(reviewsDir, entry.name));
     }
   }
+  updateHashWithStructuredRuns(hash, root, changeId);
+  updateHashWithCodeGraphEvidence(hash, root, changeId);
   return hash.digest('hex');
 }
 
@@ -206,7 +308,7 @@ export function loadStageGateMarker(root, changeId) {
 export function stageGateIsFresh(root, changeId, state) {
   const marker = loadStageGateMarker(root, changeId);
   if (!marker || marker.ok !== true) return { fresh: false, reason: 'missing-or-invalid-marker' };
-  const expectedStage = state?.workflow?.stage;
+  const expectedStage = state?.stage;
   if (expectedStage && marker.stage !== expectedStage) {
     return { fresh: false, reason: `stage-mismatch (marker=${marker.stage}, current=${expectedStage})` };
   }

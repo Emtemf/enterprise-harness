@@ -14,8 +14,8 @@ const files = {
 const expected = {
   requirements: ['## 目标与验收', '## 组件拓扑', '## Frontier', '## 事实、约束与条件分支', '## Classification'],
   design: ['## T 目标', '## C 上下文', '## E 证据', '## P 路径', '### C 纠正预案', 'Design Self-Review'],
-  tasks: ['**Implementation Order**', '**Execution Strategy**', '**Strategy Evidence Point**', '**Frozen Validation Command**', '**Acceptance Checks**'],
-  validation: ['## Clarify / Requirements Confirmation', '## Stage Gate Summary', '## Review Verdicts'],
+  tasks: ['### Target and scope', '### Frozen inputs', '### Execution strategy', '### Commands and verification', '### Independent review'],
+  validation: ['## Commands', '## Results', '## Freshness', '## Coverage and exceptions'],
 };
 
 function readText(file) {
