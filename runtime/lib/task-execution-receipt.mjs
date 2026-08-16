@@ -101,13 +101,21 @@ function isSafeRelativePath(value) {
   return !value.split(/[\\/]/u).some((part) => part === '..' || part === '');
 }
 
-function validateExecutions(executions, requiredPhases, strategy, problems, expectedCommands = null) {
+function validateExecutions(
+  executions,
+  requiredPhases,
+  strategy,
+  problems,
+  expectedCommands = null,
+  { allowIncomplete = false } = {},
+) {
   if (!Array.isArray(executions) || executions.length === 0) {
     problems.push('executions must be a non-empty array');
     return;
   }
-  if (executions.length !== requiredPhases.length) {
-    problems.push(`${strategy} requires exactly ${requiredPhases.length} executions`);
+  if ((!allowIncomplete && executions.length !== requiredPhases.length)
+    || (allowIncomplete && executions.length > requiredPhases.length)) {
+    problems.push(`${strategy} requires ${allowIncomplete ? 'at most' : 'exactly'} ${requiredPhases.length} executions`);
   }
   const phases = [];
   let previousFinished = -Infinity;
@@ -119,6 +127,9 @@ function validateExecutions(executions, requiredPhases, strategy, problems, expe
     const phase = String(execution.phase || '').toUpperCase();
     phases.push(phase);
     if (!requiredPhases.includes(phase)) problems.push(`${strategy} contains an unknown execution phase`);
+    if (requiredPhases[index] && phase !== requiredPhases[index]) {
+      problems.push(`${strategy} execution ${index + 1} must be phase ${requiredPhases[index]}`);
+    }
     if (!Array.isArray(execution.argv) || execution.argv.length === 0
       || execution.argv.some((argument) => typeof argument !== 'string' || argument.length === 0)) {
       problems.push(`executions[${index}].argv must be a non-empty string array`);
@@ -143,7 +154,7 @@ function validateExecutions(executions, requiredPhases, strategy, problems, expe
     }
   }
   if (new Set(phases).size !== phases.length) problems.push(`${strategy} execution phases must be unique`);
-  if (requiredPhases.some((phase) => !phases.includes(phase))) {
+  if (!allowIncomplete && requiredPhases.some((phase) => !phases.includes(phase))) {
     problems.push(`${strategy} requires phases ${requiredPhases.join(', ')}`);
   }
   if (strategy === 'tdd' && executions.find((execution) => execution?.phase === 'RED')?.exitCode === 0) {
@@ -159,7 +170,7 @@ function validateExecutions(executions, requiredPhases, strategy, problems, expe
   }
 }
 
-function validateFrozenTask(root, receipt, problems) {
+function validateFrozenTask(root, receipt, problems, { allowIncomplete = false } = {}) {
   try {
     const plan = loadTaskExecutionStrategy(root, receipt.changeId, receipt.taskId);
     if (!plan.ok) {
@@ -180,7 +191,14 @@ function validateFrozenTask(root, receipt, problems) {
       problems.push('frozen task commands are incomplete');
       return;
     }
-    validateExecutions(receipt.executions, TASK_EXECUTION_PHASES[plan.strategy], plan.strategy, problems, expected);
+    validateExecutions(
+      receipt.executions,
+      TASK_EXECUTION_PHASES[plan.strategy],
+      plan.strategy,
+      problems,
+      expected,
+      { allowIncomplete },
+    );
   } catch (error) {
     problems.push(`frozen task validation failed: ${error.message}`);
   }
@@ -196,6 +214,7 @@ export function validateTaskExecutionReceipt(
     expectedAgent = null,
     root = null,
     requireTrusted = false,
+    allowIncomplete = false,
   } = {},
 ) {
   const problems = [];
@@ -227,15 +246,34 @@ export function validateTaskExecutionReceipt(
     problems.push('receipt input digests do not exactly match the execute handoff');
   }
   if (TASK_EXECUTION_PHASES[receipt.executionStrategy]) {
-    validateExecutions(receipt.executions, TASK_EXECUTION_PHASES[receipt.executionStrategy], receipt.executionStrategy, problems);
+    validateExecutions(
+      receipt.executions,
+      TASK_EXECUTION_PHASES[receipt.executionStrategy],
+      receipt.executionStrategy,
+      problems,
+      null,
+      { allowIncomplete },
+    );
   }
-  if (!Number.isFinite(Date.parse(receipt.completedAt))) problems.push('completedAt must be an ISO timestamp');
+  if (allowIncomplete) {
+    const requiredCount = TASK_EXECUTION_PHASES[receipt.executionStrategy]?.length || Infinity;
+    const isComplete = Array.isArray(receipt.executions)
+      && receipt.executions.length === requiredCount;
+    if (isComplete && !Number.isFinite(Date.parse(receipt.completedAt))) {
+      problems.push('completedAt must be an ISO timestamp for a complete receipt');
+    }
+    if (!isComplete && receipt.completedAt !== undefined) {
+      problems.push('completedAt is forbidden for an incomplete receipt');
+    }
+  } else if (!Number.isFinite(Date.parse(receipt.completedAt))) {
+    problems.push('completedAt must be an ISO timestamp');
+  }
   if (requireTrusted && receipt.provenance !== 'runtime-runner') {
     problems.push('trusted receipt provenance must be runtime-runner');
   }
   if (requireTrusted && !root) problems.push('trusted receipt validation requires repository root');
   if (root && receipt.changeId && receipt.taskId) {
-    validateFrozenTask(root, receipt, problems);
+    validateFrozenTask(root, receipt, problems, { allowIncomplete });
   }
   return [...new Set(problems)];
 }

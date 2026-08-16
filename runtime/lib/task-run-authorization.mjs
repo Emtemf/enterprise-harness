@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { loadHandoffV2 } from '../core/handoff-v2.mjs';
 import { activeChangeId, boundHarnessAgent, gitCommonDir } from './agent-evidence.mjs';
 import { sha256Artifact } from './result-contract.mjs';
-import { assertSafeId, assertSafeRunId, resolveChild } from './safe-paths.mjs';
+import {
+  assertSafeId,
+  assertSafeRunId,
+  canonicalPath,
+  resolveChild,
+} from './safe-paths.mjs';
 import { resolveTaskExecutionCommand } from './task-execution.mjs';
 import {
   taskExecutionReceiptPath,
@@ -138,7 +143,7 @@ export function validateTaskRunLauncher(root, command, event = {}) {
     if (!binding || binding.binding.runId !== parsed.runId || binding.start.runId !== parsed.runId) {
       throw new Error('implementer binding does not match the execute handoff run');
     }
-    if (path.resolve(binding.start.cwd || '') !== path.resolve(root)) {
+    if (!binding.start.cwd || canonicalPath(binding.start.cwd) !== canonicalPath(root)) {
       throw new Error('implementer start cwd does not match this worktree');
     }
     for (const ref of input.inputRefs) {

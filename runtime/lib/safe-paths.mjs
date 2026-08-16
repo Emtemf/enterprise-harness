@@ -75,6 +75,30 @@ export function pathIsWithin(targetPath, parentPath) {
       && !path.isAbsolute(relative));
 }
 
+export function assertNoSymlinkComponents(parentPath, targetPath, label = 'path') {
+  const parent = path.resolve(parentPath);
+  const target = path.resolve(targetPath);
+  const relative = path.relative(parent, target);
+  if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`${label} escapes its trusted parent`);
+  }
+  let cursor = parent;
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    cursor = path.join(cursor, segment);
+    let stat;
+    try {
+      stat = fs.lstatSync(cursor);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`${label} contains a symbolic-link component: ${cursor}`);
+    }
+  }
+  return target;
+}
+
 export function isSafeRelativePath(value) {
   if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) return false;
   if (path.isAbsolute(value) || /^[A-Za-z]:[\\/]/u.test(value)) return false;

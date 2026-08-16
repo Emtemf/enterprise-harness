@@ -17,13 +17,25 @@ import {
   worktreeSnapshotDigest,
 } from './lib/git-evidence.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
-import { assertSafeId, assertSafeRunId } from './lib/safe-paths.mjs';
-import { atomicWriteJson, withFileLock } from './lib/state-store.mjs';
+import {
+  assertNoSymlinkComponents,
+  assertSafeId,
+  assertSafeRunId,
+  canonicalPath as canonicalizePath,
+} from './lib/safe-paths.mjs';
 import { resolveTaskExecutionCommand } from './lib/task-execution.mjs';
+import { withRecoverableTaskLock, processIdentityForPid } from './lib/task-lock.mjs';
+import {
+  publishTaskReceiptArtifacts,
+  recoverTaskReceiptSpool,
+  writeExclusiveJson,
+} from './lib/task-receipt-publication.mjs';
 import { activeTaskRunAuthorizationPath } from './lib/task-run-authorization.mjs';
 import {
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
+  readTaskExecutionReceipt,
+  TASK_EXECUTION_PHASES,
   validateTaskExecutionReceipt,
 } from './lib/task-execution-receipt.mjs';
 
@@ -40,21 +52,11 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function writeExclusiveJson(target, value) {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  const temporary = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  try {
-    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-      encoding: 'utf-8',
-      mode: 0o600,
-      flag: 'wx',
-    });
-    fs.linkSync(temporary, target);
-  } catch (error) {
-    if (error.code === 'EEXIST') throw new Error(`exclusive runtime artifact already exists: ${target}`);
-    throw error;
-  } finally {
-    fs.rmSync(temporary, { force: true });
+function assertReceiptWorktree(receipt, root, commonDir) {
+  if (!receipt?.worktree
+    || canonicalizePath(receipt.worktree.path) !== canonicalizePath(root)
+    || canonicalizePath(receipt.worktree.gitCommonDir) !== canonicalizePath(commonDir)) {
+    throw new Error('task receipt worktree does not match the current execution worktree');
   }
 }
 
@@ -64,6 +66,7 @@ function loadState(root, changeId) {
   const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
   if (state.schemaVersion !== 6) throw new Error('task-run only accepts State v6');
   if (state.changeId !== changeId) throw new Error('state changeId does not match the requested change');
+  if (state.lifecycle !== 'active') throw new Error(`state lifecycle must be active, got ${state.lifecycle}`);
   if (state.stage !== 'implement') throw new Error(`state stage must be implement, got ${state.stage}`);
   return { state, ref: `harness/changes/${changeId}/state.json` };
 }
@@ -93,6 +96,48 @@ function validateHandoff(root, changeId, taskId, runId) {
   return input;
 }
 
+function revalidateHandoff(root, changeId, taskId, runId, expectedInput) {
+  if (activeChangeId(root) !== changeId) {
+    throw new Error(`active change is not ${changeId}`);
+  }
+  const currentInput = validateHandoff(root, changeId, taskId, runId);
+  if (!sameJson(currentInput, expectedInput)) {
+    throw new Error('execute handoff changed after task-run validation');
+  }
+  return currentInput;
+}
+
+function clearRecoverableAuthorization(target, expected) {
+  if (!fs.existsSync(target)) return;
+  let marker;
+  try {
+    marker = JSON.parse(fs.readFileSync(target, 'utf-8'));
+  } catch {
+    return;
+  }
+  const validMarker = marker.authorizationVersion === 1
+    && marker.changeId === expected.changeId
+    && marker.taskId === expected.taskId
+    && marker.runId === expected.runId
+    && marker.agentId === expected.agentId
+    && Number.isInteger(marker.pid)
+    && marker.pid > 0;
+  if (!validMarker) return;
+  const recordedIdentity = marker.processIdentity || null;
+  const currentIdentity = processIdentityForPid(marker.pid);
+  if (recordedIdentity && currentIdentity && recordedIdentity !== currentIdentity) {
+    fs.rmSync(target, { force: true });
+    return;
+  }
+  try {
+    process.kill(marker.pid, 0);
+    return;
+  } catch (error) {
+    if (error.code !== 'ESRCH') return;
+  }
+  fs.rmSync(target, { force: true });
+}
+
 function resolveBinding(root, changeId, runId) {
   const agentId = String(
     process.env.CLAUDE_AGENT_ID || process.env.HARNESS_IMPLEMENTER_ID || '',
@@ -108,7 +153,7 @@ function resolveBinding(root, changeId, runId) {
   if (binding.binding.runId !== runId || binding.start.runId !== runId) {
     throw new Error('implementer binding does not match the execute handoff run');
   }
-  if (path.resolve(binding.start.cwd || '') !== root) {
+  if (!binding.start.cwd || canonicalizePath(binding.start.cwd) !== canonicalizePath(root)) {
     throw new Error('implementer start cwd does not match this worktree');
   }
   return agentId;
@@ -136,6 +181,8 @@ try {
 }
 
 const root = path.resolve(process.cwd());
+const childWrapper = path.resolve(path.dirname(process.argv[1]), 'task-child.mjs');
+const commonDir = gitCommonDir(root);
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 
 let input;
@@ -148,13 +195,39 @@ try {
 }
 
 const canonicalPath = taskExecutionReceiptPath(root, changeId, taskId);
-if (fs.existsSync(canonicalPath)) fail(`task is already finalized; canonical receipt already exists: ${canonicalPath}`);
 const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
+const taskLockPath = path.join(path.dirname(spoolPath), 'task-execution');
+const intentPath = `${spoolPath}.intent`;
+assertNoSymlinkComponents(root, canonicalPath, 'canonical task receipt path');
+assertNoSymlinkComponents(commonDir, spoolPath, 'task receipt spool path');
+assertNoSymlinkComponents(commonDir, taskLockPath, 'task execution lock path');
+assertNoSymlinkComponents(commonDir, intentPath, 'task execution intent path');
+fs.mkdirSync(path.dirname(canonicalPath), { recursive: true });
 fs.mkdirSync(path.dirname(spoolPath), { recursive: true });
 
 let childStatus = 2;
 try {
-  withFileLock(spoolPath, () => {
+  withRecoverableTaskLock(taskLockPath, ({ lockId }) => {
+    recoverTaskReceiptSpool(spoolPath);
+    if (fs.existsSync(canonicalPath)) {
+      const existing = readTaskExecutionReceipt(root, changeId, taskId, {
+        expectedAgent: agentId,
+        expectedInputDigests: input.inputDigests,
+        requireTrusted: true,
+        requireFreshInputs: true,
+      });
+      if (existing.ok) {
+        assertReceiptWorktree(existing.receipt, root, commonDir);
+        revalidateHandoff(root, changeId, taskId, runId, input);
+        console.log(`TASK_RECEIPT=${canonicalPath}`);
+        childStatus = 0;
+        return;
+      }
+      throw new Error(
+        `task is already finalized; canonical receipt is invalid or stale: `
+        + existing.problems.join('; '),
+      );
+    }
     let spool = null;
     if (fs.existsSync(spoolPath)) {
       spool = JSON.parse(fs.readFileSync(spoolPath, 'utf-8'));
@@ -171,7 +244,78 @@ try {
     )) {
       throw new Error('existing task receipt spool does not match this execution');
     }
+    if (previous) assertReceiptWorktree(previous, root, commonDir);
+    if (previous) {
+      const priorProblems = validateTaskExecutionReceipt(previous, {
+        root,
+        expectedChangeId: changeId,
+        expectedTaskId: taskId,
+        expectedAgent: agentId,
+        expectedInputDigests: input.inputDigests,
+        requireTrusted: true,
+        allowIncomplete: true,
+      });
+      if (priorProblems.length > 0) {
+        throw new Error(`existing task receipt spool is invalid: ${priorProblems.join('; ')}`);
+      }
+    }
 
+    if (fs.existsSync(intentPath)) {
+      if (!previous) {
+        throw new Error('ambiguous task execution intent exists without a receipt; manual recovery is required');
+      }
+      assertNoSymlinkComponents(commonDir, intentPath, 'task execution intent path');
+    }
+
+    const publishArtifacts = (receiptToPublish, spoolToPublish, isFinal) => {
+      publishTaskReceiptArtifacts({
+        spoolPath,
+        canonicalPath,
+        spool: spoolToPublish,
+        receipt: receiptToPublish,
+        isFinal,
+        validateFresh: () => {
+          revalidateHandoff(root, changeId, taskId, runId, input);
+        },
+        validateTarget: (target) => {
+          if (target === canonicalPath) {
+            assertNoSymlinkComponents(root, target, 'canonical task receipt path');
+            return;
+          }
+          if (target === spoolPath) {
+            assertNoSymlinkComponents(commonDir, target, 'task receipt spool path');
+            return;
+          }
+          throw new Error('task receipt publication requested an unknown target');
+        },
+      });
+      assertNoSymlinkComponents(commonDir, intentPath, 'task execution intent path');
+      fs.rmSync(intentPath, { force: true });
+    };
+
+    const requiredPreviousPhases = TASK_EXECUTION_PHASES[previous?.executionStrategy];
+    if (previous && requiredPreviousPhases
+      && previous.executions.length === requiredPreviousPhases.length) {
+      const finalProblems = validateTaskExecutionReceipt(previous, {
+        root,
+        expectedChangeId: changeId,
+        expectedTaskId: taskId,
+        expectedStrategy: previous.executionStrategy,
+        expectedAgent: agentId,
+        expectedInputDigests: input.inputDigests,
+        requireTrusted: true,
+      });
+      if (finalProblems.length > 0) {
+        throw new Error(`existing complete task receipt spool is invalid: ${finalProblems.join('; ')}`);
+      }
+      publishArtifacts(previous, spool, true);
+      console.log(`TASK_RECEIPT_SPOOL=${spoolPath}`);
+      console.log(`TASK_RECEIPT=${canonicalPath}`);
+      childStatus = 0;
+      return;
+    }
+
+    revalidateHandoff(root, changeId, taskId, runId, input);
     const executionIndex = previous?.executions?.length || 0;
     const resolution = resolveTaskExecutionCommand(
       root,
@@ -189,8 +333,16 @@ try {
     const treeDigestBefore = previous?.worktree?.treeDigestBefore
       || headSnapshotDigest(root, headBefore);
     const startedAt = new Date().toISOString();
+    revalidateHandoff(root, changeId, taskId, runId, input);
     const authorizationPath = activeTaskRunAuthorizationPath(root, changeId, runId);
+    assertNoSymlinkComponents(commonDir, authorizationPath, 'task authorization path');
     const authorizationToken = crypto.randomUUID();
+    clearRecoverableAuthorization(authorizationPath, {
+      changeId,
+      taskId,
+      runId,
+      agentId,
+    });
     writeExclusiveJson(authorizationPath, {
       authorizationVersion: 1,
       changeId,
@@ -200,29 +352,59 @@ try {
       agentId,
       worktree: root,
       pid: process.pid,
+      processIdentity: processIdentityForPid(process.pid),
       commandDigest: sha256(JSON.stringify(childArgv)),
       tokenDigest: sha256(authorizationToken),
       issuedAt: startedAt,
+    }, {
+      validateTarget: () => assertNoSymlinkComponents(
+        commonDir,
+        authorizationPath,
+        'task authorization path',
+      ),
+    });
+    writeExclusiveJson(intentPath, {
+      intentVersion: 1,
+      changeId,
+      taskId,
+      runId,
+      phase: resolution.phase,
+      cwd: root,
+      argv: [...childArgv],
+      issuedAt: startedAt,
+    }, {
+      validateTarget: () => assertNoSymlinkComponents(
+        commonDir,
+        intentPath,
+        'task execution intent path',
+      ),
     });
     let child;
     try {
-      child = spawnSync(childArgv[0], childArgv.slice(1), {
+      child = spawnSync(process.execPath, [
+        childWrapper,
+        taskLockPath,
+        lockId,
+        intentPath,
+        authorizationPath,
+      ], {
         cwd: root,
         encoding: 'utf-8',
         shell: false,
         env: {
           ...process.env,
-          ENTERPRISE_HARNESS_TASK_AUTH: authorizationPath,
           ENTERPRISE_HARNESS_TASK_AUTH_TOKEN: authorizationToken,
         },
       });
     } finally {
+      assertNoSymlinkComponents(commonDir, authorizationPath, 'task authorization path');
       fs.rmSync(authorizationPath, { force: true });
     }
     const finishedAt = new Date().toISOString();
     childStatus = child.status ?? 1;
     process.stdout.write(child.stdout || '');
     process.stderr.write(child.stderr || '');
+    revalidateHandoff(root, changeId, taskId, runId, input);
 
     const headAfter = String(runGit(['rev-parse', 'HEAD'], root)).trim();
     const execution = {
@@ -249,7 +431,7 @@ try {
       },
       worktree: {
         path: root,
-        gitCommonDir: gitCommonDir(root),
+        gitCommonDir: commonDir,
         headBefore,
         headAfter,
         treeDigestBefore,
@@ -263,13 +445,6 @@ try {
       ],
       ...(resolution.isFinal ? { completedAt: finishedAt } : {}),
     };
-    atomicWriteJson(spoolPath, {
-      spoolVersion: 1,
-      runId,
-      statusBaseline: baseline,
-      receipt,
-    });
-
     if (resolution.isFinal) {
       const problems = validateTaskExecutionReceipt(receipt, {
         root,
@@ -283,8 +458,14 @@ try {
       if (problems.length > 0) {
         throw new Error(`refusing invalid final task receipt: ${problems.join('; ')}`);
       }
-      writeExclusiveJson(canonicalPath, receipt);
     }
+
+    publishArtifacts(receipt, {
+      spoolVersion: 1,
+      runId,
+      statusBaseline: baseline,
+      receipt,
+    }, resolution.isFinal);
     console.log(`TASK_RECEIPT_SPOOL=${spoolPath}`);
     if (resolution.isFinal) console.log(`TASK_RECEIPT=${canonicalPath}`);
   });

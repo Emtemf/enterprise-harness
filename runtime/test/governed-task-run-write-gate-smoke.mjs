@@ -21,6 +21,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const runner = path.join(sourceRoot, 'runtime', 'task-run.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-governed-task-run-'));
+const rootAlias = `${root}-alias`;
 const changeId = 'governed-runner';
 const taskId = 'task-one';
 const agentId = 'implementer-one';
@@ -47,6 +48,21 @@ function run(command, args, env = {}) {
 
 function mustPass(result, label) {
   assert.equal(result.status, 0, `${label}\n${result.stdout}\n${result.stderr}`);
+}
+
+function cleanPreWrite(input) {
+  const previousEnterprise = process.env.ENTERPRISE_HARNESS_SESSION_ID;
+  const previousClaude = process.env.CLAUDE_SESSION_ID;
+  process.env.ENTERPRISE_HARNESS_SESSION_ID = '';
+  process.env.CLAUDE_SESSION_ID = '';
+  try {
+    return preWrite(input);
+  } finally {
+    if (previousEnterprise === undefined) delete process.env.ENTERPRISE_HARNESS_SESSION_ID;
+    else process.env.ENTERPRISE_HARNESS_SESSION_ID = previousEnterprise;
+    if (previousClaude === undefined) delete process.env.CLAUDE_SESSION_ID;
+    else process.env.CLAUDE_SESSION_ID = previousClaude;
+  }
 }
 
 try {
@@ -97,6 +113,8 @@ try {
   }, null, 2)}\n`);
   mustPass(run('git', ['add', '.']), 'git add fixture');
   mustPass(run('git', ['commit', '-qm', 'fixture']), 'git commit fixture');
+  const bindingCwd = process.platform === 'win32' ? root : rootAlias;
+  if (bindingCwd !== root) fs.symlinkSync(root, bindingCwd, 'dir');
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
   appendAgentEvent(root, changeId, {
     kind: 'codegraph-attempt',
@@ -136,7 +154,7 @@ try {
     runId: execute.runId,
     handoffRole: 'execute',
     handoffPath: execute.path,
-    cwd: root,
+    cwd: bindingCwd,
   });
   appendAgentEvent(root, changeId, {
     kind: 'start',
@@ -145,10 +163,10 @@ try {
     runId: execute.runId,
     handoffRole: 'execute',
     handoffPath: execute.path,
-    cwd: root,
+    cwd: bindingCwd,
   });
 
-  const directWrite = preWrite({
+  const directWrite = cleanPreWrite({
     root,
     event: {
       tool_name: 'Write',
@@ -161,7 +179,7 @@ try {
   assert.equal(directWrite.exitCode, 2, 'v6 governed writes must not accept direct Write/Edit authorization');
   assert.match(directWrite.stderr, /task-run|runner|受治理/u);
 
-  const arbitraryBash = preWrite({
+  const arbitraryBash = cleanPreWrite({
     root,
     event: {
       tool_name: 'Bash',
@@ -174,7 +192,7 @@ try {
   assert.equal(arbitraryBash.exitCode, 2, 'an implementer must not bypass task-run with arbitrary Bash');
 
   const launcher = `node "${runner}" ${changeId} ${taskId} ${execute.runId} verify`;
-  const wrongPhase = preWrite({
+  const wrongPhase = cleanPreWrite({
     root,
     event: {
       tool_name: 'Bash',
@@ -186,7 +204,7 @@ try {
   });
   assert.equal(wrongPhase.exitCode, 2, 'launcher phase must match the next frozen phase');
 
-  const externalArgv = preWrite({
+  const externalArgv = cleanPreWrite({
     root,
     event: {
       tool_name: 'Bash',
@@ -198,7 +216,7 @@ try {
   });
   assert.equal(externalArgv.exitCode, 2, 'launcher must resolve frozen argv internally');
 
-  const authorized = preWrite({
+  const authorized = cleanPreWrite({
     root,
     event: {
       tool_name: 'Bash',
@@ -233,6 +251,7 @@ try {
   assert.equal(fs.existsSync(authorizationPath), false, 'active authorization must close after child failure');
   assert.equal(fs.existsSync(taskExecutionReceiptPath(root, changeId, taskId)), false);
   fs.rmSync(taskExecutionReceiptSpoolPath(root, changeId, taskId, execute.runId), { force: true });
+  fs.rmSync(`${taskExecutionReceiptSpoolPath(root, changeId, taskId, execute.runId)}.intent`, { force: true });
 
   const executed = run(process.execPath, [runner, changeId, taskId, execute.runId, 'verify']);
   mustPass(executed, 'authorized task-run');
@@ -242,5 +261,6 @@ try {
 
   console.log(`PASS governed-task-run-write-gate ${mode}`);
 } finally {
+  fs.rmSync(rootAlias, { recursive: true, force: true });
   fs.rmSync(root, { recursive: true, force: true });
 }
