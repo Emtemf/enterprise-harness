@@ -133,6 +133,8 @@ try {
   const concurrentRelease = path.join(root, 'concurrent-release');
   const concurrentExecutions = path.join(root, 'concurrent-executions');
   const recoveryExecutions = path.join(root, 'recovery-executions');
+  const nonExecutableCommand = path.join(root, 'non-executable-task');
+  const malformedAuthorizationTarget = path.join(root, 'malformed-authorization-ran');
   const concurrentChild = path.join(root, 'concurrent-task.mjs');
   fs.writeFileSync(concurrentChild, [
     "import fs from 'node:fs';",
@@ -143,6 +145,11 @@ try {
     'while (!fs.existsSync(release)) Atomics.wait(signal, 0, 0, 10);',
     '',
   ].join('\n'));
+  fs.writeFileSync(
+    nonExecutableCommand,
+    "#!/usr/bin/env node\nrequire('node:fs').writeFileSync('non-executable-ran', 'x');\n",
+    { mode: 0o600 },
+  );
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
   fs.writeFileSync(path.join(changeDir, 'tasks.md'), '# Tasks\n');
   fs.writeFileSync(path.join(changeDir, 'task-commands.json'), `${JSON.stringify({
@@ -203,6 +210,33 @@ try {
           `require('node:fs').appendFileSync('harness/changes/${changeId}/task-commands.json', '\\n')`,
         ],
       },
+      'task-spawn-error': {
+        executionStrategy: 'tdd',
+        redCommand: ['enterprise-harness-command-that-does-not-exist'],
+        greenCommand: ['node', '-e', 'process.exit(0)'],
+        refactorCommand: ['node', '-e', 'process.exit(0)'],
+      },
+      'task-non-executable': {
+        executionStrategy: 'tdd',
+        redCommand: [nonExecutableCommand],
+        greenCommand: ['node', '-e', 'process.exit(0)'],
+        refactorCommand: ['node', '-e', 'process.exit(0)'],
+      },
+      'task-malformed-authorization': {
+        executionStrategy: 'direct',
+        strategyRationale: 'A malformed active authorization marker must block before the command starts.',
+        verifyCommand: [
+          'node',
+          '-e',
+          `require('node:fs').writeFileSync(${JSON.stringify(malformedAuthorizationTarget)}, 'x')`,
+        ],
+      },
+      'task-signal': {
+        executionStrategy: 'tdd',
+        redCommand: ['node', '-e', "process.kill(process.pid, 'SIGTERM')"],
+        greenCommand: ['node', '-e', 'process.exit(0)'],
+        refactorCommand: ['node', '-e', 'process.exit(0)'],
+      },
     },
   }, null, 2)}\n`);
   mustPass(run('git', ['init', '-q']), 'git init');
@@ -254,6 +288,11 @@ try {
 
   const repeated = taskRun('task-direct', direct.runId, 'verify', ['node', '-e', 'process.exit(0)']);
   mustPass(repeated, 'repeated finalized task-run must recover existing receipt');
+
+  const unrelatedRun = createExecuteHandoff('task-direct');
+  const unrelatedResult = taskRun('task-direct', unrelatedRun.runId, 'verify');
+  assert.equal(unrelatedResult.status, 2, 'a finalized receipt must not be adopted by another execute run');
+  assert.match(`${unrelatedResult.stdout}\n${unrelatedResult.stderr}`, /receipt spool|execute run/u);
 
   const recovery = createExecuteHandoff('task-recovery');
   mustPass(taskRun('task-recovery', recovery.runId, 'verify'), 'recovery initial VERIFY');
@@ -339,6 +378,66 @@ try {
   ]);
   assert.equal(legacyV6.status, 2);
   assert.match(`${legacyV6.stdout}\n${legacyV6.stderr}`, /v5 compatibility-only|State v6 must use task-run/u);
+
+  const spawnError = createExecuteHandoff('task-spawn-error');
+  const spawnErrorResult = taskRun('task-spawn-error', spawnError.runId, 'red');
+  assert.equal(spawnErrorResult.status, 2, 'spawn failure must be a runner protocol error, not a valid RED');
+  assert.match(`${spawnErrorResult.stdout}\n${spawnErrorResult.stderr}`, /spawn|ENOENT|launch/u);
+  assert.equal(
+    fs.existsSync(taskExecutionReceiptSpoolPath(root, changeId, 'task-spawn-error', spawnError.runId)),
+    false,
+    'spawn failure must not publish a trusted receipt spool',
+  );
+  assert.equal(fs.existsSync(taskExecutionReceiptPath(root, changeId, 'task-spawn-error')), false);
+
+  if (process.platform !== 'win32') {
+    const nonExecutable = createExecuteHandoff('task-non-executable');
+    const nonExecutableResult = taskRun('task-non-executable', nonExecutable.runId, 'red');
+    assert.equal(nonExecutableResult.status, 2, 'a non-executable command must be a spawn failure, not a valid RED');
+    assert.match(`${nonExecutableResult.stdout}\n${nonExecutableResult.stderr}`, /spawn|EACCES|permission/u);
+    assert.equal(
+      fs.existsSync(taskExecutionReceiptSpoolPath(root, changeId, 'task-non-executable', nonExecutable.runId)),
+      false,
+      'a non-executable command must not publish a trusted receipt spool',
+    );
+    assert.equal(fs.existsSync(taskExecutionReceiptPath(root, changeId, 'task-non-executable')), false);
+    assert.equal(fs.existsSync(path.join(root, 'non-executable-ran')), false);
+  }
+
+  const malformedAuthorization = createExecuteHandoff('task-malformed-authorization');
+  const malformedAuthorizationPath = activeTaskRunAuthorizationPath(
+    root,
+    changeId,
+    malformedAuthorization.runId,
+  );
+  fs.mkdirSync(path.dirname(malformedAuthorizationPath), { recursive: true });
+  fs.writeFileSync(malformedAuthorizationPath, '{invalid');
+  const malformedAuthorizationResult = taskRun(
+    'task-malformed-authorization',
+    malformedAuthorization.runId,
+    'verify',
+  );
+  assert.equal(malformedAuthorizationResult.status, 2, 'a malformed authorization marker must fail closed');
+  assert.match(
+    `${malformedAuthorizationResult.stdout}\n${malformedAuthorizationResult.stderr}`,
+    /authorization|runtime artifact already exists/u,
+  );
+  assert.equal(fs.existsSync(malformedAuthorizationTarget), false);
+  assert.equal(fs.existsSync(malformedAuthorizationPath), true, 'ambiguous marker must require explicit recovery');
+  fs.rmSync(malformedAuthorizationPath, { force: true });
+
+  if (process.platform !== 'win32') {
+    const signaled = createExecuteHandoff('task-signal');
+    const signaledResult = taskRun('task-signal', signaled.runId, 'red');
+    assert.equal(signaledResult.status, 2, 'signal termination must not satisfy RED');
+    assert.match(`${signaledResult.stdout}\n${signaledResult.stderr}`, /signal|SIGTERM/u);
+    assert.equal(
+      fs.existsSync(taskExecutionReceiptSpoolPath(root, changeId, 'task-signal', signaled.runId)),
+      false,
+      'signal termination must not publish a trusted receipt spool',
+    );
+    assert.equal(fs.existsSync(taskExecutionReceiptPath(root, changeId, 'task-signal')), false);
+  }
 
   const concurrentA = createExecuteHandoff(
     'task-concurrent',

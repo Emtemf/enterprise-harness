@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import process from 'node:process';
 import { clearTaskLockChild, updateTaskLockChild } from './lib/task-lock.mjs';
+import { encodeTaskChildOutcome } from './lib/task-child-outcome.mjs';
 
 const [lockPath, lockId, intentPath, authorizationPath] = process.argv.slice(2);
 const authorizationToken = process.env.ENTERPRISE_HARNESS_TASK_AUTH_TOKEN;
@@ -147,6 +148,9 @@ function killWindowsProcess(pid) {
 }
 
 function terminateDescendants(pid, token) {
+  // This is bounded lifecycle cleanup, not a same-user security sandbox. The
+  // platform contract and escaped-process limitations are documented in
+  // harness/specs/testing.md.
   if (process.platform === 'win32') {
     for (const descendantPid of windowsDescendantProcessIds(pid)) {
       killWindowsProcess(descendantPid);
@@ -175,29 +179,53 @@ const child = spawn(intent.argv[0], intent.argv.slice(1), {
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
-try {
-  updateTaskLockChild(lockPath, lockId, child.pid);
-} catch (error) {
-  terminateDescendants(child.pid, authorizationToken);
-  throw error;
-}
 let stdout = '';
 let stderr = '';
-child.stdout.on('data', (chunk) => { stdout += chunk; });
-child.stderr.on('data', (chunk) => { stderr += chunk; });
-let status;
+child.stdout?.on('data', (chunk) => { stdout += chunk; });
+child.stderr?.on('data', (chunk) => { stderr += chunk; });
+let childRecorded = false;
+let outcome;
 try {
-  status = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('close', (code, signal) => resolve({ code, signal }));
+  outcome = await new Promise((resolve, reject) => {
+    child.once('spawn', () => {
+      try {
+        updateTaskLockChild(lockPath, lockId, child.pid);
+        childRecorded = true;
+      } catch (error) {
+        reject(error);
+      }
+    });
+    child.once('error', (error) => resolve({
+      outcomeVersion: 1,
+      kind: 'spawn-error',
+      exitCode: null,
+      signal: null,
+      spawnError: String(error.code || 'UNKNOWN'),
+    }));
+    child.once('close', (code, signal) => resolve(signal
+      ? {
+          outcomeVersion: 1,
+          kind: 'signal',
+          exitCode: null,
+          signal,
+          spawnError: null,
+        }
+      : {
+          outcomeVersion: 1,
+          kind: 'exit',
+          exitCode: code,
+          signal: null,
+          spawnError: null,
+        }));
   });
 } finally {
   try {
-    terminateDescendants(child.pid, authorizationToken);
+    if (child.pid) terminateDescendants(child.pid, authorizationToken);
   } finally {
-    clearTaskLockChild(lockPath, lockId);
+    if (childRecorded) clearTaskLockChild(lockPath, lockId);
   }
 }
+fs.writeSync(3, encodeTaskChildOutcome(outcome));
 process.stdout.write(stdout);
 process.stderr.write(stderr);
-process.exitCode = status.code ?? 1;
+process.exitCode = outcome.kind === 'exit' ? outcome.exitCode : 2;

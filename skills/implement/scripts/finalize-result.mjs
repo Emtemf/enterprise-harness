@@ -1,17 +1,31 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
 import { loadHandoffV2 } from '../../../runtime/core/handoff-v2.mjs';
+import { gitCommonDir } from '../../../runtime/lib/agent-evidence.mjs';
 import { sha256Artifact, validateStageResult } from '../../../runtime/lib/result-contract.mjs';
-import { resolveWithin } from '../../../runtime/lib/safe-paths.mjs';
-import { validateTaskExecutionReceipt } from '../../../runtime/lib/task-execution-receipt.mjs';
+import {
+  assertNoSymlinkComponents,
+  assertSafeId,
+  assertSafeRunId,
+} from '../../../runtime/lib/safe-paths.mjs';
+import {
+  taskExecutionReceiptPath,
+  taskExecutionReceiptSpoolPath,
+  validateTaskExecutionReceipt,
+} from '../../../runtime/lib/task-execution-receipt.mjs';
 
-const [changeId, runId, receiptPath] = process.argv.slice(2);
-if (!changeId || !runId || !receiptPath) {
-  console.error('Usage: node finalize-result.mjs <change-id> <run-id> <receipt-path>');
+const args = process.argv.slice(2);
+const [changeId, taskId, runId] = args;
+if (args.length !== 3 || !changeId || !taskId || !runId) {
+  console.error('Usage: node finalize-result.mjs <change-id> <task-id> <run-id>');
   process.exit(2);
 }
 
 try {
+  assertSafeId(changeId, 'changeId');
+  assertSafeId(taskId, 'taskId');
+  assertSafeRunId(runId, 'runId');
   const root = process.cwd();
   const input = loadHandoffV2(root, changeId, runId);
   for (const ref of input.inputRefs) {
@@ -23,25 +37,39 @@ try {
     || input.agent?.type !== 'enterprise-harness:implementer' || input.agent?.skill !== 'implement') {
     throw new Error('EH-IMPLEMENT-FINALIZE-001: handoff must be an implementer execute run');
   }
-  const expectedPrefix = `harness/changes/${changeId}/evidence/tasks/`;
-  if (!receiptPath.startsWith(expectedPrefix) || !receiptPath.endsWith('.json')) {
-    throw new Error(`EH-IMPLEMENT-FINALIZE-002: receipt must be under ${expectedPrefix}`);
+  const absoluteReceipt = taskExecutionReceiptPath(root, changeId, taskId);
+  assertNoSymlinkComponents(root, absoluteReceipt, 'canonical task receipt path');
+  if (!fs.existsSync(absoluteReceipt)) {
+    throw new Error(`EH-IMPLEMENT-FINALIZE-002: missing canonical receipt for ${taskId}`);
   }
-  const absoluteReceipt = resolveWithin(root, receiptPath, 'receiptPath');
-  if (!fs.existsSync(absoluteReceipt)) throw new Error(`EH-IMPLEMENT-FINALIZE-002: missing ${receiptPath}`);
+  const receiptPath = path.relative(root, absoluteReceipt).split(path.sep).join('/');
   const receipt = JSON.parse(fs.readFileSync(absoluteReceipt, 'utf-8'));
-  if (JSON.stringify(Object.entries(receipt.inputDigests || {}).sort())
-    !== JSON.stringify(Object.entries(input.inputDigests || {}).sort())) {
-    throw new Error('EH-IMPLEMENT-FINALIZE-001: receipt input digests do not match the handoff');
+  const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
+  assertNoSymlinkComponents(gitCommonDir(root), spoolPath, 'task receipt spool path');
+  if (!fs.existsSync(spoolPath)) {
+    throw new Error(`EH-IMPLEMENT-FINALIZE-002: missing receipt spool for run ${runId}`);
+  }
+  const spool = JSON.parse(fs.readFileSync(spoolPath, 'utf-8'));
+  if (spool.spoolVersion !== 1 || spool.runId !== runId
+    || JSON.stringify(spool.receipt) !== JSON.stringify(receipt)) {
+    throw new Error('EH-IMPLEMENT-FINALIZE-003: canonical receipt is not bound to this execute run');
   }
   const receiptProblems = validateTaskExecutionReceipt(receipt, {
     root,
-    requireTrusted: true,
+    expectedChangeId: changeId,
+    expectedTaskId: taskId,
     expectedInputDigests: input.inputDigests,
+    requireTrusted: true,
   });
-  if (receipt.changeId !== changeId) receiptProblems.push('receipt changeId does not match the handoff');
   if (receiptProblems.length > 0) {
     throw new Error(`EH-IMPLEMENT-FINALIZE-003: ${receiptProblems.join('; ')}`);
+  }
+  const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
+  if (fs.existsSync(statePath)) {
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    if (state.schemaVersion === 6 && state.currentTask && state.currentTask !== taskId) {
+      throw new Error(`EH-IMPLEMENT-FINALIZE-001: task ${taskId} is not the current task ${state.currentTask}`);
+    }
   }
   const assertions = [
     { id: 'machine-receipt', verdict: 'pass', evidence: [receiptPath] },

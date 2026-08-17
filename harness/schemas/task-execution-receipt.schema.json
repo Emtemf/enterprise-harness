@@ -17,7 +17,7 @@
     "completedAt"
   ],
   "properties": {
-    "receiptVersion": { "const": 1 },
+    "receiptVersion": { "const": 2 },
     "provenance": { "const": "runtime-runner" },
     "changeId": { "type": "string", "minLength": 1 },
     "taskId": { "type": "string", "minLength": 1 },
@@ -59,17 +59,51 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["phase", "argv", "exitCode", "startedAt", "finishedAt", "stdoutDigest", "stderrDigest"],
+        "required": ["phase", "argv", "outcome", "exitCode", "signal", "spawnError", "startedAt", "finishedAt", "stdoutDigest", "stderrDigest"],
         "properties": {
           "phase": { "type": "string", "minLength": 1 },
           "argv": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-          "exitCode": { "type": "integer" },
+          "outcome": { "enum": ["exit", "signal", "spawn-error"] },
+          "exitCode": { "type": ["integer", "null"] },
           "signal": { "type": ["string", "null"] },
+          "spawnError": { "type": ["string", "null"] },
           "startedAt": { "type": "string", "format": "date-time" },
           "finishedAt": { "type": "string", "format": "date-time" },
           "stdoutDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
           "stderrDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
         },
+        "allOf": [
+          {
+            "if": { "properties": { "outcome": { "const": "exit" } }, "required": ["outcome"] },
+            "then": {
+              "properties": {
+                "exitCode": { "type": "integer" },
+                "signal": { "type": "null" },
+                "spawnError": { "type": "null" }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "outcome": { "const": "signal" } }, "required": ["outcome"] },
+            "then": {
+              "properties": {
+                "exitCode": { "type": "null" },
+                "signal": { "type": "string", "minLength": 1 },
+                "spawnError": { "type": "null" }
+              }
+            }
+          },
+          {
+            "if": { "properties": { "outcome": { "const": "spawn-error" } }, "required": ["outcome"] },
+            "then": {
+              "properties": {
+                "exitCode": { "type": "null" },
+                "signal": { "type": "null" },
+                "spawnError": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        ],
         "additionalProperties": false
       }
     },

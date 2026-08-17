@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 const DEFAULT_STALE_AFTER_MS = 30_000;
 const DEFAULT_MAX_OWNER_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
+const CHILD_MARKER_FIELDS = new Set(['lockId', 'childPid', 'childIdentity']);
 
 function processIsAlive(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
@@ -58,18 +59,35 @@ function childMarkerPath(lock) {
   return `${lock}.child`;
 }
 
+function validChildMarker(marker) {
+  return marker !== null
+    && typeof marker === 'object'
+    && !Array.isArray(marker)
+    && Object.keys(marker).every((field) => CHILD_MARKER_FIELDS.has(field))
+    && typeof marker.lockId === 'string'
+    && marker.lockId.length > 0
+    && Number.isInteger(marker.childPid)
+    && marker.childPid > 0
+    && (marker.childIdentity === null || typeof marker.childIdentity === 'string');
+}
+
 function readChildMarker(lock) {
   try {
-    return JSON.parse(fs.readFileSync(childMarkerPath(lock), 'utf-8'));
+    const marker = JSON.parse(fs.readFileSync(childMarkerPath(lock), 'utf-8'));
+    return validChildMarker(marker)
+      ? { status: 'valid', marker }
+      : { status: 'invalid', marker: null };
   } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    return null;
+    if (error.code === 'ENOENT') return { status: 'missing', marker: null };
+    return { status: 'invalid', marker: null };
   }
 }
 
 function removeOrphanChildMarker(lock, lockId) {
-  const marker = readChildMarker(lock);
-  if (marker && marker.lockId !== lockId) fs.rmSync(childMarkerPath(lock), { force: true });
+  const childMarker = readChildMarker(lock);
+  if (childMarker.status === 'valid' && childMarker.marker.lockId !== lockId) {
+    fs.rmSync(childMarkerPath(lock), { force: true });
+  }
 }
 
 function readLock(lock) {
@@ -107,7 +125,11 @@ function canRecoverLock(lock, staleAfterMs, maxOwnerAgeMs) {
   const ageMs = Date.now() - observed.mtimeMs;
   if (ageMs < staleAfterMs) return false;
 
-  const child = readChildMarker(lock) || observed.owner;
+  const childMarker = readChildMarker(lock);
+  if (childMarker.status === 'invalid') return false;
+  if (childMarker.status === 'valid'
+    && childMarker.marker.lockId !== observed.owner?.lockId) return false;
+  const child = childMarker.marker || observed.owner;
   const childPid = Number(child?.childPid);
   if (processIsAlive(childPid)) {
     const childIdentity = child?.childIdentity || null;
@@ -210,8 +232,10 @@ export function updateTaskLockChild(lockPath, lockId, childPid) {
 
 export function clearTaskLockChild(lockPath, lockId) {
   const lock = `${lockPath}.lock`;
-  const marker = readChildMarker(lock);
-  if (marker?.lockId === lockId) fs.rmSync(childMarkerPath(lock), { force: true });
+  const childMarker = readChildMarker(lock);
+  if (childMarker.status === 'valid' && childMarker.marker.lockId === lockId) {
+    fs.rmSync(childMarkerPath(lock), { force: true });
+  }
 }
 
 export function withRecoverableTaskLock(

@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 `runtime verify` 仍依赖 v5 `state === VALIDATED`，导致 v6 `verify`/`archive` change 跳过 CompletionProof、独立 review 与 freshness gate 的问题。
+- 将 task child outcome 升级为 typed `exit` / `signal` / `spawn-error` 合同；launch error、signal termination 与伪造 outcome 不再能够满足 RED/REPRODUCE 或发布 trusted receipt。
+- 将 implement finalization 绑定到 canonical task receipt、当前 execute run spool、fresh handoff inputs 与 current task，拒绝 arbitrary/alias/traversal/symlink receipt path。
+- malformed 或歧义 task child marker 现在 fail closed，不能触发 stale lock 自动恢复；PID identity 与 run ownership 继续参与恢复判断。
+
+### Security
+
+- canonical receipt 的重试只允许原 execute run；其他 run 不能收养旧 receipt。
+- 明确 Linux、macOS 与 Windows 的 task descendant 有界收敛合同，并区分 lifecycle cleanup 与 OS sandbox 保证。
+
 ## [0.5.1] - 2026-08-17
 
 ### Added

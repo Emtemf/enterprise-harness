@@ -7,7 +7,7 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const base = {
-  receiptVersion: 1,
+  receiptVersion: 2,
   provenance: 'runtime-runner',
   changeId: 'implement-slice',
   taskId: 'task-1',
@@ -27,9 +27,9 @@ const base = {
     'harness/changes/implement-slice/tasks.md': 'b'.repeat(64),
   },
   executions: [
-    { phase: 'RED', argv: ['node', '--test'], exitCode: 1, startedAt: '2026-08-16T00:00:00.000Z', finishedAt: '2026-08-16T00:00:01.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
-    { phase: 'GREEN', argv: ['node', '--test'], exitCode: 0, startedAt: '2026-08-16T00:00:02.000Z', finishedAt: '2026-08-16T00:00:03.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
-    { phase: 'REFACTOR', argv: ['node', '--test'], exitCode: 0, startedAt: '2026-08-16T00:00:04.000Z', finishedAt: '2026-08-16T00:00:05.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
+    { phase: 'RED', argv: ['node', '--test'], outcome: 'exit', exitCode: 1, signal: null, spawnError: null, startedAt: '2026-08-16T00:00:00.000Z', finishedAt: '2026-08-16T00:00:01.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
+    { phase: 'GREEN', argv: ['node', '--test'], outcome: 'exit', exitCode: 0, signal: null, spawnError: null, startedAt: '2026-08-16T00:00:02.000Z', finishedAt: '2026-08-16T00:00:03.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
+    { phase: 'REFACTOR', argv: ['node', '--test'], outcome: 'exit', exitCode: 0, signal: null, spawnError: null, startedAt: '2026-08-16T00:00:04.000Z', finishedAt: '2026-08-16T00:00:05.000Z', stdoutDigest: 'e'.repeat(64), stderrDigest: 'f'.repeat(64) },
   ],
   completedAt: '2026-08-16T00:00:00.000Z',
 };
@@ -40,7 +40,7 @@ assert.match(
     ...base,
     executions: base.executions.map((execution) => ({ ...execution, exitCode: 0 })),
   }).join('; '),
-  /RED execution must fail/u,
+  /RED execution must be a real nonzero process exit/u,
 );
 assert.match(
   validateTaskExecutionReceipt({
@@ -49,6 +49,24 @@ assert.match(
   }).join('; '),
   /requires phases RED, GREEN, REFACTOR/u,
 );
+assert.match(
+  validateTaskExecutionReceipt({
+    ...base,
+    executions: base.executions.map((execution, index) => index === 0
+      ? { ...execution, outcome: 'spawn-error', exitCode: null, spawnError: 'ENOENT' }
+      : execution),
+  }).join('; '),
+  /RED failed to spawn|real nonzero process exit/u,
+);
+assert.match(
+  validateTaskExecutionReceipt({
+    ...base,
+    executions: base.executions.map((execution, index) => index === 0
+      ? { ...execution, outcome: 'signal', exitCode: null, signal: 'SIGTERM' }
+      : execution),
+  }).join('; '),
+  /RED was terminated by a signal|real nonzero process exit/u,
+);
 assert.deepEqual(validateTaskExecutionReceipt({
   ...base,
   executionStrategy: 'direct',
@@ -56,7 +74,10 @@ assert.deepEqual(validateTaskExecutionReceipt({
   executions: [{
     phase: 'VERIFY',
     argv: ['node', '--test'],
+    outcome: 'exit',
     exitCode: 0,
+    signal: null,
+    spawnError: null,
     startedAt: '2026-08-16T00:00:00.000Z',
     finishedAt: '2026-08-16T00:00:01.000Z',
     stdoutDigest: 'e'.repeat(64),
@@ -70,7 +91,10 @@ assert.match(
     executions: [{
     phase: 'VERIFY',
     argv: ['node', '--test'],
+    outcome: 'exit',
     exitCode: 0,
+    signal: null,
+    spawnError: null,
     startedAt: '2026-08-16T00:00:00.000Z',
     finishedAt: '2026-08-16T00:00:01.000Z',
     stdoutDigest: 'e'.repeat(64),
