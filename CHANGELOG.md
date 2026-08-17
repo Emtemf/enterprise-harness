@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-17
+
 ### Fixed
 
 - 修复 `runtime verify` 仍依赖 v5 `state === VALIDATED`，导致 v6 `verify`/`archive` change 跳过 CompletionProof、独立 review 与 freshness gate 的问题。
