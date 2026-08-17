@@ -24,6 +24,19 @@ const RECEIPT_FIELDS = new Set([
   'completedAt',
 ]);
 
+const EXECUTION_FIELDS = new Set([
+  'phase',
+  'argv',
+  'outcome',
+  'exitCode',
+  'signal',
+  'spawnError',
+  'startedAt',
+  'finishedAt',
+  'stdoutDigest',
+  'stderrDigest',
+]);
+
 const DIGEST = /^[a-f0-9]{64}$/u;
 const GIT_ID = /^[0-9a-f]{40,64}$/u;
 
@@ -124,6 +137,11 @@ function validateExecutions(
       problems.push(`executions[${index}] must be an object`);
       continue;
     }
+    for (const field of Object.keys(execution)) {
+      if (!EXECUTION_FIELDS.has(field)) {
+        problems.push(`executions[${index}] has unknown property ${field}`);
+      }
+    }
     const phase = String(execution.phase || '').toUpperCase();
     phases.push(phase);
     if (!requiredPhases.includes(phase)) problems.push(`${strategy} contains an unknown execution phase`);
@@ -134,7 +152,26 @@ function validateExecutions(
       || execution.argv.some((argument) => typeof argument !== 'string' || argument.length === 0)) {
       problems.push(`executions[${index}].argv must be a non-empty string array`);
     }
-    if (!Number.isInteger(execution.exitCode)) problems.push(`executions[${index}].exitCode must be an integer`);
+    if (!['exit', 'signal', 'spawn-error'].includes(execution.outcome)) {
+      problems.push(`executions[${index}].outcome is invalid`);
+    }
+    if (execution.outcome === 'exit') {
+      if (!Number.isInteger(execution.exitCode)) {
+        problems.push(`executions[${index}].exitCode must be an integer`);
+      }
+      if (execution.signal !== null) problems.push(`executions[${index}].signal must be null for an exit outcome`);
+      if (execution.spawnError !== null) problems.push(`executions[${index}].spawnError must be null for an exit outcome`);
+    } else if (execution.outcome === 'signal') {
+      if (execution.exitCode !== null) problems.push(`executions[${index}].exitCode must be null for a signal outcome`);
+      if (!String(execution.signal || '').trim()) problems.push(`executions[${index}].signal is required`);
+      if (execution.spawnError !== null) problems.push(`executions[${index}].spawnError must be null for a signal outcome`);
+      problems.push(`${phase || `execution ${index + 1}`} was terminated by a signal`);
+    } else if (execution.outcome === 'spawn-error') {
+      if (execution.exitCode !== null) problems.push(`executions[${index}].exitCode must be null for a spawn-error outcome`);
+      if (execution.signal !== null) problems.push(`executions[${index}].signal must be null for a spawn-error outcome`);
+      if (!String(execution.spawnError || '').trim()) problems.push(`executions[${index}].spawnError is required`);
+      problems.push(`${phase || `execution ${index + 1}`} failed to spawn`);
+    }
     const started = Date.parse(execution.startedAt);
     const finished = Date.parse(execution.finishedAt);
     if (!Number.isFinite(started) || !Number.isFinite(finished) || finished < started) {
@@ -157,16 +194,22 @@ function validateExecutions(
   if (!allowIncomplete && requiredPhases.some((phase) => !phases.includes(phase))) {
     problems.push(`${strategy} requires phases ${requiredPhases.join(', ')}`);
   }
-  if (strategy === 'tdd' && executions.find((execution) => execution?.phase === 'RED')?.exitCode === 0) {
-    problems.push('RED execution must fail');
+  const redExecution = executions.find((execution) => execution?.phase === 'RED');
+  if (strategy === 'tdd' && redExecution
+    && (redExecution.outcome !== 'exit' || redExecution.exitCode === 0)) {
+    problems.push('RED execution must be a real nonzero process exit');
   }
-  if (strategy === 'regression' && executions.find((execution) => execution?.phase === 'REPRODUCE')?.exitCode === 0) {
-    problems.push('REPRODUCE execution must fail');
+  const reproduceExecution = executions.find((execution) => execution?.phase === 'REPRODUCE');
+  if (strategy === 'regression' && reproduceExecution
+    && (reproduceExecution.outcome !== 'exit' || reproduceExecution.exitCode === 0)) {
+    problems.push('REPRODUCE execution must be a real nonzero process exit');
   }
   for (const phase of requiredPhases) {
     if (phase === 'RED' || phase === 'REPRODUCE') continue;
     const execution = executions.find((item) => item?.phase === phase);
-    if (execution && execution.exitCode !== 0) problems.push(`${phase} execution must pass`);
+    if (execution && (execution.outcome !== 'exit' || execution.exitCode !== 0)) {
+      problems.push(`${phase} execution must pass with a real zero process exit`);
+    }
   }
 }
 
@@ -222,7 +265,7 @@ export function validateTaskExecutionReceipt(
   for (const field of Object.keys(receipt)) {
     if (!RECEIPT_FIELDS.has(field)) problems.push(`task execution receipt has unknown property ${field}`);
   }
-  if (receipt.receiptVersion !== 1) problems.push('receiptVersion must be 1');
+  if (receipt.receiptVersion !== 2) problems.push('receiptVersion must be 2');
   if (!String(receipt.changeId || '').trim()) problems.push('changeId is required');
   if (!String(receipt.taskId || '').trim()) problems.push('taskId is required');
   if (expectedChangeId && receipt.changeId !== expectedChangeId) problems.push(`changeId must be ${expectedChangeId}`);

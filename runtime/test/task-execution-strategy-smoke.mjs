@@ -36,7 +36,7 @@ try {
   const receiptPath = taskExecutionReceiptPath(root, changeId, 'task-direct');
   fs.mkdirSync(path.dirname(receiptPath), { recursive: true });
   fs.writeFileSync(receiptPath, `${JSON.stringify({
-    receiptVersion: 1,
+    receiptVersion: 2,
     provenance: 'runtime-runner',
     changeId,
     taskId: 'task-direct',
@@ -56,7 +56,10 @@ try {
     executions: [{
       phase: 'VERIFY',
       argv: ['node', '-e', 'process.exit(0)'],
+      outcome: 'exit',
       exitCode: 0,
+      signal: null,
+      spawnError: null,
       startedAt: '2026-08-13T00:00:00.000Z',
       finishedAt: '2026-08-13T00:00:01.000Z',
       stdoutDigest: digest,

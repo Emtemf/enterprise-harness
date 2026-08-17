@@ -59,7 +59,7 @@ pass。
 1. 以最小改动实现 task，运行 task 定义的验证。
 2. 对 task scope、changed paths、receipt 完整性、设计 trace、风险/rollback 和验证结果执行自检。
 3. 写入 `harness/changes/<changeId>/evidence/tasks/<taskId>.json` 的 machine-generated receipt，随后运行
-   `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id> <receipt-path>`，再用
+   `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <task-id> <run-id>`，脚本只读取该 task 的 canonical runtime receipt；再用
    `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
    持久化 StageResult；assertions 与 `selfCheck` 必须绑定 receipt、产物和输入 digest。
 4. Main 必须再创建不同 run 的 `review` check。worktree 只隔离文件，不建立 reviewer 独立性；

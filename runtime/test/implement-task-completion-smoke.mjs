@@ -38,7 +38,7 @@ function writeJson(ref, value) {
 function addTaskProof(taskId) {
   const receiptRef = `harness/changes/${changeId}/evidence/tasks/${taskId}.json`;
   writeJson(receiptRef, {
-    receiptVersion: 1,
+    receiptVersion: 2,
     ...receiptMetadata,
     changeId,
     taskId,
@@ -51,7 +51,10 @@ function addTaskProof(taskId) {
     executions: [{
       phase: 'VERIFY',
       argv: ['node', '--test'],
+      outcome: 'exit',
       exitCode: 0,
+      signal: null,
+      spawnError: null,
       startedAt: '2026-08-16T00:00:00.000Z',
       finishedAt: '2026-08-16T00:00:01.000Z',
       stdoutDigest: 'e'.repeat(64),

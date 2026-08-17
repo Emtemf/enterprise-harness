@@ -44,6 +44,7 @@ try {
     ], {
       cwd: root,
       encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
         ENTERPRISE_HARNESS_TASK_AUTH_TOKEN: 'test-token',

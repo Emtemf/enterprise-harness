@@ -31,6 +31,7 @@ import {
   writeExclusiveJson,
 } from './lib/task-receipt-publication.mjs';
 import { activeTaskRunAuthorizationPath } from './lib/task-run-authorization.mjs';
+import { parseTaskChildOutcome } from './lib/task-child-outcome.mjs';
 import {
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
@@ -218,6 +219,20 @@ try {
       });
       if (existing.ok) {
         assertReceiptWorktree(existing.receipt, root, commonDir);
+        if (!fs.existsSync(spoolPath)) {
+          throw new Error('canonical task receipt is not bound to this execute run');
+        }
+        let currentSpool;
+        try {
+          currentSpool = JSON.parse(fs.readFileSync(spoolPath, 'utf-8'));
+        } catch (error) {
+          throw new Error(`current task receipt spool is unreadable: ${error.message}`);
+        }
+        if (currentSpool.spoolVersion !== 1
+          || currentSpool.runId !== runId
+          || !sameJson(currentSpool.receipt, existing.receipt)) {
+          throw new Error('canonical task receipt is not bound to this execute run');
+        }
         revalidateHandoff(root, changeId, taskId, runId, input);
         console.log(`TASK_RECEIPT=${canonicalPath}`);
         childStatus = 0;
@@ -391,6 +406,7 @@ try {
         cwd: root,
         encoding: 'utf-8',
         shell: false,
+        stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
           ENTERPRISE_HARNESS_TASK_AUTH_TOKEN: authorizationToken,
@@ -401,23 +417,42 @@ try {
       fs.rmSync(authorizationPath, { force: true });
     }
     const finishedAt = new Date().toISOString();
-    childStatus = child.status ?? 1;
     process.stdout.write(child.stdout || '');
     process.stderr.write(child.stderr || '');
+    if (child.error) {
+      throw new Error(`task child wrapper failed to launch: ${child.error.code || child.error.message}`);
+    }
+    if (child.signal || !Number.isInteger(child.status)) {
+      throw new Error(`task child wrapper terminated without an exit status${child.signal ? `: ${child.signal}` : ''}`);
+    }
+    const childOutcome = parseTaskChildOutcome(child.output?.[3]);
+    if (childOutcome.kind === 'spawn-error') {
+      throw new Error(`task command spawn failed: ${childOutcome.spawnError}`);
+    }
+    if (childOutcome.kind === 'signal') {
+      throw new Error(`task command terminated by signal: ${childOutcome.signal}`);
+    }
+    if (child.status !== childOutcome.exitCode) {
+      throw new Error('task child wrapper exit status does not match its authenticated outcome');
+    }
+    childStatus = childOutcome.exitCode;
     revalidateHandoff(root, changeId, taskId, runId, input);
 
     const headAfter = String(runGit(['rev-parse', 'HEAD'], root)).trim();
     const execution = {
       phase: resolution.phase,
       argv: [...childArgv],
+      outcome: 'exit',
       exitCode: childStatus,
+      signal: null,
+      spawnError: null,
       startedAt,
       finishedAt,
       stdoutDigest: sha256(child.stdout || ''),
       stderrDigest: sha256(child.stderr || ''),
     };
     const receipt = {
-      receiptVersion: 1,
+      receiptVersion: 2,
       provenance: 'runtime-runner',
       changeId,
       taskId,

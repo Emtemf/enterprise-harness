@@ -44,6 +44,17 @@ try {
   );
   fs.rmSync(lock);
 
+  fs.writeFileSync(lock, `${JSON.stringify({ pid: 2147483647, lockId: 'malformed-child' })}\n`);
+  fs.utimesSync(lock, staleTime, staleTime);
+  fs.writeFileSync(`${lock}.child`, '{invalid');
+  assert.throws(
+    () => withRecoverableTaskLock(lockPath, () => {}, { staleAfterMs: 1 }),
+    /concurrent update|malformed child marker/u,
+    'a malformed task child marker must fail closed instead of enabling lock recovery',
+  );
+  fs.rmSync(`${lock}.child`, { force: true });
+  fs.rmSync(lock);
+
   fs.writeFileSync(lock, `${JSON.stringify({ pid: 2147483647, lockId: 'dead-owner' })}\n`);
   fs.utimesSync(lock, staleTime, staleTime);
   fs.writeFileSync(`${lock}.recover`, `${JSON.stringify({

@@ -24,7 +24,7 @@ const gitId = 'a'.repeat(40);
 
 function canonicalReceipt(overrides = {}) {
   return {
-    receiptVersion: 1,
+    receiptVersion: 2,
     provenance: 'runtime-runner',
     changeId,
     taskId,
@@ -44,7 +44,10 @@ function canonicalReceipt(overrides = {}) {
     executions: [{
       phase: 'VERIFY',
       argv: ['node', '-e', 'process.exit(0)'],
+      outcome: 'exit',
       exitCode: 0,
+      signal: null,
+      spawnError: null,
       startedAt: '2026-08-16T00:00:00.000Z',
       finishedAt: '2026-08-16T00:00:01.000Z',
       stdoutDigest: outputDigest,

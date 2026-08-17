@@ -54,13 +54,18 @@ function validateVersionConsistency(repoRoot) {
 }
 
 const activeForCompletion = loadActiveChange(root);
+const completionCandidate = activeForCompletion.ok && (
+  activeForCompletion.data.schemaVersion === 6
+    ? ['verify', 'archive'].includes(activeForCompletion.data.stage)
+    : activeForCompletion.data.state === 'VALIDATED'
+);
 const developmentChangeProblems = releaseSurface
   ? []
   : [
       ...validateArtifactStates(root),
       ...validateReviewVerdicts(root),
       ...validateChangeEvidence(root),
-      ...(activeForCompletion.ok && activeForCompletion.data.state === 'VALIDATED'
+      ...(completionCandidate
         ? validateCompletionPredicate(root, activeForCompletion.changeId, activeForCompletion.data)
           .map((problem) => `completion:${problem}`)
         : []),
