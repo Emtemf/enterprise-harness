@@ -46,6 +46,8 @@ function run(command, args, env = {}) {
     env: {
       ...process.env,
       HARNESS_LOCAL_ADAPTER: localAdapterPath,
+      ENTERPRISE_HARNESS_CONTROLLER_ROOT: repoRoot,
+      ENTERPRISE_HARNESS_CONTROLLER_SOURCE: 'released-controller',
       ...env,
     },
   });
