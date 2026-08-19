@@ -69,7 +69,17 @@ function immutableClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-export function updateChangeState(root, changeId, mutate, { expectedRevision = null, type = 'state-updated', actor = 'runtime' } = {}) {
+export function updateChangeState(
+  root,
+  changeId,
+  mutate,
+  {
+    expectedRevision = null,
+    type = 'state-updated',
+    actor = 'runtime',
+    payload = null,
+  } = {},
+) {
   if (typeof mutate !== 'function') throw new Error('EH-STATE-MUTATE-015: mutate must be a function');
   const statePath = statePathFor(root, changeId);
   const eventPath = eventLogPathFor(root, changeId);
@@ -102,6 +112,7 @@ export function updateChangeState(root, changeId, mutate, { expectedRevision = n
     changeId,
     revision: next.revision,
     timestamp: new Date().toISOString(),
+    ...(payload === null ? {} : { payload: immutableClone(payload) }),
   };
   return compareAndSwapJson(statePath, revision, next, eventPath, event);
 }

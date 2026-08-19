@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2, persistHandoffV2Result } from '../core/handoff-v2.mjs';
-import { trustedHandoffAgentBindings } from '../lib/agent-evidence.mjs';
+import { appendAgentEvent, trustedHandoffAgentBindings } from '../lib/agent-evidence.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { bindSession } from '../lib/sessions.mjs';
 
@@ -124,6 +124,48 @@ try {
   });
   assert.equal(posted.status, 0, posted.stderr);
   assert.equal(trustedHandoffAgentBindings(root, changeId, execute.input).length, 1);
+
+  const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-v6-legacy-binding-'));
+  try {
+    const legacyInput = {
+      runId: 'run_99999999-9999-4999-8999-999999999999',
+      role: 'execute',
+      parentRunId: null,
+      agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
+    };
+    appendAgentEvent(legacyRoot, changeId, {
+      kind: 'dispatch',
+      runId: legacyInput.runId,
+      sessionId: 'legacy-session',
+      requestedAgentType: 'enterprise-harness:artifact-worker',
+      handoffRole: 'execute',
+      parentRunId: null,
+      issuedAt: '2026-08-18T00:00:00.000Z',
+    });
+    appendAgentEvent(legacyRoot, changeId, {
+      kind: 'start',
+      agentId: 'agent-legacy',
+      sessionId: 'legacy-session',
+      observedAgentType: 'enterprise-harness:artifact-worker',
+      issuedAt: '2026-08-18T00:00:01.000Z',
+    });
+    appendAgentEvent(legacyRoot, changeId, {
+      kind: 'stop',
+      runId: legacyInput.runId,
+      agentId: 'agent-legacy',
+      sessionId: 'legacy-session',
+      observedAgentType: 'enterprise-harness:artifact-worker',
+      handoffRole: 'execute',
+      parentRunId: null,
+      issuedAt: '2026-08-18T00:00:02.000Z',
+    });
+    const legacyBindings = trustedHandoffAgentBindings(legacyRoot, changeId, legacyInput);
+    assert.equal(legacyBindings.length, 1);
+    assert.equal(legacyBindings[0].agentId, 'agent-legacy');
+    assert.equal(legacyBindings[0].binding, null);
+  } finally {
+    fs.rmSync(legacyRoot, { recursive: true, force: true });
+  }
 
   console.log(`PASS agent-lifecycle-v6-hook ${mode}`);
 } finally {

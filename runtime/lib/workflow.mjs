@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { auditWorkflow } from './workflow-audit.mjs';
+import { validateStageGate } from './stage-results.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 
 const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
@@ -130,15 +131,74 @@ export function recommendNextAction(changeId, data, stage, currentGap, pendingDe
   return recommendNextEntry(stage, data);
 }
 
-export function inferPendingDecision(changeId, data, stage, currentGap, shouldSuppressExecutionReadiness = () => false) {
+export function inferPendingDecision(
+  changeId,
+  data,
+  stage,
+  currentGap,
+  shouldSuppressExecutionReadiness = () => false,
+  { designGateProblems = null, stageGateProblems = null } = {},
+) {
   if (!stage || !data) return null;
   if (data.schemaVersion === 6) {
+    const gateProblems = Array.isArray(stageGateProblems)
+      ? stageGateProblems
+      : designGateProblems;
     if (stage === 'clarify') {
       return {
         kind: 'scope-confirmation',
         message: currentGap,
         options: ['confirm-scope', 'revise-scope'],
         evidence: [`harness/changes/${changeId}/requirements.md`],
+      };
+    }
+    if (stage === 'design' && Array.isArray(gateProblems)) {
+      if (gateProblems.length > 0 || shouldSuppressExecutionReadiness(changeId, data)) return null;
+      return {
+        kind: 'execution-readiness',
+        message: currentGap,
+        options: ['freeze-slice', 'revise-slice'],
+        defaultDecision: 'freeze-slice',
+        evidence: [`harness/changes/${changeId}/design.md`],
+      };
+    }
+    if (stage === 'plan' && Array.isArray(gateProblems)) {
+      if (gateProblems.length > 0) return null;
+      return {
+        kind: 'plan-readiness',
+        message: currentGap,
+        options: ['freeze-plan', 'revise-plan'],
+        defaultDecision: 'freeze-plan',
+        evidence: [`harness/changes/${changeId}/tasks.md`],
+      };
+    }
+    if (stage === 'implement' && Array.isArray(gateProblems)) {
+      if (gateProblems.length > 0) return null;
+      return {
+        kind: 'implement-completion',
+        message: currentGap,
+        options: ['enter-verify', 'revise-task'],
+        defaultDecision: 'enter-verify',
+        evidence: [`harness/changes/${changeId}/evidence`],
+      };
+    }
+    if (stage === 'verify' && Array.isArray(gateProblems)) {
+      if (gateProblems.length > 0 || data.validation?.status !== 'fresh') return null;
+      return {
+        kind: 'verify-completion',
+        message: currentGap,
+        options: ['enter-archive', 'revise-verification'],
+        defaultDecision: 'enter-archive',
+        evidence: [`harness/changes/${changeId}/validation.md`],
+      };
+    }
+    if (stage === 'tdd' && data.workflow?.tddStatus === 'refactor-verified') {
+      return {
+        kind: 'tdd-completion',
+        message: currentGap,
+        options: ['enter-verify', 'revise-task'],
+        defaultDecision: 'enter-verify',
+        evidence: [`harness/changes/${changeId}/tasks.md`],
       };
     }
     if (stage === 'verify' && data.validation?.status === 'fresh') {
@@ -247,13 +307,41 @@ export function inferRunnerStatus(stage, pendingDecision) {
   return 'ready';
 }
 
+function resolveV6StageGateProblems(root, changeId, data, stage) {
+  if (data?.schemaVersion !== 6 || stage === 'archive') return null;
+  const requiredArtifactPaths = {
+    clarify: [
+      `harness/changes/${changeId}/requirements.md`,
+      data.artifacts?.classification?.path,
+    ].filter(Boolean),
+    design: [`harness/changes/${changeId}/design.md`],
+    plan: [`harness/changes/${changeId}/tasks.md`],
+    implement: [],
+    verify: [`harness/changes/${changeId}/validation.md`],
+  }[stage];
+  if (!requiredArtifactPaths) return null;
+  try {
+    return validateStageGate(root, changeId, stage, { requiredArtifactPaths });
+  } catch (error) {
+    return [`${error.name || 'Error'}: ${error.message}`];
+  }
+}
+
 export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness = () => false) {
   const stage = inferWorkflowStage(changeId, data);
   const classification = classificationFor(data, root, changeId);
   const nextEntry = recommendNextEntry(stage, data);
   const recommendedLane = recommendExplorationLane(stage, data, classification);
-  const currentGap = inferCurrentGap(root, changeId, data, stage);
-  const pendingDecision = inferPendingDecision(changeId, data, stage, currentGap, shouldSuppressExecutionReadiness);
+  const stageGateProblems = resolveV6StageGateProblems(root, changeId, data, stage);
+  const currentGap = inferCurrentGap(root, changeId, data, stage, stageGateProblems);
+  const pendingDecision = inferPendingDecision(
+    changeId,
+    data,
+    stage,
+    currentGap,
+    shouldSuppressExecutionReadiness,
+    { stageGateProblems },
+  );
   const nextAction = recommendNextAction(changeId, data, stage, currentGap, pendingDecision);
   let audit = null;
   if (Number(data?.schemaVersion ?? 0) >= 4) {
@@ -368,6 +456,35 @@ export function applyVerifyCompletionDecision(data, decision) {
   return data;
 }
 
+export function applyV6ScopeConfirmationDecision(
+  data,
+  decision,
+  { stageProblems = [] } = {},
+) {
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-WORKFLOW-STAGE-GATE-007: v6 scope transition requires State v6');
+  }
+  if (decision === 'confirm-scope') {
+    if (stageProblems.length > 0) {
+      throw new Error(
+        `EH-WORKFLOW-STAGE-GATE-007: Clarify result gate failed: ${stageProblems.join('; ')}`,
+      );
+    }
+    return {
+      ...data,
+      stage: 'design',
+      blocker: null,
+    };
+  }
+  if (decision === 'revise-scope') {
+    return {
+      ...data,
+      stage: 'clarify',
+    };
+  }
+  throw new Error(`EH-WORKFLOW-STAGE-GATE-007: unsupported v6 scope decision ${decision}`);
+}
+
 export function applyScopeConfirmationDecision(data, decision) {
   if (decision === 'confirm-scope') {
     data.workflow.userConfirmedScope = true;
@@ -420,6 +537,127 @@ export function applyDesignApprovalDecision(data, decision) {
   return data;
 }
 
+export function applyV6ImplementCompletionDecision(
+  data,
+  decision,
+  { stageProblems = [] } = {},
+) {
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-WORKFLOW-STAGE-GATE-010: v6 implement transition requires State v6');
+  }
+  if (decision === 'enter-verify') {
+    if (stageProblems.length > 0) {
+      throw new Error(
+        `EH-WORKFLOW-STAGE-GATE-010: Implement result gate failed: ${stageProblems.join('; ')}`,
+      );
+    }
+    return {
+      ...data,
+      stage: 'verify',
+      blocker: null,
+      validation: { status: 'stale', digest: null, validatedAt: null },
+    };
+  }
+  if (decision === 'revise-task') {
+    return {
+      ...data,
+      stage: 'implement',
+    };
+  }
+  throw new Error(`EH-WORKFLOW-STAGE-GATE-010: unsupported v6 implement decision ${decision}`);
+}
+
+export function applyV6VerifyCompletionDecision(
+  data,
+  decision,
+  { stageProblems = [] } = {},
+) {
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-WORKFLOW-STAGE-GATE-011: v6 verify transition requires State v6');
+  }
+  if (decision === 'enter-archive') {
+    if (stageProblems.length > 0) {
+      throw new Error(
+        `EH-WORKFLOW-STAGE-GATE-011: Verify result gate failed: ${stageProblems.join('; ')}`,
+      );
+    }
+    if (data.validation?.status !== 'fresh') {
+      throw new Error('EH-WORKFLOW-STAGE-GATE-011: Verify transition requires fresh validation');
+    }
+    return {
+      ...data,
+      stage: 'archive',
+      blocker: null,
+    };
+  }
+  if (decision === 'revise-verification') {
+    return {
+      ...data,
+      stage: 'verify',
+      validation: { status: 'stale', digest: null, validatedAt: null },
+    };
+  }
+  throw new Error(`EH-WORKFLOW-STAGE-GATE-011: unsupported v6 verify decision ${decision}`);
+}
+
+export function applyV6PlanReadinessDecision(
+  data,
+  decision,
+  { stageProblems = [] } = {},
+) {
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-WORKFLOW-STAGE-GATE-009: v6 plan transition requires State v6');
+  }
+  if (decision === 'freeze-plan') {
+    if (stageProblems.length > 0) {
+      throw new Error(
+        `EH-WORKFLOW-STAGE-GATE-009: Plan result gate failed: ${stageProblems.join('; ')}`,
+      );
+    }
+    return {
+      ...data,
+      stage: 'implement',
+      blocker: null,
+    };
+  }
+  if (decision === 'revise-plan') {
+    return {
+      ...data,
+      stage: 'plan',
+    };
+  }
+  throw new Error(`EH-WORKFLOW-STAGE-GATE-009: unsupported v6 plan decision ${decision}`);
+}
+
+export function applyV6DesignReadinessDecision(
+  data,
+  decision,
+  { stageProblems = [] } = {},
+) {
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-WORKFLOW-STAGE-GATE-008: v6 design transition requires State v6');
+  }
+  if (decision === 'freeze-slice') {
+    if (stageProblems.length > 0) {
+      throw new Error(
+        `EH-WORKFLOW-STAGE-GATE-008: Design result gate failed: ${stageProblems.join('; ')}`,
+      );
+    }
+    return {
+      ...data,
+      stage: 'plan',
+      blocker: null,
+    };
+  }
+  if (decision === 'revise-slice') {
+    return {
+      ...data,
+      stage: 'design',
+    };
+  }
+  throw new Error(`EH-WORKFLOW-STAGE-GATE-008: unsupported v6 design decision ${decision}`);
+}
+
 export function applyExecutionReadinessDecision(data, decision, baselineDesignSha256 = null) {
   if (decision === 'freeze-slice') {
     data.gates = data.gates || {};
@@ -444,7 +682,7 @@ export function applyExecutionReadinessDecision(data, decision, baselineDesignSh
   return data;
 }
 
-export function inferCurrentGap(root, changeId, data, workflowStage) {
+export function inferCurrentGap(root, changeId, data, workflowStage, stageGateProblems = null) {
   if (!changeId || !data || !workflowStage) return '当前没有 active change。';
   const changeDir = path.join(root, 'harness', 'changes', changeId);
   const hasRequirements = fs.existsSync(path.join(changeDir, 'requirements.md'));
@@ -466,6 +704,12 @@ export function inferCurrentGap(root, changeId, data, workflowStage) {
       return 'route 已形成，下一步应进入 design。';
     case 'design':
       if (!hasDesign) return '缺少 design.md。';
+      if (Array.isArray(stageGateProblems)) {
+        if (stageGateProblems.length > 0) {
+          return `design result gate blocked: ${stageGateProblems.join('; ')}`;
+        }
+        return 'execution deepening 第一批切片待冻结。';
+      }
       if (data.workflow?.suppressionBaseline?.designMdSha256) {
         return 'execution deepening 切片仍需修订。';
       }
@@ -476,12 +720,29 @@ export function inferCurrentGap(root, changeId, data, workflowStage) {
       return 'design 已批准，下一步应进入 plan。';
     case 'plan':
       if (!hasTasks) return '缺少 tasks.md。';
+      if (Array.isArray(stageGateProblems)) {
+        if (stageGateProblems.length > 0) {
+          return `plan result gate blocked: ${stageGateProblems.join('; ')}`;
+        }
+        return 'plan 已完成，下一步应进入 implement。';
+      }
       if (!data.workflow?.planReady) return 'plan 尚未 ready。';
       return 'plan 已就绪，下一步应进入 tdd。';
+    case 'implement':
+      if (Array.isArray(stageGateProblems)) {
+        if (stageGateProblems.length > 0) {
+          return `implement result gate blocked: ${stageGateProblems.join('; ')}`;
+        }
+        return 'implement 已完成，下一步应进入 verify。';
+      }
+      return 'implement 正在执行。';
     case 'tdd':
       if (tddStatus !== 'refactor-verified') return `TDD 子状态仍为 ${tddStatus}。`;
       return 'TDD 已完成，下一步应进入 verify。';
     case 'verify':
+      if (Array.isArray(stageGateProblems) && stageGateProblems.length > 0) {
+        return `verify result gate blocked: ${stageGateProblems.join('; ')}`;
+      }
       if (data.validation?.status !== 'fresh') return `validation.status=${data.validation?.status}，仍需 fresh evidence。`;
       return '验证证据已 fresh，可进入 archive。';
     case 'archive':

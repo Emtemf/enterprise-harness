@@ -166,35 +166,62 @@ export function trustedHandoffAgentBindings(root, changeId, input) {
     && event.sessionId
     && event.toolUseId
   ));
-  return bindings.flatMap((binding) => {
-    const dispatch = events.find((event) => (
-      event.kind === 'dispatch'
-      && event.runId === input.runId
-      && event.toolUseId === binding.toolUseId
-      && event.sessionId === binding.sessionId
-      && event.requestedAgentType === expectedType
-      && event.handoffRole === input.role
-      && (event.parentRunId ?? null) === expectedParent
-    ));
-    const start = events.find((event) => (
-      event.kind === 'start'
-      && event.agentId === binding.agentId
-      && event.sessionId === binding.sessionId
-      && event.observedAgentType === expectedType
-    ));
-    const stop = events.find((event) => (
-      event.kind === 'stop'
-      && event.runId === input.runId
-      && event.agentId === binding.agentId
-      && event.sessionId === binding.sessionId
-      && event.observedAgentType === expectedType
-      && event.handoffRole === input.role
-      && (event.parentRunId ?? null) === expectedParent
-    ));
-    return dispatch && start && stop
-      ? [{ agentId: binding.agentId, sessionId: binding.sessionId, dispatch, start, stop, binding }]
-      : [];
-  });
+  if (bindings.length > 0) {
+    return bindings.flatMap((binding) => {
+      const dispatch = events.find((event) => (
+        event.kind === 'dispatch'
+        && event.runId === input.runId
+        && event.toolUseId === binding.toolUseId
+        && event.sessionId === binding.sessionId
+        && event.requestedAgentType === expectedType
+        && event.handoffRole === input.role
+        && (event.parentRunId ?? null) === expectedParent
+      ));
+      const start = events.find((event) => (
+        event.kind === 'start'
+        && event.agentId === binding.agentId
+        && event.sessionId === binding.sessionId
+        && event.observedAgentType === expectedType
+      ));
+      const stop = events.find((event) => (
+        event.kind === 'stop'
+        && event.runId === input.runId
+        && event.agentId === binding.agentId
+        && event.sessionId === binding.sessionId
+        && event.observedAgentType === expectedType
+        && event.handoffRole === input.role
+        && (event.parentRunId ?? null) === expectedParent
+      ));
+      return dispatch && start && stop
+        ? [{ agentId: binding.agentId, sessionId: binding.sessionId, dispatch, start, stop, binding }]
+        : [];
+    });
+  }
+
+  const dispatch = [...events].reverse().find((event) => (
+    event.kind === 'dispatch'
+    && event.runId === input?.runId
+    && event.requestedAgentType === expectedType
+    && event.handoffRole === input?.role
+    && (event.parentRunId ?? null) === expectedParent
+  ));
+  if (!dispatch) return [];
+  const start = [...events].reverse().find((event) => (
+    event.kind === 'start'
+    && event.sessionId === dispatch.sessionId
+    && event.observedAgentType === expectedType
+  ));
+  const stop = [...events].reverse().find((event) => (
+    event.kind === 'stop'
+    && event.runId === input.runId
+    && event.sessionId === dispatch.sessionId
+    && event.observedAgentType === expectedType
+    && event.handoffRole === input.role
+    && (event.parentRunId ?? null) === expectedParent
+  ));
+  return dispatch && start && stop
+    ? [{ agentId: start.agentId, sessionId: dispatch.sessionId, dispatch, start, stop, binding: null }]
+    : [];
 }
 
 export function boundHarnessAgent(root, changeId, agentId, expectedType = null) {

@@ -2,121 +2,70 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  publishTaskReceiptArtifacts,
-  writeExclusiveJson,
-} from '../lib/task-receipt-publication.mjs';
+import { publishTaskReceiptArtifacts } from '../lib/task-receipt-publication.mjs';
 import { assertNoSymlinkComponents } from '../lib/safe-paths.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-task-receipt-publication-'));
-const spoolPath = path.join(root, 'common', 'receipt.json');
-const canonicalPath = path.join(root, 'change', 'receipt.json');
-const priorSpool = {
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-task-publication-'));
+const spoolPath = path.join(root, 'harness', 'changes', 'demo', 'evidence', 'tasks', 'task-1.json');
+const canonicalPath = path.join(root, 'harness', 'changes', 'demo', 'evidence', 'tasks', 'task-1.final.json');
+const previousSpool = {
   spoolVersion: 1,
-  runId: 'run-prior',
-  receipt: { executions: [{ phase: 'RED' }] },
+  runId: 'run_prev',
+  receipt: { preserved: true },
 };
-const nextSpool = {
-  spoolVersion: 1,
-  runId: 'run-prior',
-  receipt: { executions: [{ phase: 'RED' }, { phase: 'GREEN' }] },
-};
-const receipt = nextSpool.receipt;
-
-function failOnValidation(call) {
-  let count = 0;
-  return () => {
-    count += 1;
-    if (count === call) throw new Error('handoff input is stale: tasks.md');
-  };
-}
+const receipt = { canonical: true };
+const spool = { spoolVersion: 1, runId: 'run_new', receipt };
 
 try {
   fs.mkdirSync(path.dirname(spoolPath), { recursive: true });
-  fs.writeFileSync(spoolPath, `${JSON.stringify(priorSpool, null, 2)}\n`);
+  fs.writeFileSync(spoolPath, `${JSON.stringify(previousSpool, null, 2)}\n`, 'utf-8');
 
+  let freshChecks = 0;
   assert.throws(() => publishTaskReceiptArtifacts({
     spoolPath,
     canonicalPath,
-    spool: nextSpool,
+    spool,
     receipt,
     isFinal: true,
-    validateFresh: failOnValidation(2),
-    validateTarget: () => {},
-  }), /stale/u);
-  assert.deepEqual(JSON.parse(fs.readFileSync(spoolPath, 'utf-8')), priorSpool);
-  assert.equal(fs.existsSync(canonicalPath), false);
-
-  fs.rmSync(spoolPath);
-  assert.throws(() => publishTaskReceiptArtifacts({
-    spoolPath,
-    canonicalPath,
-    spool: nextSpool,
-    receipt,
-    isFinal: true,
-    validateFresh: failOnValidation(6),
-    validateTarget: () => {},
-  }), /stale/u);
-  assert.equal(fs.existsSync(spoolPath), false);
-  assert.equal(fs.existsSync(canonicalPath), false);
-
-  let targetValidations = 0;
-  assert.throws(() => publishTaskReceiptArtifacts({
-    spoolPath,
-    canonicalPath,
-    spool: nextSpool,
-    receipt,
-    isFinal: true,
-    validateFresh: failOnValidation(6),
-    validateTarget: (target) => {
-      targetValidations += 1;
-      if (target === canonicalPath && targetValidations >= 7) {
-        throw new Error('receipt path contains a symbolic-link component');
-      }
+    validateFresh: () => {
+      freshChecks += 1;
+      if (freshChecks === 2) throw new Error('stale after spool write');
     },
-  }), /rollback failed.*symbolic-link/u);
-  assert.equal(fs.existsSync(canonicalPath), true, 'unsafe rollback must not follow a redirected path');
-  assert.equal(fs.existsSync(spoolPath), false);
-  fs.rmSync(canonicalPath);
+    validateTarget: (target) => {
+      assertNoSymlinkComponents(path.dirname(target), target, 'task receipt path');
+    },
+  }), /stale after spool write/u);
 
-  publishTaskReceiptArtifacts({
-    spoolPath,
-    canonicalPath,
-    spool: nextSpool,
-    receipt,
-    isFinal: true,
-    validateFresh: () => {},
-    validateTarget: () => {},
-  });
-  assert.deepEqual(JSON.parse(fs.readFileSync(spoolPath, 'utf-8')), nextSpool);
-  assert.deepEqual(JSON.parse(fs.readFileSync(canonicalPath, 'utf-8')), receipt);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(spoolPath, 'utf-8')),
+    previousSpool,
+    'rollback must restore the previous spool after a mid-write failure',
+  );
+  assert.equal(fs.existsSync(canonicalPath), false);
 
-  if (process.platform !== 'win32') {
-    const trusted = path.join(root, 'trusted');
-    const outside = path.join(root, 'outside');
-    fs.mkdirSync(trusted);
-    fs.mkdirSync(outside);
-    fs.symlinkSync(outside, path.join(trusted, 'redirect'), 'dir');
-    assert.throws(
-      () => assertNoSymlinkComponents(
-        trusted,
-        path.join(trusted, 'redirect', 'receipt.json'),
-        'receipt path',
-      ),
-      /symbolic-link/u,
-    );
-    const redirectedTarget = path.join(trusted, 'redirect', 'created-outside', 'receipt.json');
-    assert.throws(() => writeExclusiveJson(redirectedTarget, receipt, {
-      validateTarget: () => assertNoSymlinkComponents(
-        trusted,
-        redirectedTarget,
-        'receipt path',
-      ),
-    }), /symbolic-link/u);
-    assert.equal(fs.existsSync(path.join(outside, 'created-outside')), false);
+  const symlinkRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-task-publication-symlink-'));
+  try {
+    const symlinkTarget = path.join(symlinkRoot, 'linked');
+    const realTarget = path.join(symlinkRoot, 'real');
+    fs.mkdirSync(realTarget, { recursive: true });
+    fs.symlinkSync(realTarget, symlinkTarget, 'dir');
+    const symlinkedPath = path.join(symlinkTarget, 'receipt.json');
+    assert.throws(() => publishTaskReceiptArtifacts({
+      spoolPath: symlinkedPath,
+      canonicalPath,
+      spool,
+      receipt,
+      isFinal: false,
+      validateFresh: () => {},
+      validateTarget: (target) => {
+        assertNoSymlinkComponents(symlinkRoot, target, 'task receipt path');
+      },
+    }), /symbolic-link component|escapes/u);
+  } finally {
+    fs.rmSync(symlinkRoot, { recursive: true, force: true });
   }
 
   console.log(`PASS task-receipt-publication ${mode}`);

@@ -20,6 +20,13 @@ export function selectStaleVersions(versionNames, cacheRoot, keepPath) {
   return stale;
 }
 
+export function planCacheCleanup(versionNames, cacheRoot, keepPath, { pruneOld = false } = {}) {
+  const stale = selectStaleVersions(versionNames, cacheRoot, keepPath);
+  return pruneOld
+    ? { retain: [], remove: stale }
+    : { retain: stale, remove: [] };
+}
+
 // 读取缓存根下的版本目录名（不存在则空）。
 export function listVersionDirs(cacheRoot) {
   if (!fs.existsSync(cacheRoot)) return [];

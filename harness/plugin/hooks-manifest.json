@@ -28,7 +28,7 @@
         "statusMessage": "保护受治理写入边界"
       },
       {
-        "matcher": "Grep|Read|Glob|Bash",
+        "matcher": "Grep|Read|Glob",
         "script": "pre-explore.mjs",
         "timeout": 10,
         "performanceBudgetMs": 100,
@@ -37,6 +37,14 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "script": "post-agent.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 scoped Agent 派发绑定"
+      },
       {
         "matcher": "mcp__codegraph__.*|mcp__context7__.*|mcp__plugin_enterprise-harness_codegraph__.*|mcp__plugin_enterprise-harness_context7__.*",
         "script": "research-evidence.mjs",
@@ -52,6 +60,24 @@
         "performanceBudgetMs": 500,
         "failMode": "fail-closed",
         "statusMessage": "记录受治理写入边界"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "script": "subagent-start.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 subagent 启动绑定"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "script": "subagent-stop.mjs",
+        "timeout": 30,
+        "performanceBudgetMs": 500,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 subagent 完成证据"
       }
     ],
     "PostToolUseFailure": [

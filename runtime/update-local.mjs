@@ -1,23 +1,25 @@
 import process from 'node:process';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { pluginCacheRoot, selectStaleVersions, listVersionDirs } from './lib/plugin-cache.mjs';
+import { pluginCacheRoot, planCacheCleanup, listVersionDirs } from './lib/plugin-cache.mjs';
 
-// update-local：一条龙更新本地安装的 enterprise-harness 插件并清理旧缓存。
+// update-local：一条龙更新本地安装的 enterprise-harness 插件，并安全管理旧缓存。
 // 背景：插件作者迭代时，plugin update 默认查 user scope，但本地多是 local scope，
-// 直接 update 会报 "not installed at scope user"；且旧版本缓存目录里的旧 hook
-// 仍会被加载并报错（如 stop hook JSON validation failed）。此命令固化正确流程。
+// 直接 update 会报 "not installed at scope user"。活动会话可能仍引用更新前的
+// CLAUDE_PLUGIN_ROOT，因此默认保留旧缓存；仅在 reload/fresh session 后显式清理。
 
 const PLUGIN_ID = 'enterprise-harness@enterprise-harness';
 const MARKETPLACE = 'enterprise-harness';
 const help = process.argv.includes('--help') || process.argv.includes('-h');
 const dryRun = process.argv.includes('--dry-run');
+const pruneOld = process.argv.includes('--prune-old');
 
 if (help) {
   console.log('Enterprise Harness Update-Local');
-  console.log('Usage: node runtime/cli.mjs update-local [--dry-run]');
-  console.log('更新本地安装的 enterprise-harness 插件到最新版本，并清理旧版本缓存目录。');
-  console.log('  --dry-run  只报告将要执行的动作，不实际更新或删除');
+  console.log('Usage: node runtime/cli.mjs update-local [--dry-run] [--prune-old]');
+  console.log('更新本地安装的 enterprise-harness 插件；默认保留旧缓存，避免活动会话 hook 路径失效。');
+  console.log('  --dry-run   只报告将要执行的动作，不实际更新或删除');
+  console.log('  --prune-old 显式删除非当前版本缓存；仅在 /reload-plugins 或新会话后使用');
   process.exit(0);
 }
 
@@ -41,9 +43,9 @@ function readInstalled() {
 
 const cacheRoot = pluginCacheRoot();
 
-// 清理 installPath 之外的旧版本缓存目录，返回被删（或将删）的版本列表。
-function staleVersionDirs(keepPath) {
-  return selectStaleVersions(listVersionDirs(cacheRoot), cacheRoot, keepPath);
+// 规划 installPath 之外的旧版本缓存；默认保留，显式 --prune-old 才删除。
+function cacheCleanupPlan(keepPath) {
+  return planCacheCleanup(listVersionDirs(cacheRoot), cacheRoot, keepPath, { pruneOld });
 }
 
 console.log('Enterprise Harness Update-Local');
@@ -66,8 +68,9 @@ console.log(`- 当前版本：${fromVersion}（scope=${scope}）`);
 
 if (dryRun) {
   console.log('- [dry-run] 将执行：marketplace update -> plugin update --scope ' + scope);
-  const stale = staleVersionDirs(before.entry.installPath).filter((s) => s.version !== fromVersion);
-  for (const s of stale) console.log(`- [dry-run] 将删除旧缓存：${s.version}`);
+  const plan = cacheCleanupPlan(before.entry.installPath);
+  for (const item of plan.retain) console.log(`- [dry-run] 将保留旧缓存：${item.version}`);
+  for (const item of plan.remove) console.log(`- [dry-run] 将删除旧缓存：${item.version}`);
   console.log('Update-local dry-run complete.');
   process.exit(0);
 }
@@ -91,29 +94,51 @@ if (upd.status !== 0) {
   process.exit(2);
 }
 
-// 4. 复核版本是否真的变化。
+// 4. 复核版本是否真的变化。复核失败时不猜测当前 installPath，也不清理缓存。
 const after = readInstalled();
-const toVersion = after.entry?.version ?? '未知';
+if (after.error) {
+  console.error(`BLOCK: 更新后无法复核已安装插件：${after.error}`);
+  console.error('恢复：保留全部缓存，确认 claude plugin list --json 可用后重试。');
+  process.exit(2);
+}
+if (!after.entry) {
+  console.error(`BLOCK: 更新后无法复核 ${PLUGIN_ID} 的安装条目。`);
+  console.error('恢复：保留全部缓存，重新安装插件后重试。');
+  process.exit(2);
+}
+const toVersion = after.entry.version;
 if (toVersion === fromVersion) {
   console.log(`- 已是最新：${toVersion}（无版本变化）`);
 } else {
   console.log(`- 已更新：${fromVersion} -> ${toVersion}`);
 }
 
-// 5. 清理旧版本缓存（保留当前启用版本目录），避免旧 hook 继续被加载报错。
-const keepPath = after.entry?.installPath || before.entry.installPath;
-const stale = staleVersionDirs(keepPath);
+// 5. 活动会话可能仍持有更新前的 CLAUDE_PLUGIN_ROOT。默认保留旧缓存，避免 hook
+// 命令在 reload 前因 MODULE_NOT_FOUND 失效；仅由显式 --prune-old 清理。
+const keepPath = after.entry.installPath;
+const cleanup = cacheCleanupPlan(keepPath);
+for (const item of cleanup.retain) {
+  console.log(`- 已保留旧缓存：${item.version}（兼容尚未 reload 的活动会话）`);
+}
 let removed = 0;
-for (const s of stale) {
+for (const item of cleanup.remove) {
   try {
-    fs.rmSync(s.dir, { recursive: true, force: true });
-    console.log(`- 已清理旧缓存：${s.version}`);
+    fs.rmSync(item.dir, { recursive: true, force: true });
+    console.log(`- 已清理旧缓存：${item.version}`);
     removed += 1;
   } catch (e) {
-    console.error(`- 警告：清理 ${s.version} 失败：${e.message}`);
+    console.error(`- 警告：清理 ${item.version} 失败：${e.message}`);
   }
 }
-if (removed === 0) console.log('- 无需清理旧缓存。');
+if (cleanup.retain.length === 0 && cleanup.remove.length === 0) {
+  console.log('- 无旧缓存需要处理。');
+}
+if (pruneOld && cleanup.remove.length > 0 && removed === 0) {
+  console.error('- 警告：未能清理任何旧缓存。');
+}
 
-console.log('Update-local complete. 若插件行为变化，请重启 Claude Code 会话以应用。');
+console.log('Update-local complete. 请执行 /reload-plugins；若仍引用旧版本，请启动全新 Claude Code 会话。');
+if (!pruneOld && cleanup.retain.length > 0) {
+  console.log('确认 reload 或新会话生效后，可运行 update-local --prune-old 清理保留的旧缓存。');
+}
 process.exit(0);

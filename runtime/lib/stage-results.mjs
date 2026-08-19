@@ -53,6 +53,26 @@ function runIds(root, changeId) {
     .sort();
 }
 
+function freshestRunForStage(root, changeId, stage, role, { parentRunId = null } = {}) {
+  let freshest = null;
+  for (const runId of runIds(root, changeId)) {
+    let input;
+    try {
+      input = loadHandoffV2(root, changeId, runId);
+    } catch {
+      continue;
+    }
+    if (input.stage !== stage || input.role !== role) continue;
+    if ((input.parentRunId ?? null) !== parentRunId) continue;
+    const createdAt = Date.parse(input.createdAt);
+    if (!Number.isFinite(createdAt)) continue;
+    if (!freshest || createdAt > freshest.createdAt || (createdAt === freshest.createdAt && runId > freshest.runId)) {
+      freshest = { runId, input, createdAt };
+    }
+  }
+  return freshest;
+}
+
 function freshInputDigests(root, input) {
   const problems = [];
   for (const ref of input.inputRefs || []) {
@@ -75,10 +95,7 @@ function loadRun(root, changeId, runId, role, problems) {
     problems.push(error.message);
     return null;
   }
-  const contractProblems = [
-    ...validateHandoffV2Contract(input),
-    ...freshInputDigests(root, input),
-  ];
+  const contractProblems = validateHandoffV2Contract(input);
   if (contractProblems.length > 0) {
     problems.push(...contractProblems.map((problem) => `${runId}: ${problem}`));
     return null;
@@ -236,9 +253,132 @@ export function resolveStageCompletionProof(root, changeId, stage, {
   const executions = [];
   const runs = runIds(root, changeId);
 
+  if (stage !== 'implement') {
+    const executionCandidate = freshestRunForStage(root, changeId, stage, 'execute');
+    if (!executionCandidate) {
+      problems.push(`${stage} has no fresh, valid passing StageResult`);
+      return { proof: null, problems };
+    }
+    const execution = loadRun(root, changeId, executionCandidate.runId, 'execute', problems);
+    if (!execution?.input || execution.input.stage !== stage) {
+      problems.push(`${stage} has no fresh, valid passing StageResult`);
+      return { proof: null, problems };
+    }
+    const executionInputProblems = freshInputDigests(root, execution.input);
+    if (executionInputProblems.length > 0) {
+      problems.push(...executionInputProblems.map((problem) => `${executionCandidate.runId}: ${problem}`));
+      return { proof: null, problems };
+    }
+    if (!execution.result) {
+      problems.push(`${executionCandidate.runId}: StageResult is missing`);
+      return { proof: null, problems };
+    }
+    const resultProblems = validateStageResult(root, execution.result);
+    if (resultProblems.length > 0) {
+      problems.push(...resultProblems.map((problem) => `${executionCandidate.runId}: ${problem}`));
+      return { proof: null, problems };
+    }
+    if (!matchingProducer(execution.result, execution.input)) {
+      problems.push(`${executionCandidate.runId}: StageResult producer does not match handoff agent`);
+      return { proof: null, problems };
+    }
+    if (execution.result.runId !== execution.input.runId
+      || execution.result.changeId !== changeId
+      || execution.result.stage !== stage) {
+      problems.push(`${executionCandidate.runId}: StageResult does not bind the ${stage} handoff`);
+      return { proof: null, problems };
+    }
+    if (!sameDigestMap(execution.result.inputDigests, execution.input.inputDigests)) {
+      problems.push(`${executionCandidate.runId}: StageResult input digests do not match the execute handoff`);
+      return { proof: null, problems };
+    }
+    const missingArtifacts = requiredArtifacts.filter((artifactPath) => (
+      !execution.result.artifacts.some((artifact) => artifact.path === artifactPath)
+    ));
+    if (missingArtifacts.length > 0) {
+      problems.push(`${executionCandidate.runId}: StageResult does not bind ${missingArtifacts.join(', ')}`);
+      return { proof: null, problems };
+    }
+    if (execution.result.status !== 'pass') {
+      problems.push(`${executionCandidate.runId}: StageResult did not pass`);
+      return { proof: null, problems };
+    }
+    const isMainOwnedClarify = stage === 'clarify'
+      && normalizeAgentType(execution.input.agent?.type) === 'enterprise-harness:main';
+    const agentBindings = isMainOwnedClarify
+      ? [{ agentId: 'enterprise-harness:main', sessionId: null }]
+      : trustedHandoffAgentBindings(root, changeId, execution.input);
+    if (agentBindings.length === 0) {
+      problems.push(`${executionCandidate.runId}: execute handoff has no trusted completed agent binding`);
+      return { proof: null, problems };
+    }
+
+    const checkCandidate = freshestRunForStage(root, changeId, stage, 'check', { parentRunId: execution.input.runId });
+    if (!checkCandidate) {
+      problems.push(`${executionCandidate.runId}: ReviewResult is missing`);
+      return { proof: null, problems };
+    }
+    const check = loadRun(root, changeId, checkCandidate.runId, 'check', problems);
+    if (!check?.input || check.input.stage !== stage || check.input.parentRunId !== execution.input.runId) {
+      problems.push(`${checkCandidate.runId}: ReviewResult is missing`);
+      return { proof: null, problems };
+    }
+    const checkInputProblems = freshInputDigests(root, check.input);
+    if (checkInputProblems.length > 0) {
+      problems.push(...checkInputProblems.map((problem) => `${checkCandidate.runId}: ${problem}`));
+      return { proof: null, problems };
+    }
+    if (!check.result) {
+      problems.push(`${checkCandidate.runId}: ReviewResult is missing`);
+      return { proof: null, problems };
+    }
+    const reviewProblems = validateReviewResult(root, check.result, { stageResult: execution.result });
+    if (reviewProblems.length > 0) {
+      problems.push(...reviewProblems.map((problem) => `${checkCandidate.runId}: ${problem}`));
+      return { proof: null, problems };
+    }
+    if (JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)) {
+      problems.push(`${checkCandidate.runId}: ReviewResult rubrics do not match the check handoff`);
+      return { proof: null, problems };
+    }
+    if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)) {
+      problems.push(`${checkCandidate.runId}: ReviewResult artifacts do not match the StageResult`);
+      return { proof: null, problems };
+    }
+    if (!matchingReviewer(check.result, check.input)) {
+      problems.push(`${checkCandidate.runId}: ReviewResult reviewer does not match handoff agent`);
+      return { proof: null, problems };
+    }
+    const reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
+    if (reviewerBindings.length === 0) {
+      problems.push(`${checkCandidate.runId}: check handoff has no trusted completed reviewer agent binding`);
+      return { proof: null, problems };
+    }
+    const producerAgentIds = new Set(agentBindings.map((binding) => binding.agentId));
+    if (!reviewerBindings.some((binding) => !producerAgentIds.has(binding.agentId))) {
+      problems.push(`${checkCandidate.runId}: execute and check handoffs must use distinct agent identities`);
+      return { proof: null, problems };
+    }
+    if (check.result.verdict !== 'pass') {
+      problems.push(`${checkCandidate.runId}: ReviewResult did not pass`);
+      return { proof: null, problems };
+    }
+    try {
+      return { proof: buildCompletionProof(root, { stageResult: execution.result, reviewResult: check.result }), problems: [] };
+    } catch (error) {
+      problems.push(`${checkCandidate.runId}: ${error.message}`);
+      return { proof: null, problems };
+    }
+  }
+
   for (const runId of runs) {
     const execution = loadRun(root, changeId, runId, 'execute', problems);
     if (!execution?.input || execution.input.stage !== stage) continue;
+    const executionInputProblems = freshInputDigests(root, execution.input);
+    if (executionInputProblems.length > 0) {
+      problems.push(...executionInputProblems.map((problem) => `${runId}: ${problem}`));
+      continue;
+    }
     if (!execution.result) {
       problems.push(`${runId}: StageResult is missing`);
       continue;
@@ -301,6 +441,11 @@ export function resolveStageCompletionProof(root, changeId, stage, {
     for (const runId of runs) {
       const check = loadRun(root, changeId, runId, 'check', problems);
       if (!check?.input || check.input.stage !== stage || check.input.parentRunId !== execution.input.runId) continue;
+      const checkInputProblems = freshInputDigests(root, check.input);
+      if (checkInputProblems.length > 0) {
+        problems.push(...checkInputProblems.map((problem) => `${runId}: ${problem}`));
+        continue;
+      }
       if (!check.result) {
         problems.push(`${runId}: ReviewResult is missing`);
         continue;
@@ -327,7 +472,7 @@ export function resolveStageCompletionProof(root, changeId, stage, {
         problems.push(`${runId}: check handoff has no trusted completed reviewer agent binding`);
         continue;
       }
-      const producerAgentIds = new Set(execution.agentBindings.map((binding) => binding.agentId));
+      const producerAgentIds = new Set(agentBindings.map((binding) => binding.agentId));
       if (!reviewerBindings.some((binding) => !producerAgentIds.has(binding.agentId))) {
         problems.push(`${runId}: execute and check handoffs must use distinct agent identities`);
         continue;

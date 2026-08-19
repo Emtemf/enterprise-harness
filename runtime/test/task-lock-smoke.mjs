@@ -86,6 +86,83 @@ try {
   assert.equal(reusedPidRecovered, true, 'an expired lock must not be pinned by a reused PID');
   assert.equal(fs.existsSync(lock), false);
 
+  const failingWritePath = path.join(root, 'task-execution-write-fail');
+  const originalWriteFileSync = fs.writeFileSync;
+  try {
+    fs.writeFileSync = (...args) => {
+      if (typeof args[0] === 'number') {
+        const error = new Error('synthetic write failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      return originalWriteFileSync(...args);
+    };
+    assert.throws(
+      () => withRecoverableTaskLock(failingWritePath, () => {}),
+      /synthetic write failure|EIO/u,
+    );
+    assert.equal(fs.existsSync(`${failingWritePath}.lock`), false, 'failed initial writes must not leave the lock inode behind');
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+  }
+
+  const mismatchPath = path.join(root, 'task-execution-mismatch');
+  const mismatchLock = `${mismatchPath}.lock`;
+  fs.writeFileSync(mismatchLock, `${JSON.stringify({ pid: 2147483647, lockId: 'stat-mismatch' })}\n`);
+  fs.utimesSync(mismatchLock, staleTime, staleTime);
+  const originalLinkSync = fs.linkSync;
+  const originalStatSync = fs.statSync;
+  let linked = false;
+  let statMismatched = false;
+  try {
+    fs.linkSync = (...args) => {
+      linked = true;
+      return originalLinkSync(...args);
+    };
+    fs.statSync = (target, ...args) => {
+      const stat = originalStatSync(target, ...args);
+      if (target === mismatchLock && linked && !statMismatched) {
+        statMismatched = true;
+        return { ...stat, ino: stat.ino + 1 };
+      }
+      return stat;
+    };
+    assert.throws(
+      () => withRecoverableTaskLock(mismatchPath, () => {}, { staleAfterMs: 1 }),
+      /concurrent update/u,
+      'a stat mismatch during quarantine verification must fail closed rather than silently stealing the lock',
+    );
+    assert.equal(fs.existsSync(mismatchLock), false);
+  } finally {
+    fs.linkSync = originalLinkSync;
+    fs.statSync = originalStatSync;
+  }
+
+  const enoentPath = path.join(root, 'task-execution-enoent');
+  const enoentLock = `${enoentPath}.lock`;
+  fs.writeFileSync(enoentLock, `${JSON.stringify({ pid: 2147483647, lockId: 'enoent-recovery' })}\n`);
+  fs.utimesSync(enoentLock, staleTime, staleTime);
+  let injectEnoent = true;
+  try {
+    fs.linkSync = (...args) => {
+      if (injectEnoent) {
+        injectEnoent = false;
+        const error = new Error('synthetic enoent');
+        error.code = 'ENOENT';
+        throw error;
+      }
+      return originalLinkSync(...args);
+    };
+    assert.throws(
+      () => withRecoverableTaskLock(enoentPath, () => {}, { staleAfterMs: 1 }),
+      /concurrent update/u,
+      'an ENOENT during quarantine should fail closed rather than silently recover',
+    );
+    assert.equal(fs.existsSync(enoentLock), false);
+  } finally {
+    fs.linkSync = originalLinkSync;
+  }
+
   console.log(`PASS task-lock ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

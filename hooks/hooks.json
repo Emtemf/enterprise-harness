@@ -44,10 +44,21 @@
             "statusMessage": "检查代码探索是否已委托 subagent"
           }
         ],
-        "matcher": "Grep|Read|Glob|Bash"
+        "matcher": "Grep|Read|Glob"
       }
     ],
     "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-agent.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 scoped Agent 派发绑定"
+          }
+        ],
+        "matcher": "Agent"
+      },
       {
         "hooks": [
           {
@@ -69,6 +80,30 @@
           }
         ],
         "matcher": "Write|Edit|NotebookEdit|Bash"
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/subagent-start.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 subagent 启动绑定"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/subagent-stop.mjs\"",
+            "timeout": 30,
+            "statusMessage": "记录 subagent 完成证据"
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [

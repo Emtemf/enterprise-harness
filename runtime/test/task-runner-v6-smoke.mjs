@@ -239,9 +239,59 @@ try {
       },
     },
   }, null, 2)}\n`);
+
+  const missingState = createExecuteHandoff('task-missing-state');
+  fs.rmSync(path.join(changeDir, 'state.json'));
+  const missingStateResult = taskRun('task-missing-state', missingState.runId, 'verify');
+  assert.equal(missingStateResult.status, 2);
+  assert.match(`${missingStateResult.stdout}\n${missingStateResult.stderr}`, /state\.json is missing/u);
+
+  const wrongSchema = createExecuteHandoff('task-wrong-schema');
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+    schemaVersion: 5,
+    changeId,
+    lifecycle: 'active',
+    stage: 'implement',
+    currentTask: 'task-wrong-schema',
+  }, null, 2)}\n`, 'utf-8');
+  const wrongSchemaResult = taskRun('task-wrong-schema', wrongSchema.runId, 'verify');
+  assert.equal(wrongSchemaResult.status, 2);
+  assert.match(`${wrongSchemaResult.stdout}\n${wrongSchemaResult.stderr}`, /State v6|task-run only accepts State v6/u);
+
+  const wrongStage = createExecuteHandoff('task-wrong-stage');
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    changeId,
+    lifecycle: 'active',
+    stage: 'design',
+    currentTask: 'task-wrong-stage',
+  }, null, 2)}\n`, 'utf-8');
+  const wrongStageResult = taskRun('task-wrong-stage', wrongStage.runId, 'verify');
+  assert.equal(wrongStageResult.status, 2);
+  assert.match(`${wrongStageResult.stdout}\n${wrongStageResult.stderr}`, /stage must be implement/u);
+
+  const wrongCurrentTask = createExecuteHandoff('task-wrong-current');
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    changeId,
+    lifecycle: 'active',
+    stage: 'implement',
+    currentTask: 'some-other-task',
+  }, null, 2)}\n`, 'utf-8');
+  const wrongCurrentTaskResult = taskRun('task-wrong-current', wrongCurrentTask.runId, 'verify');
+  assert.equal(wrongCurrentTaskResult.status, 2);
+  assert.match(`${wrongCurrentTaskResult.stdout}\n${wrongCurrentTaskResult.stderr}`, /currentTask must be task-wrong-current/u);
+
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    changeId,
+    lifecycle: 'active',
+    stage: 'implement',
+    currentTask: 'task-direct',
+  }, null, 2)}\n`, 'utf-8');
+
   mustPass(run('git', ['init', '-q']), 'git init');
   mustPass(run('git', ['config', 'user.email', 'runner@example.test']), 'git email');
-  mustPass(run('git', ['config', 'user.name', 'Runner Fixture']), 'git name');
   mustPass(run('git', ['add', '.']), 'git add');
   mustPass(run('git', ['commit', '-qm', 'fixture']), 'git commit');
   // macOS may record /var/... in the start event while the child resolves cwd to /private/var/....
