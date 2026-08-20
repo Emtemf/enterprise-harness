@@ -1,19 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2 } from '../../../runtime/core/handoff-v2.mjs';
-import { gitCommonDir } from '../../../runtime/lib/agent-evidence.mjs';
-import { sha256Artifact, validateStageResult } from '../../../runtime/lib/result-contract.mjs';
+import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
+import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
 import {
   assertNoSymlinkComponents,
   assertSafeId,
   assertSafeRunId,
-} from '../../../runtime/lib/safe-paths.mjs';
-import {
+  gitCommonDir,
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
   validateTaskExecutionReceipt,
-} from '../../../runtime/lib/task-execution-receipt.mjs';
+} from '../../../runtime/api/task.mjs';
 
 const args = process.argv.slice(2);
 const [changeId, taskId, runId] = args;

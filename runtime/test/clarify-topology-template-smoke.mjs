@@ -8,7 +8,7 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const template = fs.readFileSync(path.join(root, 'harness', 'templates', 'requirements.md'), 'utf-8');
+const template = fs.readFileSync(path.join(root, 'skills', 'harness', 'assets', 'requirements.md.tmpl'), 'utf-8');
 for (const token of [
   '组件拓扑',
   'component × unresolved dimension',

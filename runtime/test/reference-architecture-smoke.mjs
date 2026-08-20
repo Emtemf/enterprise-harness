@@ -10,9 +10,9 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const canonicalFiles = [
-  ...fs.readdirSync(path.join(root, 'skills', 'harness', 'reference'), { recursive: true })
+  ...fs.readdirSync(path.join(root, 'skills', 'harness', 'references'), { recursive: true })
     .filter((entry) => entry.endsWith('.md'))
-    .map((entry) => path.join(root, 'skills', 'harness', 'reference', entry)),
+    .map((entry) => path.join(root, 'skills', 'harness', 'references', entry)),
   path.join(root, 'agents', 'code-explore.md'),
   path.join(root, 'agents', 'doc-research.md'),
   path.join(root, 'skills', 'design', 'SKILL.md'),

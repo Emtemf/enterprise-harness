@@ -1,4 +1,4 @@
-import { selectReviewRubrics } from '../../../runtime/lib/review-rubrics.mjs';
+import { selectReviewRubrics } from '../../../runtime/api/result.mjs';
 
 export function selectRubrics(input) {
   try {

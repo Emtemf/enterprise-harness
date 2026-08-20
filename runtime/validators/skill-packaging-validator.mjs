@@ -115,6 +115,19 @@ function checkRuntimePathConvention(skillDir, content) {
   }
 }
 
+function checkScriptApiBoundary(skillDir) {
+  const skillName = path.basename(skillDir);
+  const scriptsDir = path.join(skillDir, 'scripts');
+  if (!fs.existsSync(scriptsDir)) return;
+  for (const script of fs.readdirSync(scriptsDir)) {
+    if (!script.endsWith('.mjs')) continue;
+    const text = fs.readFileSync(path.join(scriptsDir, script), 'utf-8');
+    for (const match of text.matchAll(/from\s+'([^']*runtime\/(?:core|lib)\/[^']*)'/g)) {
+      fail(`${skillName}/scripts/${script}: imports internal "${match[1]}" — skill scripts may only import from runtime/api/`);
+    }
+  }
+}
+
 function checkSkillSet(skillsRoot) {
   const actual = fs.readdirSync(skillsRoot).filter((entry) => fs.statSync(path.join(skillsRoot, entry)).isDirectory());
   const expected = [...EXPECTED_SKILLS].sort();
@@ -161,6 +174,7 @@ export function validateSkillPackaging(pluginRoot) {
     checkNoNonStandardDirs(skillDir);
     checkNoEmptySupportingDirs(skillDir);
     checkRuntimePathConvention(skillDir, content);
+    checkScriptApiBoundary(skillDir);
     const referencedRoots = checkSupportingFilesReachable(skillDir, content);
     checkOrphanFiles(skillDir, referencedRoots);
   }

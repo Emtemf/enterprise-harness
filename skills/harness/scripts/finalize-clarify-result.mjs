@@ -1,9 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2 } from '../../../runtime/core/handoff-v2.mjs';
-import { readClassificationArtifact } from '../../../runtime/core/classification-artifact.mjs';
-import { sha256Artifact, validateStageResult } from '../../../runtime/lib/result-contract.mjs';
+import { loadHandoffV2, readClassificationArtifact } from '../../../runtime/api/handoff.mjs';
+import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
 
 const [changeId, runId] = process.argv.slice(2);
 if (!changeId || !runId) {

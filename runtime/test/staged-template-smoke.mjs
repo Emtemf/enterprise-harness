@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
 const files = {
-  requirements: path.join(repoRoot, 'harness', 'templates', 'requirements.md'),
-  design: path.join(repoRoot, 'harness', 'templates', 'design.md'),
-  tasks: path.join(repoRoot, 'harness', 'templates', 'tasks.md'),
+  requirements: path.join(repoRoot, 'skills', 'harness', 'assets', 'requirements.md.tmpl'),
+  design: path.join(repoRoot, 'skills', 'design', 'assets', 'design.md.tmpl'),
+  tasks: path.join(repoRoot, 'skills', 'plan', 'assets', 'tasks.md.tmpl'),
   validation: path.join(repoRoot, 'harness', 'templates', 'validation.md'),
 };
 const expected = {

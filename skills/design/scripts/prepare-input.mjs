@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { sha256Artifact } from '../../../runtime/lib/result-contract.mjs';
-import { readClassificationArtifact } from '../../../runtime/core/classification-artifact.mjs';
+import { sha256Artifact } from '../../../runtime/api/result.mjs';
+import { readClassificationArtifact } from '../../../runtime/api/handoff.mjs';
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf-8'));

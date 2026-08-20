@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2, v2ResultPath } from '../../../runtime/core/handoff-v2.mjs';
-import { validateReviewResult, validateStageResult } from '../../../runtime/lib/result-contract.mjs';
+import { loadHandoffV2, v2ResultPath } from '../../../runtime/api/handoff.mjs';
+import { validateReviewResult, validateStageResult } from '../../../runtime/api/result.mjs';
 
 const [changeId, runId, verdict, correction = ''] = process.argv.slice(2);
 if (!changeId || !runId || !verdict) {
