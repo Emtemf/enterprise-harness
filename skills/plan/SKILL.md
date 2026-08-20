@@ -18,7 +18,8 @@ background: false
 ## Supporting files
 
 - [tasks 模板](assets/tasks.md.tmpl) — 生成 tasks.md 时的输出骨架
-- [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
+- [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID 与 required sections
+- [assert/execution-contract.mjs](assert/execution-contract.mjs) — 验证每个 task 的 strategy、冻结 argv、acceptance 与 recovery
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
 
 ## 输入与边界

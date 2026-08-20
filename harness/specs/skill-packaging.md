@@ -1,12 +1,15 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-20
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/
+  - runtime/api/
+  - runtime/validators/skill-packaging-validator.mjs
   - .claude-plugin/plugin.json
 testRefs:
   - runtime/test/skill-packaging-smoke.mjs
+  - runtime/test/plan-skill-script-smoke.mjs
 ---
 
 # Skill Packaging Contract
@@ -126,6 +129,20 @@ ${CLAUDE_SKILL_DIR}/../../runtime/...
 Skill 不得通过相对路径穿越到 runtime 内部模块。跨 Skill/Runtime 边界只允许通过
 `runtime/api/` 公共接口或 `${CLAUDE_PLUGIN_ROOT}` 路径。
 
+### Runtime 公共 API 边界
+
+Skill 的 `.mjs` 消费者只允许 import `runtime/api/`：
+
+| Facade | 稳定职责 |
+|---|---|
+| `runtime/api/handoff.mjs` | handoff 读取、result path 与 classification 读取 |
+| `runtime/api/result.mjs` | artifact digest、Stage/Review result 校验与 rubric 选择 |
+| `runtime/api/task.mjs` | task receipt、ID/path safety 与 common-dir 查询 |
+
+`runtime/core/` 与 `runtime/lib/` 是 plugin 内部实现，不是 Skill 可依赖的兼容面。validator 必须递归检查
+Skill 中全部 `.mjs` 的静态和动态 import；直接引用内部模块时 CI fail。命令行调用仍使用
+`${CLAUDE_PLUGIN_ROOT}/runtime/<entrypoint>.mjs`，它是进程边界，不等同于模块 import。
+
 ## Supporting file 导航
 
 SKILL.md **必须**通过 markdown 链接引用其 supporting files，并说明**何时读取**。
@@ -150,6 +167,7 @@ SKILL.md 指示执行某脚本 → 执行 scripts/...
 ```
 
 SKILL.md 中的引用可用 markdown 链接或反引号路径；validator 两种都认可，但目标文件必须真实存在。
+每个 supporting file 都必须被逐文件引用；只引用目录中的一个文件不能让同目录的其他文件逃过 orphan 检查。
 
 ## 资源分类规则
 

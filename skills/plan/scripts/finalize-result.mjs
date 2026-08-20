@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
+import { assertExecutionContract } from '../assert/execution-contract.mjs';
 import { assertTaskShape } from '../assert/task-shape.mjs';
 
 const [changeId, runId] = process.argv.slice(2);
@@ -18,16 +19,24 @@ try {
     || input.agent?.type !== 'enterprise-harness:artifact-worker' || input.agent?.skill !== 'plan') {
     throw new Error('EH-PLAN-FINALIZE-001: handoff must be a plan artifact-worker execute run');
   }
+  for (const ref of input.inputRefs) {
+    if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
+      throw new Error(`EH-PLAN-FINALIZE-001: handoff input digest is stale: ${ref}`);
+    }
+  }
   const artifactPath = `harness/changes/${changeId}/tasks.md`;
   const absolutePath = path.join(root, artifactPath);
   if (!fs.existsSync(absolutePath)) throw new Error(`EH-PLAN-FINALIZE-002: missing ${artifactPath}`);
-  const assertResult = assertTaskShape(fs.readFileSync(absolutePath, 'utf-8'));
-  if (assertResult.verdict === 'block') {
-    throw new Error(`EH-PLAN-FINALIZE-003: ${assertResult.findings.join('; ')}`);
-  }
-  const assertions = [
-    { id: assertResult.id, verdict: assertResult.verdict, evidence: assertResult.evidence },
+  const content = fs.readFileSync(absolutePath, 'utf-8');
+  const checks = [
+    assertTaskShape(content, artifactPath),
+    assertExecutionContract(content, artifactPath),
   ];
+  const findings = checks.flatMap((check) => check.findings);
+  if (findings.length > 0) {
+    throw new Error(`EH-PLAN-FINALIZE-003: ${findings.join('; ')}`);
+  }
+  const assertions = checks.map(({ id, verdict, evidence }) => ({ id, verdict, evidence }));
   const result = {
     resultVersion: 1,
     type: 'stage-result',

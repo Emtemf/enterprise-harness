@@ -38,7 +38,7 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 ## Clarify 闭环
 
 1. 将 requirements、topology、frontier、ResearchPacket 和 classification 写入 durable change artifacts。
-2. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-clarify-result.mjs <change-id> <run-id>"` 执行 self-check。
+2. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-clarify-result.mjs" <change-id> <run-id>` 执行 self-check。
 3. 为 clarify 创建 `enterprise-harness:reviewer` 的独立 check handoff。
 4. 只有 fresh Clarify StageResult + ReviewResult + CompletionProof 时允许 `clarify → design`。
 

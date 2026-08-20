@@ -20,7 +20,7 @@ const tasksRef = `harness/changes/${changeId}/tasks.md`;
 try {
   fs.mkdirSync(changeDir, { recursive: true });
   fs.writeFileSync(path.join(root, designRef), '# Design\n');
-  fs.writeFileSync(path.join(root, tasksRef), [
+  const validTasks = [
     '# Tasks',
     '',
     '## Task 1: task-1',
@@ -36,7 +36,8 @@ try {
     '- Recovery/rollback: revert the change',
     '### Independent review',
     '- Applicable rubrics: task',
-  ].join('\n'));
+  ].join('\n');
+  fs.writeFileSync(path.join(root, tasksRef), validTasks);
   const handoff = createHandoffV2(root, {
     changeId,
     stage: 'plan',
@@ -47,11 +48,33 @@ try {
   });
   const passed = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(passed.status, 0, passed.stderr);
-  assert.equal(JSON.parse(passed.stdout).status, 'pass');
+  const result = JSON.parse(passed.stdout);
+  assert.equal(result.status, 'pass');
+  assert.deepEqual(
+    result.assertions.map((entry) => entry.id),
+    ['task-shape', 'strategy-and-command-contract'],
+    'Plan shape and execution contract must be first-class assertions',
+  );
 
   fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task <task-id>\n');
   const rejected = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.notEqual(rejected.status, 0, 'placeholder plan must not finalize');
+
+  fs.writeFileSync(path.join(root, tasksRef), validTasks.replace('- Strategy: `direct`', '- Strategy: `unknown`'));
+  const invalidStrategy = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(invalidStrategy.status, 0, 'unsupported execution strategy must not finalize');
+  assert.match(invalidStrategy.stderr, /invalid execution strategy unknown/u);
+
+  fs.writeFileSync(path.join(root, tasksRef), validTasks.replace('- Frozen primary argv: `node --test test.mjs`', '- Frozen primary argv:'));
+  const missingArgv = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(missingArgv.status, 0, 'empty primary argv must not finalize');
+  assert.match(missingArgv.stderr, /missing frozen primary argv/u);
+
+  fs.writeFileSync(path.join(root, tasksRef), validTasks);
+  fs.writeFileSync(path.join(root, designRef), '# Design changed\n');
+  const staleInput = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(staleInput.status, 0, 'stale Plan input digest must not finalize');
+  assert.match(staleInput.stderr, /handoff input digest is stale/u);
 
   console.log(`PASS plan-skill-script ${mode}`);
 } finally {
