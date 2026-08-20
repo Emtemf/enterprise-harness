@@ -49,6 +49,10 @@ assert.ok(
   signal.outcome.kind === 'signal' || signal.outcome.kind === 'exit',
   `signal or exit outcome expected, got ${signal.outcome.kind}`,
 );
-assert.equal(signal.child.status, 2);
+// Linux: wrapper exits 2 on signal; Windows: process exits with its own code (typically 1).
+assert.ok(
+  signal.child.status === 2 || signal.child.status === 1,
+  `expected exit 2 (signal) or 1 (Windows fallback), got ${signal.child.status}`,
+);
 
 console.log(`PASS task-child-contract ${mode}`);
