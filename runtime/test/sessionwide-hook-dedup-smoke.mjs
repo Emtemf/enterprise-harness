@@ -18,12 +18,13 @@ function fixture() {
   return root;
 }
 
-function hook(root, script, payload) {
+function hook(root, script, payload, { cwd = root, env = {} } = {}) {
   return spawnSync('node', [path.join(sourceRoot, 'hooks/scripts', script)], {
-    cwd: root,
+    cwd,
     encoding: 'utf-8',
     input: JSON.stringify(payload),
     shell: false,
+    env: { ...process.env, ...env },
   });
 }
 
@@ -44,6 +45,34 @@ function hook(root, script, payload) {
     'duplicate session-start must not reprint the banner for the same session',
   );
 
+  fs.rmSync(root, { recursive: true, force: true });
+}
+
+// A plugin hook can execute with a cache-directory cwd while a project-local hook
+// executes with the project cwd. CLAUDE_PROJECT_DIR must keep both channels on the
+// same marker space; otherwise each channel claims the same event independently.
+{
+  const root = fixture();
+  const cacheCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-plugin-cache-cwd-'));
+  const payload = {
+    hook_event_name: 'SessionStart',
+    session_id: 'session-cache-vs-project',
+  };
+  const env = { CLAUDE_PROJECT_DIR: root };
+
+  const first = hook(root, 'session-start.mjs', payload, { cwd: cacheCwd, env });
+  assert.equal(first.status, 0, `cache-cwd session-start must pass; stderr=${first.stderr}`);
+  assert.match(first.stdout, /\[Harness 启动检查\]/);
+
+  const second = hook(root, 'session-start.mjs', payload, { cwd: root, env });
+  assert.equal(second.status, 0, `project-cwd duplicate must pass; stderr=${second.stderr}`);
+  assert.equal(
+    second.stdout.trim(),
+    '',
+    'plugin-cache and project-local channels must share the SessionStart dedup marker',
+  );
+
+  fs.rmSync(cacheCwd, { recursive: true, force: true });
   fs.rmSync(root, { recursive: true, force: true });
 }
 

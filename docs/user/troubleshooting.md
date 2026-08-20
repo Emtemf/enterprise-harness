@@ -74,6 +74,16 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 如果 plugin 安装在其他 scope，把 `local` 替换成实际 scope；不要省略 scope。
 
+## Hook 输出重复
+
+如果 SessionStart banner 或 Stop guidance 出现两遍，先确认：
+
+1. 本地项目 settings 和插件 hooks 是否都注册了同一批 hook；
+2. `.claude/settings.json` 必须使用 `$CLAUDE_PROJECT_DIR`，插件 `hooks/hooks.json` 必须使用 `${CLAUDE_PLUGIN_ROOT}`；
+3. 改完 hook 后要 `/reload-plugins`，必要时完全退出并启动全新 Claude Code 会话。
+
+重复去重依赖事件身份，不依赖“这个 hook 是不是插件”这种环境猜测。SessionStart 需要 `session_id + source + transcript stamp`，Stop 需要 `session_id + transcript stamp`；缺少身份时应 fail open，只抑制重复输出，不抑制真实门禁。
+
 ## 常见错误码
 
 | 错误码 | 含义 | 恢复 |
@@ -206,6 +216,11 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-COMPLETION-AGENT-112` | agent 缺少结束事件 | 完成或显式失败该 run |
 | `EH-COMPLETION-API-113` | API 检查失败或 unsupported | 补齐可解析输入或配置专用 checker |
 | `EH-COMPLETION-CLASSIFICATION-115` | v6 change 的 canonical classification artifact 缺失、失效或 digest 不匹配 | 修复 `classification.json` 与 state 中的 digest-bound reference；不要使用旧的 state impact projection 替代 |
+| `EH-WORKFLOW-STAGE-GATE-007` | v6 Clarify→Design scope transition 被缺失或失效的 result gate 阻断 | 先修复 Clarify 的 structured StageResult / ReviewResult / digest freshness，再执行 `confirm-scope` |
+| `EH-WORKFLOW-STAGE-GATE-008` | v6 Design→Plan 读取不到 fresh design gate 或 execution-readiness 被阻断 | 修复 Design StageResult / ReviewResult / digest freshness，再执行 `freeze-slice` |
+| `EH-WORKFLOW-STAGE-GATE-009` | v6 Plan→Implement 读取不到 fresh plan gate | 修复 Plan StageResult / ReviewResult / digest freshness，再执行 `freeze-plan` |
+| `EH-WORKFLOW-STAGE-GATE-010` | v6 Implement→Verify 读取不到 fresh implement gate | 修复 implement StageResult / ReviewResult / task receipts 后再执行 `enter-verify` |
+| `EH-WORKFLOW-STAGE-GATE-011` | v6 Verify→Archive 读取不到 fresh verify gate | 修复 verify StageResult / ReviewResult / validation freshness 后再执行 `enter-archive` |
 
 ### 写受治理路径被 pre-write 阻断
 

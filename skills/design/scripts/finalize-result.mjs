@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { loadHandoffV2 } from '../../../runtime/core/handoff-v2.mjs';
 import { sha256Artifact, validateStageResult } from '../../../runtime/lib/result-contract.mjs';
 import { assertArtifactShape } from '../assert/artifact-shape.mjs';
 import { assertRequirementCoverage } from '../assert/requirement-coverage.mjs';
@@ -14,6 +15,17 @@ if (!changeId || !runId) {
 
 try {
   const root = process.cwd();
+  const input = loadHandoffV2(root, changeId, runId);
+  if (input.role !== 'execute' || input.stage !== 'design'
+    || input.agent?.type !== 'enterprise-harness:artifact-worker'
+    || input.agent?.skill !== 'design') {
+    throw new Error('EH-DESIGN-FINALIZE-000: handoff must be a design artifact-worker execute run');
+  }
+  for (const ref of input.inputRefs) {
+    if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
+      throw new Error(`EH-DESIGN-FINALIZE-000: handoff input digest is stale: ${ref}`);
+    }
+  }
   const changeDir = path.join(root, 'harness', 'changes', changeId);
   const requirementsPath = path.join(changeDir, 'requirements.md');
   const designPath = path.join(changeDir, 'design.md');
@@ -40,10 +52,10 @@ try {
     stage: 'design',
     runId,
     producer: {
-      agentType: 'enterprise-harness:artifact-worker',
-      skill: 'design',
+      agentType: input.agent.type,
+      skill: input.agent.skill,
     },
-    inputDigests: { [requirementRef]: sha256Artifact(root, requirementRef) },
+    inputDigests: { ...input.inputDigests },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: checks.map(({ id, verdict, evidence }) => ({ id, verdict, evidence })),
     selfCheck: {
@@ -51,13 +63,7 @@ try {
       findings: [],
       evidence: checks.flatMap(({ evidence }) => evidence),
     },
-    tecpc: {
-      target: 'design artifact',
-      evidence: [designRef],
-      context: [requirementRef],
-      path: designRef,
-      correction: null,
-    },
+    tecpc: { ...input.tecpc },
     status: 'pass',
     needsDecision: null,
     completedAt: new Date().toISOString(),

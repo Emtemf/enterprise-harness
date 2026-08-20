@@ -62,9 +62,21 @@ function transcriptStamp(event) {
   return stat ? `${stat.size}:${stat.mtimeMs}` : null;
 }
 
+/**
+ * Resolve the dedup marker directory. When the hook runs from the installed
+ * plugin cache (not inside the project's git repo), `gitCommonDir` returns
+ * `<cache>/.git` — a different path than the project's `.git`. Two processes
+ * with different marker directories both pass the guard, causing doubled
+ * output. Use `CLAUDE_PROJECT_DIR` (set by Claude Code for all hooks) to
+ * anchor to the project root, ensuring both sources share one marker space.
+ */
+function dedupMarkerDir(cwd) {
+  const anchor = process.env.CLAUDE_PROJECT_DIR || cwd || process.cwd();
+  return path.join(gitCommonDir(anchor), 'enterprise-harness', 'hook-dedup');
+}
+
 function claimOnce(kind, identity, cwd) {
-  const commonDir = gitCommonDir(cwd || process.cwd());
-  const dir = path.join(commonDir, 'enterprise-harness', 'hook-dedup');
+  const dir = dedupMarkerDir(cwd);
   const key = crypto.createHash('sha256').update(`${kind}:${identity}`).digest('hex');
   const marker = path.join(dir, `${key}.lock`);
   fs.mkdirSync(dir, { recursive: true });

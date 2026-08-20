@@ -55,6 +55,8 @@ tmp 文件名带 pid，所以 `wx` 对每个进程都成功；而 `rename` 会**
 - `runtime/lib/hook-dedup.mjs`：`dedupGuard` / `sessionDedupGuard` /
   `sessionStartEventIdentity` / `stopEventIdentity`
 - `runtime/test/sessionwide-hook-dedup-smoke.mjs`：并发抢占回归（用 stdin 屏障对齐
-  8 个进程的抢占窗口，否则 node 启动开销会把竞态藏起来）
-- `runtime/test/hook-dedup-guard-smoke.mjs`：禁止 settings.json 再出现 PLUGIN_ROOT 守卫
-- `bin/generate-hooks.mjs`：settings.json 与 hooks.json 的唯一生成源
+  8 个进程的抢占窗口，否则 node 启动开销会把竞态藏起来）；这个烟雾测试证明了
+  plugin cache 与 project-local 两条通道最终必须落到同一个 marker 空间。
+- `CLAUDE_PROJECT_DIR` 不是“可选优化”，而是 settings hook 与 plugin hook 统一标记的
+ 共同锚点；少了它，SessionStart/Stop 就会重新分叉出重复 banner / guidance。
+

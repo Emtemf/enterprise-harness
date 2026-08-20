@@ -35,11 +35,13 @@ if (!fs.existsSync(updateLocalPath)) {
   failures.push('update-local.mjs must exist');
 } else {
   const src = fs.readFileSync(updateLocalPath, 'utf-8');
-  // 关键契约：用实际 scope 更新（不硬编码 user）、清理旧缓存、可诊断退出。
+  // 关键契约：用实际 scope 更新；默认保留旧缓存，只有显式 opt-in 才清理。
   if (!src.includes("'marketplace', 'update'")) failures.push('update-local must run marketplace update');
   if (!src.includes("'update', PLUGIN_ID, '--scope'")) failures.push('update-local must update plugin with explicit --scope');
   if (!src.includes('scope')) failures.push('update-local must resolve scope from installed entry, not hardcode');
-  if (!src.includes('rmSync')) failures.push('update-local must clean stale cache dirs');
+  if (!src.includes('planCacheCleanup')) failures.push('update-local must use the cache retention plan');
+  if (!src.includes('--prune-old')) failures.push('update-local must require explicit stale-cache pruning');
+  if (!src.includes('rmSync')) failures.push('update-local must support explicit stale-cache cleanup');
 }
 
 // 4. 核心清理逻辑（纯函数）：保留启用版本目录，只挑出旧版本。

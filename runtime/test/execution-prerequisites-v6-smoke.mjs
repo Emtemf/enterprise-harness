@@ -15,6 +15,7 @@ import {
   validateStageChain,
 } from '../lib/execution-prerequisites.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { validateStageGate } from '../lib/stage-results.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 
 const mode = process.argv[2] || 'verify';
@@ -160,6 +161,30 @@ try {
   assert.equal(validation.status, 0, validation.stderr || validation.stdout);
   assert.equal(loadStageGateMarker(root, changeId)?.stage, 'implement');
   assert.equal(stageGateIsFresh(root, changeId, state).fresh, true);
+
+  const staleClarify = createHandoffV2(root, {
+    changeId,
+    stage: 'clarify',
+    behavior: 'clarify.produce',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'clarify' },
+    inputRefs: [requirementsRef],
+    tecpc: {
+      target: 'stale clarify probe',
+      evidence: [requirementsRef],
+      context: [],
+      path: requirementsRef,
+      correction: null,
+    },
+  });
+  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\nstale after implement gate\n');
+  const implementProblems = validateStageGate(root, changeId, 'implement', {
+    requiredArtifactPaths: [],
+  });
+  assert.ok(
+    implementProblems.every((problem) => !problem.includes(staleClarify.runId)
+      && !problem.includes('handoff input digest is stale')),
+    `stale clarify runs must not contaminate implement gate: ${implementProblems.join('; ')}`,
+  );
 
   const digestBeforeImplementDispatch = computeStageGateDigest(root, changeId);
   createHandoffV2(root, {

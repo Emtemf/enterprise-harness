@@ -16,13 +16,36 @@ const exited = {
   spawnError: null,
 };
 assert.deepEqual(validateTaskChildOutcome(exited), []);
+assert.match(validateTaskChildOutcome(null).join('; '), /must be an object/u);
+assert.match(validateTaskChildOutcome([]).join('; '), /must be an object/u);
+assert.match(validateTaskChildOutcome({ ...exited, outcomeVersion: 2 }).join('; '), /outcomeVersion must be 1/u);
+assert.match(validateTaskChildOutcome({ ...exited, kind: 'other' }).join('; '), /kind is invalid/u);
+assert.match(validateTaskChildOutcome({ ...exited, exitCode: null }).join('; '), /requires an integer exitCode/u);
+assert.match(validateTaskChildOutcome({ ...exited, signal: 'SIGTERM' }).join('; '), /requires signal=null/u);
+assert.match(validateTaskChildOutcome({ ...exited, spawnError: 'ENOENT' }).join('; '), /requires spawnError=null/u);
 assert.match(
   validateTaskChildOutcome({ ...exited, kind: 'signal', exitCode: null }).join('; '),
   /requires signal/u,
 );
 assert.match(
+  validateTaskChildOutcome({ ...exited, kind: 'signal', exitCode: 1, signal: 'SIGTERM', spawnError: null }).join('; '),
+  /requires exitCode=null/u,
+);
+assert.match(
+  validateTaskChildOutcome({ ...exited, kind: 'signal', exitCode: null, signal: 'SIGTERM', spawnError: 'ENOENT' }).join('; '),
+  /requires spawnError=null/u,
+);
+assert.match(
   validateTaskChildOutcome({ ...exited, kind: 'spawn-error', exitCode: null }).join('; '),
   /requires spawnError/u,
+);
+assert.match(
+  validateTaskChildOutcome({ ...exited, kind: 'spawn-error', exitCode: 1, signal: null, spawnError: 'ENOENT' }).join('; '),
+  /requires exitCode=null/u,
+);
+assert.match(
+  validateTaskChildOutcome({ ...exited, kind: 'spawn-error', exitCode: null, signal: 'SIGTERM', spawnError: 'ENOENT' }).join('; '),
+  /requires signal=null/u,
 );
 assert.deepEqual(parseTaskChildOutcome(encodeTaskChildOutcome(exited)), exited);
 assert.throws(() => parseTaskChildOutcome('{invalid'), /invalid JSON/u);

@@ -6,11 +6,13 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyV6ScopeConfirmationDecision, applyV6DesignReadinessDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { validateStageGate } from './lib/stage-results.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
 import { assertSafeId, resolveChild } from './lib/safe-paths.mjs';
 import { compareAndSwapJson } from './lib/state-store.mjs';
+import { updateChangeState } from './core/change-state.mjs';
 import { sessionIdFromEnv } from './lib/sessions.mjs';
 
 const root = projectRoot();
@@ -97,6 +99,7 @@ function createChange(changeId, owner, tier, topic) {
 }
 
 function ensureWorkflowShape(data) {
+  if (data.schemaVersion === 6) return data;
   data.revision = Number.isInteger(data.revision) ? data.revision : 1;
   data.lastEventId = data.lastEventId ?? null;
   data.workflow = data.workflow || {};
@@ -124,18 +127,21 @@ function eventLogPathFor(changeId) {
 
 function recordEvent(changeId, data, type, payload = {}) {
   const eventId = `wf_${randomUUID()}`;
+  const isV6 = data.schemaVersion === 6;
   const event = {
     eventId,
     type,
     changeId,
     actor: 'workflow-runner',
     timestamp: new Date().toISOString(),
-    state: data.state ?? null,
-    workflowStage: data.workflow?.stage ?? null,
+    state: isV6 ? null : (data.state ?? null),
+    workflowStage: isV6 ? data.stage : (data.workflow?.stage ?? null),
     payload,
   };
-  data.lastEventId = eventId;
-  data.revision = (data.revision ?? 1) + 1;
+  if (!isV6) {
+    data.lastEventId = eventId;
+    data.revision = (data.revision ?? 1) + 1;
+  }
   return event;
 }
 
@@ -150,6 +156,15 @@ function loadChange(changeId) {
 }
 
 function saveChange(changeId, data, event) {
+  if (data.schemaVersion === 6) {
+    updateChangeState(root, changeId, () => data, {
+      expectedRevision: data.revision,
+      type: event.type,
+      actor: event.actor || 'workflow-runner',
+      payload: event.payload,
+    });
+    return;
+  }
   compareAndSwapJson(
     statePathFor(changeId),
     data.revision - 1,
@@ -190,7 +205,7 @@ function resolveChangeId(candidate) {
 }
 
 function applyDecision(changeId, decision, reason = null) {
-  const data = loadChange(changeId);
+  let data = loadChange(changeId);
   const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
   const pending = result.pendingDecision;
   if (!pending) {
@@ -207,7 +222,24 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'scope-confirmation') {
-    applyScopeConfirmationDecision(data, decision);
+    if (data.schemaVersion === 6) {
+      const stageProblems = decision === 'confirm-scope'
+        ? validateStageGate(root, changeId, 'clarify', {
+            requiredArtifactPaths: [
+              `harness/changes/${changeId}/requirements.md`,
+              data.artifacts?.classification?.path,
+            ].filter(Boolean),
+          })
+        : [];
+      try {
+        data = applyV6ScopeConfirmationDecision(data, decision, { stageProblems });
+      } catch (error) {
+        console.error(error.message);
+        process.exit(2);
+      }
+    } else {
+      applyScopeConfirmationDecision(data, decision);
+    }
   }
 
   if (pending.kind === 'classification-confirmation' || pending.kind === 'route-confirmation') {
@@ -215,14 +247,29 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'execution-readiness') {
-    const consistency = designProjectionMatchesArtifact(changeId, data);
-    if (decision === 'freeze-slice' && !consistency.ok) {
-      console.error(`Execution readiness gate failed: ${consistency.reason}`);
-      process.exit(2);
-    }
     const designPath = designFilePath(changeId);
     const baselineSha = fs.existsSync(designPath) ? computeFileSha256(designPath) : null;
-    applyExecutionReadinessDecision(data, decision, baselineSha);
+    if (data.schemaVersion === 6) {
+      const stageProblems = validateStageGate(root, changeId, 'design', {
+        requiredArtifactPath: `harness/changes/${changeId}/design.md`,
+      });
+      try {
+        data = applyV6DesignReadinessDecision(data, decision, {
+          stageProblems,
+          baselineDesignSha256: baselineSha,
+        });
+      } catch (error) {
+        console.error(error.message);
+        process.exit(2);
+      }
+    } else {
+      const consistency = designProjectionMatchesArtifact(changeId, data);
+      if (decision === 'freeze-slice' && !consistency.ok) {
+        console.error(`Execution readiness gate failed: ${consistency.reason}`);
+        process.exit(2);
+      }
+      applyExecutionReadinessDecision(data, decision, baselineSha);
+    }
   }
 
   if (pending.kind === 'design-approval') {
@@ -230,7 +277,35 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'plan-readiness') {
-    applyPlanReadinessDecision(data, decision);
+    if (data.schemaVersion === 6) {
+      const stageProblems = validateStageGate(root, changeId, 'plan', {
+        requiredArtifactPaths: [`harness/changes/${changeId}/tasks.md`],
+      });
+      try {
+        data = applyV6PlanReadinessDecision(data, decision, { stageProblems });
+      } catch (error) {
+        console.error(error.message);
+        process.exit(2);
+      }
+    } else {
+      applyPlanReadinessDecision(data, decision);
+    }
+  }
+
+  if (pending.kind === 'implement-completion') {
+    if (data.schemaVersion === 6) {
+      const stageProblems = validateStageGate(root, changeId, 'implement', {
+        requiredArtifactPaths: [],
+      });
+      try {
+        data = applyV6ImplementCompletionDecision(data, decision, { stageProblems });
+      } catch (error) {
+        console.error(error.message);
+        process.exit(2);
+      }
+    } else {
+      applyTddCompletionDecision(data, decision);
+    }
   }
 
   if (pending.kind === 'tdd-completion') {
@@ -238,7 +313,19 @@ function applyDecision(changeId, decision, reason = null) {
   }
 
   if (pending.kind === 'verify-completion') {
-    applyVerifyCompletionDecision(data, decision);
+    if (data.schemaVersion === 6) {
+      const stageProblems = validateStageGate(root, changeId, 'verify', {
+        requiredArtifactPath: `harness/changes/${changeId}/validation.md`,
+      });
+      try {
+        data = applyV6VerifyCompletionDecision(data, decision, { stageProblems });
+      } catch (error) {
+        console.error(error.message);
+        process.exit(2);
+      }
+    } else {
+      applyVerifyCompletionDecision(data, decision);
+    }
   }
 
   const event = recordEvent(changeId, data, 'decision', { decision, reason, kind: pending.kind });
