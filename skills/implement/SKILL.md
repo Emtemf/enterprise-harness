@@ -42,7 +42,7 @@ capability；它在需要修改代码时使用原生隔离 worktree。它只消�
 每个 phase 必须通过 v6 通用 runner 执行，不能直接运行子命令后手写收据：
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/../../runtime/cli.mjs" task-run \
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" task-run \
   <change-id> <task-id> <run-id> <phase>
 ```
 
@@ -66,7 +66,7 @@ pass。
 2. 对 task scope、changed paths、receipt 完整性、设计 trace、风险/rollback 和验证结果执行自检。
 3. 写入 `harness/changes/<changeId>/evidence/tasks/<taskId>.json` 的 machine-generated receipt，随后运行
    `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <task-id> <run-id>`，脚本只读取该 task 的 canonical runtime receipt；再用
-   `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
+   `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
    持久化 StageResult；assertions 与 `selfCheck` 必须绑定 receipt、产物和输入 digest。
 4. Main 必须再创建不同 run 的 `review` check。worktree 只隔离文件，不建立 reviewer 独立性；
    只有独立 `ReviewResult` 和 runtime CompletionProof 才能完成 task/stage。

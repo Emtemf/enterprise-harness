@@ -17,6 +17,7 @@ background: false
 
 ## Supporting files
 
+- [tasks 模板](assets/tasks.md.tmpl) — 生成 tasks.md 时的输出骨架
 - [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
 
@@ -55,7 +56,7 @@ Testable），可单独执行、审查、回滚和验证，且写明：
    任何缺项都是 block，不以聊天补足。
 3. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，由该脚本对
    `tasks.md` 形状、strategy、冻结 argv、input digest 形成 assertions 和 `selfCheck`；再用
-   `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
+   `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
    将结果持久化为 execute run 的 immutable `result.json`。
 4. 由 Main 创建独立 `review` check run。Plan worker 的成功不等于 plan approved；只有
    digest-bound `ReviewResult` 与 runtime CompletionProof 通过后才可进入 implement。

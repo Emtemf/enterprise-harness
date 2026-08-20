@@ -139,15 +139,17 @@ SKILL.md 指示需要某资源 → 再读 references/... / assets/...
 SKILL.md 指示执行某脚本 → 执行 scripts/...
 ```
 
-支持文件格式：
+支持文件格式（以 design 为例，实际以各 Skill 的 SKILL.md 为准）：
 
 ```markdown
 ## Supporting files
 
-- [方法论](references/method.md) — 形成设计时参考
-- [artifact 合同](references/artifact-contract.md) — 约束产物形状
-- [shape 自检](assert/artifact-shape.mjs) — 验证 artifact 必要元素存在
+- `references/method.md` — 形成设计时参考
+- `references/artifact-contract.md` — 约束产物形状
+- `assert/artifact-shape.mjs` — 验证 artifact 必要元素存在
 ```
+
+SKILL.md 中的引用可用 markdown 链接或反引号路径；validator 两种都认可，但目标文件必须真实存在。
 
 ## 资源分类规则
 

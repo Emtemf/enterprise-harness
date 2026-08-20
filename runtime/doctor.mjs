@@ -21,7 +21,7 @@ const requiredProjectFiles = [
   'harness/specs/architecture.md',
   'harness/specs/workflow.md',
   'harness/specs/state-schema.md',
-  'harness/templates/requirements.md',
+  'skills/harness/assets/requirements.md.tmpl',
 ];
 
 const optionalProjectFiles = [

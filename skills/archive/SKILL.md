@@ -33,11 +33,11 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 
 - 产出 archive StageResult：先运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，
   它检查 verify CompletionProof 与 archive inputs；再用
-  `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
+  `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
   持久化 assertions、`selfCheck` 与 TECPC。
 - Main 创建独立 `review` check run；archive worker 的自检不是完成 verdict。
 - runtime 验证 fresh Archive StageResult + independent ReviewResult 后，Main 必须运行
-  `node runtime/lifecycle.mjs archive-finalize <change-id>`；该命令生成 Archive CompletionProof、CAS 更新
+  `node "${CLAUDE_PLUGIN_ROOT}/runtime/lifecycle.mjs" archive-finalize <change-id>`；该命令生成 Archive CompletionProof、CAS 更新
   lifecycle、物理移动 change 并清理 compatibility pointer。移动后历史不可变。
 
 ## 边界

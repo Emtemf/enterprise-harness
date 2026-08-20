@@ -36,7 +36,7 @@ evidence；fail、skip、unsupported 必须显式保留，`unsupported` 绝不�
 - 写入 `harness/changes/<changeId>/validation.md`，包括 target、当前 input digest、执行结果、未覆盖项、
   correction/recovery 和下一步；必须含 Commands、Results、Freshness、Coverage and exceptions 四节。
 - 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，将 result 用
-  `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
+  `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
   持久化为 immutable execute result。该 StageResult 必须含 assertions 与 `selfCheck`，证明本 Skill 的
   执行质量，而不代替最终 approval。
 

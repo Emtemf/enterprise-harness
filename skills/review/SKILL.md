@@ -23,7 +23,7 @@ background: false
 
 1. 使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs"` 按 stage 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。
 2. 逐一读取 [selected rubrics](references/) 中的选定标准，并验证每个 artifact digest 仍新鲜。
-3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 schema-valid `ReviewResult`；再用 `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
+3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 schema-valid `ReviewResult`；再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
 4. `pass` 才允许 `correction: null`；`block` 与 `unsupported` 必须写可执行 correction。
 
 ## Rubrics

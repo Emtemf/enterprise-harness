@@ -22,6 +22,7 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 - [阶段推进合同](references/stage-decisions.md) — 每个 stage transition 的必要证据
 - [review 合同](references/review-contract.md) — review verdict 定义与 ReviewResult 约束
 - [executor 合同](references/executor-contract.md) — executor 最小输入与 StageResult 约束
+- [requirements 模板](assets/requirements.md.tmpl) — 生成 requirements.md 时的输出骨架
 - [finalize-clarify-result.mjs](scripts/finalize-clarify-result.mjs) — clarify self-check 聚合脚本
 
 ## Clarify
