@@ -44,8 +44,12 @@ The lifecycle design draws from:
 
 - **mattpocock/skills** (grill-me): design tree, decision tree, frontier analysis, gradual uncertainty elimination. Primary influence on Clarify frontier strategy.
 - **Yeachan-Heo/oh-my-claudecode** (deep-interview): Socratic questioning, ambiguity gate, Round 0 topology, weakest uncertainty first. Primary influence on component topology and scoring.
-- **obra/superpowers**: brainstorming → understanding → design → user confirmation → implementation. Primary influence on the Clarify→Design ordering and verification-before-completion.
+- **obra/superpowers**: brainstorming → understanding → design → user confirmation → implementation. Primary influence on the Clarify→Design ordering, TDD execution, and verification-before-completion.
 - **Fission-AI/OpenSpec**: active change artifact model, archive. Primary influence on durable change structure.
+- **Joel Parker Henderson ADR patterns**: Context → Decision → Consequences → Status. Primary influence on Design decision recording and trade-off documentation.
+- **BDD / Acceptance Test-Driven Development**: Given/When/Then acceptance criteria, executable specifications. Primary influence on Plan task verification conditions.
+- **Mike Cohn / Martin Fowler Testing Pyramid**: unit → integration → E2E test distribution. Primary influence on Verify command strategy.
+- **INVEST criteria** (Independent, Negotiable, Valuable, Estimable, Small, Testable): Primary influence on Plan task sizing and independence.
 - **CodeGraph**: Code Fact Lane (code structure, symbols, call graphs, impact).
 - **Context7**: Documentation Fact Lane (third-party library behavior, API contracts).
 
@@ -68,17 +72,26 @@ Once artifacts are sufficient, Main records scope confirmation and the durable c
 Design follows superpowers brainstorming methodology: understand (clarify completed) → design
 (component boundaries, interfaces, error model, authentication, idempotency, data/SQL,
 migration/rollback, compatibility, concurrency, testing strategy) → user confirmation on key
-decisions → then plan. Each inapplicable dimension is recorded as `N/A` with a reason. The
-reviewer sees the design artifact plus its evidence digests, not the executor conversation.
+decisions → then plan. Each inapplicable dimension is recorded as `N/A` with a reason.
+
+Design decisions follow ADR (Architecture Decision Record) patterns: each decision records
+Context → Decision → Consequences → Status. Alternatives considered must be documented.
+Trade-offs between scalability, security, compatibility, and complexity are made explicit.
+The reviewer sees the design artifact plus its evidence digests, not the executor conversation.
 
 ## Plan
 
-Plan creates independently executable tasks following superpowers writing-plans methodology. Each
-task is small, independent, testable, reviewable, and recoverable. It identifies its target,
-execution strategy (`tdd`, `direct`, `migration`, or another declared strategy), exact command
-argv, intended implementation surface, review rubric, verification condition, and
-rollback/recovery note. A task using `tdd` also identifies its minimal RED test and required
-RED→GREEN evidence. The plan's task evidence becomes stale when the design digest changes.
+Plan creates independently executable tasks following superpowers writing-plans methodology and
+INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable). Each task is
+small enough to review in one pass, independent of other tasks' implementation, and testable
+through its frozen verification command. Tasks follow BDD-style acceptance criteria
+(Given/When/Then) where applicable.
+
+Each task identifies its target, execution strategy (`tdd`, `direct`, `migration`, or another
+declared strategy), exact command argv, intended implementation surface, review rubric,
+verification condition, and rollback/recovery note. A task using `tdd` also identifies its
+minimal RED test and required RED→GREEN evidence. The plan's task evidence becomes stale when
+the design digest changes.
 
 ## Implement
 
@@ -93,9 +106,14 @@ Worktree isolation does not establish reviewer independence.
 
 Verify follows superpowers verification-before-completion: evidence before claims. It runs the
 frozen validation commands and aggregates task receipts, current artifact digests, self-checks,
-independent reviews, and applicable API/data/security rubrics. `unsupported` cannot be elevated
-to `pass`. Waivers fail closed until they are bound to trusted authorization evidence. A fresh
-validation verdict is necessary but not sufficient without the independent completion review.
+independent reviews, and applicable API/data/security rubrics.
+
+Verification follows the testing pyramid principle (Mike Cohn / Martin Fowler): many fast unit
+tests at the base, fewer integration tests, and minimal end-to-end tests for critical paths.
+Each verification command produces a receipt with argv, exit code, timestamps, and output digests.
+`unsupported` cannot be elevated to `pass`. Waivers fail closed until they are bound to trusted
+authorization evidence. A fresh validation verdict is necessary but not sufficient without the
+independent completion review.
 
 ## Archive
 

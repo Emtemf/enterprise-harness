@@ -9,7 +9,12 @@ background: false
 
 # Design
 
-本 Skill 是 Design 阶段的可执行合同。它只消费已确认 requirements、classification、impact 和 digest-bound research facts，产出 durable `design.md` 与 schema-valid `StageResult`。它不替主 Harness 向用户提问、不写产品代码、不批准自身产物。只有主 Harness 可以向用户提问。
+本 Skill 是 Design 阶段的可执行合同。它遵循 superpowers brainstorming 方法论（先理解 → 再设计 →
+用户确认关键决策 → 才实施），并使用 ADR（Architecture Decision Record）模式记录每个设计决策：
+Context → Decision → Consequences → Status。替代方案和 trade-off 必须显式记录。它只消费已确认
+requirements、classification、impact 和 digest-bound research facts，产出 durable `design.md`
+与 schema-valid `StageResult`。它不替主 Harness 向用户提问、不写产品代码、不批准自身产物。
+只有主 Harness 可以向用户提问。
 
 ## 执行顺序
 

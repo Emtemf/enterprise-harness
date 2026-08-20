@@ -9,9 +9,12 @@ background: false
 
 # Verify
 
-本 Skill 是 Verify 阶段的可执行证据汇集合同。它消费已完成 task 的 receipts、self-check、
-independent reviews、classification 以及冻结验证 argv，产出 `validation.md` 和
-schema-valid `StageResult`。非空 waiver 在可信授权制品落地前一律 fail closed。它不能将自己或旧验证的结论宣布为最终完成。
+本 Skill 是 Verify 阶段的可执行证据汇集合同。它遵循 superpowers verification-before-completion
+原则（evidence before claims）和 testing pyramid 最佳实践（Mike Cohn / Martin Fowler）：大量快速
+unit test 在底层，较少 integration test 在中层，最少 E2E test 覆盖关键路径。它消费已完成 task 的
+receipts、self-check、independent reviews、classification 以及冻结验证 argv，产出 `validation.md`
+和 schema-valid `StageResult`。非空 waiver 在可信授权制品落地前一律 fail closed。它不能将自己或旧
+验证的结论宣布为最终完成。
 
 ## 冻结输入
 
