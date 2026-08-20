@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyV6ScopeConfirmationDecision, applyV6DesignReadinessDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyV6ScopeConfirmationDecision, applyV6DesignReadinessDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, computeTransitionArtifacts, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { validateStageGate } from './lib/stage-results.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
@@ -232,7 +232,8 @@ function applyDecision(changeId, decision, reason = null) {
           })
         : [];
       try {
-        data = applyV6ScopeConfirmationDecision(data, decision, { stageProblems });
+        const newArtifacts = decision === 'confirm-scope' ? computeTransitionArtifacts(root, changeId, 'clarify') : null;
+        data = applyV6ScopeConfirmationDecision(data, decision, { stageProblems, artifacts: newArtifacts });
       } catch (error) {
         console.error(error.message);
         process.exit(2);
@@ -254,9 +255,11 @@ function applyDecision(changeId, decision, reason = null) {
         requiredArtifactPath: `harness/changes/${changeId}/design.md`,
       });
       try {
+        const newArtifacts = decision === 'freeze-slice' ? computeTransitionArtifacts(root, changeId, 'design') : null;
         data = applyV6DesignReadinessDecision(data, decision, {
           stageProblems,
           baselineDesignSha256: baselineSha,
+          artifacts: newArtifacts,
         });
       } catch (error) {
         console.error(error.message);
@@ -282,7 +285,8 @@ function applyDecision(changeId, decision, reason = null) {
         requiredArtifactPaths: [`harness/changes/${changeId}/tasks.md`],
       });
       try {
-        data = applyV6PlanReadinessDecision(data, decision, { stageProblems });
+        const newArtifacts = decision === 'freeze-plan' ? computeTransitionArtifacts(root, changeId, 'plan') : null;
+        data = applyV6PlanReadinessDecision(data, decision, { stageProblems, artifacts: newArtifacts });
       } catch (error) {
         console.error(error.message);
         process.exit(2);

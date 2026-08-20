@@ -1,10 +1,40 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { auditWorkflow } from './workflow-audit.mjs';
 import { validateStageGate } from './stage-results.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 
 const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
+
+function artifactDigest(root, relativePath) {
+  try {
+    const absolute = path.join(root, relativePath);
+    const content = fs.readFileSync(absolute, 'utf-8');
+    return createHash('sha256').update(content).digest('hex');
+  } catch {
+    return null;
+  }
+}
+
+// Map stage to the artifact that gets indexed on entry.
+const STAGE_ARTIFACT_PATHS = {
+  clarify: (changeId) => `harness/changes/${changeId}/requirements.md`,
+  design: (changeId) => `harness/changes/${changeId}/design.md`,
+  plan: (changeId) => `harness/changes/${changeId}/tasks.md`,
+  verify: (changeId) => `harness/changes/${changeId}/validation.md`,
+};
+
+function computeTransitionArtifacts(root, changeId, stage) {
+  const ref = STAGE_ARTIFACT_PATHS[stage];
+  if (!ref) return null;
+  const relativePath = ref(changeId);
+  const digest = artifactDigest(root, relativePath);
+  if (!digest) return null;
+  return { [stage]: { path: relativePath, digest } };
+}
+
+export { computeTransitionArtifacts };
 
 export function classifyChange(input) {
   if (!input || typeof input !== 'object') throw new Error('EH-CLASSIFY-001: change classification input is required');
@@ -459,7 +489,7 @@ export function applyVerifyCompletionDecision(data, decision) {
 export function applyV6ScopeConfirmationDecision(
   data,
   decision,
-  { stageProblems = [] } = {},
+  { stageProblems = [], artifacts = null } = {},
 ) {
   if (data?.schemaVersion !== 6) {
     throw new Error('EH-WORKFLOW-STAGE-GATE-007: v6 scope transition requires State v6');
@@ -474,6 +504,7 @@ export function applyV6ScopeConfirmationDecision(
       ...data,
       stage: 'design',
       blocker: null,
+      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
     };
   }
   if (decision === 'revise-scope') {
@@ -540,7 +571,7 @@ export function applyDesignApprovalDecision(data, decision) {
 export function applyV6ImplementCompletionDecision(
   data,
   decision,
-  { stageProblems = [] } = {},
+  { stageProblems = [], artifacts = null } = {},
 ) {
   if (data?.schemaVersion !== 6) {
     throw new Error('EH-WORKFLOW-STAGE-GATE-010: v6 implement transition requires State v6');
@@ -556,6 +587,7 @@ export function applyV6ImplementCompletionDecision(
       stage: 'verify',
       blocker: null,
       validation: { status: 'stale', digest: null, validatedAt: null },
+      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
     };
   }
   if (decision === 'revise-task') {
@@ -570,7 +602,7 @@ export function applyV6ImplementCompletionDecision(
 export function applyV6VerifyCompletionDecision(
   data,
   decision,
-  { stageProblems = [] } = {},
+  { stageProblems = [], artifacts = null } = {},
 ) {
   if (data?.schemaVersion !== 6) {
     throw new Error('EH-WORKFLOW-STAGE-GATE-011: v6 verify transition requires State v6');
@@ -588,6 +620,7 @@ export function applyV6VerifyCompletionDecision(
       ...data,
       stage: 'archive',
       blocker: null,
+      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
     };
   }
   if (decision === 'revise-verification') {
@@ -603,7 +636,7 @@ export function applyV6VerifyCompletionDecision(
 export function applyV6PlanReadinessDecision(
   data,
   decision,
-  { stageProblems = [] } = {},
+  { stageProblems = [], artifacts = null } = {},
 ) {
   if (data?.schemaVersion !== 6) {
     throw new Error('EH-WORKFLOW-STAGE-GATE-009: v6 plan transition requires State v6');
@@ -618,6 +651,7 @@ export function applyV6PlanReadinessDecision(
       ...data,
       stage: 'implement',
       blocker: null,
+      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
     };
   }
   if (decision === 'revise-plan') {
@@ -632,7 +666,7 @@ export function applyV6PlanReadinessDecision(
 export function applyV6DesignReadinessDecision(
   data,
   decision,
-  { stageProblems = [] } = {},
+  { stageProblems = [], artifacts = null } = {},
 ) {
   if (data?.schemaVersion !== 6) {
     throw new Error('EH-WORKFLOW-STAGE-GATE-008: v6 design transition requires State v6');
@@ -647,6 +681,7 @@ export function applyV6DesignReadinessDecision(
       ...data,
       stage: 'plan',
       blocker: null,
+      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
     };
   }
   if (decision === 'revise-slice') {
