@@ -1,6 +1,6 @@
 # Enterprise Harness
 
-Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需求澄清、代码探索、设计、计划、真实 TDD、独立检查、验证和归档组织成可恢复、可诊断的 staged workflow。
+Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄清、代码探索、设计、计划、实现、验证和归档组织成可恢复、可诊断的 staged workflow。
 
 它适合希望在 Java/Spring Boot/Maven 项目中约束 agent 行为的团队，尤其适合以下场景：
 
@@ -19,8 +19,8 @@ Enterprise Harness 是面向 Claude Code 的早期工程治理插件。它把需
 - `src/main/java/**`、`src/test/java/**`、`openapi/**` 默认约定路径。
 - CodeGraph-first 代码探索，关键事实在当前源码中做 scoped confirmation。
 - Context7 MCP-first 外部库和框架资料查询；未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
-- State v5、session binding、change lock、artifact stale propagation 和 controlled rewind。
-- 0.4 目标 happy path：`clarify → classify → design → plan → implement → verify → archive`；当前 runtime 暂保留 `route` / `tdd` 兼容投影。
+- State v6、session binding、change lock、artifact stale propagation。
+- 六阶段 happy path：`clarify → design → plan → implement → verify → archive`。
 - executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
 - Claude Code 原生 `worktree.baseRef=head`，worktree 只做代码隔离，不承载 change 真相。
 - 同一 Claude Code plugin 的 Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
@@ -96,10 +96,10 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 
 1. 创建或恢复 active change。
 2. 派 `code-explore` 只读 subagent 获取代码事实。
-3. 按七维歧义评分逐项澄清，并要求用户确认 scope。
+3. 按 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context）逐项澄清。
 4. 生成含接口、错误模型和必要 SQL 的 design。
 5. 冻结任务级 exact argv。
-6. 在隔离 TDD executor 中执行 RED、GREEN、REFACTOR。
+6. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
 7. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
 8. 汇总 fresh validation 和 completion evidence 后才允许归档。
 
@@ -110,15 +110,15 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 ```text
 change: add-order-cancel-api
 stage: clarify
-ambiguity: 27/35
-weakest: acceptanceCriteria=3
-next: answer one scope question
+overall: 3.2/5.0
+weakest: Refund × Goal (2)
+next: 一个关于退款策略的问题
 ```
 
 出现阻断时会返回稳定错误码、原因和恢复动作，例如：
 
 ```text
-EH-TDD-RECEIPT-007
+EH-TASK-RECEIPT-025 / EH-WORKFLOW-STAGE-GATE-007 / EH-AGENT-BINDING-003
 ```
 
 诊断不要求提供 Claude 的完整思考过程。提交 issue 时请附：

@@ -23,9 +23,7 @@ background: false
 ## 任务切片规则
 
 每个 task 必须满足 INVEST 原则（Independent, Negotiable, Valuable, Estimable, Small,
-Testable），并遵循 BDD 风格的验收条件（Given/When/Then）。
-
-每个 task 必须可单独执行、审查、回滚和验证，且写明：
+Testable），可单独执行、审查、回滚和验证，且写明：
 
 - 稳定 task id、目标与严格的 in/out scope；
 - 要修改/新增/验证的路径和消费的设计决定；

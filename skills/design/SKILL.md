@@ -9,12 +9,7 @@ background: false
 
 # Design
 
-本 Skill 是 Design 阶段的可执行合同。它遵循 superpowers brainstorming 方法论（先理解 → 再设计 →
-用户确认关键决策 → 才实施），并使用 ADR（Architecture Decision Record）模式记录每个设计决策：
-Context → Decision → Consequences → Status。替代方案和 trade-off 必须显式记录。它只消费已确认
-requirements、classification、impact 和 digest-bound research facts，产出 durable `design.md`
-与 schema-valid `StageResult`。它不替主 Harness 向用户提问、不写产品代码、不批准自身产物。
-只有主 Harness 可以向用户提问。
+只消费已确认 requirements、classification、impact 和 digest-bound research facts，产出 `design.md` 与 schema-valid `StageResult`。不替 Main 向用户提问、不写产品代码、不批准自身产物。
 
 ## 执行顺序
 
@@ -22,28 +17,20 @@ requirements、classification、impact 和 digest-bound research facts，产出 
 2. 按 [设计方法](references/method.md) 形成 design；以 [artifact 合同](references/artifact-contract.md) 约束产物形状。
 3. 仅在 impact 适用时加载条件分支：[API 设计](references/api-design.md) 或 [数据设计](references/data-design.md)。
 4. 依 [self-check](references/self-check.md) 自检，使用 [trace 示例](references/examples.md) 了解 trace 形状。
-5. 运行 `node "${CLAUDE_SKILL_DIR}/assert/artifact-shape.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/requirement-coverage.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/traceability.mjs"`；全部通过后运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 `StageResult`，再用 `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 将其写入 execute run 的 immutable `result.json`。
-6. 将 result 交给独立 `review` run。只有 runtime 验证 fresh `StageResult + ReviewResult + TECPC` 后，才可从 design 进入 plan。
+5. 运行 `node "${CLAUDE_SKILL_DIR}/assert/artifact-shape.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/requirement-coverage.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/traceability.mjs"`；全部通过后运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 `StageResult`，再用 `node "${CLAUDE_SKILL_DIR}/../../runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。
+6. 将 result 交给独立 `review` run。只有 fresh `StageResult + ReviewResult + TECPC` 后才可从 design 进入 plan。
 
 ## 未决决策
 
-缺少真实业务选择时返回 `NEEDS_DECISION`，含一个明确、可由主 Harness 提问的决定。不得从猜测生成 `pass`，也不得将自检当作 approval。
+缺少真实业务选择时返回 `NEEDS_DECISION`。不得从猜测生成 `pass`，也不得将自检当作 approval。
 
 ## Supporting files
 
-### References
-
 - `references/method.md` — 方法、事实边界和 impact 条件分支。
 - `references/artifact-contract.md` — `design.md` 与 traceability 合同。
-- `references/self-check.md` — 产生 StageResult 前的确定性检查。
-- `references/api-design.md` — API impact 条件分支。
-- `references/data-design.md` — Data impact 条件分支。
-- `references/examples.md` — 仅说明 requirement trace 形状的例子。
-
-### Scripts and assertions
-
+- `references/self-check.md` — StageResult 前的确定性检查。
+- `references/api-design.md` / `references/data-design.md` — 条件分支。
+- `references/examples.md` — requirement trace 形状示例。
 - `scripts/prepare-input.mjs` — 冻结 design 输入和 input digest。
-- `scripts/finalize-result.mjs` — 汇总 assertions 并生成 schema-valid StageResult。
-- `assert/artifact-shape.mjs` — 验证必要设计章节。
-- `assert/requirement-coverage.mjs` — 验证 stable requirement identifier 覆盖。
-- `assert/traceability.mjs` — 验证 requirement → decision → evidence trace。
+- `scripts/finalize-result.mjs` — 汇总 assertions 并生成 StageResult。
+- `assert/artifact-shape.mjs` / `assert/requirement-coverage.mjs` / `assert/traceability.mjs` — 自检断言。
