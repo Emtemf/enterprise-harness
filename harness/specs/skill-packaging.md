@@ -1,12 +1,17 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-20
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/
+  - agents/
+  - runtime/api/
+  - runtime/validators/skill-packaging-validator.mjs
   - .claude-plugin/plugin.json
 testRefs:
   - runtime/test/skill-packaging-smoke.mjs
+  - runtime/test/plan-skill-script-smoke.mjs
+  - runtime/test/runtime-public-api-contract-smoke.mjs
 ---
 
 # Skill Packaging Contract
@@ -126,6 +131,23 @@ ${CLAUDE_SKILL_DIR}/../../runtime/...
 Skill 不得通过相对路径穿越到 runtime 内部模块。跨 Skill/Runtime 边界只允许通过
 `runtime/api/` 公共接口或 `${CLAUDE_PLUGIN_ROOT}` 路径。
 
+### Runtime 公共 API 边界
+
+Skill 的 `.mjs` 消费者只允许 import `runtime/api/`：
+
+| Facade | 稳定职责 |
+|---|---|
+| `runtime/api/handoff.mjs` | handoff 读取、result path 与 classification 读取 |
+| `runtime/api/result.mjs` | artifact digest、Stage/Review result 校验与 rubric 选择 |
+| `runtime/api/task.mjs` | task receipt、ID/path safety 与 common-dir 查询 |
+
+`runtime/core/` 与 `runtime/lib/` 是 plugin 内部实现，不是 Skill 可依赖的兼容面。validator 必须递归检查
+Skill 中全部 `.mjs` 的静态和动态 import；直接引用内部模块时 CI fail。命令行调用仍使用
+`${CLAUDE_PLUGIN_ROOT}/runtime/<entrypoint>.mjs`，它是进程边界，不等同于模块 import。
+
+`runtime/api/` 的导出名称和可调用形状由 `runtime-public-api-contract-smoke.mjs` 冻结。内部文件可以重组，
+但 Skill 消费者不跟随内部路径变化；公共导出发生 breaking change 时必须显式迁移消费者与合同测试。
+
 ## Supporting file 导航
 
 SKILL.md **必须**通过 markdown 链接引用其 supporting files，并说明**何时读取**。
@@ -150,6 +172,7 @@ SKILL.md 指示执行某脚本 → 执行 scripts/...
 ```
 
 SKILL.md 中的引用可用 markdown 链接或反引号路径；validator 两种都认可，但目标文件必须真实存在。
+每个 supporting file 都必须被逐文件引用；只引用目录中的一个文件不能让同目录的其他文件逃过 orphan 检查。
 
 ## 资源分类规则
 
@@ -203,6 +226,16 @@ assert/ 中的脚本是**纯谓词**：
 2. 新增 assert/、assets/、scripts/ 以外的目录必须经过 design review。
 3. 禁止在 Skill 内创建 `templates/`、`docs/`、`examples/`、`notes/` 等非标准目录。
 4. 模板统一使用 `assets/`，不另建 `templates/`。
+
+## Shipped Skill eval contract
+
+目录结构层面 `evals/` 仍是按需目录；但 Enterprise Harness manifest 中发布的每一个 Skill 都必须提供
+`evals/evals.json`。每个文件绑定当前 package version，至少含四个唯一 case，并为每个 case 声明
+`id`、`description`、`expected` 和 `behavioral|runtime-gate` category。eval 不是生产 gate 的替代物：
+它描述行为回归意图，runtime smoke 负责证明机械 invariant。
+
+Validator 同时检查 Skill/Agent YAML frontmatter 不含重复顶层 key，避免 YAML parser 对重复字段采用
+不一致的 first/last-wins 行为。
 
 ## Plugin manifest 语义
 

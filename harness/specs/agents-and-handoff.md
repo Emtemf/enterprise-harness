@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/harness/SKILL.md
   - agents/
@@ -11,6 +11,8 @@ testRefs:
   - runtime/test/handoff-contract-smoke.mjs
   - runtime/test/handoff-v2-common-dir-smoke.mjs
   - runtime/test/main-owned-decisions-smoke.mjs
+  - runtime/test/plugin-entry-agent-contract-smoke.mjs
+  - runtime/test/skill-packaging-smoke.mjs
 ---
 
 # Agents and Handoff Contract
@@ -37,6 +39,28 @@ execute → self-check artifact → independent review → TECPC → fresh evide
 The executor and reviewer are separate runs. Review consumes the executor result artifact and
 its input digests, never the executor conversation. A worker self-report is evidence, not a
 verdict.
+
+## Review independence and controller integrity
+
+“Independent review” means context-independent evaluation, not a separate security trust domain:
+
+- a different run and reviewer context;
+- no executor transcript or persistent reviewer memory;
+- read-only candidate access;
+- digest-bound result/artifact inputs and mechanically selected rubrics.
+
+Claude Code still loads project `CLAUDE.md` into a custom subagent or `context: fork` execution.
+Therefore candidate instructions cannot be the final correctness authority. Controller integrity is
+established separately: candidate files cannot mint trusted receipts, change producer identity,
+override rubric selection, or advance deterministic runtime gates merely through model output.
+
+## Agent budgets
+
+Every shipped capability agent declares a finite `maxTurns`. Research agents receive the smallest
+bounded budgets, artifact/review workers a moderate budget, and the isolated implementer a larger
+budget for real command execution. Reaching the host limit is an incomplete run: it must return or
+be recovered as block/unsupported with correction, never be interpreted as pass. Reviewer keeps no
+`memory` frontmatter so old review state cannot contaminate a fresh check.
 
 ## Handoff versions
 

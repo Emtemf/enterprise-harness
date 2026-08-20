@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/harness/SKILL.md
   - runtime/core/change-state.mjs
@@ -11,6 +11,8 @@ testRefs:
   - runtime/test/main-owned-decisions-smoke.mjs
   - runtime/test/v6-change-state-smoke.mjs
   - runtime/test/handoff-v2-common-dir-smoke.mjs
+  - runtime/test/plan-skill-script-smoke.mjs
+  - runtime/test/review-rubric-selector-smoke.mjs
 ---
 
 # Workflow Contract
@@ -22,7 +24,8 @@ clarify → design → plan → implement → verify → archive
 ```
 
 Classification is a durable internal action after clarification. It records impact across API,
-data, architecture, rule, and security, then chooses applicable exploration and review rubrics.
+data, architecture, rule, and security; deterministic runtime policy then chooses applicable
+exploration and review rubrics from that artifact.
 It is not a user-visible stage. TDD is the implementation strategy for a task, not a lifecycle
 stage. `route` and `tdd` names occur only in v4/v5 compatibility readers and historical records.
 
@@ -81,11 +84,11 @@ The reviewer sees the design artifact plus its evidence digests, not the executo
 
 ## Plan
 
-Plan creates independently executable tasks following superpowers writing-plans methodology and
-INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable). Each task is
-small enough to review in one pass, independent of other tasks' implementation, and testable
-through its frozen verification command. Tasks follow BDD-style acceptance criteria
-(Given/When/Then) where applicable.
+Plan uses superpowers writing-plans methodology and INVEST criteria (Independent, Negotiable,
+Valuable, Estimable, Small, Testable) as slicing heuristics. Engineering tasks may form a DAG;
+the hard contract is bounded, reviewable, restartable, verifiable, rollback-aware, and
+dependency-explicit. A task with no dependency records `none` instead of relying on document order.
+Tasks follow BDD-style acceptance criteria (Given/When/Then) where applicable.
 
 Each task identifies its target, execution strategy (`tdd`, `direct`, `migration`, or another
 declared strategy), exact command argv, intended implementation surface, review rubric,

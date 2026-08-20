@@ -21,9 +21,10 @@ const STAGES = new Set(['clarify', 'classify', 'route', 'design', 'plan', 'tdd',
 const ROLES = new Set(['execute', 'check']);
 
 export function behaviorRegistryPath(root) {
-  // v5 behavior-checks.json moved to runtime/compat/v5/. The active v0.5
-  // policy source is harness/policy.json. This reader is kept for v4/v5
-  // handoff compatibility only.
+  // v5 behavior-checks.json moved to runtime/compat/v5/. For v6,
+  // harness/policy.json owns capability and artifact policy while
+  // runtime/lib/review-rubrics.mjs owns rubric selection. This reader is kept
+  // for v4/v5 handoff compatibility only.
   const compatPath = path.join(root, 'runtime', 'compat', 'v5', 'behavior-checks.json');
   if (fs.existsSync(compatPath)) return compatPath;
   // Legacy path for repos that haven't migrated yet

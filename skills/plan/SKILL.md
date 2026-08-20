@@ -18,8 +18,10 @@ background: false
 ## Supporting files
 
 - [tasks 模板](assets/tasks.md.tmpl) — 生成 tasks.md 时的输出骨架
-- [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
+- [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID 与 required sections
+- [assert/execution-contract.mjs](assert/execution-contract.mjs) — 验证每个 task 的 strategy、冻结 argv、acceptance 与 recovery
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
+- [behavioral evals](evals/evals.json) — 验证 bounded task、显式依赖、写域、strategy 与冻结命令
 
 ## 输入与边界
 
@@ -30,10 +32,12 @@ background: false
 
 ## 任务切片规则
 
-每个 task 必须满足 INVEST 原则（Independent, Negotiable, Valuable, Estimable, Small,
-Testable），可单独执行、审查、回滚和验证，且写明：
+INVEST（Independent, Negotiable, Valuable, Estimable, Small, Testable）只作为切片启发式，
+不是要求工程 task 之间不存在依赖。每个 task 的硬合同是 bounded、reviewable、restartable、
+verifiable、rollback-aware、dependency-explicit，且写明：
 
 - 稳定 task id、目标与严格的 in/out scope；
+- 显式依赖；没有依赖时写 `none`，不得靠任务顺序暗示；
 - 要修改/新增/验证的路径和消费的设计决定；
 - 一个 `executionStrategy`、其选择理由、策略特有的前置条件及 machine-generated receipt；
 - 冻结的 exact argv（不得使用模糊的“run tests”）；

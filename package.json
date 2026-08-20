@@ -25,6 +25,7 @@
     "workflow": "node runtime/cli.mjs workflow",
     "handoff": "node runtime/cli.mjs handoff",
     "trace": "node runtime/cli.mjs trace",
+    "validate:skills": "node runtime/validators/skill-packaging-validator.mjs",
     "prepublish-check": "node runtime/prepublish.mjs",
     "test:ci": "node runtime/prepublish.mjs",
     "test:all": "node bin/run-smoke-suite.mjs",

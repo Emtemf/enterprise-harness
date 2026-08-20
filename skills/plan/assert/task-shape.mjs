@@ -1,11 +1,10 @@
-const STRATEGIES = new Set(['tdd', 'regression', 'characterization', 'direct', 'migration', 'generation']);
-
 /**
- * Verify tasks.md shape: headings, IDs, required sections, strategy, argv, acceptance, recovery.
+ * Verify tasks.md shape: headings, IDs, and required sections.
  * @param {string} content - tasks.md raw content
+ * @param {string} artifactPath - evidence path reported in the assertion
  * @returns {{ id: string, verdict: 'pass'|'block', evidence: string[], findings: string[] }}
  */
-export function assertTaskShape(content) {
+export function assertTaskShape(content, artifactPath = 'harness/changes/<changeId>/tasks.md') {
   const problems = [];
   if (!content.startsWith('# Tasks\n')) problems.push('tasks.md must start with # Tasks');
   if (/<[^>]+>/u.test(content)) problems.push('tasks.md contains an unresolved placeholder');
@@ -30,16 +29,11 @@ export function assertTaskShape(content) {
     for (const requiredHeading of ['### Target and scope', '### Frozen inputs', '### Execution strategy', '### Commands and verification', '### Independent review']) {
       if (!task.includes(requiredHeading)) problems.push(`task is missing ${requiredHeading}`);
     }
-    const strategy = task.match(/- Strategy:\s*`?([a-z-]+)`?/u)?.[1];
-    if (!STRATEGIES.has(strategy)) problems.push(`task has invalid execution strategy ${strategy || 'missing'}`);
-    if (!task.includes('- Frozen primary argv:')) problems.push('task is missing frozen primary argv');
-    if (!task.includes('- Acceptance checks:')) problems.push('task is missing acceptance checks');
-    if (!task.includes('- Recovery/rollback:')) problems.push('task is missing recovery/rollback');
   }
   return {
     id: 'task-shape',
     verdict: problems.length === 0 ? 'pass' : 'block',
-    evidence: problems.length === 0 ? [] : ['harness/changes/<changeId>/tasks.md'],
+    evidence: [artifactPath],
     findings: problems,
   };
 }

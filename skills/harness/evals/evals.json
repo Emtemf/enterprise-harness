@@ -1,0 +1,36 @@
+{
+  "skill": "harness",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "clear-request-fast-path",
+      "description": "需求明确、代码事实已确认且无高风险 assumption 时不强制长访谈",
+      "expected": "0-1 个问题后进入 Design，而不是重复询问已知事实",
+      "category": "behavioral"
+    },
+    {
+      "id": "facts-via-workers",
+      "description": "代码和外部文档事实分别交给 code-explore 与 doc-research",
+      "expected": "Main 不向用户询问可机械确认的事实，也不重复 worker 探索",
+      "category": "behavioral"
+    },
+    {
+      "id": "decision-owned-by-user",
+      "description": "业务范围、兼容性和风险取舍仍未决时由 Main 提问",
+      "expected": "worker 返回 NEEDS_DECISION，Main 每次只问一个 weakest-frontier 问题",
+      "category": "behavioral"
+    },
+    {
+      "id": "review-block-preserved",
+      "description": "独立 review 返回 block 或 unsupported 时不得自动降级为 advisory/pass",
+      "expected": "阶段保持不变并向用户报告一个可执行 correction",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "stale-evidence-recomputed",
+      "description": "任一冻结输入 digest 变化后，下游 review 与 completion evidence 失效",
+      "expected": "runtime 阻断 transition 并要求从最早 stale 边界重跑",
+      "category": "runtime-gate"
+    }
+  ]
+}

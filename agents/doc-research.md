@@ -11,6 +11,7 @@ tools:
   - mcp__plugin_enterprise-harness_context7__resolve-library-id
   - mcp__plugin_enterprise-harness_context7__query-docs
 model: sonnet
+maxTurns: 16
 ---
 
 # Doc Research

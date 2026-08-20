@@ -64,7 +64,7 @@ quality:
 
 reviewers:
   agent: reviewer
-  rubrics: policy.json  # impact → rubric 映射，不再是固定角色列表
+  rubrics: runtime  # runtime/lib/review-rubrics.mjs 是唯一 selection authority
 
 rules:
   workflow:

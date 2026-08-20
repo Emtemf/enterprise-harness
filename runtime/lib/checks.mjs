@@ -312,7 +312,9 @@ function requiredCompletionReviewers(root, changeId, state) {
       return [];
     }
   }
-  // v0.5: reviewer catalog moved to runtime/compat/v5/. v6 uses policy.json rubric mapping.
+  // v0.5: reviewer catalog moved to runtime/compat/v5/. For v6, this function
+  // only reads the operational completion-reviewer list from policy.json;
+  // rubric selection is owned by runtime/lib/review-rubrics.mjs.
   // During migration, fall back to the v5 catalog if it exists.
   const compatPath = path.join(root, 'runtime', 'compat', 'v5', 'reviewer-catalog.json');
   const legacyPath = path.join(root, 'harness', 'reviewers', 'catalog.json');
