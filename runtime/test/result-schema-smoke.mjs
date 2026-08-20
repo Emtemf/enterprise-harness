@@ -17,6 +17,7 @@ const schemas = [
   ['completion-proof.schema.json', 'completion-proof'],
   ['waiver.schema.json', null],
   ['task-execution-receipt.schema.json', null],
+  ['task-integration-receipt.schema.json', null],
   ['state.schema.json', null],
 ];
 

@@ -6,6 +6,7 @@ import {
   trustedHandoffAgentBindings,
 } from './agent-evidence.mjs';
 import { validateTaskExecutionReceipt } from './task-execution-receipt.mjs';
+import { readTaskIntegrationReceipt } from './task-integration.mjs';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
 import {
@@ -185,15 +186,29 @@ function implementCompletionProof(root, changeId, executions, problems) {
         problems.push(...receiptProblems.map((problem) => `${execution.input.runId}: ${problem}`));
         continue;
       }
+      const integrationRef = `harness/changes/${changeId}/evidence/integration/${taskId}.json`;
+      const integration = readTaskIntegrationReceipt(root, changeId, taskId);
+      if (!integration.ok) {
+        problems.push(...integration.problems.map((problem) => `${execution.input.runId}: ${problem}`));
+        continue;
+      }
+      const integrationArtifact = {
+        path: integrationRef,
+        digest: sha256Artifact(root, integrationRef),
+      };
       for (const runId of runIds(root, changeId)) {
         const check = loadRun(root, changeId, runId, 'check', problems);
         if (!check?.input || check.input.stage !== 'implement' || check.input.parentRunId !== execution.input.runId) continue;
+        const checkInputProblems = freshInputDigests(root, check.input);
+        if (checkInputProblems.length > 0) continue;
         if (!check.result) continue;
         const reviewProblems = validateReviewResult(root, check.result, { stageResult: execution.result });
         if (reviewProblems.length > 0) continue;
         if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)
           || !matchingReviewer(check.result, check.input)
           || check.result.verdict !== 'pass') continue;
+        if (integration.receipt.review.runId !== check.input.runId
+          || integration.receipt.review.parentRunId !== execution.input.runId) continue;
         const reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
         const producerAgentIds = new Set(execution.agentBindings.map((binding) => binding.agentId));
         if (reviewerBindings.length === 0
@@ -202,7 +217,10 @@ function implementCompletionProof(root, changeId, executions, problems) {
           taskId,
           executionRunId: execution.input.runId,
           reviewRunId: check.input.runId,
-          artifacts: execution.result.artifacts.map((artifact) => ({ ...artifact })),
+          artifacts: [
+            ...execution.result.artifacts.map((artifact) => ({ ...artifact })),
+            integrationArtifact,
+          ],
         };
         allWaivers.push(...(execution.result.waivers || []));
         break;

@@ -47,7 +47,8 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 
 - **Design：** 调用 `artifact-worker`，再独立 `review`。
 - **Plan：** 调用 `artifact-worker`；每个 task 冻结 strategy 与 exact argv。
-- **Implement：** 在原生 worktree 中调用 `implementer`；要求 receipt、self-check 与独立 reviewer。
+- **Implement：** 在原生 worktree 中调用 `implementer`；Main 将逐路径输出接入 subject checkout、
+  先派遣独立 reviewer；verdict=pass 后才接入 subject checkout 并发布绑定该 review 的 integration receipt。
 - **Verify：** 调用 `artifact-worker`，执行冻结 validation argv，再 final review。
 - **Archive：** 调用 `artifact-worker`；只有 fresh completion evidence 完整时归档。
 

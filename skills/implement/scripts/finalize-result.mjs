@@ -8,6 +8,7 @@ import {
   assertSafeId,
   assertSafeRunId,
   gitCommonDir,
+  resolveWorktreeContext,
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
   validateTaskExecutionReceipt,
@@ -24,8 +25,10 @@ try {
   assertSafeId(changeId, 'changeId');
   assertSafeId(taskId, 'taskId');
   assertSafeRunId(runId, 'runId');
-  const root = process.cwd();
-  const input = loadHandoffV2(root, changeId, runId);
+  const executionRoot = process.cwd();
+  const context = resolveWorktreeContext(executionRoot, { requireIsolatedWhenBound: true });
+  const root = context.subjectRoot;
+  const input = loadHandoffV2(executionRoot, changeId, runId);
   for (const ref of input.inputRefs) {
     if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
       throw new Error(`EH-IMPLEMENT-FINALIZE-001: handoff input digest is stale: ${ref}`);
@@ -42,8 +45,8 @@ try {
   }
   const receiptPath = path.relative(root, absoluteReceipt).split(path.sep).join('/');
   const receipt = JSON.parse(fs.readFileSync(absoluteReceipt, 'utf-8'));
-  const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
-  assertNoSymlinkComponents(gitCommonDir(root), spoolPath, 'task receipt spool path');
+  const spoolPath = taskExecutionReceiptSpoolPath(executionRoot, changeId, taskId, runId);
+  assertNoSymlinkComponents(gitCommonDir(executionRoot), spoolPath, 'task receipt spool path');
   if (!fs.existsSync(spoolPath)) {
     throw new Error(`EH-IMPLEMENT-FINALIZE-002: missing receipt spool for run ${runId}`);
   }

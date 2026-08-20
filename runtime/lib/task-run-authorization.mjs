@@ -16,6 +16,7 @@ import {
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
 } from './task-execution-receipt.mjs';
+import { resolveWorktreeContext } from './worktree-context.mjs';
 
 const runtimeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const trustedRunner = path.join(runtimeDir, 'task-run.mjs');
@@ -117,17 +118,20 @@ export function validateTaskRunLauncher(root, command, event = {}) {
     assertSafeId(parsed.changeId, 'changeId');
     assertSafeId(parsed.taskId, 'taskId');
     assertSafeRunId(parsed.runId, 'runId');
-    if (activeChangeId(root) !== parsed.changeId) {
+    const context = resolveWorktreeContext(event.cwd || root, { requireIsolatedWhenBound: true });
+    const executionRoot = context.executionRoot;
+    const subjectRoot = context.subjectRoot;
+    if (activeChangeId(executionRoot) !== parsed.changeId) {
       throw new Error(`active change is not ${parsed.changeId}`);
     }
-    const state = loadState(root, parsed.changeId);
+    const state = loadState(subjectRoot, parsed.changeId);
     if (state.schemaVersion !== 6 || state.lifecycle !== 'active' || state.stage !== 'implement') {
       throw new Error('task-run requires an active State v6 change in implement');
     }
     if (state.currentTask !== parsed.taskId) {
       throw new Error(`currentTask must be ${parsed.taskId}`);
     }
-    const input = loadHandoffV2(root, parsed.changeId, parsed.runId);
+    const input = loadHandoffV2(executionRoot, parsed.changeId, parsed.runId);
     if (input.role !== 'execute' || input.stage !== 'implement'
       || input.agent?.type !== 'enterprise-harness:implementer'
       || input.agent?.skill !== 'implement') {
@@ -135,7 +139,7 @@ export function validateTaskRunLauncher(root, command, event = {}) {
     }
     const agentId = String(event.agent_id || '').trim();
     const binding = boundHarnessAgent(
-      root,
+      executionRoot,
       parsed.changeId,
       agentId,
       'enterprise-harness:implementer',
@@ -143,19 +147,19 @@ export function validateTaskRunLauncher(root, command, event = {}) {
     if (!binding || binding.binding.runId !== parsed.runId || binding.start.runId !== parsed.runId) {
       throw new Error('implementer binding does not match the execute handoff run');
     }
-    if (!binding.start.cwd || canonicalPath(binding.start.cwd) !== canonicalPath(root)) {
+    if (!binding.start.cwd || canonicalPath(binding.start.cwd) !== canonicalPath(executionRoot)) {
       throw new Error('implementer start cwd does not match this worktree');
     }
     for (const ref of input.inputRefs) {
-      if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
+      if (sha256Artifact(subjectRoot, ref) !== input.inputDigests[ref]) {
         throw new Error(`handoff input is stale: ${ref}`);
       }
     }
-    if (fs.existsSync(taskExecutionReceiptPath(root, parsed.changeId, parsed.taskId))) {
+    if (fs.existsSync(taskExecutionReceiptPath(subjectRoot, parsed.changeId, parsed.taskId))) {
       throw new Error('task is already finalized');
     }
     const index = executionIndex(
-      root,
+      executionRoot,
       parsed.changeId,
       parsed.taskId,
       parsed.runId,
@@ -163,7 +167,7 @@ export function validateTaskRunLauncher(root, command, event = {}) {
       agentId,
     );
     const resolution = resolveTaskExecutionCommand(
-      root,
+      subjectRoot,
       parsed.changeId,
       parsed.taskId,
       parsed.phase,

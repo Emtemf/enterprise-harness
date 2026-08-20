@@ -1,4 +1,4 @@
-# 七阶段工作流
+# 六阶段工作流
 
 ## 查看实际执行情况
 
@@ -46,7 +46,7 @@ enterprise-harness trace --change <change-id> --mermaid
 
 阻断恢复：补充 weakest dimension，不要直接进入设计。
 
-## route
+## classification（clarify 内部动作）
 
 目的：确定变更等级、影响面和所需 reviewer。
 
@@ -76,7 +76,7 @@ enterprise-harness trace --change <change-id> --mermaid
 
 阻断恢复：拆小任务或补齐依赖。
 
-## tdd
+## implement
 
 目的：用真实测试驱动实现。
 
@@ -85,7 +85,11 @@ marker 缺失，第一次写受治理路径会被 pre-write 阻断。
 
 用户需要：通常无需操作，除非构建命令或环境不明确。
 
-成功表现：隔离 executor 按冻结 argv 完成 RED、GREEN、REFACTOR，并生成 receipt；独立 checker 检查结果。tdd skill 内含最小 HANDOFF_RESULT few-shot；RED 必须是目标断言的真实非零失败，不能用无条件退出伪造。
+成功表现：隔离 implementer 按冻结 strategy/argv 生成 execution receipt 和逐路径 output snapshot；
+独立 checker 先检查隔离输出，pass 后 Main 把 reviewed output 接入 subject checkout，再运行
+`enterprise-harness task-integrate <change-id> <task-id> <review-run-id>` 发布绑定该 review 的
+integration receipt。TDD task 的 RED 必须是目标断言的
+真实非零失败，不能用无条件退出伪造。
 
 阻断恢复：根据 receipt、runId 和错误码修复，不接受“已运行”的文本自报。若被
 pre-write 以 `stage-evidence-digest-mismatch` 阻断，说明阶段链证据（plan/reviews）已

@@ -11,6 +11,7 @@ const expected = {
     'assertSafeId',
     'assertSafeRunId',
     'gitCommonDir',
+    'resolveWorktreeContext',
     'taskExecutionReceiptPath',
     'taskExecutionReceiptSpoolPath',
     'validateTaskExecutionReceipt',

@@ -108,6 +108,10 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HOOK-HEALTH-001` | SessionStart hook-health receipt 无效或无法写入 | 检查 sessionId、runtime common-dir 权限和 controller revision；修复后重新触发 SessionStart |
 | `EH-HOOK-HEALTH-002` | 当前 session 没有 fresh SessionStart hook-health receipt，或 hook 未启用 | 重新打开会话触发 SessionStart；绑定 session 的阶段推进必须先恢复 fresh receipt；未绑定的 admin 流程只会显示 advisory，不能宣称 hooks enforced |
 | `EH-TASK-RECEIPT-025` | implement task receipt 缺少策略要求的阶段、真实 argv 或 digest freshness | 按 `executionStrategy` 补齐 machine-generated receipt；TDD 必须有失败 RED，direct 必须记录 rationale，之后为每个 task 创建独立 review |
+| `EH-TASK-INTEGRATION-001` | 独立 review 未通过/已失效，subject checkout 尚未包含 reviewed worktree output，或 source/output snapshot 已变化 | 由 Main 恢复原 execution worktree，取得 passing review 后将 receipt 中的 changed paths 接入 subject checkout，再带 review runId 运行 `task-integrate`；不要由 implementer 自行发布 |
+| `EH-WORKTREE-CONTEXT-001` | session binding 无法解析 execution/subject roots | 恢复当前 session binding，并确认 subject checkout 仍存在 |
+| `EH-WORKTREE-CONTEXT-002` | execution 与 subject 不属于同一 git common-dir | 丢弃错误 worktree，并从当前 subject HEAD 重新派遣 implementer |
+| `EH-WORKTREE-CONTEXT-003` | implementer 在 subject checkout 直接执行 | 使用 `isolation: worktree` 重新派遣；不要在 Main checkout 运行 task-run |
 | `EH-HOOK-POST-WRITE-011` | 写入归因失败 | 查看 violation ledger |
 | `EH-STATE-LOCK-012` | 同一状态文件正在被另一进程更新 | 等待当前写入完成后重试 |
 | `EH-EVENT-ID-013` | append-only event 缺少幂等 ID | 通过 runtime 重新生成事件 |

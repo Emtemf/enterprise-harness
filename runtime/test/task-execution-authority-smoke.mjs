@@ -40,6 +40,9 @@ function canonicalReceipt(overrides = {}) {
       treeDigestAfter: outputDigest,
     },
     changedPaths: ['src/main/java/example/App.java'],
+    outputSnapshot: {
+      'src/main/java/example/App.java': { state: 'file', digest: outputDigest },
+    },
     inputDigests: { [inputRef]: digest },
     executions: [{
       phase: 'VERIFY',

@@ -100,6 +100,9 @@ try {
       treeDigestAfter: 'd'.repeat(64),
     },
     changedPaths: ['src/main/java/example/App.java'],
+    outputSnapshot: {
+      'src/main/java/example/App.java': { state: 'file', digest: '0'.repeat(64) },
+    },
     inputDigests: { [designRef]: sha256Artifact(root, designRef) },
     executions: [{
       phase: 'VERIFY',

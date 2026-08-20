@@ -24,8 +24,17 @@ import {
   validateHandoffResult,
 } from './lib/handoff.mjs';
 import { diagnostic, DIAGNOSTICS } from './lib/diagnostics.mjs';
+import { resolveWorktreeContext } from './lib/worktree-context.mjs';
 
-const root = projectRoot();
+const executionRoot = projectRoot();
+let worktreeContext;
+try {
+  worktreeContext = resolveWorktreeContext(executionRoot);
+} catch (error) {
+  console.error(`BLOCK ${error.message}`);
+  process.exit(2);
+}
+const root = worktreeContext.subjectRoot;
 const [action, ...args] = process.argv.slice(2);
 
 function assertSessionChange(changeId) {
@@ -156,7 +165,7 @@ if (action === 'persist') {
         throw new Error('EH-HANDOFF-AUTH-033: result persistence requires the active dispatched agent bound to this exact run and role');
       }
     }
-    const source = resolveWithin(root, resultPath, 'resultPath');
+    const source = resolveWithin(executionRoot, resultPath, 'resultPath');
     const result = JSON.parse(fs.readFileSync(source, 'utf-8'));
     const persisted = persistHandoffV2Result(root, changeId, runId, result);
     console.log(`HANDOFF_RESULT=${path.relative(root, persisted.path)}`);
@@ -169,7 +178,7 @@ if (action === 'persist') {
 
 if (action === 'validate') {
   const [inputPath, resultPath] = args;
-  const absoluteInput = path.resolve(root, inputPath || '');
+  const absoluteInput = path.resolve(executionRoot, inputPath || '');
   const marker = parseHandoffV2Marker(`HANDOFF_INPUT=${absoluteInput}`);
   const isV2 = marker && absoluteInput.includes(`${path.sep}enterprise-harness${path.sep}runs${path.sep}`);
   const loaded = isV2
@@ -178,7 +187,7 @@ if (action === 'validate') {
   const problems = [...(loaded.problems || [])];
   if (loaded.ok && resultPath) {
     try {
-      const result = JSON.parse(fs.readFileSync(path.resolve(root, resultPath), 'utf-8'));
+      const result = JSON.parse(fs.readFileSync(path.resolve(executionRoot, resultPath), 'utf-8'));
       problems.push(...validateHandoffResult(result, loaded.envelope));
     } catch (error) {
       problems.push(`invalid result JSON: ${error.message}`);

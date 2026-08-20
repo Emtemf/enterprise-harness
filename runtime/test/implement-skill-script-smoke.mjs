@@ -30,6 +30,7 @@ const receiptMetadata = {
     treeDigestAfter: 'd'.repeat(64),
   },
   changedPaths: ['runtime/example.mjs'],
+  outputSnapshot: { 'runtime/example.mjs': { state: 'file', digest: '0'.repeat(64) } },
 };
 
 try {
