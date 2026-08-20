@@ -18,6 +18,8 @@ independent reviews、classification 与冻结验证 argv，产出 `validation.m
 
 ## Supporting files
 
+- [validation 模板](assets/validation.md.tmpl) — 生成 validation.md 时的输出骨架
+- [assert/validation-shape.mjs](assert/validation-shape.mjs) — 验证 validation.md heading、placeholder、required sections
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
 
 ## 冻结输入

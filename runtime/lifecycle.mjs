@@ -92,13 +92,20 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic 
   }
   const files = [
     ['change.md', 'change.md'],
-    ['validation.md', 'validation.md'],
     ['tooling-evidence.md', path.join('evidence', 'tooling.md')],
   ];
   for (const [template, rel] of files) {
     const target = path.join(changeDir, rel);
     if (!fs.existsSync(target)) {
       fs.copyFileSync(path.join(templatesDir, template), target);
+    }
+  }
+  // validation.md moved to skill assets; scaffold from there
+  const validationTarget = path.join(changeDir, 'validation.md');
+  if (!fs.existsSync(validationTarget)) {
+    const validationTemplate = path.join(repoRoot, 'skills', 'verify', 'assets', 'validation.md.tmpl');
+    if (fs.existsSync(validationTemplate)) {
+      fs.copyFileSync(validationTemplate, validationTarget);
     }
   }
 

@@ -85,7 +85,7 @@ export function requiredPaths() {
       'skills/harness/assets/requirements.md.tmpl',
       'skills/design/assets/design.md.tmpl',
       'skills/plan/assets/tasks.md.tmpl',
-      'harness/templates/validation.md',
+      'skills/verify/assets/validation.md.tmpl',
       'harness/templates/review-verdict.json',
       'harness/templates/exploration.md',
       'harness/templates/tooling-evidence.md',

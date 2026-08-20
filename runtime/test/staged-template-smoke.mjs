@@ -9,7 +9,7 @@ const files = {
   requirements: path.join(repoRoot, 'skills', 'harness', 'assets', 'requirements.md.tmpl'),
   design: path.join(repoRoot, 'skills', 'design', 'assets', 'design.md.tmpl'),
   tasks: path.join(repoRoot, 'skills', 'plan', 'assets', 'tasks.md.tmpl'),
-  validation: path.join(repoRoot, 'harness', 'templates', 'validation.md'),
+  validation: path.join(repoRoot, 'skills', 'verify', 'assets', 'validation.md.tmpl'),
 };
 const expected = {
   requirements: ['## 目标与验收', '## 组件拓扑', '## Frontier', '## 事实、约束与条件分支', '## Classification'],

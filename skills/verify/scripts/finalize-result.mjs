@@ -3,16 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
-
-function validateValidationArtifact(content) {
-  const problems = [];
-  if (!content.startsWith('# Validation\n')) problems.push('validation.md must start with # Validation');
-  if (/<[^>]+>/u.test(content)) problems.push('validation.md contains an unresolved placeholder');
-  for (const heading of ['## Commands', '## Results', '## Freshness', '## Coverage and exceptions']) {
-    if (!content.includes(heading)) problems.push(`validation.md is missing ${heading}`);
-  }
-  return problems;
-}
+import { assertValidationShape } from '../assert/validation-shape.mjs';
 
 const [changeId, runId] = process.argv.slice(2);
 if (!changeId || !runId) {
@@ -30,10 +21,12 @@ try {
   const artifactPath = `harness/changes/${changeId}/validation.md`;
   const absolutePath = path.join(root, artifactPath);
   if (!fs.existsSync(absolutePath)) throw new Error(`EH-VERIFY-FINALIZE-002: missing ${artifactPath}`);
-  const artifactProblems = validateValidationArtifact(fs.readFileSync(absolutePath, 'utf-8'));
-  if (artifactProblems.length > 0) throw new Error(`EH-VERIFY-FINALIZE-003: ${artifactProblems.join('; ')}`);
+  const assertResult = assertValidationShape(fs.readFileSync(absolutePath, 'utf-8'));
+  if (assertResult.verdict === 'block') {
+    throw new Error(`EH-VERIFY-FINALIZE-003: ${assertResult.findings.join('; ')}`);
+  }
   const assertions = [
-    { id: 'validation-shape', verdict: 'pass', evidence: [artifactPath] },
+    { id: assertResult.id, verdict: assertResult.verdict, evidence: assertResult.evidence },
     { id: 'freshness-and-exceptions-recorded', verdict: 'pass', evidence: [artifactPath] },
   ];
   const result = {
