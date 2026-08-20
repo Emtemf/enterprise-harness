@@ -38,6 +38,16 @@ npm run test:e2e
 
 RED 必须来自目标断言在缺少实现时失败；同一测试在实现后通过。源码 token 检查只能用于 manifest/path parity。
 
-平台 matrix 包含 Linux、macOS、Windows 与 Node 20/22。确定性 gate 不执行 Context7 在线探测。
+流水线以 Harness 设计风险为准：
+
+```bash
+npm run test:skills    # Skill packaging、方法内容、行为场景和 wiring
+npm run test:platform  # 路径、进程、launcher、worktree、lock 等跨平台合同
+npm run prepublish-check # 完整 deterministic + release-surface 合同
+```
+
+`core-quality` 在 Linux/Node 22 上完整跑一次；`skill-quality` 单独守住 Claude Code Skill 合同；
+`platform-smoke` 只把平台敏感 profile 放入 Linux/macOS/Windows 与 Node 20/22 的代表性组合。
+不要把全量 suite 乘以整个平台矩阵。确定性 gate 不执行 Context7 在线探测。
 
 远程 marketplace 安装/更新由 `plugin-install-flow-smoke.mjs` 单独执行，不进入离线 prepublish；本地 marketplace 安装与插件结构校验仍属于确定性 gate。

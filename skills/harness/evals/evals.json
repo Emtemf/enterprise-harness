@@ -6,6 +6,11 @@
       "id": "clear-request-fast-path",
       "description": "需求明确、代码事实已确认且无高风险 assumption 时不强制长访谈",
       "expected": "0-1 个问题后进入 Design，而不是重复询问已知事实",
+      "prompt": "为现有 CLI 增加一个已在 issue 中完整定义、代码位置和验收命令均已确认的 --json 开关。",
+      "expectedBehavior": [
+        "复用已确认事实，不重新询问代码位置或已给出的验收条件",
+        "最多确认一个仍会改变结果的业务决定，然后进入 Design"
+      ],
       "category": "behavioral"
     },
     {

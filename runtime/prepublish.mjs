@@ -14,6 +14,7 @@ delete childEnv.ENTERPRISE_HARNESS_SESSION_ID;
 delete childEnv.CLAUDE_SESSION_ID;
 const commands = [
   ['runtime/validators/skill-packaging-validator.mjs'],
+  ['runtime/validators/skill-content-validator.mjs'],
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
   ['runtime/cli.mjs', 'doctor', '--json'],

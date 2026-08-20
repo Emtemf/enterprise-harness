@@ -3,13 +3,24 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { createTempSandbox } from '../runtime/lib/temp-sandbox.mjs';
+import { SMOKE_PROFILES } from '../runtime/test/suite-manifest.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const testDir = path.join(root, 'runtime', 'test');
 const ONLINE_TESTS = new Set(['plugin-install-flow-smoke.mjs']);
-const tests = fs.readdirSync(testDir)
+const availableTests = fs.readdirSync(testDir)
   .filter((name) => name.endsWith('-smoke.mjs') && !ONLINE_TESTS.has(name))
   .sort();
+const profileIndex = process.argv.indexOf('--profile');
+const profile = profileIndex >= 0 ? process.argv[profileIndex + 1] : 'full';
+if (profileIndex >= 0 && !profile) throw new Error('--profile requires a value');
+if (profile !== 'full' && !Object.hasOwn(SMOKE_PROFILES, profile)) {
+  throw new Error(`unknown smoke profile "${profile}"`);
+}
+const tests = profile === 'full' ? availableTests : [...SMOKE_PROFILES[profile]];
+for (const test of tests) {
+  if (!availableTests.includes(test)) throw new Error(`smoke profile "${profile}" references missing test "${test}"`);
+}
 const failures = [];
 const suiteSandbox = createTempSandbox('enterprise-harness-smoke-suite-');
 const childEnv = {
@@ -48,5 +59,5 @@ if (failures.length) {
   }
   process.exitCode = 1;
 } else {
-  console.log(`PASS smoke suite (${tests.length} files)`);
+  console.log(`PASS smoke suite profile=${profile} (${tests.length} files)`);
 }

@@ -1,0 +1,34 @@
+name: core-quality
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  full-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Install deterministic validators
+        run: |
+          npm install -g @colbymchenry/codegraph@0.9.9
+          npm install -g @anthropic-ai/claude-code@2.1.220
+
+      - name: Initialize CodeGraph index
+        run: codegraph init
+
+      - name: Full contract and release-surface acceptance
+        run: npm run prepublish-check

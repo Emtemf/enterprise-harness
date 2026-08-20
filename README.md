@@ -2,6 +2,9 @@
 
 Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄清、代码探索、设计、计划、实现、验证和归档组织成可恢复、可诊断的 staged workflow。
 
+核心原则是 **Skill-first, Hook-light**：Skill 提供阶段方法、条件判断和反馈循环；Hook 只负责确定性的
+安全阻断、证据与机械 gate。格式合规只是底线，fresh Claude 在代表性场景中的行为才是质量标准。
+
 它适合希望在 Java/Spring Boot/Maven 项目中约束 agent 行为的团队，尤其适合以下场景：
 
 - 需求经常存在歧义，需要先澄清再实现。

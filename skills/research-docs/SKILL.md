@@ -1,7 +1,7 @@
 ---
 name: research-docs
 description: >
-  Collect version-bound external facts through an isolated Context7-first worker.
+  Collects version-bound external facts through an isolated Context7-first worker.
   Use when the harness needs library/framework/SDK behavior evidence.
 user-invocable: false
 context: fork

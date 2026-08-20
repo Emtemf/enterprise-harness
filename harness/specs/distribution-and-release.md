@@ -1,10 +1,12 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-21
 implementationRefs:
   - bin/package.mjs
   - bin/release.mjs
+  - .github/workflows/core-quality.yml
+  - .github/workflows/platform-smoke.yml
   - .github/workflows/release.yml
 testRefs:
   - runtime/test/artifact-content-smoke.mjs

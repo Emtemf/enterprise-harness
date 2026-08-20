@@ -6,6 +6,11 @@
       "id": "frozen-validation-argv",
       "description": "逐个执行冻结 validation argv，记录实际 argv、exit status、时间",
       "expected": "validation.md 包含完整的 Commands 表",
+      "prompt": "验证一个包含权限变更和数据迁移的 change；单元测试通过，但回滚演练缺失且 security rubric 为 unsupported。",
+      "expectedBehavior": [
+        "按风险建立 claim/evidence map，并执行适用的负向、迁移和回滚验证",
+        "保留 unsupported 与缺失证据并阻断完成，不因基础测试通过而升级为 pass"
+      ],
       "category": "behavioral"
     },
     {

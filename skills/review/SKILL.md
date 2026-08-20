@@ -1,8 +1,8 @@
 ---
 name: review
 description: >
-  Apply independent, digest-bound, runtime-verified review criteria
-  to Harness artifacts and task results. Use after any stage produces a StageResult.
+  Applies independent, digest-bound, runtime-verified review criteria
+  to Harness artifacts and task results. Use when any stage produces a StageResult.
 user-invocable: false
 context: fork
 agent: enterprise-harness:reviewer
@@ -15,6 +15,7 @@ background: false
 
 ## Supporting files
 
+- [评审方法](references/method.md) — 每次评审开始时读取；规定独立性、严重度和 code-health 标准
 - [select-rubrics.mjs](scripts/select-rubrics.mjs) — 按 stage 与 classification 机械选择评审标准
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 将评审 verdict 编码为 schema-valid ReviewResult
 - [selected rubrics](references/) — 按 stage 选择后读取的评审标准文件
@@ -22,7 +23,8 @@ background: false
 
 ## 执行合同
 
-1. 使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs"` 按 stage 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。
+1. 读取 [评审方法](references/method.md)，再使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs"`
+   按 stage 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。
 2. 逐一读取 [selected rubrics](references/) 中的选定标准，并验证每个 artifact digest 仍新鲜。
 3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 schema-valid `ReviewResult`；再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
 4. `pass` 才允许 `correction: null`；`block` 与 `unsupported` 必须写可执行 correction。

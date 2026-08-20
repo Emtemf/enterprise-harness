@@ -10,6 +10,7 @@ implementationRefs:
   - .claude-plugin/plugin.json
 testRefs:
   - runtime/test/skill-packaging-smoke.mjs
+  - runtime/test/skill-content-contract-smoke.mjs
   - runtime/test/plan-skill-script-smoke.mjs
   - runtime/test/runtime-public-api-contract-smoke.mjs
 ---
@@ -20,6 +21,9 @@ testRefs:
 
 本 spec 定义 Enterprise Harness plugin 内所有 Skill 的目录结构、资源语义、路径约定和分层契约。
 任何新增 Skill、新增目录或新增 supporting file 必须符合本合同。
+
+本文件只管 packaging；Skill 是否真的包含可执行领域方法、自由度是否合理、eval 是否代表真实行为，
+由 [skill-authoring.md](skill-authoring.md) 定义。
 
 ## 目录结构
 

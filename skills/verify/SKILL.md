@@ -1,8 +1,8 @@
 ---
 name: verify
 description: >
-  Run frozen validations and collect digest-bound completion evidence.
-  Use after all tasks pass with independent review.
+  Runs frozen validations and collects digest-bound completion evidence.
+  Use when all tasks pass with independent review.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -18,6 +18,7 @@ independent reviews、classification 与冻结验证 argv，产出 `validation.m
 
 ## Supporting files
 
+- [验证方法](references/method.md) — 建立 claim/evidence map 前读取；规定风险优先级和负向验证
 - [validation 模板](assets/validation.md.tmpl) — 生成 validation.md 时的输出骨架
 - [assert/validation-shape.mjs](assert/validation-shape.mjs) — 验证 validation.md heading、placeholder、required sections
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
@@ -25,7 +26,8 @@ independent reviews、classification 与冻结验证 argv，产出 `validation.m
 
 ## 冻结输入
 
-1. 读取 v2 handoff；只消费其中真实存在且 digest 匹配的 task、review、receipt 和 design/plan 输入。
+1. 读取 [验证方法](references/method.md)，再读取 v2 handoff；只消费其中真实存在且 digest 匹配的
+   task、review、receipt 和 design/plan 输入。
 2. 先核验 classification artifact digest，再根据 `api`、`data`、`architecture`、`rule`、`security`
    选择适用 rubric/evidence；不适用维度记录 `N/A` 与理由。
 3. 输入、tree、task receipt 或 review 任何一项变化均使验证 stale，必须重新执行。

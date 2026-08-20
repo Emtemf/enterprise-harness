@@ -39,6 +39,7 @@ assert.doesNotMatch(release, /main', '--tags'/u);
 
 const prepublish = fs.readFileSync(path.join(root, 'runtime/prepublish.mjs'), 'utf-8');
 for (const token of [
+  'runtime/validators/skill-content-validator.mjs',
   'bin/run-smoke-suite.mjs',
   "['runtime/cli.mjs', 'bootstrap']",
   "['runtime/cli.mjs', 'verify', '--release-surface']",
@@ -63,14 +64,20 @@ for (const entry of fs.readdirSync(runtimeTestDir, { withFileTypes: true })) {
     );
   }
 }
-for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
+for (const workflow of ['.github/workflows/core-quality.yml', '.github/workflows/release.yml']) {
   const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
   assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
-  assert.match(text, /node runtime\/cli\.mjs verify --release-surface/u, `${workflow} must verify the release package surface`);
   assert.match(text, /actions\/checkout@v7/u);
   assert.match(text, /actions\/setup-node@v7/u);
   assert.match(text, /@anthropic-ai\/claude-code@2\.1\.220/u);
 }
+const platformWorkflow = fs.readFileSync(path.join(root, '.github/workflows/platform-smoke.yml'), 'utf-8');
+assert.match(platformWorkflow, /npm run test:platform/u, 'platform matrix must run only platform-sensitive contracts');
+assert.doesNotMatch(platformWorkflow, /npm run prepublish-check/u, 'platform matrix must not duplicate the full suite');
+assert.match(platformWorkflow, /node runtime\/cli\.mjs verify --release-surface/u);
+const skillWorkflow = fs.readFileSync(path.join(root, '.github/workflows/skill-quality.yml'), 'utf-8');
+assert.match(skillWorkflow, /npm run test:skills/u);
+assert.match(skillWorkflow, /claude plugin validate \./u);
 const validation = spawnSync('claude', ['plugin', 'validate', '.'], {
   cwd: root,
   encoding: 'utf-8',

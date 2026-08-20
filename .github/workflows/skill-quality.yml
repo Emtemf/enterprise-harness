@@ -1,0 +1,32 @@
+name: skill-quality
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  authoring-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Install Claude Code validator
+        run: npm install -g @anthropic-ai/claude-code@2.1.220
+
+      - name: Skill packaging, content, and behavior contracts
+        run: npm run test:skills
+
+      - name: Claude Code native plugin validation
+        run: claude plugin validate .

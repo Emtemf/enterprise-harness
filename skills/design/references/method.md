@@ -2,7 +2,7 @@
 
 设计输入由 `scripts/prepare-input.mjs` 冻结：已确认的 requirements、classification、impact 与 digest-bound research facts 是唯一事实来源。
 
-## 方法论来源
+## Workflow
 
 Design 方法融合自 superpowers brainstorming（obra/superpowers）：
 
@@ -10,8 +10,6 @@ Design 方法融合自 superpowers brainstorming（obra/superpowers）：
 2. **再设计**：基于代码事实和文档事实，形成 component boundaries、interfaces、error model
 3. **用户确认关键决策**：涉及产品行为或架构权衡的决策返回 NEEDS_DECISION
 4. **才进入 plan**：设计完成后才创建 executable tasks
-
-## 设计流程
 
 ### 1. Requirement 映射
 
@@ -58,9 +56,29 @@ API 与 Data 不是固定章节。仅当 `impact.api` 或 `impact.data` 为 `yes
 - 失败时如何回滚
 - 验证覆盖了哪些场景
 
-## 设计原则
+遇到自检或 review correction 时，回到产生缺口的步骤，刷新受影响的 trace 与 input digest，再重新执行
+assert。不要在末尾追加解释来掩盖前面没有完成的设计工作。
+
+## Decision lenses
 
 - 基于现有代码事实（CodeGraph 确认），不凭空设计
 - 基于正确版本的外部 API（Context7 确认），不用 Claude 记忆中的旧 API
 - 简单优于复杂；有更简单方案时不引入不必要架构
 - 不可验证的设计决策不存在
+
+高影响决定还必须应用 [decision longevity](decision-longevity.md)，记录可逆性、替代方案、运行责任、
+迁移/回滚与重新评估触发器。
+
+## Failure modes
+
+- 把模型记忆、聊天摘要或代码注释当作已确认事实。
+- 只写 happy path，不设计错误、并发、迁移或运行恢复。
+- 先选技术再寻找需求，或用“未来可能需要”合理化当前复杂度。
+- 只说明选择了什么，不记录替代方案、代价、验证和撤销路径。
+- 将缺少的业务决定伪装成低风险实现细节。
+
+## Sources
+
+- [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/definitions.html)
+- [Google research: Improving design reviews](https://research.google/pubs/improving-design-reviews-at-google/)
+- [Martin Fowler: Architecture Decision Record](https://martinfowler.com/bliki/ArchitectureDecisionRecord.html)

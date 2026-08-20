@@ -6,6 +6,11 @@
       "id": "digest-bound-input",
       "description": "设计必须消费已确认 requirements、classification、impact 和 digest-bound research facts",
       "expected": "inputDigests 校验通过，stale input 被拒绝",
+      "prompt": "设计一个会改变公共 API、写入持久数据且三个月后可能替换供应商的审计事件出口。",
+      "expectedBehavior": [
+        "比较至少一个可行替代方案并区分可逆与高代价不可逆决定",
+        "明确迁移、回滚、可观测性、owner 和重新评估触发器，缺少业务取舍时返回 NEEDS_DECISION"
+      ],
       "category": "runtime-gate"
     },
     {
