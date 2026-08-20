@@ -292,6 +292,7 @@ try {
 
   mustPass(run('git', ['init', '-q']), 'git init');
   mustPass(run('git', ['config', 'user.email', 'runner@example.test']), 'git email');
+  mustPass(run('git', ['config', 'user.name', 'Runner']), 'git name');
   mustPass(run('git', ['add', '.']), 'git add');
   mustPass(run('git', ['commit', '-qm', 'fixture']), 'git commit');
   // macOS may record /var/... in the start event while the child resolves cwd to /private/var/....
