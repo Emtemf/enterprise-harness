@@ -1,0 +1,30 @@
+{
+  "skill": "implement",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "write-scope-enforcement",
+      "description": "implementer 只可写 task 明确列出的产品路径",
+      "expected": "write scope 违反被 hook block",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "frozen-argv-execution",
+      "description": "每个 command 必须通过 task-run runner 执行，不能直接运行子命令后手写收据",
+      "expected": "task-run 产出 machine-generated receipt",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "strategy-compliance",
+      "description": "执行计划指定的唯一 strategy，保存真实子进程收据",
+      "expected": "receipt 链与 strategy 匹配（如 tdd: RED→GREEN→REFACTOR）",
+      "category": "behavioral"
+    },
+    {
+      "id": "no-self-approval",
+      "description": "implementer 不审批自己，需要独立 reviewer",
+      "expected": "StageResult 独立于 approval",
+      "category": "behavioral"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ capability；它在需要修改代码时使用原生隔离 worktree。它只消�
 ## Supporting files
 
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 task receipt 完整性、生成 StageResult
+- [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 开始前
 

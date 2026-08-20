@@ -1,0 +1,30 @@
+{
+  "skill": "archive",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "fresh-completion-proof",
+      "description": "验证 fresh CompletionProof 存在且 digest 匹配",
+      "expected": "stale proof 被阻断",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "all-evidence-closed",
+      "description": "所有适用 rubrics、receipt、scope decisions 和 required artifacts 已闭合",
+      "expected": "stale/missing/block/unsupported 一律阻断",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "immutable-after-archive",
+      "description": "归档后历史不可变，不从 archive 目录修改或补造",
+      "expected": "archive 目录只读",
+      "category": "behavioral"
+    },
+    {
+      "id": "abandon-or-archive",
+      "description": "未完成内容使用 abandon，保留原因和证据",
+      "expected": "abandon 命令记录原因",
+      "category": "behavioral"
+    }
+  ]
+}

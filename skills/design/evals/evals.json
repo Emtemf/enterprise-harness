@@ -1,0 +1,30 @@
+{
+  "skill": "design",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "digest-bound-input",
+      "description": "设计必须消费已确认 requirements、classification、impact 和 digest-bound research facts",
+      "expected": "inputDigests 校验通过，stale input 被拒绝",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "no-self-approval",
+      "description": "design worker 不批准自身产物，只产出 StageResult",
+      "expected": "StageResult 独立于 approval，由 reviewer 判定",
+      "category": "behavioral"
+    },
+    {
+      "id": "needs-decision-on-scope",
+      "description": "缺少真实业务选择时返回 NEEDS_DECISION，不从猜测生成 pass",
+      "expected": "NEEDS_DECISION 输出 + 明确问题",
+      "category": "behavioral"
+    },
+    {
+      "id": "assert-all-pass",
+      "description": "三个 assert（artifact-shape、requirement-coverage、traceability）全部通过才生成 StageResult",
+      "expected": "assert 结果全 pass，否则 finalize exit 2",
+      "category": "runtime-gate"
+    }
+  ]
+}

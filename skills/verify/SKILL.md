@@ -21,6 +21,7 @@ independent reviews、classification 与冻结验证 argv，产出 `validation.m
 - [validation 模板](assets/validation.md.tmpl) — 生成 validation.md 时的输出骨架
 - [assert/validation-shape.mjs](assert/validation-shape.mjs) — 验证 validation.md heading、placeholder、required sections
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
+- [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 冻结输入
 

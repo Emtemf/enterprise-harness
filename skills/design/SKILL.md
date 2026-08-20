@@ -37,3 +37,4 @@ background: false
 - `scripts/prepare-input.mjs` — 冻结 design 输入和 input digest。
 - `scripts/finalize-result.mjs` — 汇总 assertions 并生成 StageResult。
 - `assert/artifact-shape.mjs` / `assert/requirement-coverage.mjs` / `assert/traceability.mjs` — 自检断言。
+- `evals/evals.json` — 4 个行为回归场景，验证 Skill 是否按意图执行。

@@ -18,6 +18,7 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 ## Supporting files
 
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 CompletionProof 与 archive inputs、生成 StageResult
+- [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 归档前检查
 

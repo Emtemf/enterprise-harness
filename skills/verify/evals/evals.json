@@ -1,0 +1,30 @@
+{
+  "skill": "verify",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "frozen-validation-argv",
+      "description": "逐个执行冻结 validation argv，记录实际 argv、exit status、时间",
+      "expected": "validation.md 包含完整的 Commands 表",
+      "category": "behavioral"
+    },
+    {
+      "id": "fail-preserved",
+      "description": "fail、skip、unsupported 必须显式保留，unsupported 绝不升格为 pass",
+      "expected": "validation.md 中 unsupported 保持原样",
+      "category": "behavioral"
+    },
+    {
+      "id": "waiver-fail-closed",
+      "description": "任何非空 waiver 必须以缺少可信授权证据阻断",
+      "expected": "waiver 存在时 StageResult 不含 pass",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "validation-shape",
+      "description": "validation.md 必须含 Commands、Results、Freshness、Coverage and exceptions 四节",
+      "expected": "assert/validation-shape.mjs 通过",
+      "category": "runtime-gate"
+    }
+  ]
+}

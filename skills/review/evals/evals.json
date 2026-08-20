@@ -1,0 +1,30 @@
+{
+  "skill": "review",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "independent-check",
+      "description": "reviewer 只读取 artifact/result/receipt refs，不读取 executor 对话",
+      "expected": "reviewer 不访问 executor transcript",
+      "category": "behavioral"
+    },
+    {
+      "id": "fresh-digest",
+      "description": "验证每个 artifact digest 仍新鲜",
+      "expected": "stale digest 被检测并阻断",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "correction-required",
+      "description": "block 和 unsupported 必须提供可执行 correction",
+      "expected": "ReviewResult 中 block/unsupported 含 correction 字段",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "rubric-selection",
+      "description": "按 stage 与 classification 机械选择评审标准",
+      "expected": "select-rubrics.mjs 输出与 stage 匹配",
+      "category": "behavioral"
+    }
+  ]
+}

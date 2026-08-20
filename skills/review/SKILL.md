@@ -18,6 +18,7 @@ background: false
 - [select-rubrics.mjs](scripts/select-rubrics.mjs) — 按 stage 与 classification 机械选择评审标准
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 将评审 verdict 编码为 schema-valid ReviewResult
 - [selected rubrics](references/) — 按 stage 选择后读取的评审标准文件
+- [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 执行合同
 
