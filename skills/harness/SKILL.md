@@ -1,8 +1,8 @@
 ---
 name: harness
 description: >
-  Drive an Enterprise Harness change through clarify, design, plan,
-  implement, verify, and archive. Use for governed software changes
+  Drives an Enterprise Harness change through clarify, design, plan,
+  implement, verify, and archive. Use when governed software changes
   that require durable artifacts, independent review, and fresh evidence.
 ---
 
@@ -19,7 +19,7 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 ## Supporting files
 
 - [capability 与 run 速查](references/behavior-map.md) — 确认哪个 Skill / agent 负责什么
-- [阶段推进合同](references/stage-decisions.md) — 每个 stage transition 的必要证据
+- [阶段推进合同](references/stage-decisions.md) — 每次决定推进、纠正或等待用户时读取
 - [review 合同](references/review-contract.md) — review verdict 定义与 ReviewResult 约束
 - [executor 合同](references/executor-contract.md) — executor 最小输入与 StageResult 约束
 - [requirements 模板](assets/requirements.md.tmpl) — 生成 requirements.md 时的输出骨架

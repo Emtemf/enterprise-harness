@@ -1,8 +1,8 @@
 ---
 name: archive
 description: >
-  Verify fresh CompletionProof and archive immutable change history.
-  Use after verify produces passing CompletionProof.
+  Verifies fresh CompletionProof and archives immutable change history.
+  Use when verify produces passing CompletionProof.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -17,12 +17,14 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 
 ## Supporting files
 
+- [归档方法](references/method.md) — 做 archive/abandon 决策前读取；规定 provenance、恢复与不可变性
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 CompletionProof 与 archive inputs、生成 StageResult
 - [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 归档前检查
 
-1. 验证当前 state 已由 runtime 推进到 `archive`；`archive` 命令必须先在 `verify` 阶段验证并持久化 fresh Verify CompletionProof，然后只推进 stage，不做物理移动。
+1. 读取 [归档方法](references/method.md)，再验证当前 state 已由 runtime 推进到 `archive`；`archive`
+   命令必须先在 `verify` 阶段验证并持久化 fresh Verify CompletionProof，然后只推进 stage，不做物理移动。
 2. 读取并重新校验 Verify CompletionProof：execution run、review run、artifact/input digest、TECPC 与
    `validation.status=fresh` 必须全部匹配当前 durable 文件。
 3. 确认所有适用 rubrics、receipt、scope decisions 和 required artifacts 已闭合；stale、missing、

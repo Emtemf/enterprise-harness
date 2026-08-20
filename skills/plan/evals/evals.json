@@ -6,6 +6,11 @@
       "id": "bounded-reviewable-task",
       "description": "task 必须 bounded、reviewable、restartable、verifiable 与 rollback-aware",
       "expected": "目标、in/out scope、验收和 recovery 都明确",
+      "prompt": "把一个同时涉及 schema、服务逻辑、API 和迁移的已批准设计拆成可独立评审与恢复的任务。",
+      "expectedBehavior": [
+        "按可观察的 vertical slice 和风险顺序切片，而不是按技术层堆成巨型任务",
+        "每个任务声明依赖、写域、strategy、冻结 argv、验收与 recovery"
+      ],
       "category": "behavioral"
     },
     {

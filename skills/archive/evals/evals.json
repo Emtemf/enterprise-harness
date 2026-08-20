@@ -6,6 +6,11 @@
       "id": "fresh-completion-proof",
       "description": "验证 fresh CompletionProof 存在且 digest 匹配",
       "expected": "stale proof 被阻断",
+      "prompt": "change 的测试曾经通过，但 validation.md 在 CompletionProof 生成后被修改；用户要求立即归档。",
+      "expectedBehavior": [
+        "重新核验 provenance 与 digest，并将旧 CompletionProof 判为 stale",
+        "保持 active 或提供 abandon 路径，不通过移动目录伪造完成"
+      ],
       "category": "runtime-gate"
     },
     {

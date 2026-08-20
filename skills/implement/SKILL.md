@@ -1,8 +1,8 @@
 ---
 name: implement
 description: >
-  Execute a frozen task in an isolated worktree with strategy-matched
-  real execution receipts. Use after plan is approved.
+  Executes a frozen task in an isolated worktree with strategy-matched
+  real execution receipts. Use when plan is approved.
 user-invocable: false
 context: fork
 agent: enterprise-harness:implementer
@@ -17,12 +17,14 @@ capability；它在需要修改代码时使用原生隔离 worktree。它只消�
 
 ## Supporting files
 
+- [实现方法](references/method.md) — 每个 task 开始前读取；规定最小变更、策略反馈循环和停止条件
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 task receipt 完整性、生成 StageResult
 - [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 开始前
 
-1. 验证 `input.json` 的 change、task、设计/task digest、exact argv、worktree 与目标路径。
+1. 读取 [实现方法](references/method.md)，再验证 `input.json` 的 change、task、设计/task digest、
+   exact argv、worktree 与目标路径。
 2. 若 task 不是当前 task、输入已 stale、工作区不隔离、或需要未给定业务选择，停止并返回
    `NEEDS_DECISION` 或 block；不得修改代码后再补解释。
 3. 仅可写 task 明确列出的产品路径。测试、构建输出和 evidence 的写入必须来自确定的 task 范围。

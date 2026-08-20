@@ -6,6 +6,11 @@
       "id": "context7-first",
       "description": "外部库、框架、SDK 与版本行为优先查询 Context7",
       "expected": "ResearchPacket 记录 Context7 attempt 与 authority instance",
+      "prompt": "确认项目锁定的 framework 3.2 是否支持某配置；Context7 只返回了 4.x 文档。",
+      "expectedBehavior": [
+        "不把 4.x 行为套用到 3.2，并继续查找版本绑定的官方来源",
+        "找不到权威证据时明确 degraded、uncertainty 与 correction，而不是靠模型记忆回答"
+      ],
       "category": "behavioral"
     },
     {

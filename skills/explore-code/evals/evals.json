@@ -6,6 +6,11 @@
       "id": "codegraph-first",
       "description": "代码探索第一步使用 CodeGraph capability",
       "expected": "ResearchPacket 记录 CodeGraph attempt 与 authority instance",
+      "prompt": "确认修改 OrderService.cancel 会影响哪些调用者；CodeGraph 索引缺少一个生成目录。",
+      "expectedBehavior": [
+        "先从精确符号使用 CodeGraph 查询 callers、callees 与 impact",
+        "仅对缺失目录定向 fallback，并记录原因、范围与信心边界"
+      ],
       "category": "behavioral"
     },
     {

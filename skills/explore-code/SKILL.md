@@ -1,7 +1,7 @@
 ---
 name: explore-code
 description: >
-  Collect verifiable code facts through an isolated CodeGraph-first worker.
+  Collects verifiable code facts through an isolated CodeGraph-first worker.
   Use when the harness needs code-level evidence for clarify, design, or verify.
 user-invocable: false
 context: fork

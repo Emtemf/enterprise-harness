@@ -62,7 +62,9 @@ enterprise-harness trace --change <change-id> --mermaid
 
 用户需要：确认关键取舍。
 
-成功表现：适用的接口、请求响应、错误模型、SQL/迁移、兼容性和测试策略完整，并由独立 reviewer 通过。
+成功表现：适用的接口、请求响应、错误模型、SQL/迁移、兼容性和测试策略完整；高影响决定还记录
+替代方案、可逆性、owner、观测、回滚与重新评估触发器，确保三个月后仍可理解和替换，并由独立
+reviewer 通过。
 
 阻断恢复：按 reviewer blocker 修改 design，再发起新的 check run。
 
@@ -72,13 +74,14 @@ enterprise-harness trace --change <change-id> --mermaid
 
 用户需要：确认顺序和交付边界。
 
-成功表现：每个 task 有目标、文件范围、测试、RED 点、exact argv 和验收。plan skill 以短 JSON few-shot 展示冻结命令格式，并在每步给出 `Expect` / `Verify`。
+成功表现：按可观察价值和风险切成小而可评审的 vertical slices；每个 task 有目标、依赖、文件范围、
+strategy、exact argv、验收与 recovery。只有 TDD task 要求真实 RED。
 
 阻断恢复：拆小任务或补齐依赖。
 
 ## implement
 
-目的：用真实测试驱动实现。
+目的：按冻结 strategy 用最小变更和真实反馈循环实现；TDD 只是适用策略之一。
 
 前置：静态阶段链必须已通过 `enterprise-harness validate <change-id>` 并落 marker。若
 marker 缺失，第一次写受治理路径会被 pre-write 阻断。
@@ -97,7 +100,8 @@ pre-write 以 `stage-evidence-digest-mismatch` 阻断，说明阶段链证据（
 
 ## verify
 
-目的：消费所有 reviewer、receipt、ledger 和 fresh validation。
+目的：从风险和 completion claims 出发，消费所有 reviewer、receipt、ledger 和 fresh validation；
+基础测试通过不能覆盖缺失的负向、安全、迁移或回滚证据。
 
 用户需要：确认剩余 advisory 是否接受。
 

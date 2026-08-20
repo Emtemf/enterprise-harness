@@ -1,8 +1,8 @@
 ---
 name: plan
 description: >
-  Freeze independent, strategy-bound, digest-locked implementation tasks
-  with exact argv and write scope. Use after design is approved.
+  Freezes independent, strategy-bound, digest-locked implementation tasks
+  with exact argv and write scope. Use when design is approved.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -17,6 +17,7 @@ background: false
 
 ## Supporting files
 
+- [计划方法](references/method.md) — 开始切片前读取；规定 vertical slice、风险排序和反馈循环
 - [tasks 模板](assets/tasks.md.tmpl) — 生成 tasks.md 时的输出骨架
 - [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID 与 required sections
 - [assert/execution-contract.mjs](assert/execution-contract.mjs) — 验证每个 task 的 strategy、冻结 argv、acceptance 与 recovery
@@ -31,6 +32,9 @@ background: false
    可由 Main 直接提问的明确问题。
 
 ## 任务切片规则
+
+先按 [计划方法](references/method.md) 从可观察价值向下切片，再应用以下硬合同。若切片暴露设计缺口，
+返回 Design 修正，不用补丁 task 掩盖架构问题。
 
 INVEST（Independent, Negotiable, Valuable, Estimable, Small, Testable）只作为切片启发式，
 不是要求工程 task 之间不存在依赖。每个 task 的硬合同是 bounded、reviewable、restartable、

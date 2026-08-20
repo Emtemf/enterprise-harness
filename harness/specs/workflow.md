@@ -53,6 +53,11 @@ The lifecycle design draws from:
 - **BDD / Acceptance Test-Driven Development**: Given/When/Then acceptance criteria, executable specifications. Primary influence on Plan task verification conditions.
 - **Mike Cohn / Martin Fowler Testing Pyramid**: unit → integration → E2E test distribution. Primary influence on Verify command strategy.
 - **INVEST criteria** (Independent, Negotiable, Valuable, Estimable, Small, Testable): Primary influence on Plan task sizing and independence.
+- **AWS Well-Architected + Google design review research + ADR**: Design trade-offs, operational ownership,
+  reviewability, alternatives, consequences, and revisit triggers.
+- **Google Engineering Practices**: small reviewable changes and code-health-first independent review.
+- **NIST SSDF + OWASP ASVS**: risk-based verification and security evidence, including negative cases.
+- **SLSA provenance**: Archive provenance and digest-bound artifact verification.
 - **CodeGraph**: Code Fact Lane (code structure, symbols, call graphs, impact).
 - **Context7**: Documentation Fact Lane (third-party library behavior, API contracts).
 
@@ -80,6 +85,10 @@ decisions → then plan. Each inapplicable dimension is recorded as `N/A` with a
 Design decisions follow ADR (Architecture Decision Record) patterns: each decision records
 Context → Decision → Consequences → Status. Alternatives considered must be documented.
 Trade-offs between scalability, security, compatibility, and complexity are made explicit.
+Every high-impact decision also passes the three-month no-regret gate: evidence and assumptions, at least one
+viable alternative, reversibility, migration/rollback, observability, owner, and a concrete revisit trigger.
+Missing costly-to-reverse product, data, compatibility, or security choices return `NEEDS_DECISION`; low-risk
+reversible details remain for Plan/Implement so Design does not become speculative architecture.
 The reviewer sees the design artifact plus its evidence digests, not the executor conversation.
 
 ## Plan
@@ -128,6 +137,17 @@ independent completion review.
 Archive is allowed only when the completion predicate consumes fresh verification and all
 required durable evidence. It moves completed work into immutable history and clears only
 compatibility pointers. An unfinished change is abandoned explicitly, never disguised as archived.
+
+## Primary practice references
+
+- [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/definitions.html)
+- [Google: Improving design reviews](https://research.google/pubs/improving-design-reviews-at-google/)
+- [Google: Small changes](https://google.github.io/eng-practices/review/developer/small-cls.html)
+- [Google: The standard of code review](https://google.github.io/eng-practices/review/reviewer/standard.html)
+- [NIST Secure Software Development Framework](https://csrc.nist.gov/projects/ssdf)
+- [OWASP Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/)
+- [SLSA build provenance](https://slsa.dev/spec/v1.2-rc2/build-provenance)
+- [Martin Fowler: Architecture Decision Record](https://martinfowler.com/bliki/ArchitectureDecisionRecord.html)
 
 ## Compatibility and recovery
 

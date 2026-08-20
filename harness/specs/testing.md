@@ -1,12 +1,17 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-17
+lastVerified: 2026-08-21
 implementationRefs:
   - runtime/test
+  - runtime/test/suite-manifest.mjs
+  - .github/workflows/core-quality.yml
+  - .github/workflows/skill-quality.yml
   - .github/workflows/platform-smoke.yml
 testRefs:
   - runtime/test/task4-release-acceptance-smoke.mjs
+  - runtime/test/skill-content-contract-smoke.mjs
+  - runtime/test/smoke-profile-contract-smoke.mjs
 ---
 
 # Testing Contract
@@ -19,7 +24,16 @@ RED 必须由目标断言在缺少实现时失败；同一测试在实现后通�
 
 adversarial 至少覆盖 ID/path escape、symlink、Windows path、混合探索路径、dirty/staged/untracked、generator、invalid JSON、外部命令失败、receipt 重放、agent/run mismatch 和并发更新。
 
-确定性 CI 不访问 Context7。平台 matrix 覆盖 Linux、macOS、Windows 与 Node 20/22。在线和人工 upstream review 单独报告。
+确定性 CI 不访问 Context7。流水线按风险分层，不按历史测试数量设计：
+
+- `core-quality` 在 canonical Linux + Node 22 上一次性运行完整 deterministic/prepublish 合同；
+- `skill-quality` 独立验证 Claude Code 原生 packaging、内容方法、行为场景与 plugin metadata；
+- `platform-smoke` 只在 Linux/macOS/Windows 和 Node 20/22 的代表性组合上运行路径、进程、launcher、
+  worktree 与 lock 等平台敏感合同；
+- release 再运行完整 prepublish，在线和人工 upstream review 单独报告。
+
+禁止为了矩阵整齐把完整 smoke suite 复制到每个 OS/Node 组合。新增测试必须先判断属于 full、skill、
+platform 或 external-project 哪一层；profile 引用不存在的测试必须 fail closed。
 
 发布前必须从 allowlisted artifact 解包验收。
 
