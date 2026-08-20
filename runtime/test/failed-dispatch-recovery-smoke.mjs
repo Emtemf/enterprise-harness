@@ -18,7 +18,7 @@ function fixture() {
     `${JSON.stringify({ changeId })}\n`,
   );
   fs.copyFileSync(
-    path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
+    path.join(sourceRoot, 'runtime/test/fixtures/behavior-checks.json'),
   path.join(root, 'harness/behavior-checks.json'),
   );
   spawnSync('git', ['init', '-q'], { cwd: root, shell: false });

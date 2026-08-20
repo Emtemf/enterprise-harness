@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readAgentEvents } from './agent-evidence.mjs';
-import { loadBehaviorRegistry, loadHandoffInput, validateHandoffResult } from './handoff.mjs';
+import { loadHandoffInput, validateHandoffResult } from './handoff.mjs';
 import { requiredStageResultArtifacts, validateStageGate } from './stage-results.mjs';
 import { completedStages as completedStagesV6, STAGE_CONTRACTS as STAGE_CONTRACTS_V6, STAGE_ORDER as STAGE_ORDER_V6 } from './stage-contract.mjs';
-import { completedStages as completedStagesV5, STAGE_CONTRACTS as STAGE_CONTRACTS_V5, STAGE_ORDER as STAGE_ORDER_V5 } from '../compat/v5/stage-contract.mjs';
 
 function readJson(file) {
   try {
@@ -112,13 +111,10 @@ function inspectResultGate(root, changeId, resultGate) {
 }
 
 export function auditWorkflow(root, changeId, data, options = {}) {
-  const isV6 = data?.schemaVersion === 6;
-  const registry = isV6 ? { behaviors: {} } : loadBehaviorRegistry(root);
-  const stageOrder = isV6 ? STAGE_ORDER_V6 : STAGE_ORDER_V5;
-  const stageContracts = isV6 ? STAGE_CONTRACTS_V6 : STAGE_CONTRACTS_V5;
-  const completedStageList = isV6 ? completedStagesV6 : completedStagesV5;
-  const v6Stage = isV6 ? data?.stage : null;
-  const currentStage = v6Stage || String(data?.workflow?.stage || 'clarify');
+  const stageOrder = STAGE_ORDER_V6;
+  const stageContracts = STAGE_CONTRACTS_V6;
+  const completedStageList = completedStagesV6;
+  const currentStage = String(data?.stage || data?.workflow?.stage || 'clarify');
   const auditStage = (currentStage === 'route' || currentStage === 'classify') ? 'clarify' : currentStage;
   const invalidStage = !stageOrder.includes(auditStage);
   const completed = new Set(completedStageList({
@@ -144,20 +140,10 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       status: ok ? 'pass' : 'block',
       issue: ok ? null : problem('EH-AUDIT-STATE-004', `${field} does not meet the stage completion predicate`, `repair durable evidence and update through the supported runtime command`),
     }));
-    const results = isV6 ? inspectResultGate(root, changeId, spec.resultGate) : [];
-    const behaviors = isV6
-      ? []
-      : [...spec.requiredBehaviors, ...spec.optionalBehaviors];
-    const handoffs = behaviors.map((behavior) => {
-      const contract = registry.behaviors?.[behavior];
-      const hasBeenDispatched = events.some((event) => event.kind === 'dispatch' && event.behavior === behavior);
-      const required = spec.requiredBehaviors.includes(behavior) || hasBeenDispatched;
-      if (!required) return { behavior, status: 'not-applicable', required: false, executions: [], checks: [], issues: [] };
-      return { ...inspectBehavior(root, changeId, behavior, contract), required: true };
-    });
+    const results = inspectResultGate(root, changeId, spec.resultGate);
+    const handoffs = [];
     const stageEvents = events.filter((event) => {
-      const behaviorStage = registry.behaviors?.[event.behavior]?.stage;
-      return behaviorStage === stage;
+      return event.stage === stage;
     }).map((event) => ({ kind: event.kind, behavior: event.behavior ?? null, runId: event.runId ?? null, agentId: event.agentId ?? null }));
     const checked = [...artifacts, ...state, ...results, ...handoffs.filter((handoff) => handoff.required)];
     const blockers = checked.flatMap((item) => item.status === 'block' ? (item.issues ?? [item.issue]).filter(Boolean) : []);

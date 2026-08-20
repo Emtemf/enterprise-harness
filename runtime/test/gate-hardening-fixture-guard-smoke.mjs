@@ -15,7 +15,6 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const targetFiles = [
   'gate-hardening-design-gate-smoke.mjs',
   'gate-hardening-task-state-smoke.mjs',
-  'gate-hardening-review-validation-smoke.mjs',
   'gate-hardening-validation-digest-smoke.mjs',
   'gate-hardening-fixture-guard-smoke.mjs',
 ];

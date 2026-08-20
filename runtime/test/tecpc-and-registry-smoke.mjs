@@ -53,7 +53,7 @@ for (const [name, result, expected] of tecpcCases) {
 
 // registry 与 skill 派发的一致性：SKILL.md 里提到的每个 reviewer/executor agent，
 // 都必须在该阶段的 registry behavior 中真实可用，否则 handoff create 必然失败。
-const registry = JSON.parse(fs.readFileSync(path.join(repoRoot, 'runtime', 'compat', 'v5', 'behavior-checks.json'), 'utf-8'));
+const registry = JSON.parse(fs.readFileSync(path.join(repoRoot, 'runtime', 'test', 'fixtures', 'behavior-checks.json'), 'utf-8'));
 const agentsByStage = new Map();
 for (const contract of Object.values(registry.behaviors || {})) {
   if (!agentsByStage.has(contract.stage)) agentsByStage.set(contract.stage, new Set());

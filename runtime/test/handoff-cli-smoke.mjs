@@ -9,7 +9,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'handoff-cli-'));
 const changeId = 'cli-probe';
 fs.mkdirSync(path.join(root, 'harness/changes', changeId, 'briefs'), { recursive: true });
 fs.copyFileSync(
-  path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
+  path.join(sourceRoot, 'runtime/test/fixtures/behavior-checks.json'),
   path.join(root, 'harness/behavior-checks.json'),
 );
 fs.writeFileSync(path.join(root, 'harness/ACTIVE_CHANGE'), `${changeId}\n`);

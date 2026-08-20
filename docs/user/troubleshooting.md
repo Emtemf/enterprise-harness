@@ -146,6 +146,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-STATE-V6-017` | 正在对 v4/v5 state 使用 v6 mutation | 先对 active v5 change 显式执行迁移；archive 保持只读 |
 | `EH-STATE-SCHEMA-018` | v6 mutation 结果不满足 state schema | 修复 stage、artifacts 或 validation 字段后重试 |
 | `EH-STATE-IDENTITY-019` | `state.changeId` 与 `harness/changes/<changeId>/state.json` 的路径身份不一致 | 不要复制或手改其他 change 的 state；恢复当前目录对应的 changeId，并通过受支持的 runtime mutation 更新状态 |
+| `EH-V5-COMPAT-001` | behavior-checks.json not found; v0.5 uses harness/policy.json instead | 使用 handoff v2 创建 v6 change；v5 behavior registry 已不再支持 |
 | `EH-V5-MIGRATE-CONFIRM-019` | active v5 change 尚未得到显式迁移确认 | 明确确认迁移；不要静默改写历史 state |
 | `EH-V5-MIGRATE-020` | v5 migrator 收到的不是 schema v5 state | 使用相应兼容 reader/migrator，不要跨版本强迁移 |
 | `EH-V5-MIGRATE-021` | 尝试迁移 archived 或非 active historical change | archive 只读；仅 active change 可迁移 |

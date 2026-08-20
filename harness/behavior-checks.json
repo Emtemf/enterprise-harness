@@ -1,0 +1,41 @@
+{
+  "contractVersion": 1,
+  "description": "v6 behavior registry. Auto-generated from policy.json stages. Maps agent types to behaviors.",
+  "behaviors": {
+    "clarify.explore-code": {
+      "stage": "clarify",
+      "executor": "enterprise-harness:code-explore",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "clarify.doc-research": {
+      "stage": "clarify",
+      "executor": "enterprise-harness:doc-research",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "design.produce": {
+      "stage": "design",
+      "executor": "enterprise-harness:artifact-worker",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "plan.produce": {
+      "stage": "plan",
+      "executor": "enterprise-harness:artifact-worker",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "implement.task": {
+      "stage": "implement",
+      "executor": "enterprise-harness:implementer",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "verify.produce": {
+      "stage": "verify",
+      "executor": "enterprise-harness:artifact-worker",
+      "checker": "enterprise-harness:reviewer"
+    },
+    "archive.produce": {
+      "stage": "archive",
+      "executor": "enterprise-harness:artifact-worker",
+      "checker": "enterprise-harness:reviewer"
+    }
+  }
+}

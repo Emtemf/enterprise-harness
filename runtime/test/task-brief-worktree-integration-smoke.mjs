@@ -22,7 +22,7 @@ try {
   git(['config', 'user.name', 'Enterprise Harness Test']);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId, 'briefs'), { recursive: true });
   fs.copyFileSync(
-    path.join(sourceRoot, 'runtime/compat/v5/behavior-checks.json'),
+    path.join(sourceRoot, 'runtime/test/fixtures/behavior-checks.json'),
   path.join(root, 'harness/behavior-checks.json'),
   );
   fs.writeFileSync(path.join(root, 'README.md'), '# baseline\n');

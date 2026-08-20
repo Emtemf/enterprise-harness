@@ -4,13 +4,10 @@ owner: enterprise-harness-maintainers
 lastVerified: 2026-08-12
 implementationRefs:
   - runtime/core/change-state.mjs
-  - runtime/compat/v5-migrate.mjs
   - runtime/core/handoff-v2.mjs
   - runtime/lib/state-store.mjs
 testRefs:
   - runtime/test/v6-change-state-smoke.mjs
-  - runtime/test/v5-state-migration-smoke.mjs
-  - runtime/test/migrate-v5-cli-smoke.mjs
 ---
 
 # State Schema Contract
@@ -68,13 +65,8 @@ ready/approved field.
 
 ## Compatibility boundary
 
-- v4/v5 readers are compatibility-only and may explain historical state.
 - Archived historical changes are read-only and are never migrated in place.
-- An active v5 change requires explicit `enterprise-harness migrate-v5 <change-id> --confirm`.
-  The migration resets revision to 1, maps `route` to `design` and `tdd` to `implement`, writes
-  a digest-bound `classification.json` from legacy impact/classification data, clears derived
-  artifacts, and makes validation stale.
-- `runtime/compat/**` is the sole place allowed to interpret legacy lifecycle projections.
+- v5 compat layer has been removed; only `schemaVersion: 6` state is supported.
 
 ## Common-dir runtime state
 

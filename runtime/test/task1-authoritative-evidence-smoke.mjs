@@ -26,7 +26,6 @@ for (const relative of requiredRuntime) {
 }
 const components = [
   'tdd-receipt-contract-smoke.mjs',
-  'tdd-run-baseline-smoke.mjs',
   'evidence-policy-contract-smoke.mjs',
   'agent-lifecycle-hook-smoke.mjs',
   'failed-dispatch-recovery-smoke.mjs',

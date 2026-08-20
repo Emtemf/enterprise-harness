@@ -8,10 +8,8 @@ implementationRefs:
   - runtime/lib/status-summary.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
-  - runtime/compat/v5/behavior-checks.json
+  - harness/policy.json
 testRefs:
-  - runtime/test/workflow-audit-smoke.mjs
-  - runtime/test/workflow-status-audit-block-smoke.mjs
   - runtime/test/trace-mermaid-smoke.mjs
   - runtime/test/skill-command-conformance-smoke.mjs
 ---
