@@ -103,7 +103,7 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic 
   // validation.md moved to skill assets; scaffold from there
   const validationTarget = path.join(changeDir, 'validation.md');
   if (!fs.existsSync(validationTarget)) {
-    const validationTemplate = path.join(repoRoot, 'skills', 'verify', 'assets', 'validation.md.tmpl');
+    const validationTemplate = path.join(runtimeDir, '..', 'skills', 'verify', 'assets', 'validation.md.tmpl');
     if (fs.existsSync(validationTemplate)) {
       fs.copyFileSync(validationTemplate, validationTarget);
     }

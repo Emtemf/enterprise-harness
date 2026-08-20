@@ -1,0 +1,13 @@
+{
+  "tier": "L3",
+  "impact": {
+    "api": "unknown",
+    "data": "unknown",
+    "architecture": "unknown",
+    "rule": "unknown",
+    "security": "unknown"
+  },
+  "requiredReviews": [
+    "requirements"
+  ]
+}
