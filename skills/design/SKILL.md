@@ -9,7 +9,7 @@ background: false
 
 # Design
 
-只消费已确认 requirements、classification、impact 和 digest-bound research facts，产出 `design.md` 与 schema-valid `StageResult`。不替 Main 向用户提问、不写产品代码、不批准自身产物。
+只消费已确认 requirements、classification、impact 和 digest-bound research facts，产出 `design.md` 与 schema-valid `StageResult`。不替 Main 向用户提问、不写产品代码、不批准自身产物。只有主 Harness 可以向用户提问。
 
 ## 执行顺序
 

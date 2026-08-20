@@ -16,10 +16,10 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 ## Clarify
 
 1. 恢复 active change 并只报告一个可执行的 blocker；没有 active change 时创建新 change。
-2. 通过 `code-explore` 获取代码事实，通过 `doc-research` 获取外部事实；主线程不得重复 worker 探索。
+2. 通过 `code-explore` 获取代码事实，通过 `doc-research` 获取外部事实；主线程不得重复 worker 已完成的探索。
 3. Round 0 建立 component topology；每个 component 记录 Goal / Scope / Constraints / Acceptance / Context。
 4. Frontier = `component × unresolved dimension`。API/Data 只在 impact 相关时展开为条件分支。
-5. 每轮用 `AskUserQuestion` 问一个 weakest frontier 问题，提供选项和推荐。已由代码/文档确认的事实不得再问用户。
+5. 每次仅用 `AskUserQuestion` 只问一个用户问题（weakest frontier），提供选项和推荐。已由代码/文档确认的事实不得再问用户。
 6. 需求已明确 + 代码事实已确认 + 无高风险 assumption 时走 Fast Path（0~1 问题进 Design）。
 7. 只有 self-check 和独立 `reviewer` verdict 都 fresh 后，才持久化 requirements、范围确认与 classification。
 
@@ -34,7 +34,7 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 
 - **Design：** 调用 `artifact-worker`，再独立 `review`。
 - **Plan：** 调用 `artifact-worker`；每个 task 冻结 strategy 与 exact argv。
-- **Implement：** 在 worktree 中调用 `implementer`；要求 receipt、self-check 与独立 reviewer。
+- **Implement：** 在原生 worktree 中调用 `implementer`；要求 receipt、self-check 与独立 reviewer。
 - **Verify：** 调用 `artifact-worker`，执行冻结 validation argv，再 final review。
 - **Archive：** 调用 `artifact-worker`；只有 fresh completion evidence 完整时归档。
 
