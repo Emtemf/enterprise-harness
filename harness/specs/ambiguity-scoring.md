@@ -1,9 +1,10 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-20
 implementationRefs:
   - runtime/lib/ambiguity.mjs
+  - skills/harness/SKILL.md
 testRefs:
   - runtime/test/ambiguity-gate-smoke.mjs
 ---
@@ -12,27 +13,69 @@ testRefs:
 
 ## 目标
 
-把“需求不清晰”从主观感觉变成 staged workflow 可消费的显式 gate。
+把"需求不清晰"从主观感觉变成 staged workflow 可消费的显式 gate。
 
-clarify 阶段必须：
-- 一次只问一个问题
-- 每轮更新 ambiguity scoring
-- 显式针对 weakest dimension 发问
-- 在 score 达标且用户确认前，不进入 `route`
+Clarify 的核心方法论融合自三个来源：
 
-## 评分维度
+- **grill-me**（mattpocock/skills）：design tree / decision tree / frontier / 逐步消除不确定性
+- **deep-interview**（Yeachan-Heo/oh-my-claudecode）：Socratic questioning / ambiguity gate / Round 0 topology / weakest uncertainty first
+- **superpowers brainstorming**（obra/superpowers）：先理解 → 再设计 → 用户确认关键决策 → 才实施
 
-第一版采用 0-5 维度分：
+> **核心原则：Facts → Agent 找；Decisions → 用户决定。**
 
-1. T 目标 clarity
-2. Scope clarity
-3. User / actor clarity
-4. Data / SQL clarity
-5. Interface / API clarity
-6. Acceptance criteria clarity
-7. Constraint / risk clarity
+能够通过 CodeGraph、Context7、当前代码或官方文档得到的信息，不应问用户。真正问用户的是：业务意图、兼容性取舍、Scope、风险接受。
+
+## 维度模型
+
+采用 **Component × 5 核心维度**，不是固定的全局维度列表。
+
+### 组件拓扑
+
+Clarify 的 Round 0 首先建立 component topology：
+
+```text
+Feature
+├── Component A
+├── Component B
+└── Component C
+```
+
+通过以下来源确定组件：
+
+- 用户原始请求
+- CodeGraph 代码事实
+- Context7 文档事实
+- 已有 decisions
+
+### 五核心维度
+
+每个 component 只评估五个核心维度：
+
+| 维度 | 含义 |
+|------|------|
+| **Goal** | 这个 component 要做什么？ |
+| **Scope** | 影响边界在哪？哪些文件/模块/API/数据会变？ |
+| **Constraints** | 技术约束、兼容性要求、风险 |
+| **Acceptance** | 如何判断这个 component 做完了？ |
+| **Context** | 业务/领域上下文，为什么需要这个 |
+
+### 条件分支
+
+**API 和 Data/SQL 不是固定维度。** 只有当 impact 或代码事实表明相关时，才展开为条件分支：
+
+```text
+impact.api = yes
+→ 展开 Interface/API dimension
+
+impact.data = yes
+→ 展开 Data/SQL dimension
+```
+
+不适用的维度记录 `N/A` 与理由。
 
 ## 分值含义
+
+每个 component × dimension 组合采用 0-5 分：
 
 ### 0
 完全未知或自相矛盾，无法安全推进。
@@ -41,192 +84,130 @@ clarify 阶段必须：
 只有方向性意图，没有可执行边界。
 
 ### 2
-已知部分目标，但关键范围/约束/验收标准缺失。
+已知部分目标，但关键范围/约束/验收缺失。
 
 ### 3
-中等清晰度，已足够形成讨论，但仍不适合进入 design/plan。
+中等清晰度，已足够讨论，但不适合进入 design。
 
 ### 4
 足以进入 design；剩余不确定项已显式记录且风险可控。
 
 ### 5
-需求边界、约束与验收标准都已足够明确，可安全进入后续执行阶段。
+需求边界、约束与验收标准都已足够明确。
+
+## Frontier
+
+Frontier = `component × unresolved dimension`。
+
+每轮选择策略：
+
+1. 先覆盖所有主要 architecture surface（广度优先）
+2. 对当前重要且高耦合的主题，可连续追问 2-4 个问题（有限深入）
+3. 同一主题追问 2-4 个关键问题后，切换到其他架构面
+4. 主要架构面覆盖完成后，回到尚未解决的关键分歧或薄弱环节
+5. 每次只问一个问题，提供几个明确选项及推荐
+6. 只询问真正影响架构、产品行为或实现可行性的问题
+7. 细枝末节和可合理推断的内容自行决定
 
 ## 达标条件
 
 clarify-ready 的最低条件：
 
-- 所有关键维度 >= 4
+- 所有已识别 component 的关键维度 >= 4
 - 没有 unresolved high-risk ambiguity
 - 用户已显式确认执行范围
-- `Overall` 必须等于七维算术平均值（保留一位小数）
-- 每个维度必须写明来自探索事实或用户回答的评分依据
+- 每个维度的评分必须有事实依据（CodeGraph / Context7 / 用户回答）
 
-## 每维度评分标准
+## Fast Path
 
-### 1. T 目标 clarity（目标清晰度）
+必须支持：
 
-| 分数 | 标准 | 证据要求 |
-|------|------|---------|
-| 0 | 不知道要做什么，或目标自相矛盾 | — |
-| 1 | "我想改个东西"——只有方向，没有对象 | — |
-| 2 | 知道改哪个模块，但不知道改成什么样 | 代码探索发现了相关模块 |
-| 3 | 知道改什么、为什么改，但验收标准不明确 | 探索事实 + 用户口头意图 |
-| 4 | 目标明确、验收标准可写成断言 | 探索事实 + 用户确认的验收条件 |
-| 5 | 目标、范围、成功标准全部明确，可直接进入设计 | 探索事实 + 用户书面确认 |
+```text
+需求本身已经明确
++
+代码事实明确（codegraph 确认了相关模块和路径）
++
+没有高风险 assumption
+```
 
-### 2. Scope clarity（范围清晰度）
+那么：
 
-| 分数 | 标准 |
-|------|------|
-| 0 | 完全不知道影响范围 |
-| 1 | 知道大概涉及什么，但不确定边界 |
-| 2 | 知道主要受影响的模块，但不确定是否有跨模块影响 |
-| 3 | 已探索主要路径，但 edge case / 兼容性未确认 |
-| 4 | 主要路径 + edge case 已识别，兼容性策略明确 |
-| 5 | 全影响面已通过 codegraph / 探索确认，无盲区 |
+```text
+0~1 个问题
+→ Design
+```
 
-### 3. User / actor clarity（角色清晰度）
+不能因为有 Harness 就强制用户接受一场长 Interview。
 
-| 分数 | 标准 |
-|------|------|
-| 0 | 不知道谁会用这个功能 |
-| 1 | 知道有用户，但不知道具体角色和使用场景 |
-| 2 | 知道角色和大致场景，但交互细节未确认 |
-| 3 | 角色、场景、主要交互流程已明确 |
-| 4 | 角色、场景、交互流程、异常路径均已确认 |
-| 5 | 全部用户角色、场景、边界条件均已明确 |
+Fast Path 判定条件（同时满足时触发）：
 
-### 4. Data / SQL clarity（数据清晰度）
-
-| 分数 | 标准 |
-|------|------|
-| 0 | 不知道涉及什么数据 |
-| 1 | 知道涉及某张表，但不知道具体字段变化 |
-| 2 | 知道表和字段，但不确定数据迁移/兼容策略 |
-| 3 | 表结构 + 迁移策略已明确，但约束/索引未确认 |
-| 4 | 表结构 + 迁移 + 约束 + 回滚策略均已明确 |
-| 5 | 全数据层设计完整，包括迁移脚本和回滚验证 |
-
-### 5. Interface / API clarity（接口清晰度）
-
-| 分数 | 标准 |
-|------|------|
-| 0 | 不知道对外暴露什么接口 |
-| 1 | 知道要改某个 API，但不知道具体变化 |
-| 2 | 知道 API 变化，但不确定 request/response 具体结构 |
-| 3 | API 签名已明确，但 error contract / 兼容性未确认 |
-| 4 | API 签名 + error + 兼容性策略均已明确 |
-| 5 | 全 API 设计完整，包括 OpenAPI 契约和 caller impact |
-
-### 6. Acceptance criteria clarity（验收清晰度）
-
-| 分数 | 标准 |
-|------|------|
-| 0 | 完全不知道怎么算"做完了" |
-| 1 | 有模糊的"应该能用"，但没有可执行的验收标准 |
-| 2 | 知道主要验收场景，但缺少具体断言 |
-| 3 | 主要验收场景已有断言，但边界 case 未覆盖 |
-| 4 | 主要 + 边界验收场景均有断言，可直接写测试 |
-| 5 | 全验收标准可直接转化为 RED 测试用例 |
-
-### 7. Constraint / risk clarity（约束/风险清晰度）
-
-| 分数 | 标准 |
-|------|------|
-| 0 | 不知道有什么约束或风险 |
-| 1 | 知道有技术约束，但不确定具体影响 |
-| 2 | 知道主要约束，但不确定是否有替代方案 |
-| 3 | 约束已明确，风险已识别，但缓解方案未确认 |
-| 4 | 约束 + 风险 + 缓解方案均已明确 |
-| 5 | 约束、风险、缓解方案、回滚策略均已明确 |
+1. 用户请求中已包含明确的 Scope、Acceptance、至少一个 Constraint
+2. CodeGraph 确认了受影响的代码路径
+3. 没有标记为 high-risk 的 assumption
+4. overall score >= 3.5（不需要全部 >= 4）
 
 ## 每轮操作规则
 
 每轮 clarify 必须：
 
-1. **先展示当前评分**：向用户展示全维度评分表 + overall score + weakest dimension
-2. **解释评分依据**：每个分数必须引用具体的探索发现或用户回答，不得凭空打分
-3. **让用户确认/修正**：用户有权质疑任何维度的评分（"我觉得这个应该是 3 不是 4"）
-4. 找出 weakest dimension
-5. 只问一个针对 weakest dimension 的问题（选项式 A/B/C + 其他）
-6. 在用户回答后重新评分，并说明为什么分数变化了
-7. 若已有足够 repo/documentation facts，可先更新事实，再问用户
+1. **展示当前评分表**：component × dimension 评分 + overall + weakest frontier
+2. **解释评分依据**：每个分数引用具体探索发现或用户回答，不得凭空打分
+3. **让用户确认/修正**：用户有权质疑任何评分
+4. **找出 weakest frontier**
+5. **只问一个针对 weakest frontier 的问题**（选项式 + 推荐）
+6. **用户回答后重新评分**，说明为什么分数变化
 
 ### 隔离接力
 
-- 主 orchestrator 保留一问一答，避免把持续用户交互交给无法继续派生 agent 的 subagent。
-- 每轮回答后由 `clarify-synthesizer` 在新上下文中更新 requirements/评分。
-- 随后由 `requirement-reviewer` 在另一个新上下文中检查评分依据、weakest、风险与用户确认。
-- runtime 机械检查七维是否齐全、分数是否为 0-5 整数、Overall 是否匹配平均值、是否全部达到阈值。
+- Main Harness 保留一问一答（唯一用户交互入口）
+- `artifact-worker` 在新上下文中更新 requirements 和评分
+- `reviewer` 在独立上下文中检查评分依据、weakest、风险与用户确认
+- Runtime 机械检查维度是否齐全、分数是否 0-5、是否达阈值
+
+### 用户确认模式
+
+使用 `AskUserQuestion` 时：
+
+- 每次只问一个问题
+- 提供 2-4 个明确选项
+- 标注推荐选项
+- 选项式 A/B/C + "其他" 兜底
+- 确认后记录回答，不重复提问
 
 ## 交互格式示例
-
-每轮澄清结束时，应输出类似：
 
 ```
 📊 歧义评分（第 2 轮）
 
-| 维度 | 上轮 | 本轮 | 依据 |
-|------|------|------|------|
-| T 目标 | 2 | 3 | 用户确认了删除范围为"整个模板+所有版本" |
-| Scope | 1 | 2 | codegraph 发现了 5 张关联表 |
-| ... | | | |
+| Component | Dimension | 上轮 | 本轮 | 依据 |
+|-----------|-----------|------|------|------|
+| OrderCancel | Goal | 2 | 4 | 用户确认了取消范围 |
+| OrderCancel | Scope | 1 | 3 | codegraph 发现 5 张关联表 |
+| Refund | Goal | 3 | 3 | 仍不确定退款策略 |
+| ... | | | | |
 
 Overall: 2.4 → 2.7
-Weakest: Interface/API clarity (2)
-→ 下一个问题：硬删除后现有的软删除 DELETE 接口是否保留？
+Weakest: Refund × Goal (3)
+→ 下一个问题：退款是原路返回还是转为余额？
 
-请确认评分是否准确，或告诉我哪个维度的分数需要调整。
+请确认评分是否准确。
 ```
 
-## 显示规则
+## Requirements Artifact
 
-对用户至少应透明展示：
+`requirements.md` 必须记录：
 
-- 当前 weakest dimension
-- 当前 weakest score
-- 为什么下一个问题指向该维度
-
-可选展示：
-- 全维度评分表
-- overall score
-
-## Requirements Artifact 最低落点
-
-`requirements.md` 至少应记录：
-
-- 每个维度当前分数
-- 当前 weakest dimension
+- 每个 component 的维度分数
+- 当前 weakest frontier
 - 仍待澄清的问题
 - 用户确认状态
-
-## 与 Exploration 的关系
-
-ambiguity scoring 不是只靠用户回答提升。
-
-以下行为都可帮助提升分数：
-- 代码探索
-- 文档调研
-- brownfield 事实确认
-- 明确已有 API / SQL / module 约束
-
-因此 clarify 的正确形态是：
-- 先探索，再问用户
-- 探索与提问交替推进
-
-## 退出条件
-
-仅在以下条件同时满足时，clarify 才可结束：
-
-- ambiguity 达标
-- 关键假设已记录
-- 用户确认执行范围
-- `requirements.md` 已可供 `route` / `design` 消费
+- topology 图（component 依赖关系）
 
 ## 禁止事项
 
 - 不得在 ambiguity 未达标时直接进入 design
 - 不得一次批量抛给用户多个问题
-- 不得只给 overall score 而不指出 weakest dimension
-- 不得跳过用户确认直接把 clarify 结果视为可执行范围
+- 不得只给 overall score 而不指出 weakest frontier
+- 不得跳过用户确认直接视为可执行范围
+- 不得把可由 CodeGraph / Context7 获取的事实问给用户
+- 不得在覆盖主要架构面前无限向下穿透细节
