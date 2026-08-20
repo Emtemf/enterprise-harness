@@ -1,13 +1,49 @@
 # 当前研发快照
 
-更新时间：2026-08-11（0.4.0 released）
+更新时间：2026-08-20（skill packaging contract 落地）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.4.0
-- 当前阶段：0.4 truth layer + session concurrency + MCP policy + profile/worktree seam（已发布）
+- 当前版本：0.5.4（未发布的 skill packaging 重构在其上）
+- 当前阶段：Skill Packaging Contract + Runtime API boundary（P0 全部完成）
 - active change：无
 - 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
+
+## 2026-08-20 Skill Packaging Contract（P0 七项）
+
+结构治理轮，不改变 lifecycle 行为。全部以 `harness/specs/skill-packaging.md` 为权威：
+
+- **P0-1 spec**：新增 skill-packaging.md，冻结 references/assets/scripts/assert/evals
+  目录语义、三级路径约定（SKILL_DIR/PLUGIN_ROOT/PROJECT_DIR）、
+  Template ≠ Schema ≠ Assert ≠ Review ≠ Runtime Gate 分层、anti-regrowth 规则。
+- **P0-2 validator**：`runtime/validators/skill-packaging-validator.mjs` 只依赖
+  node:fs/node:path；检查目录合法性、supporting file 可达性、orphan、
+  skill set==9、agents==5、API boundary。testRef 为 skill-packaging-smoke。
+- **P0-3 命名统一**：harness `reference/` → `references/`；protocol/ 四文件
+  扁平合并为 executor-contract.md + review-contract.md（behavior-map、
+  stage-decisions 保留）。
+- **P0-4 导航**：全部 SKILL.md 补 Supporting files 段（design 为模板），
+  description 改为触发场景描述（去掉版本号）。
+- **P0-5 assert 一等公民**：plan 的 assertTasksArtifact() 拆出
+  `skills/plan/assert/task-shape.mjs`，finalize 只做聚合。
+- **P0-6 assets 分离**：design/tasks/requirements 模板迁入各 skill `assets/`；
+  validation.md 暂留 harness/templates/（lifecycle scaffold 复制，属 P1）。
+- **P0-7 Runtime API**：新增 `runtime/api/{handoff,result,task}.mjs` facade，
+  9 个 skill scripts 不再 import runtime/core|lib；validator 强制。
+
+验证：`node bin/run-smoke-suite.mjs` 208 files PASS。**尚未发布**——发布需
+版本 bump + tag + CHANGELOG + 隔离安装验证（见发布流程 memory）。
+
+### 已知遗留（P1 候选）
+
+- `runtime/compat/skills/` v5 兼容 skill 引用已失效路径（`../harness/reference/`、
+  `harness/templates/design.md`），不被 v6 调度，但随包发布；P1 清理。
+- worktree.baseRef=head 仍只在源仓库 .claude/settings.json，未随插件发布——
+  Worktree doctor 检测为 P1 第一项。
+- Implement Mutation Lane / Verification Lane 拆分依赖 Plan writeScope contract
+  （先落 Plan，再拆 lane）。
+- Skill evals/（行为回归）未建，现有 smoke 仍以固定短语为主。
+
 
 ## 0.3.2 路径重构的遗留漂移（0.3.8 修复）
 
