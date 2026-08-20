@@ -3,6 +3,11 @@
 agents/.omc/
 harness/ACTIVE_CHANGE
 harness/work/
+harness/changes/draft-scaffold-probe/
+harness/changes/launcher-probe/
+harness/changes/progression-smoke/
+harness/changes/test-runner-smoke/
+harness/lessons/
 runtime/.bootstrap-ran
 
 # Claude Code local-only config
