@@ -5,6 +5,7 @@ tools:
   - Read
   - Bash
 model: sonnet
+maxTurns: 20
 ---
 
 # Reviewer

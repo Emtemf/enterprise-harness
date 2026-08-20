@@ -8,6 +8,7 @@ tools:
   - Edit
 isolation: worktree
 model: sonnet
+maxTurns: 40
 ---
 
 # Implementer

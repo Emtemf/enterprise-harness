@@ -1,6 +1,5 @@
 ---
 name: explore-code
-description: 通过隔离的 CodeGraph-first worker 收集可验证的代码事实。
 description: >
   Collect verifiable code facts through an isolated CodeGraph-first worker.
   Use when the harness needs code-level evidence for clarify, design, or verify.
@@ -14,6 +13,10 @@ background: false
 
 本 Skill 是代码事实 lane，不是实现或需求决策阶段。Main 使用 v2 handoff 将一个受限 exploration
 brief 派给 `code-explore`；Main 只接收压缩、schema-valid `ResearchPacket`，而不重新做同一轮源代码探索。
+
+## Supporting files
+
+- [behavioral evals](evals/evals.json) — 验证 CodeGraph-first、fallback 记录、只读边界与压缩输出
 
 ## 运行合同
 

@@ -1,6 +1,6 @@
 {
   "policyVersion": 1,
-  "description": "v0.5 narrow policy mapping. Replaces behavior-checks.json as a workflow engine. Maps stages to capability requirements, governed paths, and review rubric selection. Does not define a stage graph or lifecycle transitions.",
+  "description": "v0.5 narrow policy mapping. Maps stages to capability requirements, governed paths, and artifacts. Does not define lifecycle transitions or review rubric selection; runtime/lib/review-rubrics.mjs is the rubric authority.",
   "governedPaths": [
     "src/main/java/**",
     "src/test/java/**",
@@ -9,46 +9,29 @@
   "stages": {
     "clarify": {
       "facts": ["code-explore", "doc-research"],
-      "artifact": "requirements.md",
-      "rubrics": ["requirements"]
+      "artifact": "requirements.md"
     },
     "design": {
       "facts": ["code-explore", "doc-research"],
-      "artifact": "design.md",
-      "rubrics": ["design", "api", "data"]
+      "artifact": "design.md"
     },
     "plan": {
       "facts": ["code-explore"],
-      "artifact": "tasks.md",
-      "rubrics": ["plan"]
+      "artifact": "tasks.md"
     },
     "implement": {
       "facts": ["code-explore"],
       "artifact": "evidence/execution/<task-id>.json",
-      "rubrics": ["task"],
       "writer": "implementer"
     },
     "verify": {
       "facts": ["code-explore"],
-      "artifact": "validation.md",
-      "rubrics": ["final", "api", "security"]
+      "artifact": "validation.md"
     },
     "archive": {
       "facts": [],
-      "artifact": null,
-      "rubrics": ["archive"]
+      "artifact": null
     }
-  },
-  "rubricToReviewer": {
-    "requirements": "reviewer",
-    "design": "reviewer",
-    "api": "reviewer",
-    "data": "reviewer",
-    "plan": "reviewer",
-    "task": "reviewer",
-    "final": "reviewer",
-    "security": "reviewer",
-    "archive": "reviewer"
   },
   "completionReviewers": [],
   "factLanes": {

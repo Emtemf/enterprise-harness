@@ -7,6 +7,7 @@ tools:
   - Edit
   - Bash
 model: sonnet
+maxTurns: 24
 ---
 
 # Artifact Worker

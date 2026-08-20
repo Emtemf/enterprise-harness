@@ -19,6 +19,7 @@ tools:
   - mcp__plugin_enterprise-harness_codegraph__codegraph_callees
   - mcp__plugin_enterprise-harness_codegraph__codegraph_impact
 model: sonnet
+maxTurns: 20
 ---
 
 # Code Explore

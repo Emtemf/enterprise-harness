@@ -26,6 +26,7 @@ try {
     '## Task 1: task-1',
     '### Target and scope',
     '- Goal: change one file',
+    '- Dependencies: `none`',
     '### Frozen inputs',
     '- Consumes: design.md',
     '### Execution strategy',
@@ -69,6 +70,16 @@ try {
   const missingArgv = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.notEqual(missingArgv.status, 0, 'empty primary argv must not finalize');
   assert.match(missingArgv.stderr, /missing frozen primary argv/u);
+
+  fs.writeFileSync(path.join(root, tasksRef), validTasks.replace('- Dependencies: `none`', '- Dependencies:'));
+  const missingDependencies = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(missingDependencies.status, 0, 'implicit task ordering must not replace dependency evidence');
+  assert.match(missingDependencies.stderr, /must declare dependencies or none/u);
+
+  fs.writeFileSync(path.join(root, tasksRef), validTasks.replace('- Dependencies: `none`', '- Dependencies: `task-0`'));
+  const unknownDependency = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(unknownDependency.status, 0, 'unknown dependency must not finalize');
+  assert.match(unknownDependency.stderr, /references unknown dependency task-0/u);
 
   fs.writeFileSync(path.join(root, tasksRef), validTasks);
   fs.writeFileSync(path.join(root, designRef), '# Design changed\n');

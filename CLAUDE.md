@@ -15,21 +15,11 @@ clarify → design → plan → implement → verify → archive
 
 不得从普通对话直接跳进 design、实现或完成声明。
 
-## Clarify 方法论
+## Clarify 边界
 
-Clarify 融合自三个参考项目：
-
-- **grill-me**（mattpocock/skills）：frontier analysis / 逐步消除不确定性
-- **deep-interview**（oh-my-claudecode）：Round 0 topology / weakest uncertainty first
-- **superpowers brainstorming**（obra/superpowers）：先理解 → 再设计 → 用户确认 → 才实施
-
-核心原则：**Facts → Agent 找（CodeGraph/Context7）；Decisions → 用户决定。**
-
-Clarify 使用 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context），API/Data 只在 impact 相关时展开为条件分支。每次用 `AskUserQuestion` 只问一个问题，提供选项和推荐。
-
-当需求已明确 + 代码事实已确认 + 无高风险 assumption 时，走 Fast Path（0~1 问题直接进 Design）。
-
-详见 `harness/specs/ambiguity-scoring.md` 和 `skills/harness/SKILL.md`。
+**Facts → Agent 找（CodeGraph/Context7）；Decisions → 用户决定。** 每次只问一个问题；需求已明确、
+代码事实已确认且无高风险 assumption 时走 Fast Path。完整方法只在
+`harness/specs/ambiguity-scoring.md` 与 `skills/harness/SKILL.md` 定义，不在本文件复制。
 
 ## 硬约束
 
@@ -44,27 +34,10 @@ Clarify 使用 component × 5 核心维度（Goal / Scope / Constraints / Accept
 - 聊天不是状态真相；正式证据必须落入 change 目录、receipt 或 ledger。
 - 没有 fresh validation、独立 checker 和 completion evidence 时不得声称完成。
 
-## 受治理路径
+## 受治理写入
 
-以下路径受 pre/post-write gate 保护：
-
-```text
-src/main/java/**
-src/test/java/**
-openapi/**
-```
-
-写入前必须存在：
-
-- 有效 `harness/ACTIVE_CHANGE`
-- 已确认 clarify
-- approved design 和 plan
-- 当前 task
-- scoped executor binding
-- 由 `code-explore` agent 留下的 CodeGraph attempt（fallback 探索时须为同一 agent）
-- 当前 task 有执行证据（receipt）
-
-不得通过修改 `state.json` 投影伪造上述证据。
+`src/main/java/**`、`src/test/java/**` 与 `openapi/**` 受 host gate 保护。授权条件只由
+`harness/specs/hooks.md`、`state-schema.md` 与 `evidence.md` 定义；修改 `state.json` 投影不能伪造证据。
 
 ## 真相层
 

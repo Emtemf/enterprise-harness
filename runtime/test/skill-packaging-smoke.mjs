@@ -25,6 +25,7 @@ const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-skill-packaging-'));
 try {
   fs.cpSync(path.join(root, 'skills'), path.join(sandbox, 'skills'), { recursive: true });
   fs.cpSync(path.join(root, 'agents'), path.join(sandbox, 'agents'), { recursive: true });
+  fs.copyFileSync(path.join(root, 'package.json'), path.join(sandbox, 'package.json'));
   fs.mkdirSync(path.join(sandbox, '.claude-plugin'), { recursive: true });
   fs.copyFileSync(
     path.join(root, '.claude-plugin', 'plugin.json'),
@@ -40,6 +41,18 @@ try {
   assert.ok(invalid.problems.some((problem) => problem.includes('forbidden directory "reference/"')));
   fs.rmSync(path.join(harnessDir, 'reference'), { recursive: true });
   assert.ok(validateSkillPackaging(sandbox).ok, 'validator calls must not retain problems from earlier runs');
+
+  fs.writeFileSync(harnessSkill, originalSkill.replace('name: harness', 'name: harness\nname: harness'));
+  invalid = validateSkillPackaging(sandbox);
+  assert.ok(invalid.problems.some((problem) => problem.includes('duplicate frontmatter key "name"')));
+  fs.writeFileSync(harnessSkill, originalSkill);
+
+  const harnessEvals = path.join(harnessDir, 'evals', 'evals.json');
+  const originalEvals = fs.readFileSync(harnessEvals, 'utf-8');
+  fs.writeFileSync(harnessEvals, originalEvals.replace('"version": "0.5.4"', '"version": "stale"'));
+  invalid = validateSkillPackaging(sandbox);
+  assert.ok(invalid.problems.some((problem) => problem.includes('evals.version stale')));
+  fs.writeFileSync(harnessEvals, originalEvals);
 
   fs.writeFileSync(path.join(harnessDir, 'references', 'orphan.md'), '# orphan\n');
   invalid = validateSkillPackaging(sandbox);

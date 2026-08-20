@@ -24,6 +24,7 @@ classification 在 clarify 后作为内部制品记录；TDD 是 implement 内 t
 - [executor 合同](references/executor-contract.md) — executor 最小输入与 StageResult 约束
 - [requirements 模板](assets/requirements.md.tmpl) — 生成 requirements.md 时的输出骨架
 - [finalize-clarify-result.mjs](scripts/finalize-clarify-result.mjs) — clarify self-check 聚合脚本
+- [behavioral evals](evals/evals.json) — 验证 Fast Path、Facts/Decisions、review block 与 stale evidence 行为
 
 ## Clarify
 

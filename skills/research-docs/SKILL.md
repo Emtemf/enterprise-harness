@@ -1,6 +1,5 @@
 ---
 name: research-docs
-description: 通过隔离的 Context7-first worker 收集版本绑定的外部事实。
 description: >
   Collect version-bound external facts through an isolated Context7-first worker.
   Use when the harness needs library/framework/SDK behavior evidence.
@@ -15,6 +14,10 @@ background: false
 本 Skill 是外部库、framework、SDK 与版本行为的事实 lane。Main 将小而明确的研究 brief 通过 v2
 handoff 交给 `doc-research`，并只消费 schema-valid 的压缩 `ResearchPacket`；研究结果不能直接推进
 阶段或替用户做技术取舍。
+
+## Supporting files
+
+- [behavioral evals](evals/evals.json) — 验证 Context7-first、版本绑定、fallback 记录与不可信内容边界
 
 ## 运行合同
 

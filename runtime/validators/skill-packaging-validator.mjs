@@ -24,6 +24,7 @@ const EXPECTED_AGENTS = [
 
 const SUPPORTING_DIRS = ['references', 'assets', 'scripts', 'assert', 'evals'];
 const SUPPORTING_PATH = '(?:references|assets|scripts|assert|evals)';
+const EVAL_CATEGORIES = new Set(['behavioral', 'runtime-gate']);
 
 function toPosix(value) {
   return value.split(path.sep).join('/');
@@ -57,12 +58,69 @@ function importSpecifiers(content) {
     .map((match) => match[1].replace(/\\/gu, '/'));
 }
 
+function readFrontmatter(content, label, fail) {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/u);
+  if (!match) {
+    fail(`${label}: YAML frontmatter missing`);
+    return '';
+  }
+  const seen = new Set();
+  for (const keyMatch of match[1].matchAll(/^([A-Za-z][A-Za-z0-9-]*):/gmu)) {
+    const key = keyMatch[1];
+    if (seen.has(key)) fail(`${label}: duplicate frontmatter key "${key}"`);
+    seen.add(key);
+  }
+  return match[1];
+}
+
+function validateEvals(skill, evalsPath, expectedVersion, fail) {
+  let evals;
+  try {
+    evals = JSON.parse(fs.readFileSync(evalsPath, 'utf-8'));
+  } catch (error) {
+    fail(`${skill}: evals/evals.json is invalid JSON: ${error.message}`);
+    return;
+  }
+  if (evals.skill !== skill) fail(`${skill}: evals.skill must equal the skill name`);
+  if (evals.version !== expectedVersion) {
+    fail(`${skill}: evals.version ${evals.version || 'missing'} != package version ${expectedVersion}`);
+  }
+  if (!Array.isArray(evals.cases) || evals.cases.length < 4) {
+    fail(`${skill}: evals.cases must contain at least four behavioral cases`);
+    return;
+  }
+  const ids = new Set();
+  for (const [index, testCase] of evals.cases.entries()) {
+    const prefix = `${skill}: evals.cases[${index}]`;
+    for (const field of ['id', 'description', 'expected', 'category']) {
+      if (typeof testCase?.[field] !== 'string' || !testCase[field].trim()) {
+        fail(`${prefix}.${field} must be a non-empty string`);
+      }
+    }
+    if (typeof testCase?.id === 'string' && ids.has(testCase.id)) {
+      fail(`${skill}: duplicate eval case id "${testCase.id}"`);
+    }
+    if (typeof testCase?.id === 'string') ids.add(testCase.id);
+    if (!EVAL_CATEGORIES.has(testCase?.category)) {
+      fail(`${prefix}.category must be behavioral or runtime-gate`);
+    }
+  }
+}
+
 export function validateSkillPackaging(pluginRoot) {
   const problems = [];
   const fail = (message) => problems.push(message);
   const skillsRoot = path.join(pluginRoot, 'skills');
   const agentsDir = path.join(pluginRoot, 'agents');
   const pluginManifestPath = path.join(pluginRoot, '.claude-plugin', 'plugin.json');
+  const packageJsonPath = path.join(pluginRoot, 'package.json');
+  let packageVersion = null;
+
+  try {
+    packageVersion = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version;
+  } catch (error) {
+    fail(`package.json is missing or invalid: ${error.message}`);
+  }
 
   if (!fs.existsSync(skillsRoot)) {
     fail('skills/ directory missing');
@@ -86,6 +144,23 @@ export function validateSkillPackaging(pluginRoot) {
     const expectedAgents = [...EXPECTED_AGENTS].sort();
     if (actualAgents.join(',') !== expectedAgents.join(',')) {
       fail(`agents/ actual [${actualAgents}] != expected [${expectedAgents}]`);
+    }
+    for (const agentFile of EXPECTED_AGENTS) {
+      const agentPath = path.join(agentsDir, agentFile);
+      if (!fs.existsSync(agentPath)) continue;
+      const agentName = path.basename(agentFile, '.md');
+      const frontmatter = readFrontmatter(fs.readFileSync(agentPath, 'utf-8'), `agents/${agentFile}`, fail);
+      const declaredName = frontmatter.match(/^name:\s*(\S+)\s*$/mu)?.[1];
+      if (declaredName !== agentName) {
+        fail(`agents/${agentFile}: frontmatter name "${declaredName || 'missing'}" != file name`);
+      }
+      const maxTurns = Number(frontmatter.match(/^maxTurns:\s*(\d+)\s*$/mu)?.[1]);
+      if (!Number.isInteger(maxTurns) || maxTurns < 1 || maxTurns > 64) {
+        fail(`agents/${agentFile}: maxTurns must be an integer from 1 to 64`);
+      }
+      if (agentName === 'reviewer' && /^memory:/mu.test(frontmatter)) {
+        fail('agents/reviewer.md: reviewer must not use persistent memory');
+      }
     }
   }
   if (!fs.existsSync(pluginManifestPath)) {
@@ -112,7 +187,8 @@ export function validateSkillPackaging(pluginRoot) {
       continue;
     }
     const content = fs.readFileSync(skillMdPath, 'utf-8');
-    const name = content.match(/^name:\s*(.+)$/mu)?.[1]?.trim();
+    const frontmatter = readFrontmatter(content, `${skill}/SKILL.md`, fail);
+    const name = frontmatter.match(/^name:\s*(.+)$/mu)?.[1]?.trim();
     if (!name) fail(`${skill}: frontmatter name missing`);
     else if (name !== skill) fail(`${skill}: frontmatter name "${name}" != directory name`);
 
@@ -152,6 +228,13 @@ export function validateSkillPackaging(pluginRoot) {
           fail(`${skill}: supporting file "${ref}" is not referenced by SKILL.md (orphan)`);
         }
       }
+    }
+
+    const evalsPath = path.join(skillDir, 'evals', 'evals.json');
+    if (!fs.existsSync(evalsPath)) {
+      fail(`${skill}: evals/evals.json is required for shipped skills`);
+    } else if (packageVersion) {
+      validateEvals(skill, evalsPath, packageVersion, fail);
     }
 
     if (/\$\{CLAUDE_SKILL_DIR\}\/\.\./u.test(content) || /(?:^|[\s"'`])\.\.\/\.\.\/runtime\//mu.test(content)) {

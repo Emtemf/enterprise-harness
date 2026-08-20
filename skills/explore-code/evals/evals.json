@@ -1,0 +1,30 @@
+{
+  "skill": "explore-code",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "codegraph-first",
+      "description": "代码探索第一步使用 CodeGraph capability",
+      "expected": "ResearchPacket 记录 CodeGraph attempt 与 authority instance",
+      "category": "behavioral"
+    },
+    {
+      "id": "fallback-explicit",
+      "description": "CodeGraph 不可用或结果不足时才使用 Read/Grep/Glob fallback",
+      "expected": "sources 中记录 fallback 原因、降级范围与 scoped confirmation",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "read-only-boundary",
+      "description": "代码事实 lane 不修改候选代码或 durable lifecycle state",
+      "expected": "agent tool surface 不含 Write、Edit 或 Bash",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "compressed-packet",
+      "description": "worker 返回 schema-valid 压缩 ResearchPacket 而不是原始 dump",
+      "expected": "Main 只消费结论、来源、置信度和 correction",
+      "category": "behavioral"
+    }
+  ]
+}

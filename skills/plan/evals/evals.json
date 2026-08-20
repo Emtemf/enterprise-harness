@@ -1,0 +1,36 @@
+{
+  "skill": "plan",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "bounded-reviewable-task",
+      "description": "task 必须 bounded、reviewable、restartable、verifiable 与 rollback-aware",
+      "expected": "目标、in/out scope、验收和 recovery 都明确",
+      "category": "behavioral"
+    },
+    {
+      "id": "dependency-explicit",
+      "description": "task 依赖必须显式列出；无依赖时写 none",
+      "expected": "不能用文档顺序隐式表达依赖",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "write-scope-frozen",
+      "description": "每个 task 冻结 intended implementation surface 与 out-of-scope",
+      "expected": "Implement 可从 Plan 得到明确写域输入",
+      "category": "behavioral"
+    },
+    {
+      "id": "strategy-specific-contract",
+      "description": "每个 task 只选择一个支持的 executionStrategy 并说明理由",
+      "expected": "TDD、direct、migration 等使用各自的前置条件和 receipt 链",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "frozen-command-argv",
+      "description": "验证命令以 exact argv 冻结，不接受 run tests 等模糊描述",
+      "expected": "空 argv、占位符或 unsupported strategy 被 finalize 阻断",
+      "category": "runtime-gate"
+    }
+  ]
+}
