@@ -1,6 +1,8 @@
 ---
 name: review
-description: 对 Harness 制品和任务应用独立、digest 绑定且可由运行时验证的评审标准。
+description: >
+  Apply independent, digest-bound, runtime-verified review criteria
+  to Harness artifacts and task results. Use after any stage produces a StageResult.
 user-invocable: false
 context: fork
 agent: enterprise-harness:reviewer
@@ -10,6 +12,12 @@ background: false
 # Review
 
 本 Skill 只审阅 frozen artifact、对应的 StageResult、input digest、ResearchPacket 和 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs"` 机械选择的 rubric。不得读取 executor transcript、共享私有推理或以 worker 自报代替证据；不得编辑 candidate 或向用户提问。
+
+## Supporting files
+
+- [select-rubrics.mjs](scripts/select-rubrics.mjs) — 按 stage 与 classification 机械选择评审标准
+- [finalize-result.mjs](scripts/finalize-result.mjs) — 将评审 verdict 编码为 schema-valid ReviewResult
+- [selected rubrics](references/) — 按 stage 选择后读取的评审标准文件
 
 ## 执行合同
 

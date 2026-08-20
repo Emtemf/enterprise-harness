@@ -1,6 +1,8 @@
 ---
 name: implement
-description: 在隔离 worktree 中使用策略匹配的真实执行收据完成一个冻结任务。
+description: >
+  Execute a frozen task in an isolated worktree with strategy-matched
+  real execution receipts. Use after plan is approved.
 user-invocable: false
 context: fork
 agent: enterprise-harness:implementer
@@ -12,6 +14,10 @@ background: false
 本 Skill 是 Implement 阶段单个冻结 task 的执行合同。`implementer` 是唯一可修改产品代码的
 capability；它在需要修改代码时使用原生隔离 worktree。它只消费 task 的 digest-bound handoff，
 不扩展范围、不审批自己、不代替 Main 做业务决定。
+
+## Supporting files
+
+- [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 task receipt 完整性、生成 StageResult
 
 ## 开始前
 

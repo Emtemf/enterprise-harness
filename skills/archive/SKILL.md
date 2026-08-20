@@ -1,6 +1,8 @@
 ---
 name: archive
-description: 校验 fresh CompletionProof 后归档不可变的变更历史。
+description: >
+  Verify fresh CompletionProof and archive immutable change history.
+  Use after verify produces passing CompletionProof.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -12,6 +14,10 @@ background: false
 本 Skill 是 Archive 阶段的完成性检查合同。它不制造验证结论，也不接受聊天中的“已完成”；只消费
 runtime 生成的 fresh CompletionProof、验证 artifact 和独立 archive-completeness review。未满足条件的
 change 必须保持 active 或显式 abandon，绝不能伪装归档。
+
+## Supporting files
+
+- [finalize-result.mjs](scripts/finalize-result.mjs) — 校验 CompletionProof 与 archive inputs、生成 StageResult
 
 ## 归档前检查
 

@@ -1,6 +1,9 @@
 ---
 name: research-docs
 description: 通过隔离的 Context7-first worker 收集版本绑定的外部事实。
+description: >
+  Collect version-bound external facts through an isolated Context7-first worker.
+  Use when the harness needs library/framework/SDK behavior evidence.
 user-invocable: false
 context: fork
 agent: enterprise-harness:doc-research

@@ -1,6 +1,8 @@
 ---
 name: verify
-description: 运行冻结验证并汇集 digest-bound 的完成证据。
+description: >
+  Run frozen validations and collect digest-bound completion evidence.
+  Use after all tasks pass with independent review.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -13,6 +15,10 @@ background: false
 independent reviews、classification 与冻结验证 argv，产出 `validation.md` 和 schema-valid
 `StageResult`。非空 waiver 在可信授权制品落地前一律 fail closed。不将自己或旧验证的结论
 宣布为最终完成。
+
+## Supporting files
+
+- [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
 
 ## 冻结输入
 

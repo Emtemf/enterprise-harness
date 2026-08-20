@@ -1,6 +1,8 @@
 ---
 name: design
-description: 生成 digest 绑定、可评审且可由运行时验证的技术设计制品。
+description: >
+  Generate digest-bound, reviewable, runtime-verified technical design artifacts.
+  Use after clarify produces approved requirements.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker

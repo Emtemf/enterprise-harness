@@ -1,6 +1,9 @@
 ---
 name: explore-code
 description: 通过隔离的 CodeGraph-first worker 收集可验证的代码事实。
+description: >
+  Collect verifiable code facts through an isolated CodeGraph-first worker.
+  Use when the harness needs code-level evidence for clarify, design, or verify.
 user-invocable: false
 context: fork
 agent: enterprise-harness:code-explore

@@ -1,6 +1,8 @@
 ---
 name: plan
-description: 冻结独立可执行、策略明确且 digest 绑定的实现任务列表。
+description: >
+  Freeze independent, strategy-bound, digest-locked implementation tasks
+  with exact argv and write scope. Use after design is approved.
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -12,6 +14,11 @@ background: false
 本 Skill 是 Plan 阶段的执行合同。它只消费通过独立 review 的 `design.md`、
 `classification.json`、研究包和它们的冻结 digest，产出 `tasks.md` 与 schema-valid
 `StageResult`。它不修改产品代码、不替 Main 向用户提问、也不批准自己的计划。
+
+## Supporting files
+
+- [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
+- [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
 
 ## 输入与边界
 

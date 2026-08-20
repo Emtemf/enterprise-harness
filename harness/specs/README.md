@@ -20,5 +20,6 @@
 - [verify-contract.md](verify-contract.md)
 - [stage-observability.md](stage-observability.md) — 阶段时序、事件、artifact 与 `workflow audit` 的可执行合同
 - [upstream-mapping.md](upstream-mapping.md)
+- [skill-packaging.md](skill-packaging.md) — Skill 目录结构、资源语义、路径约定和分层契约
 
 每份现行 spec 必须声明 `status`、`owner`、`lastVerified`、`implementationRefs` 和 `testRefs`。主合同负责边界，附录不能重新描述整体架构。
