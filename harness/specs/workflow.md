@@ -104,6 +104,11 @@ controls the task flow: a `tdd` task requires a real RED receipt before the smal
 implementation and refactor; direct and migration tasks require their own explicit preconditions
 and receipts. The implementation capability is the only capability allowed to write product code.
 Worktree isolation does not establish reviewer independence.
+Frozen commands execute only in the worktree, while change inputs and durable receipts remain in
+the session-bound subject checkout. An independent task review first checks the isolated execution
+result. Only after a passing verdict does Main integrate the reviewed per-path output and publish a
+machine-checked task integration receipt bound to that review. CompletionProof requires execution,
+independent review, and integration evidence for every planned task.
 
 ## Verify
 

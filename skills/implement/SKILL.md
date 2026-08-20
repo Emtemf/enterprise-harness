@@ -69,11 +69,16 @@ pass。
    `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <task-id> <run-id>`，脚本只读取该 task 的 canonical runtime receipt；再用
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
    持久化 StageResult；assertions 与 `selfCheck` 必须绑定 receipt、产物和输入 digest。
-4. Main 必须再创建不同 run 的 `review` check。worktree 只隔离文件，不建立 reviewer 独立性；
-   只有独立 `ReviewResult` 和 runtime CompletionProof 才能完成 task/stage。
+4. Main 必须再创建不同 run 的 `review` check，先在隔离输出上完成独立检查。worktree 只隔离文件，
+   不建立 reviewer 独立性；只有 agent/run provenance 与 `ReviewResult` 才能证明独立 review。
+5. Review 通过后，Main 将 receipt 中的 changed paths 接入 subject checkout，并运行
+   `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" task-integrate <change-id> <task-id> <review-run-id>`。
+   integration receipt 必须绑定该 passing review；只有 execution、review、integration 三项证据和
+   runtime CompletionProof 齐全才能完成 task/stage。
 
 ## 禁止事项
 
 - 非 TDD task 不得编造 RED evidence；TDD task 也不得跳过真实 RED。
 - 不修改未冻结的路径、安装任意新依赖、重写历史 evidence 或把 receipt 写成手工总结。
+- implementer 不执行 subject merge/cherry-pick，也不发布 controller-owned integration receipt。
 - 不在此 forked Skill 中向用户提问；把明确的 `NEEDS_DECISION` 返回给 Main。

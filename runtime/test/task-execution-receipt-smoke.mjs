@@ -28,6 +28,7 @@ const base = {
     treeDigestAfter: 'd'.repeat(64),
   },
   changedPaths: ['src/example.mjs'],
+  outputSnapshot: { 'src/example.mjs': { state: 'file', digest: '0'.repeat(64) } },
   inputDigests: {
     'harness/changes/implement-slice/design.md': 'a'.repeat(64),
     'harness/changes/implement-slice/tasks.md': 'b'.repeat(64),
@@ -135,6 +136,7 @@ try {
       treeDigestAfter: 'd'.repeat(64),
     },
     changedPaths: ['src/example.mjs'],
+    outputSnapshot: { 'src/example.mjs': { state: 'file', digest: '0'.repeat(64) } },
     inputDigests: { [path.join('harness', 'changes', branchChangeId, 'tasks.md')]: tasksDigest },
     executions: [{
       phase: 'VERIFY',
@@ -354,4 +356,3 @@ try {
 }
 
 console.log(`PASS task-execution-receipt ${mode}`);
-

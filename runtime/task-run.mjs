@@ -7,7 +7,6 @@ import { loadHandoffV2 } from './core/handoff-v2.mjs';
 import {
   activeChangeId,
   boundHarnessAgent,
-  gitCommonDir,
 } from './lib/agent-evidence.mjs';
 import {
   captureWorktreeBaseline,
@@ -32,9 +31,11 @@ import {
 } from './lib/task-receipt-publication.mjs';
 import { activeTaskRunAuthorizationPath } from './lib/task-run-authorization.mjs';
 import { parseTaskChildOutcome } from './lib/task-child-outcome.mjs';
+import { resolveWorktreeContext } from './lib/worktree-context.mjs';
 import {
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,
+  captureTaskOutputSnapshot,
   readTaskExecutionReceipt,
   TASK_EXECUTION_PHASES,
   validateTaskExecutionReceipt,
@@ -72,14 +73,14 @@ function loadState(root, changeId) {
   return { state, ref: `harness/changes/${changeId}/state.json` };
 }
 
-function validateHandoff(root, changeId, taskId, runId) {
-  const input = loadHandoffV2(root, changeId, runId);
+function validateHandoff(executionRoot, subjectRoot, changeId, taskId, runId) {
+  const input = loadHandoffV2(executionRoot, changeId, runId);
   if (input.role !== 'execute' || input.stage !== 'implement'
     || input.agent?.type !== 'enterprise-harness:implementer'
     || input.agent?.skill !== 'implement') {
     throw new Error('handoff must be an implementer/implement execute run');
   }
-  const { state, ref: stateRef } = loadState(root, changeId);
+  const { state, ref: stateRef } = loadState(subjectRoot, changeId);
   if (state.currentTask !== taskId) {
     throw new Error(`currentTask must be ${taskId}`);
   }
@@ -90,18 +91,18 @@ function validateHandoff(root, changeId, taskId, runId) {
     }
   }
   for (const ref of input.inputRefs) {
-    if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
+    if (sha256Artifact(subjectRoot, ref) !== input.inputDigests[ref]) {
       throw new Error(`handoff input is stale: ${ref}`);
     }
   }
   return input;
 }
 
-function revalidateHandoff(root, changeId, taskId, runId, expectedInput) {
-  if (activeChangeId(root) !== changeId) {
+function revalidateHandoff(executionRoot, subjectRoot, changeId, taskId, runId, expectedInput) {
+  if (activeChangeId(executionRoot) !== changeId) {
     throw new Error(`active change is not ${changeId}`);
   }
-  const currentInput = validateHandoff(root, changeId, taskId, runId);
+  const currentInput = validateHandoff(executionRoot, subjectRoot, changeId, taskId, runId);
   if (!sameJson(currentInput, expectedInput)) {
     throw new Error('execute handoff changed after task-run validation');
   }
@@ -183,23 +184,30 @@ try {
 
 const root = path.resolve(process.cwd());
 const childWrapper = path.resolve(path.dirname(process.argv[1]), 'task-child.mjs');
-const commonDir = gitCommonDir(root);
+let worktreeContext;
+try {
+  worktreeContext = resolveWorktreeContext(root, { requireIsolatedWhenBound: true });
+} catch (error) {
+  fail(error.message);
+}
+const subjectRoot = worktreeContext.subjectRoot;
+const commonDir = worktreeContext.gitCommonDir;
 if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 
 let input;
 let agentId;
 try {
-  input = validateHandoff(root, changeId, taskId, runId);
+  input = validateHandoff(root, subjectRoot, changeId, taskId, runId);
   agentId = resolveBinding(root, changeId, runId);
 } catch (error) {
   fail(error.message);
 }
 
-const canonicalPath = taskExecutionReceiptPath(root, changeId, taskId);
+const canonicalPath = taskExecutionReceiptPath(subjectRoot, changeId, taskId);
 const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
 const taskLockPath = path.join(path.dirname(spoolPath), 'task-execution');
 const intentPath = `${spoolPath}.intent`;
-assertNoSymlinkComponents(root, canonicalPath, 'canonical task receipt path');
+assertNoSymlinkComponents(subjectRoot, canonicalPath, 'canonical task receipt path');
 assertNoSymlinkComponents(commonDir, spoolPath, 'task receipt spool path');
 assertNoSymlinkComponents(commonDir, taskLockPath, 'task execution lock path');
 assertNoSymlinkComponents(commonDir, intentPath, 'task execution intent path');
@@ -211,7 +219,7 @@ try {
   withRecoverableTaskLock(taskLockPath, ({ lockId }) => {
     recoverTaskReceiptSpool(spoolPath);
     if (fs.existsSync(canonicalPath)) {
-      const existing = readTaskExecutionReceipt(root, changeId, taskId, {
+      const existing = readTaskExecutionReceipt(subjectRoot, changeId, taskId, {
         expectedAgent: agentId,
         expectedInputDigests: input.inputDigests,
         requireTrusted: true,
@@ -233,7 +241,7 @@ try {
           || !sameJson(currentSpool.receipt, existing.receipt)) {
           throw new Error('canonical task receipt is not bound to this execute run');
         }
-        revalidateHandoff(root, changeId, taskId, runId, input);
+        revalidateHandoff(root, subjectRoot, changeId, taskId, runId, input);
         console.log(`TASK_RECEIPT=${canonicalPath}`);
         childStatus = 0;
         return;
@@ -262,7 +270,7 @@ try {
     if (previous) assertReceiptWorktree(previous, root, commonDir);
     if (previous) {
       const priorProblems = validateTaskExecutionReceipt(previous, {
-        root,
+        root: subjectRoot,
         expectedChangeId: changeId,
         expectedTaskId: taskId,
         expectedAgent: agentId,
@@ -290,11 +298,11 @@ try {
         receipt: receiptToPublish,
         isFinal,
         validateFresh: () => {
-          revalidateHandoff(root, changeId, taskId, runId, input);
+          revalidateHandoff(root, subjectRoot, changeId, taskId, runId, input);
         },
         validateTarget: (target) => {
           if (target === canonicalPath) {
-            assertNoSymlinkComponents(root, target, 'canonical task receipt path');
+            assertNoSymlinkComponents(subjectRoot, target, 'canonical task receipt path');
             return;
           }
           if (target === spoolPath) {
@@ -312,7 +320,7 @@ try {
     if (previous && requiredPreviousPhases
       && previous.executions.length === requiredPreviousPhases.length) {
       const finalProblems = validateTaskExecutionReceipt(previous, {
-        root,
+        root: subjectRoot,
         expectedChangeId: changeId,
         expectedTaskId: taskId,
         expectedStrategy: previous.executionStrategy,
@@ -330,10 +338,10 @@ try {
       return;
     }
 
-    revalidateHandoff(root, changeId, taskId, runId, input);
+    revalidateHandoff(root, subjectRoot, changeId, taskId, runId, input);
     const executionIndex = previous?.executions?.length || 0;
     const resolution = resolveTaskExecutionCommand(
-      root,
+      subjectRoot,
       changeId,
       taskId,
       phaseRaw,
@@ -348,7 +356,7 @@ try {
     const treeDigestBefore = previous?.worktree?.treeDigestBefore
       || headSnapshotDigest(root, headBefore);
     const startedAt = new Date().toISOString();
-    revalidateHandoff(root, changeId, taskId, runId, input);
+    revalidateHandoff(root, subjectRoot, changeId, taskId, runId, input);
     const authorizationPath = activeTaskRunAuthorizationPath(root, changeId, runId);
     assertNoSymlinkComponents(commonDir, authorizationPath, 'task authorization path');
     const authorizationToken = crypto.randomUUID();
@@ -436,7 +444,7 @@ try {
       throw new Error('task child wrapper exit status does not match its authenticated outcome');
     }
     childStatus = childOutcome.exitCode;
-    revalidateHandoff(root, changeId, taskId, runId, input);
+    revalidateHandoff(root, subjectRoot, changeId, taskId, runId, input);
 
     const headAfter = String(runGit(['rev-parse', 'HEAD'], root)).trim();
     const execution = {
@@ -451,6 +459,7 @@ try {
       stdoutDigest: sha256(child.stdout || ''),
       stderrDigest: sha256(child.stderr || ''),
     };
+    const changedPaths = changedPathsSinceBaseline(root, baseline);
     const receipt = {
       receiptVersion: 2,
       provenance: 'runtime-runner',
@@ -472,7 +481,8 @@ try {
         treeDigestBefore,
         treeDigestAfter: worktreeSnapshotDigest(root),
       },
-      changedPaths: changedPathsSinceBaseline(root, baseline),
+      changedPaths,
+      outputSnapshot: captureTaskOutputSnapshot(root, changedPaths),
       inputDigests: { ...input.inputDigests },
       executions: [
         ...(previous?.executions || []),
@@ -482,7 +492,7 @@ try {
     };
     if (resolution.isFinal) {
       const problems = validateTaskExecutionReceipt(receipt, {
-        root,
+        root: subjectRoot,
         expectedChangeId: changeId,
         expectedTaskId: taskId,
         expectedStrategy: resolution.strategy,

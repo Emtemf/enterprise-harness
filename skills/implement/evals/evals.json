@@ -25,6 +25,12 @@
       "description": "implementer 不审批自己，需要独立 reviewer",
       "expected": "StageResult 独立于 approval",
       "category": "behavioral"
+    },
+    {
+      "id": "controller-owned-integration",
+      "description": "实现输出必须由 Main 接入 subject checkout 并发布 integration receipt",
+      "expected": "implementer 不能自行声称集成；独立 Review 先通过，integration receipt 再绑定 execution 与 review",
+      "category": "runtime-gate"
     }
   ]
 }

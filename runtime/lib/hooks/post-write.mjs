@@ -16,6 +16,7 @@ import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
 import { atomicWriteJson } from '../state-store.mjs';
 import { updateChangeState } from '../../core/change-state.mjs';
+import { resolveWorktreeContext } from '../worktree-context.mjs';
 
 export function markValidationStaleForWrite(root, statePath, target) {
   if (!fs.existsSync(statePath)) return null;
@@ -44,7 +45,6 @@ export function markValidationStaleForWrite(root, statePath, target) {
 }
 
 export function postWrite({ root, raw, event: inputEvent = null }) {
-  if (!isHarnessManaged(root) && !hasChangeTracking(root)) return { status: 'allow', exitCode: 0 };
   if (!raw) return { status: 'allow', exitCode: 0 };
 
   let hookEvent;
@@ -56,8 +56,20 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
 
   if (dedupGuard('post-write', hookEvent.tool_use_id, hookEvent.cwd)) return { status: 'allow', exitCode: 0 };
 
-  const canonicalRoot = canonicalPath(root);
-  const changesDir = canonicalPath(path.join(root, 'harness', 'changes'));
+  let context;
+  try {
+    context = resolveWorktreeContext(hookEvent.cwd || root);
+  } catch (error) {
+    return { status: 'block', exitCode: 2, stderr: `BLOCK [EH-HOOK-POST-WRITE-011] ${error.message}` };
+  }
+  const executionRoot = context.executionRoot;
+  const subjectRoot = context.subjectRoot;
+  if (!isHarnessManaged(subjectRoot) && !hasChangeTracking(subjectRoot)) {
+    return { status: 'allow', exitCode: 0 };
+  }
+
+  const canonicalRoot = canonicalPath(executionRoot);
+  const changesDir = canonicalPath(path.join(subjectRoot, 'harness', 'changes'));
 
   function changeWriteScope(target) {
     const t = canonicalPath(target);
@@ -82,19 +94,19 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
   function invalidateAffectedValidations(active, target) {
     const relative = path.relative(canonicalRoot, canonicalPath(target)).replaceAll('\\', '/');
     if (relative === 'runtime' || relative.startsWith('runtime/') || relative === 'hooks' || relative.startsWith('hooks/')) {
-      if (!fs.existsSync(path.join(root, 'harness', 'changes'))) return;
-      for (const entry of fs.readdirSync(path.join(root, 'harness', 'changes'), { withFileTypes: true })) {
-        if (entry.isDirectory()) markValidationStaleForWrite(root,path.join(root, 'harness', 'changes', entry.name, 'state.json'), target);
+      if (!fs.existsSync(path.join(subjectRoot, 'harness', 'changes'))) return;
+      for (const entry of fs.readdirSync(path.join(subjectRoot, 'harness', 'changes'), { withFileTypes: true })) {
+        if (entry.isDirectory()) markValidationStaleForWrite(subjectRoot,path.join(subjectRoot, 'harness', 'changes', entry.name, 'state.json'), target);
       }
       return;
     }
     const scope = changeWriteScope(target);
-    if (scope !== 'authority' && scope !== 'stable-evidence' && !isGovernedTarget(root, target)) return;
+    if (scope !== 'authority' && scope !== 'stable-evidence' && !isGovernedTarget(executionRoot, target)) return;
     const changeId = changeIdForTarget(target);
     if (changeId) {
-      markValidationStaleForWrite(root,path.join(root, 'harness', 'changes', changeId, 'state.json'), target);
-    } else if (active?.ok && isGovernedTarget(root, target)) {
-      markValidationStaleForWrite(root,active.statePath, target);
+      markValidationStaleForWrite(subjectRoot,path.join(subjectRoot, 'harness', 'changes', changeId, 'state.json'), target);
+    } else if (active?.ok && isGovernedTarget(executionRoot, target)) {
+      markValidationStaleForWrite(subjectRoot,active.statePath, target);
     }
   }
 
@@ -102,22 +114,22 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
   // Missing snapshot = unattributed write → block.
   let bashSnapshot = null;
   if (hookEvent.tool_name === 'Bash' && isPotentialWriteBash(hookEvent.tool_input?.command)) {
-    bashSnapshot = consumeHookSnapshot(root, hookEvent.tool_use_id);
-    if (!bashSnapshot && !hookSnapshotAlreadyConsumed(root, hookEvent.tool_use_id)) {
+    bashSnapshot = consumeHookSnapshot(executionRoot, hookEvent.tool_use_id);
+    if (!bashSnapshot && !hookSnapshotAlreadyConsumed(executionRoot, hookEvent.tool_use_id)) {
       return { status: 'block', exitCode: 2, stderr: 'BLOCK [EH-HOOK-SNAPSHOT-010] Bash 写入无法完整归因；查看 violation ledger 后重试。' };
     }
   }
 
   try {
     const snapshotTargets = bashSnapshot
-      ? diffGovernedSnapshots(bashSnapshot, captureGovernedSnapshot(root))
-        .map((relative) => path.join(root, relative))
+      ? diffGovernedSnapshots(bashSnapshot, captureGovernedSnapshot(executionRoot))
+        .map((relative) => path.join(executionRoot, relative))
       : [];
     const targets = [...new Set([
-      ...extractHookTargets(root, hookEvent),
+      ...extractHookTargets(executionRoot, hookEvent),
       ...snapshotTargets,
     ])];
-    const active = loadHookChange(root, inputEvent || hookEvent);
+    const active = loadHookChange(executionRoot, inputEvent || hookEvent);
     for (const target of targets) {
       invalidateAffectedValidations(active, target);
     }
@@ -126,9 +138,9 @@ export function postWrite({ root, raw, event: inputEvent = null }) {
   }
 
   try {
-    const active = loadHookChange(root, inputEvent || hookEvent);
+    const active = loadHookChange(executionRoot, inputEvent || hookEvent);
     if (active.ok) {
-      return { status: 'allow', exitCode: 0, stdout: `[Harness 闭环五检]\n${renderTECPCCard(root, active.changeId, active.data)}` };
+      return { status: 'allow', exitCode: 0, stdout: `[Harness 闭环五检]\n${renderTECPCCard(subjectRoot, active.changeId, active.data)}` };
     }
   } catch {
     // non-fatal: TECPC card failure does not block the write

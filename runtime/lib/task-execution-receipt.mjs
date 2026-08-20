@@ -19,6 +19,7 @@ const RECEIPT_FIELDS = new Set([
   'agent',
   'worktree',
   'changedPaths',
+  'outputSnapshot',
   'inputDigests',
   'executions',
   'completedAt',
@@ -112,6 +113,47 @@ function isSafeRelativePath(value) {
   if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) return false;
   if (value.startsWith('/') || /^[A-Za-z]:[\\/]/u.test(value)) return false;
   return !value.split(/[\\/]/u).some((part) => part === '..' || part === '');
+}
+
+export function captureTaskOutputSnapshot(root, changedPaths) {
+  return Object.fromEntries([...changedPaths].sort().map((relative) => {
+    if (!isSafeRelativePath(relative)) throw new Error(`unsafe changed path: ${relative}`);
+    const target = path.resolve(root, relative);
+    if (!fs.existsSync(target)) return [relative, { state: 'deleted' }];
+    const stat = fs.lstatSync(target);
+    if (stat.isSymbolicLink()) throw new Error(`changed path is a symlink: ${relative}`);
+    if (!stat.isFile()) throw new Error(`changed path is not a regular file: ${relative}`);
+    return [relative, { state: 'file', digest: sha256Artifact(root, relative) }];
+  }));
+}
+
+function validateOutputSnapshot(snapshot, changedPaths, problems) {
+  if (snapshot === undefined) return;
+  if (!isObject(snapshot)) {
+    problems.push('outputSnapshot must be an object');
+    return;
+  }
+  const snapshotPaths = Object.keys(snapshot).sort();
+  const expectedPaths = [...changedPaths].sort();
+  if (!sameJson(snapshotPaths, expectedPaths)) {
+    problems.push('outputSnapshot paths must exactly match changedPaths');
+  }
+  for (const [relative, entry] of Object.entries(snapshot)) {
+    if (!isSafeRelativePath(relative) || !isObject(entry)) {
+      problems.push('outputSnapshot must contain safe path entries');
+      continue;
+    }
+    for (const field of Object.keys(entry)) {
+      if (!['state', 'digest'].includes(field)) problems.push(`outputSnapshot.${relative} has unknown property ${field}`);
+    }
+    if (!['file', 'deleted'].includes(entry.state)) problems.push(`outputSnapshot.${relative}.state is invalid`);
+    if (entry.state === 'file' && !DIGEST.test(String(entry.digest || ''))) {
+      problems.push(`outputSnapshot.${relative}.digest must be sha256`);
+    }
+    if (entry.state === 'deleted' && Object.hasOwn(entry, 'digest')) {
+      problems.push(`outputSnapshot.${relative} deletion must not carry a digest`);
+    }
+  }
 }
 
 function validateExecutions(
@@ -280,6 +322,8 @@ export function validateTaskExecutionReceipt(
   validateWorktree(receipt.worktree, problems);
   if (!Array.isArray(receipt.changedPaths) || receipt.changedPaths.some((value) => !isSafeRelativePath(value))) {
     problems.push('changedPaths must contain safe relative paths');
+  } else {
+    validateOutputSnapshot(receipt.outputSnapshot, receipt.changedPaths, problems);
   }
   validateDigestMap(receipt.inputDigests, problems);
   if (expectedInputDigests && !sameJson(
@@ -313,6 +357,9 @@ export function validateTaskExecutionReceipt(
   }
   if (requireTrusted && receipt.provenance !== 'runtime-runner') {
     problems.push('trusted receipt provenance must be runtime-runner');
+  }
+  if (requireTrusted && !isObject(receipt.outputSnapshot)) {
+    problems.push('trusted receipt outputSnapshot is required');
   }
   if (requireTrusted && !root) problems.push('trusted receipt validation requires repository root');
   if (root && receipt.changeId && receipt.taskId) {

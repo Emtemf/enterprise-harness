@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -56,6 +56,11 @@ runtime's explicit recovery path. A lease is operational coordination, not compl
 Harness uses native Claude Code worktrees. `worktree.baseRef: "head"` is a local setup concern;
 Harness does not replace native worktree creation and must preserve `.worktreeinclude` behavior.
 Worktrees isolate files, not reasoning context or review independence.
+
+Implement uses two explicit roots. `executionRoot` is the native worktree and is the only cwd for
+frozen product commands. `subjectRoot` is the session-bound main checkout and owns change inputs,
+canonical receipts, reviews, and CompletionProof. The runtime rejects a bound implementation when
+the roots are identical or do not resolve to the same git common-dir.
 
 ## Failure semantics
 

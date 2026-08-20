@@ -3,6 +3,7 @@
 
 export { gitCommonDir } from '../lib/agent-evidence.mjs';
 export { assertNoSymlinkComponents, assertSafeId, assertSafeRunId } from '../lib/safe-paths.mjs';
+export { resolveWorktreeContext } from '../lib/worktree-context.mjs';
 export {
   taskExecutionReceiptPath,
   taskExecutionReceiptSpoolPath,

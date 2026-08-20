@@ -12,6 +12,7 @@
     "agent",
     "worktree",
     "changedPaths",
+    "outputSnapshot",
     "inputDigests",
     "executions",
     "completedAt"
@@ -48,6 +49,28 @@
     "changedPaths": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
+    },
+    "outputSnapshot": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["state"],
+        "properties": {
+          "state": { "enum": ["file", "deleted"] },
+          "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "state": { "const": "file" } }, "required": ["state"] },
+            "then": { "required": ["digest"] }
+          },
+          {
+            "if": { "properties": { "state": { "const": "deleted" } }, "required": ["state"] },
+            "then": { "not": { "required": ["digest"] } }
+          }
+        ],
+        "additionalProperties": false
+      }
     },
     "inputDigests": {
       "type": "object",

@@ -149,6 +149,7 @@ export function validateStageChain(root, changeId, state) {
 export function validateDynamicWriteGates(root, changeId, state, target, event = {}) {
   const problems = [];
   if (!isGovernedTarget(root, target)) return problems;
+  const policyRoot = event.subjectRoot || root;
   const agentId = String(event.agent_id || '').trim();
   const isAuthorized = agentId && (
     boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer')
@@ -165,7 +166,7 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
     }
     if (!String(state?.currentTask || '').trim()) problems.push('currentTask is missing');
     else {
-      const task = loadTaskExecutionStrategy(root, changeId, state.currentTask, state?.executionStrategy);
+      const task = loadTaskExecutionStrategy(policyRoot, changeId, state.currentTask, state?.executionStrategy);
       if (!task.ok) problems.push(...task.problems);
     }
   } else if (requiredGateForTarget(root, target)?.needsRedVerified) {

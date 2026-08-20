@@ -27,6 +27,9 @@ const receiptMetadata = {
     treeDigestAfter: 'd'.repeat(64),
   },
   changedPaths: ['runtime/example.mjs'],
+  outputSnapshot: {
+    'runtime/example.mjs': { state: 'file', digest: null },
+  },
 };
 
 function writeJson(ref, value) {
@@ -121,7 +124,33 @@ function addTaskProof(taskId) {
     correction: null,
     reviewedAt: '2026-08-16T00:00:02.000Z',
   };
-  writeJson(path.relative(root, v2ResultPath(root, changeId, check.runId, 'check')), review);
+  const reviewPath = v2ResultPath(root, changeId, check.runId, 'check');
+  writeJson(path.relative(root, reviewPath), review);
+  const integrationRef = `harness/changes/${changeId}/evidence/integration/${taskId}.json`;
+  writeJson(integrationRef, {
+    integrationVersion: 1,
+    type: 'task-integration',
+    changeId,
+    taskId,
+    executionReceipt: { path: receiptRef, digest: sha256Artifact(root, receiptRef) },
+    review: {
+      runId: check.runId,
+      parentRunId: execute.runId,
+      digest: sha256Artifact(root, path.relative(root, reviewPath)),
+    },
+    source: {
+      worktreePath: receiptMetadata.worktree.path,
+      head: receiptMetadata.worktree.headAfter,
+      treeDigest: receiptMetadata.worktree.treeDigestAfter,
+    },
+    subject: { head: 'a'.repeat(40) },
+    changedPaths: [{
+      path: 'runtime/example.mjs',
+      state: 'file',
+      digest: sha256Artifact(root, 'runtime/example.mjs'),
+    }],
+    integratedAt: '2026-08-16T00:00:02.500Z',
+  });
   appendCompletedHandoffBinding(root, changeId, execute.input, {
     agentId: receiptMetadata.agent.id,
   });
@@ -155,6 +184,9 @@ try {
     },
   }));
   fs.mkdirSync(path.dirname(path.join(root, tasksRef)), { recursive: true });
+  fs.mkdirSync(path.join(root, 'runtime'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'runtime', 'example.mjs'), 'export const fixture = true;\n');
+  receiptMetadata.outputSnapshot['runtime/example.mjs'].digest = sha256Artifact(root, 'runtime/example.mjs');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## D1\n');
   fs.writeFileSync(path.join(root, tasksRef), [
     '# Tasks',

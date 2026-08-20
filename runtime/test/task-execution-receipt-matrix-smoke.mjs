@@ -54,6 +54,7 @@ function baseReceipt(overrides = {}) {
       treeDigestAfter: 'd'.repeat(64),
     },
     changedPaths: ['src/example.mjs'],
+    outputSnapshot: { 'src/example.mjs': { state: 'file', digest: '0'.repeat(64) } },
     inputDigests: { [path.join('harness', 'changes', changeId, 'tasks.md')]: tasksDigest },
     executions: [validExec('VERIFY', 'exit', 0)],
     completedAt: '2026-08-16T00:00:01.000Z',

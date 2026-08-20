@@ -7,7 +7,7 @@
 | clarify | 已确认 requirements、classification、ResearchPacket（适用时）以及新鲜独立 review |
 | design | schema-valid StageResult、全部 design assertions、独立 passing ReviewResult、TECPC 与 fresh input/output digest |
 | plan | 冻结 tasks、strategy evidence 与独立 review |
-| implement | task-level execution receipt、self-check 与独立 review |
+| implement | task-level execution receipt、Main-owned integration receipt、self-check 与独立 review |
 | verify | fresh validation、final ReviewResult 与 completion TECPC |
 | archive | verify evidence 仍 fresh 且归档前检查通过 |
 

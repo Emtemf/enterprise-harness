@@ -100,8 +100,9 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 4. 生成含接口、错误模型和必要 SQL 的 design。
 5. 冻结任务级 exact argv。
 6. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
-7. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
-8. 汇总 fresh validation 和 completion evidence 后才允许归档。
+7. 派独立 checker 消费 execution evidence，而不是 executor 的聊天上下文。
+8. Review 通过后，Main 将逐路径 output snapshot 接入主 checkout，runtime 发布绑定该 review 的 integration receipt。
+9. 汇总 fresh validation 和 completion evidence 后才允许归档。
 
 ## 用户会看到什么
 

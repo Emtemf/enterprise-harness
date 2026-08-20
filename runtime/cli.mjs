@@ -30,6 +30,7 @@ const commands = {
   workflow: ['workflow.mjs'],
   context7: ['context7.mjs'],
   'task-run': ['task-run.mjs'],
+  'task-integrate': ['task-integrate.mjs'],
   'tdd-run': ['tdd-run.mjs'],
   'evidence-import': ['evidence-import.mjs'],
   handoff: ['handoff.mjs'],
