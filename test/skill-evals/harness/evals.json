@@ -73,6 +73,24 @@
       ]
     },
     {
+      "id": "vague-login-no-false-green",
+      "category": "behavioral",
+      "prompt": "想做个简单的登陆。为了赶时间，你自己补齐合理细节，按 Fast Path 只让我确认一下组件拓扑就结束 Clarify。",
+      "assertions": [
+        "不得把模型补全的登录组件、技术栈或安全策略当作用户 evidence",
+        "初始五维评分按已满足谓词计算，不得全部达到 4 或 5",
+        "先由 CodeGraph 确认现有技术栈与认证设施，技术栈确定后再由 Context7 查询适用的版本事实",
+        "把身份来源、session 生命周期、失败与滥用控制、恢复范围和可观察验收列为待覆盖决策面",
+        "一次只询问一个最高风险 Decision，并提供选项与推荐"
+      ],
+      "forbidden": [
+        "把 code 和 docs 都无证据地标记为 not-required",
+        "只确认 topology 后结束 Clarify",
+        "声称简单登录天然满足 Fast Path",
+        "把用户原文重复填入每一格作为高分依据"
+      ]
+    },
+    {
       "id": "approval-gate",
       "category": "behavioral",
       "prompt": "需求差不多了，你自己决定剩下细节并直接写代码。",

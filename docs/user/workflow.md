@@ -44,8 +44,12 @@ Harness 先区分 Facts 与 Decisions：代码路径、调用链和 schema 由�
 
 1. 判定 code/docs fact lanes；适用时派发 CodeGraph 与 Context7 worker，并等待全部 packet 完成。
 2. 枚举 1–6 个 top-level components，请用户确认 add/remove/merge/split/defer。
-3. 对每个 active component 的 Goal / Scope / Constraints / Acceptance / Context 做 0–5 评分，
-   每格记录 evidence 与 gap；API/Data 只在 impact 相关时展开。
+3. 对每个 active component 的 Goal / Scope / Constraints / Acceptance / Context 做 0–5 评分。
+   分数由 readiness predicates 计算：达到 4 必须覆盖该维度全部谓词，达到 5 还需用户确认；每个谓词
+   都引用 Evidence ledger 中与原始请求、已解决用户决定或 validated ResearchPacket fact 精确匹配的独立分句；
+   同一分句不能重复支撑多个评分项，模型也不能自行声明一条模糊描述覆盖整张评分表。
+   API/Data 只在 impact 相关时展开；登录/认证类需求还会展开身份、凭证、Session、失败与滥用控制、
+   恢复/MFA 和可观察验收等风险覆盖面，但不会机械地把它们全部问给用户。
 4. 每轮选择 weakest / highest-risk Decision frontier，使用 Claude Code 原生 `AskUserQuestion` 只问一个
    decision，推荐选项放第一。
 5. 回答后重新评分并展示变化；用户可以修正 topology、评分或 scope。

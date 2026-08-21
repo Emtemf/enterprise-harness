@@ -43,6 +43,10 @@ status、authority/fallback 和 `fact gate complete`；code/docs 必须各恰好
 finalizer 还会验证 trusted dispatch/start/stop binding、immutable brief digest，并拒绝 degraded packet、非空
 uncertainties 或 `remaining fact uncertainty`，不能用 Main 自写 JSON 冒充隔离 worker 事实。
 
+Fact gate 未关闭时，Main 的用户输出只包含 lane 状态、一个 next research action/blocker，以及明确的
+`Topology: not built`、`Scores: not computed`、`User question: none`。用户要求预先评分或开始访谈不能改变
+这个输出合同。
+
 ## 维度模型
 
 采用 **Component × 5 核心维度**，不是固定的全局维度列表。
@@ -65,6 +69,14 @@ Feature
 - fresh Context7 ResearchPacket
 - 已有 decisions
 
+Round 0 只允许确认 add/remove/merge/split/defer topology，不得把使用端、技术栈、凭证方式等后续 Decision
+嵌入同一个问题。Authentication risk surfaces 不是 component，不能自动升级成 Identity Store、Session
+Management 等独立 outcome；原请求没有注册、账号 CRUD、登出或恢复时，也不能静默加入 topology。
+只有一个用户可见 outcome 且没有 evidence 支持拆分时，只建立一个 component；模糊登录请求使用
+`login-capability`，credential/session 作为其内部 decision surfaces。Round 0 没有 dependency 或赶时间
+例外；不得在 topology 选项后追加 identity/credential 选项。模糊登录的 Round 0 只问该单一 outcome 是否
+正确，identity source 在 topology 锁定后另起一轮。
+
 ### 五核心维度
 
 每个 component 只评估五个核心维度：
@@ -76,6 +88,43 @@ Feature
 | **Constraints** | 技术约束、兼容性要求、风险 |
 | **Acceptance** | 如何判断这个 component 做完了？ |
 | **Context** | 业务/领域上下文，为什么需要这个 |
+
+### Readiness predicates
+
+分数不是模型的整体置信度，而是已被 evidence 覆盖的谓词集合。每个 active component 使用同一组最低谓词：
+
+| Dimension | score 4 必须全部覆盖 |
+|---|---|
+| Goal | `consumer`, `outcome` |
+| Scope | `included`, `excluded` |
+| Constraints | `technical`, `risk` |
+| Acceptance | `success`, `failure`, `observable` |
+| Context | `need`, `current-state` |
+
+任一必需谓词未覆盖时，该维度最高只能是 3；全部覆盖才可为 4。分数 5 还必须覆盖 `confirmed`，表示用户
+原始请求或后续回答已经明确确认该维度，而不是 Main 根据惯例补全。
+
+计分必须从全部 predicate `unmet` 开始，逐条由 evidence 覆盖，不能先给高分再反向编写依据。任一 applicable
+decision surface 为 pending/open 时，其影响的 Scope、Constraints 或 Acceptance predicate 保持 unmet。
+“赶时间”“你自己决定”“按合理默认”不构成 scope confirmation，也不能解决用户 Decision。
+
+### Evidence ledger
+
+每个评分谓词必须引用 requirements 中的 evidence ID。Evidence ledger 只接受：
+
+- `raw-request`：locator 固定为 `original-request`，claim 必须与原始请求中的一个完整语义分句精确匹配；
+- `user-decision`：locator 为 `round:N`，该轮必须是 `user / resolved`、Source=user 的 Decision，claim 必须与
+  answer 中的一个完整语义分句精确匹配；
+- `research-packet`：locator 为 `fact:code` 或 `fact:docs`，claim 必须精确匹配已验证 packet 的某个
+  `facts[].claim`，JSON key、source path 或任意子串均不合格。
+
+普通 evidence 只能支持一个 `component:Dimension.predicate` 或 `auth:surface`，且同一 kind + locator 的同一
+来源分句只能登记一次，不能通过 locator 别名拆成多行重复支持。只有含明确且非否定的确认/批准/进入下一阶段
+授权选项原文（例如“我明确确认以上范围”或“确认以上范围并进入设计”）的 raw-request 或合格
+user-decision evidence 可以支持一个或多个 `.confirmed`；finalizer 使用封闭肯定句集合，不从“授权范围”等
+开放文本关键词猜测批准。自由文本“用户说过”“代码如此”、模型推断、
+推荐默认值或未绑定来源的摘要都不是评分证据。Finalizer 必须校验 evidence ID 唯一、claim provenance 与
+来源资格、分句不可复用、predicate coverage、score 5 confirmation 和每个 score row 的引用闭包。
 
 ### 条件分支
 
@@ -90,6 +139,22 @@ impact.data = yes
 ```
 
 不适用的维度记录 `N/A` 与理由。
+
+### Authentication decision surfaces
+
+原始请求涉及登录、认证、身份、凭证或 session 时，必须展开以下覆盖面：
+
+- `identity-source`
+- `credential-authority`
+- `session-lifecycle`
+- `failure-abuse`
+- `recovery-mfa`
+- `observable-acceptance`
+
+每个 surface 都记录 applicable、resolution/rationale、evidence ref 与 status。固定的是风险覆盖面，不是固定
+问题：现有技术栈和认证设施先由 CodeGraph 查明；框架或协议版本事实在技术选择确定后由 Context7 查明；
+只有剩余的产品行为、范围与风险接受属于用户 Decision。六项必须全部记录，不能省略 observable acceptance；
+“登录通常意味着成功”等常识不能覆盖 Acceptance.success。任一 applicable surface 未 resolved 时不得 finalize。
 
 ## 分值含义
 
@@ -108,10 +173,10 @@ impact.data = yes
 中等清晰度，已足够讨论，但不适合进入 design。
 
 ### 4
-足以进入 design；剩余不确定项已显式记录且风险可控。
+本维度全部 readiness predicates 均有可追溯 evidence，足以进入 design。
 
 ### 5
-需求边界、约束与验收标准都已足够明确。
+在 4 的基础上还有 `confirmed` evidence，用户已经明确确认该维度。
 
 ## Frontier
 
@@ -135,6 +200,7 @@ clarify-ready 的最低条件：
 - 没有 unresolved high-risk ambiguity
 - 用户已显式确认执行范围
 - 每个维度的评分必须有事实依据（CodeGraph / Context7 / 用户回答）
+- 每个 score 4/5 必须满足 readiness predicates 与 Evidence ledger provenance gate
 
 ## Fast Path
 
@@ -163,6 +229,8 @@ Fast Path 判定条件（同时满足时触发）：
 2. CodeGraph 确认了受影响的代码路径
 3. 没有标记为 high-risk 的 assumption
 4. 所有 active component 的关键维度都已 >= 4
+
+条件 1 不能由 Main 复述或补写：对应谓词必须引用 `raw-request` evidence，claim 必须能在用户原文中逐字定位。
 
 Fast Path 只减少问答次数，不降低 clarify-ready、用户确认或 evidence freshness 门槛。它仍需
 持久化 topology、评分依据和 scope confirmation；不得用 overall 平均值掩盖任何低分 component。

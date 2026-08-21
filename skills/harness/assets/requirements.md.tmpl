@@ -40,18 +40,35 @@
 
 先确认组件边界，再下钻问题。实现步骤、字段和文件不是 component；不要为不存在的 API、数据或角色问题填充模板。
 
+## Evidence ledger
+
+评分只引用本表 ID，不接受“用户说过”“代码如此”等自由文本来源。`Claim` 必须与 locator 指向的原始请求、
+resolved user Decision answer 或 validated ResearchPacket `facts[].claim` 中一个完整语义分句精确匹配。
+普通行的 `Supports` 只能有一个 `component-id:Dimension.predicate` 或 `auth:surface`，同一来源分句不得重复登记。
+只有逐字采用无歧义确认选项（如“我明确确认以上范围”“确认以上范围并进入设计”）的 raw-request 或
+user-decision 行可以用逗号列出多个 `.confirmed`；不要从包含“授权/确认”等关键词的开放文本猜测批准。
+`raw-request` 的 Locator 固定为 `original-request`；否定确认不算确认。Claim 含 `|` 时写成 `\|`。
+
+| Evidence ID | Kind | Locator | Claim | Supports |
+|---|---|---|---|---|
+| E-RAW-1 | raw-request | original-request | 原始请求中的逐字片段 | component-id:Goal.consumer |
+| E-USER-1 | user-decision | round:1 | 用户回答中的逐字片段 | component-id:Scope.included |
+| E-FACT-1 | research-packet | fact:code / fact:docs | packet fact 中的逐字 claim | component-id:Context.current-state |
+
 ## Component × Dimension 评分
 
 每个 active component 评估 Goal / Scope / Constraints / Acceptance / Context。API/Data 仅在 impact
-相关时展开；不适用项使用 `N/A` 并写依据。每个分数（0-5）必须有评分依据。
+相关时展开；不适用项使用 `N/A` 并写依据。每个分数（0-5）由 Predicate coverage 计算，不凭整体印象。
+达到 4 必须覆盖该维度全部 readiness predicates；达到 5 还必须覆盖 `confirmed`。Evidence refs 必须指向
+上面的 Evidence ledger。
 
-| Component | Dimension | 上轮分数 | 本轮分数 | 评分依据 | Gap / unresolved decision | Gap type | Owner / status | Source |
-|---|---|---:|---:|---|---|---|---|---|
-| component-id | Goal | — | 0 | | | Fact / Decision / resolved | agent/user / open/resolved | user / ResearchPacket ref |
-| component-id | Scope | — | 0 | | | | | |
-| component-id | Constraints | — | 0 | | | | | |
-| component-id | Acceptance | — | 0 | | | | | |
-| component-id | Context | — | 0 | | | | | |
+| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |
+|---|---|---:|---:|---|---|---|---|---|---|
+| component-id | Goal | — | 0 | consumer,outcome | E-* | | Fact / Decision / resolved | agent/user / open/resolved |
+| component-id | Scope | — | 0 | included,excluded | E-* | | | |
+| component-id | Constraints | — | 0 | technical,risk | E-* | | | |
+| component-id | Acceptance | — | 0 | success,failure,observable | E-* | | | |
+| component-id | Context | — | 0 | need,current-state | E-* | | | |
 
 - overall / coverage summary：
 - unresolved high-risk assumption：none / 具体说明
@@ -86,6 +103,21 @@ Facts 由 code/document agent 查找；Decisions 由用户决定。不得把可�
 - Architecture：适用 / 不适用；依据：
 - Rule：适用 / 不适用；依据：
 - Security：适用 / 不适用；依据：
+- Authentication/identity：适用 / 不适用；依据：Evidence ref
+
+### Authentication decision surfaces
+
+只有 Authentication/identity 适用时填写。这里固定覆盖决策面，不固定向用户提问；Fact 优先由
+CodeGraph/Context7 解决，剩余 Decision 才进入一问一答。
+
+| Surface | Applicable | Resolution / rationale | Evidence ref | Status |
+|---|---|---|---|---|
+| identity-source | yes / no | | E-* | open / resolved / not-applicable |
+| credential-authority | yes / no | | E-* | open / resolved / not-applicable |
+| session-lifecycle | yes / no | | E-* | open / resolved / not-applicable |
+| failure-abuse | yes / no | | E-* | open / resolved / not-applicable |
+| recovery-mfa | yes / no | | E-* | open / resolved / not-applicable |
+| observable-acceptance | yes / no | | E-* | open / resolved / not-applicable |
 
 ### 非目标与约束
 

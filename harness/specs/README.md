@@ -15,7 +15,7 @@
 
 ## 附录
 
-- [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、component 评分与 Decision frontier
+- [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、evidence-bound readiness predicates、条件风险面与 Decision frontier
 - [tdd-execution.md](tdd-execution.md)
 - [verify-contract.md](verify-contract.md)
 - [stage-observability.md](stage-observability.md) — 阶段时序、事件、artifact 与 `workflow audit` 的可执行合同

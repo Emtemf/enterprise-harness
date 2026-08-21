@@ -20,6 +20,24 @@ Clarify 必须严格按 `完成事实探索 → 综合事实 → 澄清 Decision
 把 Fact 改问用户，也不得进入 Design。适用的 CodeGraph 与 Context7 lane 都完成后，Main 才继续。
 </HARD-GATE>
 
+### 评分算法（必须从空集合开始）
+
+1. 每个 `component × predicate` 初始都是 **unmet**。只有与来源中完整语义分句精确匹配的 claim、已记录的用户 round answer、
+   或 validated ResearchPacket fact 能把它改为 covered；常识、默认方案和 Main 补全不能。
+2. 任一 required fact lane 未 complete：只展示 lane 状态和下一探索动作，**停止**；此时没有正式 topology、
+   没有 component score，也没有用户问题。输出固定为：`Fact lanes`、`Next research action/blocker`、
+   `Topology: not built`、`Scores: not computed`、`User question: none`。不要打印 provisional components、
+   dimension score table 或 decision surfaces，也不要响应用户要求的后续评分格式。项目路径、技术栈和框架
+   仍是 CodeGraph facts，不能以“派发前置条件”为由改问用户。
+3. 任一 applicable decision surface 为 pending/open：它所影响的 Scope、Constraints 或 Acceptance predicate
+   保持 unmet，对应维度最高 3。不能一边列 pending decisions，一边把维度写成 4/5。
+4. score 4 = 本维度全部 readiness predicates covered；score 5 = score 4 + 含“确认/批准/按此进入下一阶段”等
+   明确授权措辞的 `confirmed` evidence。
+5. “赶时间”“你自己决定”“按合理默认”不是 scope confirmation，也不能覆盖任何用户 Decision predicate。
+
+例：`想做个简单的登陆` 只给出方向，不能证明 consumer、included/excluded scope、技术/风险约束、失败验收、
+current state 或任何认证策略；不得 Fast Path。
+
 ## Phase 0：进入 Clarify
 
 1. 运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status --json`。恢复 active change；
@@ -91,13 +109,35 @@ ResearchPacket 的 `recommendedDecision` 只是待用户决定的候选，不是
 ## Phase 2：综合事实并建立 topology
 
 1. 只从用户请求、已验证 ResearchPackets 和已有 durable decisions 提取 1–6 个可独立成功或失败的
-   top-level components。文件、字段和实现步骤不是 component。
+   top-level components。文件、字段、实现步骤和 Authentication risk surfaces 不是 component；原请求只说
+   登录时，不能静默增加注册、账号 CRUD、登出、恢复或独立 UI outcome。只有一个用户可见 outcome 且
+   没有 evidence 支持拆分时，topology 必须只有一个 component；例如模糊的登录请求先记为
+   `login-capability`，credential verification 和 session lifecycle 留在 decision surfaces，不拆成 components。
 2. 建立 design tree 与 decision frontier；对每个 active component 评估
-   `Goal / Scope / Constraints / Acceptance / Context`，每格 0–5，并记录 evidence、source 和 gap。
+   `Goal / Scope / Constraints / Acceptance / Context`。先建立 Evidence ledger，再按 readiness predicates
+   计分：Goal=`consumer,outcome`；Scope=`included,excluded`；Constraints=`technical,risk`；
+   Acceptance=`success,failure,observable`；Context=`need,current-state`。达到 4 必须覆盖本维度全部谓词；
+   达到 5 还必须有 `confirmed`。普通 evidence 每行只能支持一个 predicate 或 decision surface，同一来源分句
+   只能登记一次（raw-request locator 固定为 `original-request`）；只有明确肯定的确认分句可以同时支持本次
+   确认覆盖的多个 `.confirmed`，否定确认不算；使用模板列出的无歧义确认选项原文，不从开放文本关键词猜测批准。
+   模型推断不是 evidence，
+   不能截取关键词、复用同一句宽泛描述或自报 `Supports` 来替代未覆盖谓词。`user-decision` 必须绑定
+   `user / resolved` 且 Source 为 user 的 Decision round；ResearchPacket claim 必须精确匹配 `facts[].claim`。
    API/Data 仅在相关时展开；不适用时写 `N/A` 与依据。
 3. 展示 provisional topology、每个 component 的边界和 fact-derived 评分依据。除 Fast Path 外，
    用一次 `AskUserQuestion` 让用户添加、删除、合并、拆分或 defer components；确认后才锁 topology。
+   Round 0 只确认 topology，不得同时询问使用端、凭证方式或其他 Decision；这些进入后续一问一答。
+   Round 0 的输出形状固定为：已证据支持的 top-level outcomes + `确认当前拓扑（推荐）` / `调整拓扑` /
+   `defer 某项` + 自由输入。问题正文和选项不得夹带第二个问号或要求选择业务方案。Round 0 没有
+   dependency、减少轮次或“赶时间”例外；把 identity/credential 选项附在 topology 题后就是批量两问。
+   模糊登录案例的 Round 0 只能问：`login-capability 作为当前唯一 top-level outcome 是否正确？`，
+   选项只能是确认、调整、defer；identity source 必须等 topology 锁定后单独问。
 4. 新 component 只能通过增量 topology 确认加入，不得静默扩大 scope。
+5. 原始请求涉及登录、认证、身份、凭证或 session 时，固定展开 Authentication decision surfaces：
+   identity source、credential authority、session lifecycle、failure/abuse、recovery/MFA、observable
+   acceptance。必须恰好展示这六项，不能因“简单”省略 observable acceptance。固定的是覆盖面，不是固定
+   问题；CodeGraph/Context7 先解决 Facts，剩余 Decisions 才提问。“登录通常意味着成功”之类常识不能
+   覆盖 Acceptance.success，只有用户原文/answer 的可观察成功条件才能覆盖。
 
 ## Phase 3：只澄清 Decisions
 
@@ -116,7 +156,8 @@ ResearchPacket 的 `recommendedDecision` 只是待用户决定的候选，不是
 Fast Path 只减少用户问题，不跳过 Phase 1。初始需求、全部 required ResearchPackets 与既有确认已经让
 所有 active component 的关键维度 ≥ 4，且没有 high-risk assumption 时：生成 topology、完整评分、
 non-goals 和 requirements 摘要；原请求已明确授权完整 scope 时记录为确认来源，否则最多用一次
-`AskUserQuestion` 联合确认。不得用 overall 平均值掩盖低分格。
+`AskUserQuestion` 联合确认。每个高分谓词必须引用 Evidence ledger 中可回溯到原文、用户 round answer
+或 validated ResearchPacket 的 evidence ID；不得用 overall 平均值或模型补全掩盖低分格。
 
 ## Phase 4：确认并完成 Clarify
 
@@ -124,7 +165,7 @@ non-goals 和 requirements 摘要；原请求已明确授权完整 scope 时记�
 
 - fact gate complete，全部 required packet valid、durable、fresh；
 - topology 与 deferred/non-goals 已确认；
-- 所有 active component 的五个关键维度 ≥ 4，且每格有 agent/user evidence；
+- 所有 active component 的五个关键维度 ≥ 4，且每个 readiness predicate 都有可追溯 evidence ref；
 - 没有 unresolved high-risk assumption/Decision，Acceptance 可验证；
 - 用户显式确认 requirements 与执行 scope；classification 已持久化且无 placeholder。
 

@@ -36,13 +36,16 @@ function assertRequirementsTemplate() {
   const template = read('skills/harness/assets/requirements.md.tmpl');
   for (const field of [
     '分数（0-5）',
-    '评分依据',
     'Gap / unresolved decision',
     'Gap type',
     'Owner / status',
     '上轮分数',
     '本轮分数',
     '用户确认 / 修正',
+    'Evidence ledger',
+    'Predicate coverage',
+    'Evidence refs',
+    'Authentication decision surfaces',
   ]) assert.ok(template.includes(field), `requirements template must persist ${field}`);
   assert.ok(template.includes('Options / recommendation'), 'requirements template must persist decision alternatives and recommendation');
 }

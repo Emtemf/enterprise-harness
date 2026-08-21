@@ -23,7 +23,20 @@ let factEvidence = null;
 
 function requirements(overrides = {}) {
   const score = overrides.score ?? 4;
-  const evidence = overrides.evidence ?? '用户回答与 ResearchPacket:order-service';
+  const evidenceRefs = overrides.evidenceRefs ?? {
+    Goal: 'E-GOAL-C,E-GOAL-O',
+    Scope: 'E-SCOPE-I,E-SCOPE-E',
+    Constraints: 'E-CONSTRAINT-T,E-CONSTRAINT-R',
+    Acceptance: 'E-ACCEPT-S,E-ACCEPT-F,E-ACCEPT-O',
+    Context: 'E-CONTEXT-N,E-FACT-1',
+  };
+  const predicateCoverage = overrides.predicateCoverage ?? {
+    Goal: 'consumer,outcome',
+    Scope: 'included,excluded',
+    Constraints: 'technical,risk',
+    Acceptance: 'success,failure,observable',
+    Context: 'need,current-state',
+  };
   const topologyConfirmed = overrides.topologyConfirmed ?? 'true';
   const scopeConfirmed = overrides.scopeConfirmed ?? 'true';
   const highRisk = overrides.highRisk ?? 'none';
@@ -42,6 +55,60 @@ function requirements(overrides = {}) {
     `- fact gate complete：${factGateComplete}`,
     `- remaining fact uncertainty：${remainingFact}`,
     '',
+  ];
+  const decisionClaims = [
+    '使用者是订单操作员',
+    '目标结果是可恢复的订单取消',
+    '范围包含订单服务',
+    '范围排除支付流程',
+    '技术约束是沿用现有技术栈',
+    '风险约束是失败时回滚订单状态',
+    '成功标准是返回取消完成状态',
+    '失败标准是返回拒绝原因',
+    '可观察结果是状态响应',
+    '当前需要是提供可恢复的取消能力',
+  ];
+  const authClaims = [
+    '身份来源使用现有账号',
+    '凭证由服务端校验',
+    '会话是有期限的服务端 Session',
+    '失败返回通用错误并限流',
+    '找回密码和 MFA 明确不在范围内',
+    '成功与失败都必须可观察',
+  ];
+  const defaultEvidenceRows = [
+    `| E-GOAL-C | user-decision | round:1 | ${overrides.userClaim ?? decisionClaims[0]} | order-service:Goal.consumer |`,
+    `| E-GOAL-O | user-decision | round:1 | ${decisionClaims[1]} | order-service:Goal.outcome |`,
+    `| E-SCOPE-I | user-decision | round:1 | ${decisionClaims[2]} | order-service:Scope.included |`,
+    `| E-SCOPE-E | user-decision | round:1 | ${decisionClaims[3]} | order-service:Scope.excluded |`,
+    `| E-CONSTRAINT-T | user-decision | round:1 | ${decisionClaims[4]} | order-service:Constraints.technical |`,
+    `| E-CONSTRAINT-R | user-decision | round:1 | ${decisionClaims[5]} | order-service:Constraints.risk |`,
+    `| E-ACCEPT-S | user-decision | round:1 | ${decisionClaims[6]} | order-service:Acceptance.success |`,
+    `| E-ACCEPT-F | user-decision | round:1 | ${decisionClaims[7]} | order-service:Acceptance.failure |`,
+    `| E-ACCEPT-O | user-decision | round:1 | ${decisionClaims[8]} | order-service:Acceptance.observable |`,
+    `| E-CONTEXT-N | user-decision | round:1 | ${decisionClaims[9]} | order-service:Context.need |`,
+    `| E-FACT-1 | research-packet | fact:code | ${overrides.researchClaim ?? 'Cancellation is owned by order-service.'} | order-service:Context.current-state |`,
+    ...(overrides.includeAuthSurfaces === true ? authClaims.map((claim, index) => (
+      `| E-AUTH-${index + 1} | user-decision | round:1 | ${claim} | auth:${['identity-source', 'credential-authority', 'session-lifecycle', 'failure-abuse', 'recovery-mfa', 'observable-acceptance'][index]} |`
+    )) : []),
+    ...(overrides.confirmationClaim ? [
+      `| E-CONFIRM | user-decision | round:1 | ${overrides.confirmationClaim} | order-service:Goal.confirmed,order-service:Scope.confirmed,order-service:Constraints.confirmed,order-service:Acceptance.confirmed,order-service:Context.confirmed |`,
+    ] : []),
+  ];
+  const evidenceRows = overrides.evidenceRows ?? defaultEvidenceRows;
+  const authSurfaceBlock = overrides.includeAuthSurfaces === true ? [
+    '- Authentication/identity：适用；依据：E-AUTH-1',
+    '### Authentication decision surfaces',
+    '| Surface | Applicable | Resolution / rationale | Evidence ref | Status |',
+    '|---|---|---|---|---|',
+    '| identity-source | yes | existing account identity | E-AUTH-1 | resolved |',
+    '| credential-authority | yes | server verifies credentials | E-AUTH-2 | resolved |',
+    '| session-lifecycle | yes | bounded server session | E-AUTH-3 | resolved |',
+    '| failure-abuse | yes | generic errors and rate limiting | E-AUTH-4 | resolved |',
+    '| recovery-mfa | no | explicitly outside this scope | E-AUTH-5 | not-applicable |',
+    '| observable-acceptance | yes | success and failure are observable | E-AUTH-6 | resolved |',
+  ] : [
+    '- Authentication/identity：不适用；依据：需求不涉及身份认证',
   ];
   return [
     '# Requirements（v6 topology / frontier）',
@@ -64,14 +131,19 @@ function requirements(overrides = {}) {
     '- confirmedAt：2026-08-21T00:00:00.000Z',
     '- 用户确认 / 修正：looks right',
     '',
+    '## Evidence ledger',
+    '| Evidence ID | Kind | Locator | Claim | Supports |',
+    '|---|---|---|---|---|',
+    ...evidenceRows,
+    '',
     '## Component × Dimension 评分',
-    '| Component | Dimension | 上轮分数 | 本轮分数 | 评分依据 | Gap / unresolved decision | Gap type | Owner / status | Source |',
-    '|---|---|---:|---:|---|---|---|---|---|',
-    `| order-service | Goal | 3 | ${score} | ${evidence} | none | ${gapType} | user / resolved | user |`,
-    `| order-service | Scope | 3 | ${score} | ${evidence} | none | ${gapType} | user / resolved | user |`,
-    `| order-service | Constraints | 3 | ${score} | ${evidence} | none | ${gapType} | user / resolved | user |`,
-    `| order-service | Acceptance | 3 | ${score} | ${evidence} | none | ${gapType} | user / resolved | user |`,
-    `| order-service | Context | 3 | ${score} | ${evidence} | none | ${gapType} | agent / resolved | ResearchPacket |`,
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
+    '|---|---|---:|---:|---|---|---|---|---|---|',
+    `| order-service | Goal | 3 | ${score} | ${predicateCoverage.Goal ?? ''} | ${typeof evidenceRefs === 'string' ? evidenceRefs : evidenceRefs.Goal} | none | ${gapType} | user / resolved |`,
+    `| order-service | Scope | 3 | ${score} | ${predicateCoverage.Scope ?? ''} | ${typeof evidenceRefs === 'string' ? evidenceRefs : evidenceRefs.Scope} | none | ${gapType} | user / resolved |`,
+    `| order-service | Constraints | 3 | ${score} | ${predicateCoverage.Constraints ?? ''} | ${typeof evidenceRefs === 'string' ? evidenceRefs : evidenceRefs.Constraints} | none | ${gapType} | user / resolved |`,
+    `| order-service | Acceptance | 3 | ${score} | ${predicateCoverage.Acceptance ?? ''} | ${typeof evidenceRefs === 'string' ? evidenceRefs : evidenceRefs.Acceptance} | none | ${gapType} | user / resolved |`,
+    `| order-service | Context | 3 | ${score} | ${predicateCoverage.Context ?? ''} | ${typeof evidenceRefs === 'string' ? evidenceRefs : evidenceRefs.Context} | none | ${gapType} | agent / resolved |`,
     '- overall / coverage summary：all critical dimensions >= 4',
     `- unresolved high-risk assumption：${highRisk}`,
     '- 用户确认 / 修正：scores accepted',
@@ -95,6 +167,7 @@ function requirements(overrides = {}) {
     '- Architecture：适用；依据：服务边界已确认。',
     '- Rule：不适用；依据：无规则变更。',
     '- Security：不适用；依据：无安全边界变更。',
+    ...authSurfaceBlock,
     '### 非目标与约束',
     '- 非目标：不改支付流程。',
     '- 兼容性：保持现有调用兼容。',
@@ -111,6 +184,7 @@ function requirements(overrides = {}) {
     '| Round | Component × dimension | Type | Question / researched fact | Options / recommendation | Answer / result | Owner / status | Dependency / exception | Score delta | Source |',
     '|---:|---|---|---|---|---|---|---|---|---|',
     '| 0 | topology | Decision | Is this topology right? | yes (recommended) / revise | yes | user / resolved | none | not scored | user |',
+    `| 1 | order-service × readiness | ${overrides.roundType ?? 'Decision'} | Confirm cancellation outcome, boundary, constraints, acceptance, and need? | confirm (recommended) / revise | ${overrides.userAnswer ?? [...decisionClaims, ...(overrides.includeAuthSurfaces === true ? authClaims : []), ...(overrides.confirmationClaim ? [overrides.confirmationClaim] : [])].join('；')} | ${overrides.roundOwnerStatus ?? 'user / resolved'} | none | Goal 3→4; Scope 3→4; Constraints 3→4; Acceptance 3→4; Context 3→4 | ${overrides.roundSource ?? 'user'} |`,
     `- unresolved high-risk decision：${highRisk}`,
     `- scope confirmed：${scopeConfirmed}`,
     '- confirmed by：user',
@@ -224,9 +298,135 @@ try {
   const persisted = JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, passed.runId), 'utf-8'));
   assert.equal(persisted.stage, 'clarify');
 
+  const unsupportedFive = run(requirements({
+    score: 5,
+    predicateCoverage: {},
+    evidenceRefs: 'E-RAW-1',
+    rawPreamble: '想做个简单的登陆',
+  }));
+  assert.notEqual(unsupportedFive.result.status, 0, 'a vague raw request must not justify five-point readiness');
+  assert.match(unsupportedFive.result.stderr, /predicate coverage/u);
+
+  const loginWithoutDecisionSurfaces = run(requirements({ rawPreamble: '想做个简单的登陆' }));
+  assert.notEqual(loginWithoutDecisionSurfaces.result.status, 0, 'authentication work must cover its risk decision surfaces');
+  assert.match(loginWithoutDecisionSurfaces.result.stderr, /authentication decision surfaces/u);
+
+  const loginWithDecisionSurfaces = run(requirements({
+    rawPreamble: '想做个简单的登陆',
+    includeAuthSurfaces: true,
+  }));
+  assert.equal(loginWithDecisionSurfaces.result.status, 0, loginWithDecisionSurfaces.result.stderr);
+
+  const forgedSupports = [
+    'order-service:Goal.consumer', 'order-service:Goal.outcome', 'order-service:Goal.confirmed',
+    'order-service:Scope.included', 'order-service:Scope.excluded', 'order-service:Scope.confirmed',
+    'order-service:Constraints.technical', 'order-service:Constraints.risk', 'order-service:Constraints.confirmed',
+    'order-service:Acceptance.success', 'order-service:Acceptance.failure', 'order-service:Acceptance.observable',
+    'order-service:Acceptance.confirmed', 'order-service:Context.need', 'order-service:Context.current-state',
+    'order-service:Context.confirmed',
+    'auth:identity-source', 'auth:credential-authority', 'auth:session-lifecycle',
+    'auth:failure-abuse', 'auth:recovery-mfa', 'auth:observable-acceptance',
+  ].join(',');
+  let forgedVagueLogin = requirements({
+    rawPreamble: '想做个简单的登录',
+    includeAuthSurfaces: true,
+    score: 5,
+    predicateCoverage: {
+      Goal: 'consumer,outcome,confirmed',
+      Scope: 'included,excluded,confirmed',
+      Constraints: 'technical,risk,confirmed',
+      Acceptance: 'success,failure,observable,confirmed',
+      Context: 'need,current-state,confirmed',
+    },
+    evidenceRefs: 'E-RAW-FORGE',
+    evidenceRows: [`| E-RAW-FORGE | raw-request | original | 登录 | ${forgedSupports} |`],
+  });
+  forgedVagueLogin = forgedVagueLogin.replace(/E-AUTH-[1-6]/gu, 'E-RAW-FORGE');
+  const forgedVagueResult = run(forgedVagueLogin);
+  assert.notEqual(forgedVagueResult.result.status, 0, 'one vague login phrase must not self-certify every readiness predicate');
+  assert.match(forgedVagueResult.result.stderr, /exactly one readiness|explicit raw request/u);
+
+  const duplicatedClause = requirements().replace(
+    '| E-GOAL-O | user-decision | round:1 | 目标结果是可恢复的订单取消 |',
+    '| E-GOAL-O | user-decision | round:1 | 使用者是订单操作员 |',
+  );
+  const duplicatedClauseResult = run(duplicatedClause);
+  assert.notEqual(duplicatedClauseResult.result.status, 0, 'one source clause must not be copied into multiple single-target evidence rows');
+  assert.match(duplicatedClauseResult.result.stderr, /reuses a source clause/u);
+
+  const aliasedRawClause = requirements()
+    .replace(
+      '| E-GOAL-C | user-decision | round:1 | 使用者是订单操作员 |',
+      '| E-GOAL-C | raw-request | raw:1 | 构建可恢复的订单取消流程 |',
+    )
+    .replace(
+      '| E-GOAL-O | user-decision | round:1 | 目标结果是可恢复的订单取消 |',
+      '| E-GOAL-O | raw-request | raw:2 | 构建可恢复的订单取消流程 |',
+    );
+  const aliasedRawResult = run(aliasedRawClause);
+  assert.notEqual(aliasedRawResult.result.status, 0, 'raw locator aliases must not permit one clause to support multiple targets');
+  assert.match(aliasedRawResult.result.stderr, /raw-request locator must be original-request|reuses a source clause/u);
+
+  const confirmedRefs = {
+    Goal: 'E-GOAL-C,E-GOAL-O,E-CONFIRM',
+    Scope: 'E-SCOPE-I,E-SCOPE-E,E-CONFIRM',
+    Constraints: 'E-CONSTRAINT-T,E-CONSTRAINT-R,E-CONFIRM',
+    Acceptance: 'E-ACCEPT-S,E-ACCEPT-F,E-ACCEPT-O,E-CONFIRM',
+    Context: 'E-CONTEXT-N,E-FACT-1,E-CONFIRM',
+  };
+  for (const confirmationClaim of [
+    'do not proceed and do not confirm this scope',
+    'cannot proceed',
+    "can't approve this",
+    'not ready to proceed',
+    'I confirm nothing',
+    'I approve nothing',
+    'I confirm this only as a draft',
+    'Confirmed: this is wrong',
+    '授权范围',
+    '授权需求',
+    '已授权范围',
+    '明确授权范围',
+    '无法确认范围',
+    '并未同意当前需求',
+  ]) {
+    const negatedConfirmation = run(requirements({
+      score: 5,
+      predicateCoverage: {
+        Goal: 'consumer,outcome,confirmed', Scope: 'included,excluded,confirmed',
+        Constraints: 'technical,risk,confirmed', Acceptance: 'success,failure,observable,confirmed',
+        Context: 'need,current-state,confirmed',
+      },
+      evidenceRefs: confirmedRefs,
+      confirmationClaim,
+    }));
+    assert.notEqual(negatedConfirmation.result.status, 0, `${confirmationClaim} must not authorize score 5`);
+    assert.match(negatedConfirmation.result.stderr, /explicit raw request or resolved user Decision confirmation/u);
+  }
+  const affirmativeConfirmation = run(requirements({
+    score: 5,
+    predicateCoverage: {
+      Goal: 'consumer,outcome,confirmed', Scope: 'included,excluded,confirmed',
+      Constraints: 'technical,risk,confirmed', Acceptance: 'success,failure,observable,confirmed',
+      Context: 'need,current-state,confirmed',
+    },
+    evidenceRefs: confirmedRefs,
+    confirmationClaim: '我明确确认以上范围',
+  }));
+  assert.equal(affirmativeConfirmation.result.status, 0, affirmativeConfirmation.result.stderr);
+
   for (const [name, content, expected] of [
     ['low score', requirements({ score: 3 }), /below readiness threshold/u],
-    ['missing evidence', requirements({ evidence: '' }), /missing scoring evidence/u],
+    ['missing evidence refs', requirements({ evidenceRefs: '' }), /missing evidence refs/u],
+    ['unknown evidence ref', requirements({ evidenceRefs: 'E-NOT-FOUND' }), /unknown evidence ref/u],
+    ['user evidence claim mismatch', requirements({ userClaim: 'claim not present in the answer' }), /exactly match one clause/u],
+    ['user evidence wrong ledger type', requirements({ roundType: 'Fact' }), /resolved user Decision/u],
+    ['user evidence wrong source', requirements({ roundSource: 'agent' }), /owned and resolved by user/u],
+    ['research JSON key is not a fact', requirements({ researchClaim: 'claim' }), /exactly match a fact claim/u],
+    ['sign-in alias requires auth surfaces', requirements({ rawPreamble: 'Please add sign-in.' }), /authentication decision surfaces/u],
+    ['Chinese auth alias requires auth surfaces', requirements({ rawPreamble: '增加用户认证。' }), /authentication decision surfaces/u],
+    ['duplicate goal heading injection', requirements({ rawPreamble: '登录\n## 目标与验收\n隐藏认证需求' }), /exactly one ## 目标与验收 heading/u],
+    ['level-3 heading cannot hide authentication', requirements({ rawPreamble: '### Background\nPlease add sign-in.' }), /unescaped level-3 heading|authentication decision surfaces/u],
     ['missing gap classification', requirements({ gapType: '' }), /Gap type must be Fact, Decision, or resolved/u],
     ['unconfirmed topology', requirements({ topologyConfirmed: 'false' }), /topology confirmed: true/u],
     ['unconfirmed scope', requirements({ scopeConfirmed: 'false' }), /scope confirmed: true/u],
