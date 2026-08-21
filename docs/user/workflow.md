@@ -1,116 +1,111 @@
-# 七阶段工作流
+# 六阶段工作流
+
+Enterprise Harness 的唯一生命周期是：
+
+```text
+clarify → design → plan → implement → verify → archive
+```
+
+Classification 是 clarify 后的内部制品；TDD、regression、direct 等是 implement task 的
+execution strategy。它们都不是额外 stage。
 
 ## 查看实际执行情况
 
-不要只根据聊天中的“完成”判断进度。每个 change 都有可读、可复现的状态、审计和时序证据：
+不要只根据聊天中的“完成”判断进度：
 
 ```bash
-# 当前在哪个阶段、缺什么、现在唯一合法的推进决策是什么
+# 当前阶段、最早 blocker 和唯一合法的下一动作
 enterprise-harness workflow status <change-id> --json
 
-# 已完成阶段的文件、state、executor result、独立 checker result 是否都齐全
-enterprise-harness workflow audit <change-id>
+# 已完成阶段的 artifact、execute result、独立 review 和 digest 是否完整
+enterprise-harness workflow audit <change-id> --json
 
-# 写代码前必须通过静态阶段链验证（ambiguity/router/design/plan/codegraph），落 stage-gate marker
+# plan 冻结后验证静态阶段链并生成 stage-gate marker
 enterprise-harness validate <change-id>
 
-# 从真实 agent ledger 渲染实际发生过的时序图，而不是理想流程图
+# 从 agent ledger 渲染实际时序
 enterprise-harness trace --change <change-id> --mermaid
 ```
 
-`workflow audit` 返回 `0` 表示已完成阶段的证据符合合同；返回 `2` 表示有阻断项，输出会明确
-指出缺少的 artifact、execute result、checker result、parent run 关联或 state predicate。
-
-`validate` 在 plan 冻结后、tdd 写代码前运行一次：它验证静态阶段链完整性并写入
-`evidence/stage-gate.json`。之后写受治理路径（`src/main/java`、`src/test/java`、`openapi`）
-时，pre-write 门禁只轻查这个 marker 是否存在且未过期，不再每次写文件全量重算阶段链。
-若 marker 缺失或阶段链证据变化，pre-write 会阻断并提示先运行 `validate`。
-
-读取 `workflow status --json` 或普通 `status --json` 时先看顶层字段。若 `status=blocked`，
-不要根据 `stage`、`nextStage` 或 `projectedNextEntry` 继续执行；此时只执行顶层 `nextAction`，
-并按 `blockers[0]` 修复最早的证据缺口。只有非 blocked 状态下，才可采用
-`pendingDecision.options` 中的阶段决策。
-普通 status 在阻断态会令 `nextStage=null`；`projectedStage` 只是原 state 的只读解释。
-
-从 schema 4 开始，archive、Stop 和最终 completion 会强制执行相同审计：不能只修改
-`state.json` 把 change 标成完成。需要完整的事件、文件、角色边界和磁盘路径说明时，见
-[阶段时序、事件与产物合同](../../harness/specs/stage-observability.md)。
+`status=blocked` 时只执行顶层 `nextAction`，不要根据投影的 stage 或 nextStage 自行推进。
+非阻断状态也只能执行 `pendingDecision.options` 中列出的决策；没有 pending decision 时不要自行
+构造 transition。`workflow audit` 返回 0 表示已完成阶段的证据符合合同，返回 2 表示存在阻断项。
 
 ## clarify
 
-目的：把需求变成可执行范围。
+目的：把原始请求变成有依据、可验收且由用户确认的执行范围。
 
-用户需要：逐次回答一个关键问题，并最终确认 scope。澄清问题使用 Claude Code 原生 `AskUserQuestion`，每轮只呈现最弱的一个维度，并把推荐选项放在第一项。
+Harness 先区分 Facts 与 Decisions：代码路径、调用链、schema 和库版本由隔离的 fact agent
+查找；业务意图、scope、兼容性取舍和风险接受才问用户。
 
-成功表现：七维歧义评分全部有依据，关键维度均不低于 4。
+澄清流程：
 
-阻断恢复：补充 weakest dimension，不要直接进入设计。
+1. Round 0 枚举 1–6 个 top-level components，请用户确认 add/remove/merge/split/defer。
+2. 对每个 active component 的 Goal / Scope / Constraints / Acceptance / Context 做 0–5 评分，
+   每格记录 evidence 与 gap；API/Data 只在 impact 相关时展开。
+3. 每轮选择 weakest / highest-risk frontier，使用 Claude Code 原生 `AskUserQuestion` 只问一个
+   decision，推荐选项放第一。
+4. 回答后重新评分并展示变化；用户可以修正 topology、评分或 scope。
 
-## route
+需求已明确时走 Fast Path：先生成 provisional topology、评分和 requirements 摘要；原始请求已
+明确授权完整 scope 时无需追加问题，否则用一次问题联合确认。评分、事实证据、scope confirmation
+和独立 review 门槛不降低。任一关键分数低于 4、仍有高风险 assumption 或 evidence stale 时都停在 clarify。
 
-目的：确定变更等级、影响面和所需 reviewer。
-
-用户需要：确认 API、数据、架构和规则影响。
-
-成功表现：tier、影响矩阵和执行路径落盘。
-
-阻断恢复：补齐影响事实或明确 non-goals。
+成功表现：requirements、classification、Clarify StageResult、独立 ReviewResult 与
+CompletionProof 均 fresh，用户已明确确认 scope。
 
 ## design
 
-目的：冻结实现前合同。
+目的：冻结实现前技术合同。
 
-用户需要：确认关键取舍。
+Design 只消费已确认 requirements、classification 和 digest-bound research facts。API/Data
+仅在 impact 适用时加载对应设计分支。产物必须覆盖适用的接口、错误模型、数据与 SQL、迁移、
+兼容性和测试策略，并通过 self-check 与独立 review。
 
-成功表现：适用的接口、请求响应、错误模型、SQL/迁移、兼容性和测试策略完整，并由独立 reviewer 通过。
-
-阻断恢复：按 reviewer blocker 修改 design，再发起新的 check run。
+缺少业务决定时 worker 返回一个 `NEEDS_DECISION`，由主 Harness 转成用户问题；worker 不猜测。
 
 ## plan
 
-目的：把 design 拆为可独立执行和验证的 task。
+目的：把 design 拆成可独立执行、审查、回滚和验证的 task。
 
-用户需要：确认顺序和交付边界。
+每个 task 冻结稳定 ID、in/out scope、write paths、一个 execution strategy、exact argv、验收、
+recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相关测试”之类不可机械执行的描述。
 
-成功表现：每个 task 有目标、文件范围、测试、RED 点、exact argv 和验收。plan skill 以短 JSON few-shot 展示冻结命令格式，并在每步给出 `Expect` / `Verify`。
+## implement
 
-阻断恢复：拆小任务或补齐依赖。
+目的：在隔离 worktree 中按每个 task 的冻结 strategy 实现产品变更。
 
-## tdd
+- `tdd`：RED → GREEN → REFACTOR；
+- `regression`：REPRODUCE → VERIFY；
+- `characterization`：BASELINE → VERIFY；
+- `direct`：说明 RED 不适用并执行 VERIFY；
+- `migration`：DRY_RUN → APPLY → ROLLBACK；
+- `generation`：GENERATE → VERIFY。
 
-目的：用真实测试驱动实现。
-
-前置：静态阶段链必须已通过 `enterprise-harness validate <change-id>` 并落 marker。若
-marker 缺失，第一次写受治理路径会被 pre-write 阻断。
-
-用户需要：通常无需操作，除非构建命令或环境不明确。
-
-成功表现：隔离 executor 按冻结 argv 完成 RED、GREEN、REFACTOR，并生成 receipt；独立 checker 检查结果。tdd skill 内含最小 HANDOFF_RESULT few-shot；RED 必须是目标断言的真实非零失败，不能用无条件退出伪造。
-
-阻断恢复：根据 receipt、runId 和错误码修复，不接受“已运行”的文本自报。若被
-pre-write 以 `stage-evidence-digest-mismatch` 阻断，说明阶段链证据（plan/reviews）已
-变化，重新运行 `validate` 后再写。
+所有命令通过 task runner 执行并产生 machine-generated receipt。Implementer 的 self-check 不等于
+批准；每个 task 还需要独立 reviewer。若 stage-gate marker stale，重新验证阶段链后再写。
 
 ## verify
 
-目的：消费所有 reviewer、receipt、ledger 和 fresh validation。
+目的：执行冻结 validation argv，消费 task receipts、reviews、ledger 与 fresh artifacts，形成
+最终 validation 和独立 final review。
 
-用户需要：确认剩余 advisory 是否接受。
-
-成功表现：completion predicate 返回 pass，并列出消费的证据摘要。
-
-阻断恢复：只修复结构化 blocker 指向的层。
+用户只处理真正需要接受或拒绝的 advisory。缺失、unsupported 或 stale evidence 不能被聊天中的
+“已经验证”替代。
 
 ## archive
 
-目的：冻结完成变更并清理 active 指针。
+目的：在 completion predicate 全部通过时冻结变更历史并清理 active change。
 
-用户需要：确认交付结论。
+Archive 与最终完成声明使用同一套 fresh evidence。不能通过直接编辑 `state.json`、复制聊天输出
+或强制移动目录伪造成功。
 
-成功表现：change 物理移动到 archive，state 为 `ARCHIVED`。
+## 上下文与文件隔离
 
-阻断恢复：archive 与 Stop 使用同一个 completion predicate，不能手工改状态绕过。
+主 Harness 保留用户对话。代码/文档事实探索、artifact 生成、实现和 review 分别在独立 agent
+上下文中完成；worktree 提供文件隔离，subagent 提供上下文隔离，Handoff v2 提供 digest-bound
+接力。每个阶段遵循：
 
-## 上下文隔离
-
-主 orchestrator 只负责阶段推进。代码探索、执行和检查分别在独立 subagent 中完成。worktree 提供文件隔离；subagent 提供上下文隔离；handoff artifact 提供可验证接力。
+```text
+execute → self-check → independent review → TECPC → fresh evidence
+```

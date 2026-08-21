@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/harness/SKILL.md
   - runtime/core/change-state.mjs
@@ -63,7 +63,12 @@ Clarify establishes a component topology before asking questions. It follows thr
 
 The core principle: **Facts are gathered by Agent (CodeGraph/Context7); only business decisions, compatibility trade-offs, scope, and risk acceptance are asked of the user.**
 
-Fast Path: when requirements are already clear, code facts confirm affected paths, and no high-risk assumptions exist, 0-1 questions may lead directly to Design.
+Fast Path: when requirements are already clear, code facts confirm affected paths, every active
+component's critical dimensions are at least 4, and no high-risk assumptions exist, 0-1 questions
+may complete scope confirmation. Fast Path reduces interview length, not readiness or evidence gates.
+It first produces a provisional topology, scores, and requirements summary; the original request may
+serve as the confirmation source only when it explicitly authorizes the complete scope, otherwise one
+combined question confirms topology, requirements, and scope.
 
 Once artifacts are sufficient, Main records scope confirmation and the durable classification artifact.
 

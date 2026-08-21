@@ -43,7 +43,7 @@ assert.doesNotMatch(corpus, /standalone/iu);
 assert.doesNotMatch(corpus, /harness\/explorations/u);
 assert.doesNotMatch(corpus, /docs\/zh-cn/u);
 assert.doesNotMatch(corpus, /PROGRESS\.md/u);
-for (const token of ['七维', 'ambiguity', 'executor', 'checker', 'receipt', 'completion']) {
+for (const token of ['component × dimension', 'ambiguity', 'executor', 'checker', 'receipt', 'completion']) {
   assert.ok(corpus.toLowerCase().includes(token.toLowerCase()), `current docs missing ${token}`);
 }
 console.log('PASS current-doc-surface verify');

@@ -1,10 +1,12 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-21
 implementationRefs:
   - harness/upstream/registry.json
+  - skills/harness/SKILL.md
 testRefs:
+  - runtime/test/harness-standard-skill-smoke.mjs
   - runtime/test/offline-diagnostics-smoke.mjs
 ---
 
@@ -12,135 +14,105 @@ testRefs:
 
 ## 目标
 
-明确 Enterprise Harness 当前设计借鉴了哪些上游、各自学什么、不学什么，以及这些来源如何映射到当前仓库。
+记录 Enterprise Harness 从各上游吸收的边界、主动舍弃的行为和当前仓库映射。上游只提供方法或
+资产模型；`harness/specs/` 与 runtime 才是本项目合同。审阅 commit 固定在
+`harness/upstream/registry.json`，不得把浮动 `main` 当成可复现证据。
 
-## 摘要
+## 当前组合
 
-- **Superpowers**：学习 staged UX、double-check、subagent 分工、TDD worktree/subagent 风格
-- **OpenSpec**：学习 change / spec / archive 的资产模型
-- **deep-interview（来自 oh-my-claudecode）**：学习 clarify 阶段的苏格拉底式提问方法
-- **gump-agent-workspace**：学习 durable state 与可恢复工作空间理念
-- **role-workbench**：学习阶段角色视角，但当前只作为 draft 参考
-- **Claude Code 官方建议**：学习 command / skill / agent / hook 的职责边界
+```text
+Clarify = Grill Me tree/frontier
+        + Deep Interview topology/scoring
+        + Superpowers approval discipline
 
-## 1. Superpowers
+Lifecycle = clarify → design → plan → implement → verify → archive
+```
 
-来源：`https://github.com/obra/superpowers`
+### Grill Me / Grilling
 
-### 学什么
-- 分阶段工作流骨架
-- staged UX
-- 高噪声任务下沉给 subagent
-- 关键节点 double-check
-- TDD 使用 worktree / subagent 的实践风格
+来源：`mattpocock/skills` 的 `grill-me` 与 `grilling`。
 
-### 不学什么
-- 不把其运行时行为直接原样移植
-- 不自动同步其插件实现
-- 不把其命令面直接照搬到本仓库
+吸收：
 
-### 当前映射
-- `/harness` staged workflow 前门
-- `clarify → route → design → plan → tdd → verify → archive`
-- `code-explore` / reviewer 型 agent 分工
-- TDD contract 中的 subagent + worktree + 真实构建命令要求
+- design tree / decision tree；
+- frontier 随用户回答重建，而不是预制静态问卷；
+- Facts 由 agent 查找，Decisions 由用户决定。
 
-## 2. OpenSpec
+主动舍弃：上游 `grilling` 一轮询问整个 frontier。Harness 使用 Claude Code 原生
+`AskUserQuestion`，每轮只问一个 weakest / highest-risk decision，再重新计算 frontier。
 
-来源：`https://github.com/Fission-AI/OpenSpec`
+当前映射：`skills/harness/SKILL.md` 的“方法融合”和“Clarify 执行循环”，以及
+`skills/harness/assets/requirements.md.tmpl` 的 frontier 与 round ledger。
 
-### 学什么
-- change / spec / archive 资产模型
-- durable artifact 思路
-- 归档作为工作流一等对象
+### Deep Interview
 
-### 不学什么
-- 不把 OpenSpec 的命令面直接搬进来
-- 不让 OpenSpec 风格反过来主导 Claude Code 交互前门
+来源：`Yeachan-Heo/oh-my-claudecode` 的 `deep-interview`。
 
-### 当前映射
-- `harness/changes/`
-- `harness/specs/`
-- `harness/archive/`
-- `design.md` / `tasks.md` / `validation.md` / reviews / evidence 等资产观念
+吸收：
 
-## 3. deep-interview（oh-my-claudecode）
+- Round 0 先枚举并确认 component topology；
+- component-level clarity，避免一个清晰组件掩盖未澄清 sibling；
+- weakest component × dimension targeting；
+- brownfield fact-first、逐轮评分与回答后重评分；
+- Fast Path 只减少问题数量，不降低 readiness gate。
 
-来源：`https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/deep-interview/SKILL.md`
+主动舍弃：OMC state、pipeline、threshold settings、challenge agent 和其专属命令面。Harness 使用
+自己的 Handoff v2、0–5 component × dimension 合同与 durable change artifacts。
 
-### 学什么
-- 苏格拉底式澄清
-- 先问关键问题，而不是直接进入实现
-- 弱假设驱动的澄清推进方式
+当前映射：`harness/specs/ambiguity-scoring.md`、Harness Skill、requirements 模板和 Clarify finalizer。
 
-### 不学什么
-- 不逐字复制 skill
-- 不照搬原仓库全部上下文设定
+### Superpowers
 
-### 当前映射
-- `harness` 中的 clarify 策略
-- `ambiguity-scoring.md`
-- weakest dimension targeting
-- 一次一问、用户修正评分
+来源：`obra/superpowers`，重点为 `brainstorming`、`writing-plans`、
+`test-driven-development`、`subagent-driven-development` 与 `verification-before-completion`。
 
-## 4. gump-agent-workspace
+吸收：
 
-来源：博客文章
+- 先理解和确认，再设计与实施；
+- 一次一个澄清问题，给出推荐与取舍；
+- bounded 任务可缩短过程，但 approval gate 不消失；
+- plan、执行、独立检查和 fresh verification 的 staged discipline。
 
-### 学什么
-- durable workspace
-- 中断后恢复
-- state 驱动，而不是只靠对话记忆
+主动舍弃：不复制其技能调度器、命令面或运行时实现；不让 Superpowers 的阶段名称替换 Harness
+的六阶段 lifecycle。
 
-### 当前映射
-- `state.json`
-- `workflow.stage`
-- `ACTIVE_CHANGE`
-- status / stop / session-start 的恢复提示
+当前映射：`/enterprise-harness:harness` 用户前门、stage skills、独立 capability agents 和
+`execute → self-check → independent review → TECPC → fresh evidence`。
 
-## 5. role-workbench
+### OpenSpec
 
-来源：`https://github.com/Emtemf/role-workbench/tree/master/.claude/skills`
+来源：`Fission-AI/OpenSpec`。
 
-### 学什么
-- 用角色视角提高阶段质量
-- 在 design / review 场景中强化 perspective
+只吸收 change / spec / archive 的 durable artifact 模型；不复制 OPSX 命令面。当前映射为
+`harness/changes/`、`harness/specs/`、`harness/archive/` 及 digest freshness。
 
-### 当前状态
-- 只作为草案参考
-- 尚未接入 runtime 主流程
+### Claude Code 官方职责边界
 
-## 6. Claude Code 官方建议
+依据 Claude Code Skills、subagents、hooks 与 plugin 官方文档：
 
-### 学什么
-- slash/command 适合作为显式前门
-- skill 适合作为可复用方法论包
-- agent 适合作为专职执行角色
-- hook 适合作为生命周期机械门禁
+- `/enterprise-harness:harness`：plugin namespaced Skill 和唯一用户前门；
+- `skills/`：按需加载的可复用流程与 supporting resources；
+- `agents/`：事实探索、artifact 执行、实现与独立 review 的隔离 capability；
+- `hooks/`：宿主生命周期的机械 gate、ledger 与恢复提示；
+- `runtime/`：确定性状态迁移、schema、digest 与 receipt 验证。
 
-### 当前映射建议
-- `/harness`：唯一用户前门
-- 阶段 skill：方法论与用户引导
-- agent：explore / reviewer / executor
-- hook adapter / primitives：durable state + hard gate + deterministic backend action
-- `harness/`：repo truth / specs / templates / changes / archive
+Harness 不使用 `context: fork`，因为 Clarify 需要持续用户对话。stage worker skills 使用 forked
+context；hooks 不承担需求分析或第二套 workflow engine。
 
-### CodeGraph / Context7 的位置
-- **CodeGraph** 不是普通工具，而是 `code-explore` lane 的能力核心
-- **Context7** 不是普通工具，而是 `doc-research` lane 的能力核心
-- phase 1 的 clarify / route / design / verify 都依赖这两条探索通道来补事实，而不是只靠模型记忆
+## Runtime 上游
 
-## 总体设计结论
+- **CodeGraph：** code fact lane。用于符号、调用链和影响面；fallback 必须记录 degraded 原因。
+- **Context7：** documentation fact lane。用于外部库、框架、SDK 和版本行为；不可用时只回退到官方文档。
 
-Enterprise Harness 当前更合理的形态不是“skill-only”，而是：
+两者提供 evidence，不替用户作业务决定，也不直接改变 lifecycle state。
 
-- **Superpowers 风格的 staged UX** 作为交互编排骨架
-- **OpenSpec 风格的资产模型** 作为 durable truth
-- **deep-interview 风格的 clarify 技术** 作为 intake 方法
-- **Claude Code 官方职责边界** 作为实现层分工约束
+## Anti-regrowth
 
-这意味着：
-- phase 1 先做 Claude Code-only
-- 用户体验尽量收口到 `/harness` + 阶段 skill
-- 专职复杂执行下沉到 agent
-- 真正不可绕过的正确性继续保留在 runtime/hook
+不得重新引入：
+
+- `route` 或 `tdd` lifecycle stage；
+- 固定全局七维问卷；
+- 一轮批量询问整个 frontier；
+- 可由代码或官方文档回答的用户问题；
+- 用 agent 自报或聊天文字替代 independent review / fresh evidence；
+- 让 hook 或 upstream plugin 成为第二权威 workflow。

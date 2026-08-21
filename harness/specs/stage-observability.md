@@ -1,201 +1,126 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-09
+lastVerified: 2026-08-21
 implementationRefs:
   - runtime/lib/stage-contract.mjs
   - runtime/lib/workflow-audit.mjs
   - runtime/lib/status-summary.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
-  - harness/policy.json
 testRefs:
+  - runtime/test/workflow-audit-v6-result-smoke.mjs
   - runtime/test/trace-mermaid-smoke.mjs
-  - runtime/test/skill-command-conformance-smoke.mjs
+  - runtime/test/lifecycle-clarify-transition-smoke.mjs
 ---
 
 # 阶段时序、事件与产物合同
 
-本文件回答四个可验证的问题：
-
-1. 一个阶段是谁执行的：主对话、forked stage skill、executor，还是独立 checker？
-2. 此阶段成功后磁盘上必须出现什么 durable artifact？
-3. 哪些 hook/ledger/run 事件必须可追溯？
-4. 如何不依赖聊天、只用本地证据判断实际执行是否符合预期？
-
-唯一机器真相源是 `runtime/lib/stage-contract.mjs`。`workflow audit` 消费该合同、
-`state.json`、change 内 artifact、`runs/*` handoff 结果和 git-common-dir receipt ledger；
-不把聊天文字或单独的 state 投影当作通过证据。
+本文件说明如何不依赖聊天，只用 state、artifact、Handoff v2 result、独立 review 和 receipt
+判断实际执行。阶段与必要 artifact 的唯一机器真相是 `runtime/lib/stage-contract.mjs`。
 
 ## 总体时序
 
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant M as Main agent /harness (clarify inline)
-  participant S as forked stage skill
-  participant E as registry executor
-  participant K as independent checker
-  participant R as Runtime + hooks
-  participant D as Durable change directory
+  participant M as Main /harness
+  participant S as Forked stage Skill
+  participant E as Capability executor
+  participant K as Independent reviewer
+  participant R as Runtime and hooks
+  participant D as Durable change
 
-  U->>M: /enterprise-harness:harness
-  M->>M: clarify（可与用户一问一答）
-  M->>R: handoff create execute
-  R->>D: runs/<executor-run>/input.json
-  M->>E: Agent(HANDOFF_INPUT=...)
-  R->>R: PreAgent / PreExplore hooks
-  E->>D: 业务 artifact + HANDOFF_RESULT
-  R->>D: runs/<executor-run>/result.json + ledger stop
-  M->>R: handoff create check <executor-run>
-  R->>D: runs/<checker-run>/input.json
-  M->>K: 独立 Agent(HANDOFF_INPUT=...)
-  K->>D: checker verdict + HANDOFF_RESULT
-  R->>D: runs/<checker-run>/check.json + ledger stop
-  M->>U: 一个澄清问题或 scope confirmation
-  U->>M: confirm
-  M->>R: workflow decide
-  R->>D: state.json + workflow-events.jsonl
+  U->>M: /enterprise-harness:harness + request
+  M->>R: status or start-change
+  M->>E: fact handoff when needed
+  E->>D: ResearchPacket result
+  loop Clarify one decision at a time
+    M->>U: topology or weakest frontier question
+    U->>M: decision
+    M->>D: requirements draft + scores + evidence
+  end
+  M->>U: scope confirmation
+  U->>M: confirm requirements and scope
+  M->>R: clarify execute result
+  M->>K: independent clarify check
+  K->>D: digest-bound ReviewResult
+  M->>R: legal workflow decision
 
-  loop route → design → plan → tdd → verify
-    M->>S: forked harness-<stage>
-    S->>E: executor handoff
-    E->>K: independent checker handoff
-    K-->>S: pass / block / advisory
-    S-->>M: 压缩结论
-    M->>R: workflow decide（仅 status 给出的合法决策）
+  loop design → plan → implement → verify → archive
+    M->>S: invoke stage Skill
+    S->>E: execute Handoff v2
+    E->>D: artifact or receipt + StageResult
+    M->>K: independent check Handoff v2
+    K->>D: ReviewResult
+    M->>R: transition after fresh gate
   end
 
-  M->>R: workflow audit <change-id>
-  R->>D: 交叉检查 state / artifacts / runs / ledger
-  R-->>M: PASS 或 BLOCK（含确切缺口与恢复动作）
+  M->>R: workflow audit
+  R-->>M: PASS or one actionable BLOCK
 ```
 
 ## 角色边界
 
-| 角色 | 所在上下文 | 可以做什么 | 不可以做什么 |
+| 角色 | 上下文 | 允许 | 禁止 |
 |---|---|---|---|
-| Main agent `/harness`（含 clarify） | 用户主对话 | 创建/恢复 change；一问一答澄清 scope；展示七维评分；安排探索与 synthesis/check；询问 scope/route 确认；执行合法 `workflow decide` | 直接做代码探索、实现、代替 checker verdict、自行代替用户确认 scope |
-| route/design/plan/tdd/verify skill | `context: fork` | 读取最小 handoff；安排 executor 与 checker；返回压缩结论 | 直接获得用户确认；executor 自审 |
-| registry executor | 独立 subagent | 按 input.json 做一个 behavior；写业务 artifact；输出 TECPC result | 自审；跳过 HANDOFF_RESULT |
-| registry checker | 与 executor 不同的独立 run | 只消费 executor result/artifact；输出 pass/block/advisory | 重做 executor 工作；直接实现 |
-| Runtime/hooks | 每次工具事件 | 机械 gate、记录 receipt、验证 handoff、标 stale、给 recovery | 需求分析或替模型作产品决定 |
+| Main `/harness` | 用户主对话 | 创建/恢复 change；Clarify；用户决策；合法 transition | 直接探索业务代码、实现、替 reviewer 判定或替用户确认 |
+| design/plan/verify/archive Skill | forked stage context | 消费 frozen handoff；生成当前 stage artifact 与 self-check | 用户交互、自我批准、读取无关对话 |
+| implement Skill | 隔离 worktree + forked context | 按 task strategy/write scope/exact argv 实现并生成 receipt | 越界写入、自报命令证据、自我批准 |
+| fact agent | 隔离 context | CodeGraph/Context7-first ResearchPacket | 产品决策、产品代码写入、用户采访 |
+| reviewer | 与 executor 不同的独立 run | 消费 frozen artifact/result/rubric，返回 ReviewResult | 读取 executor transcript、修改 candidate、替用户决策 |
+| Runtime/hooks | 宿主边界 | schema、digest、receipt、binding、transition 和 ledger gate | 需求分析或第二套 workflow |
 
-## 每次 governed subagent 的事件与文件
+## Handoff v2 闭环
 
-下面是一个 executor/checker 闭环的固定最小集合；每个 behavior 都一样，差异只在
-`behavior`、agent type、输出 artifact。
+每个 execute/check 行为至少留下：
 
-| 顺序 | 触发者 | Durable 事件 / 文件 | 失败时 |
-|---|---|---|---|
-| 1 | main/stage skill | `handoff create … execute` → `runs/<execute-run>/input.json` | 输入缺 behavior/stage/target/refs 时 BLOCK |
-| 2 | PreToolUse:Agent | ledger `dispatch`（runId、behavior、agent、input path） | 没有 `HANDOFF_INPUT` 或 agent/stage 不匹配时 BLOCK |
-| 3 | code-explore only | ledger `codegraph-attempt` | fallback 前同 agent 没有 attempt 时 BLOCK |
-| 5 | executor | change artifact；最后一条消息的 `HANDOFF_RESULT` | 没有 TECPC、空 evidence、path/context、outputRefs 或 summary 时 BLOCK |
-| 6 | SubagentStop | `runs/<execute-run>/result.json`；ledger `stop` | 非法 HANDOFF_RESULT 记 `violation` 并 BLOCK |
-| 7 | main/stage skill | `handoff create … check <execute-run>` → `runs/<check-run>/input.json` | parent `result.json` 不存在时 BLOCK |
-| 8 | checker + SubagentStop | `runs/<check-run>/check.json`；ledger `stop` | checker verdict 非 pass/block/advisory 时 BLOCK |
-| 9 | main/runtime | `workflow decide` 事件 → `evidence/workflow-events.jsonl`，state projection 更新 | 仅 `workflow status` 给出的 `pendingDecision.options` 可执行 |
+1. `runs/<execute-run>/input.json`：stage、behavior、agent、inputRefs/inputDigests、TECPC target。
+2. capability agent binding 与 ledger start/stop；code-explore 还需 CodeGraph attempt。
+3. `runs/<execute-run>/result.json`：schema-valid StageResult 或 task result，绑定输入和 artifact digest。
+4. `runs/<check-run>/input.json`：不同 runId、`parentRunId` 指向 execute run。
+5. `runs/<check-run>/check.json`：独立 ReviewResult、rubricIds、reviewed digest 与 TECPC。
+6. runtime CompletionProof：只有结构、独立性、agent binding 和 freshness 均有效才成立。
 
-**TECPC 的真实位置：**`runs/<run-id>/result.json` 或 `check.json` 内的 `tecpc`。
-字段是 Target、Evidence、Context、Path、Correction。schema 4 起空数组、空字符串或数组空项
-均不合格；进度卡 `tecp-card.mjs` 只是展示，不是 handoff 证据。
+Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale；不得靠 state boolean 恢复。
 
-**agent ledger 的真实位置：**`$(git rev-parse --git-common-dir)/enterprise-harness/receipts/<change-id>/agent-events.jsonl`。
-它在 git common directory 下，worktree 与主仓库共享，故不依赖聊天或当前工作目录；也因此
-它不会随 archive 自动移动。`runs/` 才是随 change archive 的可携带执行证据。
+## 六阶段矩阵
 
-## 阶段矩阵
+| Stage | 必要 durable artifact/state | Executor | 独立检查 | 合法推进条件 |
+|---|---|---|---|---|
+| clarify | `requirements.md`；classification path+digest；适用 ResearchPacket | Main（用户循环）+ fact agents | reviewer requirements rubric | topology/scope 已确认；component × dimension 达标；Clarify result/review/completion fresh |
+| design | `design.md` | artifact-worker + design Skill | reviewer selected rubrics | StageResult、全部 assertions、ReviewResult、TECPC 与 digest fresh |
+| plan | `tasks.md` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope frozen，result/review fresh |
+| implement | `currentTask`；task receipts；产品变更 | implementer + implement Skill | reviewer task rubrics | 每 task receipt/self-check/review fresh，write scope 合规 |
+| verify | `validation.md`；`validation.status=fresh`；digest | artifact-worker + verify Skill | reviewer final rubrics | frozen argv 全执行；validation、final review 和 completion fresh |
+| archive | immutable archive artifact/state | artifact-worker + archive Skill | reviewer archive rubric | verify evidence 未 stale，归档前检查和 CompletionProof 通过 |
 
-`✓` 是进入下一阶段/最终 completion 的强制条件；`条件`表示只有对应行为被派发（或 API/data
-影响适用）时才强制闭环。每个 `behavior` 都必须 execute + independent check 完成。
+Classification 是 clarify artifact；execution strategy 是 implement task 属性。没有 `route` 或 `tdd`
+lifecycle stage。
 
-| 阶段 | 主产物（change 内） | state / 用户 gate | required behavior | 条件 behavior | 合法推进 |
-|---|---|---|---|---|---|
-| clarify | `requirements.md`；`evidence/*-exploration.md`（如探索）；评分依据 | ✓ `clarifyReady`；✓ `userConfirmedScope` | `clarify.synthesize` | `clarify.explore-code`、`clarify.research-docs` | `confirm-clarity`，随后用户 `confirm-scope` |
-| route | `change.md` 的 tier/owning module/impact/non-goals | ✓ `routeReady`；四个 impact 均非 `unknown` | `route.decide` | `route.explore-code` | 用户 `confirm-route` |
-| design | `design.md`；`reviews/design-reviewer.json` | ✓ `gates.designApproved` | `design.produce` | `design.explore-code`、`design.research-docs`、API 时 `design.check-api` | `approve` 或适用时 `freeze-slice` |
-| plan | `tasks.md`；`task-commands.json`；`reviews/plan-critic.json` | ✓ `planReady` | `plan.produce` | — | `freeze-plan` |
-| tdd | executor output refs；真实 TDD receipt spool；实现改动 | ✓ `currentTask`；✓ `tddStatus=refactor-verified` | `tdd.execute-task`（每 task） | — | `enter-verify` |
-| verify | `validation.md`；validation digest；适用 review verdict | ✓ `validation.status=fresh` + digest | `verify.collect` | `verify.explore-code`；API 时 `verify.check-api` | 先 `lifecycle validated`，再 `enter-archive` |
-| archive | 物理移动至 `harness/archive/<id>/`；清理对应 session binding/lock | 统一 completion predicate + schema 5 audit ✓ | — | — | `lifecycle archive <id>` |
-| abandon | 未完成 change 以日期前缀移动至 `harness/archive/`；保留 evidence，写入 reason，不得伪装完成 | `lifecycle abandon <id> <reason>`；不参与 completion predicate | — | — | `lifecycle abandon <id> <reason>` |
-
-## 如何证明“符合预期”
-
-### 1. 当前阶段与下一步
+## 诊断入口
 
 ```bash
 enterprise-harness workflow status <change-id> --json
-```
-
-先读取顶层 `status`：
-
-- `status=blocked` 时，`pendingDecision` 和探索推荐会被清空，只执行顶层 `nextAction`；对
-  schema 4 strict change，该动作是 `workflow audit <change-id> --json`。
-- 非 blocked 时，只有 `pendingDecision.options` 中列出的决策可以交给 `workflow decide`。
-
-普通 `status --json` 使用同一 workflow 结果，也必须在顶层返回相同 `status`、`blockers`、
-`nextAction` 和恢复入口；阻断态的 `nextStage` 为 null，`projectedStage` 仅用于解释原 state。
-SKILL.md 内命令与 runtime 决策集合另有
-`skill-command-conformance-smoke` 交叉测试，防止文档写了 runtime 不支持的命令。
-
-### 2. 完整阶段审计（核心）
-
-```bash
-enterprise-harness workflow audit <change-id>
 enterprise-harness workflow audit <change-id> --json
-```
-
-输出每个已完成阶段的：
-
-- state predicate；
-- required artifact 是否存在；
-- execute run 是否有合法 `result.json`；
-- checker 是否有合法 `check.json`，且 `parentRunId` 指向一个已完成 execute run；
-- optional behavior 是否已派发；若已派发，是否完成闭环；
-- ledger 事件数、CodeGraph attempts、violations。
-
-返回 `0` 是 PASS；返回 `2` 是 BLOCK。schema 4 的 completion predicate 同时调用这项审计，
-故 archive / Stop / `verify` 不能只靠手改 `state.json` 获得“完成”。schema 3 及以前的历史
-change 运行 audit 时显示 `evidencePolicy: historical-unenforced`：它仍会如实报告缺 `runs/` 的
-BLOCK，但不会参与旧 change 的 completion predicate，也不会被旧 state 倒灌为“合格”。
-
-### 3. 行为级证据和时序图
-
-```bash
 enterprise-harness trace <run-id> <change-id>
 enterprise-harness trace --change <change-id> --mermaid
 ```
 
-第一条显示某个 run 的 input/result/check 文件与关联 ledger 事件。第二条从 ledger 渲染实际
-sequence diagram，不画“理想时序图”。如果没有 `dispatch → start → codegraph-attempt（需要时）
-→ stop`，图和 audit 都会暴露缺口。
+- `status=blocked`：只执行顶层 `nextAction`，不使用投影字段猜测下一阶段。
+- 非阻断状态：只允许 `pendingDecision.options` 中的 transition；没有 pending decision 时不推进。
+- audit 返回 0：已完成阶段的 state/artifact/result/review/digest 合同通过。
+- audit 返回 2：按最早 blocker 的 recovery 修复，不手工编辑 state。
+- trace 只渲染真实 ledger/runs，不绘制理想化的“应该发生”。
 
-## 自动防漂移测试
+## 自动防漂移
 
-| 测试 | 防止什么 |
+| 测试 | 防止 |
 |---|---|
-| `workflow-stage-progression-smoke` | 任一阶段没有可执行推进命令、全链路又死锁 |
-| `skill-command-conformance-smoke` | SKILL.md 命令/虚构 gate 与 runtime 决策集合漂移 |
-| `tecpc-and-registry-smoke` | TECPC 空值通过；skill 派发未在该 stage 注册；registry 死 behavior |
-| `pre-explore-scope-smoke` | pathless Grep/Glob 绕过；Bash commit message 误触发探索 gate |
-| `workflow-audit-smoke` | audit 未检测 artifact、state、execute/check result 或 parent linkage 缺口 |
-| `trace-mermaid-smoke` | 实际 event sequence 输出不是合法 Mermaid 或漏 group close |
+| `harness-standard-skill-smoke` | Harness 方法、模板、eval 和上游追溯再次割裂 |
+| `clarify-stage-contract-smoke` | 低分、无依据、未确认或高风险 requirements 被 finalizer 放行 |
+| `workflow-audit-v6-result-smoke` | result/review/freshness 缺口被 state 投影掩盖 |
+| `lifecycle-clarify-transition-smoke` | 未完成 Clarify gate 就进入 Design |
+| `trace-mermaid-smoke` | 时序输出脱离真实 ledger |
 
-## 发布前最小检查
-
-```bash
-npm run test:all
-npm run test:ci
-npm run docs:check
-node bin/generate-hooks.mjs --check
-npm pack --dry-run
-```
-
-对真实 change，另外必须有：
-
-```bash
-enterprise-harness workflow audit <change-id>
-enterprise-harness trace --change <change-id> --mermaid
-```
+发布前至少运行直接行为测试、`npm run prepublish-check`、plugin validation 和 artifact 内容检查。

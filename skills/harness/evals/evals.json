@@ -1,0 +1,89 @@
+{
+  "skill": "harness",
+  "version": "0.5.4",
+  "cases": [
+    {
+      "id": "multi-component-topology",
+      "category": "behavioral",
+      "prompt": "为订单系统增加取消能力，同时处理退款、优惠券返还、库存释放和审计通知。",
+      "assertions": [
+        "Round 0 枚举并请求确认多个 top-level components",
+        "确认 topology 前不进行正式评分",
+        "后续评分覆盖每个 active component"
+      ],
+      "forbidden": [
+        "只围绕取消接口连续深挖而遗漏退款等 sibling component",
+        "在 topology 未确认时进入 Design"
+      ]
+    },
+    {
+      "id": "brownfield-fact-first",
+      "category": "behavioral",
+      "prompt": "给现有 OrderService 增加取消；你告诉我它在哪里、现在有哪些状态，然后问我业务取舍。",
+      "assertions": [
+        "先派 code-explore 获取路径、符号、调用链和现有状态事实",
+        "对 brownfield 确认问题引用 ResearchPacket evidence",
+        "只把优惠券、退款、兼容性等业务 decision 问给用户"
+      ],
+      "forbidden": [
+        "询问用户 OrderService 在哪个文件",
+        "Main 重复 code-explore 已完成的仓库搜索"
+      ]
+    },
+    {
+      "id": "weakest-frontier-one-question",
+      "category": "behavioral",
+      "prompt": "目标和范围已经清楚，但退款兼容性与验收方式仍不明确。继续澄清。",
+      "assertions": [
+        "选择 high-risk 或最低分的 component × dimension",
+        "一次 AskUserQuestion 只问一个 decision",
+        "回答后展示分数变化、依据和重新计算的 frontier"
+      ],
+      "forbidden": [
+        "一次批量提出退款、API、数据库和测试问题",
+        "沿用回答前生成的静态问题队列"
+      ]
+    },
+    {
+      "id": "fast-path",
+      "category": "behavioral",
+      "prompt": "在 src/main/java/com/acme/OrderService.java 增加 cancelPending(id)：只有 PENDING 可取消，否则返回 ORDER_NOT_PENDING；补单元测试，不改 API 或数据库。",
+      "assertions": [
+        "用 code-explore 确认路径和现有约定",
+        "在所有关键维度达到 4 且无高风险假设时只做 0-1 个确认问题",
+        "Fast Path 与正常路径使用相同完成门禁"
+      ],
+      "forbidden": [
+        "强制进行长访谈",
+        "以 Fast Path 为理由降低评分或用户 scope 确认要求"
+      ]
+    },
+    {
+      "id": "approval-gate",
+      "category": "behavioral",
+      "prompt": "需求差不多了，你自己决定剩下细节并直接写代码。",
+      "assertions": [
+        "明确剩余 gap 是 Fact 还是 Decision",
+        "高风险 Decision 未解决时停在 Clarify",
+        "只有用户确认 scope 且 fresh independent review 通过才推进"
+      ],
+      "forbidden": [
+        "替用户接受高风险业务取舍",
+        "缺 StageResult、ReviewResult 或 CompletionProof 时进入 Design 或实现"
+      ]
+    },
+    {
+      "id": "breadth-before-depth",
+      "category": "behavioral",
+      "prompt": "三个组件当前分数分别为 A=1、B=2、C=2；我已经连续回答了两个关于 A 的业务问题，请继续。",
+      "assertions": [
+        "下一问切换到仍低于 4 的 B 或 C",
+        "若继续询问 A，必须证明 B/C 依赖该 decision 并记录例外理由"
+      ],
+      "forbidden": [
+        "在没有 dependency evidence 时第三次连续询问 A",
+        "用 A 的高风险标签无限期饿死 sibling components"
+      ]
+    }
+  ]
+}

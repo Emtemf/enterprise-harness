@@ -1,12 +1,15 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-20
+lastVerified: 2026-08-21
 implementationRefs:
-  - runtime/lib/ambiguity.mjs
   - skills/harness/SKILL.md
+  - skills/harness/assets/requirements.md.tmpl
+  - skills/harness/scripts/finalize-clarify-result.mjs
 testRefs:
-  - runtime/test/ambiguity-gate-smoke.mjs
+  - runtime/test/clarify-stage-contract-smoke.mjs
+  - runtime/test/clarify-topology-template-smoke.mjs
+  - runtime/test/harness-standard-skill-smoke.mjs
 ---
 
 # Ambiguity Scoring Contract
@@ -102,8 +105,8 @@ Frontier = `component × unresolved dimension`。
 每轮选择策略：
 
 1. 先覆盖所有主要 architecture surface（广度优先）
-2. 对当前重要且高耦合的主题，可连续追问 2-4 个问题（有限深入）
-3. 同一主题追问 2-4 个关键问题后，切换到其他架构面
+2. 对当前重要且高耦合的主题，可连续追问最多 2 个 Decision 问题（有限深入）
+3. 仍有 sibling component < 4 时，第三问必须切换；只有 sibling 明确依赖当前 decision 才可例外，并记录 dependency evidence
 4. 主要架构面覆盖完成后，回到尚未解决的关键分歧或薄弱环节
 5. 每次只问一个问题，提供几个明确选项及推荐
 6. 只询问真正影响架构、产品行为或实现可行性的问题
@@ -144,13 +147,18 @@ Fast Path 判定条件（同时满足时触发）：
 1. 用户请求中已包含明确的 Scope、Acceptance、至少一个 Constraint
 2. CodeGraph 确认了受影响的代码路径
 3. 没有标记为 high-risk 的 assumption
-4. overall score >= 3.5（不需要全部 >= 4）
+4. 所有 active component 的关键维度都已 >= 4
+
+Fast Path 只减少问答次数，不降低 clarify-ready、用户确认或 evidence freshness 门槛。它仍需
+持久化 topology、评分依据和 scope confirmation；不得用 overall 平均值掩盖任何低分 component。
+Fast Path 先形成 provisional topology、评分和 requirements 摘要，再由原始明确授权作为确认来源，
+或用一次 `AskUserQuestion` 联合确认 topology、requirements 与 scope；不得确认一个尚未形成的 artifact。
 
 ## 每轮操作规则
 
 每轮 clarify 必须：
 
-1. **展示当前评分表**：component × dimension 评分 + overall + weakest frontier
+1. **展示当前评分表**：component × dimension 评分 + coverage summary + weakest frontier
 2. **解释评分依据**：每个分数引用具体探索发现或用户回答，不得凭空打分
 3. **让用户确认/修正**：用户有权质疑任何评分
 4. **找出 weakest frontier**
@@ -202,6 +210,7 @@ Weakest: Refund × Goal (3)
 - 仍待澄清的问题
 - 用户确认状态
 - topology 图（component 依赖关系）
+- 每轮 question/answer、评分变化与 evidence source
 
 ## 禁止事项
 

@@ -8,9 +8,24 @@
         "Methods only: brainstorming, planning, TDD, verification.",
         "Do not auto-sync runtime behavior from the upstream plugin."
       ],
-      "lastReviewed": "2026-07-13",
+      "lastReviewed": "2026-08-21",
+      "reviewedCommit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
       "observedVersions": [
-        "6.1.1"
+        "6.3.0"
+      ]
+    },
+    {
+      "name": "Grill Me",
+      "source": "https://github.com/mattpocock/skills/tree/main/skills/productivity",
+      "status": "reference-only",
+      "notes": [
+        "Clarify method only: design tree, decision frontier, and facts-versus-decisions boundary.",
+        "The upstream whole-frontier batch cadence is intentionally replaced by one Claude Code AskUserQuestion per round."
+      ],
+      "lastReviewed": "2026-08-21",
+      "reviewedCommit": "0ab1b63a410a03d3627979a109c8695de27af954",
+      "observedVersions": [
+        "repo-main"
       ]
     },
     {
@@ -34,7 +49,8 @@
         "Clarify enhancement only: Socratic interviewing technique for requirement clarification.",
         "Informs harness clarify stage; do not import the skill verbatim."
       ],
-      "lastReviewed": "2026-07-21",
+      "lastReviewed": "2026-08-21",
+      "reviewedCommit": "5aa678c6f7a769df84561d9486d8e9e30b68c3dc",
       "observedVersions": [
         "repo-main"
       ]
