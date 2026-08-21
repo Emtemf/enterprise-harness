@@ -30,6 +30,12 @@ const ALLOWED_HARNESS_FILES = [
   'harness/project.json',
 ];
 const EXCLUDED_PREFIXES = ['runtime/test/', 'runtime/.bootstrap-ran'];
+const EXCLUDED_PATTERNS = [/^skills\/harness\/evals(?:\/|$)/u];
+
+function excluded(relative) {
+  return EXCLUDED_PREFIXES.some((prefix) => relative.startsWith(prefix))
+    || EXCLUDED_PATTERNS.some((pattern) => pattern.test(relative));
+}
 
 let outDir = path.join(repoRoot, 'dist');
 for (let index = 0; index < args.length; index += 1) {
@@ -59,7 +65,7 @@ function walk(relativeRoot) {
   for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
     const relative = path.join(relativeRoot, entry.name);
     const portable = normalized(relative);
-    if (EXCLUDED_PREFIXES.some((prefix) => portable.startsWith(prefix))) continue;
+    if (excluded(portable)) continue;
     if (entry.isSymbolicLink()) throw new Error(`release asset must not be a symlink: ${portable}`);
     if (entry.isDirectory()) files.push(...walk(relative));
     else if (entry.isFile()) files.push(portable);

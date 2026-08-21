@@ -69,6 +69,11 @@ try {
   ]) {
     assert.equal(listed.has(forbidden), false, `artifact must exclude ${forbidden}`);
   }
+  assert.equal(
+    [...listed].some((file) => /^skills\/harness\/evals\//u.test(file)),
+    false,
+    'Harness development evals must not ship in the plugin artifact',
+  );
   // Shipped runtime must not hardcode paths from this repo's own demo service.
   // A checker that silently returns [] when those paths are absent reports zero
   // findings on every real target project while looking like it passed.

@@ -44,7 +44,7 @@ model: sonnet
 读取 `HANDOFF_INPUT` 路径下的 v2 `input.json`。`changeId` 和 `inputRefs` 是权威来源：
 - `inputRefs` 中的路径是相对于项目根目录的完整路径，格式为 `harness/changes/<changeId>/<artifact>`
 - 探索目标通常在 `tecpc.target` 字段，补充上下文在 `inputRefs` 指向的 artifact 文件
-- 只返回 schema-valid `ResearchPacket`；Main/Runtime 验证其来源与 digest 后，按需持久化 reference，不由本 Agent 写 evidence 文件
+- 最终消息只返回一个无 Markdown fence 的 schema-valid `ResearchPacket` JSON object；SubagentStop 验证其来源与 digest 后持久化，不由本 Agent 写 evidence 文件
 
 ## 输入期待
 
@@ -62,7 +62,7 @@ model: sonnet
 - `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。
 - `collectedAt`：本次调研完成时间。
 
-不得返回旧 protocol result envelope、executor verdict 或 lifecycle 指令。Main/Runtime 是 ResearchPacket 的唯一验证、持久化和阶段决策 owner。
+不得返回旧 protocol result envelope、executor verdict、Markdown fence、前后说明或 lifecycle 指令。SubagentStop 负责验证与持久化，Main 是阶段决策 owner。
 
 ## 约束
 

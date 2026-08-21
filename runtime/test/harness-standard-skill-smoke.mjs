@@ -13,17 +13,17 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 function assertHarnessInstructions() {
   const skill = read('skills/harness/SKILL.md');
   for (const heading of [
-    '## 进入 Clarify',
-    '## Clarify 执行循环',
-    '## Clarify 完成门禁',
-    '## 恢复与阻断',
+    '## Phase 0：进入 Clarify',
+    '## Phase 1：完成事实探索',
+    '## Phase 2：综合事实并建立 topology',
+    '## Phase 3：只澄清 Decisions',
+    '## Phase 4：确认并完成 Clarify',
   ]) assert.ok(skill.includes(heading), `harness skill must include ${heading}`);
 
   for (const behavior of [
     'design tree',
-    'Round 0',
-    'weakest / highest-risk',
-    'Facts',
+    'ResearchPacket',
+    '等待全部 required lanes',
     'Decisions',
     'AskUserQuestion',
     '重新计算',
@@ -48,7 +48,7 @@ function assertRequirementsTemplate() {
 }
 
 function assertBehavioralEvals() {
-  const evals = JSON.parse(read('skills/harness/evals/evals.json'));
+  const evals = JSON.parse(read('test/skill-evals/harness/evals.json'));
   assert.equal(evals.skill, 'harness');
   assert.ok(Array.isArray(evals.cases) && evals.cases.length >= 5, 'harness must define at least five eval cases');
   const ids = new Set(evals.cases.map((entry) => entry.id));
@@ -58,6 +58,7 @@ function assertBehavioralEvals() {
     'weakest-frontier-one-question',
     'fast-path',
     'approval-gate',
+    'fact-lanes-before-interview',
   ]) assert.ok(ids.has(id), `harness evals must cover ${id}`);
   for (const entry of evals.cases) {
     assert.ok(entry.prompt, `${entry.id} must include a pressure prompt`);
@@ -79,11 +80,18 @@ function assertUpstreamTraceability() {
   assert.equal(mapping.includes('clarify → route → design → plan → tdd → verify → archive'), false);
 }
 
+function assertProductionSkillHasNoProvenanceNarration() {
+  const skill = read('skills/harness/SKILL.md');
+  assert.doesNotMatch(skill, /Grill Me|Deep Interview|Superpowers Brainstorming/u);
+  assert.equal(fs.existsSync(path.join(root, 'skills/harness/evals')), false);
+}
+
 try {
   assertHarnessInstructions();
   assertRequirementsTemplate();
   assertBehavioralEvals();
   assertUpstreamTraceability();
+  assertProductionSkillHasNoProvenanceNarration();
   console.log(`PASS harness-standard-skill ${mode}`);
 } catch (error) {
   console.error(error.message);

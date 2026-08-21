@@ -7,6 +7,7 @@ implementationRefs:
   - skills/harness/SKILL.md
 testRefs:
   - runtime/test/harness-standard-skill-smoke.mjs
+  - test/skill-evals/harness/evals.json
   - runtime/test/offline-diagnostics-smoke.mjs
 ---
 
@@ -17,6 +18,9 @@ testRefs:
 记录 Enterprise Harness 从各上游吸收的边界、主动舍弃的行为和当前仓库映射。上游只提供方法或
 资产模型；`harness/specs/` 与 runtime 才是本项目合同。审阅 commit 固定在
 `harness/upstream/registry.json`，不得把浮动 `main` 当成可复现证据。
+
+本文件是开发 provenance，不是生产 Skill 的 supporting reference。`skills/harness/SKILL.md` 只保留
+可执行流程，不加载本文件、不复述上游名称，也不让上游叙述占用运行上下文。
 
 ## 当前组合
 
@@ -41,8 +45,7 @@ Lifecycle = clarify → design → plan → implement → verify → archive
 主动舍弃：上游 `grilling` 一轮询问整个 frontier。Harness 使用 Claude Code 原生
 `AskUserQuestion`，每轮只问一个 weakest / highest-risk decision，再重新计算 frontier。
 
-当前映射：`skills/harness/SKILL.md` 的“方法融合”和“Clarify 执行循环”，以及
-`skills/harness/assets/requirements.md.tmpl` 的 frontier 与 round ledger。
+当前映射：`skills/harness/SKILL.md` 的 Phase 2/3，以及 requirements 模板的 frontier 与 round ledger。
 
 ### Deep Interview
 

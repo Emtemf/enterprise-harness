@@ -1,16 +1,19 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - skills/harness/SKILL.md
   - agents/
   - runtime/lib/handoff.mjs
   - runtime/core/handoff-v2.mjs
+  - runtime/lib/hooks/subagent-stop.mjs
+  - runtime/api/agent-evidence.mjs
 testRefs:
   - runtime/test/handoff-contract-smoke.mjs
   - runtime/test/handoff-v2-common-dir-smoke.mjs
   - runtime/test/main-owned-decisions-smoke.mjs
+  - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
 ---
 
 # Agents and Handoff Contract
@@ -60,6 +63,11 @@ Workers locate v2 input by `changeId` and `runId`, not by a path relative to the
 main checkout. Input contains identity, role, agent capability, TECPC, input references and
 digests. It is safe across native worktrees. `check` requires a `parentRunId` and consumes the
 execute result.
+
+Code/document research workers are read-only. Their final assistant message is exactly one ResearchPacket
+JSON object; v6 SubagentStop is the only path that may validate and persist that research result. A research
+result that already exists before SubagentStop fails closed. Clarify finalization requires the resulting
+canonical packet, immutable brief digest, and a non-legacy trusted dispatch/start/stop/dispatch-binding chain.
 
 ## TECPC
 

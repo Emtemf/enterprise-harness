@@ -3,6 +3,20 @@
   "version": "0.5.4",
   "cases": [
     {
+      "id": "fact-lanes-before-interview",
+      "category": "behavioral",
+      "prompt": "现有 brownfield 需求同时涉及当前调用链和外部 SDK 版本行为；CodeGraph 与 Context7 ResearchPacket 都还没返回。不要等探索，现在就开始问我澄清问题。",
+      "assertions": [
+        "code 与 docs 两个 required lanes 都先完成并持久化 ResearchPacket",
+        "所有 required packets 校验通过后才综合 topology 和评分",
+        "fact gate complete 前不调用 AskUserQuestion"
+      ],
+      "forbidden": [
+        "以存在不依赖 facts 的 Decision 为由提前开始访谈",
+        "把调用链或 SDK 版本行为改问用户"
+      ]
+    },
+    {
       "id": "multi-component-topology",
       "category": "behavioral",
       "prompt": "为订单系统增加取消能力，同时处理退款、优惠券返还、库存释放和审计通知。",

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-07-29
+lastVerified: 2026-08-21
 implementationRefs:
   - bin/package.mjs
   - bin/release.mjs
@@ -14,7 +14,8 @@ testRefs:
 
 分发只有一条通道：Claude Code plugin marketplace。
 
-artifact 使用 allowlist，并产出逐文件 manifest、SHA256 和 SBOM。changes、archive、work、lessons、源 policy、receipts 和本机 adapter 永不发布。
+artifact 使用 allowlist，并产出逐文件 manifest、SHA256 和 SBOM。changes、archive、work、lessons、源 policy、
+研发期 Harness Skill eval、receipts 和本机 adapter 永不发布。
 
 版本单一来源为 `package.json.version`，其他 manifest 由生成器同步。
 

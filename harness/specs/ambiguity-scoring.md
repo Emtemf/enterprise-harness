@@ -6,10 +6,14 @@ implementationRefs:
   - skills/harness/SKILL.md
   - skills/harness/assets/requirements.md.tmpl
   - skills/harness/scripts/finalize-clarify-result.mjs
+  - runtime/api/agent-evidence.mjs
+  - runtime/lib/hooks/subagent-stop.mjs
 testRefs:
   - runtime/test/clarify-stage-contract-smoke.mjs
   - runtime/test/clarify-topology-template-smoke.mjs
+  - runtime/test/harness-fact-gate-smoke.mjs
   - runtime/test/harness-standard-skill-smoke.mjs
+  - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
 ---
 
 # Ambiguity Scoring Contract
@@ -18,15 +22,26 @@ testRefs:
 
 把"需求不清晰"从主观感觉变成 staged workflow 可消费的显式 gate。
 
-Clarify 的核心方法论融合自三个来源：
-
-- **grill-me**（mattpocock/skills）：design tree / decision tree / frontier / 逐步消除不确定性
-- **deep-interview**（Yeachan-Heo/oh-my-claudecode）：Socratic questioning / ambiguity gate / Round 0 topology / weakest uncertainty first
-- **superpowers brainstorming**（obra/superpowers）：先理解 → 再设计 → 用户确认关键决策 → 才实施
+本文件只定义运行合同。方法来源、固定审阅 commit 和吸收/舍弃边界属于开发参考，统一见
+[upstream-mapping.md](upstream-mapping.md)，不得复制进生产 Skill。
 
 > **核心原则：Facts → Agent 找；Decisions → 用户决定。**
 
 能够通过 CodeGraph、Context7、当前代码或官方文档得到的信息，不应问用户。真正问用户的是：业务意图、兼容性取舍、Scope、风险接受。
+
+## 事实探索门禁
+
+在 topology、正式评分或用户问题之前，Main 必须判定并完成 applicable fact lanes：
+
+- brownfield、符号、调用链、现有 schema/配置与影响面：CodeGraph-first worker；
+- 外部 library/framework/SDK/协议/标准与版本行为：Context7-first worker。
+
+两条 lane 都适用时先全部派发，再等待全部 schema-valid、durable、fresh ResearchPacket。任一 required
+packet pending、missing、invalid 或 stale 时，不得建立正式评分或调用 `AskUserQuestion`。degraded packet
+仍影响安全设计时继续研究或阻断，不能改问用户。requirements 必须记录 required 判定、runId、packet ref、
+status、authority/fallback 和 `fact gate complete`；code/docs 必须各恰好一行，`not-required` 必须有依据。
+finalizer 还会验证 trusted dispatch/start/stop binding、immutable brief digest，并拒绝 degraded packet、非空
+uncertainties 或 `remaining fact uncertainty`，不能用 Main 自写 JSON 冒充隔离 worker 事实。
 
 ## 维度模型
 
@@ -34,7 +49,7 @@ Clarify 的核心方法论融合自三个来源：
 
 ### 组件拓扑
 
-Clarify 的 Round 0 首先建立 component topology：
+Fact gate 完成后，Clarify 才建立 component topology：
 
 ```text
 Feature
@@ -46,8 +61,8 @@ Feature
 通过以下来源确定组件：
 
 - 用户原始请求
-- CodeGraph 代码事实
-- Context7 文档事实
+- fresh CodeGraph ResearchPacket
+- fresh Context7 ResearchPacket
 - 已有 decisions
 
 ### 五核心维度

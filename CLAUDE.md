@@ -17,13 +17,10 @@ clarify → design → plan → implement → verify → archive
 
 ## Clarify 方法论
 
-Clarify 融合自三个参考项目：
+Clarify 的方法来源、固定审阅 commit 与吸收/舍弃边界只保存在开发参考
+`harness/specs/upstream-mapping.md` 和 `harness/upstream/registry.json`，不进入生产 Skill 指令。
 
-- **grill-me**（mattpocock/skills）：frontier analysis / 逐步消除不确定性
-- **deep-interview**（oh-my-claudecode）：Round 0 topology / weakest uncertainty first
-- **superpowers brainstorming**（obra/superpowers）：先理解 → 再设计 → 用户确认 → 才实施
-
-核心原则：**Facts → Agent 找（CodeGraph/Context7）；Decisions → 用户决定。**
+核心原则：**Facts → Agent 找（CodeGraph/Context7）；全部 applicable Facts 完成后，Decisions → 用户决定。**
 
 Clarify 使用 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context），API/Data 只在 impact 相关时展开为条件分支。每次用 `AskUserQuestion` 只问一个问题，提供选项和推荐。
 

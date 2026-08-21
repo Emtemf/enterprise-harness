@@ -15,6 +15,19 @@
 
 每项 requirement 使用稳定 `R*` 标识；Design、Plan 和验证证据必须引用这些标识。
 
+## 事实探索门禁
+
+| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |
+|---|---|---|---|---|---|---|
+| code | yes / no | | | | pending / complete / blocked / not-required | codegraph-first / 原因 |
+| docs | yes / no | | | | pending / complete / blocked / not-required | context7-first / 原因 |
+
+- fact gate complete：false
+- remaining fact uncertainty：
+
+适用的 lane 全部完成并通过 handoff validation 后才能建立正式 topology/评分或向用户提问。`not-required`
+必须写依据；packet pending、missing、invalid 或 stale 时不得把 Fact 改问用户。
+
 ## 组件拓扑
 
 | Component | Outcome / boundary | Status | Depends on | Confirmation source |

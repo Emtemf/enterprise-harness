@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-21
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -15,6 +15,7 @@ testRefs:
   - runtime/test/runtime-leases-smoke.mjs
   - runtime/test/hook-health-smoke.mjs
   - runtime/test/hook-health-lifecycle-smoke.mjs
+  - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
 ---
 
 # Hooks Contract

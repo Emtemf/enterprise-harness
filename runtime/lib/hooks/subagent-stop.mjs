@@ -14,51 +14,126 @@ import {
 } from '../handoff.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
 import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
-import { loadHandoffV2, v2ResultPath } from '../../core/handoff-v2.mjs';
+import {
+  loadHandoffV2,
+  persistHandoffV2Result,
+  v2ResultPath,
+} from '../../core/handoff-v2.mjs';
+
+function isResearchHandoff(input) {
+  if (input?.role !== 'execute') return false;
+  const agentType = normalizeAgentType(input?.agent?.type);
+  return agentType === 'enterprise-harness:code-explore'
+    || agentType === 'enterprise-harness:doc-research';
+}
+
+function v6ResultViolation({ repoRoot, changeId, event, normalized, observedRaw, cwd, message, problems }) {
+  appendAgentEvent(repoRoot, changeId, {
+    kind: 'violation',
+    violation: 'missing-or-ambiguous-v2-result',
+    sessionId: event.session_id,
+    agentId: event.agent_id,
+    observedAgentType: normalized,
+    rawObservedAgentType: observedRaw,
+    errorCode: 'EH-SUBAGENT-RESULT-004',
+    problems,
+    transcriptDigest: sha256(message),
+    cwd,
+  });
+  if (event.stop_hook_active) return { exitCode: 0 };
+  return {
+    exitCode: 0,
+    stdout: `${JSON.stringify({
+      decision: 'block',
+      reason: formatDiagnostic('EH-SUBAGENT-RESULT-004', problems[0], { changeId }),
+    })}\n`,
+  };
+}
 
 function completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw, cwd, message }) {
   const events = readAgentEvents(repoRoot, changeId);
-  const stoppedRuns = new Set(events
-    .filter((item) => item.kind === 'stop' && item.agentId === event.agent_id)
+  const terminalRuns = new Set(events
+    .filter((item) => (item.kind === 'stop' || item.kind === 'failure') && item.runId)
     .map((item) => item.runId));
+  const matchingStart = events.some((item) => (
+    item.kind === 'start'
+    && item.sessionId === event.session_id
+    && item.agentId === event.agent_id
+    && item.observedAgentType === normalized
+  ));
+  if (!matchingStart) {
+    return v6ResultViolation({
+      repoRoot,
+      changeId,
+      event,
+      normalized,
+      observedRaw,
+      cwd,
+      message,
+      problems: ['research result has no matching SubagentStart receipt for this agent and session'],
+    });
+  }
   const candidates = events.filter((item) => (
     item.kind === 'dispatch'
     && item.sessionId === event.session_id
     && item.requestedAgentType === normalized
-    && !stoppedRuns.has(item.runId)
+    && !terminalRuns.has(item.runId)
   )).flatMap((dispatch) => {
     try {
       const input = loadHandoffV2(repoRoot, changeId, dispatch.runId);
       const resultPath = v2ResultPath(repoRoot, changeId, input.runId, input.role);
-      return fs.existsSync(resultPath) ? [{ dispatch, input, resultPath }] : [];
+      return [{ dispatch, input, resultPath }];
     } catch {
       return [];
     }
   });
   if (candidates.length !== 1) {
     const problems = [`expected one persisted v2 result for the active agent dispatch, found ${candidates.length}`];
-    appendAgentEvent(repoRoot, changeId, {
-      kind: 'violation',
-      violation: 'missing-or-ambiguous-v2-result',
-      sessionId: event.session_id,
-      agentId: event.agent_id,
-      observedAgentType: normalized,
-      rawObservedAgentType: observedRaw,
-      errorCode: 'EH-SUBAGENT-RESULT-004',
-      problems,
-      transcriptDigest: sha256(message),
-      cwd,
-    });
-    if (event.stop_hook_active) return { exitCode: 0 };
-    return {
-      exitCode: 0,
-      stdout: `${JSON.stringify({
-        decision: 'block',
-        reason: formatDiagnostic('EH-SUBAGENT-RESULT-004', problems[0], { changeId }),
-      })}\n`,
-    };
+    return v6ResultViolation({ repoRoot, changeId, event, normalized, observedRaw, cwd, message, problems });
   }
   const [{ dispatch, input, resultPath }] = candidates;
+  const researchHandoff = isResearchHandoff(input);
+  if (researchHandoff && fs.existsSync(resultPath)) {
+    return v6ResultViolation({
+      repoRoot,
+      changeId,
+      event,
+      normalized,
+      observedRaw,
+      cwd,
+      message,
+      problems: ['research handoff has a pre-existing research result; only SubagentStop may persist it'],
+    });
+  }
+  if (researchHandoff) {
+    try {
+      const packet = JSON.parse(message.trim());
+      persistHandoffV2Result(repoRoot, changeId, input.runId, packet);
+    } catch (error) {
+      return v6ResultViolation({
+        repoRoot,
+        changeId,
+        event,
+        normalized,
+        observedRaw,
+        cwd,
+        message,
+        problems: [`research agent must return one valid ResearchPacket JSON object: ${error.message}`],
+      });
+    }
+  }
+  if (!fs.existsSync(resultPath)) {
+    return v6ResultViolation({
+      repoRoot,
+      changeId,
+      event,
+      normalized,
+      observedRaw,
+      cwd,
+      message,
+      problems: ['v2 worker did not persist its required result before stopping'],
+    });
+  }
   appendAgentEvent(repoRoot, changeId, {
     kind: 'stop',
     sessionId: event.session_id,

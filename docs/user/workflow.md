@@ -35,17 +35,20 @@ enterprise-harness trace --change <change-id> --mermaid
 
 目的：把原始请求变成有依据、可验收且由用户确认的执行范围。
 
-Harness 先区分 Facts 与 Decisions：代码路径、调用链、schema 和库版本由隔离的 fact agent
-查找；业务意图、scope、兼容性取舍和风险接受才问用户。
+Harness 先区分 Facts 与 Decisions：代码路径、调用链和 schema 由隔离的 CodeGraph-first worker
+查找；适用的外部库、SDK 与版本行为由 Context7-first worker 查找。所有 required ResearchPacket
+都完成、校验并持久化后，Main 才开始 topology 和用户澄清。业务意图、scope、兼容性取舍和风险
+接受才问用户。
 
 澄清流程：
 
-1. Round 0 枚举 1–6 个 top-level components，请用户确认 add/remove/merge/split/defer。
-2. 对每个 active component 的 Goal / Scope / Constraints / Acceptance / Context 做 0–5 评分，
+1. 判定 code/docs fact lanes；适用时派发 CodeGraph 与 Context7 worker，并等待全部 packet 完成。
+2. 枚举 1–6 个 top-level components，请用户确认 add/remove/merge/split/defer。
+3. 对每个 active component 的 Goal / Scope / Constraints / Acceptance / Context 做 0–5 评分，
    每格记录 evidence 与 gap；API/Data 只在 impact 相关时展开。
-3. 每轮选择 weakest / highest-risk frontier，使用 Claude Code 原生 `AskUserQuestion` 只问一个
+4. 每轮选择 weakest / highest-risk Decision frontier，使用 Claude Code 原生 `AskUserQuestion` 只问一个
    decision，推荐选项放第一。
-4. 回答后重新评分并展示变化；用户可以修正 topology、评分或 scope。
+5. 回答后重新评分并展示变化；用户可以修正 topology、评分或 scope。
 
 需求已明确时走 Fast Path：先生成 provisional topology、评分和 requirements 摘要；原始请求已
 明确授权完整 scope 时无需追加问题，否则用一次问题联合确认。评分、事实证据、scope confirmation

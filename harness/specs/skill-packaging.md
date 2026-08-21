@@ -7,6 +7,7 @@ implementationRefs:
   - .claude-plugin/plugin.json
 testRefs:
   - runtime/test/skill-packaging-smoke.mjs
+  - runtime/test/artifact-content-smoke.mjs
 ---
 
 # Skill Packaging Contract
@@ -54,6 +55,10 @@ assert/ proves deterministic invariants.
 evals/ proves the Skill actually behaves as intended.
 Runtime decides whether evidence is sufficient to advance.
 ```
+
+`harness` 标准样例的行为评测位于 `test/skill-evals/harness/`，不在生产 `SKILL.md` 中导航，也不进入
+发布 artifact。评测定义、运行报告和上游 provenance 都是研发证据，不是 Claude 执行工作流所需的
+supporting resources。
 
 ## 分层契约
 

@@ -95,8 +95,10 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 插件会：
 
 1. 创建或恢复 active change。
-2. 派 `code-explore` 只读 subagent 获取代码事实。
-3. 按 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context）逐项澄清。
+2. 派 CodeGraph-first `code-explore` 与适用的 Context7-first `doc-research` subagent，并等待全部
+   required ResearchPacket 校验、持久化完成。
+3. Main 综合事实后，按 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context）
+   逐项澄清剩余 Decisions。
 4. 生成含接口、错误模型和必要 SQL 的 design。
 5. 冻结任务级 exact argv。
 6. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。

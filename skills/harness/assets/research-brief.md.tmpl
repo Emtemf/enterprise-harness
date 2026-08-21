@@ -1,0 +1,12 @@
+# Research Brief
+
+- changeId：
+- lane：code / docs
+- question：一个可由该事实 lane 独立回答的精确问题
+- scope：允许探索的模块、symbol、library 或 version 边界
+- known user facts：只记录用户已明确给出的事实
+- exclusions：不得研究或推断的范围
+- source request ref：requirements 中原始请求的位置
+
+此 brief 在 handoff create 前写入 `harness/changes/<change-id>/research/<lane>-<topic>-brief.md`。
+handoff 创建后它是 immutable input；需要修正时创建新 brief 和新 run，不覆盖旧文件。

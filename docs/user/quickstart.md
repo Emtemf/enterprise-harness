@@ -54,7 +54,10 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 /enterprise-harness:harness
 ```
 
-描述一个具体需求。插件会先探索事实和澄清，不会直接修改业务代码。澄清阶段会用 Claude Code 的 `AskUserQuestion` 以选项题收敛最弱的一个维度；回答一轮后再继续下一轮，不需要一次写长篇需求。
+描述一个具体需求。插件先让 CodeGraph/Context7 事实 worker 完成适用的代码与外部文档探索；全部
+required ResearchPacket 校验并持久化后，主会话才开始澄清，不会把路径或版本事实问给用户，也不会
+直接修改业务代码。澄清阶段用 Claude Code 的 `AskUserQuestion` 以选项题收敛最弱的一个 Decision；
+回答一轮后再继续下一轮，不需要一次写长篇需求。
 
 阶段 skill 会在每步标出 `Expect`（应产生什么）和 `Verify`（如何确认），并为冻结命令、TDD receipt 和 handoff 结果提供短 few-shot。主会话只保留 changeId、当前缺口、证据摘要和一个下一动作；完整证据写入 change 目录。
 

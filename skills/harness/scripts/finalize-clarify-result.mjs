@@ -1,12 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { trustedHandoffAgentBindings } from '../../../runtime/api/agent-evidence.mjs';
 import {
   loadHandoffV2,
   persistHandoffV2Result,
   readClassificationArtifact,
+  v2ResultPath,
 } from '../../../runtime/api/handoff.mjs';
-import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
+import {
+  sha256Artifact,
+  validateResearchPacket,
+  validateStageResult,
+} from '../../../runtime/api/result.mjs';
 
 const [changeId, runId] = process.argv.slice(2);
 if (!changeId || !runId) {
@@ -37,10 +43,20 @@ function fieldValue(content, label) {
   return content.match(new RegExp(`[-*]\\s*${escaped}\\s*[:：]\\s*(.+)$`, 'imu'))?.[1]?.trim() ?? null;
 }
 
-function assertRequirements(content) {
+function normalizedRelative(root, absolute) {
+  return path.relative(root, absolute).split(path.sep).join('/');
+}
+
+function sameDigestMap(left, right) {
+  const entries = (value) => Object.entries(value || {}).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(entries(left)) === JSON.stringify(entries(right));
+}
+
+function assertRequirements(content, { root, changeId, confirmedInput }) {
   const required = [
     '# Requirements',
     '## 目标与验收',
+    '## 事实探索门禁',
     '## 组件拓扑',
     '## Frontier',
     '## 事实、约束与条件分支',
@@ -51,9 +67,83 @@ function assertRequirements(content) {
     .filter((heading) => !content.includes(heading))
     .map((heading) => `requirements.md is missing ${heading}`);
   if (!/\bR\d+\b/u.test(content)) problems.push('requirements.md must contain stable requirement IDs');
+  const factGateSection = section(content, '## 事实探索门禁');
   const topologySection = section(content, '## 组件拓扑');
   const scoringSection = section(content, '## Component × Dimension 评分');
   const confirmationSection = section(content, '## 未决决策与确认');
+  if (!/[-*]\s*fact gate complete\s*[:：]\s*true\b/iu.test(factGateSection)) {
+    problems.push('requirements.md must record fact gate complete: true');
+  }
+  const factRows = tableRows(factGateSection).filter((cells) => cells[0] !== 'Lane');
+  const expectedLanes = ['code', 'docs'];
+  if (factRows.length !== expectedLanes.length
+    || expectedLanes.some((lane) => factRows.filter((cells) => cells[0] === lane).length !== 1)
+    || factRows.some((cells) => !expectedLanes.includes(cells[0]))) {
+    problems.push('requirements.md fact discovery gate must contain exactly one code and one docs lane');
+  }
+  const remainingFact = fieldValue(factGateSection, 'remaining fact uncertainty');
+  if (!remainingFact || remainingFact.toLowerCase() !== 'none') {
+    problems.push('remaining fact uncertainty must be none');
+  }
+  for (const [lane, required, briefRef, runId, packetRef, status, rationale] of factRows) {
+    const normalizedRequired = String(required || '').toLowerCase();
+    if (!['yes', 'no'].includes(normalizedRequired)) {
+      problems.push(`fact lane ${lane} Required must be yes or no`);
+      continue;
+    }
+    if (normalizedRequired === 'no') {
+      if (String(status || '').toLowerCase() !== 'not-required') {
+        problems.push(`not-required lane ${lane} must use status not-required`);
+      }
+      if (!rationale || ['none', 'n/a'].includes(String(rationale).trim().toLowerCase())) {
+        problems.push(`not-required lane ${lane} must record rationale`);
+      }
+      continue;
+    }
+    if (String(status || '').toLowerCase() !== 'complete') problems.push(`required fact lane ${lane} must be complete`);
+    if (!briefRef || String(briefRef).toLowerCase() === 'none'
+      || !runId || String(runId).toLowerCase() === 'none'
+      || !packetRef || String(packetRef).toLowerCase() === 'none') {
+      problems.push(`required fact lane ${lane} must record brief ref, runId, and packet ref`);
+      continue;
+    }
+    try {
+      const factInput = loadHandoffV2(root, changeId, runId);
+      const expected = lane === 'code'
+        ? { behavior: 'clarify.explore-code', agent: 'enterprise-harness:code-explore', source: 'code-explore' }
+        : lane === 'docs'
+          ? { behavior: 'clarify.research-docs', agent: 'enterprise-harness:doc-research', source: 'doc-research' }
+          : null;
+      if (!expected) throw new Error(`unknown required lane ${lane}`);
+      if (factInput.stage !== 'clarify' || factInput.behavior !== expected.behavior
+        || factInput.role !== 'execute' || factInput.agent?.type !== expected.agent) {
+        throw new Error('handoff does not match the required lane');
+      }
+      if (!factInput.inputRefs.includes(briefRef)) throw new Error('handoff does not consume the recorded brief ref');
+      if (!confirmedInput.inputRefs.includes(briefRef)) {
+        throw new Error('confirmed handoff must bind required fact brief');
+      }
+      const canonicalPath = v2ResultPath(root, changeId, runId);
+      const canonicalRef = normalizedRelative(root, canonicalPath);
+      if (packetRef !== canonicalRef) problems.push(`required fact lane ${lane} packet ref must match canonical result ${canonicalRef}`);
+      const packet = JSON.parse(fs.readFileSync(canonicalPath, 'utf-8'));
+      const packetProblems = validateResearchPacket(root, packet);
+      if (packetProblems.length > 0) throw new Error(packetProblems.join('; '));
+      if (packet.degraded || packet.uncertainties.length > 0) {
+        throw new Error('packet is degraded or unresolved uncertainty remains');
+      }
+      if (packet.changeId !== changeId || packet.source !== expected.source
+        || JSON.stringify(packet.inputRefs) !== JSON.stringify(factInput.inputRefs)
+        || !sameDigestMap(packet.inputDigests, factInput.inputDigests)) {
+        throw new Error('packet does not bind the recorded handoff inputs');
+      }
+      const trustedBindings = trustedHandoffAgentBindings(root, changeId, factInput)
+        .filter((binding) => binding.binding !== null);
+      if (trustedBindings.length !== 1) throw new Error('missing trusted completed fact agent binding');
+    } catch (error) {
+      problems.push(`required fact lane ${lane} packet is invalid: ${error.message}`);
+    }
+  }
   if (!/[-*]\s*topology confirmed\s*[:：]\s*true\b/iu.test(topologySection)) {
     problems.push('requirements.md must record topology confirmed: true');
   }
@@ -128,7 +218,11 @@ try {
   const classificationPath = `harness/changes/${changeId}/classification.json`;
   const requirementsAbsolute = path.join(root, requirementsPath);
   if (!fs.existsSync(requirementsAbsolute)) throw new Error(`EH-CLARIFY-FINALIZE-002: missing ${requirementsPath}`);
-  const shapeProblems = assertRequirements(fs.readFileSync(requirementsAbsolute, 'utf-8'));
+  const shapeProblems = assertRequirements(fs.readFileSync(requirementsAbsolute, 'utf-8'), {
+    root,
+    changeId,
+    confirmedInput: input,
+  });
   if (shapeProblems.length > 0) throw new Error(`EH-CLARIFY-FINALIZE-003: ${shapeProblems.join('; ')}`);
   const classification = readClassificationArtifact(root, changeId, {
     path: classificationPath,
