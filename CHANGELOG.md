@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-08-22
+
 ### Changed
 
 - 将日常与发布质量门禁迁移到本地 `quality:local`，GitHub-hosted 平台与安全检查改为仅手动触发，避免 push、PR、tag 和 schedule 自动消耗 Actions 分钟。
