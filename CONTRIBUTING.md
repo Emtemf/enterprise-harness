@@ -81,8 +81,10 @@ node runtime/test/task4-release-acceptance-smoke.mjs verify
 完整验收：
 
 ```bash
-npm run prepublish-check
+npm run quality:local
 ```
+
+`quality:local` 在本机依次执行 prepublish、external-project E2E、确定性打包、SBOM、release notes 和解包验收。GitHub Actions 的平台与安全 workflow 只允许维护者按需手动触发，不是日常 push gate。
 
 测试应验证行为、文件系统结果、exit code 和结构化 evidence。不要用源码字符串存在或无条件 `process.exit(1)` 代替真实 RED。
 

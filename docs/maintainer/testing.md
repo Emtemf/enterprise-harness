@@ -17,10 +17,10 @@ node runtime/test/task3-gate-completion-smoke.mjs verify
 node runtime/test/task4-release-acceptance-smoke.mjs verify
 ```
 
-发布前或改动跨越 runtime 与 fixture 时，用聚合入口一次跑完四条流水线：
+发布前或改动跨越 runtime 与 fixture 时，用本地权威入口跑完 prepublish、external-project E2E、制品、SBOM、release notes 与解包验收：
 
 ```bash
-npm run test:everything
+npm run quality:local
 ```
 
 分别运行时注意 `test:all` 只含 smoke suite，不含 external-project E2E：
@@ -38,6 +38,8 @@ npm run test:e2e
 
 RED 必须来自目标断言在缺少实现时失败；同一测试在实现后通过。源码 token 检查只能用于 manifest/path parity。
 
-平台 matrix 包含 Linux、macOS、Windows 与 Node 20/22。确定性 gate 不执行 Context7 在线探测。
+GitHub-hosted 平台 matrix 包含 Linux、macOS、Windows 与 Node 20/22，但只允许 `workflow_dispatch` 手动触发。日常 push、tag 和发布不自动使用 Actions 分钟。确定性 gate 不执行 Context7 在线探测。
+
+手动 Security workflow 只保留 OSSF Scorecard。PR 自动触发已移除，因此 GitHub dependency-review 也明确停用；当前包没有 npm dependencies。未来引入依赖时，必须先把锁定依赖审计加入 `quality:local`，不能依赖已停用的 PR job。
 
 远程 marketplace 安装/更新由 `plugin-install-flow-smoke.mjs` 单独执行，不进入离线 prepublish；本地 marketplace 安装与插件结构校验仍属于确定性 gate。

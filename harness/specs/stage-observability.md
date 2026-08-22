@@ -123,4 +123,4 @@ enterprise-harness trace --change <change-id> --mermaid
 | `lifecycle-clarify-transition-smoke` | 未完成 Clarify gate 就进入 Design |
 | `trace-mermaid-smoke` | 时序输出脱离真实 ledger |
 
-发布前至少运行直接行为测试、`npm run prepublish-check`、plugin validation 和 artifact 内容检查。
+发布前至少运行直接行为测试与 `npm run quality:local`；后者统一覆盖 prepublish、plugin validation、external-project E2E 和 artifact 内容检查。

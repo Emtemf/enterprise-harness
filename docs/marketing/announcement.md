@@ -70,7 +70,7 @@
 - 动作层 / maintainer layer
 - local adapter schema 与示例
 - Node 版 hook adapters
-- GitHub Actions 下的 Linux / macOS / Windows smoke matrix
+- 本地发布前完整质量门禁，以及按需手动触发的 Linux / macOS / Windows smoke matrix
 
 如果你想对外介绍普通用户怎么用，建议只说：
 

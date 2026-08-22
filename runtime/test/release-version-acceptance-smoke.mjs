@@ -21,13 +21,15 @@ for (const token of [
   "['status', '--porcelain']",
   "['branch', '--show-current']",
   "['rev-parse', 'origin/main']",
+  "['auth', 'status'",
   "['worktree', 'add'",
   "['bin/sync-version.mjs', '--quiet']",
-  "['run', 'prepublish-check']",
-  "['bin/package.mjs'",
+  "['bin/local-quality.mjs'",
   "['diff', '--cached', '--name-only']",
   "['push', 'origin', `HEAD:main`]",
   "['push', 'origin', `refs/tags/${tagName}`]",
+  "'release', 'create'",
+  "'--verify-tag'",
 ]) {
   assert.ok(release.includes(token), `release is missing ${token}`);
 }
@@ -63,14 +65,16 @@ for (const entry of fs.readdirSync(runtimeTestDir, { withFileTypes: true })) {
     );
   }
 }
-for (const workflow of ['.github/workflows/platform-smoke.yml', '.github/workflows/release.yml']) {
-  const text = fs.readFileSync(path.join(root, workflow), 'utf-8');
-  assert.match(text, /npm run prepublish-check/u, `${workflow} must block on P0 acceptance`);
-  assert.match(text, /node runtime\/cli\.mjs verify --release-surface/u, `${workflow} must verify the release package surface`);
-  assert.match(text, /actions\/checkout@v7/u);
-  assert.match(text, /actions\/setup-node@v7/u);
-  assert.match(text, /@anthropic-ai\/claude-code@2\.1\.220/u);
-}
+const localQuality = fs.readFileSync(path.join(root, 'bin/local-quality.mjs'), 'utf-8');
+for (const token of [
+  'runtime/prepublish.mjs',
+  'test/external-project/maven-lifecycle-e2e.mjs',
+  'bin/package.mjs',
+  'runtime/test/artifact-content-smoke.mjs',
+  'bin/sbom.mjs',
+  'bin/release-notes.mjs',
+  'bin/validate-artifact.mjs',
+]) assert.ok(localQuality.includes(token), `local quality gate is missing ${token}`);
 const validation = spawnSync('claude', ['plugin', 'validate', '.'], {
   cwd: root,
   encoding: 'utf-8',

@@ -192,6 +192,13 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-SESSION-LEASE-023` | session lease 过期、不存在或已解绑 | 过期且 changeId 未变时重新运行 `start-change <same-change-id>` 幂等续租；冲突时先 `sessions show`，仅在明确放弃旧 binding 后执行 `sessions unbind`；不存在 `workflow clear-lease/abort` |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
+| `EH-LOCAL-QUALITY-001` | 本地质量或发布子检查失败 | 查看其前一段带 `[local-quality]` 的失败阶段和原始 stderr，修复后重新运行 `npm run quality:local`；不要绕过 gate 发布 |
+| `EH-RELEASE-001` | release 在首次远端写入前失败，或 main push 后无法确认远端状态 | 明确未写入时修复原始错误并重跑；若同时输出 `RECOVERY_WORKTREE`，先人工核对 origin/main，未确认前不得执行 tag/Release 发布命令 |
+| `EH-RELEASE-SOURCE-002` | release tree 的 tracked diff 超出版本 allowlist，或质量 gate 修改了已提交源码 | 检查报告的文件；移除非版本投影变更，或修复会修改源码的 gate，再重新发布 |
+| `EH-RELEASE-REMOTE-003` | `origin` 不是可解析的 GitHub 仓库 URL | 将 `remote.origin.url` 修正为该 marketplace 的 GitHub HTTPS/SSH URL，不要用另一个 `--repo` 绕过 |
+| `EH-RELEASE-AUTH-004` | 当前 `gh` 账号对 origin 仓库没有发布权限 | 运行 `gh auth status`，切换到具有 write/maintain/admin 权限的账号后重试 |
+| `EH-RELEASE-REMOTE-005` | 远端 main 或 tag 未指向本次 release commit | 停止创建 Release，核对 origin 和远端 refs；不要强推或覆盖不一致 tag |
+| `EH-RELEASE-PARTIAL-002` | main 已可能写入远端，后续 tag 或 GitHub Release 发布失败 | 保留 `RECOVERY_WORKTREE`；若输出 `RECOVERY_TAG_ARGV` 先原样执行，再在该 worktree 中执行 `RECOVERY_RELEASE_ARGV`，成功后才清理 worktree |
 | `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |

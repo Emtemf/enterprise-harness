@@ -23,7 +23,7 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - 六阶段 happy path：`clarify → design → plan → implement → verify → archive`。
 - executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
 - Claude Code 原生 `worktree.baseRef=head`，worktree 只做代码隔离，不承载 change 真相。
-- 同一 Claude Code plugin 的 Linux、macOS、Windows deterministic CI；实际状态以 GitHub Actions 为准。
+- 本地 `quality:local` 发布门禁，以及按需手动触发的 Linux、macOS、Windows 兼容性 matrix。
 
 “Claude Code-only” 是当前明确的产品边界：暂不设计 Codex、OpenCode、Gemini CLI 等其他
 agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin 自身的可移植性验证。
@@ -130,7 +130,7 @@ EH-TASK-RECEIPT-025 / EH-WORKFLOW-STAGE-GATE-007 / EH-AGENT-BINDING-003
 - 对应 change 的 `state.json`、runId 和已脱敏 ledger 片段。
 - 操作系统、Node、Java、Maven 和插件版本。
 
-插件验收不会检查 Claude 账户、订阅、认证或服务容量。CI 安装 Claude Code CLI 仅用于 `claude plugin validate`。
+插件验收不会检查 Claude 账户、订阅、认证或服务容量。本地质量门禁调用 Claude Code CLI 仅用于 `claude plugin validate`。
 
 ## 更新与卸载
 

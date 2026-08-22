@@ -13,15 +13,28 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sessionsCli = fileURLToPath(new URL('../sessions.mjs', import.meta.url));
 const workflowCli = fileURLToPath(new URL('../workflow.mjs', import.meta.url));
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-start-change-recovery-'));
+const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-start-change-recovery-'));
+const root = path.join(sandbox, 'physical-root');
+const aliasRoot = path.join(sandbox, 'logical-root');
+fs.mkdirSync(root);
+fs.symlinkSync(root, aliasRoot, process.platform === 'win32' ? 'junction' : 'dir');
 
 try {
-  bindSession(root, {
+  // macOS commonly exposes the same temporary directory as both /var/... and
+  // /private/var/.... A matching binding must survive that lexical alias.
+  bindSession(aliasRoot, {
     sessionId: 'expired-session',
     changeId: 'simple-login',
-    worktreePath: root,
+    worktreePath: aliasRoot,
     controllerRevision: 'test',
   }, { now: 1_000, leaseMs: 1 });
+  const legacySessionFile = runtimePaths(root).sessionPath('expired-session');
+  const legacyBinding = JSON.parse(fs.readFileSync(legacySessionFile, 'utf-8'));
+  fs.writeFileSync(legacySessionFile, `${JSON.stringify({
+    ...legacyBinding,
+    worktreePath: aliasRoot,
+    subjectRoot: aliasRoot,
+  }, null, 2)}\n`);
   const existingRequirements = path.join(root, 'harness', 'changes', 'simple-login', 'requirements.md');
   fs.mkdirSync(path.dirname(existingRequirements), { recursive: true });
   fs.writeFileSync(existingRequirements, '# Existing requirements\n\nKeep this evidence.\n');
@@ -96,5 +109,5 @@ try {
 
   console.log(`PASS start-change-session-recovery ${mode}`);
 } finally {
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(sandbox, { recursive: true, force: true });
 }

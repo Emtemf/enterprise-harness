@@ -7,7 +7,7 @@
 - 当前版本：0.5.4（未发布的 skill packaging 重构在其上）
 - 当前阶段：Skill Packaging Contract + Runtime API boundary（P0 全部完成）
 - active change：无
-- 主干配置包含 Linux/macOS/Windows 与 Node 20/22 matrix；实时结果只以 GitHub Actions 为准
+- 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
 
 ## 2026-08-20 Skill Packaging Contract（P0 七项）
 

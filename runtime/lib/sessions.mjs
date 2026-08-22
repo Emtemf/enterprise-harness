@@ -5,6 +5,15 @@ import { atomicWriteJson, withFileLock } from './state-store.mjs';
 import { ensureRuntimePaths, runtimePaths } from './runtime-paths.mjs';
 import { assertSafeId } from './safe-paths.mjs';
 
+function canonicalRoot(value) {
+  const resolved = path.resolve(value);
+  try {
+    return fs.realpathSync.native(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 function validateStoredBinding(input, expectedSessionId) {
   if (!input || input.schemaVersion !== 1) throw new Error('invalid schemaVersion');
   const sessionId = assertSafeId(input.sessionId, 'sessionId');
@@ -18,8 +27,8 @@ function validateStoredBinding(input, expectedSessionId) {
       throw new Error(`${name} is required`);
     }
   }
-  const worktreePath = path.resolve(input.worktreePath);
-  const subjectRoot = path.resolve(input.subjectRoot || input.worktreePath);
+  const worktreePath = canonicalRoot(input.worktreePath);
+  const subjectRoot = canonicalRoot(input.subjectRoot || input.worktreePath);
   if (!path.isAbsolute(worktreePath) || !path.isAbsolute(subjectRoot)) {
     throw new Error('binding roots must be absolute');
   }
@@ -48,9 +57,9 @@ function normalizeBinding(input) {
     schemaVersion: 1,
     sessionId,
     changeId,
-    worktreePath: path.resolve(input.worktreePath),
+    worktreePath: canonicalRoot(input.worktreePath),
     controllerRevision: input.controllerRevision,
-    subjectRoot: input.subjectRoot ? path.resolve(input.subjectRoot) : path.resolve(input.worktreePath),
+    subjectRoot: canonicalRoot(input.subjectRoot || input.worktreePath),
     boundAt: input.boundAt || new Date().toISOString(),
     leaseExpiresAt: Number.isFinite(input.leaseExpiresAt)
       ? input.leaseExpiresAt
@@ -101,7 +110,10 @@ export function bindSession(root, input, options = {}) {
   const file = paths.sessionPath(binding.sessionId);
   return withFileLock(file, () => {
     if (fs.existsSync(file)) {
-      const existing = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      const existing = validateStoredBinding(
+        JSON.parse(fs.readFileSync(file, 'utf-8')),
+        binding.sessionId,
+      );
       if (existing.changeId !== binding.changeId || existing.worktreePath !== binding.worktreePath) {
         throw new Error(`EH-SESSION-CONFLICT-001: ${binding.sessionId} is already bound to ${existing.changeId}`);
       }

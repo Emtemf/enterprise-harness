@@ -7,7 +7,7 @@
 - Context7 是首选资料入口但不是最终权威；不足时仍需官方文档或源码。
 - hooks 不能替代操作系统 sandbox、仓库权限、CI 分支保护或供应链安全。
 - worktree 只隔离文件和分支，不等于上下文隔离。
-- Windows、macOS、Linux 的 CI 配置只验证同一 Claude Code plugin 的操作系统可移植性，
-  不表示支持多个 agent harness；实时是否通过以 GitHub Actions 为准。
+- Windows、macOS、Linux 的手动兼容性 matrix 只验证同一 Claude Code plugin 的操作系统可移植性，
+  不表示支持多个 agent harness；发布权威是维护者本机通过的 `quality:local` gate，远端 matrix 仅提供按需补充证据。
 - state/event 已使用 revision CAS、进程锁、原子 rename 与幂等 eventId；跨主机共享文件系统仍需外部协调。
 - 当前 API checker 解析不到结构时必须返回 `unsupported`；尚未实现的解析面不能声称 pass。

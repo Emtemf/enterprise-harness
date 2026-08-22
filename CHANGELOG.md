@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 将日常与发布质量门禁迁移到本地 `quality:local`，GitHub-hosted 平台与安全检查改为仅手动触发，避免 push、PR、tag 和 schedule 自动消耗 Actions 分钟。
+- 本地 release 现在生成并验证制品、SBOM 与 release notes，再通过 `gh` 创建 GitHub Release。
+- release 制品绑定到已提交且 tracked-clean 的 tag tree；远端 main/tag 逐一校验，并在部分发布失败时保留 worktree、输出可执行恢复 argv。
+
+### Fixed
+
+- session binding 使用真实路径规范化，避免 macOS `/var` 与 `/private/var` 等价路径被误判为 worktree 冲突。
+
 ## [0.5.7] - 2026-08-22
 
 ## [0.5.6] - 2026-08-21

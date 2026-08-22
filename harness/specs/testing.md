@@ -1,12 +1,15 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-17
+lastVerified: 2026-08-23
 implementationRefs:
+  - bin/local-quality.mjs
   - runtime/test
   - .github/workflows/platform-smoke.yml
 testRefs:
-  - runtime/test/task4-release-acceptance-smoke.mjs
+  - runtime/test/ci-workflow-contract-smoke.mjs
+  - runtime/test/release-local-transaction-smoke.mjs
+  - runtime/test/release-version-acceptance-smoke.mjs
 ---
 
 # Testing Contract
@@ -19,7 +22,9 @@ RED 必须由目标断言在缺少实现时失败；同一测试在实现后通�
 
 adversarial 至少覆盖 ID/path escape、symlink、Windows path、混合探索路径、dirty/staged/untracked、generator、invalid JSON、外部命令失败、receipt 重放、agent/run mismatch 和并发更新。
 
-确定性 CI 不访问 Context7。平台 matrix 覆盖 Linux、macOS、Windows 与 Node 20/22。在线和人工 upstream review 单独报告。
+确定性本地 gate 不访问 Context7。`npm run quality:local` 是日常与发布权威入口，覆盖 prepublish、external-project E2E、确定性制品、SBOM、release notes 和解包验收。
+
+GitHub-hosted 平台 matrix 覆盖 Linux、macOS、Windows 与 Node 20/22，但只能由维护者通过 `workflow_dispatch` 按需触发；push、pull request、tag 和 schedule 不得自动消耗 Actions 分钟。在线和人工 upstream review 单独报告。
 
 发布前必须从 allowlisted artifact 解包验收。
 

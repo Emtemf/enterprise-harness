@@ -10,6 +10,26 @@ const workflowDir = path.join(root, '.github', 'workflows');
 const workflows = fs.readdirSync(workflowDir).filter((name) => /\.ya?ml$/u.test(name)).sort();
 assert.ok(workflows.length > 0, 'repository must define CI workflows');
 
+// GitHub-hosted runners are an explicit, manually requested compatibility
+// probe. Routine quality and release gates run locally so pushes and tags do
+// not consume Actions minutes.
+const automaticTriggers = [];
+for (const workflow of workflows) {
+  const text = fs.readFileSync(path.join(workflowDir, workflow), 'utf-8');
+  const onBlock = text.match(/^on:\s*\n([\s\S]*?)(?=^[^\s#])/mu)?.[1] || '';
+  if (!/^  workflow_dispatch:\s*$/mu.test(onBlock)) {
+    automaticTriggers.push(`${workflow}: missing workflow_dispatch`);
+  }
+  for (const event of ['push', 'pull_request', 'schedule']) {
+    if (new RegExp(`^  ${event}:`, 'mu').test(onBlock)) automaticTriggers.push(`${workflow}: ${event}`);
+  }
+}
+assert.deepEqual(
+  automaticTriggers,
+  [],
+  `hosted workflows must be manual-only; use npm run quality:local for routine gates:\n${automaticTriggers.join('\n')}`,
+);
+
 // `node <script>` in a workflow step resolves against the checkout root, so a
 // path that no longer exists fails only on CI. 0.3.2 moved harness/plugin/runtime
 // to runtime/ and left every workflow pointing at the old path.
@@ -17,6 +37,7 @@ const nodeInvocation = /\bnode\s+((?:[\w.@/-]+\/)*[\w.-]+\.mjs)/gu;
 const npmScript = /\bnpm\s+run\s+([\w:-]+)/gu;
 
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
+assert.equal(pkg.scripts?.['quality:local'], 'node bin/local-quality.mjs');
 const missing = [];
 for (const workflow of workflows) {
   const text = fs.readFileSync(path.join(workflowDir, workflow), 'utf-8');

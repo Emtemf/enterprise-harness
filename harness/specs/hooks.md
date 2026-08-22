@@ -53,7 +53,9 @@ Session and change-lock records live under the git common directory and carry an
 The holder renews it through a heartbeat; an expired lease is recoverable only through the
 runtime's explicit recovery path. Rebinding the same session/change/worktree tuple is idempotent
 and serializes lease renewal with bind/unbind through the same per-session file lock; it must not
-return an already-expired record. `workflow status --json`
+return an already-expired record. Binding roots are canonicalized through the filesystem before
+comparison, so lexical aliases such as macOS `/var` and `/private/var` or an equivalent symlink do
+not create a false worktree conflict. `workflow status --json`
 reports the bound changeId and the supported `start-change <same-change-id>` recovery action.
 Changing to a different binding requires inspection and explicit user authorization before
 `sessions unbind`. A lease is operational coordination, not completion evidence.
