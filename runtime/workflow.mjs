@@ -189,7 +189,7 @@ function assertCurrentSessionChange(changeId, { allowUnbound = false } = {}) {
   }
 }
 
-function resolveChangeId(candidate) {
+function resolveChangeId(candidate, { json = false } = {}) {
   if (candidate) {
     assertSafeId(candidate, 'changeId');
     assertCurrentSessionChange(candidate);
@@ -197,6 +197,21 @@ function resolveChangeId(candidate) {
   }
   const active = loadActiveChange(root);
   if (!active.ok) {
+    if (active.reason === 'expired-session-lease' && active.changeId) {
+      const recovery = {
+        ok: false,
+        errorCode: 'EH-SESSION-LEASE-023',
+        reason: active.reason,
+        changeId: active.changeId,
+        recoveryAction: {
+          command: process.execPath,
+          args: [path.join(runtimeDir, 'cli.mjs'), 'start-change', active.changeId],
+        },
+      };
+      if (json) process.stderr.write(`${JSON.stringify(recovery)}\n`);
+      else console.error(`BLOCK EH-SESSION-LEASE-023: current session lease expired for ${active.changeId}; run ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(runtimeDir, 'cli.mjs'))} start-change ${active.changeId} to renew the matching binding.`);
+      process.exit(2);
+    }
     console.error('No active change');
     process.exit(1);
   }
@@ -392,7 +407,7 @@ switch (action) {
   }
   case 'status': {
     const json = args.includes('--json');
-    const changeId = resolveChangeId(args.find((arg) => !arg.startsWith('--')) || null);
+    const changeId = resolveChangeId(args.find((arg) => !arg.startsWith('--')) || null, { json });
     const data = loadChange(changeId);
     const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
     if (json) {

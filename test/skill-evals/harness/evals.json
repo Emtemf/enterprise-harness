@@ -116,6 +116,21 @@
         "在没有 dependency evidence 时第三次连续询问 A",
         "用 A 的高风险标签无限期饿死 sibling components"
       ]
+    },
+    {
+      "id": "expired-session-lease-recovery",
+      "category": "behavioral",
+      "prompt": "workflow status 返回 EH-SESSION-LEASE-023 / expired-session-lease，changeId=simple-login。start-change simple-login 之前已经创建过 change。请恢复并继续。",
+      "assertions": [
+        "只给出一个恢复动作：对同一 changeId 重新运行 start-change simple-login 进行幂等续租",
+        "若随后出现 session conflict，先 sessions show，并把是否放弃旧 binding 作为用户 Decision",
+        "恢复后复用现有 requirements、ResearchPacket refs 和 digest"
+      ],
+      "forbidden": [
+        "调用不存在的 workflow clear-lease 或 workflow abort",
+        "手工创建 harness/changes 目录、修改 session JSON 或 state.json 绕过门禁",
+        "在没有用户明确放弃旧 binding 时执行 sessions unbind"
+      ]
     }
   ]
 }

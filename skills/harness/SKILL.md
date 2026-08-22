@@ -191,6 +191,13 @@ transition 时才读取 [阶段推进合同](references/stage-decisions.md)。�
 - Implement 使用原生 worktree 隔离、冻结 task scope、machine receipt 和独立 reviewer。
 - Archive 只在 completion evidence fresh 时执行。
 - 恢复时重验 requirements、ResearchPacket refs 和 digest；已完成且 fresh 的 lane 不重复派发。
+- `workflow status` 报 `EH-SESSION-LEASE-023` / `expired-session-lease` 时，使用错误中记录的同一
+  `changeId` 重新运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" start-change <same-change-id>`；
+  这是幂等续租，不会重建已存在的 change。若报 `EH-SESSION-CONFLICT-001`，先运行
+  `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" sessions show`；只有用户明确放弃当前 session binding 后，
+  才运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" sessions unbind` 并启动另一个 change。
+- 恢复命令只使用 `runtime/cli.mjs --help` 实际列出的 command/action。不得猜测 `workflow clear-lease`、
+  `workflow abort`，不得手工 `mkdir harness/changes`、编辑 session JSON 或 state 来绕过恢复门禁。
 - 每次只报告一个有证据的 blocker 和一个恢复动作；不得手改 `state.json` 伪造推进。
 
 ## 用户输出

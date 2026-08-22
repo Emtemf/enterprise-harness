@@ -189,7 +189,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-AUTH-032` | subagent 尝试自行创建 reviewer check handoff | check run 只能由 Main/controller 创建；worker 返回 StageResult 后由 controller 派独立 reviewer |
 | `EH-HANDOFF-AUTH-033` | 持久化 result 的 caller 未绑定到 exact run/role/session | 使用 handoff 派发的同一 agent 与 session 持久化结果；不要复用其他 run 的身份或在 worker 结束后补写 |
 | `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |
-| `EH-SESSION-LEASE-023` | session lease 不存在或已解绑 | 在当前会话重新绑定 change，再续约 |
+| `EH-SESSION-LEASE-023` | session lease 过期、不存在或已解绑 | 过期且 changeId 未变时重新运行 `start-change <same-change-id>` 幂等续租；冲突时先 `sessions show`，仅在明确放弃旧 binding 后执行 `sessions unbind`；不存在 `workflow clear-lease/abort` |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
 | `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |

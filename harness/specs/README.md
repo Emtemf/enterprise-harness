@@ -8,7 +8,7 @@
 2. [workflow.md](workflow.md)
 3. [state-schema.md](state-schema.md)
 4. [agents-and-handoff.md](agents-and-handoff.md)
-5. [hooks.md](hooks.md)
+5. [hooks.md](hooks.md) — hook health、common-dir session/change-lock lease 与显式恢复路径
 6. [evidence.md](evidence.md)
 7. [testing.md](testing.md)
 8. [distribution-and-release.md](distribution-and-release.md)

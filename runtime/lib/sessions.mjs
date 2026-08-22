@@ -105,7 +105,14 @@ export function bindSession(root, input, options = {}) {
       if (existing.changeId !== binding.changeId || existing.worktreePath !== binding.worktreePath) {
         throw new Error(`EH-SESSION-CONFLICT-001: ${binding.sessionId} is already bound to ${existing.changeId}`);
       }
-      return existing;
+      const now = Number.isFinite(options.now) ? options.now : Date.now();
+      const renewed = {
+        ...existing,
+        leaseExpiresAt: binding.leaseExpiresAt,
+        heartbeatedAt: new Date(now).toISOString(),
+      };
+      atomicWriteJson(file, renewed);
+      return renewed;
     }
     atomicWriteJson(file, binding);
     return binding;
@@ -140,5 +147,9 @@ export function listSessions(root, options = {}) {
 export function unbindSession(root, sessionId, options = {}) {
   const paths = runtimePaths(root, options);
   const file = paths.sessionPath(sessionId);
-  if (fs.existsSync(file)) fs.rmSync(file);
+  return withFileLock(file, () => {
+    if (!fs.existsSync(file)) return false;
+    fs.rmSync(file);
+    return true;
+  });
 }
