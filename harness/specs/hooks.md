@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-23
+lastVerified: 2026-08-24
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -17,6 +17,7 @@ testRefs:
   - runtime/test/hook-health-smoke.mjs
   - runtime/test/hook-health-lifecycle-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
+  - runtime/test/pre-write-governed-target-smoke.mjs
 ---
 
 # Hooks Contract
@@ -39,6 +40,13 @@ Hooks may only perform host-boundary mechanics:
 Hooks deliberately do **not** gate ordinary reads, shell commands, or Agent dispatch. Skills and
 runtime contracts own CodeGraph-first delegation, Context7-first research, handoff binding,
 self-check, review, and lifecycle semantics.
+
+Governed-write enforcement is session-scoped and opt-in. A hook event with no session binding
+(or a legacy event with no `ACTIVE_CHANGE`) is outside an active Harness workflow and ordinary
+`Write`/`Edit`/`NotebookEdit` must remain available, including under conventional production,
+test, and API roots. Once a session binding or legacy active change exists, unresolved state,
+expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
+file is not equivalent to an absent binding.
 
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,

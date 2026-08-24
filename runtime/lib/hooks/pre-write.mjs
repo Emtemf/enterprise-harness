@@ -9,6 +9,12 @@ import { boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 
+const UNENGAGED_HARNESS_REASONS = new Set([
+  'missing-session-binding',
+  'missing-active-change',
+  'empty-active-change',
+]);
+
 export function preWrite({ root, event }) {
   if (dedupGuard('pre-write', event.tool_use_id, event.cwd)) return { exitCode: 0 };
 
@@ -86,7 +92,10 @@ export function preWrite({ root, event }) {
       continue;
     }
     const active = loadHookChange(root, event);
-    if (!active.ok) return block(root, '修改受治理路径前必须设置有效的 harness/ACTIVE_CHANGE。');
+    if (!active.ok) {
+      if (UNENGAGED_HARNESS_REASONS.has(active.reason)) continue;
+      return block(root, activeChangeRecovery(active));
+    }
     if (['DRAFT', 'ARCHIVED', 'REJECTED'].includes(active.data.state)) {
       return block(root, `active change 状态 ${active.data.state} 不允许受治理写入。`, active);
     }
@@ -103,6 +112,17 @@ export function preWrite({ root, event }) {
     }
   }
   return { exitCode: 0 };
+}
+
+function activeChangeRecovery(active) {
+  if (active.reason === 'expired-session-lease') {
+    return `${active.errorCode || 'EH-SESSION-LEASE-023'} Harness session binding 已过期。运行 enterprise-harness start-change ${active.changeId} 续租同一 binding。`;
+  }
+  if (active.reason === 'invalid-session-binding') {
+    return `${active.errorCode || 'EH-SESSION-BINDING-024'} Harness session binding 无法读取。运行 enterprise-harness sessions unbind ${active.sessionId}，确认放弃损坏 binding 后再通过 /harness 重新绑定。`;
+  }
+  const code = active.errorCode || 'EH-SESSION-CHANGE-001';
+  return `${code} 当前 Harness session 无法解析 active change（${active.reason || 'unknown'}）。运行 enterprise-harness doctor 查看恢复动作。`;
 }
 
 function block(root, message, active = null) {

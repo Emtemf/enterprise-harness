@@ -51,9 +51,13 @@ src/test/java/**
 openapi/**
 ```
 
-写入前必须存在：
+只有当前 session 已绑定 change，或无 session 的兼容客户端存在 legacy
+`harness/ACTIVE_CHANGE` 时，才启用以下写入前置 gate。未绑定 session 属于未进入
+Harness 的普通 Claude Code 会话，不能阻止其直接编辑这些常规代码路径。
 
-- 有效 `harness/ACTIVE_CHANGE`
+启用治理后，写入前必须存在：
+
+- 有效的 common-dir session binding；无 session 客户端兼容读取 `harness/ACTIVE_CHANGE`
 - 已确认 clarify
 - approved design 和 plan
 - 当前 task

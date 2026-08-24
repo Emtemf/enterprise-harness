@@ -190,6 +190,8 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-AUTH-033` | 持久化 result 的 caller 未绑定到 exact run/role/session | 使用 handoff 派发的同一 agent 与 session 持久化结果；不要复用其他 run 的身份或在 worker 结束后补写 |
 | `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |
 | `EH-SESSION-LEASE-023` | session lease 过期、不存在或已解绑 | 过期且 changeId 未变时重新运行 `start-change <same-change-id>` 幂等续租；冲突时先 `sessions show`，仅在明确放弃旧 binding 后执行 `sessions unbind`；不存在 `workflow clear-lease/abort` |
+| `EH-SESSION-BINDING-024` | 当前 session 的 binding 文件存在但损坏或不符合 schema | 运行 `sessions unbind <session-id>` 明确放弃损坏 binding，再通过 `/harness` 重新绑定；不要把文件缺失或损坏伪装成未启用 Harness |
+| `EH-STATE-READ-025` | session binding 或 legacy active change 指向的 `state.json` 无法读取、解析或迁移 | 运行 `doctor` 确认状态路径，从可信提交或备份恢复该 change 的 canonical `state.json`；不要删除 binding 来绕过治理 |
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
 | `EH-LOCAL-QUALITY-001` | 本地质量或发布子检查失败 | 查看其前一段带 `[local-quality]` 的失败阶段和原始 stderr，修复后重新运行 `npm run quality:local`；不要绕过 gate 发布 |

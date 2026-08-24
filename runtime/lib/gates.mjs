@@ -3,6 +3,7 @@ import path from 'node:path';
 import { migrateAndPersist } from './state-migration.mjs';
 import { readSession, sessionIdFromEnv, isSessionLeaseExpired } from './sessions.mjs';
 import { loadProjectProfile } from './project-profile.mjs';
+import { runtimePaths } from './runtime-paths.mjs';
 
 export function loadActiveChange(root, options = {}) {
   const sessionId = options.sessionId
@@ -10,7 +11,19 @@ export function loadActiveChange(root, options = {}) {
     : sessionIdFromEnv(options.env || process.env);
   if (sessionId) {
     const binding = readSession(root, sessionId, options);
-    if (!binding) return { ok: false, reason: 'missing-session-binding', sessionId };
+    if (!binding) {
+      const bindingPath = runtimePaths(root, options).sessionPath(sessionId);
+      if (pathEntryExists(bindingPath)) {
+        return {
+          ok: false,
+          reason: 'invalid-session-binding',
+          errorCode: 'EH-SESSION-BINDING-024',
+          sessionId,
+          bindingPath,
+        };
+      }
+      return { ok: false, reason: 'missing-session-binding', sessionId };
+    }
     if (isSessionLeaseExpired(binding)) {
       return {
         ok: false,
@@ -57,8 +70,21 @@ export function loadActiveChange(root, options = {}) {
 function loadChangeState(root, changeId, metadata = {}) {
   const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
   if (!fs.existsSync(statePath)) return { ok: false, reason: 'missing-state', changeId, statePath };
-  let data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-  data = migrateAndPersist(data, statePath);
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    data = migrateAndPersist(data, statePath);
+    if (!isRecognizedStateEnvelope(data, changeId)) throw new Error('invalid state envelope');
+  } catch {
+    return {
+      ok: false,
+      reason: 'invalid-state',
+      errorCode: 'EH-STATE-READ-025',
+      changeId,
+      statePath,
+      ...(metadata.sessionId ? { sessionId: metadata.sessionId } : {}),
+    };
+  }
   if (metadata.requireV5 && data.schemaVersion === 4) {
     return {
       ok: false,
@@ -76,6 +102,27 @@ function loadChangeState(root, changeId, metadata = {}) {
     ...(metadata.sessionId ? { sessionId: metadata.sessionId } : {}),
     ...(metadata.binding ? { binding: metadata.binding } : {}),
   };
+}
+
+function isRecognizedStateEnvelope(data, changeId) {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && !Array.isArray(data)
+    && Number.isInteger(data.schemaVersion)
+    && data.schemaVersion >= 3
+    && data.schemaVersion <= 6
+    && data.changeId === changeId
+  );
+}
+
+function pathEntryExists(file) {
+  try {
+    fs.lstatSync(file);
+    return true;
+  } catch (error) {
+    return error?.code !== 'ENOENT';
+  }
 }
 
 export const GOVERNANCE_BLOCKLIST = new Set(['target', 'build', 'node_modules', '.git', 'dist', 'out']);

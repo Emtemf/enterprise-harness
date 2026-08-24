@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { bindSession } from '../lib/sessions.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preWritePath = path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs');
@@ -52,11 +53,26 @@ function baseState(overrides = {}) {
   };
 }
 
-function runPreWrite(tempRoot, filePath) {
+function bindFixtureSession(tempRoot, sessionId, changeId, overrides = {}) {
+  return bindSession(tempRoot, {
+    sessionId,
+    changeId,
+    worktreePath: tempRoot,
+    controllerRevision: 'test-controller',
+    ...overrides,
+  }, { commonDir: path.join(tempRoot, '.git') });
+}
+
+function runPreWrite(tempRoot, filePath, { sessionId = null, toolName = 'Write' } = {}) {
+  const pathField = toolName === 'NotebookEdit' ? 'notebook_path' : 'file_path';
   return spawnSync('node', [preWritePath], {
     cwd: tempRoot,
     encoding: 'utf-8',
-    input: JSON.stringify({ tool_name: 'Write', tool_input: { file_path: filePath } }),
+    input: JSON.stringify({
+      tool_name: toolName,
+      tool_input: { [pathField]: filePath },
+      ...(sessionId ? { session_id: sessionId } : {}),
+    }),
   });
 }
 
@@ -260,6 +276,150 @@ check('L: state codegraph projection cannot replace agent-bound evidence', () =>
     writeText(target, '// fixture\n');
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+// ── Harness opt-in boundary ──
+
+check('M: unbound Claude session may use every direct-write tool across default governed roots', () => {
+  withTempRoot((tempRoot) => {
+    const targets = [
+      path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'NewFile.java'),
+      path.join(tempRoot, 'order-service', 'src', 'test', 'java', 'com', 'acme', 'FooTest.java'),
+      path.join(tempRoot, 'order-service', 'openapi', 'orders.yaml'),
+    ];
+    for (const toolName of ['Write', 'Edit', 'NotebookEdit']) {
+      for (const target of targets) {
+        const result = runPreWrite(tempRoot, target, {
+          sessionId: 'ordinary-claude-session',
+          toolName,
+        });
+        assert.equal(result.status, 0, `${toolName} ${target}: expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+        assert.doesNotMatch(result.stderr, /BLOCK/);
+      }
+    }
+  });
+});
+
+check('N: legacy client without a session or ACTIVE_CHANGE may edit a default governed path', () => {
+  withTempRoot((tempRoot) => {
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+    assert.doesNotMatch(result.stderr, /BLOCK/);
+  });
+});
+
+check('O: session-bound active change keeps governed write gates enabled', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'design.md'), '# Design\n');
+    bindFixtureSession(tempRoot, 'governed-session', 'fixture-change');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'governed-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /BLOCK/);
+  });
+});
+
+check('P: expired session binding fails closed with stable recovery guidance', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    bindFixtureSession(tempRoot, 'expired-session', 'fixture-change', {
+      leaseExpiresAt: Date.now() - 1,
+    });
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'expired-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-SESSION-LEASE-023/);
+    assert.match(result.stderr, /start-change fixture-change/);
+  });
+});
+
+check('Q: malformed session binding fails closed instead of becoming an unbound session', () => {
+  withTempRoot((tempRoot) => {
+    const sessionDir = path.join(tempRoot, '.git', 'enterprise-harness', 'sessions');
+    fs.mkdirSync(sessionDir, { recursive: true });
+    fs.writeFileSync(path.join(sessionDir, 'malformed-session.json'), '{not-json}\n', 'utf-8');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    writeText(target, '// fixture\n');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'malformed-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-SESSION-BINDING-024/);
+    assert.match(result.stderr, /sessions unbind malformed-session/);
+  });
+});
+
+check('R: dangling session binding symlink fails closed instead of becoming an unbound session', () => {
+  withTempRoot((tempRoot) => {
+    const sessionDir = path.join(tempRoot, '.git', 'enterprise-harness', 'sessions');
+    fs.mkdirSync(sessionDir, { recursive: true });
+    fs.symlinkSync(path.join(tempRoot, 'missing-binding.json'), path.join(sessionDir, 'dangling-session.json'));
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'dangling-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-SESSION-BINDING-024/);
+  });
+});
+
+check('S: malformed state for a bound session returns a stable fail-closed hook result', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'state.json'), '{not-json}\n');
+    bindFixtureSession(tempRoot, 'malformed-state-session', 'fixture-change');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'malformed-state-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-STATE-READ-025/);
+    assert.match(result.stderr, /enterprise-harness doctor/);
+  });
+});
+
+check('T: malformed legacy active state also returns a stable fail-closed hook result', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'state.json'), '{not-json}\n');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-STATE-READ-025/);
+  });
+});
+
+check('U: bound session whose active state is missing fails closed', () => {
+  withTempRoot((tempRoot) => {
+    bindFixtureSession(tempRoot, 'missing-state-session', 'missing-change');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'missing-state-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-SESSION-CHANGE-001/);
+    assert.match(result.stderr, /missing-state/);
+  });
+});
+
+check('V: structurally invalid JSON state for a bound session fails closed', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'state.json'), 'null\n');
+    bindFixtureSession(tempRoot, 'null-state-session', 'fixture-change');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target, { sessionId: 'null-state-session' });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-STATE-READ-025/);
+  });
+});
+
+check('W: structurally invalid legacy active state fails closed', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    writeText(path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'state.json'), 'null\n');
+    const target = path.join(tempRoot, 'order-service', 'src', 'main', 'java', 'com', 'acme', 'Foo.java');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-STATE-READ-025/);
   });
 });
 

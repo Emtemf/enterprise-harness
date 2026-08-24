@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复安装插件后，未进入 Harness 的普通 Claude Code 会话编辑 `src/main/java`、`src/test/java` 或 `openapi` 时被 `pre-write` 错误拦截的问题；已绑定会话的治理 gate 仍保持 fail-closed。
+- `pre-write` 现在区分不存在、过期和损坏的 session binding，并为后两者返回 session-first 的稳定错误码与恢复动作，不再错误要求设置 `harness/ACTIVE_CHANGE`。
+- 损坏或无法迁移的 active `state.json` 现在以稳定错误码 fail-closed，不再让关键 `pre-write` hook 以原始异常退出。
+
 ## [0.5.8] - 2026-08-22
 
 ### Changed
