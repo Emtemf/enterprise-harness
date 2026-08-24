@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.5.9] - 2026-08-24
+
 ### Fixed
 
 - 修复安装插件后，未进入 Harness 的普通 Claude Code 会话编辑 `src/main/java`、`src/test/java` 或 `openapi` 时被 `pre-write` 错误拦截的问题；已绑定会话的治理 gate 仍保持 fail-closed。
