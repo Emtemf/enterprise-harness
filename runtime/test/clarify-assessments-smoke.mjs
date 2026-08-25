@@ -144,6 +144,15 @@ function runCli(args) {
   });
 }
 
+function assertCliPathBlock(result) {
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^BLOCK \[EH-PATH-001\].*recovery=\S.+\n$/u);
+  assert.equal(result.stderr.trim().split('\n').length, 1, 'CLI path failure must be one line');
+  assert.equal((result.stderr.match(/recovery=/gu) || []).length, 1, 'CLI path failure must have one recovery');
+  assert.doesNotMatch(result.stderr, /\n\s+at\s|Error:/u, 'CLI path failure must not expose a stack');
+}
+
 try {
   writeArtifact('src/refund.js', 'export function retryRefund() {}\n');
   writeArtifact('CLAUDE.md', '# Project instructions\n\nRun the focused and full tests.\n');
@@ -159,6 +168,32 @@ try {
     digest: artifactDigest(debtAssessmentPath(debtChange)),
   });
   assert.deepEqual(readDebtAssessment(root, debtChange), debt);
+  assert.throws(
+    () => writeDebtAssessment(root, debtChange, {
+      ...debt,
+      inputDigests: inputDigests(`harness/changes/${debtChange}/requirements.md`),
+    }),
+    /EH-DEBT-SCHEMA-120/u,
+  );
+  assert.throws(
+    () => writeDebtAssessment(root, debtChange, {
+      ...debt,
+      inputDigests: inputDigests('src/refund.js'),
+    }),
+    /EH-DEBT-SCHEMA-120/u,
+  );
+
+  const staleEvidenceChange = 'debt-read-stale-evidence';
+  seedChange(staleEvidenceChange);
+  appendDebtDecision(staleEvidenceChange);
+  writeDebtAssessment(root, staleEvidenceChange, debtFixture(staleEvidenceChange));
+  const refundSource = fs.readFileSync(path.join(root, 'src/refund.js'), 'utf-8');
+  writeArtifact('src/refund.js', `${refundSource}// later mutation\n`);
+  assert.throws(
+    () => readDebtAssessment(root, staleEvidenceChange),
+    /EH-DEBT-STALE-122/u,
+  );
+  writeArtifact('src/refund.js', refundSource);
 
   const noDebtChange = 'no-debt';
   seedChange(noDebtChange);
@@ -248,6 +283,13 @@ try {
     digest: artifactDigest(projectContractAssessmentPath(contractChange)),
   });
   assert.deepEqual(readProjectContractAssessment(root, contractChange), contract);
+  assert.throws(
+    () => writeProjectContractAssessment(root, contractChange, {
+      ...contract,
+      inputDigests: inputDigests(`harness/changes/${contractChange}/requirements.md`),
+    }),
+    /EH-PROJECT-CONTRACT-SCHEMA-123/u,
+  );
   assert.throws(
     () => writeProjectContractAssessment(root, contractChange, {
       ...contract,
@@ -393,6 +435,18 @@ try {
       }),
       /EH-PATH-001/u,
     );
+    assertCliPathBlock(runCli([
+      'clarify',
+      'validate-debt',
+      symlinkChange,
+      debtAssessmentPath(symlinkChange),
+    ]));
+    assertCliPathBlock(runCli([
+      'clarify',
+      'validate-project-contract',
+      symlinkChange,
+      projectContractAssessmentPath(symlinkChange),
+    ]));
     assert.equal(fs.readdirSync(outside).length, 0, 'assessment writes must not follow an external symlink');
   } catch (error) {
     if (!['EPERM', 'EACCES', 'UNKNOWN'].includes(error.code)) throw error;
@@ -431,6 +485,8 @@ try {
   assert.equal(invalidCli.status, 2);
   assert.match(invalidCli.stderr, /^BLOCK \[EH-DEBT-SCHEMA-120\].*recovery=/u);
   assert.equal(invalidCli.stderr.trim().split('\n').length, 1, 'CLI failure must have one recovery line');
+  assertCliPathBlock(runCli(['clarify', 'validate-debt', '../escape', '../escape.json']));
+  assertCliPathBlock(runCli(['clarify', 'validate-project-contract', '../escape', '../escape.json']));
 
   const help = runCli(['clarify', '--help']);
   assert.equal(help.status, 0, help.stderr);

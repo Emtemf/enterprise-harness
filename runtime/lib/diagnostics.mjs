@@ -1,4 +1,8 @@
 export const DIAGNOSTICS = Object.freeze({
+  'EH-PATH-001': {
+    summary: 'ID、artifact reference 或 filesystem target 不安全。',
+    recovery: '使用 repository-relative 非 symlink 路径和 safe identifier，修正后原样重试命令。',
+  },
   'EH-HANDOFF-INPUT-001': {
     summary: 'Agent 派发缺少或无法读取 HANDOFF_INPUT。',
     recovery: '先运行 enterprise-harness handoff create，再把输出的 HANDOFF_INPUT 行原样放入 Agent prompt。',

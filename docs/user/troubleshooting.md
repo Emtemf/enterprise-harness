@@ -201,7 +201,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-RELEASE-AUTH-004` | 当前 `gh` 账号对 origin 仓库没有发布权限 | 运行 `gh auth status`，切换到具有 write/maintain/admin 权限的账号后重试 |
 | `EH-RELEASE-REMOTE-005` | 远端 main 或 tag 未指向本次 release commit | 停止创建 Release，核对 origin 和远端 refs；不要强推或覆盖不一致 tag |
 | `EH-RELEASE-PARTIAL-002` | main 已可能写入远端，后续 tag 或 GitHub Release 发布失败 | 保留 `RECOVERY_WORKTREE`；若输出 `RECOVERY_TAG_ARGV` 先原样执行，再在该 worktree 中执行 `RECOVERY_RELEASE_ARGV`，成功后才清理 worktree |
-| `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |
+| `EH-PATH-001` | ID、artifact reference 或 filesystem target 不安全 | 使用 repository-relative 非 symlink 路径和由字母数字、点、下划线、连字符组成的 safe identifier，修正后原样重试命令 |
 | `EH-DECISION-SCHEMA-101` | 待追加的 Clarify decision event 不符合运行时合同 | 修正 event/change 绑定、选项、公开依据与 input digest 后重新追加 |
 | `EH-DECISION-CONFLICT-102` | 同一 eventId 已对应不同内容 | 保留既有 append-only 事件，并为新决定分配新的 eventId |
 | `EH-DECISION-LEDGER-103` | decision ledger 含无效 JSON、无效事件、重复 ID 或未终止行 | 从可信证据恢复完整的 newline-terminated JSONL；不要跳过损坏行 |

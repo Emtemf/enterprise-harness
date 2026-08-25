@@ -166,6 +166,15 @@ function validateDigestMapShape(value, field, problems) {
   }
 }
 
+function requireDigestBinding(inputDigests, reference, label, problems) {
+  const artifactPath = sourcePath(reference);
+  if (artifactPath === null) return;
+  if (!isObject(inputDigests)
+      || !Object.prototype.hasOwnProperty.call(inputDigests, artifactPath)) {
+    problems.push(`${label} requires inputDigests.${artifactPath}`);
+  }
+}
+
 function staleDigestProblems(root, inputDigests, label) {
   const problems = [];
   if (!isObject(inputDigests)) return problems;
@@ -234,6 +243,12 @@ function debtValidation(root, changeId, assessment) {
             `observations[${index}].evidenceRefs[${evidenceIndex}]`,
             schema,
           );
+          requireDigestBinding(
+            assessment.inputDigests,
+            reference,
+            `observations[${index}].evidenceRefs[${evidenceIndex}]`,
+            schema,
+          );
         }
       }
     }
@@ -256,6 +271,12 @@ function debtValidation(root, changeId, assessment) {
         schema.push(`dispositions[${index}].decisionEventId must be a safe identifier`);
       }
       validateReferenceExists(root, item.authorityRef, `dispositions[${index}].authorityRef`, schema);
+      requireDigestBinding(
+        assessment.inputDigests,
+        item.authorityRef,
+        `dispositions[${index}].authorityRef`,
+        schema,
+      );
     }
   }
 
@@ -355,6 +376,7 @@ function projectValidation(root, changeId, assessment) {
         }
       }
       if (!DIGEST.test(file.digest)) schema.push(`files[${index}].digest must be a sha256 digest`);
+      requireDigestBinding(assessment.inputDigests, file.path, `files[${index}].path`, schema);
       if (!INSTRUCTION_SCOPES.has(file.scope)) schema.push(`files[${index}].scope is invalid`);
       if (!INSTRUCTION_SCOPES.has(file.ownership)) schema.push(`files[${index}].ownership is invalid`);
     }
