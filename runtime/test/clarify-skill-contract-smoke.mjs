@@ -78,4 +78,32 @@ assert.doesNotMatch(skill, /workflow status[^\n]{0,80}(?:与|and|\+)[^\n]{0,40}c
 assert.doesNotMatch(skill, /(?:recover\/status|status\/recover)/iu,
   'Harness must not use an ambiguous shorthand that implies unconditional recovery');
 
+const factGateStart = skill.indexOf('2. 任一 required fact lane');
+const factGateEnd = skill.indexOf('\n3. 任一 applicable decision surface', factGateStart);
+assert.ok(factGateStart >= 0 && factGateEnd > factGateStart,
+  'Harness must retain a bounded required-fact-lane branch');
+const factGate = skill.slice(factGateStart, factGateEnd);
+for (const field of [
+  'Fact lanes',
+  'Next research action/blocker',
+  'Topology: not built',
+  'Scores: not computed',
+  'User question: none',
+]) assert.match(factGate, new RegExp(escapeRegExp(field), 'u'),
+  `Incomplete fact gate must emit ${field}`);
+assert.match(factGate, /输出 `User question: none` 后立即结束本次响应/iu,
+  'Incomplete fact gate must terminate immediately after its fixed gate block');
+assert.match(factGate, /任何用户消息和任何工具调用都禁止/iu,
+  'Incomplete fact gate must prohibit every user message and tool call');
+assert.match(factGate, /raw request、repository 或 fact worker/iu,
+  'Missing brief inputs must come from non-user fact sources');
+assert.match(factGate, /user-only、topology 或 scope[^\n]*(?:不是例外|无例外)/iu,
+  'Incomplete fact gate must close user-only, topology, and scope rationalizations');
+assert.match(factGate, /(?:我现在能做什么|要推进请提供)[^\n]*(?:禁止|red flag)/iu,
+  'Incomplete fact gate must identify the observed trailing-section rationalizations');
+assert.match(factGate, /(?:我还能做什么|要推进需要你提供)[^\n]*(?:禁止|red flag)/iu,
+  'Incomplete fact gate must close equivalent trailing-section wording');
+assert.match(factGate, /changeId、project path、SDK、version、entrypoint 或 stack[^\n]*不得向用户请求/iu,
+  'Incomplete fact gate must prohibit requesting every observed brief-input placeholder');
+
 console.log(`PASS clarify-skill-contract ${mode}`);

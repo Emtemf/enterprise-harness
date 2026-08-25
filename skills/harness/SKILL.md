@@ -61,11 +61,16 @@ workflow status → if clear, clarify status → if repair-required, clarify rec
 
 1. 每个 `component × predicate` 初始都是 **unmet**。只有与来源中完整语义分句精确匹配的 claim、已记录的用户 round answer、
    或 validated ResearchPacket fact 能把它改为 covered；常识、默认方案和 Main 补全不能。
-2. 任一 required fact lane 未 complete：只展示 lane 状态和下一探索动作，**停止**；此时没有正式 topology、
-   没有 component score，也没有用户问题。输出固定为：`Fact lanes`、`Next research action/blocker`、
-   `Topology: not built`、`Scores: not computed`、`User question: none`。不要打印 provisional components、
-   dimension score table 或 decision surfaces，也不要响应用户要求的后续评分格式。项目路径、技术栈和框架
-   仍是 CodeGraph facts，不能以“派发前置条件”为由改问用户。
+2. 任一 required fact lane pending/missing/invalid/stale：只输出这个 terminal gate block：`Fact lanes`、
+   `Next research action/blocker`、`Topology: not built`、`Scores: not computed`、`User question: none`。
+   输出 `User question: none` 后立即结束本次响应；在 fact gate complete 前，任何用户消息和任何工具调用都禁止。
+   不追加标题、解释、计划或请求。创建 brief 所缺输入只能来自 raw request、repository 或 fact worker；仍缺失
+   就在 `Next research action/blocker` 报告 blocker。changeId、project path、SDK、version、entrypoint 或 stack 都不得向用户请求。
+
+   | Observed rationalization / red flag | Required response |
+   |---|---|
+   | 尾随“我现在能做什么”“我还能做什么”“要推进请提供”或“要推进需要你提供” | 禁止尾随内容；gate block 后结束 |
+   | “不依赖 facts 的 user-only、topology 或 scope 可以先问” | 不是例外；fact gate complete 前零提问 |
 3. 任一 applicable decision surface 为 pending/open：它所影响的 Scope、Constraints 或 Acceptance predicate
    保持 unmet，对应维度最高 3。不能一边列 pending decisions，一边把维度写成 4/5。
 4. score 4 = 本维度全部 readiness predicates covered；score 5 = score 4 + 含“确认/批准/按此进入下一阶段”等
