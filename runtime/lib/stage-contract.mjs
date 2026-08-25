@@ -11,7 +11,13 @@ export const STAGE_ORDER = ['clarify', 'design', 'plan', 'implement', 'verify', 
 
 export const STAGE_CONTRACTS = Object.freeze({
   clarify: {
-    artifacts: ['requirements.md'],
+    artifacts: [
+      'requirements.md',
+      'classification.json',
+      'debt-assessment.json',
+      'project-contract-assessment.json',
+      'evidence/decisions/clarify-decision-snapshot.json',
+    ],
     state: (data) => [[
       'artifacts.classification',
       Boolean(data.artifacts?.classification?.path && data.artifacts?.classification?.digest),
@@ -47,6 +53,12 @@ export const STAGE_CONTRACTS = Object.freeze({
     resultGate: 'archive',
   },
 });
+
+export function stageContractArtifactPaths(changeId, stage) {
+  return (STAGE_CONTRACTS[stage]?.artifacts || []).map((artifact) => (
+    `harness/changes/${changeId}/${artifact}`
+  ));
+}
 
 export function completedStages(data, includeCurrent = false) {
   const current = String(data?.stage ?? data?.workflow?.stage ?? 'clarify');

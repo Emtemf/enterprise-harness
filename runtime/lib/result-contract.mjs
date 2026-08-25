@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { agentForV2Handoff } from '../core/handoff-agent.mjs';
 import { isSafeId, isSafeRelativePath, resolveWithin } from './safe-paths.mjs';
 import { isWaiverFresh, validateWaiver } from './waiver.mjs';
+import { stageContractArtifactPaths } from './stage-contract.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
 const RUN_ID = /^run_[0-9a-f-]{36}$/u;
@@ -24,7 +25,8 @@ const REVIEW_RESULT_FIELDS = new Set([
 ]);
 const COMPLETION_PROOF_FIELDS = new Set([
   'proofVersion', 'type', 'changeId', 'stage', 'executionRunId', 'reviewRunId', 'taskProofs', 'waivers',
-  'artifacts', 'target', 'evidence', 'context', 'path', 'createdAt',
+  'artifacts', 'reviewedArtifacts', 'decisionSnapshotRef', 'assertions', 'tecpc',
+  'target', 'evidence', 'context', 'path', 'createdAt',
 ]);
 const HANDOFF_V2_FIELDS = new Set([
   'handoffVersion', 'runId', 'changeId', 'stage', 'behavior', 'role', 'parentRunId',
@@ -53,6 +55,15 @@ const CLARIFY_SNAPSHOT_FIELDS = new Set([
 ]);
 const SNAPSHOT_LEDGER_REF_FIELDS = new Set(['path', 'digest']);
 const SNAPSHOT_EVENT_ARTIFACT_FIELDS = new Set(['eventId', 'digest']);
+const CLARIFY_ASSERTION_IDS = Object.freeze([
+  'research-complete',
+  'decisions-durable',
+  'technical-debt-disposed',
+  'project-contract-disposed',
+  'requirements-ready',
+  'classification-ready',
+  'scope-confirmed',
+]);
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -360,6 +371,115 @@ function validateSelfCheck(selfCheck, problems) {
   validateStringArray(selfCheck.evidence, 'selfCheck.evidence', problems);
 }
 
+function validateClarifyStageResult(root, result, problems) {
+  const expectedArtifacts = stageContractArtifactPaths(result.changeId, 'clarify');
+  const actualArtifacts = Array.isArray(result.artifacts)
+    ? result.artifacts.map((artifact) => artifact?.path)
+    : [];
+  if (JSON.stringify(actualArtifacts) !== JSON.stringify(expectedArtifacts)) {
+    problems.push(`Clarify artifacts must exactly bind ${expectedArtifacts.join(', ')}`);
+  }
+  const actualAssertions = Array.isArray(result.assertions)
+    ? result.assertions.map((assertion) => assertion?.id)
+    : [];
+  if (JSON.stringify(actualAssertions) !== JSON.stringify(CLARIFY_ASSERTION_IDS)) {
+    problems.push(`Clarify assertions must exactly contain ${CLARIFY_ASSERTION_IDS.join(', ')}`);
+  }
+  const artifactByPath = new Map((result.artifacts || []).map((artifact) => [artifact?.path, artifact]));
+  for (const artifactPath of expectedArtifacts) {
+    const artifact = artifactByPath.get(artifactPath);
+    if (!artifact || result.inputDigests?.[artifactPath] !== artifact.digest) {
+      problems.push(`Clarify inputDigests must bind the exact artifact digest for ${artifactPath}`);
+    }
+  }
+  const boundReferences = new Set([
+    ...actualArtifacts.filter((artifactPath) => typeof artifactPath === 'string'),
+    ...Object.keys(isObject(result.inputDigests) ? result.inputDigests : {}),
+  ]);
+  for (const assertion of result.assertions || []) {
+    for (const reference of assertion?.evidence || []) {
+      if (!boundReferences.has(reference)) {
+        problems.push(`assertion evidence must be a Clarify artifact or frozen input: ${reference}`);
+      }
+    }
+  }
+  if (result.tecpc?.correction !== null) problems.push('Clarify TECPC requires correction=null');
+  if (typeof result.tecpc?.path !== 'string' || !result.tecpc.path.trim()) {
+    problems.push('Clarify TECPC path must be non-empty');
+  }
+  for (const reference of [...(result.tecpc?.evidence || []), ...(result.tecpc?.context || [])]) {
+    if (!boundReferences.has(reference)) {
+      problems.push(`Clarify TECPC references must be artifacts or frozen inputs: ${reference}`);
+    }
+  }
+  void root;
+}
+
+function sameArtifactBindings(left, right) {
+  const normalized = (artifacts) => (artifacts || [])
+    .map((artifact) => [artifact?.path, artifact?.digest])
+    .sort(([leftPath], [rightPath]) => String(leftPath).localeCompare(String(rightPath)));
+  return JSON.stringify(normalized(left)) === JSON.stringify(normalized(right));
+}
+
+function validateClarifyCompletionProof(root, proof, problems) {
+  const expectedArtifacts = stageContractArtifactPaths(proof.changeId, 'clarify');
+  const actualArtifacts = Array.isArray(proof.artifacts)
+    ? proof.artifacts.map((artifact) => artifact?.path)
+    : [];
+  if (JSON.stringify(actualArtifacts) !== JSON.stringify(expectedArtifacts)) {
+    problems.push(`Clarify proof artifacts must exactly bind ${expectedArtifacts.join(', ')}`);
+  }
+  validateArtifacts(root, proof.reviewedArtifacts, 'reviewedArtifacts', problems);
+  if (!sameArtifactBindings(proof.artifacts, proof.reviewedArtifacts)) {
+    problems.push('Clarify proof reviewedArtifacts must exactly match artifacts');
+  }
+  if (!isObject(proof.decisionSnapshotRef)) {
+    problems.push('Clarify proof decisionSnapshotRef is required');
+  } else {
+    validateArtifacts(root, [proof.decisionSnapshotRef], 'decisionSnapshotRef', problems);
+    const expectedSnapshotPath = expectedArtifacts[4];
+    const artifact = (proof.artifacts || []).find(({ path: artifactPath }) => artifactPath === expectedSnapshotPath);
+    if (proof.decisionSnapshotRef.path !== expectedSnapshotPath
+        || proof.decisionSnapshotRef.digest !== artifact?.digest) {
+      problems.push(`Clarify proof decisionSnapshotRef must bind ${expectedSnapshotPath}`);
+    }
+  }
+  validateAssertions(proof.assertions, problems);
+  const assertionIds = Array.isArray(proof.assertions)
+    ? proof.assertions.map((assertion) => assertion?.id)
+    : [];
+  if (JSON.stringify(assertionIds) !== JSON.stringify(CLARIFY_ASSERTION_IDS)) {
+    problems.push(`Clarify proof assertions must exactly contain ${CLARIFY_ASSERTION_IDS.join(', ')}`);
+  }
+  if (proof.assertions?.some((assertion) => assertion?.verdict !== 'pass')) {
+    problems.push('Clarify proof requires every assertion to pass');
+  }
+  problems.push(...validateTecpc(proof.tecpc));
+  if (proof.tecpc?.correction !== null) problems.push('Clarify proof TECPC requires correction=null');
+  if (typeof proof.tecpc?.path !== 'string' || !proof.tecpc.path.trim()) {
+    problems.push('Clarify proof TECPC path must be non-empty');
+  }
+  if (proof.target !== proof.tecpc?.target
+      || JSON.stringify(proof.evidence) !== JSON.stringify(proof.tecpc?.evidence)
+      || JSON.stringify(proof.context) !== JSON.stringify(proof.tecpc?.context)
+      || proof.path !== proof.tecpc?.path) {
+    problems.push('Clarify proof flattened TECPC fields must exactly match tecpc');
+  }
+  const evidenceBindings = new Set([
+    ...(proof.artifacts || []).map((artifact) => artifact?.path),
+    ...(proof.tecpc?.evidence || []),
+    ...(proof.tecpc?.context || []),
+  ]);
+  for (const assertion of proof.assertions || []) {
+    for (const reference of assertion?.evidence || []) {
+      if (!evidenceBindings.has(reference)) {
+        problems.push(`Clarify proof assertion evidence is unbound: ${reference}`);
+      }
+    }
+  }
+}
+
 export function validateResearchPacket(root, packet) {
   const problems = [];
   if (!isObject(packet)) return ['research packet must be an object'];
@@ -442,6 +562,7 @@ export function validateStageResult(root, result) {
     problems.push(`${result.status} requires needsDecision=null`);
   }
   if (!isIsoDate(result.completedAt)) problems.push('completedAt must be an ISO timestamp');
+  if (result.stage === 'clarify') validateClarifyStageResult(root, result, problems);
   return problems;
 }
 
@@ -525,6 +646,13 @@ export function validateCompletionProof(root, proof) {
   validateStringArray(proof.context, 'context', problems);
   if (typeof proof.path !== 'string') problems.push('path must be a string');
   if (!isIsoDate(proof.createdAt)) problems.push('createdAt must be an ISO timestamp');
+  if (proof.stage === 'clarify') {
+    validateClarifyCompletionProof(root, proof, problems);
+  } else {
+    for (const field of ['reviewedArtifacts', 'decisionSnapshotRef', 'assertions', 'tecpc']) {
+      if (Object.hasOwn(proof, field)) problems.push(`${field} is only valid for a Clarify completion proof`);
+    }
+  }
   return problems;
 }
 

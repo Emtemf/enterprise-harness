@@ -10,13 +10,20 @@ implementationRefs:
   - harness/schemas/debt-assessment.schema.json
   - harness/schemas/project-contract-assessment.schema.json
   - harness/schemas/classification.schema.json
+  - harness/schemas/stage-result.schema.json
+  - harness/schemas/completion-proof.schema.json
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
   - runtime/core/clarify-assessments.mjs
   - runtime/core/classification-artifact.mjs
+  - runtime/core/completion-proof.mjs
   - runtime/lib/clarify-readiness.mjs
+  - runtime/lib/stage-contract.mjs
+  - runtime/lib/stage-results.mjs
   - runtime/lib/status-summary.mjs
   - runtime/clarify.mjs
+  - runtime/lifecycle.mjs
+  - skills/harness/scripts/finalize-clarify-result.mjs
   - skills/harness/assets/debt-assessment.json.tmpl
   - skills/harness/assets/project-contract-assessment.json.tmpl
   - skills/harness/assets/research-brief.md.tmpl
@@ -36,6 +43,11 @@ testRefs:
   - runtime/test/classification-v2-smoke.mjs
   - runtime/test/classification-artifact-authority-smoke.mjs
   - runtime/test/clarify-readiness-smoke.mjs
+  - runtime/test/clarify-stage-contract-smoke.mjs
+  - runtime/test/completion-proof-smoke.mjs
+  - runtime/test/lifecycle-clarify-transition-smoke.mjs
+  - runtime/test/workflow-audit-v6-result-smoke.mjs
+  - runtime/test/result-contract-smoke.mjs
 ---
 
 # Clarify Governance Contract
@@ -55,6 +67,8 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 ## Artifact and Gate Rules
 
 The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, option selection must match the candidate/event option set, every debt observation has exactly one disposition, a snapshot event list is the ordered ledger prefix, and classification totals/tier/route decision agree with their inputs.
+
+A passing Clarify `StageResult` binds the current requirements, classification, debt assessment, project-contract assessment, and immutable decision snapshot together with the seven canonical Clarify assertions. Its independent review must cover that exact artifact set, and the generic completion proof specialized to `stage: clarify` binds the reviewed artifacts, sealed decision snapshot, assertion evidence, and complete TECPC. Design transition recomputes this boundary from current artifacts; neither scope confirmation nor classification alone is a completion shortcut. Appending later events to the live decision ledger does not stale an already sealed snapshot prefix or a proof bound to it.
 
 Classification v2 sums the four evidence-bearing integer scores (`functionalSize`, `uncertainty`, `changeRisk`, `verificationDifficulty`) and selects L0 for totals 0–2, L1 for 3–5, L2 for 6–8, and L3 for 9–12. Public API break, security boundary, or cross-service transaction flags can only upgrade to at least L2; irreversible data migration or unknown compliance obligation upgrades to L3. The matching append-only `classification-route` event must select the derived tier before the artifact can be persisted.
 

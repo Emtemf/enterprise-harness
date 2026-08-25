@@ -8,6 +8,8 @@ import {
 import { validateTaskExecutionReceipt } from './task-execution-receipt.mjs';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
+import { stageContractArtifactPaths } from './stage-contract.mjs';
+import { buildClarifyArtifactReadiness } from './clarify-readiness.mjs';
 import {
   sha256Artifact,
   validateCompletionProof,
@@ -18,10 +20,7 @@ import {
 } from './result-contract.mjs';
 
 const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
-  clarify: (changeId) => [
-    `harness/changes/${changeId}/requirements.md`,
-    `harness/changes/${changeId}/classification.json`,
-  ],
+  clarify: (changeId) => stageContractArtifactPaths(changeId, 'clarify'),
   design: (changeId) => [`harness/changes/${changeId}/design.md`],
   plan: (changeId) => [`harness/changes/${changeId}/tasks.md`],
   implement: () => [],
@@ -159,12 +158,58 @@ function layer(status = 'blocked', refs = [], problems = []) {
   return Object.freeze({ status, refs: Object.freeze([...refs]), problems: Object.freeze([...problems]) });
 }
 
+function readinessItems(readiness) {
+  return new Map(readiness.items.map((item) => [item.id, item]));
+}
+
+function readinessItemsPass(items, ids) {
+  return ids.every((id) => items.get(id)?.status === 'pass');
+}
+
+function readinessEvidence(items, ids) {
+  return [...new Set(ids.flatMap((id) => items.get(id)?.evidenceRefs || []))];
+}
+
+function clarifyAssertion(id, passed, evidence) {
+  return Object.freeze({ id, verdict: passed ? 'pass' : 'block', evidence: Object.freeze([...new Set(evidence)]) });
+}
+
+export function clarifyStageResultProjection(root, changeId) {
+  const readiness = buildClarifyArtifactReadiness(root, changeId);
+  const items = readinessItems(readiness);
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  const classificationRef = `harness/changes/${changeId}/classification.json`;
+  const debtRef = `harness/changes/${changeId}/debt-assessment.json`;
+  const contractRef = `harness/changes/${changeId}/project-contract-assessment.json`;
+  const decisionSnapshotRef = `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`;
+  const researchIds = ['research-lanes-decided', 'required-research-fresh', 'research-conflicts-disposed'];
+  const requirementsIds = ['topology-confirmed', 'ambiguity-threshold-met', 'no-pending-question', 'requirements-approved'];
+  const assertions = Object.freeze([
+    clarifyAssertion('research-complete', readinessItemsPass(items, researchIds), readinessEvidence(items, researchIds)),
+    clarifyAssertion('decisions-durable', readinessItemsPass(items, ['decisions-sealed']), [decisionSnapshotRef]),
+    clarifyAssertion('technical-debt-disposed', readinessItemsPass(items, ['technical-debt-disposed']), [debtRef]),
+    clarifyAssertion('project-contract-disposed', readinessItemsPass(items, ['project-contract-disposed']), [contractRef]),
+    clarifyAssertion('requirements-ready', readinessItemsPass(items, requirementsIds), [requirementsRef]),
+    clarifyAssertion('classification-ready', readinessItemsPass(items, ['classification-fresh']), [classificationRef]),
+    clarifyAssertion('scope-confirmed', readinessItemsPass(items, ['requirements-approved']), [decisionSnapshotRef]),
+  ]);
+  return Object.freeze({
+    status: readiness.status,
+    assertions,
+    recovery: readiness.recovery ? Object.freeze({ ...readiness.recovery }) : null,
+  });
+}
+
 function sameProofBinding(proof, candidate) {
   return proof?.changeId === candidate?.changeId
     && proof?.stage === candidate?.stage
     && proof?.executionRunId === candidate?.executionRunId
     && proof?.reviewRunId === candidate?.reviewRunId
     && sameArtifacts(proof?.artifacts, candidate?.artifacts)
+    && sameArtifacts(proof?.reviewedArtifacts, candidate?.reviewedArtifacts)
+    && JSON.stringify(proof?.decisionSnapshotRef || null) === JSON.stringify(candidate?.decisionSnapshotRef || null)
+    && JSON.stringify(proof?.assertions || []) === JSON.stringify(candidate?.assertions || [])
+    && JSON.stringify(proof?.tecpc || null) === JSON.stringify(candidate?.tecpc || null)
     && JSON.stringify(proof?.waivers || []) === JSON.stringify(candidate?.waivers || [])
     && proof?.target === candidate?.target
     && JSON.stringify(proof?.evidence || []) === JSON.stringify(candidate?.evidence || [])
@@ -205,6 +250,14 @@ export function stageCompletionFor(root, changeId, stage, {
   if (!execution.result) executionProblems.push(`${executionCandidate.runId}: StageResult is missing`);
   if (execution.result) {
     executionProblems.push(...validateStageResult(root, execution.result).map((problem) => `${executionCandidate.runId}: ${problem}`));
+    if (stage === 'clarify') {
+      const projection = clarifyStageResultProjection(root, changeId);
+      if (projection.status !== 'ready') {
+        executionProblems.push(`${executionCandidate.runId}: ${projection.recovery.code}: ${projection.recovery.action}`);
+      } else if (JSON.stringify(execution.result.assertions) !== JSON.stringify(projection.assertions)) {
+        executionProblems.push(`${executionCandidate.runId}: Clarify StageResult assertions do not match current canonical readiness`);
+      }
+    }
     if (!matchingProducer(execution.result, execution.input)) executionProblems.push(`${executionCandidate.runId}: StageResult producer does not match handoff agent`);
     if (execution.result.runId !== execution.input.runId || execution.result.changeId !== changeId || execution.result.stage !== stage) {
       executionProblems.push(`${executionCandidate.runId}: StageResult does not bind the ${stage} handoff`);
@@ -242,7 +295,9 @@ export function stageCompletionFor(root, changeId, stage, {
   const reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
   if (reviewerBindings.length === 0) reviewProblems.push(`${checkCandidate.runId}: check handoff has no trusted completed reviewer agent binding`);
   const producerAgentIds = new Set(producerBindings.map(({ agentId }) => agentId));
-  if (reviewerBindings.length > 0 && !reviewerBindings.some(({ agentId }) => !producerAgentIds.has(agentId))) {
+  const hasReusedReviewer = reviewerBindings.some(({ agentId }) => producerAgentIds.has(agentId));
+  const hasDistinctReviewer = reviewerBindings.some(({ agentId }) => !producerAgentIds.has(agentId));
+  if (reviewerBindings.length > 0 && (stage === 'clarify' ? hasReusedReviewer : !hasDistinctReviewer)) {
     reviewProblems.push(`${checkCandidate.runId}: execute and check handoffs must use distinct agent identities`);
   }
   if (reviewProblems.length > 0) return fail('review', reviewRef ? [reviewRef] : [], reviewProblems);
@@ -259,7 +314,12 @@ export function stageCompletionFor(root, changeId, stage, {
   state.tecpc = layer('pass', [executionRef, reviewRef]);
 
   try {
-    state.candidateProof = buildCompletionProof(root, { stageResult: execution.result, reviewResult: check.result });
+    state.candidateProof = buildCompletionProof(root, {
+      stageResult: execution.result,
+      reviewResult: check.result,
+      producerAgentIds: producerBindings.map(({ agentId }) => agentId),
+      reviewerAgentIds: reviewerBindings.map(({ agentId }) => agentId),
+    });
   } catch (error) {
     return fail('proof', [executionRef, reviewRef], [error.message]);
   }
@@ -463,71 +523,9 @@ export function resolveStageCompletionProof(root, changeId, stage, {
     executions.push({ ...execution, agentBindings });
   }
 
-  if (stage === 'implement') {
-    const proof = implementCompletionProof(root, changeId, executions, problems);
-    if (proof) return { proof, problems: [] };
-    if (executions.length === 0) problems.push('implement has no fresh, valid passing StageResult');
-    return { proof: null, problems };
-  }
-
-  if (executions.length === 0) {
-    problems.push(`${stage} has no fresh, valid passing StageResult`);
-    return { proof: null, problems };
-  }
-
-  for (const execution of executions) {
-    for (const runId of runs) {
-      const check = loadRun(root, changeId, runId, 'check', problems);
-      if (!check?.input || check.input.stage !== stage || check.input.parentRunId !== execution.input.runId) continue;
-      const checkInputProblems = freshInputDigests(root, check.input);
-      if (checkInputProblems.length > 0) {
-        problems.push(...checkInputProblems.map((problem) => `${runId}: ${problem}`));
-        continue;
-      }
-      if (!check.result) {
-        problems.push(`${runId}: ReviewResult is missing`);
-        continue;
-      }
-      const reviewProblems = validateReviewResult(root, check.result, { stageResult: execution.result });
-      if (reviewProblems.length > 0) {
-        problems.push(...reviewProblems.map((problem) => `${runId}: ${problem}`));
-        continue;
-      }
-      if (JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)) {
-        problems.push(`${runId}: ReviewResult rubrics do not match the check handoff`);
-        continue;
-      }
-      if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)) {
-        problems.push(`${runId}: ReviewResult artifacts do not match the StageResult`);
-        continue;
-      }
-      if (!matchingReviewer(check.result, check.input)) {
-        problems.push(`${runId}: ReviewResult reviewer does not match handoff agent`);
-        continue;
-      }
-      const reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
-      if (reviewerBindings.length === 0) {
-        problems.push(`${runId}: check handoff has no trusted completed reviewer agent binding`);
-        continue;
-      }
-      const producerAgentIds = new Set(agentBindings.map((binding) => binding.agentId));
-      if (!reviewerBindings.some((binding) => !producerAgentIds.has(binding.agentId))) {
-        problems.push(`${runId}: execute and check handoffs must use distinct agent identities`);
-        continue;
-      }
-      if (check.result.verdict !== 'pass') {
-        problems.push(`${runId}: ReviewResult did not pass`);
-        continue;
-      }
-      try {
-        return { proof: buildCompletionProof(root, { stageResult: execution.result, reviewResult: check.result }), problems: [] };
-      } catch (error) {
-        problems.push(`${runId}: ${error.message}`);
-      }
-    }
-  }
-
-  problems.push(`${stage} has no fresh, independent passing ReviewResult`);
+  const proof = implementCompletionProof(root, changeId, executions, problems);
+  if (proof) return { proof, problems: [] };
+  if (executions.length === 0) problems.push('implement has no fresh, valid passing StageResult');
   return { proof: null, problems };
 }
 

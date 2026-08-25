@@ -8,3 +8,7 @@ export {
   validateStageResult,
 } from '../lib/result-contract.mjs';
 export { selectReviewRubrics } from '../lib/review-rubrics.mjs';
+export {
+  clarifyStageResultProjection,
+  requiredStageResultArtifacts,
+} from '../lib/stage-results.mjs';

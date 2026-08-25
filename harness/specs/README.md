@@ -12,7 +12,7 @@
 6. [evidence.md](evidence.md)
 7. [testing.md](testing.md)
 8. [distribution-and-release.md](distribution-and-release.md)
-9. [clarify-governance.md](clarify-governance.md) — Clarify authority, immutable decision/assessment contracts, durable one-question authorization and restart/crash recovery
+9. [clarify-governance.md](clarify-governance.md) — Clarify authority, immutable decision/assessment contracts, five-artifact completion boundary, durable one-question authorization and restart/crash recovery
 
 ## 附录
 

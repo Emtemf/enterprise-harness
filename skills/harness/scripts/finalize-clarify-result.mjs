@@ -5,10 +5,11 @@ import { trustedHandoffAgentBindings } from '../../../runtime/api/agent-evidence
 import {
   loadHandoffV2,
   persistHandoffV2Result,
-  readClassificationArtifact,
   v2ResultPath,
 } from '../../../runtime/api/handoff.mjs';
 import {
+  clarifyStageResultProjection,
+  requiredStageResultArtifacts,
   sha256Artifact,
   validateResearchPacket,
   validateStageResult,
@@ -416,12 +417,16 @@ try {
     throw new Error('EH-CLARIFY-FINALIZE-001: handoff must be a main-owned clarify execute run');
   }
   for (const ref of input.inputRefs) {
-    if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
-      throw new Error(`EH-CLARIFY-FINALIZE-001: handoff input digest is stale: ${ref}`);
+    try {
+      if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {
+        throw new Error(`handoff input digest is stale: ${ref}`);
+      }
+    } catch (error) {
+      throw new Error(`EH-CLARIFY-FINALIZE-001: ${error.message}. Recreate the Clarify execute handoff from current canonical inputs.`);
     }
   }
-  const requirementsPath = `harness/changes/${changeId}/requirements.md`;
-  const classificationPath = `harness/changes/${changeId}/classification.json`;
+  const artifactPaths = requiredStageResultArtifacts(changeId, 'clarify');
+  const [requirementsPath] = artifactPaths;
   const requirementsAbsolute = path.join(root, requirementsPath);
   if (!fs.existsSync(requirementsAbsolute)) throw new Error(`EH-CLARIFY-FINALIZE-002: missing ${requirementsPath}`);
   const shapeProblems = assertRequirements(fs.readFileSync(requirementsAbsolute, 'utf-8'), {
@@ -430,15 +435,23 @@ try {
     confirmedInput: input,
   });
   if (shapeProblems.length > 0) throw new Error(`EH-CLARIFY-FINALIZE-003: ${shapeProblems.join('; ')}`);
-  const classification = readClassificationArtifact(root, changeId, {
-    path: classificationPath,
-    digest: input.inputDigests?.[classificationPath],
-  });
-  const assertions = [
-    { id: 'requirements-shape', verdict: 'pass', evidence: [requirementsPath] },
-    { id: 'classification-fresh-and-valid', verdict: 'pass', evidence: [classificationPath] },
-    { id: 'scope-confirmed', verdict: 'pass', evidence: [requirementsPath] },
-  ];
+  const projection = clarifyStageResultProjection(root, changeId);
+  const assertions = projection.assertions.map((item) => ({
+    ...item,
+    evidence: [...item.evidence],
+  }));
+  if (projection.status !== 'ready') {
+    throw new Error(`${projection.recovery.code}: ${projection.recovery.action}`);
+  }
+  if (input.tecpc?.correction !== null) {
+    throw new Error('EH-CLARIFY-TECPC-142: Complete the Clarify TECPC envelope without a pending correction.');
+  }
+  const boundRefs = new Set(Object.keys(input.inputDigests || {}));
+  const unboundRefs = [...new Set([...artifactPaths, ...assertions.flatMap(({ evidence }) => evidence)])]
+    .filter((reference) => !boundRefs.has(reference));
+  if (unboundRefs.length > 0) {
+    throw new Error(`EH-CLARIFY-FINALIZE-001: execute handoff does not freeze ${unboundRefs.join(', ')}. Recreate the Clarify execute handoff from current canonical inputs.`);
+  }
   const result = {
     resultVersion: 1,
     type: 'stage-result',
@@ -447,10 +460,10 @@ try {
     runId,
     producer: { agentType: input.agent.type, skill: input.agent.skill },
     inputDigests: { ...input.inputDigests },
-    artifacts: [
-      { path: requirementsPath, digest: sha256Artifact(root, requirementsPath) },
-      { path: classificationPath, digest: sha256Artifact(root, classificationPath) },
-    ],
+    artifacts: artifactPaths.map((artifactPath) => ({
+      path: artifactPath,
+      digest: sha256Artifact(root, artifactPath),
+    })),
     assertions,
     selfCheck: {
       verdict: 'pass',
@@ -459,8 +472,8 @@ try {
     },
     tecpc: {
       ...input.tecpc,
-      evidence: [...new Set([...input.tecpc.evidence, requirementsPath, classificationPath])],
-      context: [...new Set([...input.tecpc.context, requirementsPath])],
+      evidence: [...new Set([...input.tecpc.evidence, ...assertions.flatMap(({ evidence }) => evidence)])],
+      context: [...new Set([...input.tecpc.context, ...artifactPaths])],
       correction: null,
     },
     status: 'pass',
@@ -469,7 +482,6 @@ try {
   };
   const problems = validateStageResult(root, result);
   if (problems.length > 0) throw new Error(`EH-CLARIFY-FINALIZE-004: ${problems.join('; ')}`);
-  void classification;
   const persisted = persistHandoffV2Result(root, changeId, runId, result);
   process.stdout.write(`HANDOFF_RESULT=${path.relative(root, persisted.path)}\n`);
 } catch (error) {

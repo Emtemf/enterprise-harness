@@ -125,7 +125,7 @@ function pendingStatus(root, changeId) {
   return { ok: false, refs: [ref] };
 }
 
-export function buildClarifyReadiness(root, changeId) {
+export function buildClarifyArtifactReadiness(root, changeId) {
   try {
     assertSafeId(changeId, 'changeId');
   } catch (error) {
@@ -180,6 +180,17 @@ export function buildClarifyReadiness(root, changeId) {
     items.push(immutableItem('classification-fresh', statusFor(error), [], RECOVERIES.classification));
   }
 
+  const first = items.find(({ status }) => !['pass', 'not-applicable'].includes(status));
+  return deepFreeze({
+    status: first ? 'blocked' : 'ready',
+    items,
+    recovery: first ? { code: first.code, action: first.action } : null,
+  });
+}
+
+export function buildClarifyReadiness(root, changeId) {
+  const artifactReadiness = buildClarifyArtifactReadiness(root, changeId);
+  const items = [...artifactReadiness.items];
   const completion = stageCompletionFor(root, changeId, 'clarify');
   items.push(immutableItem('self-check-passed', completion.selfCheck.status, completion.selfCheck.refs, RECOVERIES.selfCheck));
   items.push(immutableItem('independent-review-passed', completion.review.status, completion.review.refs, RECOVERIES.review));

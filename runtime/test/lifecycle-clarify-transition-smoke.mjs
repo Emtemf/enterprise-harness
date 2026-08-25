@@ -8,7 +8,10 @@ import { fileURLToPath } from 'node:url';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { appendDecisionEvent } from '../core/decision-ledger.mjs';
+import { stageCompletionFor } from '../lib/stage-results.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -37,7 +40,7 @@ function advance() {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Clarify transition\n');
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
   const classification = writeClassificationArtifact(root, changeId, {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
     decision: { tier: 'L1' },
@@ -52,11 +55,27 @@ try {
     validation: { status: 'stale', digest: null, validatedAt: null },
   }, null, 2)}\n`);
 
+  const requiredClarifyArtifacts = [
+    requirementsRef,
+    classification.path,
+    `harness/changes/${changeId}/debt-assessment.json`,
+    `harness/changes/${changeId}/project-contract-assessment.json`,
+    `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`,
+  ];
+  const clarifyAssertionIds = [
+    'research-complete',
+    'decisions-durable',
+    'technical-debt-disposed',
+    'project-contract-disposed',
+    'requirements-ready',
+    'classification-ready',
+    'scope-confirmed',
+  ];
   const tecpc = {
-    target: 'confirm requirements and classification',
-    evidence: [requirementsRef, classification.path],
-    context: [requirementsRef],
-    path: `${requirementsRef} -> ${classification.path}`,
+    target: 'confirm all canonical Clarify artifacts',
+    evidence: [...requiredClarifyArtifacts],
+    context: [...requiredClarifyArtifacts],
+    path: requiredClarifyArtifacts.join(' -> '),
     correction: null,
   };
   const execute = createHandoffV2(root, {
@@ -64,12 +83,12 @@ try {
     stage: 'clarify',
     behavior: 'clarify.confirmed',
     agent: { type: 'enterprise-harness:main', skill: 'harness' },
-    inputRefs: [requirementsRef, classification.path],
+    inputRefs: requiredClarifyArtifacts,
     tecpc,
   });
-  const completeArtifacts = [requirementsRef, classification.path]
+  const completeArtifacts = requiredClarifyArtifacts
     .map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
-  const incompleteArtifacts = completeArtifacts.filter((artifact) => artifact.path !== classification.path);
+  const incompleteArtifacts = completeArtifacts.filter((artifact) => artifact.path !== requiredClarifyArtifacts[2]);
   const stageResult = {
     resultVersion: 1,
     type: 'stage-result',
@@ -79,8 +98,13 @@ try {
     producer: { agentType: 'enterprise-harness:main', skill: 'harness' },
     inputDigests: { ...execute.input.inputDigests },
     artifacts: incompleteArtifacts,
-    assertions: [{ id: 'scope-confirmed', verdict: 'pass', evidence: [requirementsRef] }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: [requirementsRef] },
+    assertions: clarifyAssertionIds.map((id, index) => ({
+      id,
+      verdict: 'pass',
+      evidence: [[requirementsRef], [requiredClarifyArtifacts[4]], [requiredClarifyArtifacts[2]],
+        [requiredClarifyArtifacts[3]], [requirementsRef], [classification.path], [requiredClarifyArtifacts[4]]][index],
+    })),
+    selfCheck: { verdict: 'pass', findings: [], evidence: [...requiredClarifyArtifacts] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -95,7 +119,7 @@ try {
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [requirementsRef, classification.path],
+    inputRefs: requiredClarifyArtifacts,
     tecpc,
   });
   const reviewPath = v2ResultPath(root, changeId, check.runId, 'check');
@@ -116,22 +140,155 @@ try {
     reviewedAt: '2026-08-16T00:00:01.000Z',
   };
   fs.writeFileSync(reviewPath, JSON.stringify(review));
-  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-clarify-review' });
+  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'enterprise-harness:main' });
 
   const missingBinding = advance();
   assert.equal(missingBinding.status, 2, missingBinding.stderr || missingBinding.stdout);
-  assert.match(`${missingBinding.stdout}\n${missingBinding.stderr}`, /does not bind.*classification\.json/u);
+  assert.match(`${missingBinding.stdout}\n${missingBinding.stderr}`, /does not bind.*debt-assessment\.json|Clarify artifacts must exactly bind/u);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'clarify');
+
+  const staleArtifacts = completeArtifacts.map((artifact) => ({ ...artifact }));
+  staleArtifacts[0].digest = 'f'.repeat(64);
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({
+    ...stageResult,
+    artifacts: staleArtifacts,
+  }));
+  fs.writeFileSync(reviewPath, JSON.stringify({ ...review, reviewedArtifacts: staleArtifacts }));
+  const staleDigest = advance();
+  assert.equal(staleDigest.status, 2, 'stale Clarify artifact digest must block Design');
+  assert.match(`${staleDigest.stdout}\n${staleDigest.stderr}`, /artifact digest is stale/u);
+
+  const missingSelfCheck = { ...stageResult, artifacts: completeArtifacts };
+  delete missingSelfCheck.selfCheck;
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(missingSelfCheck));
+  fs.writeFileSync(reviewPath, JSON.stringify({ ...review, reviewedArtifacts: completeArtifacts }));
+  const noSelfCheck = advance();
+  assert.equal(noSelfCheck.status, 2, 'missing Clarify self-check must block Design');
+  assert.match(`${noSelfCheck.stdout}\n${noSelfCheck.stderr}`, /selfCheck is required/u);
 
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({
     ...stageResult,
     artifacts: completeArtifacts,
-    selfCheck: { ...stageResult.selfCheck, evidence: [requirementsRef, classification.path] },
   }));
-  fs.writeFileSync(reviewPath, JSON.stringify({ ...review, reviewedArtifacts: completeArtifacts }));
+  const reusedReviewer = advance();
+  assert.equal(reusedReviewer.status, 2, 'reviewer reusing the producer identity must block Design');
+  assert.match(`${reusedReviewer.stdout}\n${reusedReviewer.stderr}`, /distinct agent identities/u);
+
+  const independentCheck = createHandoffV2(root, {
+    changeId,
+    stage: 'clarify',
+    behavior: 'review',
+    role: 'check',
+    parentRunId: execute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+    inputRefs: requiredClarifyArtifacts,
+    tecpc,
+  });
+  const independentInput = JSON.parse(fs.readFileSync(independentCheck.path, 'utf-8'));
+  independentInput.createdAt = '2099-08-25T00:00:00.000Z';
+  fs.writeFileSync(independentCheck.path, `${JSON.stringify(independentInput, null, 2)}\n`);
+  const independentReviewPath = v2ResultPath(root, changeId, independentCheck.runId, 'check');
+  const independentReview = {
+    ...review,
+    runId: independentCheck.runId,
+    rubricIds: [...independentCheck.input.rubricIds],
+    reviewedArtifacts: completeArtifacts,
+  };
+  fs.writeFileSync(independentReviewPath, JSON.stringify(independentReview));
+  appendCompletedHandoffBinding(root, changeId, independentInput, { agentId: 'agent-clarify-review' });
+
+  const debtRef = requiredClarifyArtifacts[2];
+  const originalDebt = fs.readFileSync(path.join(root, debtRef), 'utf-8');
+  const changedDebt = JSON.parse(originalDebt);
+  changedDebt.updatedAt = '2026-08-25T00:01:01.000Z';
+  fs.writeFileSync(path.join(root, debtRef), `${JSON.stringify(changedDebt, null, 2)}\n`);
+  const changedDebtDigest = sha256Artifact(root, debtRef);
+  const changedArtifacts = completeArtifacts.map((artifact) => (
+    artifact.path === debtRef ? { ...artifact, digest: changedDebtDigest } : artifact
+  ));
+  const changedExecuteInput = JSON.parse(fs.readFileSync(execute.path, 'utf-8'));
+  changedExecuteInput.inputDigests[debtRef] = changedDebtDigest;
+  fs.writeFileSync(execute.path, `${JSON.stringify(changedExecuteInput, null, 2)}\n`);
+  const changedIndependentInput = JSON.parse(fs.readFileSync(independentCheck.path, 'utf-8'));
+  changedIndependentInput.inputDigests[debtRef] = changedDebtDigest;
+  fs.writeFileSync(independentCheck.path, `${JSON.stringify(changedIndependentInput, null, 2)}\n`);
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({
+    ...stageResult,
+    inputDigests: { ...changedExecuteInput.inputDigests },
+    artifacts: changedArtifacts,
+    selfCheck: { ...stageResult.selfCheck, evidence: [...requiredClarifyArtifacts] },
+  }));
+  fs.writeFileSync(independentReviewPath, JSON.stringify({
+    ...independentReview,
+    reviewedArtifacts: changedArtifacts,
+  }));
+  assert.notEqual(
+    stageCompletionFor(root, changeId, 'clarify').selfCheck.status,
+    'pass',
+    'canonical completion must reject a classification that no longer binds a current semantic artifact',
+  );
+
+  fs.writeFileSync(path.join(root, debtRef), originalDebt);
+  fs.writeFileSync(execute.path, `${JSON.stringify(execute.input, null, 2)}\n`);
+  fs.writeFileSync(independentCheck.path, `${JSON.stringify(independentInput, null, 2)}\n`);
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({ ...stageResult, artifacts: completeArtifacts }));
+  fs.writeFileSync(independentReviewPath, JSON.stringify(independentReview));
+
+  const pendingTecpc = { ...tecpc, correction: 'Reconcile the Clarify evidence.' };
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({
+    ...stageResult,
+    artifacts: completeArtifacts,
+    tecpc: pendingTecpc,
+  }));
+  fs.writeFileSync(independentReviewPath, JSON.stringify({ ...independentReview, tecpc: pendingTecpc }));
+  const incompleteTecpc = advance();
+  assert.equal(incompleteTecpc.status, 2, 'incomplete Clarify TECPC must block Design');
+  assert.match(`${incompleteTecpc.stdout}\n${incompleteTecpc.stderr}`, /Clarify TECPC requires correction=null|TECPC correction remains pending/u);
+
+  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({ ...stageResult, artifacts: completeArtifacts }));
+  fs.writeFileSync(independentReviewPath, JSON.stringify(independentReview));
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'design');
+
+  const proofPath = path.join(changeDir, 'evidence', 'completion', 'clarify.json');
+  const proof = JSON.parse(fs.readFileSync(proofPath, 'utf-8'));
+  assert.deepEqual(proof.reviewedArtifacts, completeArtifacts);
+  assert.deepEqual(proof.decisionSnapshotRef, completeArtifacts[4]);
+  assert.deepEqual(proof.assertions, stageResult.assertions);
+  assert.deepEqual(proof.tecpc, tecpc);
+  assert.equal(stageCompletionFor(root, changeId, 'clarify').proof.status, 'pass');
+
+  fs.writeFileSync(proofPath, `${JSON.stringify({
+    ...proof,
+    artifacts: proof.artifacts.map((artifact, index) => index === 0 ? { ...artifact, digest: 'e'.repeat(64) } : artifact),
+  }, null, 2)}\n`);
+  assert.equal(stageCompletionFor(root, changeId, 'clarify').proof.status, 'stale');
+  fs.writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
+
+  appendDecisionEvent(root, changeId, {
+    eventVersion: 1,
+    type: 'decision-event',
+    eventId: 'later-design-note',
+    changeId,
+    stage: 'clarify',
+    actor: { type: 'user', id: 'test-user' },
+    decisionType: 'scope-confirmation',
+    targetRef: requirementsRef,
+    questionId: 'later-design-question',
+    options: ['confirm', 'revise'],
+    recommendedOption: 'confirm',
+    selectedOption: 'confirm',
+    publicRationale: 'A later ledger suffix must not mutate the sealed Clarify prefix.',
+    evidenceRefs: [requirementsRef],
+    inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
+    recordedAt: '2026-08-25T00:03:00.000Z',
+  });
+  assert.equal(
+    stageCompletionFor(root, changeId, 'clarify').proof.status,
+    'pass',
+    'a later live decision-ledger suffix must not stale the immutable Clarify proof',
+  );
 
   console.log(`PASS lifecycle-clarify-transition ${mode}`);
 } finally {

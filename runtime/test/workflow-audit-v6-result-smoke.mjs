@@ -9,6 +9,7 @@ import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -32,6 +33,7 @@ let state = {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
   state = {
     ...state,
     artifacts: {
@@ -42,15 +44,22 @@ try {
       }),
     },
   };
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Audit design\n');
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state, null, 2)}\n`);
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
 
   const classificationRef = state.artifacts.classification.path;
+  const requiredClarifyArtifacts = [
+    requirementsRef,
+    classificationRef,
+    `harness/changes/${changeId}/debt-assessment.json`,
+    `harness/changes/${changeId}/project-contract-assessment.json`,
+    `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`,
+  ];
   const clarifyTecpc = {
-    target: 'confirm requirements and classification',
-    evidence: [requirementsRef, classificationRef],
-    context: [requirementsRef],
-    path: `${requirementsRef} -> ${classificationRef}`,
+    target: 'confirm canonical Clarify artifacts',
+    evidence: requiredClarifyArtifacts,
+    context: requiredClarifyArtifacts,
+    path: requiredClarifyArtifacts.join(' -> '),
     correction: null,
   };
   const clarifyExecute = createHandoffV2(root, {
@@ -58,10 +67,10 @@ try {
     stage: 'clarify',
     behavior: 'clarify.confirmed',
     agent: { type: 'enterprise-harness:main', skill: 'harness' },
-    inputRefs: [requirementsRef, classificationRef],
+    inputRefs: requiredClarifyArtifacts,
     tecpc: clarifyTecpc,
   });
-  const clarifyArtifacts = [requirementsRef, classificationRef]
+  const clarifyArtifacts = requiredClarifyArtifacts
     .map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
   const clarifyResult = {
     resultVersion: 1,
@@ -72,8 +81,16 @@ try {
     producer: { agentType: 'enterprise-harness:main', skill: 'harness' },
     inputDigests: { ...clarifyExecute.input.inputDigests },
     artifacts: clarifyArtifacts,
-    assertions: [{ id: 'scope-confirmed', verdict: 'pass', evidence: [requirementsRef] }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: [requirementsRef, classificationRef] },
+    assertions: [
+      ['research-complete', requirementsRef],
+      ['decisions-durable', requiredClarifyArtifacts[4]],
+      ['technical-debt-disposed', requiredClarifyArtifacts[2]],
+      ['project-contract-disposed', requiredClarifyArtifacts[3]],
+      ['requirements-ready', requirementsRef],
+      ['classification-ready', classificationRef],
+      ['scope-confirmed', requiredClarifyArtifacts[4]],
+    ].map(([id, reference]) => ({ id, verdict: 'pass', evidence: [reference] })),
+    selfCheck: { verdict: 'pass', findings: [], evidence: requiredClarifyArtifacts },
     tecpc: clarifyTecpc,
     status: 'pass',
     needsDecision: null,
@@ -87,7 +104,7 @@ try {
     role: 'check',
     parentRunId: clarifyExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [requirementsRef, classificationRef],
+    inputRefs: requiredClarifyArtifacts,
     tecpc: clarifyTecpc,
   });
   const clarifyReviewPath = v2ResultPath(root, changeId, clarifyCheck.runId, 'check');
@@ -112,11 +129,11 @@ try {
 
   fs.writeFileSync(v2ResultPath(root, changeId, clarifyExecute.runId), JSON.stringify({
     ...clarifyResult,
-    artifacts: clarifyArtifacts.filter((artifact) => artifact.path !== classificationRef),
+    artifacts: clarifyArtifacts.filter((artifact) => artifact.path !== requiredClarifyArtifacts[2]),
   }));
   fs.writeFileSync(clarifyReviewPath, JSON.stringify({
     ...clarifyReview,
-    reviewedArtifacts: clarifyArtifacts.filter((artifact) => artifact.path !== classificationRef),
+    reviewedArtifacts: clarifyArtifacts.filter((artifact) => artifact.path !== requiredClarifyArtifacts[2]),
   }));
   const missingClassificationBinding = auditWorkflow(root, changeId, state);
   assert.equal(missingClassificationBinding.stages.find((stage) => stage.stage === 'clarify').status, 'block');

@@ -58,8 +58,9 @@ Harness 先区分 Facts 与 Decisions：代码路径、调用链和 schema 由�
 明确授权完整 scope 时无需追加问题，否则用一次问题联合确认。评分、事实证据、scope confirmation
 和独立 review 门槛不降低。任一关键分数低于 4、仍有高风险 assumption 或 evidence stale 时都停在 clarify。
 
-成功表现：requirements、classification、Clarify StageResult、独立 ReviewResult 与
-CompletionProof 均 fresh，用户已明确确认 scope。
+成功表现：requirements、classification、debt/project-contract assessment、不可变 decision snapshot
+全部 fresh，Clarify StageResult 已绑定这些产物并通过独立 review、TECPC 与 fresh CompletionProof。
+单独确认 scope 或生成 classification 都不会跳过这条 completion gate。
 
 ## design
 

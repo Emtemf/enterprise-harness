@@ -54,29 +54,56 @@ export function addClarifyCompletion(root, changeId, {
 } = {}) {
   const requirementsRef = `harness/changes/${changeId}/requirements.md`;
   const classificationRef = `harness/changes/${changeId}/classification.json`;
-  const refs = [requirementsRef, classificationRef];
-  const tecpc = {
-    target: 'Complete canonical Clarify artifacts', evidence: refs, context: refs,
+  const refs = [
+    requirementsRef,
+    classificationRef,
+    `harness/changes/${changeId}/debt-assessment.json`,
+    `harness/changes/${changeId}/project-contract-assessment.json`,
+    `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`,
+  ];
+  const classificationArtifact = JSON.parse(fs.readFileSync(path.join(root, classificationRef), 'utf-8'));
+  const researchRefs = Object.keys(classificationArtifact.inputDigests).filter((reference) => ![
+    requirementsRef,
+    refs[2],
+    refs[3],
+    refs[4],
+  ].includes(reference));
+  const frozenRefs = [...refs, ...researchRefs];
+  const reviewTecpc = {
+    target: 'Complete canonical Clarify artifacts', evidence: frozenRefs, context: frozenRefs,
     path: `${requirementsRef} -> ${classificationRef}`, correction: tecpcCorrection,
   };
+  const stageTecpc = { ...reviewTecpc, correction: null };
   const execute = createHandoffV2(root, {
     changeId, stage: 'clarify', behavior: 'clarify.confirmed',
-    agent: { type: 'enterprise-harness:main', skill: 'harness' }, inputRefs: refs, tecpc,
+    agent: { type: 'enterprise-harness:main', skill: 'harness' }, inputRefs: frozenRefs, tecpc: stageTecpc,
   });
   const artifacts = refs.map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
   const stageResult = {
     resultVersion: 1, type: 'stage-result', changeId, stage: 'clarify', runId: execute.runId,
     producer: { agentType: 'enterprise-harness:main', skill: 'harness' },
     inputDigests: { ...execute.input.inputDigests }, artifacts,
-    assertions: [{ id: 'clarify', verdict: stageStatus === 'pass' ? 'pass' : 'block', evidence: refs }],
+    assertions: [
+      ['research-complete', [requirementsRef, ...researchRefs]],
+      ['decisions-durable', refs[4]],
+      ['technical-debt-disposed', refs[2]],
+      ['project-contract-disposed', refs[3]],
+      ['requirements-ready', requirementsRef],
+      ['classification-ready', classificationRef],
+      ['scope-confirmed', refs[4]],
+    ].map(([id, reference]) => ({
+      id,
+      verdict: stageStatus === 'pass' ? 'pass' : 'block',
+      evidence: Array.isArray(reference) ? reference : [reference],
+    })),
     selfCheck: { verdict: stageStatus === 'pass' ? 'pass' : 'block', findings: stageStatus === 'pass' ? [] : ['blocked'], evidence: refs },
-    tecpc, status: stageStatus, needsDecision: null, completedAt: '2026-08-25T01:00:00.000Z',
+    tecpc: stageTecpc, status: stageStatus, needsDecision: null, completedAt: '2026-08-25T01:00:00.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), `${JSON.stringify(stageResult, null, 2)}\n`);
   if (stageStatus !== 'pass') return { execute, stageResult, check: null, review: null };
   const check = createHandoffV2(root, {
     changeId, stage: 'clarify', behavior: 'clarify.review', role: 'check', parentRunId: execute.runId,
-    agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: refs, tecpc,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: frozenRefs, tecpc: reviewTecpc,
   });
   const review = {
     resultVersion: 1, type: 'review-result', changeId, stage: 'clarify',
@@ -86,12 +113,18 @@ export function addClarifyCompletion(root, changeId, {
       ? { agentType: 'enterprise-harness:reviewer', skill: 'review' }
       : { agentType: 'enterprise-harness:main', skill: 'harness' },
     reviewedRunId: execute.runId, reviewedArtifacts: artifacts, rubricIds: [...check.input.rubricIds],
-    tecpc, verdict: 'pass', correction: null, reviewedAt: '2026-08-25T01:00:01.000Z',
+    tecpc: reviewTecpc, verdict: 'pass', correction: null, reviewedAt: '2026-08-25T01:00:01.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), `${JSON.stringify(review, null, 2)}\n`);
   if (reviewerTrusted) appendCompletedHandoffBinding(root, changeId, check.input, { agentId: `${changeId}-reviewer` });
   if (proof !== 'missing' && reviewerTrusted && reviewerMatches && tecpcCorrection === null) {
-    const candidate = buildCompletionProof(root, { stageResult, reviewResult: review, createdAt: '2026-08-25T01:00:02.000Z' });
+    const candidate = buildCompletionProof(root, {
+      stageResult,
+      reviewResult: review,
+      producerAgentIds: ['enterprise-harness:main'],
+      reviewerAgentIds: [`${changeId}-reviewer`],
+      createdAt: '2026-08-25T01:00:02.000Z',
+    });
     const persisted = proof === 'mismatched' ? { ...candidate, target: 'generic completion' } : candidate;
     const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'clarify.json');
     fs.mkdirSync(path.dirname(proofPath), { recursive: true });

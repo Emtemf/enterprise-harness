@@ -21,6 +21,45 @@
     "needsDecision": { "type": ["string", "null"] },
     "completedAt": { "type": "string", "format": "date-time" }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "stage": { "const": "clarify" } }, "required": ["stage"] },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "minItems": 5,
+            "maxItems": 5,
+            "allOf": [
+              { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/requirements\\.md$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/classification\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/debt-assessment\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/project-contract-assessment\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/evidence/decisions/clarify-decision-snapshot\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 }
+            ]
+          },
+          "assertions": {
+            "minItems": 7,
+            "maxItems": 7,
+            "allOf": [
+              { "contains": { "properties": { "id": { "const": "research-complete" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "decisions-durable" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "technical-debt-disposed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "project-contract-disposed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "requirements-ready" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "classification-ready" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+              { "contains": { "properties": { "id": { "const": "scope-confirmed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 }
+            ]
+          },
+          "tecpc": {
+            "allOf": [
+              { "$ref": "tecpc.schema.json" },
+              { "properties": { "path": { "minLength": 1 }, "correction": { "const": null } } }
+            ]
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "producer": { "type": "object", "required": ["agentType", "skill"], "properties": { "agentType": { "type": "string", "minLength": 1 }, "skill": { "type": "string", "minLength": 1 } }, "additionalProperties": false },
     "digestMap": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },

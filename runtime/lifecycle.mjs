@@ -18,9 +18,6 @@ import {
 import { atomicWriteJson } from './lib/state-store.mjs';
 import { assertForwardTransition } from './core/stage-transition.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
-import {
-  readClassificationArtifact,
-} from './core/classification-artifact.mjs';
 
 const repoRoot = process.cwd();
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -168,14 +165,6 @@ function cmdStageAdvance(changeId, stage, tier) {
     if (stage === 'implement' && (!current.currentTask || !String(current.currentTask).trim())) {
       console.error('BLOCK: 进入 implement 前必须先设置非空 currentTask。');
       process.exit(2);
-    }
-    if (current.stage === 'clarify') {
-      try {
-        readClassificationArtifact(repoRoot, changeId, current.artifacts?.classification);
-      } catch (error) {
-        console.error(`BLOCK: clarify→design requires a fresh classification artifact (${error.message})`);
-        process.exit(2);
-      }
     }
     const completion = persistStageCompletionProof(changeId, current.stage);
     if (!completion.proof) {

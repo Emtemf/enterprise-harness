@@ -342,7 +342,11 @@ try {
   const completeProgression = addClarifyCompletion(root, progressiveId);
   assertProgress(recovery.proof, statusesAfter(14));
   const progressiveProof = (await import('../core/completion-proof.mjs')).buildCompletionProof(root, {
-    stageResult: completeProgression.stageResult, reviewResult: completeProgression.review, createdAt: '2026-08-25T02:00:00.000Z',
+    stageResult: completeProgression.stageResult,
+    reviewResult: completeProgression.review,
+    producerAgentIds: ['enterprise-harness:main'],
+    reviewerAgentIds: [`${progressiveId}-reviewer`],
+    createdAt: '2026-08-25T02:00:00.000Z',
   });
   const proofPath = path.join(progressiveDir, 'evidence', 'completion', 'clarify.json');
   fs.mkdirSync(path.dirname(proofPath), { recursive: true });

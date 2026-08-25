@@ -171,16 +171,18 @@ non-goals 和 requirements 摘要；原请求已明确授权完整 scope 时记�
 
 完成后：
 
-1. 创建 main-owned `clarify.confirmed` execute handoff，输入引用 requirements、classification 与每个
-   required packet 所绑定的 immutable research brief。finalizer 会按 requirements 中的 runId 从
-   common-dir 读取 canonical packet，并重新验证 handoff/source/brief digest。
+1. 创建 main-owned `clarify.confirmed` execute handoff，输入引用 requirements、classification、debt
+   assessment、project-contract assessment、immutable decision snapshot，以及每个 required packet 所绑定的
+   immutable research brief。finalizer 会按 canonical path 与 requirements 中的 runId 重新验证 artifact、
+   packet、handoff/source/brief digest。
 2. 此时才运行 [Clarify finalizer](scripts/finalize-clarify-result.mjs)：
    `node "${CLAUDE_SKILL_DIR}/scripts/finalize-clarify-result.mjs" <change-id> <run-id>`。
    只接受 `HANDOFF_RESULT=<path>`；失败时留在 Clarify 并按错误修复 artifact。
 3. 创建独立 `enterprise-harness:reviewer` check run。Reviewer 检查遗漏 component、事实门禁、评分依据、
    矛盾、不可验收 requirement、scope creep 与过早 design，不重新采访用户。
-4. 只有 fresh `StageResult + passing ReviewResult + CompletionProof + digest` 都有效时，才运行
-   `workflow decide <change-id> confirm-scope <reason>`。artifact 修改会使旧结论 stale。
+4. 只有 fresh canonical `StageResult + passing independent ReviewResult + complete TECPC + CompletionProof`
+   都有效时才允许推进到 Design。scope confirmation 或 classification 不能单独推进；绑定的 artifact 修改会使
+   旧结论 stale，sealed snapshot 之后的 live ledger 追加事件除外。
 
 ## Phase 5：后续阶段与恢复
 

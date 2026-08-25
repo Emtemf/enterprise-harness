@@ -18,6 +18,26 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-stage-'));
 const changeId = 'clarify-slice';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+const classificationRef = `harness/changes/${changeId}/classification.json`;
+const debtRef = `harness/changes/${changeId}/debt-assessment.json`;
+const contractRef = `harness/changes/${changeId}/project-contract-assessment.json`;
+const decisionSnapshotRef = `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`;
+const requiredClarifyArtifacts = [
+  requirementsRef,
+  classificationRef,
+  debtRef,
+  contractRef,
+  decisionSnapshotRef,
+];
+const requiredClarifyAssertionIds = [
+  'research-complete',
+  'decisions-durable',
+  'technical-debt-disposed',
+  'project-contract-disposed',
+  'requirements-ready',
+  'classification-ready',
+  'scope-confirmed',
+];
 const briefRef = `harness/changes/${changeId}/research/code-brief.md`;
 let factEvidence = null;
 
@@ -273,19 +293,30 @@ try {
         impact: { api: 'no', data: 'no', architecture: 'yes', rule: 'no', security: 'no' },
         refreshAuthoritative: true,
       }, `refresh-${classificationOrdinal}`);
+      fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+        schemaVersion: 6,
+        revision: classificationOrdinal,
+        changeId,
+        lifecycle: 'active',
+        stage: 'clarify',
+        artifacts: { classification },
+        validation: { status: 'missing', digest: null, validatedAt: null },
+      }, null, 2)}\n`);
     } catch (error) {
       return { result: { status: 2, stderr: error.message, stdout: '' }, runId: null };
     }
+    if (options.beforeHandoff) options.beforeHandoff();
+    const excludedInputRefs = new Set(options.excludeInputRefs || []);
     const handoff = createHandoffV2(root, {
       changeId,
       stage: 'clarify',
       behavior: 'clarify.confirmed',
       agent: { type: 'enterprise-harness:main', skill: 'harness' },
       inputRefs: [
-        requirementsRef,
-        classification.path,
+        ...requiredClarifyArtifacts,
         ...(options.includeBriefInput === false ? [] : [briefRef]),
-      ],
+        factEvidence.packetRef,
+      ].filter((reference) => !excludedInputRefs.has(reference)),
       tecpc: {
         target: 'confirmed requirements and classification',
         evidence: [requirementsRef, classification.path],
@@ -308,6 +339,88 @@ try {
   assert.match(passed.result.stdout, /HANDOFF_RESULT=/u);
   const persisted = JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, passed.runId), 'utf-8'));
   assert.equal(persisted.stage, 'clarify');
+  assert.deepEqual(
+    persisted.artifacts.map(({ path: artifactPath }) => artifactPath),
+    requiredClarifyArtifacts,
+    'Clarify StageResult must bind the exact five canonical artifacts',
+  );
+  assert.deepEqual(
+    persisted.assertions.map(({ id }) => id),
+    requiredClarifyAssertionIds,
+    'Clarify StageResult must publish the seven canonical assertions',
+  );
+  const boundEvidence = new Set([
+    ...persisted.artifacts.map(({ path: artifactPath }) => artifactPath),
+    ...Object.keys(persisted.inputDigests),
+  ]);
+  for (const assertion of persisted.assertions) {
+    assert.ok(
+      assertion.evidence.every((reference) => boundEvidence.has(reference)),
+      `${assertion.id} evidence must be a StageResult artifact or frozen input`,
+    );
+  }
+  assert.ok(
+    persisted.assertions.find(({ id }) => id === 'research-complete')?.evidence.includes(factEvidence.packetRef),
+    'research-complete must cite the frozen canonical ResearchPacket',
+  );
+
+  const missingArtifact = run(requirements(), null, {
+    beforeHandoff: () => fs.rmSync(path.join(root, debtRef)),
+    excludeInputRefs: [debtRef],
+  });
+  assert.equal(missingArtifact.result.status, 2, 'missing canonical debt artifact must block finalization');
+  assert.match(missingArtifact.result.stderr, /EH-CLARIFY-DEBT-136/u);
+
+  const staleDigest = run(requirements(), () => {
+    fs.appendFileSync(path.join(root, debtRef), '\n');
+  });
+  assert.equal(staleDigest.result.status, 2, 'artifact mutation after handoff must block finalization');
+  assert.match(staleDigest.result.stderr, /EH-CLARIFY-FINALIZE-001/u);
+  assert.match(staleDigest.result.stderr, /Recreate the Clarify execute handoff/u);
+
+  const undisposedDebt = run(requirements(), null, {
+    beforeHandoff: () => {
+      const assessment = JSON.parse(fs.readFileSync(path.join(root, debtRef), 'utf-8'));
+      assessment.observations = [{
+        debtId: 'debt-one',
+        claim: 'A relevant debt exists.',
+        relevance: 'The change touches it.',
+        impact: 'It affects verification.',
+        evidenceRefs: [requirementsRef],
+      }];
+      fs.writeFileSync(path.join(root, debtRef), `${JSON.stringify(assessment, null, 2)}\n`);
+    },
+  });
+  assert.equal(undisposedDebt.result.status, 2, 'undisposed debt must block finalization');
+  assert.match(undisposedDebt.result.stderr, /EH-CLARIFY-DEBT-136/u);
+
+  const unresolvedContract = run(requirements(), null, {
+    beforeHandoff: () => {
+      const assessment = JSON.parse(fs.readFileSync(path.join(root, contractRef), 'utf-8'));
+      assessment.status = 'conflict';
+      assessment.conflicts = [{ section: 'Clarify', evidence: 'Instructions conflict with the requested scope.' }];
+      fs.writeFileSync(path.join(root, contractRef), `${JSON.stringify(assessment, null, 2)}\n`);
+    },
+  });
+  assert.equal(unresolvedContract.result.status, 2, 'unresolved project-contract conflict must block finalization');
+  assert.match(unresolvedContract.result.stderr, /EH-CLARIFY-CONTRACT-137/u);
+
+  const unsealedDecision = run(requirements(), null, {
+    beforeHandoff: () => fs.rmSync(path.join(root, decisionSnapshotRef)),
+    excludeInputRefs: [decisionSnapshotRef],
+  });
+  assert.equal(unsealedDecision.result.status, 2, 'missing immutable decision snapshot must block finalization');
+  assert.match(unsealedDecision.result.stderr, /EH-CLARIFY-DECISIONS-135/u);
+
+  const mismatchedClassificationInput = run(requirements(), null, {
+    beforeHandoff: () => {
+      const assessment = JSON.parse(fs.readFileSync(path.join(root, debtRef), 'utf-8'));
+      assessment.updatedAt = '2026-08-25T00:01:01.000Z';
+      fs.writeFileSync(path.join(root, debtRef), `${JSON.stringify(assessment, null, 2)}\n`);
+    },
+  });
+  assert.equal(mismatchedClassificationInput.result.status, 2, 'classification with a changed authoritative input must block finalization');
+  assert.match(mismatchedClassificationInput.result.stderr, /EH-CLARIFY-CLASSIFICATION-139/u);
 
   const unsupportedFive = run(requirements({
     score: 5,

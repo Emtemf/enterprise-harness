@@ -12,6 +12,7 @@ import {
   validateReviewResult,
   validateStageResult,
 } from '../lib/result-contract.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -67,6 +68,51 @@ const reviewResult = {
   verdict: 'pass',
   correction: null,
   reviewedAt: '2026-08-14T00:00:01.000Z',
+};
+
+const classification = writeClassificationV2Fixture(root, 'demo', { tier: 'L1' });
+const requiredClarifyArtifacts = [
+  'harness/changes/demo/requirements.md',
+  classification.path,
+  'harness/changes/demo/debt-assessment.json',
+  'harness/changes/demo/project-contract-assessment.json',
+  'harness/changes/demo/evidence/decisions/clarify-decision-snapshot.json',
+];
+const clarifyArtifacts = requiredClarifyArtifacts.map((artifactPath) => ({
+  path: artifactPath,
+  digest: sha256Artifact(root, artifactPath),
+}));
+const clarifyAssertions = [
+  ['research-complete', [requirements]],
+  ['decisions-durable', [requiredClarifyArtifacts[4]]],
+  ['technical-debt-disposed', [requiredClarifyArtifacts[2]]],
+  ['project-contract-disposed', [requiredClarifyArtifacts[3]]],
+  ['requirements-ready', [requirements]],
+  ['classification-ready', [classification.path]],
+  ['scope-confirmed', [requiredClarifyArtifacts[4]]],
+].map(([id, evidence]) => ({ id, verdict: 'pass', evidence }));
+const clarifyTecpc = {
+  target: 'complete canonical Clarify artifacts',
+  evidence: [...requiredClarifyArtifacts],
+  context: [requirements, requiredClarifyArtifacts[4]],
+  path: requiredClarifyArtifacts.join(' -> '),
+  correction: null,
+};
+const clarifyStageResult = {
+  resultVersion: 1,
+  type: 'stage-result',
+  changeId: 'demo',
+  stage: 'clarify',
+  runId: executorRunId,
+  producer: { agentType: 'enterprise-harness:main', skill: 'harness' },
+  inputDigests: Object.fromEntries(requiredClarifyArtifacts.map((reference) => [reference, sha256Artifact(root, reference)])),
+  artifacts: clarifyArtifacts,
+  assertions: clarifyAssertions,
+  selfCheck: { verdict: 'pass', findings: [], evidence: [...requiredClarifyArtifacts] },
+  tecpc: clarifyTecpc,
+  status: 'pass',
+  needsDecision: null,
+  completedAt: '2026-08-25T00:00:00.000Z',
 };
 
 const researchPacket = {
@@ -139,6 +185,7 @@ const decisionSnapshot = {
 
 try {
   assert.deepEqual(validateStageResult(root, stageResult), []);
+  assert.deepEqual(validateStageResult(root, clarifyStageResult), []);
   assert.deepEqual(validateReviewResult(root, reviewResult, { stageResult }), []);
   assert.deepEqual(validateResearchPacket(root, researchPacket), []);
   assert.deepEqual(validateHandoffV2Contract(handoff), []);
@@ -183,6 +230,50 @@ try {
   const missingSelfCheck = structuredClone(stageResult);
   delete missingSelfCheck.selfCheck;
   assert.match(validateStageResult(root, missingSelfCheck).join('\n'), /selfCheck is required/);
+
+  const missingClarifyArtifact = structuredClone(clarifyStageResult);
+  missingClarifyArtifact.artifacts = missingClarifyArtifact.artifacts.filter(({ path: artifactPath }) => (
+    artifactPath !== requiredClarifyArtifacts[2]
+  ));
+  assert.match(
+    validateStageResult(root, missingClarifyArtifact).join('\n'),
+    /Clarify artifacts must exactly bind/u,
+  );
+
+  const extraClarifyArtifact = structuredClone(clarifyStageResult);
+  extraClarifyArtifact.artifacts.push({ path: artifact, digest: sha256Artifact(root, artifact) });
+  assert.match(
+    validateStageResult(root, extraClarifyArtifact).join('\n'),
+    /Clarify artifacts must exactly bind/u,
+  );
+
+  const wrongClarifyAssertions = structuredClone(clarifyStageResult);
+  wrongClarifyAssertions.assertions[0].id = 'generic-clarify';
+  assert.match(
+    validateStageResult(root, wrongClarifyAssertions).join('\n'),
+    /Clarify assertions must exactly contain/u,
+  );
+
+  const unboundClarifyEvidence = structuredClone(clarifyStageResult);
+  unboundClarifyEvidence.assertions[0].evidence = ['harness/changes/demo/unbound.json'];
+  assert.match(
+    validateStageResult(root, unboundClarifyEvidence).join('\n'),
+    /assertion evidence must be a Clarify artifact or frozen input/u,
+  );
+
+  const incompleteClarifyTecpc = structuredClone(clarifyStageResult);
+  incompleteClarifyTecpc.tecpc.correction = 'Reconcile the current decision snapshot.';
+  assert.match(
+    validateStageResult(root, incompleteClarifyTecpc).join('\n'),
+    /Clarify TECPC requires correction=null/u,
+  );
+
+  const emptyClarifyPath = structuredClone(clarifyStageResult);
+  emptyClarifyPath.tecpc.path = '';
+  assert.match(
+    validateStageResult(root, emptyClarifyPath).join('\n'),
+    /Clarify TECPC path must be non-empty/u,
+  );
 
   const selfReview = structuredClone(reviewResult);
   selfReview.runId = stageResult.runId;
