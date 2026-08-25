@@ -2,7 +2,7 @@
 
 本目录只保存长期运行合同。动态状态、路线图、营销、实现说明和历史证据不属于 spec。
 
-## 八个主合同
+## 九个主合同
 
 1. [architecture.md](architecture.md)
 2. [workflow.md](workflow.md)
@@ -12,6 +12,7 @@
 6. [evidence.md](evidence.md)
 7. [testing.md](testing.md)
 8. [distribution-and-release.md](distribution-and-release.md)
+9. [clarify-governance.md](clarify-governance.md) — Clarify authority, immutable decision/assessment contracts, invalidation, and recovery
 
 ## 附录
 

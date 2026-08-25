@@ -20,6 +20,19 @@ const schemas = [
   ['state.schema.json', null],
 ];
 
+const clarifySchemas = [
+  'question-candidate.schema.json',
+  'decision-event.schema.json',
+  'clarify-decision-snapshot.schema.json',
+  'debt-assessment.schema.json',
+  'project-contract-assessment.schema.json',
+  'classification.schema.json',
+];
+
+for (const name of clarifySchemas) {
+  assert.ok(fs.existsSync(path.join(root, 'harness', 'schemas', name)), `missing ${name}`);
+}
+
 for (const [name, type] of schemas) {
   const schema = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'schemas', name), 'utf-8'));
   assert.equal(schema.type, 'object', `${name} must define an object`);

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/classification.schema.json",
+  "title": "Enterprise Harness Clarify Classification V2",
+  "type": "object",
+  "required": ["classificationVersion", "type", "changeId", "scores", "total", "tier", "hardFlags", "impact", "inputDigests", "decisionEventId"],
+  "properties": {
+    "classificationVersion": { "const": 2 },
+    "type": { "const": "clarify-classification" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "scores": { "$ref": "#/$defs/scores" },
+    "total": { "type": "integer", "minimum": 0, "maximum": 12 },
+    "tier": { "enum": ["L0", "L1", "L2", "L3"] },
+    "hardFlags": { "type": "array", "uniqueItems": true, "items": { "enum": ["public-api-break", "security-boundary", "cross-service-transaction", "irreversible-data-migration", "unknown-compliance-obligation"] } },
+    "impact": { "$ref": "#/$defs/impact" },
+    "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "decisionEventId": { "$ref": "#/$defs/safeId" }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/sha256" } },
+    "score": { "type": "object", "required": ["value", "evidenceRefs", "reason"], "properties": { "value": { "type": "integer", "minimum": 0, "maximum": 3 }, "evidenceRefs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmptyString" } }, "reason": { "$ref": "#/$defs/nonEmptyString" } }, "additionalProperties": false },
+    "scores": { "type": "object", "required": ["functionalSize", "uncertainty", "changeRisk", "verificationDifficulty"], "properties": { "functionalSize": { "$ref": "#/$defs/score" }, "uncertainty": { "$ref": "#/$defs/score" }, "changeRisk": { "$ref": "#/$defs/score" }, "verificationDifficulty": { "$ref": "#/$defs/score" } }, "additionalProperties": false },
+    "impact": { "type": "object", "required": ["api", "data", "architecture", "rule", "security"], "properties": { "api": { "enum": ["yes", "no", "unknown"] }, "data": { "enum": ["yes", "no", "unknown"] }, "architecture": { "enum": ["yes", "no", "unknown"] }, "rule": { "enum": ["yes", "no", "unknown"] }, "security": { "enum": ["yes", "no", "unknown"] } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

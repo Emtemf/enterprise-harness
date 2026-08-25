@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/project-contract-assessment.schema.json",
+  "title": "Enterprise Harness Clarify Project Contract Assessment",
+  "type": "object",
+  "required": ["assessmentVersion", "type", "changeId", "files", "gaps", "conflicts", "status", "decisionEventId", "proposalRef", "inputDigests", "updatedAt"],
+  "properties": {
+    "assessmentVersion": { "const": 1 },
+    "type": { "const": "project-contract-assessment" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "files": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/instructionFile" } },
+    "gaps": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/finding" } },
+    "conflicts": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/finding" } },
+    "status": { "enum": ["use-existing", "proposal-required", "conflict", "deferred"] },
+    "decisionEventId": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "proposalRef": { "type": ["string", "null"], "minLength": 1 },
+    "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/sha256" } },
+    "instructionFile": { "type": "object", "required": ["path", "digest", "scope", "ownership"], "properties": { "path": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" }, "digest": { "$ref": "#/$defs/sha256" }, "scope": { "enum": ["project", "parent", "organization"] }, "ownership": { "enum": ["project", "parent", "organization"] } }, "additionalProperties": false },
+    "finding": { "type": "object", "required": ["section", "evidence"], "properties": { "section": { "$ref": "#/$defs/nonEmptyString" }, "evidence": { "$ref": "#/$defs/nonEmptyString" } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

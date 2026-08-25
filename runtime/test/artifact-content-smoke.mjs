@@ -28,7 +28,19 @@ try {
   });
   assert.equal(unpacked.status, 0, unpacked.stderr);
   const manifest = JSON.parse(fs.readFileSync(path.join(extract, 'manifest-files.json'), 'utf-8'));
-  const listed = new Set(manifest.files.map((entry) => entry.path));
+  const packageFiles = new Set(manifest.files.map((entry) => entry.path));
+  const listed = packageFiles;
+  const clarifySchemas = [
+    'question-candidate.schema.json',
+    'decision-event.schema.json',
+    'clarify-decision-snapshot.schema.json',
+    'debt-assessment.schema.json',
+    'project-contract-assessment.schema.json',
+    'classification.schema.json',
+  ];
+  for (const name of clarifySchemas) {
+    assert.ok(packageFiles.has(`harness/schemas/${name}`), `package omits ${name}`);
+  }
   for (const required of [
     '.claude-plugin/plugin.json',
     'skills/harness/SKILL.md',

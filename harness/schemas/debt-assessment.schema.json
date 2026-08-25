@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/debt-assessment.schema.json",
+  "title": "Enterprise Harness Clarify Debt Assessment",
+  "type": "object",
+  "required": ["assessmentVersion", "type", "changeId", "observations", "dispositions", "inputDigests", "updatedAt"],
+  "properties": {
+    "assessmentVersion": { "const": 1 },
+    "type": { "const": "debt-assessment" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "observations": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/observation" } },
+    "dispositions": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disposition" } },
+    "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
+    "observation": { "type": "object", "required": ["debtId", "claim", "evidenceRefs", "relevance", "impact"], "properties": { "debtId": { "$ref": "#/$defs/safeId" }, "claim": { "$ref": "#/$defs/nonEmptyString" }, "evidenceRefs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmptyString" } }, "relevance": { "$ref": "#/$defs/nonEmptyString" }, "impact": { "$ref": "#/$defs/nonEmptyString" } }, "additionalProperties": false },
+    "disposition": { "type": "object", "required": ["debtId", "status", "decisionEventId", "authorityRef"], "properties": { "debtId": { "$ref": "#/$defs/safeId" }, "status": { "enum": ["fix-now", "enabling-task", "defer", "accepted-constraint", "not-debt"] }, "decisionEventId": { "$ref": "#/$defs/safeId" }, "authorityRef": { "$ref": "#/$defs/nonEmptyString" } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}

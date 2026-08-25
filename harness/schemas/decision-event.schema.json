@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/decision-event.schema.json",
+  "title": "Enterprise Harness Clarify Decision Event",
+  "type": "object",
+  "required": ["eventVersion", "type", "eventId", "changeId", "stage", "actor", "decisionType", "targetRef", "questionId", "options", "recommendedOption", "selectedOption", "publicRationale", "evidenceRefs", "inputDigests", "recordedAt"],
+  "properties": {
+    "eventVersion": { "const": 1 },
+    "type": { "const": "decision-event" },
+    "eventId": { "$ref": "#/$defs/safeId" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "stage": { "const": "clarify" },
+    "actor": { "$ref": "#/$defs/actor" },
+    "decisionType": { "enum": ["clarify-answer", "lane-applicability", "debt-disposition", "project-contract-disposition", "scope-confirmation", "classification-route"] },
+    "targetRef": { "$ref": "#/$defs/nonEmptyString" },
+    "questionId": { "$ref": "#/$defs/safeId" },
+    "options": { "type": "array", "minItems": 2, "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/safeId" } },
+    "recommendedOption": { "$ref": "#/$defs/safeId" },
+    "selectedOption": { "$ref": "#/$defs/safeId" },
+    "publicRationale": { "$ref": "#/$defs/nonEmptyString" },
+    "evidenceRefs": { "$ref": "#/$defs/nonEmptyStrings" },
+    "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "recordedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "nonEmptyStrings": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
+    "actor": { "type": "object", "required": ["type", "id"], "properties": { "type": { "enum": ["user", "main", "runtime"] }, "id": { "$ref": "#/$defs/safeId" } }, "additionalProperties": false }
+  },
+  "additionalProperties": false
+}
