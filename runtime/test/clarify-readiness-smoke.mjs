@@ -257,18 +257,22 @@ try {
     tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
     proof: { code: 'EH-CLARIFY-PROOF-143', action: 'Publish the fresh digest-bound ClarifyProof.' },
   };
-  const assertProgress = (expectedRecovery, firstThree = null) => {
+  const assertProgress = (expectedRecovery, expectedStatuses) => {
     const projected = buildClarifyReadiness(root, progressiveId);
     assert.deepEqual(projected.recovery, expectedRecovery, JSON.stringify(projected.items));
-    if (firstThree) assert.deepEqual(projected.items.slice(0, 3).map(({ status }) => status), firstThree);
+    assert.deepEqual(projected.items.map(({ status }) => status), expectedStatuses);
     assert.equal(projected.items.length, 15);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'clarify-readiness.json')), false);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'checklist.json')), false);
     return projected;
   };
-  assertProgress(recovery.lanes, ['blocked', 'blocked', 'blocked']);
+  const statusesAfter = (passed) => [
+    ...Array(passed).fill('pass'),
+    ...Array(CLARIFY_ITEMS.length - passed).fill('blocked'),
+  ];
+  assertProgress(recovery.lanes, statusesAfter(0));
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText());
-  assertProgress(recovery.research, ['pass', 'blocked', 'blocked']);
+  assertProgress(recovery.research, statusesAfter(1));
   const researchHandoff = (uncertainties) => {
     const run = createHandoffV2(root, {
       changeId: progressiveId, stage: 'clarify', behavior: 'clarify.explore-code',
@@ -287,16 +291,16 @@ try {
   };
   const uncertain = researchHandoff(['Confirm one remaining fact.']);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: uncertain.run.runId, packetRef: uncertain.packetRef, status: 'complete' }));
-  assertProgress(recovery.conflicts, ['pass', 'pass', 'blocked']);
+  assertProgress(recovery.conflicts, statusesAfter(2));
   const clean = researchHandoff([]);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none' }));
-  assertProgress(recovery.topology, ['pass', 'pass', 'pass']);
+  assertProgress(recovery.topology, statusesAfter(3));
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true }));
-  assertProgress(recovery.ambiguity);
+  assertProgress(recovery.ambiguity, statusesAfter(4));
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true }));
-  assertProgress(recovery.question);
+  assertProgress(recovery.question, statusesAfter(5));
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'resolved' }));
-  assertProgress(recovery.decisions);
+  assertProgress(recovery.decisions, statusesAfter(6));
   fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Progressive fixture instructions\n');
   appendDecisionEvent(root, progressiveId, {
     eventVersion: 1, type: 'decision-event', eventId: 'progressive-scope', changeId: progressiveId, stage: 'clarify',
@@ -306,46 +310,46 @@ try {
     recordedAt: '2026-08-25T00:00:00.000Z',
   });
   sealClarifyDecisionSnapshot(root, progressiveId, readDecisionEvents(root, progressiveId).map(({ eventId }) => eventId));
-  assertProgress(recovery.debt);
+  assertProgress(recovery.debt, statusesAfter(7));
   writeDebtAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'debt-assessment', changeId: progressiveId, observations: [], dispositions: [],
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:01:00.000Z',
   });
-  assertProgress(recovery.contract);
+  assertProgress(recovery.contract, statusesAfter(8));
   writeProjectContractAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'project-contract-assessment', changeId: progressiveId,
     files: [{ path: 'CLAUDE.md', digest: sha256Artifact(root, 'CLAUDE.md'), scope: 'project', ownership: 'project' }],
     gaps: [], conflicts: [], status: 'use-existing', decisionEventId: null, proposalRef: null,
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:02:00.000Z',
   });
-  assertProgress(recovery.requirements);
+  assertProgress(recovery.requirements, statusesAfter(9));
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true, approved: true }));
-  assertProgress(recovery.classification);
+  assertProgress(recovery.classification, statusesAfter(10));
   const progressiveClassification = writeClassificationV2Fixture(root, progressiveId, { tier: 'L1' }, 'progressive');
   fs.writeFileSync(path.join(progressiveDir, 'state.json'), `${JSON.stringify({
     schemaVersion: 6, revision: 1, changeId: progressiveId, lifecycle: 'active', stage: 'clarify',
     artifacts: { classification: progressiveClassification }, validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2)}\n`);
-  assertProgress(recovery.selfCheck);
+  assertProgress(recovery.selfCheck, statusesAfter(11));
   addClarifyCompletion(root, progressiveId, { stageStatus: 'block' });
-  assertProgress(recovery.selfCheck);
+  assertProgress(recovery.selfCheck, statusesAfter(11));
   await new Promise((resolve) => setTimeout(resolve, 10));
   const untrustedCompletion = addClarifyCompletion(root, progressiveId, { reviewerTrusted: false, tecpcCorrection: 'Resolve correction.' });
-  assertProgress(recovery.review);
+  assertProgress(recovery.review, statusesAfter(12));
   appendCompletedHandoffBinding(root, progressiveId, untrustedCompletion.check.input, { agentId: 'progressive-reviewer' });
-  assertProgress(recovery.tecpc);
+  assertProgress(recovery.tecpc, statusesAfter(13));
   await new Promise((resolve) => setTimeout(resolve, 10));
   const completeProgression = addClarifyCompletion(root, progressiveId);
-  assertProgress(recovery.proof);
+  assertProgress(recovery.proof, statusesAfter(14));
   const progressiveProof = (await import('../core/completion-proof.mjs')).buildCompletionProof(root, {
     stageResult: completeProgression.stageResult, reviewResult: completeProgression.review, createdAt: '2026-08-25T02:00:00.000Z',
   });
   const proofPath = path.join(progressiveDir, 'evidence', 'completion', 'clarify.json');
   fs.mkdirSync(path.dirname(proofPath), { recursive: true });
   fs.writeFileSync(proofPath, `${JSON.stringify({ ...progressiveProof, target: 'generic proof' }, null, 2)}\n`);
-  assertProgress(recovery.proof);
+  assertProgress(recovery.proof, statusesAfter(14));
   fs.writeFileSync(proofPath, `${JSON.stringify(progressiveProof, null, 2)}\n`);
-  assertProgress(null);
+  assertProgress(null, statusesAfter(15));
 
   const completionCases = [
     ['blocked-stage', { stageStatus: 'block' }, 'self-check-passed', 'EH-CLARIFY-SELF-CHECK-140'],
