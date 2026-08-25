@@ -10,10 +10,13 @@ implementationRefs:
   - harness/schemas/debt-assessment.schema.json
   - harness/schemas/project-contract-assessment.schema.json
   - harness/schemas/classification.schema.json
+  - runtime/core/decision-ledger.mjs
+  - runtime/lib/result-contract.mjs
 testRefs:
   - runtime/test/result-schema-smoke.mjs
   - runtime/test/artifact-content-smoke.mjs
   - runtime/test/docs-consistency-smoke.mjs
+  - runtime/test/decision-ledger-smoke.mjs
 ---
 
 # Clarify Governance Contract

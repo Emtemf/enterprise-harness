@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { agentForV2Handoff } from '../core/handoff-agent.mjs';
-import { resolveWithin } from './safe-paths.mjs';
+import { isSafeId, resolveWithin } from './safe-paths.mjs';
 import { isWaiverFresh, validateWaiver } from './waiver.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
@@ -36,6 +36,23 @@ const RESEARCH_PACKET_FIELDS = new Set([
 ]);
 const RESEARCH_FACT_FIELDS = new Set(['claim', 'sources']);
 const RESEARCH_SOURCES = new Set(['code-explore', 'doc-research']);
+const DECISION_EVENT_FIELDS = new Set([
+  'eventVersion', 'type', 'eventId', 'changeId', 'stage', 'actor', 'decisionType', 'targetRef',
+  'questionId', 'options', 'recommendedOption', 'selectedOption', 'publicRationale', 'evidenceRefs',
+  'inputDigests', 'recordedAt',
+]);
+const DECISION_ACTOR_FIELDS = new Set(['type', 'id']);
+const DECISION_ACTOR_TYPES = new Set(['user', 'main', 'runtime']);
+const DECISION_TYPES = new Set([
+  'clarify-answer', 'lane-applicability', 'debt-disposition', 'project-contract-disposition',
+  'scope-confirmation', 'classification-route',
+]);
+const CLARIFY_SNAPSHOT_FIELDS = new Set([
+  'snapshotVersion', 'type', 'changeId', 'eventIds', 'ledgerRef', 'prefixBytes', 'prefixDigest',
+  'artifacts', 'sealedAt',
+]);
+const SNAPSHOT_LEDGER_REF_FIELDS = new Set(['path', 'digest']);
+const SNAPSHOT_EVENT_ARTIFACT_FIELDS = new Set(['eventId', 'digest']);
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -54,6 +71,12 @@ function isDigest(value) {
 
 function isIsoDate(value) {
   return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
+function isSchemaDateTime(value) {
+  return typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/u.test(value)
+    && Number.isFinite(Date.parse(value));
 }
 
 function validateStringArray(value, field, problems) {
@@ -86,6 +109,108 @@ function validateProducer(value, field, problems) {
   if (!isObject(value) || !String(value.agentType || '').trim() || !String(value.skill || '').trim()) {
     problems.push(`${field} requires agentType and skill`);
   }
+}
+
+export function validateDecisionEvent(changeId, event) {
+  const problems = [];
+  if (!isObject(event)) return ['decision event must be an object'];
+  rejectUnknownProperties(event, 'decision event', DECISION_EVENT_FIELDS, problems);
+  if (event.eventVersion !== 1) problems.push('eventVersion must be 1');
+  if (event.type !== 'decision-event') problems.push('type must be decision-event');
+  if (!isSafeId(event.eventId)) problems.push('eventId must be a safe identifier');
+  if (!isSafeId(event.changeId)) problems.push('changeId must be a safe identifier');
+  if (event.changeId !== changeId) problems.push(`changeId must be ${changeId}`);
+  if (event.stage !== 'clarify') problems.push('stage must be clarify');
+
+  if (!isObject(event.actor)) {
+    problems.push('actor must be an object');
+  } else {
+    rejectUnknownProperties(event.actor, 'actor', DECISION_ACTOR_FIELDS, problems);
+    if (!DECISION_ACTOR_TYPES.has(event.actor.type)) problems.push(`invalid actor type ${event.actor.type}`);
+    if (!isSafeId(event.actor.id)) problems.push('actor.id must be a safe identifier');
+  }
+  if (!DECISION_TYPES.has(event.decisionType)) problems.push(`invalid decisionType ${event.decisionType}`);
+  if (typeof event.targetRef !== 'string' || !event.targetRef.trim()) problems.push('targetRef is required');
+  if (!isSafeId(event.questionId)) problems.push('questionId must be a safe identifier');
+
+  if (!Array.isArray(event.options) || event.options.length < 2 || event.options.length > 4) {
+    problems.push('options must contain between 2 and 4 entries');
+  } else {
+    if (event.options.some((option) => !isSafeId(option))) problems.push('options must contain safe identifiers');
+    if (new Set(event.options).size !== event.options.length) problems.push('options must not contain duplicates');
+  }
+  if (!isSafeId(event.recommendedOption)) problems.push('recommendedOption must be a safe identifier');
+  if (!isSafeId(event.selectedOption)) problems.push('selectedOption must be a safe identifier');
+  if (!Array.isArray(event.options) || !event.options.includes(event.recommendedOption)) {
+    problems.push('recommendedOption must be present in options');
+  }
+  if (!Array.isArray(event.options) || !event.options.includes(event.selectedOption)) {
+    problems.push('selectedOption must be present in options');
+  }
+  if (typeof event.publicRationale !== 'string' || !event.publicRationale.trim()) {
+    problems.push('publicRationale is required');
+  }
+  if (!Array.isArray(event.evidenceRefs) || event.evidenceRefs.length === 0
+      || event.evidenceRefs.some((ref) => typeof ref !== 'string' || !ref.trim())) {
+    problems.push('evidenceRefs must be a non-empty string array');
+  }
+  validateDigestMap(event.inputDigests, 'inputDigests', problems);
+  if (isObject(event.inputDigests) && Object.keys(event.inputDigests).length === 0) {
+    problems.push('inputDigests must not be empty');
+  }
+  if (!isSchemaDateTime(event.recordedAt)) problems.push('recordedAt must be an ISO timestamp');
+  return problems;
+}
+
+export function validateClarifyDecisionSnapshot(changeId, snapshot) {
+  const problems = [];
+  if (!isObject(snapshot)) return ['clarify decision snapshot must be an object'];
+  rejectUnknownProperties(snapshot, 'clarify decision snapshot', CLARIFY_SNAPSHOT_FIELDS, problems);
+  if (snapshot.snapshotVersion !== 1) problems.push('snapshotVersion must be 1');
+  if (snapshot.type !== 'clarify-decision-snapshot') problems.push('type must be clarify-decision-snapshot');
+  if (!isSafeId(snapshot.changeId)) problems.push('changeId must be a safe identifier');
+  if (snapshot.changeId !== changeId) problems.push(`changeId must be ${changeId}`);
+  if (!Array.isArray(snapshot.eventIds) || snapshot.eventIds.length === 0) {
+    problems.push('eventIds must be a non-empty array');
+  } else {
+    if (snapshot.eventIds.some((eventId) => !isSafeId(eventId))) problems.push('eventIds must contain safe identifiers');
+    if (new Set(snapshot.eventIds).size !== snapshot.eventIds.length) problems.push('eventIds must not contain duplicates');
+  }
+
+  if (!isObject(snapshot.ledgerRef)) {
+    problems.push('ledgerRef must be an object');
+  } else {
+    rejectUnknownProperties(snapshot.ledgerRef, 'ledgerRef', SNAPSHOT_LEDGER_REF_FIELDS, problems);
+    if (typeof snapshot.ledgerRef.path !== 'string' || !snapshot.ledgerRef.path.trim()) {
+      problems.push('ledgerRef.path is required');
+    }
+    if (!isDigest(snapshot.ledgerRef.digest)) problems.push('ledgerRef.digest must be a sha256 digest');
+  }
+  if (!Number.isInteger(snapshot.prefixBytes) || snapshot.prefixBytes < 1) {
+    problems.push('prefixBytes must be a positive integer');
+  }
+  if (!isDigest(snapshot.prefixDigest)) problems.push('prefixDigest must be a sha256 digest');
+  if (!Array.isArray(snapshot.artifacts) || snapshot.artifacts.length === 0) {
+    problems.push('artifacts must be a non-empty array');
+  } else {
+    const artifactIds = [];
+    for (const artifact of snapshot.artifacts) {
+      if (!isObject(artifact)) {
+        problems.push('artifacts entries must be objects');
+        continue;
+      }
+      rejectUnknownProperties(artifact, 'snapshot artifact', SNAPSHOT_EVENT_ARTIFACT_FIELDS, problems);
+      if (!isSafeId(artifact.eventId)) problems.push('snapshot artifact eventId must be a safe identifier');
+      if (!isDigest(artifact.digest)) problems.push('snapshot artifact digest must be a sha256 digest');
+      artifactIds.push(artifact.eventId);
+    }
+    if (new Set(artifactIds).size !== artifactIds.length) problems.push('artifacts must not contain duplicate eventIds');
+    if (JSON.stringify(artifactIds) !== JSON.stringify(snapshot.eventIds)) {
+      problems.push('artifacts must match eventIds in order');
+    }
+  }
+  if (!isSchemaDateTime(snapshot.sealedAt)) problems.push('sealedAt must be an ISO timestamp');
+  return problems;
 }
 
 export function sha256Artifact(root, artifactPath) {

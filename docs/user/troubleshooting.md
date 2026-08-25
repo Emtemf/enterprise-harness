@@ -202,6 +202,11 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-RELEASE-REMOTE-005` | 远端 main 或 tag 未指向本次 release commit | 停止创建 Release，核对 origin 和远端 refs；不要强推或覆盖不一致 tag |
 | `EH-RELEASE-PARTIAL-002` | main 已可能写入远端，后续 tag 或 GitHub Release 发布失败 | 保留 `RECOVERY_WORKTREE`；若输出 `RECOVERY_TAG_ARGV` 先原样执行，再在该 worktree 中执行 `RECOVERY_RELEASE_ARGV`，成功后才清理 worktree |
 | `EH-PATH-001` | ID 或相对路径不安全 | 使用字母数字、点、下划线和连字符组成的 ID |
+| `EH-DECISION-SCHEMA-101` | 待追加的 Clarify decision event 不符合运行时合同 | 修正 event/change 绑定、选项、公开依据与 input digest 后重新追加 |
+| `EH-DECISION-CONFLICT-102` | 同一 eventId 已对应不同内容 | 保留既有 append-only 事件，并为新决定分配新的 eventId |
+| `EH-DECISION-LEDGER-103` | decision ledger 含无效 JSON、无效事件、重复 ID 或未终止行 | 从可信证据恢复完整的 newline-terminated JSONL；不要跳过损坏行 |
+| `EH-DECISION-SNAPSHOT-104` | Clarify snapshot 或其有序账本前缀无效 | 修复 ledger，使 eventIds 成为精确有序前缀，再重新封存 |
+| `EH-DECISION-SNAPSHOT-105` | 尝试覆盖已封存的 Clarify snapshot | 保留 immutable snapshot；需要新封存时使用新的 change/run artifact |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |
 | `EH-INSTALL-MANIFEST-002` | 安装清单不合法或与目标不一致 | 恢复备份并重新执行安装计划 |
