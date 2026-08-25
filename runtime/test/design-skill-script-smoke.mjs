@@ -27,6 +27,7 @@ function run(script, args) {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: fixture }).status, 0);
   fs.mkdirSync(path.join(changeDir, 'evidence'), { recursive: true });
+  fs.writeFileSync(path.join(changeDir, 'requirements.md'), '# Requirements\n\n## R1\n- 用户可创建资源。\n');
   const classificationReference = writeClassificationArtifact(fixture, changeId, {
     impact: { api: 'yes', data: 'no', architecture: 'yes', rule: 'no', security: 'yes' },
     decision: { impact: 'bounded' },
@@ -41,7 +42,6 @@ try {
     blocker: null,
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2));
-  fs.writeFileSync(path.join(changeDir, 'requirements.md'), '# Requirements\n\n## R1\n- 用户可创建资源。\n');
   fs.writeFileSync(path.join(changeDir, 'design.md'), [
     '# Design',
     '## 目标与验收',

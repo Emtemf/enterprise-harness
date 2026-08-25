@@ -2,7 +2,14 @@ import fs from 'node:fs';
 import { atomicWriteJson, withFileLock } from '../lib/state-store.mjs';
 import { assertNoSymlinkComponents, assertSafeId, isSafeRelativePath, resolveWithin } from '../lib/safe-paths.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { readDecisionEvents } from './decision-ledger.mjs';
+import { readDecisionEvents, readClarifyDecisionSnapshot, clarifyDecisionSnapshotPath } from './decision-ledger.mjs';
+import {
+  debtAssessmentPath,
+  projectContractAssessmentPath,
+  readDebtAssessment,
+  readProjectContractAssessment,
+} from './clarify-assessments.mjs';
+import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
 
 const SCORE_KEYS = Object.freeze(['functionalSize', 'uncertainty', 'changeRisk', 'verificationDifficulty']);
 const IMPACT_KEYS = Object.freeze(['api', 'data', 'architecture', 'rule', 'security']);
@@ -123,6 +130,59 @@ function validateRouteEvent(root, changeId, classification, problems) {
   }
 }
 
+function validateAuthoritativeInputs(root, changeId, classification, problems) {
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  const mandatoryRefs = [
+    requirementsRef,
+    clarifyDecisionSnapshotPath(changeId),
+    debtAssessmentPath(changeId),
+    projectContractAssessmentPath(changeId),
+  ];
+  let requirements = '';
+  try {
+    const absolute = resolveWithin(root, requirementsRef, 'classification requirements');
+    assertNoSymlinkComponents(root, absolute, 'classification requirements');
+    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) throw new Error('requirements.md is missing');
+    requirements = fs.readFileSync(absolute, 'utf-8');
+  } catch (error) {
+    problems.push(`authoritative requirements input is invalid: ${error.message}`);
+  }
+  try {
+    readClarifyDecisionSnapshot(root, changeId);
+  } catch (error) {
+    problems.push(`authoritative decision snapshot is invalid: ${error.message}`);
+  }
+  try {
+    readDebtAssessment(root, changeId);
+  } catch (error) {
+    problems.push(`authoritative debt assessment is invalid: ${error.message}`);
+  }
+  try {
+    readProjectContractAssessment(root, changeId);
+  } catch (error) {
+    problems.push(`authoritative project-contract assessment is invalid: ${error.message}`);
+  }
+  const research = readClarifyResearchEvidence(root, changeId, requirementsRef, requirements);
+  if (!research.fresh) problems.push(...research.problems.map((problem) => `authoritative research input is invalid: ${problem}`));
+  const expectedRefs = new Set([...mandatoryRefs, ...research.refs]);
+  for (const reference of expectedRefs) {
+    if (!Object.hasOwn(classification.inputDigests || {}, reference)) {
+      problems.push(`authoritative classification input is missing: ${reference} is required`);
+    }
+  }
+  for (const reference of Object.keys(classification.inputDigests || {})) {
+    if (!expectedRefs.has(reference)) problems.push(`classification input is not a same-change canonical ref: ${reference}`);
+  }
+  for (const [scoreKey, score] of Object.entries(classification.scores || {})) {
+    for (const reference of score?.evidenceRefs || []) {
+      const artifactPath = artifactPathFromReference(reference);
+      if (artifactPath && !expectedRefs.has(artifactPath)) {
+        problems.push(`scores.${scoreKey}.evidenceRefs is not a same-change canonical ref: ${artifactPath}`);
+      }
+    }
+  }
+}
+
 export function validateClassificationArtifact(root, changeId, classification) {
   const problems = [];
   try {
@@ -181,6 +241,7 @@ export function validateClassificationArtifact(root, changeId, classification) {
     problems.push('decisionEventId must be a safe identifier');
   }
   validateFreshInputs(root, classification, problems);
+  validateAuthoritativeInputs(root, changeId, classification, problems);
   validateRouteEvent(root, changeId, classification, problems);
   return problems;
 }

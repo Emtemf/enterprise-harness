@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { appendDecisionEvent } from '../core/decision-ledger.mjs';
+import { appendDecisionEvent, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
+import {
+  debtAssessmentPath,
+  projectContractAssessmentPath,
+  writeDebtAssessment,
+  writeProjectContractAssessment,
+} from '../core/clarify-assessments.mjs';
 import {
   classifyClarify,
   deriveClassificationTier,
@@ -20,14 +26,76 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-classification-v2-'));
 const changeId = 'classification-v2';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const snapshotRef = `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`;
+const debtRef = debtAssessmentPath(changeId);
+const contractRef = projectContractAssessmentPath(changeId);
 
 try {
   fs.mkdirSync(path.join(root, path.dirname(snapshotRef)), { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n');
-  fs.writeFileSync(path.join(root, snapshotRef), '{"sealed":true}\n');
+  fs.writeFileSync(path.join(root, requirementsRef), [
+    '# Requirements',
+    '## 事实探索门禁',
+    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
+    '|---|---|---|---|---|---|---|',
+    '| code | no | none | none | none | not-required | No code facts required. |',
+    '| docs | no | none | none | none | not-required | No external facts required. |',
+    '- remaining fact uncertainty: none',
+    '',
+  ].join('\n'));
+  appendDecisionEvent(root, changeId, {
+    eventVersion: 1,
+    type: 'decision-event',
+    eventId: 'scope-confirmation-1',
+    changeId,
+    stage: 'clarify',
+    actor: { type: 'user', id: 'maintainer' },
+    decisionType: 'scope-confirmation',
+    targetRef: requirementsRef,
+    questionId: 'scope-question',
+    options: ['confirm', 'revise'],
+    recommendedOption: 'confirm',
+    selectedOption: 'confirm',
+    publicRationale: 'Scope confirmed.',
+    evidenceRefs: [requirementsRef],
+    inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
+    recordedAt: '2026-08-25T00:00:00.000Z',
+  });
+  sealClarifyDecisionSnapshot(root, changeId, ['scope-confirmation-1']);
+  writeDebtAssessment(root, changeId, {
+    assessmentVersion: 1,
+    type: 'debt-assessment',
+    changeId,
+    observations: [],
+    dispositions: [],
+    inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
+    updatedAt: '2026-08-25T00:01:00.000Z',
+  });
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Project instructions\n');
+  writeProjectContractAssessment(root, changeId, {
+    assessmentVersion: 1,
+    type: 'project-contract-assessment',
+    changeId,
+    files: [{
+      path: 'CLAUDE.md',
+      digest: sha256Artifact(root, 'CLAUDE.md'),
+      scope: 'project',
+      ownership: 'project',
+    }],
+    gaps: [],
+    conflicts: [],
+    status: 'use-existing',
+    decisionEventId: null,
+    proposalRef: null,
+    inputDigests: {
+      [requirementsRef]: sha256Artifact(root, requirementsRef),
+      'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md'),
+    },
+    updatedAt: '2026-08-25T00:02:00.000Z',
+  });
   const inputDigests = {
     [requirementsRef]: sha256Artifact(root, requirementsRef),
     [snapshotRef]: sha256Artifact(root, snapshotRef),
+    [debtRef]: sha256Artifact(root, debtRef),
+    [contractRef]: sha256Artifact(root, contractRef),
   };
   const score = (value, reason) => ({ value, evidenceRefs: [requirementsRef], reason });
   const scores = {
@@ -55,6 +123,25 @@ try {
     evidenceRefs: [requirementsRef, snapshotRef],
     inputDigests,
     recordedAt: '2026-08-25T00:00:00.000Z',
+  });
+
+  const routeEvent = (eventId, digests) => appendDecisionEvent(root, changeId, {
+    eventVersion: 1,
+    type: 'decision-event',
+    eventId,
+    changeId,
+    stage: 'clarify',
+    actor: { type: 'runtime', id: 'classification-runtime' },
+    decisionType: 'classification-route',
+    targetRef: `harness/changes/${changeId}/classification.json`,
+    questionId: `question-${eventId}`,
+    options: ['L0', 'L1', 'L2', 'L3'],
+    recommendedOption: 'L1',
+    selectedOption: 'L1',
+    publicRationale: 'Derived route.',
+    evidenceRefs: Object.keys(digests),
+    inputDigests: digests,
+    recordedAt: '2026-08-25T00:03:00.000Z',
   });
 
   for (const [values, hardFlags, expected] of [
@@ -100,6 +187,38 @@ try {
   assert.throws(
     () => classifyClarify(root, changeId, { ...classification, decisionEventId: 'missing-route' }),
     /EH-CLASSIFICATION-ROUTE-128/u,
+  );
+
+  const omittedDigests = { ...inputDigests };
+  delete omittedDigests[debtRef];
+  routeEvent('classification-route-omitted', omittedDigests);
+  assert.match(
+    validateClassificationArtifact(root, changeId, {
+      ...classification,
+      inputDigests: omittedDigests,
+      decisionEventId: 'classification-route-omitted',
+    }).join('\n'),
+    /debt-assessment\.json.*required|authoritative classification input is missing/u,
+  );
+
+  const otherRequirementsRef = 'harness/changes/other-change/requirements.md';
+  fs.mkdirSync(path.dirname(path.join(root, otherRequirementsRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, otherRequirementsRef), '# Other requirements\n');
+  const crossChangeDigests = { ...inputDigests };
+  delete crossChangeDigests[requirementsRef];
+  crossChangeDigests[otherRequirementsRef] = sha256Artifact(root, otherRequirementsRef);
+  routeEvent('classification-route-cross-change', crossChangeDigests);
+  assert.match(
+    validateClassificationArtifact(root, changeId, {
+      ...classification,
+      scores: Object.fromEntries(Object.entries(scores).map(([key, value]) => [key, {
+        ...value,
+        evidenceRefs: [otherRequirementsRef],
+      }])),
+      inputDigests: crossChangeDigests,
+      decisionEventId: 'classification-route-cross-change',
+    }).join('\n'),
+    /requirements\.md.*required|same-change canonical/u,
   );
   assert.throws(
     () => writeClassificationArtifact(root, changeId, { ...classification, tier: 'L2', total: 7 }),

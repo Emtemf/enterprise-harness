@@ -3,55 +3,39 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  classifyChange,
+  classificationFor,
   inferCurrentGap,
   inferPendingDecision,
   inferWorkflowStage,
 } from '../lib/workflow.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
 const changeId = 'classify-authority-probe';
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-classify-authority-'));
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 fs.mkdirSync(changeDir, { recursive: true });
-fs.writeFileSync(path.join(changeDir, 'requirements.md'), '# requirements\n');
 try {
-  const classification = classifyChange({
+  const reference = writeClassificationV2Fixture(root, changeId, {
     tier: 'L3',
     impact: { api: 'yes', data: 'yes', architecture: 'yes', security: 'no' },
   });
   const classified = {
+    schemaVersion: 6,
+    stage: 'design',
     state: 'DISCOVERED',
-    classification,
-    workflow: {
-      stage: 'design',
-      clarifyReady: true,
-      userConfirmedScope: true,
-      routeReady: false,
-    },
+    artifacts: { classification: reference },
+    classification: { tier: 'L0', impact: {}, workflowTopology: 'forged loose value' },
   };
 
-  assert.equal(
-    inferWorkflowStage(changeId, classified),
-    'design',
-    'persisted classification must make route a compatibility projection, not a blocking stage',
-  );
+  assert.equal(inferWorkflowStage(changeId, classified), 'design');
+  assert.equal(classificationFor(classified, root, changeId).tier, 'L3');
   const gap = inferCurrentGap(root, changeId, classified, 'design');
   assert.doesNotMatch(gap, /route/u);
-  assert.equal(
-    inferPendingDecision(changeId, classified, 'design', gap)?.kind,
-    'design-approval',
-    'classification must expose the next design decision directly',
-  );
+  assert.equal(inferPendingDecision(changeId, classified, 'design', gap), null);
 
-  const legacy = {
-    ...classified,
-    classification: null,
-    workflow: { ...classified.workflow, stage: 'design' },
-  };
-  assert.equal(
-    inferWorkflowStage(changeId, legacy),
-    'route',
-    'legacy state without classification still uses the route compatibility gate',
+  assert.throws(
+    () => classificationFor({ classification: classified.classification }, root, changeId),
+    /EH-CLASSIFICATION-AUTHORITY-005/u,
   );
 
   console.log('PASS classify-authority verify');

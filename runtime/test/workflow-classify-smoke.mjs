@@ -1,28 +1,35 @@
 import assert from 'node:assert/strict';
-import { classifyChange, classificationFor } from '../lib/workflow.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { classificationFor } from '../lib/workflow.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
-const classified = classifyChange({
-  tier: 'L3',
-  impact: { api: 'yes', data: 'yes', architecture: 'yes', rule: 'yes' },
-});
-assert.equal(classified.tier, 'L3');
-assert.deepEqual(classified.impact, {
-  api: true,
-  data: true,
-  architecture: true,
-  security: false,
-});
-assert.deepEqual(classified.requiredReviews, ['design', 'api', 'data', 'architecture', 'final']);
-assert.equal(classified.workflowTopology, 'clarify -> design -> plan -> implement -> verify -> archive');
-assert.deepEqual(classificationFor({ classification: classified }), classified);
-assert.deepEqual(
-  classificationFor({ tier: 'L1', impact: { api: 'no', data: 'no', architecture: 'no', security: 'no' } }),
-  classifyChange({ tier: 'L1', impact: { api: 'no', data: 'no', architecture: 'no', security: 'no' } }),
+const workflow = await import('../lib/workflow.mjs');
+assert.equal(workflow.classifyChange, undefined, 'production must not export a loose classification authority');
+
+assert.throws(
+  () => classificationFor({ classification: { tier: 'L1', impact: {}, workflowTopology: 'legacy' } }),
+  /EH-CLASSIFICATION-AUTHORITY-005/u,
+);
+assert.throws(
+  () => classificationFor({ tier: 'L1', impact: { api: 'no' } }),
+  /EH-CLASSIFICATION-AUTHORITY-005/u,
 );
 
-const minimal = classifyChange({ tier: 'L1', impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no' } });
-assert.deepEqual(minimal.requiredReviews, ['design', 'final']);
-assert.equal(minimal.impact.security, false);
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'workflow-classify-v2-'));
+const changeId = 'strict-authority';
+const written = writeClassificationV2Fixture(root, changeId, { tier: 'L2' });
+const state = {
+  schemaVersion: 6,
+  stage: 'clarify',
+  artifacts: { classification: { path: written.path, digest: written.digest } },
+};
+const loaded = classificationFor(state, root, changeId);
+assert.equal(loaded.tier, 'L2');
+assert.equal(loaded.changeId, changeId);
 
-assert.throws(() => classifyChange(null), /EH-CLASSIFY-001/u);
+const orphanState = { ...state, artifacts: { classification: null } };
+assert.equal(classificationFor(orphanState, root, changeId), null);
+
 console.log('PASS workflow-classify verify');

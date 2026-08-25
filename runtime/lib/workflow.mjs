@@ -37,64 +37,26 @@ function computeTransitionArtifacts(root, changeId, stage) {
 
 export { computeTransitionArtifacts };
 
-export function classifyChange(input) {
-  if (!input || typeof input !== 'object') throw new Error('EH-CLASSIFY-001: change classification input is required');
-  const impact = input.impact || {};
-  const normalizedImpact = {
-    api: impact.api === true || impact.api === 'yes',
-    data: impact.data === true || impact.data === 'yes',
-    architecture: impact.architecture === true || impact.architecture === 'yes',
-    security: impact.security === true || impact.security === 'yes',
-  };
-  const requiredReviews = ['design'];
-  if (normalizedImpact.api) requiredReviews.push('api');
-  if (normalizedImpact.data) requiredReviews.push('data');
-  if (normalizedImpact.architecture) requiredReviews.push('architecture');
-  if (normalizedImpact.security) requiredReviews.push('security');
-  requiredReviews.push('final');
-  return Object.freeze({
-    tier: typeof input.tier === 'string' ? input.tier : 'L1',
-    impact: Object.freeze(normalizedImpact),
-    requiredReviews: Object.freeze(requiredReviews),
-    workflowTopology: 'clarify -> design -> plan -> implement -> verify -> archive',
-  });
-}
-
-function hasPersistedClassification(data) {
-  const classification = data?.classification || data?.workflow?.classification;
-  return Boolean(
-    classification
-    && typeof classification === 'object'
-    && typeof classification.tier === 'string'
-    && classification.impact
-    && typeof classification.workflowTopology === 'string',
-  );
-}
-
 export function classificationFor(data, root = null, changeId = null) {
-  if (data?.schemaVersion === 6) {
-    if (!root || !changeId || !data.artifacts?.classification) {
-      if (data?.stage === 'clarify' && !data.artifacts?.classification) return null;
-      throw new Error('EH-CLASSIFICATION-AUTHORITY-005: v6 classification artifact reference is required');
-    }
-    return readClassificationArtifact(root, changeId, data.artifacts.classification);
+  if (data?.schemaVersion !== 6) {
+    throw new Error('EH-CLASSIFICATION-AUTHORITY-005: strict State v6 classification authority is required');
   }
-  if (hasPersistedClassification(data)) {
-    return data.classification || data.workflow.classification;
+  if (!root || !changeId || !data.artifacts?.classification) {
+    if (data?.stage === 'clarify' && !data.artifacts?.classification) return null;
+    throw new Error('EH-CLASSIFICATION-AUTHORITY-005: v6 classification artifact reference is required');
   }
-  return classifyChange(data || {});
+  return readClassificationArtifact(root, changeId, data.artifacts.classification);
 }
 
 export function inferWorkflowStage(changeId, data) {
   if (!changeId || !data) return null;
   if (data.schemaVersion === 6 && V6_STAGES.has(data.stage)) return data.stage;
   const explicitStage = data.workflow?.stage;
-  if (explicitStage === 'route' && hasPersistedClassification(data)) return 'design';
   if (explicitStage === 'route') return 'route';
   if (explicitStage === 'design' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope)) {
     return 'clarify';
   }
-  if (explicitStage === 'design' && !data.workflow?.routeReady && !hasPersistedClassification(data)) {
+  if (explicitStage === 'design' && !data.workflow?.routeReady) {
     return 'route';
   }
   if (explicitStage === 'plan' && (!data.workflow?.clarifyReady || !data.workflow?.userConfirmedScope || !data.gates?.designApproved)) {
@@ -142,7 +104,7 @@ export function recommendExplorationLane(stage, data = null, classification = nu
   }
   if (stage === 'classify') return 'code-explore';
   if (stage === 'design') {
-    const impact = classification?.impact || data?.impact || {};
+    const impact = classification?.impact || {};
     if (impact.api === 'yes' || impact.data === 'yes' || impact.api === true || impact.data === true) return 'code-explore';
     if (data?.tooling?.documentation?.libraries?.length) return 'doc-research';
     return 'code-explore';
@@ -269,14 +231,6 @@ export function inferPendingDecision(
       evidence: [`harness/changes/${changeId}/change.md`],
     };
   }
-  if (stage === 'classify' && !hasPersistedClassification(data)) {
-    return {
-      kind: 'classification-confirmation',
-      message: currentGap,
-      options: ['confirm-route', 'revise-route', 'stop'],
-      evidence: [`harness/changes/${changeId}/change.md`],
-    };
-  }
   if (stage === 'design' && data.approvals?.design?.status && data.approvals?.design?.status !== 'block' && !data.gates?.designApproved) {
     if (shouldSuppressExecutionReadiness(changeId, data)) {
       return null;
@@ -361,7 +315,13 @@ function resolveV6StageGateProblems(root, changeId, data, stage) {
 
 export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness = () => false) {
   const stage = inferWorkflowStage(changeId, data);
-  const classification = classificationFor(data, root, changeId);
+  let classification = null;
+  let classificationDiagnostic = null;
+  try {
+    classification = classificationFor(data, root, changeId);
+  } catch (error) {
+    classificationDiagnostic = { code: 'EH-CLASSIFICATION-AUTHORITY-005', message: error.message };
+  }
   const nextEntry = recommendNextEntry(stage, data);
   const recommendedLane = recommendExplorationLane(stage, data, classification);
   const stageGateProblems = resolveV6StageGateProblems(root, changeId, data, stage);
@@ -411,6 +371,7 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   return {
     changeId,
     classification,
+    ...(classificationDiagnostic ? { classificationDiagnostic } : {}),
     state: data.state ?? null,
     stage,
     status: auditBlocked ? 'blocked' : inferRunnerStatus(stage, pendingDecision),
@@ -526,8 +487,8 @@ export function applyScopeConfirmationDecision(data, decision) {
   if (decision === 'confirm-scope') {
     data.workflow.userConfirmedScope = true;
     if (data.workflow.clarifyReady) {
-      data.workflow.stage = 'classify';
-      data.workflow.nextEntry = '/harness';
+      data.workflow.stage = 'route';
+      data.workflow.nextEntry = '/harness-route';
     }
   }
   if (decision === 'revise-scope') {
@@ -538,11 +499,9 @@ export function applyScopeConfirmationDecision(data, decision) {
   return data;
 }
 
-export function applyRouteConfirmationDecision(data, decision, classification = null) {
+export function applyRouteConfirmationDecision(data, decision) {
   if (decision === 'confirm-route') {
     data.workflow.routeReady = true;
-    data.classification = classification || classifyChange(data);
-    data.workflow.classification = data.classification;
     data.workflow.stage = 'design';
     data.workflow.nextEntry = '/harness-design';
   }
@@ -738,7 +697,6 @@ export function inferCurrentGap(root, changeId, data, workflowStage, stageGatePr
       if (!data.workflow?.userConfirmedScope) return '用户尚未确认执行范围。';
       return 'clarify 已就绪，可推进到 route。';
     case 'route':
-      if (hasPersistedClassification(data)) return 'classify 已完成，下一步应进入 design。';
       if (!data.workflow?.clarifyReady) return 'clarify 结果尚未可消费。';
       if (!data.workflow?.userConfirmedScope) return '执行范围尚未被用户确认。';
       if (!data.workflow?.routeReady) return 'route 尚未确认 tier 与影响面。';

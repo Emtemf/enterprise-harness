@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from './lib/checks.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
-import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, classifyChange, applyV6ScopeConfirmationDecision, applyV6DesignReadinessDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, computeTransitionArtifacts, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
+import { inferWorkflowStage, recommendNextEntry, recommendExplorationLane, inferCurrentGap, recommendNextAction, inferPendingDecision, inferRunnerStatus, buildWorkflowResult, classificationFor, applyV6ScopeConfirmationDecision, applyV6DesignReadinessDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, computeTransitionArtifacts, applyScopeConfirmationDecision, applyRouteConfirmationDecision, applyDesignApprovalDecision, applyExecutionReadinessDecision, applyClarityConfirmationDecision, applyPlanReadinessDecision, applyTddCompletionDecision, applyVerifyCompletionDecision } from './lib/workflow.mjs';
 import { validateStageGate } from './lib/stage-results.mjs';
 import { ensureBrief } from './lib/briefs.mjs';
 import { auditWorkflow, renderWorkflowAudit } from './lib/workflow-audit.mjs';
@@ -258,8 +258,8 @@ function applyDecision(changeId, decision, reason = null) {
     }
   }
 
-  if (pending.kind === 'classification-confirmation' || pending.kind === 'route-confirmation') {
-    applyRouteConfirmationDecision(data, decision, classificationFor(data, root, changeId));
+  if (pending.kind === 'route-confirmation') {
+    applyRouteConfirmationDecision(data, decision);
   }
 
   if (pending.kind === 'execution-readiness') {
