@@ -12,7 +12,13 @@ implementationRefs:
   - harness/schemas/classification.schema.json
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
+  - runtime/core/clarify-assessments.mjs
   - runtime/clarify.mjs
+  - skills/harness/assets/debt-assessment.json.tmpl
+  - skills/harness/assets/project-contract-assessment.json.tmpl
+  - skills/harness/assets/research-brief.md.tmpl
+  - agents/code-explore.md
+  - agents/doc-research.md
   - hooks/scripts/pre-question.mjs
   - hooks/scripts/post-question.mjs
   - runtime/lib/result-contract.mjs
@@ -23,6 +29,7 @@ testRefs:
   - runtime/test/decision-ledger-smoke.mjs
   - runtime/test/clarify-question-smoke.mjs
   - runtime/test/clarify-question-hook-smoke.mjs
+  - runtime/test/clarify-assessments-smoke.mjs
 ---
 
 # Clarify Governance Contract

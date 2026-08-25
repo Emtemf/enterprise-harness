@@ -216,6 +216,12 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-QUESTION-ANSWER-113` | answer 未精确匹配唯一 option label，或 replay 与已记录选择冲突 | 使用 pending candidate 中一个原始 option label 作答；已记录事件不可改写 |
 | `EH-QUESTION-RECOVERY-114` | pending state 与同一 candidate target 的 decision ledger 事件冲突 | 保留 append-only ledger，恢复与事件绑定一致的 candidate/pending evidence 后运行 `enterprise-harness clarify recover <changeId>` |
 | `EH-QUESTION-INPUT-115` | `clarify` CLI 子命令或参数形状无效 | 运行 `enterprise-harness clarify --help`，按显示的 exact argv 重试；不要附加 rationale 或 chat 文本 |
+| `EH-DEBT-SCHEMA-120` | Clarify technical-debt assessment 的结构、引用或 change 绑定无效 | 修正 canonical `debt-assessment.json` 中首个无效字段或引用后重新运行 `clarify validate-debt` |
+| `EH-DEBT-DISPOSITION-121` | Relevant technical debt 没有恰好一个匹配的 durable disposition | 记录匹配 debtId、targetRef 和 status 的 `debt-disposition` event 后重新验证 assessment |
+| `EH-DEBT-STALE-122` | Technical-debt assessment 或其 disposition decision 使用了缺失或过期输入 | 用当前 authoritative inputs 重新生成 debt assessment 和关联 decision 后再验证 |
+| `EH-PROJECT-CONTRACT-SCHEMA-123` | Project-contract assessment 的结构、状态规则或 disposition event 无效 | 修正首个 status/event 不一致并重新运行 `clarify validate-project-contract` |
+| `EH-PROJECT-CONTRACT-STALE-124` | Project instruction evidence 或 project-contract assessment 输入已过期 | 重新读取当前 instruction files、更新 digests，再重新验证 assessment |
+| `EH-PROJECT-CONTRACT-SCOPE-125` | Project-contract assessment 试图引用不安全路径或携带 instruction write/apply payload | 删除 write/apply 字段并仅保留 repository-relative instruction evidence 后重试 |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |
 | `EH-INSTALL-MANIFEST-002` | 安装清单不合法或与目标不一致 | 恢复备份并重新执行安装计划 |

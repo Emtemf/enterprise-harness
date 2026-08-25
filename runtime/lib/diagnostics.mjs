@@ -95,6 +95,30 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify question hook payload 无效。',
     recovery: '按 Claude Code AskUserQuestion payload 发送所需字段；不要附加 rationale 或 chat 文本。',
   },
+  'EH-DEBT-SCHEMA-120': {
+    summary: 'Clarify technical-debt assessment 的结构、引用或 change 绑定无效。',
+    recovery: '修正 canonical debt-assessment.json 中首个无效字段或引用后重新运行 clarify validate-debt。',
+  },
+  'EH-DEBT-DISPOSITION-121': {
+    summary: 'Relevant technical debt 没有恰好一个匹配的 durable disposition。',
+    recovery: '记录匹配 debtId、targetRef 和 status 的 debt-disposition event 后重新验证 assessment。',
+  },
+  'EH-DEBT-STALE-122': {
+    summary: 'Technical-debt assessment 或其 disposition decision 使用了缺失或过期输入。',
+    recovery: '用当前 authoritative inputs 重新生成 debt assessment 和关联 decision 后再验证。',
+  },
+  'EH-PROJECT-CONTRACT-SCHEMA-123': {
+    summary: 'Project-contract assessment 的结构、状态规则或 disposition event 无效。',
+    recovery: '修正首个 status/event 不一致并重新运行 clarify validate-project-contract。',
+  },
+  'EH-PROJECT-CONTRACT-STALE-124': {
+    summary: 'Project instruction evidence 或 project-contract assessment 输入已过期。',
+    recovery: '重新读取当前 instruction files、更新 digests，再重新验证 assessment。',
+  },
+  'EH-PROJECT-CONTRACT-SCOPE-125': {
+    summary: 'Project-contract assessment 试图引用不安全路径或携带 instruction write/apply payload。',
+    recovery: '删除 write/apply 字段并仅保留 repository-relative instruction evidence 后重试。',
+  },
 });
 
 export function diagnostic(code) {

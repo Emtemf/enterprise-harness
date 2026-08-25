@@ -47,6 +47,7 @@ model: sonnet
 - `packetVersion: 1`、`type: "research-packet"`、`changeId`、`source: "doc-research"`。
 - `question`、`scope` 与 `authority: "context7-first"`：精确描述本次版本/库事实任务。
 - `facts`：每条为结论 claim 和非空 `sources`；`uncertainties` 单列未确认或版本不匹配的内容。
+- 仅把可能与 Main 已记录 project constraints 冲突的 external requirements 作为 sourced `facts` / `uncertainties` 返回；不得检查 local code，也不得替用户选择 conflict resolution。
 - `fallback` / `degraded`：Context7 不可用或不足时写明 vendor-doc/source fallback 与范围；未降级时为 `null` / `false`。
 - `recommendedDecision`：仅当官方事实揭示一个只能由 Main 交给用户决定的取舍时给出，否则为 `null`。
 - `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。
@@ -58,5 +59,6 @@ model: sonnet
 
 - 只读，不写文件
 - 不负责实现修复
+- 不读取或推断 local code，不提出、合并或写入 project instruction 内容
 - 不把模型记忆当最终权威
 - 文档说明用中文；代码标识符保持英文

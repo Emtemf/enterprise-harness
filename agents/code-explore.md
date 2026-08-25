@@ -57,6 +57,8 @@ model: sonnet
 - `packetVersion: 1`、`type: "research-packet"`、`changeId`、`source: "code-explore"`。
 - `question`、`scope` 与 `authority: "codegraph-first"`：精确描述本次事实任务与 authority lane。
 - `facts`：每条为可核验 claim 和非空 `sources`；`uncertainties` 单列尚未确认的结论。
+- 只把当前 change 直接触及的 technical debt、缺失测试、脆弱边界和升级阻断作为普通 sourced `facts`；证据不足或相关性未确认时写入 `uncertainties`，不得增加新的 packet field。
+- 发现的 project-level instruction files 与 verification commands 也只作为普通 sourced `facts` 返回；不得提出、合并或写入 `CLAUDE.md` 内容。
 - `fallback` / `degraded`：CodeGraph 降级时写明原因和范围；未降级时为 `null` / `false`。
 - `recommendedDecision`：仅当事实明确暴露用户决策缺口时给出一个问题，否则为 `null`。
 - `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。
@@ -69,5 +71,6 @@ model: sonnet
 - 只读，不写文件
 - 不负责实现修复
 - 不把猜测写成 facts
+- 排除与当前 change 无直接关系的 repository debt
 - 不要把探索对象笼统写成 `enterprise-harness`、`this repo`、`this codebase`；任务标题和范围描述必须聚焦当前用户的真实工作区与目标项目
 - 文档说明用中文；代码标识符保持英文
