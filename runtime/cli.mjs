@@ -36,6 +36,7 @@ const commands = {
   trace: ['trace.mjs'],
   sessions: ['sessions.mjs'],
   'migrate-evidence-policy': ['migrate-evidence-policy.mjs'],
+  clarify: ['clarify.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {

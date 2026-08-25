@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -28,9 +29,9 @@ function pass(message) {
   process.exit(0);
 }
 
-function runNode(scriptPath, args, env = {}) {
+function runNode(scriptPath, args, env = {}, cwd = repoRoot) {
   return spawnSync('node', [scriptPath, ...args], {
-    cwd: repoRoot,
+    cwd,
     encoding: 'utf-8',
     env: {
       ...process.env,
@@ -72,8 +73,16 @@ if (!['red', 'green', 'verify'].includes(mode)) {
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'runtime-help-contract-'));
 const existingFixtureDir = path.join(tempRoot, 'help-fixture-existing');
 const missingFixtureDir = path.join(tempRoot, 'help-fixture-missing');
+const clarifyFixtureDir = path.join(tempRoot, 'help-fixture-clarify');
 fs.mkdirSync(existingFixtureDir, { recursive: true });
 fs.mkdirSync(missingFixtureDir, { recursive: true });
+fs.mkdirSync(clarifyFixtureDir, { recursive: true });
+const gitInit = spawnSync('git', ['init', '--quiet'], {
+  cwd: clarifyFixtureDir,
+  encoding: 'utf-8',
+  shell: false,
+});
+assert.equal(gitInit.status, 0, gitInit.stderr);
 const existingAdapterPath = path.join(existingFixtureDir, 'local-adapter.json');
 const missingAdapterPath = path.join(missingFixtureDir, 'local-adapter.json');
 fs.writeFileSync(existingAdapterPath, JSON.stringify({ fixture: true }, null, 2) + '\n', 'utf-8');
@@ -82,6 +91,8 @@ const markerBefore = fileState(bootstrapMarker);
 const releaseTempCountBefore = tempReleaseDirCount();
 const existingAdapterBefore = fileState(existingAdapterPath);
 const missingAdapterBefore = fileState(missingAdapterPath);
+const clarifyStatePath = path.join(clarifyFixtureDir, '.git', 'enterprise-harness');
+const clarifyStateBefore = fileState(clarifyStatePath);
 
 try {
   const checks = [
@@ -239,6 +250,24 @@ try {
       assert() {
         return this.result.status === 1
           && String(this.result.stderr || '').includes('Unknown command: no-such-command');
+      },
+    },
+    {
+      name: 'clarify --help',
+      result: runNode(scripts.cli, ['clarify', '--help'], {}, clarifyFixtureDir),
+      assert() {
+        return this.result.status === 0
+          && firstLine(this.result.stdout).includes('Enterprise Harness Clarify')
+          && sameState(clarifyStateBefore, fileState(clarifyStatePath));
+      },
+    },
+    {
+      name: 'clarify -h',
+      result: runNode(scripts.cli, ['clarify', '-h'], {}, clarifyFixtureDir),
+      assert() {
+        return this.result.status === 0
+          && firstLine(this.result.stdout).includes('Enterprise Harness Clarify')
+          && sameState(clarifyStateBefore, fileState(clarifyStatePath));
       },
     },
   ];
