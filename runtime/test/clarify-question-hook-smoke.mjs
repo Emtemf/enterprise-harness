@@ -121,6 +121,22 @@ try {
   assert.equal(malformed.status, 2, 'malformed hook stdin must block');
   assert.match(malformed.stderr, /BLOCK \[EH-HOOK-INPUT-017\]/u);
 
+  const malformedShapeChange = 'malformed-shape';
+  activate(malformedShapeChange);
+  for (const [hook, raw, label] of [
+    [preHook, 'null', 'null pre-hook payload'],
+    [postHook, 'null', 'null post-hook payload'],
+    [preHook, '[]', 'array pre-hook payload'],
+    [postHook, '[]', 'array post-hook payload'],
+    [preHook, '{}', 'pre-hook missing tool_input'],
+    [postHook, '{}', 'post-hook missing tool fields'],
+  ]) {
+    const malformedShape = run(hook, null, raw);
+    assert.equal(malformedShape.status, 2, `${label} must fail closed`);
+    assert.match(malformedShape.stderr, /BLOCK \[EH-QUESTION-INPUT-115\]/u);
+    assert.doesNotMatch(malformedShape.stderr, /node:internal|at file:/u, `${label} must not leak a stack`);
+  }
+
   const staleChange = 'stale-question';
   activate(staleChange);
   const staleCandidate = candidateFor(staleChange);
@@ -141,6 +157,7 @@ try {
   prepareClarifyQuestion(root, changeId, writeCandidate(candidate));
   const authorizedPayload = { tool_use_id: 'toolu_question_authorized', tool_input: askInput(candidate) };
   const unauthorizedPayload = {
+    tool_use_id: 'toolu_question_denied',
     tool_input: {
       ...askInput(candidate),
       questions: [{ ...askInput(candidate).questions[0], question: 'A changed question.' }],
@@ -158,6 +175,10 @@ try {
   const unauthorized = run(preHook, unauthorizedPayload);
   assert.equal(unauthorized.status, 2);
   assert.match(unauthorized.stderr, /BLOCK \[EH-QUESTION-MISMATCH-112\]/u);
+  assert.match(unauthorized.stderr, /原样重问 pending question/u, 'authorization denial must include its recovery');
+  const unauthorizedRetry = run(preHook, unauthorizedPayload);
+  assert.equal(unauthorizedRetry.status, 2, 'a denied same-ID pre-hook delivery must remain denied');
+  assert.match(unauthorizedRetry.stderr, /BLOCK \[EH-QUESTION-MISMATCH-112\]/u);
 
   const answered = run(postHook, answeredPayload);
   assert.equal(answered.status, 0, answered.stderr);
@@ -167,6 +188,24 @@ try {
   assert.equal(duplicate.status, 0, duplicate.stderr);
   assert.equal(duplicate.stdout, '');
   assert.equal(readDecisionEvents(root, changeId).length, 1, 'duplicate PostToolUse must not append a ledger event');
+
+  const retryChange = 'retry-answer';
+  activate(retryChange);
+  const retryCandidate = candidateFor(retryChange, 'Q-004');
+  prepareClarifyQuestion(root, retryChange, writeCandidate(retryCandidate));
+  const failedAnswerPayload = {
+    tool_use_id: 'toolu_question_failed_answer',
+    tool_input: askInput(retryCandidate),
+    tool_response: answer(retryCandidate, 'Not an option'),
+  };
+  const correctedAnswerPayload = { ...failedAnswerPayload, tool_response: answer(retryCandidate) };
+  const failedAnswer = run(postHook, failedAnswerPayload);
+  assert.equal(failedAnswer.status, 2, 'invalid answer must fail closed');
+  assert.match(failedAnswer.stderr, /BLOCK \[EH-QUESTION-ANSWER-113\]/u);
+  assert.match(failedAnswer.stderr, /原始 option label/u, 'resolution denial must include its recovery');
+  const correctedAnswer = run(postHook, correctedAnswerPayload);
+  assert.equal(correctedAnswer.status, 0, correctedAnswer.stderr);
+  assert.equal(readDecisionEvents(root, retryChange).length, 1, 'same-ID post-hook retry must record the corrected answer');
 
   const brokenChange = 'broken-state';
   activate(brokenChange);

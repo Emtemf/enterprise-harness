@@ -59,6 +59,42 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Workflow audit 无法读取或校验 durable evidence。',
     recovery: '运行 enterprise-harness workflow audit <change-id> --json，修复首个无效 artifact/handoff 后重试 status。',
   },
+  'EH-QUESTION-CANDIDATE-106': {
+    summary: 'Clarify question candidate 缺失或无效。',
+    recovery: '重新生成并保存 canonical candidate，再执行 clarify prepare-question。',
+  },
+  'EH-QUESTION-STALE-107': {
+    summary: 'Clarify question candidate 或其输入已过期。',
+    recovery: '从当前 authoritative inputs 重新生成 candidate 和全部 input digests，再重新 prepare。',
+  },
+  'EH-QUESTION-ACTIVE-108': {
+    summary: '当前 active change 不是 v6 clarify。',
+    recovery: '绑定正确的 active v6 change 并恢复到 stage=clarify 后重试，不手改 state projection。',
+  },
+  'EH-QUESTION-PENDING-110': {
+    summary: '已有未关闭的 authorized question。',
+    recovery: '先按 status 的动作重问并 resolve，或运行 enterprise-harness clarify recover <changeId>。',
+  },
+  'EH-QUESTION-PENDING-111': {
+    summary: '当前调用没有可用的 pending question authorization。',
+    recovery: '对 fresh canonical candidate 重新执行 clarify prepare-question；若文件损坏，先从可信运行态恢复再重试。',
+  },
+  'EH-QUESTION-MISMATCH-112': {
+    summary: 'AskUserQuestion 输入与预授权 candidate 不一致。',
+    recovery: '原样重问 pending question，不修改问题、header、选项、description 或 multiSelect。',
+  },
+  'EH-QUESTION-ANSWER-113': {
+    summary: 'AskUserQuestion answer 无法匹配唯一 option。',
+    recovery: '使用 pending candidate 中一个原始 option label 作答；已记录事件不可改写。',
+  },
+  'EH-QUESTION-RECOVERY-114': {
+    summary: 'pending state 与 decision ledger 冲突。',
+    recovery: '保留 append-only ledger，恢复一致的 candidate/pending evidence 后运行 enterprise-harness clarify recover <changeId>。',
+  },
+  'EH-QUESTION-INPUT-115': {
+    summary: 'Clarify question hook payload 无效。',
+    recovery: '按 Claude Code AskUserQuestion payload 发送所需字段；不要附加 rationale 或 chat 文本。',
+  },
 });
 
 export function diagnostic(code) {

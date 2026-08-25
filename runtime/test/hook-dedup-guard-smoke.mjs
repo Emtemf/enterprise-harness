@@ -26,6 +26,10 @@ const DEDUP_CALL = /\b(dedupGuard|sessionDedupGuard)\s*\(/u;
 const EXEMPT = new Set([
   'pre-agent.mjs', 'post-agent.mjs', 'agent-failure.mjs',
   'subagent-start.mjs', 'subagent-stop.mjs', 'task-completed.mjs',
+  // Clarify question runtime authorization/resolution is itself retry-safe. A
+  // pre-runtime marker would incorrectly turn a denied or failed same-ID retry
+  // into an allow, so these adapters deliberately do not use dedupGuard.
+  'pre-question.mjs', 'post-question.mjs',
 ]);
 
 const scripts = new Set();
