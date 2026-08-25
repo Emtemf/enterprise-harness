@@ -71,7 +71,9 @@ function candidateFor(changeId, questionId = 'Q-003', overrides = {}) {
     dimension: 'Constraints',
     decisionNeeded: 'Choose refund compatibility policy',
     whyUserOnly: 'Repository evidence cannot choose the business compatibility promise',
-    header: 'Refund policy',
+    decisionType: 'scope-confirmation',
+    targetRef: inputRef,
+    header: 'Refund',
     question: 'Which refund compatibility policy should this change guarantee?',
     options: [
       {
@@ -107,14 +109,19 @@ function askInput(candidate) {
     questions: [{
       question: candidate.question,
       header: candidate.header,
-      options: candidate.options.map(({ label, description }) => ({ label, description })),
+      options: candidate.options.map(({ id, label, description }) => ({
+        label: id === candidate.recommendedOption ? `${label} (Recommended)` : label,
+        description,
+      })),
       multiSelect: false,
     }],
   };
 }
 
 function answer(candidate, label = 'Strict parity') {
-  return { answers: { [candidate.question]: label } };
+  const selected = candidate.options.find((option) => option.label === label);
+  const displayed = selected?.id === candidate.recommendedOption ? `${label} (Recommended)` : label;
+  return { answers: { [candidate.question]: displayed } };
 }
 
 function assertCandidateRejected(changeId, candidate, pattern = /EH-QUESTION-CANDIDATE-/u) {
@@ -188,6 +195,39 @@ try {
     /EH-QUESTION-STALE-/u,
   );
 
+  const unboundEvidenceChange = 'candidate-unbound-evidence';
+  activate(unboundEvidenceChange);
+  const unboundCandidate = candidateFor(unboundEvidenceChange, 'Q-001');
+  const packetRef = `harness/changes/${unboundEvidenceChange}/evidence/research/code.json`;
+  fs.mkdirSync(path.dirname(path.join(root, packetRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, packetRef), '{"fact":"used"}\n');
+  unboundCandidate.evidenceRefs.push(packetRef);
+  assert.throws(
+    () => prepareClarifyQuestion(root, unboundEvidenceChange, writeCandidate(unboundCandidate)),
+    /EH-QUESTION-CANDIDATE-106.*inputDigests/u,
+  );
+
+  const packetMutationChange = 'candidate-packet-mutation';
+  activate(packetMutationChange);
+  const packetMutationCandidate = candidateFor(packetMutationChange, 'Q-001');
+  const mutationPacketRef = `harness/changes/${packetMutationChange}/evidence/research/code.json`;
+  const mutationPacket = '{"fact":"before"}\n';
+  fs.mkdirSync(path.dirname(path.join(root, mutationPacketRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, mutationPacketRef), mutationPacket);
+  packetMutationCandidate.evidenceRefs.push(mutationPacketRef);
+  packetMutationCandidate.inputDigests[mutationPacketRef] = digest(mutationPacket);
+  const mutationRef = writeCandidate(packetMutationCandidate);
+  fs.writeFileSync(path.join(root, mutationPacketRef), '{"fact":"after"}\n');
+  assert.throws(
+    () => prepareClarifyQuestion(root, packetMutationChange, mutationRef),
+    /EH-QUESTION-STALE-107/u,
+  );
+
+  const longHeaderChange = 'candidate-long-header';
+  assertCandidateRejected(longHeaderChange, candidateFor(longHeaderChange, 'Q-001', {
+    header: 'This header exceeds twelve',
+  }));
+
   const symlinkChange = 'candidate-symlink';
   activate(symlinkChange);
   const symlinkCandidate = candidateFor(symlinkChange, 'Q-001');
@@ -217,6 +257,10 @@ try {
     fs.symlinkSync(outsideEvidence, evidenceSymlinkPath, 'file');
     const evidenceSymlinkCandidate = candidateFor(evidenceSymlinkChange, 'Q-002', {
       evidenceRefs: [`${evidenceSymlinkRef}:12`],
+      inputDigests: {
+        [`harness/changes/${evidenceSymlinkChange}/requirements.md`]: digest(`requirements for ${evidenceSymlinkChange}\n`),
+        [evidenceSymlinkRef]: digest('{"fact":"outside"}\n'),
+      },
     });
     assert.throws(
       () => prepareClarifyQuestion(
@@ -314,7 +358,7 @@ try {
   const reorderedInput = {
     questions: [{
       multiSelect: false,
-      options: candidate.options.map(({ label, description }) => ({ description, label })),
+      options: askInput(candidate).questions[0].options.map(({ label, description }) => ({ description, label })),
       header: candidate.header,
       question: candidate.question,
     }],
@@ -366,10 +410,23 @@ try {
     'Re-ask the authorized pending question Q-003 without changing its text or options.',
   );
 
-  assert.throws(
-    () => resolveClarifyQuestion(root, askInput(candidate), answer(candidate, 'Not an option')),
-    /EH-QUESTION-ANSWER-/u,
+  const otherChange = 'safe-other';
+  activate(otherChange);
+  const otherCandidate = candidateFor(otherChange, 'Q-020');
+  const otherRef = writeCandidate(otherCandidate);
+  prepareClarifyQuestion(root, otherChange, otherRef);
+  assert.deepEqual(
+    resolveClarifyQuestion(root, askInput(otherCandidate), answer(otherCandidate, 'Need a custom secret value')),
+    { eventId: 'D-020', duplicate: false },
   );
+  const [otherEvent] = readDecisionEvents(root, otherChange);
+  assert.equal(otherEvent.decisionType, 'clarify-answer');
+  assert.equal(otherEvent.targetRef, otherRef);
+  assert.equal(otherEvent.selectedOption, 'other');
+  assert.equal(otherEvent.options.at(-1), 'other');
+  assert.equal(JSON.stringify(otherEvent).includes('custom secret'), false);
+
+  activate(changeId);
   const resolved = resolveClarifyQuestion(root, askInput(candidate), answer(candidate));
   assert.deepEqual(resolved, { eventId: 'D-003', duplicate: false });
   assert.deepEqual(
@@ -382,6 +439,8 @@ try {
   );
   const [event] = readDecisionEvents(root, changeId);
   assert.equal(event.selectedOption, 'strict');
+  assert.equal(event.decisionType, 'scope-confirmation');
+  assert.equal(event.targetRef, `harness/changes/${changeId}/requirements.md`);
   assert.equal(event.publicRationale, 'Selected by the user through AskUserQuestion.');
   assert.equal(event.actor.id, 'interactive-user');
   assert.equal(JSON.stringify(event).includes('Not an option'), false);
@@ -408,8 +467,8 @@ try {
     changeId: crashChange,
     stage: 'clarify',
     actor: { type: 'user', id: 'interactive-user' },
-    decisionType: 'clarify-answer',
-    targetRef: crashRef,
+    decisionType: crashCandidate.decisionType,
+    targetRef: crashCandidate.targetRef,
     questionId: 'Q-011',
     options: crashCandidate.options.map(({ id }) => id),
     recommendedOption: crashCandidate.recommendedOption,

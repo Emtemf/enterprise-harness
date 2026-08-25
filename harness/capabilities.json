@@ -21,6 +21,15 @@
       ]
     },
     {
+      "id": "durable-clarify-decision-chain",
+      "testRefs": [
+        "runtime/test/clarify-question-smoke.mjs",
+        "runtime/test/clarify-question-hook-smoke.mjs",
+        "runtime/test/clarify-decision-cli-smoke.mjs",
+        "runtime/test/decision-ledger-smoke.mjs"
+      ]
+    },
+    {
       "id": "strategy-aware-task-runner",
       "testRefs": [
         "runtime/test/task-runner-v6-smoke.mjs",

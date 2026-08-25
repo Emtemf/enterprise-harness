@@ -3,6 +3,7 @@
 ## 普通用户
 
 - [快速开始](user/quickstart.md)
+- [开始一次受治理的变更](user/getting-started.md)
 - [六阶段工作流](user/workflow.md)
 - [故障排查](user/troubleshooting.md)
 - [已知限制](user/limitations.md)

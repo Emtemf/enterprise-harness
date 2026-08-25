@@ -11,6 +11,11 @@ import {
 } from './core/clarify-assessments.mjs';
 import { formatDiagnostic } from './lib/diagnostics.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
+import {
+  persistClarifyClassification,
+  recordClarifyDecision,
+  sealClarifyDecisions,
+} from './core/clarify-governance.mjs';
 
 const [, , subcommand, ...args] = process.argv;
 const root = process.cwd();
@@ -23,6 +28,9 @@ function help(exitCode = 0) {
   console.log('  node runtime/cli.mjs clarify recover <change-id>');
   console.log('  node runtime/cli.mjs clarify validate-debt <change-id> <artifact-ref>');
   console.log('  node runtime/cli.mjs clarify validate-project-contract <change-id> <artifact-ref>');
+  console.log('  node runtime/cli.mjs clarify record-decision <change-id> <event-ref>');
+  console.log('  node runtime/cli.mjs clarify seal-decisions <change-id> <event-id> [event-id...]');
+  console.log('  node runtime/cli.mjs clarify classify <change-id> <input-ref>');
   process.exit(exitCode);
 }
 
@@ -89,6 +97,15 @@ try {
       readProjectContractAssessment,
       'EH-PROJECT-CONTRACT-SCHEMA-123',
     )));
+  } else if (subcommand === 'record-decision') {
+    requireArgs(2, 'clarify record-decision <change-id> <event-ref>', 'EH-DECISION-INPUT-147');
+    console.log(JSON.stringify(recordClarifyDecision(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'seal-decisions') {
+    if (args.length < 2) throw new Error('EH-DECISION-SNAPSHOT-104: usage: clarify seal-decisions <change-id> <event-id> [event-id...]');
+    console.log(JSON.stringify(sealClarifyDecisions(root, args[0], args.slice(1)), null, 2));
+  } else if (subcommand === 'classify') {
+    requireArgs(2, 'clarify classify <change-id> <input-ref>', 'EH-CLASSIFICATION-INPUT-148');
+    console.log(JSON.stringify(persistClarifyClassification(root, args[0], args[1]), null, 2));
   } else {
     throw new Error(`EH-QUESTION-INPUT-115: unknown clarify command ${subcommand}`);
   }

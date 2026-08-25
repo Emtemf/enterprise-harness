@@ -43,6 +43,12 @@ Clarify completion 的 ownership 链是：Skill 编排 Main-produced artifacts/s
 digest set → runtime 验证完整 TECPC 与 ClarifyProof → lifecycle gate 决定能否进入 Design。Hook 始终保持轻，
 不能取代上述任一层。
 
+Question candidate 的 canonical path 由 `questionCandidatePath()` 定义；candidate 自带受验证的
+`decisionType`/`targetRef`，并绑定所有用于问题与推荐的 packet digests。用户事件只能由 question hook 追加；
+Main/runtime 的 lane 与 classification-route 事件通过 public `clarify record-decision` 进入 ledger，随后
+`clarify seal-decisions` 幂等封印 prefix，`clarify classify` 原子写 classification 与 state reference。Skill
+不得直接 import core module。
+
 plugin 使用 `${CLAUDE_PLUGIN_ROOT}`；本仓库开发通道使用 `$CLAUDE_PROJECT_DIR`。两套 hook 配置由同一 manifest 生成。
 
 上游设计来源包括 Superpowers、OpenSpec、deep-interview、CodeGraph 和 Context7，但本仓库只维护自己的稳定合同，映射见 `harness/specs/upstream-mapping.md`。

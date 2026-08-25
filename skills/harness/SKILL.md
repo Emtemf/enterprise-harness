@@ -26,8 +26,11 @@ Clarify 开始时读取 [输出语义合同](references/output-contract.md)；�
 
 ### Clarify 的 durable 执行顺序
 
-每次进入或重启 Clarify 都从 `workflow status --json` 与 `clarify recover <change-id>` 开始，复用仍 fresh
-的 ref/digest，并且只执行 runtime 返回的单一 recovery。之后固定按此顺序推进：
+每次进入或重启 Clarify 都先运行 `workflow status <change-id> --json`。若 status 返回 blocker、recovery 或
+`nextAction`，立即停止本轮其它动作并且只执行该一个动作；包括 expired lease 在内的 workflow recovery 优先于
+question recovery。只有 status 明确为 active v6 Clarify 且没有前置 blocker/recovery 时，才运行
+`clarify status <change-id> --json`，并按其单一动作决定是否运行 `clarify recover <change-id>`。复用仍 fresh
+的 ref/digest。之后固定按此顺序推进：
 
 ```text
 recover/status
@@ -74,7 +77,11 @@ current state 或任何认证策略；不得 Fast Path。
 
 ## Phase 0：进入 Clarify
 
-1. 运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status --json`。恢复 active change；
+1. 运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json`（changeId 未知时可省略）。
+   status-first：任何 blocker/recovery/nextAction 都使本轮停止，只执行一个返回动作；不得先调用 clarify recover。
+   仅 active v6 Clarify 且无前置动作时，再运行
+   `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify status <change-id> --json`，并仅在其返回
+   `repair-required` 时运行 `clarify recover <change-id>`。恢复 active change；
    没有 change 时，用安全的 kebab-case ID 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" start-change <change-id>`。
    changeId 已知后立即运行
@@ -143,6 +150,12 @@ authority、fallback/degraded 和仍存在的 uncertainty 写入 requirements。
 
 - 仍有 pending/missing/invalid/stale：停止；不得调用 `AskUserQuestion`。
 - degraded 仍影响安全设计：派 worker 缩小问题或使用其允许的官方 fallback；无法解决则报告一个 blocker。
+- Context7 degraded 时只能按 research-docs 合同使用显式允许的官方、version-bound fallback，并在 packet 保留
+  degraded 原因与 authority；不能把外部版本事实改问用户，也不能把未验证内容当 fact。
+- code 与 docs 冲突时先按各自 authority scope 分类（repository behavior 归 code；versioned external contract
+  归官方 docs）。若仍冲突，创建一个更窄的新 immutable research brief，重新派发对应 lane 并等待 fresh packet；
+  在冲突被 evidence reconciliation 关闭前阻断 topology/评分/提问。不得询问用户来裁决事实冲突，也不得修改
+  已派发 brief 或旧 packet。
 - 全部 complete 且没有阻断性事实缺口：写 `fact gate complete: true`，进入 Phase 2。
 
 ResearchPacket 的 `recommendedDecision` 只是待用户决定的候选，不是事实结论，也不能由 worker 代答。
@@ -188,14 +201,21 @@ ResearchPacket 的 `recommendedDecision` 只是待用户决定的候选，不是
 2. 每次仅用一次授权询问一个用户问题，一次只生成一个问题。读取
    [question candidate 模板](assets/question-candidate.json.tmpl)，把当前 frontier
    渲染为 schema-valid canonical
-   `harness/changes/<change-id>/questions/<question-id>.json`：一个 user-only Decision、2–4 个互斥选项、
-   recommendation、evidence refs、当前 input digests 和 `blocking=true`；不把 rationale、聊天文本或第二问
+   `harness/changes/<change-id>/evidence/clarify/questions/<question-id>.json`：一个 user-only Decision、受验证的
+   `decisionType`、canonical `targetRef`、2–4 个互斥选项、recommendation、evidence refs、当前 input digests
+   和 `blocking=true`。所有用于问题、选项或推荐的 ResearchPacket 都必须同时出现在 `evidenceRefs` 与
+   `inputDigests`；任一 packet 变化都会使 candidate stale。不把 rationale、聊天文本或第二问
    塞进 tool payload。
 3. 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify prepare-question <change-id> <candidate-ref>`。
+   `header` 最多 12 个字符；candidate label 不含推荐标记，projection 只给 `recommendedOption` 对应 label
+   追加唯一可见的 `(Recommended)`。不要自行提供 `Other`，Claude Code host 会提供自由输入入口。
    只有 exit 0 才能把 candidate 逐字段投影为一次 `AskUserQuestion`；pre-question hook 会核对 pending
    authorization，不能绕过或手改 pending state。
-4. post-question hook 把选中的授权 option 原子追加为 public `DecisionEvent`，而不是保存聊天记录或隐藏推理。
+4. post-question hook 按 candidate 的 `decisionType` 与 `targetRef` 把选中的授权 option 原子追加为 public
+   `DecisionEvent`，而不是保存聊天记录或隐藏推理。若用户选择 host `Other`/自由输入，hook 不持久化原文，
+   只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
+   从 fresh frontier 生成新问题。
    回答 durable 后重新计算所有受影响分数，展示上轮→本轮、依据和新的 weakest/highest-risk frontier；下一问
    必须从新 frontier 重新生成 candidate，不复用旧队列。
 5. 只要仍有 sibling component < 4，同一 component 最多连续问 2 个 Decision；只有 sibling 明确依赖
@@ -230,9 +250,15 @@ non-goals 和 requirements 摘要；原请求已明确授权完整 scope 时记�
    `project-contract-disposition` Decision 解决。此 Clarify slice **不得写入 `CLAUDE.md`**，也不得创建、修改
    或应用其内容。运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify validate-project-contract <change-id> harness/changes/<change-id>/project-contract-assessment.json`。
-3. 用相同的 one-candidate authorization 协议取得最终 scope confirmation，密封 ordered Decision Ledger
-   prefix 为 immutable decision snapshot；随后从 requirements、assessments、snapshot 与 fresh packets
-   计算 classification inputs，记录匹配的 `classification-route` DecisionEvent 并持久化 classification。
+3. 用相同的 one-candidate authorization 协议取得最终 scope confirmation。读取
+   [decision event 模板](assets/decision-event.json.tmpl)生成 Main/runtime 的 lane 与
+   classification route 事件必须写入 canonical `evidence/clarify/decision-events/<event-id>.json`，再用
+   `clarify record-decision <change-id> <event-ref>` 追加；用户 scope/debt/project-contract 决策只能走 authorized
+   question hook。用 `clarify seal-decisions <change-id> <event-id>...` 密封 ordered prefix；从 requirements、
+   assessments、snapshot 与 fresh packets 按 [classification input 模板](assets/classification-input.json.tmpl)
+   生成 canonical `evidence/clarify/classification-input.json`，追加匹配的
+   `classification-route` 后运行 `clarify classify <change-id> <input-ref>` 原子持久化 classification 与 state ref。
+   Skill 不直接 import `runtime/core`。
 4. 创建 main-owned `clarify.confirmed` execute handoff，输入引用 requirements、classification、debt
    assessment、project-contract assessment、immutable decision snapshot，以及每个 required packet 所绑定的
    immutable research brief。finalizer 会按 canonical path 与 requirements 中的 runId 重新验证 artifact、

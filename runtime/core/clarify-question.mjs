@@ -17,9 +17,12 @@ const DIGEST = /^[a-f0-9]{64}$/u;
 const DIMENSIONS = new Set([
   'Goal', 'Scope', 'Constraints', 'Acceptance', 'Context', 'TechnicalDebt', 'ProjectContract',
 ]);
+const INTERACTIVE_DECISION_TYPES = new Set([
+  'clarify-answer', 'debt-disposition', 'project-contract-disposition', 'scope-confirmation',
+]);
 const CANDIDATE_FIELDS = new Set([
   'questionVersion', 'type', 'changeId', 'questionId', 'componentId', 'dimension',
-  'decisionNeeded', 'whyUserOnly', 'header', 'question', 'options', 'recommendedOption',
+  'decisionNeeded', 'whyUserOnly', 'decisionType', 'targetRef', 'header', 'question', 'options', 'recommendedOption',
   'recommendationReason', 'evidenceRefs', 'inputDigests', 'blocking', 'createdAt',
 ]);
 const OPTION_FIELDS = new Set(['id', 'label', 'description']);
@@ -104,7 +107,7 @@ function sameJson(left, right) {
   return JSON.stringify(normalizeJson(left)) === JSON.stringify(normalizeJson(right));
 }
 
-function validateCandidate(candidate) {
+export function validateQuestionCandidate(candidate) {
   const problems = [];
   if (!isObject(candidate)) return ['candidate must be an object'];
   for (const key of Object.keys(candidate)) {
@@ -116,9 +119,13 @@ function validateCandidate(candidate) {
     if (!isSafeId(candidate[field])) problems.push(`${field} must be a safe identifier`);
   }
   if (!DIMENSIONS.has(candidate.dimension)) problems.push('dimension is invalid');
+  if (!INTERACTIVE_DECISION_TYPES.has(candidate.decisionType)) problems.push('decisionType is invalid for an interactive question');
+  const targetPath = artifactPathFromReference(candidate.targetRef);
+  if (targetPath === null) problems.push('targetRef must be a safe artifact reference');
   for (const field of ['decisionNeeded', 'whyUserOnly', 'header', 'question', 'recommendationReason']) {
     if (!isNonEmptyString(candidate[field])) problems.push(`${field} must be a non-empty string`);
   }
+  if (isNonEmptyString(candidate.header) && [...candidate.header].length > 12) problems.push('header must be at most 12 characters');
   if (!Array.isArray(candidate.options) || candidate.options.length < 2 || candidate.options.length > 4) {
     problems.push('options must contain between 2 and 4 entries');
   } else {
@@ -132,6 +139,9 @@ function validateCandidate(candidate) {
       }
       if (!isSafeId(option.id)) problems.push(`options[${index}].id must be a safe identifier`);
       if (!isNonEmptyString(option.label)) problems.push(`options[${index}].label must be a non-empty string`);
+      if (/\brecommended\b/iu.test(option.label || '') || /^(?:other|其它|其他)$/iu.test(String(option.label || '').trim())) {
+        problems.push(`options[${index}].label must not contain the host recommendation marker or reserved Other label`);
+      }
       if (!isNonEmptyString(option.description)) problems.push(`options[${index}].description must be a non-empty string`);
     }
     const optionIds = candidate.options.map(({ id }) => id);
@@ -152,6 +162,15 @@ function validateCandidate(candidate) {
       if (!isSafeRelativePath(ref)) problems.push(`inputDigests has unsafe artifact reference ${ref}`);
       if (!DIGEST.test(String(digest || ''))) problems.push(`inputDigests.${ref} must be a sha256 digest`);
     }
+  }
+  for (const ref of candidate.evidenceRefs || []) {
+    const artifactPath = artifactPathFromReference(ref);
+    if (artifactPath && !Object.hasOwn(candidate.inputDigests || {}, artifactPath)) {
+      problems.push(`evidenceRefs requires inputDigests.${artifactPath}`);
+    }
+  }
+  if (targetPath && !Object.hasOwn(candidate.inputDigests || {}, targetPath)) {
+    problems.push(`targetRef requires inputDigests.${targetPath}`);
   }
   if (candidate.blocking !== true) problems.push('blocking must be true');
   if (!isSchemaDateTime(candidate.createdAt)) problems.push('createdAt must be an RFC3339 date-time');
@@ -201,7 +220,7 @@ function loadCandidate(root, expectedChangeId, candidateRef) {
   } catch (error) {
     throw questionError('EH-QUESTION-CANDIDATE-106', `candidate has invalid JSON: ${error.message}`);
   }
-  const problems = validateCandidate(candidate);
+  const problems = validateQuestionCandidate(candidate);
   if (problems.length > 0) throw questionError('EH-QUESTION-CANDIDATE-106', problems.join('; '));
   if (candidate.changeId !== expectedChangeId) {
     throw questionError('EH-QUESTION-CANDIDATE-106', `candidate changeId must be ${expectedChangeId}`);
@@ -307,7 +326,10 @@ function expectedToolInput(candidate) {
     questions: [{
       question: candidate.question,
       header: candidate.header,
-      options: candidate.options.map(({ label, description }) => ({ label, description })),
+      options: candidate.options.map(({ id, label, description }) => ({
+        label: id === candidate.recommendedOption ? `${label} (Recommended)` : label,
+        description,
+      })),
       multiSelect: false,
     }],
   };
@@ -338,11 +360,11 @@ function selectedOption(candidate, toolResponse) {
       || typeof answers[candidate.question] !== 'string') {
     throw questionError('EH-QUESTION-ANSWER-113', 'tool response must contain exactly one answer for the authorized question');
   }
-  const matches = candidate.options.filter(({ label }) => label === answers[candidate.question]);
-  if (matches.length !== 1) {
-    throw questionError('EH-QUESTION-ANSWER-113', 'answer must exactly match one authorized option label');
-  }
-  return matches[0];
+  const answer = answers[candidate.question];
+  const matches = candidate.options.filter(({ id, label }) => (
+    answer === (id === candidate.recommendedOption ? `${label} (Recommended)` : label)
+  ));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function eventIdFor(questionId) {
@@ -357,13 +379,18 @@ function eventMatchesCandidate(event, candidate, candidateRef) {
   return event.changeId === candidate.changeId
     && event.stage === 'clarify'
     && sameJson(event.actor, { type: 'user', id: 'interactive-user' })
-    && event.decisionType === 'clarify-answer'
-    && event.targetRef === candidateRef
+    && ((event.decisionType === candidate.decisionType && event.targetRef === candidate.targetRef
+      && candidate.options.some(({ id }) => id === event.selectedOption))
+      || (event.decisionType === 'clarify-answer' && event.targetRef === candidateRef
+        && event.selectedOption === 'other'))
     && event.questionId === candidate.questionId
-    && sameJson(event.options, candidate.options.map(({ id }) => id))
+    && sameJson(event.options, event.selectedOption === 'other'
+      ? [...candidate.options.map(({ id }) => id), 'other']
+      : candidate.options.map(({ id }) => id))
     && event.recommendedOption === candidate.recommendedOption
-    && candidate.options.some(({ id }) => id === event.selectedOption)
-    && event.publicRationale === PUBLIC_RATIONALE
+    && event.publicRationale === (event.selectedOption === 'other'
+      ? 'User selected Other; re-clarification is required.'
+      : PUBLIC_RATIONALE)
     && sameJson(event.evidenceRefs, candidate.evidenceRefs)
     && sameJson(event.inputDigests, candidate.inputDigests);
 }
@@ -453,13 +480,13 @@ export function resolveClarifyQuestion(root, toolInput, toolResponse) {
     const eventId = eventIdFor(candidate.questionId);
     const prior = findRecordedEvent(root, candidate, pending.candidateRef, eventId);
     if (pending.status === 'resolved') {
-      if (!prior || pending.eventId !== eventId || prior.selectedOption !== selected.id) {
+      if (!prior || pending.eventId !== eventId || prior.selectedOption !== (selected?.id || 'other')) {
         throw questionError('EH-QUESTION-ANSWER-113', 'resolved question cannot be changed or replayed with a different answer');
       }
       return Object.freeze({ eventId, duplicate: true });
     }
     if (prior) {
-      if (prior.selectedOption !== selected.id) {
+      if (prior.selectedOption !== (selected?.id || 'other')) {
         throw questionError('EH-QUESTION-ANSWER-113', 'recorded answer does not match the replayed answer');
       }
       atomicWriteJson(target, resolvedPending(pending, eventId));
@@ -472,13 +499,13 @@ export function resolveClarifyQuestion(root, toolInput, toolResponse) {
       changeId,
       stage: 'clarify',
       actor: { type: 'user', id: 'interactive-user' },
-      decisionType: 'clarify-answer',
-      targetRef: pending.candidateRef,
+      decisionType: selected ? candidate.decisionType : 'clarify-answer',
+      targetRef: selected ? candidate.targetRef : pending.candidateRef,
       questionId: candidate.questionId,
-      options: candidate.options.map(({ id }) => id),
+      options: selected ? candidate.options.map(({ id }) => id) : [...candidate.options.map(({ id }) => id), 'other'],
       recommendedOption: candidate.recommendedOption,
-      selectedOption: selected.id,
-      publicRationale: PUBLIC_RATIONALE,
+      selectedOption: selected?.id || 'other',
+      publicRationale: selected ? PUBLIC_RATIONALE : 'User selected Other; re-clarification is required.',
       evidenceRefs: [...candidate.evidenceRefs],
       inputDigests: { ...candidate.inputDigests },
       recordedAt: new Date().toISOString(),

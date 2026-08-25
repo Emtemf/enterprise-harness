@@ -55,7 +55,9 @@ function candidateFor(changeId, questionId = 'Q-001') {
     dimension: 'Constraints',
     decisionNeeded: 'Choose refund compatibility policy',
     whyUserOnly: 'Repository evidence cannot choose the business compatibility promise',
-    header: 'Refund policy',
+    decisionType: 'scope-confirmation',
+    targetRef: inputRef,
+    header: 'Refund',
     question: 'Which refund compatibility policy should this change guarantee?',
     options: [
       { id: 'strict', label: 'Strict parity', description: 'Preserve existing synchronous refund behavior.' },
@@ -83,14 +85,18 @@ function askInput(candidate) {
     questions: [{
       question: candidate.question,
       header: candidate.header,
-      options: candidate.options.map(({ label, description }) => ({ label, description })),
+      options: candidate.options.map(({ id, label, description }) => ({
+        label: id === candidate.recommendedOption ? `${label} (Recommended)` : label,
+        description,
+      })),
       multiSelect: false,
     }],
   };
 }
 
 function answer(candidate, label = 'Strict parity') {
-  return { answers: { [candidate.question]: label } };
+  const selected = candidate.options.find((option) => option.label === label);
+  return { answers: { [candidate.question]: selected?.id === candidate.recommendedOption ? `${label} (Recommended)` : label } };
 }
 
 function run(hook, payload, input = JSON.stringify(payload)) {
@@ -198,14 +204,11 @@ try {
     tool_input: askInput(retryCandidate),
     tool_response: answer(retryCandidate, 'Not an option'),
   };
-  const correctedAnswerPayload = { ...failedAnswerPayload, tool_response: answer(retryCandidate) };
   const failedAnswer = run(postHook, failedAnswerPayload);
-  assert.equal(failedAnswer.status, 2, 'invalid answer must fail closed');
-  assert.match(failedAnswer.stderr, /BLOCK \[EH-QUESTION-ANSWER-113\]/u);
-  assert.match(failedAnswer.stderr, /原始 option label/u, 'resolution denial must include its recovery');
-  const correctedAnswer = run(postHook, correctedAnswerPayload);
-  assert.equal(correctedAnswer.status, 0, correctedAnswer.stderr);
-  assert.equal(readDecisionEvents(root, retryChange).length, 1, 'same-ID post-hook retry must record the corrected answer');
+  assert.equal(failedAnswer.status, 0, failedAnswer.stderr);
+  const [otherEvent] = readDecisionEvents(root, retryChange);
+  assert.equal(otherEvent.selectedOption, 'other');
+  assert.equal(JSON.stringify(otherEvent).includes('Not an option'), false, 'free-form Other text must not be persisted');
 
   const brokenChange = 'broken-state';
   activate(brokenChange);

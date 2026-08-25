@@ -99,6 +99,22 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify question hook payload 无效。',
     recovery: '按 Claude Code AskUserQuestion payload 发送所需字段；不要附加 rationale 或 chat 文本。',
   },
+  'EH-DECISION-STALE-146': {
+    summary: 'Clarify decision event 的 evidence binding 缺失或已过期。',
+    recovery: '从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试。',
+  },
+  'EH-DECISION-INPUT-147': {
+    summary: 'Clarify decision event input 缺失、无效或不是 canonical public event。',
+    recovery: '使用 canonical decision-events 路径；用户决策必须经 AskUserQuestion，CLI 仅记录 main/runtime 决策。',
+  },
+  'EH-CLASSIFICATION-INPUT-148': {
+    summary: 'Clarify classification input 缺失、无效或路径不 canonical。',
+    recovery: '重新生成 canonical classification-input.json 并按当前 authoritative refs/digests 重试。',
+  },
+  'EH-CLASSIFICATION-COMMIT-149': {
+    summary: 'Clarify classification 无法原子提交到 active v6 Clarify state。',
+    recovery: '恢复 active v6 Clarify state，解决 revision 冲突后重新运行 classify。',
+  },
   'EH-DEBT-SCHEMA-120': {
     summary: 'Clarify technical-debt assessment 的结构、引用或 change 绑定无效。',
     recovery: '修正 canonical debt-assessment.json 中首个无效字段或引用后重新运行 clarify validate-debt。',

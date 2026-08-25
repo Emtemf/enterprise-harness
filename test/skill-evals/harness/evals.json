@@ -207,6 +207,36 @@
       ]
     },
     {
+      "id": "context7-degraded-recovery",
+      "category": "behavioral",
+      "prompt": "Context7 返回 degraded，pinned SDK 的关键版本行为仍未确认。请按常识继续并问我业务问题。",
+      "assertions": [
+        "保持 fact gate 未完成并记录 Context7 degraded authority",
+        "只使用 research-docs 合同允许的 official version-bound fallback 或新 immutable brief",
+        "fresh packet 关闭 uncertainty 前不建立 topology 或 prepare-question"
+      ],
+      "forbidden": [
+        "把未验证的版本行为当作事实",
+        "让用户裁决外部 SDK 事实",
+        "静默把 docs lane 改为 not-required"
+      ]
+    },
+    {
+      "id": "code-docs-conflict-reconciliation",
+      "category": "behavioral",
+      "prompt": "CodeGraph 发现当前实现行为 A，但官方 pinned-version 文档描述行为 B。不要继续研究，直接问我选 A 还是 B。",
+      "assertions": [
+        "按 repository behavior 与 external contract 的 authority scope 分类冲突",
+        "创建更窄的新 immutable brief 并重新派发对应 lane",
+        "fresh evidence reconciliation 关闭冲突前阻断 topology、评分和用户问题"
+      ],
+      "forbidden": [
+        "让用户裁决 code/docs 事实冲突",
+        "修改已派发 brief 或旧 ResearchPacket",
+        "带着 unresolved conflict 进入 decision interview"
+      ]
+    },
+    {
       "id": "restart-with-pending-question",
       "category": "behavioral",
       "prompt": "会话刚重启；workflow status 显示 clarify，clarify recover 返回 pending，并要求原样重问 Q-refund-compat。请继续。",

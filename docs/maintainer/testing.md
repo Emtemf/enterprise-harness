@@ -1,5 +1,9 @@
 # 测试
 
+Clarify behavioral eval 定义位于 `test/skill-evals/harness/evals.json`。静态测试不会声称这些模型行为已执行；
+用 `node test/skill-evals/harness/run.mjs --case <id> --dry-run` 检查 argv，再移除 `--dry-run` 进行需要额度的
+live eval，并按输出的 assertions/forbidden rubric 独立审阅。
+
 分层：
 
 - unit：纯函数、schema、路径、parser、状态迁移

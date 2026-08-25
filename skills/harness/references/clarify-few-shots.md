@@ -17,6 +17,13 @@ fresh artifact digest before preparation.
 - code packet: `PENDING` is cancellable; paid cancellation calls `RefundGateway.refund`; mobile and batch consumers use the current response; no retry test exists.
 - docs packet: the pinned SDK supports idempotency keys but duplicate semantics differ when no key is supplied; no uncertainty remains.
 
+**Fresh topology prerequisite**: before the business question, canonical candidate `Q-topology` was prepared and its
+schema-valid event was persisted:
+
+```json
+{"eventVersion":1,"type":"decision-event","eventId":"D-topology","changeId":"cancel-order","stage":"clarify","actor":{"type":"user","id":"interactive-user"},"decisionType":"scope-confirmation","targetRef":"harness/changes/cancel-order/requirements.md","questionId":"Q-topology","options":["confirm","adjust","defer"],"recommendedOption":"confirm","selectedOption":"confirm","publicRationale":"Selected by the user through AskUserQuestion.","evidenceRefs":["harness/changes/cancel-order/requirements.md","harness/changes/cancel-order/evidence/handoffs/code-run/result.json","harness/changes/cancel-order/evidence/handoffs/docs-run/result.json"],"inputDigests":{"harness/changes/cancel-order/requirements.md":"0000000000000000000000000000000000000000000000000000000000000000","harness/changes/cancel-order/evidence/handoffs/code-run/result.json":"0000000000000000000000000000000000000000000000000000000000000000","harness/changes/cancel-order/evidence/handoffs/docs-run/result.json":"0000000000000000000000000000000000000000000000000000000000000000"},"recordedAt":"1970-01-01T00:00:00.000Z"}
+```
+
 **Candidate JSON projection**
 
 ```json
@@ -29,22 +36,25 @@ fresh artifact digest before preparation.
   "dimension": "Constraints",
   "decisionNeeded": "Choose refund compatibility for paid cancellations.",
   "whyUserOnly": "Facts expose two valid product policies but do not authorize one.",
-  "header": "Refund compatibility",
+  "decisionType": "clarify-answer",
+  "targetRef": "harness/changes/cancel-order/requirements.md",
+  "header": "Refund",
   "question": "How should paid-order cancellation preserve refund compatibility?",
   "options": [
-    {"id": "idempotent-current", "label": "Preserve consumers (Recommended)", "description": "Keep the response and require idempotency keys."},
+    {"id": "idempotent-current", "label": "Preserve consumers", "description": "Keep the response and require idempotency keys."},
     {"id": "breaking-retry", "label": "Change retry semantics", "description": "Adopt new semantics with a consumer migration."}
   ],
   "recommendedOption": "idempotent-current",
   "recommendationReason": "Two active consumers exist and no migration window is approved.",
-  "evidenceRefs": ["harness/changes/cancel-order/requirements.md"],
-  "inputDigests": {"harness/changes/cancel-order/requirements.md": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "evidenceRefs": ["harness/changes/cancel-order/requirements.md", "harness/changes/cancel-order/evidence/handoffs/code-run/result.json", "harness/changes/cancel-order/evidence/handoffs/docs-run/result.json"],
+  "inputDigests": {"harness/changes/cancel-order/requirements.md": "0000000000000000000000000000000000000000000000000000000000000000", "harness/changes/cancel-order/evidence/handoffs/code-run/result.json": "0000000000000000000000000000000000000000000000000000000000000000", "harness/changes/cancel-order/evidence/handoffs/docs-run/result.json": "0000000000000000000000000000000000000000000000000000000000000000"},
   "blocking": true,
   "createdAt": "1970-01-01T00:00:00.000Z"
 }
 ```
 
-**AskUserQuestion projection**: one question, header `Refund compatibility`, the two labels/descriptions above,
+**AskUserQuestion projection**: one question, header `Refund`; runtime adds `(Recommended)` to `Preserve consumers`
+only, then projects the two labels/descriptions above,
 `multiSelect: false`; no rationale or second question.
 
 **DecisionEvent**: `D-refund-compat`, actor=user, selected=`idempotent-current`, evidence refs bind both packets and
@@ -75,10 +85,12 @@ the change stays inside service and unit-test paths; API/data are untouched.
   "dimension": "Scope",
   "decisionNeeded": "Confirm the already precise execution scope.",
   "whyUserOnly": "Only the user can authorize transition on the complete scope.",
+  "decisionType": "scope-confirmation",
+  "targetRef": "harness/changes/cancel-pending/requirements.md",
   "header": "Final scope",
   "question": "Confirm this service-only scope and proceed to Design?",
   "options": [
-    {"id": "confirm-scope", "label": "Confirm scope (Recommended)", "description": "Implement only the named method and unit tests."},
+    {"id": "confirm-scope", "label": "Confirm scope", "description": "Implement only the named method and unit tests."},
     {"id": "revise-scope", "label": "Revise scope", "description": "Stay in Clarify and change the boundary."}
   ],
   "recommendedOption": "confirm-scope",
@@ -109,6 +121,11 @@ Do not ask “What login do you want?” The request lacks stack, current auth, 
 **Compressed packet facts**: the service uses framework X, has signed sessions, no local credential store, and delegates
 employee identity to an organization IdP; official docs support OIDC and warn against collecting passwords locally.
 
+**Fresh topology prerequisite**: canonical `Q-topology` was prepared first and fresh `D-topology` is already in the
+ledger with `decisionType=scope-confirmation`, `targetRef=harness/changes/simple-login/requirements.md`,
+`selectedOption=confirm`, and evidence/input digests binding requirements plus both packet refs. Only then may the
+identity-source candidate below be prepared.
+
 **Candidate JSON projection**
 
 ```json
@@ -121,22 +138,25 @@ employee identity to an organization IdP; official docs support OIDC and warn ag
   "dimension": "Constraints",
   "decisionNeeded": "Choose the authoritative identity source.",
   "whyUserOnly": "The repository supports federation but the intended user population is a product decision.",
-  "header": "Identity source",
+  "decisionType": "clarify-answer",
+  "targetRef": "harness/changes/simple-login/requirements.md",
+  "header": "Identity",
   "question": "Which identity source should authorize this login capability?",
   "options": [
-    {"id": "organization-idp", "label": "Organization IdP (Recommended)", "description": "Reuse OIDC and avoid a new credential store; employee access only."},
+    {"id": "organization-idp", "label": "Organization IdP", "description": "Reuse OIDC and avoid a new credential store; employee access only."},
     {"id": "local-accounts", "label": "Local accounts", "description": "Create a credential authority and expand security, recovery, and data scope."}
   ],
   "recommendedOption": "organization-idp",
   "recommendationReason": "Current code and pinned framework already support OIDC; local credentials add an unrequested security boundary.",
-  "evidenceRefs": ["harness/changes/simple-login/requirements.md"],
-  "inputDigests": {"harness/changes/simple-login/requirements.md": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "evidenceRefs": ["harness/changes/simple-login/requirements.md", "harness/changes/simple-login/evidence/handoffs/code-run/result.json", "harness/changes/simple-login/evidence/handoffs/docs-run/result.json"],
+  "inputDigests": {"harness/changes/simple-login/requirements.md": "0000000000000000000000000000000000000000000000000000000000000000", "harness/changes/simple-login/evidence/handoffs/code-run/result.json": "0000000000000000000000000000000000000000000000000000000000000000", "harness/changes/simple-login/evidence/handoffs/docs-run/result.json": "0000000000000000000000000000000000000000000000000000000000000000"},
   "blocking": true,
   "createdAt": "1970-01-01T00:00:00.000Z"
 }
 ```
 
-**AskUserQuestion projection**: header `Identity source`, exactly the two options, `multiSelect: false`.
+**AskUserQuestion projection**: header `Identity`; runtime marks only `Organization IdP` as `(Recommended)`, exactly
+the two options, `multiSelect: false`.
 
 **DecisionEvent**: `D-identity-source`, selected=`organization-idp`, with packet and requirements digests.
 **Changed frontier**: Constraints 1→4; Acceptance remains 1 and becomes the next frontier. Next action is one observable

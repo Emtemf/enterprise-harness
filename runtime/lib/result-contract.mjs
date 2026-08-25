@@ -173,11 +173,15 @@ export function validateDecisionEvent(changeId, event) {
   }
   if (!isSafeId(event.questionId)) problems.push('questionId must be a safe identifier');
 
-  if (!Array.isArray(event.options) || event.options.length < 2 || event.options.length > 4) {
-    problems.push('options must contain between 2 and 4 entries');
+  if (!Array.isArray(event.options) || event.options.length < 2 || event.options.length > 5) {
+    problems.push('options must contain between 2 and 5 entries');
   } else {
     if (event.options.some((option) => !isSafeId(option))) problems.push('options must contain safe identifiers');
     if (new Set(event.options).size !== event.options.length) problems.push('options must not contain duplicates');
+  }
+  if (Array.isArray(event.options) && event.options.length === 5
+      && (event.decisionType !== 'clarify-answer' || event.selectedOption !== 'other')) {
+    problems.push('five options are reserved for a redacted clarify-answer Other event');
   }
   if (!isSafeId(event.recommendedOption)) problems.push('recommendedOption must be a safe identifier');
   if (!isSafeId(event.selectedOption)) problems.push('selectedOption must be a safe identifier');

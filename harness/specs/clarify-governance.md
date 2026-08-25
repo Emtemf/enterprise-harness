@@ -14,6 +14,7 @@ implementationRefs:
   - harness/schemas/completion-proof.schema.json
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
+  - runtime/core/clarify-governance.mjs
   - runtime/core/clarify-assessments.mjs
   - runtime/core/classification-artifact.mjs
   - runtime/core/completion-proof.mjs
@@ -27,6 +28,9 @@ implementationRefs:
   - skills/harness/assets/debt-assessment.json.tmpl
   - skills/harness/assets/project-contract-assessment.json.tmpl
   - skills/harness/assets/research-brief.md.tmpl
+  - skills/harness/assets/question-candidate.json.tmpl
+  - skills/harness/assets/decision-event.json.tmpl
+  - skills/harness/assets/classification-input.json.tmpl
   - agents/code-explore.md
   - agents/doc-research.md
   - hooks/scripts/pre-question.mjs
@@ -39,6 +43,8 @@ testRefs:
   - runtime/test/decision-ledger-smoke.mjs
   - runtime/test/clarify-question-smoke.mjs
   - runtime/test/clarify-question-hook-smoke.mjs
+  - runtime/test/clarify-decision-cli-smoke.mjs
+  - runtime/test/clarify-skill-contract-smoke.mjs
   - runtime/test/clarify-assessments-smoke.mjs
   - runtime/test/classification-v2-smoke.mjs
   - runtime/test/classification-artifact-authority-smoke.mjs
@@ -66,7 +72,7 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 
 ## Artifact and Gate Rules
 
-The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, option selection must match the candidate/event option set, every debt observation has exactly one disposition, a snapshot event list is the ordered ledger prefix, and classification totals/tier/route decision agree with their inputs.
+The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, a candidate binds its typed decision target and every evidence artifact digest; the host-visible recommended option is unique; a free-form Other response is durably redacted and cannot satisfy a typed disposition; every debt observation has exactly one disposition; a snapshot event list is the ordered ledger prefix; and classification totals/tier/route decision agree with their inputs. Public CLI commands are the supported surface for main/runtime event append, idempotent snapshot seal, and atomic classification persistence; skills do not import core modules.
 
 A passing Clarify `StageResult` binds the current requirements, classification, debt assessment, project-contract assessment, and immutable decision snapshot together with the seven canonical Clarify assertions. Its independent review must cover that exact artifact set, and the generic completion proof specialized to `stage: clarify` binds the reviewed artifacts, sealed decision snapshot, assertion evidence, and complete TECPC. Design transition recomputes this boundary from current artifacts; neither scope confirmation nor classification alone is a completion shortcut. Appending later events to the live decision ledger does not stale an already sealed snapshot prefix or a proof bound to it.
 

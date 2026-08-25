@@ -201,6 +201,14 @@ export function sealClarifyDecisionSnapshot(root, changeId, eventIds) {
   return withFileLock(ledgerAbsolutePath, () => {
     const ledger = readLedgerDocument(root, changeId);
     assertRequestedPrefix(eventIds, ledger.events);
+    const existingSnapshotPath = resolveDecisionTarget(root, changeId, snapshotRelativePath, 'clarify decision snapshot');
+    if (fs.existsSync(existingSnapshotPath)) {
+      const existing = readClarifyDecisionSnapshot(root, changeId);
+      if (JSON.stringify(existing.eventIds) !== JSON.stringify(eventIds)) {
+        throw new Error(`EH-DECISION-SNAPSHOT-105: immutable snapshot already exists at ${snapshotRelativePath}`);
+      }
+      return Object.freeze({ path: snapshotRelativePath, digest: sha256Artifact(root, snapshotRelativePath) });
+    }
     const prefixBytes = ledger.prefixEnds[eventIds.length - 1];
     const prefix = ledger.bytes.subarray(0, prefixBytes);
     const eventsById = new Map(ledger.events.map((event) => [event.eventId, event]));

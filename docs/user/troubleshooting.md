@@ -230,9 +230,13 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-QUESTION-PENDING-110` | 已有一个未关闭的 authorized question，不能准备下一题 | 先按 status 的动作重问并 resolve，或运行 `enterprise-harness clarify recover <changeId>` 修复 crash window |
 | `EH-QUESTION-PENDING-111` | pending question 缺失、损坏或已经 resolved，当前调用无可用授权 | 对 fresh canonical candidate 重新执行 `clarify prepare-question`；若文件损坏，先从可信运行态恢复再重试 |
 | `EH-QUESTION-MISMATCH-112` | `AskUserQuestion` 输入与预授权 candidate 的精确投影不一致 | 原样重问 pending question，不修改问题、header、选项、description 或 `multiSelect` |
-| `EH-QUESTION-ANSWER-113` | answer 未精确匹配唯一 option label，或 replay 与已记录选择冲突 | 使用 pending candidate 中一个原始 option label 作答；已记录事件不可改写 |
+| `EH-QUESTION-ANSWER-113` | answer replay 与已记录选择冲突或 response shape 无效 | 使用 host 显示的 option label 作答；Other 会被脱敏记录并要求重新澄清，已记录事件不可改写 |
 | `EH-QUESTION-RECOVERY-114` | pending state 与同一 candidate target 的 decision ledger 事件冲突 | 保留 append-only ledger，恢复与事件绑定一致的 candidate/pending evidence 后运行 `enterprise-harness clarify recover <changeId>` |
 | `EH-QUESTION-INPUT-115` | `clarify` CLI 子命令或参数形状无效 | 运行 `enterprise-harness clarify --help`，按显示的 exact argv 重试；不要附加 rationale 或 chat 文本 |
+| `EH-DECISION-STALE-146` | public decision event 的 evidence binding 缺失或已过期 | 从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试 |
+| `EH-DECISION-INPUT-147` | public decision event input 缺失、无效或不是 canonical main/runtime event | 使用 `evidence/clarify/decision-events/<eventId>.json`；用户决策必须经 AskUserQuestion |
+| `EH-CLASSIFICATION-INPUT-148` | classification input 缺失、无效或路径不 canonical | 重新生成 `evidence/clarify/classification-input.json` 并按当前 authoritative refs/digests 重试 |
+| `EH-CLASSIFICATION-COMMIT-149` | classification 无法原子提交到 active v6 Clarify state | 恢复 active Clarify，解决 revision 冲突后重新运行 `clarify classify` |
 | `EH-DEBT-SCHEMA-120` | Clarify technical-debt assessment 的结构、引用或 change 绑定无效 | 修正 canonical `debt-assessment.json` 中首个无效字段或引用后重新运行 `clarify validate-debt` |
 | `EH-DEBT-DISPOSITION-121` | Relevant technical debt 没有恰好一个匹配的 durable disposition | 记录匹配 debtId、targetRef 和 status 的 `debt-disposition` event 后重新验证 assessment |
 | `EH-DEBT-STALE-122` | Technical-debt assessment 或其 disposition decision 使用了缺失或过期输入 | 用当前 authoritative inputs 重新生成 debt assessment 和关联 decision 后再验证 |

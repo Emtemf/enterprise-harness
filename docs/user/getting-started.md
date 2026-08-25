@@ -9,8 +9,13 @@
 随后 Harness 重新计算最弱或最高风险的缺口。决策记录只保留选项、选择、公开理由和证据，不保存聊天全文
 或隐藏推理。
 
+推荐选项会在交互界面中唯一标为 `(Recommended)`。Claude Code 自动提供 Other/自由输入；选择它时 Harness
+只记录脱敏的 `other` 事件并重新澄清，不把自由文本写入 ledger。重启时先按 workflow status 的一个恢复动作
+处理 blocker（例如 expired lease）；只有 active Clarify 没有前置 blocker 时才检查 question recovery。
+
 精确需求可能走 Fast Path，但仍会完成事实确认、最终 scope 授权、技术债与项目合同处置、classification、
 独立 review 和 fresh proof。Clarify 只审计现有项目指令并记录缺口或冲突；这个 slice 不会创建、修改或写入
-`CLAUDE.md`。出现中断时，Harness 复用 fresh artifacts，只执行 status/recover 返回的一个恢复动作。
+`CLAUDE.md`。code/docs 事实冲突会按 authority scope 重新派发更窄的 immutable brief；不会让用户裁决事实。
+出现中断时，Harness 复用 fresh artifacts，只执行 status/recover 返回的一个恢复动作。
 
 安装与命令入口见[快速开始](quickstart.md)，完整阶段行为见[六阶段工作流](workflow.md)。

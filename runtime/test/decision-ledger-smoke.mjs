@@ -176,9 +176,10 @@ try {
   assert.deepEqual(readClarifyDecisionSnapshot(root, prefixChange), sealed);
   assert.deepEqual(fs.readFileSync(path.join(root, snapshotRef.path)), sealedBytes);
   assert.equal(sha256Artifact(root, snapshotRef.path), snapshotRef.digest);
-  assert.throws(
-    () => sealClarifyDecisionSnapshot(root, prefixChange, [prefixFirst.eventId]),
-    /EH-DECISION-SNAPSHOT-105/u,
+  assert.deepEqual(
+    sealClarifyDecisionSnapshot(root, prefixChange, [prefixFirst.eventId]),
+    snapshotRef,
+    're-sealing the same immutable prefix must be idempotent',
   );
 
   console.log(`PASS decision-ledger ${mode}`);

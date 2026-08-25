@@ -14,7 +14,7 @@
     "decisionType": { "enum": ["clarify-answer", "lane-applicability", "debt-disposition", "project-contract-disposition", "scope-confirmation", "classification-route"] },
     "targetRef": { "$ref": "#/$defs/nonEmptyString" },
     "questionId": { "$ref": "#/$defs/safeId" },
-    "options": { "type": "array", "minItems": 2, "maxItems": 4, "uniqueItems": true, "items": { "$ref": "#/$defs/safeId" } },
+    "options": { "type": "array", "minItems": 2, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "#/$defs/safeId" } },
     "recommendedOption": { "$ref": "#/$defs/safeId" },
     "selectedOption": { "$ref": "#/$defs/safeId" },
     "publicRationale": { "$ref": "#/$defs/nonEmptyString" },
@@ -29,5 +29,11 @@
     "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
     "actor": { "type": "object", "required": ["type", "id"], "properties": { "type": { "enum": ["user", "main", "runtime"] }, "id": { "$ref": "#/$defs/safeId" } }, "additionalProperties": false }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "options": { "minItems": 5 } }, "required": ["options"] },
+      "then": { "properties": { "decisionType": { "const": "clarify-answer" }, "selectedOption": { "const": "other" } } }
+    }
+  ],
   "additionalProperties": false
 }
