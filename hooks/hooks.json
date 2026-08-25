@@ -45,6 +45,17 @@
           }
         ],
         "matcher": "Grep|Read|Glob"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-question.mjs\"",
+            "timeout": 10,
+            "statusMessage": "校验 Clarify 问题授权"
+          }
+        ],
+        "matcher": "AskUserQuestion"
       }
     ],
     "PostToolUse": [
@@ -80,6 +91,17 @@
           }
         ],
         "matcher": "Write|Edit|NotebookEdit|Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-question.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 Clarify 用户决策"
+          }
+        ],
+        "matcher": "AskUserQuestion"
       }
     ],
     "SubagentStart": [

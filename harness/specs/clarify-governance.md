@@ -13,6 +13,8 @@ implementationRefs:
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
   - runtime/clarify.mjs
+  - hooks/scripts/pre-question.mjs
+  - hooks/scripts/post-question.mjs
   - runtime/lib/result-contract.mjs
 testRefs:
   - runtime/test/result-schema-smoke.mjs
@@ -20,6 +22,7 @@ testRefs:
   - runtime/test/docs-consistency-smoke.mjs
   - runtime/test/decision-ledger-smoke.mjs
   - runtime/test/clarify-question-smoke.mjs
+  - runtime/test/clarify-question-hook-smoke.mjs
 ---
 
 # Clarify Governance Contract

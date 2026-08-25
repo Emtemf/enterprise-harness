@@ -13,6 +13,26 @@ const generated = spawnSync(process.execPath, [path.join(root, 'bin', 'generate-
 });
 assert.equal(generated.status, 0, generated.stderr);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'plugin', 'hooks-manifest.json'), 'utf-8'));
+for (const [event, expected] of [
+  ['PreToolUse', {
+    matcher: 'AskUserQuestion',
+    script: 'pre-question.mjs',
+    timeout: 10,
+    performanceBudgetMs: 100,
+    failMode: 'fail-closed',
+    statusMessage: '校验 Clarify 问题授权',
+  }],
+  ['PostToolUse', {
+    matcher: 'AskUserQuestion',
+    script: 'post-question.mjs',
+    timeout: 10,
+    performanceBudgetMs: 100,
+    failMode: 'fail-closed',
+    statusMessage: '记录 Clarify 用户决策',
+  }],
+]) {
+  assert.deepEqual(manifest.hooks[event].find((entry) => entry.script === expected.script), expected);
+}
 for (const entries of Object.values(manifest.hooks)) {
   for (const entry of entries) {
     assert.ok(Number.isInteger(entry.performanceBudgetMs) && entry.performanceBudgetMs > 0);

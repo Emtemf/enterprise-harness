@@ -34,6 +34,14 @@
         "performanceBudgetMs": 100,
         "failMode": "fail-closed",
         "statusMessage": "检查代码探索是否已委托 subagent"
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "script": "pre-question.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "校验 Clarify 问题授权"
       }
     ],
     "PostToolUse": [
@@ -60,6 +68,14 @@
         "performanceBudgetMs": 500,
         "failMode": "fail-closed",
         "statusMessage": "记录受治理写入边界"
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "script": "post-question.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-closed",
+        "statusMessage": "记录 Clarify 用户决策"
       }
     ],
     "SubagentStart": [
