@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { agentForV2Handoff } from '../core/handoff-agent.mjs';
-import { isSafeId, resolveWithin } from './safe-paths.mjs';
+import { isSafeId, isSafeRelativePath, resolveWithin } from './safe-paths.mjs';
 import { isWaiverFresh, validateWaiver } from './waiver.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
@@ -74,9 +74,36 @@ function isIsoDate(value) {
 }
 
 function isSchemaDateTime(value) {
-  return typeof value === 'string'
-    && /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/u.test(value)
-    && Number.isFinite(Date.parse(value));
+  if (typeof value !== 'string') return false;
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|[+-](\d{2}):(\d{2}))$/u,
+  );
+  if (!match) return false;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return month >= 1
+    && month <= 12
+    && day >= 1
+    && day <= daysInMonth[month - 1]
+    && Number(hourText) <= 23
+    && Number(minuteText) <= 59
+    && Number(secondText) <= 60
+    && (offsetHourText === undefined || Number(offsetHourText) <= 23)
+    && (offsetMinuteText === undefined || Number(offsetMinuteText) <= 59);
+}
+
+function isSafeArtifactReference(value, { allowSourceLocator = false } = {}) {
+  if (typeof value !== 'string' || !value) return false;
+  let artifactPath = value;
+  if (allowSourceLocator) {
+    const locator = value.match(/^(.*):([1-9]\d*)$/u);
+    if (locator) artifactPath = locator[1];
+  }
+  return !artifactPath.includes(':') && isSafeRelativePath(artifactPath);
 }
 
 function validateStringArray(value, field, problems) {
@@ -130,7 +157,9 @@ export function validateDecisionEvent(changeId, event) {
     if (!isSafeId(event.actor.id)) problems.push('actor.id must be a safe identifier');
   }
   if (!DECISION_TYPES.has(event.decisionType)) problems.push(`invalid decisionType ${event.decisionType}`);
-  if (typeof event.targetRef !== 'string' || !event.targetRef.trim()) problems.push('targetRef is required');
+  if (!isSafeArtifactReference(event.targetRef, { allowSourceLocator: true })) {
+    problems.push('targetRef must be a safe artifact reference');
+  }
   if (!isSafeId(event.questionId)) problems.push('questionId must be a safe identifier');
 
   if (!Array.isArray(event.options) || event.options.length < 2 || event.options.length > 4) {
@@ -153,12 +182,17 @@ export function validateDecisionEvent(changeId, event) {
   if (!Array.isArray(event.evidenceRefs) || event.evidenceRefs.length === 0
       || event.evidenceRefs.some((ref) => typeof ref !== 'string' || !ref.trim())) {
     problems.push('evidenceRefs must be a non-empty string array');
+  } else if (event.evidenceRefs.some((ref) => !isSafeArtifactReference(ref, { allowSourceLocator: true }))) {
+    problems.push('evidenceRefs must contain only safe artifact references');
   }
   validateDigestMap(event.inputDigests, 'inputDigests', problems);
   if (isObject(event.inputDigests) && Object.keys(event.inputDigests).length === 0) {
     problems.push('inputDigests must not be empty');
   }
-  if (!isSchemaDateTime(event.recordedAt)) problems.push('recordedAt must be an ISO timestamp');
+  for (const ref of Object.keys(isObject(event.inputDigests) ? event.inputDigests : {})) {
+    if (!isSafeArtifactReference(ref)) problems.push(`inputDigests has unsafe artifact reference ${ref}`);
+  }
+  if (!isSchemaDateTime(event.recordedAt)) problems.push('recordedAt must be an RFC3339 date-time');
   return problems;
 }
 
@@ -209,7 +243,7 @@ export function validateClarifyDecisionSnapshot(changeId, snapshot) {
       problems.push('artifacts must match eventIds in order');
     }
   }
-  if (!isSchemaDateTime(snapshot.sealedAt)) problems.push('sealedAt must be an ISO timestamp');
+  if (!isSchemaDateTime(snapshot.sealedAt)) problems.push('sealedAt must be an RFC3339 date-time');
   return problems;
 }
 

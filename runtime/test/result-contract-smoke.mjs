@@ -5,6 +5,8 @@ import path from 'node:path';
 import process from 'node:process';
 import {
   sha256Artifact,
+  validateClarifyDecisionSnapshot,
+  validateDecisionEvent,
   validateHandoffV2Contract,
   validateResearchPacket,
   validateReviewResult,
@@ -101,11 +103,74 @@ const handoff = {
   createdAt: '2026-08-14T00:00:00.000Z',
 };
 
+const decisionEvent = {
+  eventVersion: 1,
+  type: 'decision-event',
+  eventId: 'D-1',
+  changeId: 'demo',
+  stage: 'clarify',
+  actor: { type: 'user', id: 'interactive-user' },
+  decisionType: 'clarify-answer',
+  targetRef: 'harness/changes/demo/evidence/clarify/questions/Q-1.json',
+  questionId: 'Q-1',
+  options: ['strict', 'async'],
+  recommendedOption: 'strict',
+  selectedOption: 'strict',
+  publicRationale: 'Selected by the user.',
+  evidenceRefs: ['src/refund.js:42'],
+  inputDigests: { 'harness/changes/demo/requirements.md': 'a'.repeat(64) },
+  recordedAt: '2024-02-29T00:00:00+08:00',
+};
+
+const decisionSnapshot = {
+  snapshotVersion: 1,
+  type: 'clarify-decision-snapshot',
+  changeId: 'demo',
+  eventIds: ['D-1'],
+  ledgerRef: {
+    path: 'harness/changes/demo/evidence/decisions/decision-ledger.jsonl',
+    digest: 'a'.repeat(64),
+  },
+  prefixBytes: 1,
+  prefixDigest: 'b'.repeat(64),
+  artifacts: [{ eventId: 'D-1', digest: 'c'.repeat(64) }],
+  sealedAt: '2024-02-29T00:00:00Z',
+};
+
 try {
   assert.deepEqual(validateStageResult(root, stageResult), []);
   assert.deepEqual(validateReviewResult(root, reviewResult, { stageResult }), []);
   assert.deepEqual(validateResearchPacket(root, researchPacket), []);
   assert.deepEqual(validateHandoffV2Contract(handoff), []);
+  assert.deepEqual(validateDecisionEvent('demo', decisionEvent), []);
+  assert.deepEqual(validateClarifyDecisionSnapshot('demo', decisionSnapshot), []);
+
+  for (const unsafeEvent of [
+    { ...decisionEvent, targetRef: '../outside.json' },
+    { ...decisionEvent, evidenceRefs: ['/tmp/outside.js:42'] },
+    { ...decisionEvent, evidenceRefs: ['src/refund.js:line'] },
+    { ...decisionEvent, inputDigests: { '../requirements.md': 'a'.repeat(64) } },
+  ]) {
+    assert.match(
+      validateDecisionEvent('demo', unsafeEvent).join('\n'),
+      /safe artifact reference/u,
+    );
+  }
+
+  assert.match(
+    validateDecisionEvent('demo', {
+      ...decisionEvent,
+      recordedAt: '2026-02-29T00:00:00Z',
+    }).join('\n'),
+    /recordedAt must be an RFC3339 date-time/u,
+  );
+  assert.match(
+    validateClarifyDecisionSnapshot('demo', {
+      ...decisionSnapshot,
+      sealedAt: '2026-02-29T00:00:00Z',
+    }).join('\n'),
+    /sealedAt must be an RFC3339 date-time/u,
+  );
 
   const missingResearchContext = structuredClone(researchPacket);
   delete missingResearchContext.question;
