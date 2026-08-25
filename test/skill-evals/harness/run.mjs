@@ -113,17 +113,148 @@ function requireRegularFile(target, label) {
   return resolved;
 }
 
-function recordReview(manifestArgument, reviewArgument) {
-  const manifestPath = requireRegularFile(manifestArgument, 'manifest');
-  if (path.basename(manifestPath) !== 'scoring-manifest.json') {
+function requireCanonicalManifest(target) {
+  const resolved = requireRegularFile(target, 'manifest');
+  if (path.basename(resolved) !== 'scoring-manifest.json') {
     throw new Error('manifest must be named scoring-manifest.json');
   }
+  if (fs.realpathSync(resolved) !== resolved) {
+    throw new Error('manifest collection and parents must not contain a symlink');
+  }
+  return resolved;
+}
+
+function validDate(value) {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+}
+
+function validateOutputEvidence(manifestPath, entry, stream) {
+  const collectionDir = path.dirname(manifestPath);
+  const refField = `${stream}Ref`;
+  const digestField = `${stream}Sha256`;
+  const expectedRef = `outputs/${entry.runId}.${stream}.txt`;
+  if (entry[refField] !== expectedRef) {
+    throw new Error(`${entry.runId} ${refField} must be a canonical output ref in this collection`);
+  }
+  const target = path.join(collectionDir, ...expectedRef.split('/'));
+  let stat;
+  try {
+    stat = fs.lstatSync(target);
+  } catch {
+    throw new Error(`${entry.runId} ${stream} output is missing`);
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(target) !== target) {
+    throw new Error(`${entry.runId} ${stream} output must be a regular non-symlink file in this collection`);
+  }
+  if (!/^[a-f0-9]{64}$/u.test(entry[digestField] || '')) {
+    throw new Error(`${entry.runId} ${digestField} is invalid`);
+  }
+  if (sha256(fs.readFileSync(target)) !== entry[digestField]) {
+    throw new Error(`${entry.runId} ${stream} digest mismatch`);
+  }
+}
+
+function validateManifestForReview(manifestPath, manifest) {
+  if (manifest.type !== 'clarify-skill-eval-scoring-manifest' || manifest.manifestVersion !== 1
+      || !Array.isArray(manifest.runs)) {
+    throw new Error('manifest is not a clarify skill eval scoring manifest');
+  }
+  if (manifest.manifestPath !== manifestPath) {
+    throw new Error('manifestPath must equal the actual canonical path');
+  }
+  const selectedCase = definition.cases.find(({ id }) => id === manifest.caseId);
+  if (manifest.evalSuiteVersion !== definition.version
+      || typeof manifest.caseId !== 'string'
+      || !selectedCase
+      || typeof manifest.model !== 'string'
+      || !Array.isArray(manifest.variants) || manifest.variants.length < 1
+      || new Set(manifest.variants).size !== manifest.variants.length
+      || !manifest.variants.every((variant) => variants.includes(variant))
+      || !Number.isSafeInteger(manifest.repetitionsPerVariant) || manifest.repetitionsPerVariant < 5
+      || !Number.isSafeInteger(manifest.timeoutMs) || manifest.timeoutMs < 1
+      || !validDate(manifest.createdAt)
+      || manifest.semanticScoring !== 'manual-required'
+      || typeof manifest.scoringInstructions !== 'string' || manifest.scoringInstructions.length < 1
+      || JSON.stringify(manifest.assertions) !== JSON.stringify(selectedCase.assertions)
+      || JSON.stringify(manifest.forbidden) !== JSON.stringify(selectedCase.forbidden)) {
+    throw new Error('manifest eval metadata is invalid');
+  }
+  if (!manifest.provenance
+      || !/^[a-f0-9]{40}$/u.test(manifest.provenance.repositoryHead || '')
+      || !/^[a-f0-9]{64}$/u.test(manifest.provenance.skillSha256 || '')
+      || typeof manifest.provenance.claudeVersion !== 'string'
+      || manifest.provenance.claudeVersion.trim().length === 0) {
+    throw new Error('manifest provenance is invalid');
+  }
+  const expectedShapeId = selectedCase.mechanicalShape || null;
+  if ((expectedShapeId === null && manifest.shapeContract !== null)
+      || (expectedShapeId !== null && manifest.shapeContract?.id !== expectedShapeId)) {
+    throw new Error('manifest shape metadata is invalid');
+  }
+  if (!manifest.workspace || manifest.workspace.strategy !== 'mkdtemp-outside-checkout'
+      || !['removed', 'cleanup-failed'].includes(manifest.workspace.cleanupStatus)) {
+    throw new Error('manifest workspace cleanup metadata is invalid');
+  }
+  if (!['complete', 'aborted'].includes(manifest.collectionStatus)
+      || !Number.isSafeInteger(manifest.plannedRunCount) || manifest.plannedRunCount < 1
+      || !Number.isSafeInteger(manifest.recordedRunCount)
+      || !Number.isSafeInteger(manifest.completedRunCount)
+      || typeof manifest.evidenceEligible !== 'boolean') {
+    throw new Error('manifest collection metadata is invalid');
+  }
+  const runIds = manifest.runs.map(({ runId }) => runId);
+  const expectedRunIds = manifest.variants.flatMap((variant) => (
+    Array.from({ length: manifest.repetitionsPerVariant }, (_, index) => (
+      `${variant}-${String(index + 1).padStart(2, '0')}`
+    ))
+  ));
+  if (new Set(runIds).size !== runIds.length || manifest.recordedRunCount !== manifest.runs.length
+      || manifest.recordedRunCount > manifest.plannedRunCount
+      || manifest.plannedRunCount !== expectedRunIds.length
+      || !runIds.every((runId) => expectedRunIds.includes(runId))) {
+    throw new Error('manifest planned/recorded run counts are inconsistent');
+  }
+  for (const entry of manifest.runs) {
+    if (typeof entry.runId !== 'string' || !/^(?:control|with-skill)-\d{2,}$/u.test(entry.runId)
+        || !['completed', 'exit-nonzero', 'timeout'].includes(entry.processStatus)) {
+      throw new Error('manifest run metadata is invalid');
+    }
+    if (expectedShapeId === null) {
+      if (entry.mechanicalShape !== null) throw new Error('manifest shape metadata is invalid');
+    } else if (entry.mechanicalShape?.id !== expectedShapeId
+        || typeof entry.mechanicalShape.pass !== 'boolean'
+        || !Array.isArray(entry.mechanicalShape.problems)
+        || entry.mechanicalShape.semanticPass !== false
+        || entry.mechanicalShape.manualReviewRequired !== true) {
+      throw new Error('manifest shape metadata is invalid');
+    }
+    validateOutputEvidence(manifestPath, entry, 'stdout');
+    validateOutputEvidence(manifestPath, entry, 'stderr');
+  }
+  const completedRunCount = manifest.runs.filter(({ processStatus }) => processStatus === 'completed').length;
+  const collectionComplete = manifest.recordedRunCount === manifest.plannedRunCount;
+  if (collectionComplete
+      && JSON.stringify([...runIds].sort()) !== JSON.stringify([...expectedRunIds].sort())) {
+    throw new Error('manifest planned run set is incomplete');
+  }
+  const evidenceEligible = manifest.collectionStatus === 'complete'
+    && collectionComplete
+    && completedRunCount === manifest.plannedRunCount
+    && manifest.workspace.cleanupStatus === 'removed'
+    && manifest.runs.every(({ mechanicalShape }) => mechanicalShape === null || mechanicalShape.pass);
+  if (manifest.completedRunCount !== completedRunCount
+      || manifest.collectionStatus !== (collectionComplete ? 'complete' : 'aborted')
+      || manifest.evidenceEligible !== evidenceEligible) {
+    throw new Error('manifest collection status/count/evidenceEligible projection is inconsistent');
+  }
+}
+
+function recordReview(manifestArgument, reviewArgument) {
+  const manifestPath = requireCanonicalManifest(manifestArgument);
   const reviewInputPath = requireRegularFile(reviewArgument, 'review file');
   const manifestBytes = fs.readFileSync(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString('utf-8'));
-  if (manifest.type !== 'clarify-skill-eval-scoring-manifest' || !Array.isArray(manifest.runs)) {
-    throw new Error('manifest is not a clarify skill eval scoring manifest');
-  }
+  validateManifestForReview(manifestPath, manifest);
   if (manifest.manualReview) throw new Error('manifest already references a manual review');
   const review = JSON.parse(fs.readFileSync(reviewInputPath, 'utf-8'));
   if (typeof review.reviewer !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(review.reviewer)) {
@@ -141,15 +272,26 @@ function recordReview(manifestArgument, reviewArgument) {
       || JSON.stringify([...reviewedRunIds].sort()) !== JSON.stringify([...manifestRunIds].sort())) {
     throw new Error('manual review must cover every manifest run exactly once');
   }
+  const runById = new Map(manifest.runs.map((entry) => [entry.runId, entry]));
   for (const entry of review.runs) {
     if (!['pass', 'fail', 'incomplete'].includes(entry.verdict)
         || typeof entry.notes !== 'string' || entry.notes.trim().length === 0 || entry.notes.length > 2000) {
       throw new Error(`manual review entry ${entry.runId} has invalid verdict or notes`);
     }
+    const run = runById.get(entry.runId);
+    if (entry.verdict === 'pass' && run.processStatus !== 'completed') {
+      throw new Error(`${entry.runId} ${run.processStatus} can only be reviewed fail or incomplete`);
+    }
+    if (entry.verdict === 'pass' && run.mechanicalShape !== null && !run.mechanicalShape.pass) {
+      throw new Error(`${entry.runId} mechanical shape failure can only be reviewed fail or incomplete`);
+    }
   }
   const everyRunPasses = review.runs.every(({ verdict }) => verdict === 'pass');
   if ((review.overallVerdict === 'pass') !== everyRunPasses) {
     throw new Error('overallVerdict pass requires every run verdict to pass');
+  }
+  if (review.overallVerdict === 'pass' && !manifest.evidenceEligible) {
+    throw new Error('overall pass requires a complete non-aborted evidenceEligible collection');
   }
   const canonicalReview = {
     reviewVersion: 1,
@@ -260,6 +402,9 @@ try {
   const runDirectory = path.join(resultsRoot, `${stamp}-${caseId}-${model}-${process.pid}`);
   const outputsDirectory = path.join(runDirectory, 'outputs');
   fs.mkdirSync(resultsRoot, { recursive: true });
+  if (fs.realpathSync(resultsRoot) !== resultsRoot) {
+    throw new Error('results collection and parents must not contain a symlink');
+  }
   fs.mkdirSync(runDirectory, { recursive: false });
   fs.mkdirSync(outputsDirectory);
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-skill-eval-'));
@@ -271,6 +416,7 @@ try {
     caseId,
     model,
     evalSuiteVersion: definition.version,
+    shapeContract: selected.mechanicalShape ? { id: selected.mechanicalShape } : null,
     variants: selectedVariants,
     repetitionsPerVariant: repetitions,
     timeoutMs,
@@ -286,6 +432,11 @@ try {
     assertions: [...selected.assertions],
     forbidden: [...selected.forbidden],
     createdAt: new Date().toISOString(),
+    collectionStatus: 'in-progress',
+    plannedRunCount: runs.length,
+    recordedRunCount: 0,
+    completedRunCount: 0,
+    evidenceEligible: false,
     runs: [],
   };
   writeJson(manifestPath, manifest);
@@ -310,8 +461,10 @@ try {
       });
       const timedOut = child.error?.code === 'ETIMEDOUT';
       const processStatus = timedOut ? 'timeout' : child.status === 0 ? 'completed' : 'exit-nonzero';
-      fs.writeFileSync(path.join(runDirectory, stdoutRef), child.stdout || '', 'utf-8');
-      fs.writeFileSync(path.join(runDirectory, stderrRef), `${child.stderr || ''}${child.error ? `\ncollectorError=${child.error.message}\n` : ''}`, 'utf-8');
+      const stdout = child.stdout || '';
+      const stderr = `${child.stderr || ''}${child.error ? `\ncollectorError=${child.error.message}\n` : ''}`;
+      fs.writeFileSync(path.join(runDirectory, stdoutRef), stdout, 'utf-8');
+      fs.writeFileSync(path.join(runDirectory, stderrRef), stderr, 'utf-8');
       manifest.runs.push({
         ...planned,
         cwd: workspace,
@@ -322,14 +475,18 @@ try {
         exitCode: child.status,
         signal: child.signal,
         processStatus,
-        mechanicalShape: mechanicalShapeFor(selected.mechanicalShape, child.stdout || ''),
+        mechanicalShape: mechanicalShapeFor(selected.mechanicalShape, stdout),
         stdoutRef,
+        stdoutSha256: sha256(Buffer.from(stdout, 'utf-8')),
         stderrRef,
+        stderrSha256: sha256(Buffer.from(stderr, 'utf-8')),
         assertions: [...selected.assertions],
         forbidden: [...selected.forbidden],
         semanticVerdict: null,
         reviewerNotes: null,
       });
+      manifest.recordedRunCount = manifest.runs.length;
+      manifest.completedRunCount = manifest.runs.filter((entry) => entry.processStatus === 'completed').length;
       writeJson(manifestPath, manifest);
       process.stderr.write(`DONE variant=${planned.variant} rep=${planned.repetition}/${repetitions} status=${processStatus} stdout=${stdoutRef} stderr=${stderrRef}\n`);
     }
@@ -342,14 +499,19 @@ try {
       manifest.workspace.cleanupStatus = 'cleanup-failed';
       manifest.workspace.cleanupError = error.message;
     }
+    manifest.recordedRunCount = manifest.runs.length;
+    manifest.completedRunCount = manifest.runs.filter(({ processStatus }) => processStatus === 'completed').length;
+    manifest.collectionStatus = manifest.recordedRunCount === manifest.plannedRunCount ? 'complete' : 'aborted';
+    manifest.evidenceEligible = manifest.collectionStatus === 'complete'
+      && manifest.completedRunCount === manifest.plannedRunCount
+      && manifest.workspace.cleanupStatus === 'removed'
+      && manifest.runs.every(({ mechanicalShape }) => mechanicalShape === null || mechanicalShape.pass);
     writeJson(manifestPath, manifest);
   }
 
   if (cleanupError) throw cleanupError;
 
-  const collectionComplete = manifest.runs.every(({ processStatus, mechanicalShape }) => (
-    processStatus === 'completed' && (mechanicalShape === null || mechanicalShape.pass)
-  ));
+  const collectionComplete = manifest.evidenceEligible;
   console.log(JSON.stringify({ collectionComplete, semanticScoring: 'manual-required', manifestPath }, null, 2));
   process.exit(collectionComplete ? 0 : 1);
 } catch (error) {

@@ -23,6 +23,11 @@ assert.match(entry, /Plan mode、tools disabled、packet in-flight/u);
 assert.match(entry, /请求、选择、确认、普通问句、meta-choice/u);
 assert.match(entry, /changeId、path、SDK、version、entrypoint、stack、status、偏离授权/u);
 assert.match(entry, /Plan mode、tools unavailable、user-only、topology、scope、用户催促[\s\S]*都不是例外/u);
+assert.match(entry,
+  /纯文本恰好五行；无标题、前言、解释、表格、代码围栏、tool\/MCP 文本/u,
+  'Terminal fallback must prohibit every wrapper observed in the live collection');
+assert.match(entry, /第一字符是 `F`[\s\S]*最后字节是 `none`/u,
+  'Terminal fallback must bind its exact first character and final bytes');
 for (const line of [
   'Fact lanes:',
   'Next research action/blocker:',
@@ -52,6 +57,8 @@ for (const invalid of [
   valid.replace('User question: none', 'User question: choose a path'),
   valid.split('\n').slice(1).join('\n'),
   valid.replace('Next research action/blocker: tools disabled in Plan mode\n', ''),
+  `\`\`\`\n${valid}\n\`\`\``,
+  `Facts are blocked.\n\n\`\`\`\n${valid}\n\`\`\`\nClient.listTools() called but server does not advertise tools capability - returning empty list`,
 ]) assert.equal(evaluateTerminalFactGateShape(invalid).pass, false,
   `Shape evaluator must reject invalid terminal output:\n${invalid}`);
 

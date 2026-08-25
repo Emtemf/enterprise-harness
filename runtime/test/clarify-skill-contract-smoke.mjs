@@ -91,7 +91,7 @@ for (const field of [
   'User question: none',
 ]) assert.match(factGate, new RegExp(escapeRegExp(field), 'u'),
   `Incomplete fact gate must emit ${field}`);
-assert.match(factGate, /`User question: none` 后立即结束本轮/iu,
+assert.match(factGate, /`User question: none`[\s\S]{0,80}最后字节是 `none`；随后立即结束本轮/iu,
   'Incomplete fact gate must terminate immediately after its fixed gate block');
 assert.match(factGate,
   /factGateOpen[\s\S]{0,500}只执行一个 agent-owned research\/recovery action/iu,
@@ -99,7 +99,7 @@ assert.match(factGate,
 assert.match(factGate, /重算全部 required lanes 并回到本入口/iu,
   'Incomplete fact gate must recompute lane state after its research/recovery action');
 assert.match(factGate,
-  /不能执行[\s\S]{0,240}恰好五行[\s\S]{0,300}`User question: none` 后立即结束本轮，后面无任何内容/iu,
+  /不能执行[\s\S]{0,240}纯文本恰好五行[\s\S]{0,300}`User question: none`[\s\S]{0,80}最后字节是 `none`/iu,
   'Only a selected terminal gate response must prohibit trailing text, user requests, and tool calls');
 assert.doesNotMatch(factGate, /fact gate complete 前[^\n]*任何工具调用都禁止/iu,
   'Incomplete fact gate must not deadlock required research/recovery tool actions');

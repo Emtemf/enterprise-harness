@@ -22,18 +22,9 @@ factGateOpen 时不得建立 topology 或评分，不得进入 Design。
 - 若 factGateOpen 且能执行一个 agent-owned research/recovery action，只执行一个 agent-owned research/recovery action，
   随后重算全部 required lanes 并回到本入口；本轮不做其它动作或输出。action 可创建/校验 brief、handoff、show、
   validate、re-dispatch 或执行 runtime recovery，所缺输入只取 raw request、repository、fact worker，不改问用户。
-- 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行该 action，本轮只输出恰好五行，字段值不得
-  夹带问题或请求：
-
-```text
-Fact lanes: <required lane states>
-Next research action/blocker: <one action or blocker>
-Topology: not built
-Scores: not computed
-User question: none
-```
-
-  输出 `User question: none` 后立即结束本轮，后面无任何内容。
+- 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行该 action，本轮只输出纯文本恰好五行；无标题、前言、解释、表格、代码围栏、tool/MCP 文本。
+  五行依次为 `Fact lanes: <required lane states>`、`Next research action/blocker: <one action or blocker>`、
+  `Topology: not built`、`Scores: not computed`、`User question: none`。第一字符是 `F`，最后字节是 `none`；随后立即结束本轮。
 
 factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以及索要
 changeId、path、SDK、version、entrypoint、stack、status、偏离授权都算 user question。Plan mode、tools unavailable、user-only、topology、scope、用户催促都不是例外。

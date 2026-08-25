@@ -31,13 +31,17 @@ else {
   const fs = require('node:fs');
   const path = require('node:path');
   const config = JSON.parse(fs.readFileSync(path.join(process.env.CLAUDE_CONFIG_DIR, 'settings.json'), 'utf-8'));
-  if (mode === 'shape') process.stdout.write([
-    'Fact lanes: code=pending, docs=pending',
-    'Next research action/blocker: tools disabled in Plan mode',
-    'Topology: not built',
-    'Scores: not computed',
-    'User question: none',
-  ].join('\\n'));
+  if (mode === 'shape' || mode === 'shape-bad') {
+    const shaped = [
+      'Fact lanes: code=pending, docs=pending',
+      'Next research action/blocker: tools disabled in Plan mode',
+      'Topology: not built',
+      'Scores: not computed',
+      'User question: none',
+    ].join('\\n');
+    const fence = String.fromCharCode(96).repeat(3);
+    process.stdout.write(mode === 'shape-bad' ? fence + '\\n' + shaped + '\\n' + fence : shaped);
+  }
   else process.stdout.write(JSON.stringify({ argv: process.argv.slice(2), mode, cwd: process.cwd(), config }));
   if (mode === 'fail') { process.stderr.write('fixture failure\\n'); process.exitCode = 7; }
 }
@@ -59,16 +63,46 @@ function run(args, fakeMode = 'success') {
 }
 
 function onlyManifest(directory) {
+  return JSON.parse(fs.readFileSync(onlyManifestPath(directory), 'utf-8'));
+}
+
+function onlyManifestPath(directory) {
   const manifests = fs.readdirSync(directory, { recursive: true })
     .filter((entry) => String(entry).endsWith('scoring-manifest.json'));
   assert.equal(manifests.length, 1);
-  return JSON.parse(fs.readFileSync(path.join(directory, manifests[0]), 'utf-8'));
+  return path.join(directory, manifests[0]);
 }
 
 function manifestPaths(directory) {
   return fs.readdirSync(directory, { recursive: true })
     .filter((entry) => String(entry).endsWith('scoring-manifest.json'))
     .map((entry) => path.join(directory, entry));
+}
+
+function writeReviewInput(target, manifest, overallVerdict = 'pass', verdictFor = () => 'pass') {
+  fs.writeFileSync(target, `${JSON.stringify({
+    reviewer: 'root-controller',
+    reviewedAt: '2026-08-26T00:00:00.000Z',
+    overallVerdict,
+    runs: manifest.runs.map((entry) => ({
+      runId: entry.runId,
+      verdict: verdictFor(entry),
+      notes: `Manual fixture verdict for ${entry.runId}.`,
+    })),
+  }, null, 2)}\n`);
+}
+
+function cloneCollection(sourceManifestPath, name, mutate = () => {}) {
+  const targetDir = path.join(sandbox, 'collection-fixtures', name);
+  fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+  fs.cpSync(path.dirname(sourceManifestPath), targetDir, { recursive: true });
+  const targetManifestPath = path.join(targetDir, 'scoring-manifest.json');
+  const targetManifest = JSON.parse(fs.readFileSync(targetManifestPath, 'utf-8'));
+  targetManifest.manifestPath = targetManifestPath;
+  delete targetManifest.manualReview;
+  mutate(targetManifest, targetDir);
+  fs.writeFileSync(targetManifestPath, `${JSON.stringify(targetManifest, null, 2)}\n`);
+  return { manifest: targetManifest, manifestPath: targetManifestPath, directory: targetDir };
 }
 
 try {
@@ -136,6 +170,12 @@ try {
     crypto.createHash('sha256').update(fs.readFileSync(path.join(repoRoot, 'skills/harness/SKILL.md'))).digest('hex'),
   );
   assert.equal(manifest.provenance.claudeVersion, '2.1.245 (Claude Code)');
+  assert.equal(manifest.collectionStatus, 'complete');
+  assert.equal(manifest.plannedRunCount, 10);
+  assert.equal(manifest.recordedRunCount, 10);
+  assert.equal(manifest.completedRunCount, 10);
+  assert.equal(manifest.evidenceEligible, true);
+  assert.equal(manifest.shapeContract, null);
   assert.equal(manifest.hostContaminationFixture, undefined, 'host configuration is evidence input, not copied into results');
   assert.equal(manifest.workspace.cleanupStatus, 'removed');
   assert.equal(fs.existsSync(manifest.workspace.root), false, 'collector must remove its external temporary workspace');
@@ -145,6 +185,8 @@ try {
       && entry.semanticVerdict === null
       && entry.assertions.length > 0
       && entry.forbidden.length > 0
+      && /^[a-f0-9]{64}$/u.test(entry.stdoutSha256)
+      && /^[a-f0-9]{64}$/u.test(entry.stderrSha256)
       && fs.existsSync(path.join(path.dirname(manifest.manifestPath), entry.stdoutRef))
       && fs.existsSync(path.join(path.dirname(manifest.manifestPath), entry.stderrRef))
   )));
@@ -168,6 +210,12 @@ try {
   const shapeManifest = onlyManifest(shapeDir);
   assert.deepEqual(shapeManifest.variants, ['with-skill']);
   assert.equal(shapeManifest.runs.length, 5);
+  assert.equal(shapeManifest.collectionStatus, 'complete');
+  assert.equal(shapeManifest.plannedRunCount, 5);
+  assert.equal(shapeManifest.recordedRunCount, 5);
+  assert.equal(shapeManifest.completedRunCount, 5);
+  assert.equal(shapeManifest.evidenceEligible, true);
+  assert.deepEqual(shapeManifest.shapeContract, { id: 'terminal-fact-gate-v1' });
   assert.ok(shapeManifest.runs.every(({ mechanicalShape }) => (
     mechanicalShape?.id === 'terminal-fact-gate-v1'
       && mechanicalShape.pass === true
@@ -178,12 +226,8 @@ try {
   )));
 
   const reviewInput = path.join(sandbox, 'review-input.json');
-  fs.writeFileSync(reviewInput, `${JSON.stringify({
-    reviewer: 'root-controller',
-    reviewedAt: '2026-08-26T00:00:00.000Z',
-    overallVerdict: 'pass',
-    runs: shapeManifest.runs.map(({ runId }) => ({ runId, verdict: 'pass', notes: 'Manually read; exact shape and semantics satisfy the rubric.' })),
-  }, null, 2)}\n`);
+  writeReviewInput(reviewInput, shapeManifest);
+  const preReviewBytes = fs.readFileSync(shapeManifest.manifestPath);
   const recorded = run([
     '--record-review', shapeManifest.manifestPath,
     '--review-file', reviewInput,
@@ -197,6 +241,9 @@ try {
     reviewedManifest.manualReview.sha256,
     crypto.createHash('sha256').update(fs.readFileSync(canonicalReviewPath)).digest('hex'),
   );
+  const canonicalReview = JSON.parse(fs.readFileSync(canonicalReviewPath, 'utf-8'));
+  assert.equal(canonicalReview.manifestSha256, crypto.createHash('sha256').update(preReviewBytes).digest('hex'),
+    'manual review must bind the pre-review manifest containing output digests');
   assert.equal(run(['--record-review', shapeManifest.manifestPath, '--review-file', reviewInput]).status, 2,
     'manual review recording must refuse overwrite');
 
@@ -217,6 +264,73 @@ try {
     '--record-review', unreviewedManifest.manifestPath, '--review-file', incompleteReview,
   ]).status, 2, 'manual review must cover every manifest run exactly once');
 
+  const unreviewedManifestPath = onlyManifestPath(unreviewedDir);
+  const passReviewFor = (fixture, label) => {
+    const input = path.join(sandbox, `${label}-pass-review.json`);
+    writeReviewInput(input, fixture.manifest);
+    return run(['--record-review', fixture.manifestPath, '--review-file', input]);
+  };
+
+  const tampered = cloneCollection(unreviewedManifestPath, 'tampered-output');
+  fs.appendFileSync(path.join(tampered.directory, tampered.manifest.runs[0].stdoutRef), '\ntampered');
+  const tamperedReview = passReviewFor(tampered, 'tampered-output');
+  assert.equal(tamperedReview.status, 2);
+  assert.match(tamperedReview.stderr, /stdout digest mismatch/u);
+
+  const stderrTampered = cloneCollection(unreviewedManifestPath, 'tampered-stderr');
+  fs.appendFileSync(path.join(stderrTampered.directory, stderrTampered.manifest.runs[0].stderrRef), 'tampered');
+  const stderrTamperedReview = passReviewFor(stderrTampered, 'tampered-stderr');
+  assert.equal(stderrTamperedReview.status, 2);
+  assert.match(stderrTamperedReview.stderr, /stderr digest mismatch/u);
+
+  const traversal = cloneCollection(unreviewedManifestPath, 'traversal-ref', (candidate) => {
+    candidate.runs[0].stdoutRef = '../escape.txt';
+  });
+  const traversalReview = passReviewFor(traversal, 'traversal-ref');
+  assert.equal(traversalReview.status, 2);
+  assert.match(traversalReview.stderr, /canonical output ref/u);
+
+  const mismatch = cloneCollection(unreviewedManifestPath, 'mismatched-manifest-path', (candidate) => {
+    candidate.manifestPath = path.join(sandbox, 'wrong', 'scoring-manifest.json');
+  });
+  const mismatchReview = passReviewFor(mismatch, 'mismatched-manifest-path');
+  assert.equal(mismatchReview.status, 2);
+  assert.match(mismatchReview.stderr, /manifestPath.*canonical path/u);
+
+  const malformedProvenance = cloneCollection(unreviewedManifestPath, 'malformed-provenance', (candidate) => {
+    candidate.provenance.repositoryHead = 'not-a-head';
+  });
+  const malformedProvenanceReview = passReviewFor(malformedProvenance, 'malformed-provenance');
+  assert.equal(malformedProvenanceReview.status, 2);
+  assert.match(malformedProvenanceReview.stderr, /provenance/u);
+
+  const malformedShape = cloneCollection(unreviewedManifestPath, 'malformed-shape', (candidate) => {
+    candidate.shapeContract = { id: 'unknown-shape' };
+  });
+  const malformedShapeReview = passReviewFor(malformedShape, 'malformed-shape');
+  assert.equal(malformedShapeReview.status, 2);
+  assert.match(malformedShapeReview.stderr, /shape metadata/u);
+
+  const malformedEval = cloneCollection(unreviewedManifestPath, 'malformed-eval', (candidate) => {
+    candidate.evalSuiteVersion = '0.0.0';
+  });
+  const malformedEvalReview = passReviewFor(malformedEval, 'malformed-eval');
+  assert.equal(malformedEvalReview.status, 2);
+  assert.match(malformedEvalReview.stderr, /eval metadata/u);
+
+  const symlinkReal = cloneCollection(unreviewedManifestPath, 'symlink-real');
+  const symlinkCollection = path.join(sandbox, 'symlink-collection');
+  fs.symlinkSync(symlinkReal.directory, symlinkCollection, process.platform === 'win32' ? 'junction' : 'dir');
+  symlinkReal.manifest.manifestPath = path.join(symlinkCollection, 'scoring-manifest.json');
+  fs.writeFileSync(symlinkReal.manifestPath, `${JSON.stringify(symlinkReal.manifest, null, 2)}\n`);
+  const symlinkReviewInput = path.join(sandbox, 'symlink-pass-review.json');
+  writeReviewInput(symlinkReviewInput, symlinkReal.manifest);
+  const symlinkReview = run([
+    '--record-review', path.join(symlinkCollection, 'scoring-manifest.json'), '--review-file', symlinkReviewInput,
+  ]);
+  assert.equal(symlinkReview.status, 2);
+  assert.match(symlinkReview.stderr, /symlink/u);
+
   const failedDir = path.join(sandbox, 'failed');
   const failed = run([
     '--case', 'question-must-be-pre-authorized', '--reps', '5', '--timeout-ms', '2000', '--results-dir', failedDir,
@@ -228,6 +342,19 @@ try {
   assert.ok(failedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'exit-nonzero' && semanticVerdict === null
   )));
+  assert.equal(failedManifest.collectionStatus, 'complete');
+  assert.equal(failedManifest.completedRunCount, 0);
+  assert.equal(failedManifest.evidenceEligible, false);
+  const failedPassReview = path.join(sandbox, 'failed-pass-review.json');
+  writeReviewInput(failedPassReview, failedManifest);
+  assert.equal(run([
+    '--record-review', failedManifest.manifestPath, '--review-file', failedPassReview,
+  ]).status, 2, 'nonzero runs cannot receive pass verdicts');
+  const failedReview = path.join(sandbox, 'failed-review.json');
+  writeReviewInput(failedReview, failedManifest, 'fail', () => 'fail');
+  assert.equal(run([
+    '--record-review', failedManifest.manifestPath, '--review-file', failedReview,
+  ]).status, 0, 'nonzero runs remain reviewable as fail');
 
   const timedDir = path.join(sandbox, 'timed');
   const timed = run([
@@ -240,7 +367,38 @@ try {
   assert.ok(timedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'timeout' && semanticVerdict === null
   )));
+  assert.equal(timedManifest.collectionStatus, 'complete');
+  assert.equal(timedManifest.completedRunCount, 0);
+  assert.equal(timedManifest.evidenceEligible, false);
+  const timedPassReview = path.join(sandbox, 'timed-pass-review.json');
+  writeReviewInput(timedPassReview, timedManifest);
+  assert.equal(run([
+    '--record-review', timedManifest.manifestPath, '--review-file', timedPassReview,
+  ]).status, 2, 'timeout runs cannot receive pass verdicts');
   assert.match(timed.stderr, /status=timeout/u);
+
+  const shapeFailedDir = path.join(sandbox, 'shape-failed');
+  assert.equal(run([
+    '--case', 'fact-lanes-before-interview', '--variant', 'with-skill', '--reps', '5',
+    '--timeout-ms', '2000', '--results-dir', shapeFailedDir,
+  ], 'shape-bad').status, 1);
+  const shapeFailedManifest = onlyManifest(shapeFailedDir);
+  assert.equal(shapeFailedManifest.evidenceEligible, false);
+  const shapeFailedPassReview = path.join(sandbox, 'shape-failed-pass-review.json');
+  writeReviewInput(shapeFailedPassReview, shapeFailedManifest);
+  assert.equal(run([
+    '--record-review', shapeFailedManifest.manifestPath, '--review-file', shapeFailedPassReview,
+  ]).status, 2, 'mechanical shape failures cannot receive pass verdicts');
+
+  const partial = cloneCollection(unreviewedManifestPath, 'partial-aborted', (candidate) => {
+    candidate.runs = candidate.runs.slice(0, 3);
+    candidate.collectionStatus = 'aborted';
+    candidate.recordedRunCount = 3;
+    candidate.completedRunCount = 3;
+    candidate.evidenceEligible = false;
+  });
+  const partialPassReview = passReviewFor(partial, 'partial-aborted');
+  assert.equal(partialPassReview.status, 2, 'partial aborted collections cannot receive overall pass');
 
   const reuseDir = path.join(sandbox, 'reuse');
   assert.equal(run(['--case', 'question-must-be-pre-authorized', '--reps', '5', '--timeout-ms', '2000', '--results-dir', reuseDir]).status, 0);
