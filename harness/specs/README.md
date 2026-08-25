@@ -15,6 +15,7 @@
 
 ## 附录
 
+- [development-target.md](development-target.md) — Claude Code 每次会话自动加载的已批准重构目标；明确目标与当前实现的边界、TECPC、Clarify 垂直闭环和实施顺序
 - [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、evidence-bound readiness predicates、条件风险面与 Decision frontier
 - [tdd-execution.md](tdd-execution.md)
 - [verify-contract.md](verify-contract.md)

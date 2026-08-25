@@ -19,6 +19,10 @@ runtime/.bootstrap-ran
 # CodeGraph local index
 .codegraph/
 
+# Agent execution workspaces
+.worktrees/
+.superpowers/
+
 # Build outputs
 **/target/
 **/build/

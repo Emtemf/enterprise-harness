@@ -2,6 +2,12 @@
 
 本仓库开发 Enterprise Harness Claude Code plugin。长期合同在 `harness/specs/`，插件资产在根目录 `skills/`、`agents/` 与 `hooks/`，动态状态在 active change 资产中。
 
+## 已批准的开发目标
+
+@harness/specs/development-target.md
+
+上面的 imported target 是后续重构的目标，不代表仓库已经实现其中所有能力。判断当前行为仍须读取对应现行 spec、代码和 fresh evidence；不得把目标设计当作完成证据。
+
 ## 唯一入口
 
 - 用户（plugin）：`/enterprise-harness:harness`
@@ -17,8 +23,7 @@ clarify → design → plan → implement → verify → archive
 
 ## Clarify 方法论
 
-Clarify 的方法来源、固定审阅 commit 与吸收/舍弃边界只保存在开发参考
-`harness/specs/upstream-mapping.md` 和 `harness/upstream/registry.json`，不进入生产 Skill 指令。
+Clarify 的方法来源、固定审阅 commit 与吸收/舍弃边界只保存在开发参考 `harness/specs/upstream-mapping.md` 和 `harness/upstream/registry.json`，不进入生产 Skill 指令。
 
 核心原则：**Facts → Agent 找（CodeGraph/Context7）；全部 applicable Facts 完成后，Decisions → 用户决定。**
 
@@ -51,9 +56,7 @@ src/test/java/**
 openapi/**
 ```
 
-只有当前 session 已绑定 change，或无 session 的兼容客户端存在 legacy
-`harness/ACTIVE_CHANGE` 时，才启用以下写入前置 gate。未绑定 session 属于未进入
-Harness 的普通 Claude Code 会话，不能阻止其直接编辑这些常规代码路径。
+只有当前 session 已绑定 change，或无 session 的兼容客户端存在 legacy `harness/ACTIVE_CHANGE` 时，才启用以下写入前置 gate。未绑定 session 属于未进入 Harness 的普通 Claude Code 会话，不能阻止其直接编辑这些常规代码路径。
 
 启用治理后，写入前必须存在：
 
@@ -99,10 +102,6 @@ enterprise-harness workflow status --json
 enterprise-harness handoff explain <EH-CODE>
 ```
 
-本仓库开发时将 `enterprise-harness` 替换为：
-
-```bash
-node runtime/cli.mjs
-```
+本仓库开发时将 `enterprise-harness` 替换为 `node runtime/cli.mjs`。
 
 当前研发快照只在 `docs/internal/current-development-status.md`，不属于安装合同或发布资产。
