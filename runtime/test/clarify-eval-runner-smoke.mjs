@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -24,12 +25,20 @@ fs.writeFileSync(path.join(pollutedConfigDir, 'settings.json'), `${JSON.stringif
 const fakeClaude = path.join(binDir, process.platform === 'win32' ? 'claude.cmd' : 'claude');
 fs.writeFileSync(fakeClaude, `#!/usr/bin/env node
 const mode = process.env.EH_FAKE_CLAUDE_MODE || 'success';
-if (mode === 'hang') setInterval(() => {}, 1000);
+if (process.argv.slice(2).includes('--version')) process.stdout.write('2.1.245 (Claude Code)\\n');
+else if (mode === 'hang') setInterval(() => {}, 1000);
 else {
   const fs = require('node:fs');
   const path = require('node:path');
   const config = JSON.parse(fs.readFileSync(path.join(process.env.CLAUDE_CONFIG_DIR, 'settings.json'), 'utf-8'));
-  process.stdout.write(JSON.stringify({ argv: process.argv.slice(2), mode, cwd: process.cwd(), config }));
+  if (mode === 'shape') process.stdout.write([
+    'Fact lanes: code=pending, docs=pending',
+    'Next research action/blocker: tools disabled in Plan mode',
+    'Topology: not built',
+    'Scores: not computed',
+    'User question: none',
+  ].join('\\n'));
+  else process.stdout.write(JSON.stringify({ argv: process.argv.slice(2), mode, cwd: process.cwd(), config }));
   if (mode === 'fail') { process.stderr.write('fixture failure\\n'); process.exitCode = 7; }
 }
 `);
@@ -68,6 +77,8 @@ try {
   assert.match(help.stdout, /--reps <n>/u);
   assert.match(help.stdout, /--timeout-ms <ms>/u);
   assert.match(help.stdout, /--results-dir <path>/u);
+  assert.match(help.stdout, /--variant <name>/u);
+  assert.match(help.stdout, /--record-review <manifest>/u);
   assert.match(help.stdout, /control.*with-skill/isu);
 
   const dry = run(['--case', 'question-must-be-pre-authorized', '--model', 'sonnet', '--dry-run']);
@@ -98,6 +109,16 @@ try {
   )));
   assert.equal(fs.existsSync(resultsDir), false, 'dry-run must not persist results');
 
+  const guidedDry = run([
+    '--case', 'fact-lanes-before-interview', '--model', 'sonnet',
+    '--variant', 'with-skill', '--reps', '5', '--dry-run',
+  ]);
+  assert.equal(guidedDry.status, 0, guidedDry.stderr);
+  const guidedPlan = JSON.parse(guidedDry.stdout);
+  assert.deepEqual(guidedPlan.variants, ['with-skill']);
+  assert.equal(guidedPlan.runs.length, 5);
+  assert.ok(guidedPlan.runs.every(({ variant }) => variant === 'with-skill'));
+
   const completed = run([
     '--case', 'question-must-be-pre-authorized', '--model', 'sonnet',
     '--reps', '5', '--timeout-ms', '2000', '--results-dir', resultsDir,
@@ -108,6 +129,13 @@ try {
   const manifest = onlyManifest(resultsDir);
   assert.equal(manifest.runs.length, 10);
   assert.equal(manifest.semanticScoring, 'manual-required');
+  assert.equal(manifest.evalSuiteVersion, '0.5.9');
+  assert.match(manifest.provenance.repositoryHead, /^[a-f0-9]{40}$/u);
+  assert.equal(
+    manifest.provenance.skillSha256,
+    crypto.createHash('sha256').update(fs.readFileSync(path.join(repoRoot, 'skills/harness/SKILL.md'))).digest('hex'),
+  );
+  assert.equal(manifest.provenance.claudeVersion, '2.1.245 (Claude Code)');
   assert.equal(manifest.hostContaminationFixture, undefined, 'host configuration is evidence input, not copied into results');
   assert.equal(manifest.workspace.cleanupStatus, 'removed');
   assert.equal(fs.existsSync(manifest.workspace.root), false, 'collector must remove its external temporary workspace');
@@ -130,6 +158,64 @@ try {
       ? ['--safe-mode', '--disable-slash-commands', '--setting-sources', '']
       : ['--setting-sources', '', '--plugin-dir', checkoutRoot]);
   }
+
+  const shapeDir = path.join(sandbox, 'shape');
+  const shaped = run([
+    '--case', 'fact-lanes-before-interview', '--model', 'sonnet',
+    '--variant', 'with-skill', '--reps', '5', '--timeout-ms', '2000', '--results-dir', shapeDir,
+  ], 'shape');
+  assert.equal(shaped.status, 0, shaped.stderr);
+  const shapeManifest = onlyManifest(shapeDir);
+  assert.deepEqual(shapeManifest.variants, ['with-skill']);
+  assert.equal(shapeManifest.runs.length, 5);
+  assert.ok(shapeManifest.runs.every(({ mechanicalShape }) => (
+    mechanicalShape?.id === 'terminal-fact-gate-v1'
+      && mechanicalShape.pass === true
+      && mechanicalShape.problems.length === 0
+      && mechanicalShape.semanticPass === false
+      && mechanicalShape.manualReviewRequired === true
+      && mechanicalShape !== null
+  )));
+
+  const reviewInput = path.join(sandbox, 'review-input.json');
+  fs.writeFileSync(reviewInput, `${JSON.stringify({
+    reviewer: 'root-controller',
+    reviewedAt: '2026-08-26T00:00:00.000Z',
+    overallVerdict: 'pass',
+    runs: shapeManifest.runs.map(({ runId }) => ({ runId, verdict: 'pass', notes: 'Manually read; exact shape and semantics satisfy the rubric.' })),
+  }, null, 2)}\n`);
+  const recorded = run([
+    '--record-review', shapeManifest.manifestPath,
+    '--review-file', reviewInput,
+  ]);
+  assert.equal(recorded.status, 0, recorded.stderr);
+  const reviewedManifest = JSON.parse(fs.readFileSync(shapeManifest.manifestPath, 'utf-8'));
+  assert.equal(reviewedManifest.manualReview.ref, 'manual-review.json');
+  const canonicalReviewPath = path.join(path.dirname(shapeManifest.manifestPath), reviewedManifest.manualReview.ref);
+  assert.equal(fs.lstatSync(canonicalReviewPath).isFile(), true);
+  assert.equal(
+    reviewedManifest.manualReview.sha256,
+    crypto.createHash('sha256').update(fs.readFileSync(canonicalReviewPath)).digest('hex'),
+  );
+  assert.equal(run(['--record-review', shapeManifest.manifestPath, '--review-file', reviewInput]).status, 2,
+    'manual review recording must refuse overwrite');
+
+  const incompleteReview = path.join(sandbox, 'incomplete-review.json');
+  fs.writeFileSync(incompleteReview, `${JSON.stringify({
+    reviewer: 'root-controller',
+    reviewedAt: '2026-08-26T00:00:00.000Z',
+    overallVerdict: 'fail',
+    runs: shapeManifest.runs.slice(1).map(({ runId }) => ({ runId, verdict: 'fail', notes: 'fixture' })),
+  })}\n`);
+  const unreviewedDir = path.join(sandbox, 'unreviewed');
+  assert.equal(run([
+    '--case', 'fact-lanes-before-interview', '--variant', 'with-skill', '--reps', '5',
+    '--timeout-ms', '2000', '--results-dir', unreviewedDir,
+  ], 'shape').status, 0);
+  const unreviewedManifest = onlyManifest(unreviewedDir);
+  assert.equal(run([
+    '--record-review', unreviewedManifest.manifestPath, '--review-file', incompleteReview,
+  ]).status, 2, 'manual review must cover every manifest run exactly once');
 
   const failedDir = path.join(sandbox, 'failed');
   const failed = run([

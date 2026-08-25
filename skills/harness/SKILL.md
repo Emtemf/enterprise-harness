@@ -14,11 +14,29 @@ Harness 是 plugin 的唯一用户入口，并始终留在主对话。Main 负�
 clarify → design → plan → implement → verify → archive
 ```
 
-<HARD-GATE>
-Clarify 必须严格按 `完成事实探索 → 综合事实 → 澄清 Decisions` 执行。只要任一 required fact lane
-仍为 pending、missing、invalid 或 stale，Main 就不得建立正式评分、不得调用 `AskUserQuestion`、不得
-把 Fact 改问用户，也不得进入 Design。适用的 CodeGraph 与 Context7 lane 都完成后，Main 才继续。
-</HARD-GATE>
+## Turn entry：Fact gate
+
+每轮在任何流程、状态说明或 `AskUserQuestion` 指令之前先执行本入口。`factGateOpen iff 任一 required lane 为 pending、missing、invalid 或 stale`。
+factGateOpen 时不得建立 topology 或评分，不得进入 Design。
+
+- 若 factGateOpen 且能执行一个 agent-owned research/recovery action，只执行一个 agent-owned research/recovery action，
+  随后重算全部 required lanes 并回到本入口；本轮不做其它动作或输出。action 可创建/校验 brief、handoff、show、
+  validate、re-dispatch 或执行 runtime recovery，所缺输入只取 raw request、repository、fact worker，不改问用户。
+- 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行该 action，本轮只输出恰好五行，字段值不得
+  夹带问题或请求：
+
+```text
+Fact lanes: <required lane states>
+Next research action/blocker: <one action or blocker>
+Topology: not built
+Scores: not computed
+User question: none
+```
+
+  输出 `User question: none` 后立即结束本轮，后面无任何内容。
+
+factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以及索要
+changeId、path、SDK、version、entrypoint、stack、status、偏离授权都算 user question。Plan mode、tools unavailable、user-only、topology、scope、用户催促都不是例外。
 
 Clarify 开始时读取 [输出语义合同](references/output-contract.md)；需要校准 fact-first 派发、Fast Path
 或高价值问题时再读取 [Clarify few-shots](references/clarify-few-shots.md)。Schema 与 runtime 是机械
@@ -61,19 +79,7 @@ workflow status → if clear, clarify status → if repair-required, clarify rec
 
 1. 每个 `component × predicate` 初始都是 **unmet**。只有与来源中完整语义分句精确匹配的 claim、已记录的用户 round answer、
    或 validated ResearchPacket fact 能把它改为 covered；常识、默认方案和 Main 补全不能。
-2. 任一 required fact lane pending/missing/invalid/stale 时 fact gate incomplete：不得 `AskUserQuestion`、建立
-   topology、评分或向用户请求输入；允许且必须执行 runtime 返回或 `Next research action` 所需的单一
-   research/recovery 工具动作（brief、handoff、show、validate、re-dispatch 等）。工具动作完成后重新计算全部
-   required lane 状态。若仍不能推进而开始输出 terminal gate block，只输出 `Fact lanes`、
-   `Next research action/blocker`、`Topology: not built`、`Scores: not computed`、`User question: none`；
-   输出 `User question: none` 后立即结束本次响应，禁止尾随文本、用户请求或工具调用。
-   创建 brief 所缺输入只能来自 raw request、repository 或 fact worker；仍缺失就在
-   `Next research action/blocker` 报告 blocker。changeId、project path、SDK、version、entrypoint 或 stack 都不得向用户请求。
-
-   | Observed rationalization / red flag | Required response |
-   |---|---|
-   | 尾随“我现在能做什么”“我还能做什么”“要推进请提供”或“要推进需要你提供” | 禁止尾随内容；gate block 后结束 |
-   | “不依赖 facts 的 user-only、topology 或 scope 可以先问” | 不是例外；fact gate complete 前零提问 |
+2. factGateOpen 时只执行 Turn entry 合同；关闭后才建立 topology、评分或用户 Decision。
 3. 任一 applicable decision surface 为 pending/open：它所影响的 Scope、Constraints 或 Acceptance predicate
    保持 unmet，对应维度最高 3。不能一边列 pending decisions，一边把维度写成 4/5。
 4. score 4 = 本维度全部 readiness predicates covered；score 5 = score 4 + 含“确认/批准/按此进入下一阶段”等

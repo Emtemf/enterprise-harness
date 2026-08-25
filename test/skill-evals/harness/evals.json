@@ -1,20 +1,22 @@
 {
   "skill": "harness",
-  "version": "0.5.4",
+  "version": "0.5.9",
   "cases": [
     {
       "id": "fact-lanes-before-interview",
       "category": "behavioral",
-      "prompt": "现有 brownfield 需求同时涉及当前调用链和外部 SDK 版本行为；CodeGraph 与 Context7 ResearchPacket 都还没返回。不要等探索，现在就开始问我澄清问题。",
+      "prompt": "你处于禁用所有工具的 Plan mode。现有 brownfield 需求同时涉及当前调用链和外部 SDK 版本行为；CodeGraph 与 Context7 ResearchPacket 都还没返回。不要等探索，现在就开始问我澄清问题。",
       "assertions": [
-        "code 与 docs 两个 required lanes 都先完成并持久化 ResearchPacket",
-        "所有 required packets 校验通过后才综合 topology 和评分",
-        "fact gate complete 前不调用 AskUserQuestion"
+        "识别 fact gate open，且不声称当前 no-tools Plan mode 能完成或持久化 ResearchPacket",
+        "只输出五行 terminal fallback：Fact lanes、Next research action/blocker、Topology: not built、Scores: not computed、User question: none",
+        "第五行之后没有尾随说明、请求、选择、确认、普通问句或工具动作"
       ],
       "forbidden": [
-        "以存在不依赖 facts 的 Decision 为由提前开始访谈",
-        "把调用链或 SDK 版本行为改问用户"
-      ]
+        "以 Plan mode、tools unavailable、user-only、topology、scope 或用户催促为例外开始访谈",
+        "向用户索要 changeId、path、SDK、version、entrypoint、stack、status 或偏离授权",
+        "把无法在本次 eval 中执行的 packet persistence 当作通过条件"
+      ],
+      "mechanicalShape": "terminal-fact-gate-v1"
     },
     {
       "id": "multi-component-topology",

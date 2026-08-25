@@ -78,10 +78,10 @@ assert.doesNotMatch(skill, /workflow status[^\n]{0,80}(?:与|and|\+)[^\n]{0,40}c
 assert.doesNotMatch(skill, /(?:recover\/status|status\/recover)/iu,
   'Harness must not use an ambiguous shorthand that implies unconditional recovery');
 
-const factGateStart = skill.indexOf('2. 任一 required fact lane');
-const factGateEnd = skill.indexOf('\n3. 任一 applicable decision surface', factGateStart);
+const factGateStart = skill.indexOf('## Turn entry：Fact gate');
+const factGateEnd = skill.indexOf('Clarify 开始时读取', factGateStart);
 assert.ok(factGateStart >= 0 && factGateEnd > factGateStart,
-  'Harness must retain a bounded required-fact-lane branch');
+  'Harness must put a bounded required-fact-lane branch at turn entry');
 const factGate = skill.slice(factGateStart, factGateEnd);
 for (const field of [
   'Fact lanes',
@@ -91,27 +91,25 @@ for (const field of [
   'User question: none',
 ]) assert.match(factGate, new RegExp(escapeRegExp(field), 'u'),
   `Incomplete fact gate must emit ${field}`);
-assert.match(factGate, /输出 `User question: none` 后立即结束本次响应/iu,
+assert.match(factGate, /`User question: none` 后立即结束本轮/iu,
   'Incomplete fact gate must terminate immediately after its fixed gate block');
 assert.match(factGate,
-  /fact gate incomplete[\s\S]{0,160}允许且必须执行 runtime 返回或 `Next research action` 所需的单一\s*research\/recovery 工具动作/iu,
+  /factGateOpen[\s\S]{0,500}只执行一个 agent-owned research\/recovery action/iu,
   'Incomplete fact gate must keep the single research/recovery action executable');
-assert.match(factGate, /工具动作完成后重新计算全部\s*required lane 状态/iu,
+assert.match(factGate, /重算全部 required lanes 并回到本入口/iu,
   'Incomplete fact gate must recompute lane state after its research/recovery action');
 assert.match(factGate,
-  /若仍不能推进[\s\S]{0,240}terminal gate block[\s\S]{0,240}`User question: none` 后立即结束本次响应，禁止尾随文本、用户请求或工具调用/iu,
+  /不能执行[\s\S]{0,240}恰好五行[\s\S]{0,300}`User question: none` 后立即结束本轮，后面无任何内容/iu,
   'Only a selected terminal gate response must prohibit trailing text, user requests, and tool calls');
 assert.doesNotMatch(factGate, /fact gate complete 前[^\n]*任何工具调用都禁止/iu,
   'Incomplete fact gate must not deadlock required research/recovery tool actions');
-assert.match(factGate, /raw request、repository 或 fact worker/iu,
+assert.match(factGate, /raw request、repository、fact worker/iu,
   'Missing brief inputs must come from non-user fact sources');
-assert.match(factGate, /user-only、topology 或 scope[^\n]*(?:不是例外|无例外)/iu,
+assert.match(factGate, /user-only、topology、scope[^\n]*(?:不是例外|无例外)/iu,
   'Incomplete fact gate must close user-only, topology, and scope rationalizations');
-assert.match(factGate, /(?:我现在能做什么|要推进请提供)[^\n]*(?:禁止|red flag)/iu,
-  'Incomplete fact gate must identify the observed trailing-section rationalizations');
-assert.match(factGate, /(?:我还能做什么|要推进需要你提供)[^\n]*(?:禁止|red flag)/iu,
-  'Incomplete fact gate must close equivalent trailing-section wording');
-assert.match(factGate, /changeId、project path、SDK、version、entrypoint 或 stack[^\n]*不得向用户请求/iu,
+assert.match(factGate, /请求、选择、确认、普通问句、meta-choice/iu,
+  'Incomplete fact gate must classify every conversational request as a user question');
+assert.match(factGate, /changeId、path、SDK、version、entrypoint、stack、status、偏离授权/iu,
   'Incomplete fact gate must prohibit requesting every observed brief-input placeholder');
 
 console.log(`PASS clarify-skill-contract ${mode}`);
