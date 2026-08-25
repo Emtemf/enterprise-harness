@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/handoff-v2.mjs';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 

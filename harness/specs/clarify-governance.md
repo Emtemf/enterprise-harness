@@ -13,6 +13,9 @@ implementationRefs:
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
   - runtime/core/clarify-assessments.mjs
+  - runtime/core/classification-artifact.mjs
+  - runtime/lib/clarify-readiness.mjs
+  - runtime/lib/status-summary.mjs
   - runtime/clarify.mjs
   - skills/harness/assets/debt-assessment.json.tmpl
   - skills/harness/assets/project-contract-assessment.json.tmpl
@@ -30,6 +33,9 @@ testRefs:
   - runtime/test/clarify-question-smoke.mjs
   - runtime/test/clarify-question-hook-smoke.mjs
   - runtime/test/clarify-assessments-smoke.mjs
+  - runtime/test/classification-v2-smoke.mjs
+  - runtime/test/classification-artifact-authority-smoke.mjs
+  - runtime/test/clarify-readiness-smoke.mjs
 ---
 
 # Clarify Governance Contract
@@ -49,6 +55,10 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 ## Artifact and Gate Rules
 
 The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, option selection must match the candidate/event option set, every debt observation has exactly one disposition, a snapshot event list is the ordered ledger prefix, and classification totals/tier/route decision agree with their inputs.
+
+Classification v2 sums the four evidence-bearing integer scores (`functionalSize`, `uncertainty`, `changeRisk`, `verificationDifficulty`) and selects L0 for totals 0–2, L1 for 3–5, L2 for 6–8, and L3 for 9–12. Public API break, security boundary, or cross-service transaction flags can only upgrade to at least L2; irreversible data migration or unknown compliance obligation upgrades to L3. The matching append-only `classification-route` event must select the derived tier before the artifact can be persisted.
+
+Readiness exposes the ordered in-memory projection through status. Its stable recovery range is `EH-CLARIFY-RESEARCH-131` through `EH-CLARIFY-PROOF-143`; exactly the first non-passing item supplies the recovery action. `EH-CLASSIFICATION-ROUTE-128` identifies route-event disagreement and `EH-CLASSIFICATION-STALE-129` identifies stale classification inputs.
 
 | Blocked gate | Single recovery action |
 | --- | --- |

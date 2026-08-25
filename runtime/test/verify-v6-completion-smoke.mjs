@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);

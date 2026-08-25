@@ -123,6 +123,27 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Project-contract assessment 试图引用不安全路径或携带 instruction write/apply payload。',
     recovery: '删除 write/apply 字段并仅保留 repository-relative instruction evidence 后重试。',
   },
+  'EH-CLASSIFICATION-ROUTE-128': {
+    summary: 'Clarify classification 与 append-only classification-route event 不一致。',
+    recovery: '按当前 evidence-derived tier 追加匹配 route event，再原子写入 classification v2。',
+  },
+  'EH-CLASSIFICATION-STALE-129': {
+    summary: 'Clarify classification 的 evidence 或 input digest 已过期。',
+    recovery: '从当前 requirements、snapshot、assessments 和 ResearchPackets 重新计算 classification。',
+  },
+  'EH-CLARIFY-RESEARCH-131': { summary: 'Clarify research lane 或 required ResearchPacket 未就绪。', recovery: '完成并持久化每个 required fresh ResearchPacket。' },
+  'EH-CLARIFY-TOPOLOGY-132': { summary: 'Clarify component topology 未确认。', recovery: '确认 evidence-derived component topology。' },
+  'EH-CLARIFY-AMBIGUITY-133': { summary: 'Clarify evidence-bound ambiguity 未达阈值。', recovery: '解决 weakest ambiguity 并重新计算 requirements。' },
+  'EH-CLARIFY-QUESTION-134': { summary: '仍有一个 authorized Clarify question 未关闭。', recovery: '原样解决当前 authorized pending question。' },
+  'EH-CLARIFY-DECISIONS-135': { summary: 'Clarify decision prefix 未密封或已过期。', recovery: '密封当前 ordered decision-ledger prefix。' },
+  'EH-CLARIFY-DEBT-136': { summary: 'Clarify technical-debt disposition 未完成。', recovery: '记录并验证全部 applicable debt dispositions。' },
+  'EH-CLARIFY-CONTRACT-137': { summary: 'Clarify project-contract disposition 未完成。', recovery: '记录并验证 project-contract assessment。' },
+  'EH-CLARIFY-REQUIREMENTS-138': { summary: '当前 Clarify requirements 未批准。', recovery: '批准并持久化当前 evidence-derived requirements。' },
+  'EH-CLARIFY-CLASSIFICATION-139': { summary: 'Strict classification v2 缺失或不新鲜。', recovery: '从当前 authoritative inputs 重新计算并持久化 classification。' },
+  'EH-CLARIFY-SELF-CHECK-140': { summary: 'Clarify StageResult self-check 缺失或未通过。', recovery: '发布 fresh passing Clarify StageResult self-check。' },
+  'EH-CLARIFY-REVIEW-141': { summary: 'Clarify independent ReviewResult 缺失或未通过。', recovery: '发布 fresh independent passing Clarify ReviewResult。' },
+  'EH-CLARIFY-TECPC-142': { summary: 'Clarify TECPC 未闭合。', recovery: '闭合 Clarify TECPC 且不保留 pending correction。' },
+  'EH-CLARIFY-PROOF-143': { summary: 'Fresh digest-bound ClarifyProof 缺失。', recovery: '发布与 StageResult 和 ReviewResult 绑定的 ClarifyProof。' },
 });
 
 export function diagnostic(code) {

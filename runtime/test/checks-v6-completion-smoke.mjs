@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { validateCompletionPredicate, validateState } from '../lib/checks.mjs';
 
 const mode = process.argv[2];

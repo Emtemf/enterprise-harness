@@ -54,6 +54,7 @@ function activeChangeSummary(root, options = {}) {
     nextAction: workflow.nextAction,
     workflowStatus: workflow.status,
     audit: workflow.audit,
+    ...(workflow.clarifyReadiness ? { clarifyReadiness: workflow.clarifyReadiness } : {}),
   };
 }
 
@@ -147,6 +148,13 @@ export function renderStatusSummary(summary) {
     `- ${summary.recommendedEntry || '/enterprise-harness:harness'}`,
     '当前动作顺序',
     `- ${summary.nextAction || '/enterprise-harness:harness'}`,
+    summary.activeChange.clarifyReadiness ? 'Clarify readiness' : null,
+    summary.activeChange.clarifyReadiness
+      ? `- ${summary.activeChange.clarifyReadiness.items.filter(({ status }) => ['pass', 'not-applicable'].includes(status)).length}/${summary.activeChange.clarifyReadiness.items.length} passed`
+      : null,
+    summary.activeChange.clarifyReadiness?.recovery
+      ? `- recovery: ${summary.activeChange.clarifyReadiness.recovery.code} ${summary.activeChange.clarifyReadiness.recovery.action}`
+      : null,
     '普通用户下一步',
     '- plugin：/enterprise-harness:harness',
     '- 本仓库开发：/harness',

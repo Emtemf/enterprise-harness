@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { appendAgentEvent } from '../../runtime/lib/agent-evidence.mjs';
 import { createHandoffV2 } from '../../runtime/core/handoff-v2.mjs';
-import { writeClassificationArtifact } from '../../runtime/core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from '../../runtime/test/classification-v2-fixture.mjs';
 import { updateChangeState } from '../../runtime/core/change-state.mjs';
 import {
   readTaskExecutionReceipt,

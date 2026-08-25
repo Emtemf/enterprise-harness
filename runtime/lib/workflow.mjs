@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { auditWorkflow } from './workflow-audit.mjs';
 import { validateStageGate } from './stage-results.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
+import { buildClarifyReadiness } from './clarify-readiness.mjs';
 
 const V6_STAGES = new Set(['clarify', 'design', 'plan', 'implement', 'verify', 'archive']);
 
@@ -73,6 +74,7 @@ function hasPersistedClassification(data) {
 export function classificationFor(data, root = null, changeId = null) {
   if (data?.schemaVersion === 6) {
     if (!root || !changeId || !data.artifacts?.classification) {
+      if (data?.stage === 'clarify' && !data.artifacts?.classification) return null;
       throw new Error('EH-CLASSIFICATION-AUTHORITY-005: v6 classification artifact reference is required');
     }
     return readClassificationArtifact(root, changeId, data.artifacts.classification);
@@ -403,6 +405,9 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const auditGap = firstAuditBlocker
     ? `已完成阶段${firstBlockedStage ? ` ${firstBlockedStage}` : ''} 的权威证据审计失败：${firstAuditBlocker.code} ${firstAuditBlocker.message}；恢复：${firstAuditBlocker.recovery}`
     : currentGap;
+  const clarifyReadiness = data?.schemaVersion === 6 && stage === 'clarify'
+    ? buildClarifyReadiness(root, changeId)
+    : null;
   return {
     changeId,
     classification,
@@ -423,6 +428,7 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
       : (data.workflow ?? null),
     validation: data.validation ?? null,
     nextEntry: auditBlocked ? '/harness' : nextEntry,
+    ...(clarifyReadiness ? { clarifyReadiness } : {}),
   };
 }
 

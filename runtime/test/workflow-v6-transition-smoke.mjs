@@ -6,7 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateV6State } from '../core/change-state.mjs';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { applyV6ScopeConfirmationDecision, applyV6PlanReadinessDecision, applyV6ImplementCompletionDecision, applyV6VerifyCompletionDecision, inferPendingDecision } from '../lib/workflow.mjs';
 
 const mode = process.argv[2];

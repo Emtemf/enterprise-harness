@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { appendAgentEvent, gitCommonDir } from '../lib/agent-evidence.mjs';
 import { createHandoffV2 } from '../core/handoff-v2.mjs';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { computeStageGateDigest } from '../lib/execution-prerequisites.mjs';
 import { preWrite } from '../lib/hooks/pre-write.mjs';
 import {

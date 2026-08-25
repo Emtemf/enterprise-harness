@@ -6,9 +6,9 @@ import process from 'node:process';
 import {
   readClassificationArtifact,
   replaceClassificationArtifact,
-  writeClassificationArtifact,
 } from '../core/classification-artifact.mjs';
 import { updateChangeState } from '../core/change-state.mjs';
+import { classificationV2Fixture, writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -16,14 +16,15 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-classification-cas-'));
 const changeId = 'classification-cas';
 const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
-const initialClassification = {
+const initialInput = {
   impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
   decision: { tier: 'L1' },
 };
 
 try {
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  const initialReference = writeClassificationArtifact(root, changeId, initialClassification);
+  const initialReference = writeClassificationV2Fixture(root, changeId, initialInput, 'initial');
+  const initialClassification = readClassificationArtifact(root, changeId, initialReference);
   fs.writeFileSync(statePath, `${JSON.stringify({
     schemaVersion: 6,
     revision: 1,
@@ -34,10 +35,10 @@ try {
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2)}\n`);
 
-  const replacement = {
-    ...initialClassification,
+  const replacement = classificationV2Fixture(root, changeId, {
+    tier: 'L1',
     impact: { ...initialClassification.impact, api: 'yes' },
-  };
+  }, 'replacement');
   assert.throws(
     () => replaceClassificationArtifact(root, changeId, replacement, (reference) => {
       updateChangeState(root, changeId, (state) => ({ ...state, currentTask: 'concurrent-task' }), {

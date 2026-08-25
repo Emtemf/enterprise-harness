@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { updateChangeState } from '../core/change-state.mjs';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-v6-state-'));
 try {

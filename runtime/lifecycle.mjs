@@ -20,8 +20,6 @@ import { assertForwardTransition } from './core/stage-transition.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 import {
   readClassificationArtifact,
-  replaceClassificationArtifact,
-  writeClassificationArtifact,
 } from './core/classification-artifact.mjs';
 
 const repoRoot = process.cwd();
@@ -76,17 +74,7 @@ function cmdScaffold(changeId, owner = 'harness-governance', tier = 'L1', topic 
     }
     data.artifacts = {
       ...data.artifacts,
-      classification: writeClassificationArtifact(repoRoot, changeId, {
-        tier,
-        impact: {
-          api: 'unknown',
-          data: 'unknown',
-          architecture: 'unknown',
-          rule: 'unknown',
-          security: 'unknown',
-        },
-        requiredReviews: ['requirements'],
-      }),
+      classification: null,
     };
     writeJson(statePath, data);
   }
@@ -276,23 +264,8 @@ function cmdImpact(changeId, api, dataImpact, architecture, rule, security = 'un
     console.log(`Impact updated: ${changeId}`);
     return;
   }
-  const prior = current.artifacts?.classification
-    ? readClassificationArtifact(repoRoot, changeId, current.artifacts.classification)
-    : {};
-  const classification = {
-    ...prior,
-    impact: { api, data: dataImpact, architecture, rule, security },
-  };
-  replaceClassificationArtifact(repoRoot, changeId, classification, (reference) => (
-    updateChangeState(repoRoot, changeId, (data) => ({
-      ...data,
-      artifacts: { ...data.artifacts, classification: reference },
-    }), {
-      expectedRevision: current.revision,
-      type: 'classification-artifact-updated',
-    })
-  ));
-  console.log(`Classification artifact updated: ${changeId}`);
+  console.error('BLOCK EH-CLASSIFICATION-AUTHORITY-005: v6 impact is derived inside strict classification v2; recompute scores and append the matching classification-route event.');
+  process.exit(2);
 }
 
 function cmdReviewVerdict(changeId, reviewerId, verdict) {

@@ -6,7 +6,7 @@ import { bindSession } from '../lib/sessions.mjs';
 import { loadActiveChange } from '../lib/gates.mjs';
 import { activeChangeInfo } from '../lib/checks.mjs';
 import { buildStatusSummary } from '../lib/status-summary.mjs';
-import { writeClassificationArtifact } from '../core/classification-artifact.mjs';
+import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-session-first-diagnostics-'));
 const changeId = 'session-bound-change';

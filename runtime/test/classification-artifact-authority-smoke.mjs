@@ -4,16 +4,16 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   readClassificationArtifact,
-  writeClassificationArtifact,
 } from '../core/classification-artifact.mjs';
 import { validateV6State } from '../core/change-state.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-classification-authority-'));
 const changeId = 'classification-authority';
 
 try {
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
-  const classification = {
+  const legacyInput = {
     impact: {
       api: 'yes',
       data: 'no',
@@ -24,7 +24,8 @@ try {
     decision: { tier: 'L2' },
   };
 
-  const reference = writeClassificationArtifact(root, changeId, classification);
+  const reference = writeClassificationV2Fixture(root, changeId, legacyInput);
+  const classification = readClassificationArtifact(root, changeId, reference);
   assert.deepEqual(reference, {
     path: `harness/changes/${changeId}/classification.json`,
     digest: reference.digest,

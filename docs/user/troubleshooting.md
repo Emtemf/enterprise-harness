@@ -101,6 +101,21 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-SUBAGENT-RESULT-004` | result 无法解析 | 按 skill schema 返回 |
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |
 | `EH-CLARIFY-AMBIGUITY-006` | 歧义评分不足 | 补 weakest dimension |
+| `EH-CLASSIFICATION-ROUTE-128` | classification tier 与 route event 不一致 | 按当前 evidence-derived tier 追加匹配 route event 后重算 |
+| `EH-CLASSIFICATION-STALE-129` | classification input digest 过期 | 从当前 authoritative inputs 重算 classification |
+| `EH-CLARIFY-RESEARCH-131` | required research 未完成 | 完成并持久化 required fresh ResearchPackets |
+| `EH-CLARIFY-TOPOLOGY-132` | component topology 未确认 | 确认 evidence-derived topology |
+| `EH-CLARIFY-AMBIGUITY-133` | ambiguity threshold 未达标 | 解决 weakest ambiguity |
+| `EH-CLARIFY-QUESTION-134` | authorized question 仍 pending | 原样解决该问题 |
+| `EH-CLARIFY-DECISIONS-135` | decision prefix 未密封 | 密封 ordered ledger prefix |
+| `EH-CLARIFY-DEBT-136` | debt dispositions 未完成 | 完成 canonical debt assessment |
+| `EH-CLARIFY-CONTRACT-137` | project-contract disposition 未完成 | 完成 canonical project-contract assessment |
+| `EH-CLARIFY-REQUIREMENTS-138` | requirements 未批准 | 批准当前 evidence-derived requirements |
+| `EH-CLARIFY-CLASSIFICATION-139` | classification 不新鲜 | 从 authoritative inputs 重新计算 |
+| `EH-CLARIFY-SELF-CHECK-140` | Clarify self-check 未通过 | 发布 passing StageResult self-check |
+| `EH-CLARIFY-REVIEW-141` | independent review 未通过 | 发布 passing ReviewResult |
+| `EH-CLARIFY-TECPC-142` | TECPC 未闭合 | 清除 correction 并闭合 TECPC |
+| `EH-CLARIFY-PROOF-143` | ClarifyProof 缺失或过期 | 发布 fresh digest-bound ClarifyProof |
 | `EH-TDD-RECEIPT-007` | v5 compatibility 流程缺少真实 TDD receipt | 仅在 v5 change 中用 tdd-run 执行冻结命令；v6 改用 task-run |
 | `EH-COMPLETION-GATE-008` | 完成证据不足 | workflow status |
 | `EH-AGENT-FAILURE-009` | agent 调用失败 | 修复后新 attempt |

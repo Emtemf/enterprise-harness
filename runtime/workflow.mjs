@@ -425,6 +425,14 @@ switch (action) {
         console.log(`pendingDecision.kind: ${result.pendingDecision.kind}`);
         console.log(`pendingDecision.message: ${result.pendingDecision.message}`);
       }
+      if (result.clarifyReadiness) {
+        const passed = result.clarifyReadiness.items
+          .filter(({ status }) => ['pass', 'not-applicable'].includes(status)).length;
+        console.log(`clarifyReadiness: ${passed}/${result.clarifyReadiness.items.length} passed`);
+        if (result.clarifyReadiness.recovery) {
+          console.log(`recovery: ${result.clarifyReadiness.recovery.code} ${result.clarifyReadiness.recovery.action}`);
+        }
+      }
     }
     process.exit(0);
   }
