@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
@@ -51,7 +52,7 @@ function argvFor(selected, model, variant) {
     : selected.prompt;
   return [
     '-p',
-    ...(variant === 'with-skill' ? ['--plugin-dir', repoRoot] : []),
+    ...isolationArgvFor(variant),
     '--tools', '',
     '--permission-mode', 'plan',
     '--no-session-persistence',
@@ -61,6 +62,12 @@ function argvFor(selected, model, variant) {
   ];
 }
 
+function isolationArgvFor(variant) {
+  return variant === 'control'
+    ? ['--safe-mode', '--disable-slash-commands', '--setting-sources', '']
+    : ['--setting-sources', '', '--plugin-dir', repoRoot];
+}
+
 function runPlan(selected, model, repetitions, timeoutMs) {
   return variants.flatMap((variant) => Array.from({ length: repetitions }, (_, index) => ({
     runId: `${variant}-${String(index + 1).padStart(2, '0')}`,
@@ -68,6 +75,7 @@ function runPlan(selected, model, repetitions, timeoutMs) {
     repetition: index + 1,
     command: 'claude',
     argv: argvFor(selected, model, variant),
+    isolationArgv: isolationArgvFor(variant),
     shell: false,
     timeoutMs,
   })));
@@ -75,6 +83,16 @@ function runPlan(selected, model, repetitions, timeoutMs) {
 
 function writeJson(target, value) {
   fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`, 'utf-8');
+}
+
+function removeOwnedTemporaryWorkspace(workspaceRoot) {
+  const resolvedTemp = fs.realpathSync(os.tmpdir());
+  const resolvedWorkspace = fs.realpathSync(workspaceRoot);
+  if (path.dirname(resolvedWorkspace) !== resolvedTemp
+      || !path.basename(resolvedWorkspace).startsWith('eh-clarify-skill-eval-')) {
+    throw new Error(`refusing to clean unowned eval workspace ${workspaceRoot}`);
+  }
+  fs.rmSync(resolvedWorkspace, { recursive: true, force: true });
 }
 
 if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
@@ -108,9 +126,10 @@ try {
   const stamp = new Date().toISOString().replace(/[:.]/gu, '-');
   const runDirectory = path.join(resultsRoot, `${stamp}-${caseId}-${model}-${process.pid}`);
   const outputsDirectory = path.join(runDirectory, 'outputs');
-  const workspacesDirectory = path.join(runDirectory, 'workspaces');
-  fs.mkdirSync(outputsDirectory, { recursive: true });
-  fs.mkdirSync(workspacesDirectory, { recursive: true });
+  fs.mkdirSync(resultsRoot, { recursive: true });
+  fs.mkdirSync(runDirectory, { recursive: false });
+  fs.mkdirSync(outputsDirectory);
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-skill-eval-'));
   const manifestPath = path.join(runDirectory, 'scoring-manifest.json');
   const manifest = {
     manifestVersion: 1,
@@ -121,6 +140,8 @@ try {
     variants,
     repetitionsPerVariant: repetitions,
     timeoutMs,
+    isolation: Object.fromEntries(variants.map((variant) => [variant, isolationArgvFor(variant)])),
+    workspace: { strategy: 'mkdtemp-outside-checkout', root: workspaceRoot, cleanupStatus: 'pending' },
     semanticScoring: 'manual-required',
     scoringInstructions: 'Read every stdout/stderr artifact. Record a human verdict against the copied assertions and forbidden behaviors; process completion alone is not a semantic pass.',
     assertions: [...selected.assertions],
@@ -130,45 +151,61 @@ try {
   };
   writeJson(manifestPath, manifest);
 
-  for (const planned of runs) {
-    const workspace = path.join(workspacesDirectory, planned.runId);
-    fs.mkdirSync(workspace, { recursive: true });
-    const stdoutRef = `outputs/${planned.runId}.stdout.txt`;
-    const stderrRef = `outputs/${planned.runId}.stderr.txt`;
-    process.stderr.write(`START variant=${planned.variant} rep=${planned.repetition}/${repetitions} timeoutMs=${timeoutMs}\n`);
-    const startedAt = new Date();
-    const child = spawnSync(planned.command, planned.argv, {
-      cwd: workspace,
-      encoding: 'utf-8',
-      shell: false,
-      timeout: timeoutMs,
-      killSignal: 'SIGTERM',
-      maxBuffer: 10 * 1024 * 1024,
-      env: { ...process.env },
-    });
-    const timedOut = child.error?.code === 'ETIMEDOUT';
-    const processStatus = timedOut ? 'timeout' : child.status === 0 ? 'completed' : 'exit-nonzero';
-    fs.writeFileSync(path.join(runDirectory, stdoutRef), child.stdout || '', 'utf-8');
-    fs.writeFileSync(path.join(runDirectory, stderrRef), `${child.stderr || ''}${child.error ? `\ncollectorError=${child.error.message}\n` : ''}`, 'utf-8');
-    manifest.runs.push({
-      ...planned,
-      cwdRef: `workspaces/${planned.runId}`,
-      startedAt: startedAt.toISOString(),
-      completedAt: new Date().toISOString(),
-      durationMs: Date.now() - startedAt.getTime(),
-      exitCode: child.status,
-      signal: child.signal,
-      processStatus,
-      stdoutRef,
-      stderrRef,
-      assertions: [...selected.assertions],
-      forbidden: [...selected.forbidden],
-      semanticVerdict: null,
-      reviewerNotes: null,
-    });
+  let cleanupError = null;
+  try {
+    for (const planned of runs) {
+      const workspace = path.join(workspaceRoot, planned.runId);
+      fs.mkdirSync(workspace);
+      const stdoutRef = `outputs/${planned.runId}.stdout.txt`;
+      const stderrRef = `outputs/${planned.runId}.stderr.txt`;
+      process.stderr.write(`START variant=${planned.variant} rep=${planned.repetition}/${repetitions} timeoutMs=${timeoutMs}\n`);
+      const startedAt = new Date();
+      const child = spawnSync(planned.command, planned.argv, {
+        cwd: workspace,
+        encoding: 'utf-8',
+        shell: false,
+        timeout: timeoutMs,
+        killSignal: 'SIGTERM',
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env },
+      });
+      const timedOut = child.error?.code === 'ETIMEDOUT';
+      const processStatus = timedOut ? 'timeout' : child.status === 0 ? 'completed' : 'exit-nonzero';
+      fs.writeFileSync(path.join(runDirectory, stdoutRef), child.stdout || '', 'utf-8');
+      fs.writeFileSync(path.join(runDirectory, stderrRef), `${child.stderr || ''}${child.error ? `\ncollectorError=${child.error.message}\n` : ''}`, 'utf-8');
+      manifest.runs.push({
+        ...planned,
+        cwd: workspace,
+        cwdRef: `temporary:${planned.runId}`,
+        startedAt: startedAt.toISOString(),
+        completedAt: new Date().toISOString(),
+        durationMs: Date.now() - startedAt.getTime(),
+        exitCode: child.status,
+        signal: child.signal,
+        processStatus,
+        stdoutRef,
+        stderrRef,
+        assertions: [...selected.assertions],
+        forbidden: [...selected.forbidden],
+        semanticVerdict: null,
+        reviewerNotes: null,
+      });
+      writeJson(manifestPath, manifest);
+      process.stderr.write(`DONE variant=${planned.variant} rep=${planned.repetition}/${repetitions} status=${processStatus} stdout=${stdoutRef} stderr=${stderrRef}\n`);
+    }
+  } finally {
+    try {
+      removeOwnedTemporaryWorkspace(workspaceRoot);
+      manifest.workspace.cleanupStatus = 'removed';
+    } catch (error) {
+      cleanupError = error;
+      manifest.workspace.cleanupStatus = 'cleanup-failed';
+      manifest.workspace.cleanupError = error.message;
+    }
     writeJson(manifestPath, manifest);
-    process.stderr.write(`DONE variant=${planned.variant} rep=${planned.repetition}/${repetitions} status=${processStatus} stdout=${stdoutRef} stderr=${stderrRef}\n`);
   }
+
+  if (cleanupError) throw cleanupError;
 
   const collectionComplete = manifest.runs.every(({ processStatus }) => processStatus === 'completed');
   console.log(JSON.stringify({ collectionComplete, semanticScoring: 'manual-required', manifestPath }, null, 2));
