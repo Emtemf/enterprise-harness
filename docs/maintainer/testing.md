@@ -1,8 +1,10 @@
 # 测试
 
 Clarify behavioral eval 定义位于 `test/skill-evals/harness/evals.json`。静态测试不会声称这些模型行为已执行；
-用 `node test/skill-evals/harness/run.mjs --case <id> --dry-run` 检查 argv，再移除 `--dry-run` 进行需要额度的
-live eval，并按输出的 assertions/forbidden rubric 独立审阅。
+用 `node test/skill-evals/harness/run.mjs --case <id> --model sonnet --reps 5 --timeout-ms 120000 --dry-run`
+检查 exact argv，再移除 `--dry-run`。Runner 分别采集 no-guidance control 与 with-skill，每组至少 5 次 fresh
+无 session 进程；逐次进度、timeout/exit 和原始输出写到被忽略的 `test/skill-evals/harness/results/`，scoring
+manifest 把每份输出绑定 assertions/forbidden。进程成功不代表行为通过，必须人工核读并填写 verdict。
 
 分层：
 

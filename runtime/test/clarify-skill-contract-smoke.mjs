@@ -71,5 +71,11 @@ assert.ok(statusFirst >= 0 && questionStatus > statusFirst && questionRecover > 
   'Harness recovery sequence must be workflow status, clarify status, then conditional clarify recover');
 assert.match(skill, /(?:blocker|recovery|nextAction).*(?:停止|stop).*(?:一个|one)/isu,
   'Harness must stop and execute one workflow recovery before question recovery');
+assert.doesNotMatch(skill, /changeId[^\n]{0,40}(?:后)?立即运行[^\n]*clarify recover/iu,
+  'Harness must never recover a question immediately after learning changeId');
+assert.doesNotMatch(skill, /workflow status[^\n]{0,80}(?:与|and|\+)[^\n]{0,40}clarify recover/iu,
+  'Harness must never describe workflow status and clarify recover as an unconditional pair');
+assert.doesNotMatch(skill, /(?:recover\/status|status\/recover)/iu,
+  'Harness must not use an ambiguous shorthand that implies unconditional recovery');
 
 console.log(`PASS clarify-skill-contract ${mode}`);

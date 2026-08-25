@@ -31,6 +31,7 @@ dist/
 
 # Local validation logs
 *.log
+test/skill-evals/harness/results/
 
 # OS / editor noise
 .DS_Store
