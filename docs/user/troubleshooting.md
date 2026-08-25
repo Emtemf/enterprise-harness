@@ -207,6 +207,15 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-DECISION-LEDGER-103` | decision ledger 含无效 JSON、无效事件、重复 ID 或未终止行 | 从可信证据恢复完整的 newline-terminated JSONL；不要跳过损坏行 |
 | `EH-DECISION-SNAPSHOT-104` | Clarify snapshot 或其有序账本前缀无效 | 修复 ledger，使 eventIds 成为精确有序前缀，再重新封存 |
 | `EH-DECISION-SNAPSHOT-105` | 尝试覆盖已封存的 Clarify snapshot | 保留 immutable snapshot；需要新封存时使用新的 change/run artifact |
+| `EH-QUESTION-CANDIDATE-106` | Clarify question candidate 缺失、JSON/schema 无效、change 身份不符或不在 canonical path | 重新生成并保存到 `harness/changes/<changeId>/evidence/clarify/questions/<questionId>.json`，再执行 `clarify prepare-question` |
+| `EH-QUESTION-STALE-107` | candidate 本身或其 input digest 已过期 | 从当前 authoritative inputs 重新生成 candidate 和全部 input digests，再重新 prepare |
+| `EH-QUESTION-ACTIVE-108` | 目标不是当前 active v6 change，或不处于 active `clarify` stage | 绑定正确的 active v6 change 并恢复到 `stage=clarify` 后重试，不手改 state projection |
+| `EH-QUESTION-PENDING-110` | 已有一个未关闭的 authorized question，不能准备下一题 | 先按 status 的动作重问并 resolve，或运行 `enterprise-harness clarify recover <changeId>` 修复 crash window |
+| `EH-QUESTION-PENDING-111` | pending question 缺失、损坏或已经 resolved，当前调用无可用授权 | 对 fresh canonical candidate 重新执行 `clarify prepare-question`；若文件损坏，先从可信运行态恢复再重试 |
+| `EH-QUESTION-MISMATCH-112` | `AskUserQuestion` 输入与预授权 candidate 的精确投影不一致 | 原样重问 pending question，不修改问题、header、选项、description 或 `multiSelect` |
+| `EH-QUESTION-ANSWER-113` | answer 未精确匹配唯一 option label，或 replay 与已记录选择冲突 | 使用 pending candidate 中一个原始 option label 作答；已记录事件不可改写 |
+| `EH-QUESTION-RECOVERY-114` | pending state 与同一 candidate target 的 decision ledger 事件冲突 | 保留 append-only ledger，恢复与事件绑定一致的 candidate/pending evidence 后运行 `enterprise-harness clarify recover <changeId>` |
+| `EH-QUESTION-INPUT-115` | `clarify` CLI 子命令或参数形状无效 | 运行 `enterprise-harness clarify --help`，按显示的 exact argv 重试；不要附加 rationale 或 chat 文本 |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |
 | `EH-INSTALL-MANIFEST-002` | 安装清单不合法或与目标不一致 | 恢复备份并重新执行安装计划 |

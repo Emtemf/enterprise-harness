@@ -33,6 +33,7 @@ Commands:
 - trace
 - sessions
 - migrate-evidence-policy
+- clarify
 ```
 
 Run `enterprise-harness <command> --help` for command-specific arguments.

@@ -206,6 +206,30 @@ try {
     if (!['EPERM', 'EACCES', 'UNKNOWN'].includes(error.code)) throw error;
   }
 
+  const evidenceSymlinkChange = 'evidence-symlink';
+  activate(evidenceSymlinkChange);
+  const evidenceSymlinkRef = `harness/changes/${evidenceSymlinkChange}/evidence/research/code.json`;
+  const evidenceSymlinkPath = path.join(root, evidenceSymlinkRef);
+  const outsideEvidence = path.join(outside, 'code.json');
+  fs.mkdirSync(path.dirname(evidenceSymlinkPath), { recursive: true });
+  fs.writeFileSync(outsideEvidence, '{"fact":"outside"}\n', 'utf-8');
+  try {
+    fs.symlinkSync(outsideEvidence, evidenceSymlinkPath, 'file');
+    const evidenceSymlinkCandidate = candidateFor(evidenceSymlinkChange, 'Q-002', {
+      evidenceRefs: [`${evidenceSymlinkRef}:12`],
+    });
+    assert.throws(
+      () => prepareClarifyQuestion(
+        root,
+        evidenceSymlinkChange,
+        writeCandidate(evidenceSymlinkCandidate),
+      ),
+      /EH-PATH-001/u,
+    );
+  } catch (error) {
+    if (!['EPERM', 'EACCES', 'UNKNOWN'].includes(error.code)) throw error;
+  }
+
   const stateSymlinkChange = 'state-symlink';
   activate(stateSymlinkChange);
   const stateSymlinkDir = path.join(root, 'harness', 'changes', stateSymlinkChange);
@@ -395,7 +419,37 @@ try {
     inputDigests: crashCandidate.inputDigests,
     recordedAt: '2026-08-25T01:00:00.000Z',
   });
-  assert.deepEqual(recoverClarifyQuestion(root, crashChange), {
+  const crashStatus = spawnSync(
+    process.execPath,
+    [runtimeClarify, 'status', crashChange, '--json'],
+    { cwd: root, encoding: 'utf-8', env: cleanEnv(), shell: false },
+  );
+  assert.equal(crashStatus.status, 0, crashStatus.stderr);
+  assert.deepEqual(JSON.parse(crashStatus.stdout), {
+    status: 'repair-required',
+    recovery: `Run enterprise-harness clarify recover ${crashChange}.`,
+    eventId: 'D-011',
+  });
+  assert.equal(
+    JSON.parse(fs.readFileSync(pendingQuestionPath(root, crashChange), 'utf-8')).status,
+    'pending',
+  );
+  const crashNextCandidate = candidateFor(crashChange, 'Q-012', {
+    question: 'Which follow-up compatibility policy should apply?',
+  });
+  const crashNextRef = writeCandidate(crashNextCandidate);
+  assert.throws(
+    () => prepareClarifyQuestion(root, crashChange, crashNextRef),
+    /EH-QUESTION-PENDING-110/u,
+  );
+
+  const crashRecover = spawnSync(
+    process.execPath,
+    [runtimeClarify, 'recover', crashChange],
+    { cwd: root, encoding: 'utf-8', env: cleanEnv(), shell: false },
+  );
+  assert.equal(crashRecover.status, 0, crashRecover.stderr);
+  assert.deepEqual(JSON.parse(crashRecover.stdout), {
     status: 'resolved',
     recovery: null,
     eventId: 'D-011',
@@ -409,6 +463,7 @@ try {
     recovery: null,
     eventId: 'D-011',
   });
+  assert.equal(prepareClarifyQuestion(root, crashChange, crashNextRef).status, 'pending');
 
   activate('missing-recovery');
   assert.deepEqual(recoverClarifyQuestion(root, 'missing-recovery'), {

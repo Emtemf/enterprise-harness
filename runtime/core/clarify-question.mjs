@@ -54,6 +54,15 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && Boolean(value.trim());
 }
 
+function artifactPathFromReference(value) {
+  if (!isNonEmptyString(value)) return null;
+  let artifactPath = value;
+  const locator = value.match(/^(.*):([1-9]\d*)$/u);
+  if (locator) artifactPath = locator[1];
+  if (artifactPath.includes(':') || !isSafeRelativePath(artifactPath)) return null;
+  return artifactPath;
+}
+
 function isSchemaDateTime(value) {
   if (typeof value !== 'string') return false;
   const match = value.match(
@@ -133,7 +142,7 @@ function validateCandidate(candidate) {
   }
   if (!Array.isArray(candidate.evidenceRefs)
       || candidate.evidenceRefs.length === 0
-      || candidate.evidenceRefs.some((ref) => !isNonEmptyString(ref) || !isSafeRelativePath(ref))) {
+      || candidate.evidenceRefs.some((ref) => artifactPathFromReference(ref) === null)) {
     problems.push('evidenceRefs must contain safe non-empty artifact references');
   }
   if (!isObject(candidate.inputDigests) || Object.keys(candidate.inputDigests).length === 0) {
@@ -147,6 +156,12 @@ function validateCandidate(candidate) {
   if (candidate.blocking !== true) problems.push('blocking must be true');
   if (!isSchemaDateTime(candidate.createdAt)) problems.push('createdAt must be an RFC3339 date-time');
   return problems;
+}
+
+function assertEvidenceReferencesContained(root, candidate) {
+  for (const ref of candidate.evidenceRefs) {
+    resolveRepoTarget(root, artifactPathFromReference(ref), 'candidate evidence reference');
+  }
 }
 
 function resolveRepoTarget(root, relativePath, label) {
@@ -195,6 +210,7 @@ function loadCandidate(root, expectedChangeId, candidateRef) {
   if (candidateRef !== canonicalRef) {
     throw questionError('EH-QUESTION-CANDIDATE-106', `candidateRef must be the canonical path ${canonicalRef}`);
   }
+  assertEvidenceReferencesContained(root, candidate);
   assertFreshInputs(root, candidate);
   return { candidate, candidateDigest: sha256Bytes(bytes) };
 }
@@ -496,7 +512,14 @@ export function recoverClarifyQuestion(root, changeId, { repair = true } = {}) {
         recovery: `Re-ask the authorized pending question ${candidate.questionId} without changing its text or options.`,
       });
     }
-    if (repair) atomicWriteJson(target, resolvedPending(pending, eventId));
+    if (!repair) {
+      return Object.freeze({
+        status: 'repair-required',
+        recovery: `Run enterprise-harness clarify recover ${changeId}.`,
+        eventId,
+      });
+    }
+    atomicWriteJson(target, resolvedPending(pending, eventId));
     return Object.freeze({ status: 'resolved', recovery: null, eventId });
   });
 }
