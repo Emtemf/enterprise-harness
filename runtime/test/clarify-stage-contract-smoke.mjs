@@ -447,7 +447,7 @@ try {
     ['pending required packet', requirements({ factStatus: 'pending' }), /required research is incomplete/u],
     ['missing docs lane', requirements({ omitDocs: true }), /fact lanes must decide code and docs exactly once/u],
     ['missing not-required rationale', requirements({ docsReason: '' }), /not-required lane docs must record rationale/u],
-    ['remaining fact uncertainty', requirements({ remainingFact: 'SDK behavior unknown' }), /research conflicts or uncertainties remain/u],
+    ['remaining fact uncertainty', requirements({ remainingFact: 'SDK behavior unknown' }), /remaining fact uncertainty is not disposed/u],
     [
       'unknown research run',
       requirements({ factRunId: 'run_22222222-2222-4222-8222-222222222222' }),
@@ -505,7 +505,7 @@ try {
   fs.writeFileSync(packetPath, `${JSON.stringify(degradedPacket, null, 2)}\n`);
   const degradedResult = run(requirements());
   assert.notEqual(degradedResult.result.status, 0, 'degraded packet with uncertainty must not close fact gate');
-  assert.match(degradedResult.result.stderr, /research conflicts or uncertainties remain/u);
+  assert.match(degradedResult.result.stderr, /research packet is degraded|research packet uncertainties remain/u);
 
   console.log(`PASS clarify-stage-contract ${mode}`);
 } finally {

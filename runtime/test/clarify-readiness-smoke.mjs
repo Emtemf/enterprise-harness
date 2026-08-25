@@ -13,6 +13,7 @@ import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
 import { writeDebtAssessment, writeProjectContractAssessment } from '../core/clarify-assessments.mjs';
 import { pendingQuestionPath } from '../core/clarify-question.mjs';
+import { stageCompletionFor } from '../lib/stage-results.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -36,8 +37,8 @@ try {
       && typeof item.action === 'string'
   )));
   assert.deepEqual(readiness.recovery, {
-    code: 'EH-CLARIFY-RESEARCH-131',
-    action: 'Complete and persist every required ResearchPacket.',
+    code: 'EH-CLARIFY-RESEARCH-LANES-144',
+    action: 'Decide applicability for both code and docs research lanes.',
   });
   assert.deepEqual(new Set(fs.readdirSync(changeDir)), before, 'readiness must not persist an editable checklist');
   assert.equal(Object.isFrozen(readiness), true);
@@ -72,7 +73,7 @@ try {
   assert.equal(textStatus.status, 0, textStatus.stderr);
   assert.match(textStatus.stdout, /clarifyReadiness: 1\/15 passed/u);
   assert.equal((textStatus.stdout.match(/recovery:/gu) || []).length, 1);
-  assert.match(textStatus.stdout, /EH-CLARIFY-RESEARCH-131/u);
+  assert.match(textStatus.stdout, /EH-CLARIFY-RESEARCH-LANES-144/u);
 
   writeClassificationV2Fixture(root, changeId, { tier: 'L1' });
   const orphanClassification = buildClarifyReadiness(root, changeId);
@@ -239,17 +240,35 @@ try {
     '## 未决决策与确认', ...(ambiguity ? ['- unresolved high-risk decision: none'] : []),
     `- scope confirmed: ${approved ? 'true' : 'false'}`, '',
   ].join('\n');
-  const assertProgress = (code) => {
+  const recovery = {
+    lanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: 'Decide applicability for both code and docs research lanes.' },
+    research: { code: 'EH-CLARIFY-RESEARCH-131', action: 'Complete and persist every required ResearchPacket.' },
+    conflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: 'Dispose degraded research, conflicts, and remaining fact uncertainty.' },
+    topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: 'Confirm the evidence-derived component topology.' },
+    ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: 'Resolve the weakest evidence-bound ambiguity and recompute requirements.' },
+    question: { code: 'EH-CLARIFY-QUESTION-134', action: 'Resolve the one authorized pending Clarify question.' },
+    decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: 'Seal the ordered Clarify decision-ledger prefix.' },
+    debt: { code: 'EH-CLARIFY-DEBT-136', action: 'Record and validate every applicable technical-debt disposition.' },
+    contract: { code: 'EH-CLARIFY-CONTRACT-137', action: 'Record and validate the project-contract disposition.' },
+    requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: 'Approve and persist the current evidence-derived requirements.' },
+    classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: 'Recompute and persist classification from current authoritative inputs.' },
+    selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: 'Publish a fresh passing Clarify StageResult self-check.' },
+    review: { code: 'EH-CLARIFY-REVIEW-141', action: 'Publish a fresh independent passing Clarify ReviewResult.' },
+    tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
+    proof: { code: 'EH-CLARIFY-PROOF-143', action: 'Publish the fresh digest-bound ClarifyProof.' },
+  };
+  const assertProgress = (expectedRecovery, firstThree = null) => {
     const projected = buildClarifyReadiness(root, progressiveId);
-    assert.equal(projected.recovery?.code ?? null, code, JSON.stringify(projected.items));
+    assert.deepEqual(projected.recovery, expectedRecovery, JSON.stringify(projected.items));
+    if (firstThree) assert.deepEqual(projected.items.slice(0, 3).map(({ status }) => status), firstThree);
     assert.equal(projected.items.length, 15);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'clarify-readiness.json')), false);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'checklist.json')), false);
     return projected;
   };
-  assertProgress('EH-CLARIFY-RESEARCH-131');
+  assertProgress(recovery.lanes, ['blocked', 'blocked', 'blocked']);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText());
-  assertProgress('EH-CLARIFY-RESEARCH-131');
+  assertProgress(recovery.research, ['pass', 'blocked', 'blocked']);
   const researchHandoff = (uncertainties) => {
     const run = createHandoffV2(root, {
       changeId: progressiveId, stage: 'clarify', behavior: 'clarify.explore-code',
@@ -268,16 +287,16 @@ try {
   };
   const uncertain = researchHandoff(['Confirm one remaining fact.']);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: uncertain.run.runId, packetRef: uncertain.packetRef, status: 'complete' }));
-  assertProgress('EH-CLARIFY-RESEARCH-131');
+  assertProgress(recovery.conflicts, ['pass', 'pass', 'blocked']);
   const clean = researchHandoff([]);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none' }));
-  assertProgress('EH-CLARIFY-TOPOLOGY-132');
+  assertProgress(recovery.topology, ['pass', 'pass', 'pass']);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true }));
-  assertProgress('EH-CLARIFY-AMBIGUITY-133');
+  assertProgress(recovery.ambiguity);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true }));
-  assertProgress('EH-CLARIFY-QUESTION-134');
+  assertProgress(recovery.question);
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'resolved' }));
-  assertProgress('EH-CLARIFY-DECISIONS-135');
+  assertProgress(recovery.decisions);
   fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Progressive fixture instructions\n');
   appendDecisionEvent(root, progressiveId, {
     eventVersion: 1, type: 'decision-event', eventId: 'progressive-scope', changeId: progressiveId, stage: 'clarify',
@@ -287,44 +306,44 @@ try {
     recordedAt: '2026-08-25T00:00:00.000Z',
   });
   sealClarifyDecisionSnapshot(root, progressiveId, readDecisionEvents(root, progressiveId).map(({ eventId }) => eventId));
-  assertProgress('EH-CLARIFY-DEBT-136');
+  assertProgress(recovery.debt);
   writeDebtAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'debt-assessment', changeId: progressiveId, observations: [], dispositions: [],
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:01:00.000Z',
   });
-  assertProgress('EH-CLARIFY-CONTRACT-137');
+  assertProgress(recovery.contract);
   writeProjectContractAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'project-contract-assessment', changeId: progressiveId,
     files: [{ path: 'CLAUDE.md', digest: sha256Artifact(root, 'CLAUDE.md'), scope: 'project', ownership: 'project' }],
     gaps: [], conflicts: [], status: 'use-existing', decisionEventId: null, proposalRef: null,
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:02:00.000Z',
   });
-  assertProgress('EH-CLARIFY-REQUIREMENTS-138');
+  assertProgress(recovery.requirements);
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true, approved: true }));
-  assertProgress('EH-CLARIFY-CLASSIFICATION-139');
+  assertProgress(recovery.classification);
   const progressiveClassification = writeClassificationV2Fixture(root, progressiveId, { tier: 'L1' }, 'progressive');
   fs.writeFileSync(path.join(progressiveDir, 'state.json'), `${JSON.stringify({
     schemaVersion: 6, revision: 1, changeId: progressiveId, lifecycle: 'active', stage: 'clarify',
     artifacts: { classification: progressiveClassification }, validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2)}\n`);
-  assertProgress('EH-CLARIFY-SELF-CHECK-140');
+  assertProgress(recovery.selfCheck);
   addClarifyCompletion(root, progressiveId, { stageStatus: 'block' });
-  assertProgress('EH-CLARIFY-SELF-CHECK-140');
+  assertProgress(recovery.selfCheck);
   await new Promise((resolve) => setTimeout(resolve, 10));
   const untrustedCompletion = addClarifyCompletion(root, progressiveId, { reviewerTrusted: false, tecpcCorrection: 'Resolve correction.' });
-  assertProgress('EH-CLARIFY-REVIEW-141');
+  assertProgress(recovery.review);
   appendCompletedHandoffBinding(root, progressiveId, untrustedCompletion.check.input, { agentId: 'progressive-reviewer' });
-  assertProgress('EH-CLARIFY-TECPC-142');
+  assertProgress(recovery.tecpc);
   await new Promise((resolve) => setTimeout(resolve, 10));
   const completeProgression = addClarifyCompletion(root, progressiveId);
-  assertProgress('EH-CLARIFY-PROOF-143');
+  assertProgress(recovery.proof);
   const progressiveProof = (await import('../core/completion-proof.mjs')).buildCompletionProof(root, {
     stageResult: completeProgression.stageResult, reviewResult: completeProgression.review, createdAt: '2026-08-25T02:00:00.000Z',
   });
   const proofPath = path.join(progressiveDir, 'evidence', 'completion', 'clarify.json');
   fs.mkdirSync(path.dirname(proofPath), { recursive: true });
   fs.writeFileSync(proofPath, `${JSON.stringify({ ...progressiveProof, target: 'generic proof' }, null, 2)}\n`);
-  assertProgress('EH-CLARIFY-PROOF-143');
+  assertProgress(recovery.proof);
   fs.writeFileSync(proofPath, `${JSON.stringify(progressiveProof, null, 2)}\n`);
   assertProgress(null);
 
@@ -335,6 +354,7 @@ try {
     ['pending-tecpc', { tecpcCorrection: 'Resolve remaining correction.' }, 'tecpc-complete', 'EH-CLARIFY-TECPC-142'],
     ['missing-proof', {}, 'clarify-proof-fresh', 'EH-CLARIFY-PROOF-143'],
     ['mismatched-proof', { proof: 'mismatched' }, 'clarify-proof-fresh', 'EH-CLARIFY-PROOF-143'],
+    ['forged-review-run', { forgedReviewRunId: true, proof: 'valid' }, 'independent-review-passed', 'EH-CLARIFY-REVIEW-141'],
     ['valid-proof', { proof: 'valid' }, 'clarify-proof-fresh', null],
   ];
   for (const [suffix, options, itemId, recoveryCode] of completionCases) {
@@ -344,6 +364,9 @@ try {
     const candidate = buildClarifyReadiness(root, candidateId);
     assert.equal(candidate.items.find(({ id }) => id === itemId).status, recoveryCode ? 'blocked' : 'pass', suffix);
     assert.equal(candidate.recovery?.code ?? null, recoveryCode, suffix);
+    if (suffix === 'forged-review-run') {
+      assert.equal(stageCompletionFor(root, candidateId, 'clarify').review.status, 'blocked');
+    }
   }
 
   console.log(`PASS clarify-readiness ${mode}`);

@@ -50,6 +50,7 @@ export function addClarifyCompletion(root, changeId, {
   reviewerMatches = true,
   tecpcCorrection = null,
   proof = 'missing',
+  forgedReviewRunId = false,
 } = {}) {
   const requirementsRef = `harness/changes/${changeId}/requirements.md`;
   const classificationRef = `harness/changes/${changeId}/classification.json`;
@@ -78,7 +79,8 @@ export function addClarifyCompletion(root, changeId, {
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: refs, tecpc,
   });
   const review = {
-    resultVersion: 1, type: 'review-result', changeId, stage: 'clarify', runId: check.runId,
+    resultVersion: 1, type: 'review-result', changeId, stage: 'clarify',
+    runId: forgedReviewRunId ? 'run_11111111-1111-4111-8111-111111111111' : check.runId,
     parentRunId: execute.runId,
     reviewer: reviewerMatches
       ? { agentType: 'enterprise-harness:reviewer', skill: 'review' }

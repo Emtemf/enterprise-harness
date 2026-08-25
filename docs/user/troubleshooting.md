@@ -103,7 +103,9 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CLARIFY-AMBIGUITY-006` | 歧义评分不足 | 补 weakest dimension |
 | `EH-CLASSIFICATION-ROUTE-128` | classification tier 与 route event 不一致 | 按当前 evidence-derived tier 追加匹配 route event 后重算 |
 | `EH-CLASSIFICATION-STALE-129` | classification input digest 过期 | 从当前 authoritative inputs 重算 classification |
-| `EH-CLARIFY-RESEARCH-131` | required research 未完成 | 完成并持久化 required fresh ResearchPackets |
+| `EH-CLARIFY-RESEARCH-LANES-144` | code/docs research applicability 未决定 | 分别决定两个 lane 是否适用 |
+| `EH-CLARIFY-RESEARCH-131` | required research 缺失、无效或过期 | 完成并持久化 required fresh ResearchPackets |
+| `EH-CLARIFY-RESEARCH-CONFLICTS-145` | research degraded、冲突或 uncertainty 未处置 | 处置冲突与 remaining fact uncertainty |
 | `EH-CLARIFY-TOPOLOGY-132` | component topology 未确认 | 确认 evidence-derived topology |
 | `EH-CLARIFY-AMBIGUITY-133` | ambiguity threshold 未达标 | 解决 weakest ambiguity |
 | `EH-CLARIFY-QUESTION-134` | authorized question 仍 pending | 原样解决该问题 |

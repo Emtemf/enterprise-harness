@@ -58,11 +58,13 @@ The runtime owns safe-path validation, schema validation, digest comparison, dec
 
 Classification v2 sums the four evidence-bearing integer scores (`functionalSize`, `uncertainty`, `changeRisk`, `verificationDifficulty`) and selects L0 for totals 0–2, L1 for 3–5, L2 for 6–8, and L3 for 9–12. Public API break, security boundary, or cross-service transaction flags can only upgrade to at least L2; irreversible data migration or unknown compliance obligation upgrades to L3. The matching append-only `classification-route` event must select the derived tier before the artifact can be persisted.
 
-Readiness exposes the ordered in-memory projection through status. Its stable recovery range is `EH-CLARIFY-RESEARCH-131` through `EH-CLARIFY-PROOF-143`; exactly the first non-passing item supplies the recovery action. `EH-CLASSIFICATION-ROUTE-128` identifies route-event disagreement and `EH-CLASSIFICATION-STALE-129` identifies stale classification inputs.
+Readiness exposes the ordered in-memory projection through status. Its stable recoveries include `EH-CLARIFY-RESEARCH-LANES-144`, `EH-CLARIFY-RESEARCH-131`, `EH-CLARIFY-RESEARCH-CONFLICTS-145`, and the ordered stage gates `EH-CLARIFY-TOPOLOGY-132` through `EH-CLARIFY-PROOF-143`; exactly the first non-passing item supplies the recovery action. `EH-CLASSIFICATION-ROUTE-128` identifies route-event disagreement and `EH-CLASSIFICATION-STALE-129` identifies stale classification inputs.
 
 | Blocked gate | Single recovery action |
 | --- | --- |
-| Required fact research is missing, invalid, stale, or degraded | Complete and persist every required fresh ResearchPacket. |
+| Code/docs research applicability is undecided | Decide applicability for both research lanes. |
+| Required fact research is missing, invalid, or stale | Complete and persist every required fresh ResearchPacket. |
+| Fresh research remains degraded, conflicted, or uncertain | Dispose degraded research, conflicts, and remaining fact uncertainty. |
 | A user-only decision remains unresolved | Prepare and resolve exactly one authorized question. |
 | A relevant debt observation has no valid disposition | Record the matching debt-disposition decision and persist the assessment. |
 | The project-contract audit is incomplete or conflicted | Record the matching project-contract disposition and persist the assessment. |

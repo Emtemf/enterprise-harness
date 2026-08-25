@@ -163,7 +163,16 @@ function validateAuthoritativeInputs(root, changeId, classification, problems) {
     problems.push(`authoritative project-contract assessment is invalid: ${error.message}`);
   }
   const research = readClarifyResearchEvidence(root, changeId, requirementsRef, requirements);
-  if (!research.fresh) problems.push(...research.problems.map((problem) => `authoritative research input is invalid: ${problem}`));
+  if (!research.lanesDecided || !research.fresh) {
+    problems.push(...[...research.laneProblems, ...research.packetProblems]
+      .map((problem) => `authoritative research input is invalid: ${problem}`));
+  }
+  if (!research.conflictsDisposed) {
+    const conflictProblems = research.conflictProblems.length > 0
+      ? research.conflictProblems
+      : ['research conflicts or uncertainties remain'];
+    problems.push(...conflictProblems.map((problem) => `authoritative research input is invalid: ${problem}`));
+  }
   const expectedRefs = new Set([...mandatoryRefs, ...research.refs]);
   for (const reference of expectedRefs) {
     if (!Object.hasOwn(classification.inputDigests || {}, reference)) {

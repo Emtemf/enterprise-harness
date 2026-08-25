@@ -48,22 +48,23 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
   const factSection = section(content, '## 事实探索门禁');
   const lanes = tableRows(factSection)
     .filter((cells) => cells[0] !== 'Lane' && ['code', 'docs'].includes(cells[0]));
-  const problems = [];
+  const laneProblems = [];
+  const packetProblems = [];
   const refs = [];
   const packets = [];
   const lanesDecided = lanes.length === 2
     && new Set(lanes.map((cells) => cells[0])).size === 2
     && lanes.every((cells) => ['yes', 'no'].includes(String(cells[1]).toLowerCase()));
-  if (!lanesDecided) problems.push('requirements fact lanes must decide code and docs exactly once');
+  if (!lanesDecided) laneProblems.push('requirements fact lanes must decide code and docs exactly once');
 
   for (const [lane, required, briefRef, runId, packetRef, status] of lanes) {
     const requiredValue = String(required).toLowerCase();
     if (requiredValue === 'no') {
-      if (String(status).toLowerCase() !== 'not-required') problems.push(`${lane} must be not-required`);
+      if (String(status).toLowerCase() !== 'not-required') packetProblems.push(`${lane} must be not-required`);
       continue;
     }
     if (requiredValue !== 'yes' || String(status).toLowerCase() !== 'complete') {
-      problems.push(`${lane} required research is incomplete`);
+      packetProblems.push(`${lane} required research is incomplete`);
       continue;
     }
     try {
@@ -93,19 +94,27 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
       refs.push(canonicalRef);
       packets.push(packet);
     } catch (error) {
-      problems.push(`${lane} required ResearchPacket is invalid: ${error.message}`);
+      packetProblems.push(`${lane} required ResearchPacket is invalid: ${error.message}`);
     }
   }
-  const conflictsDisposed = problems.length === 0
-    && packets.every((packet) => packet.degraded === false && packet.uncertainties.length === 0)
-    && /[-*]\s*remaining fact uncertainty\s*[:：]\s*none\b/iu.test(factSection);
-  if (lanesDecided && !conflictsDisposed) problems.push('research conflicts or uncertainties remain');
+  const fresh = lanesDecided && packetProblems.length === 0;
+  const conflictProblems = [];
+  if (fresh && packets.some((packet) => packet.degraded !== false)) conflictProblems.push('research packet is degraded');
+  if (fresh && packets.some((packet) => packet.uncertainties.length > 0)) conflictProblems.push('research packet uncertainties remain');
+  if (fresh && !/[-*]\s*remaining fact uncertainty\s*[:：]\s*none\b/iu.test(factSection)) {
+    conflictProblems.push('remaining fact uncertainty is not disposed');
+  }
+  const conflictsDisposed = fresh && conflictProblems.length === 0;
+  const problems = [...laneProblems, ...packetProblems, ...conflictProblems];
   return Object.freeze({
     lanesDecided,
-    fresh: lanesDecided && problems.length === 0,
+    fresh,
     conflictsDisposed,
     refs: Object.freeze([...refs]),
     packets: Object.freeze([...packets]),
+    laneProblems: Object.freeze([...laneProblems]),
+    packetProblems: Object.freeze([...packetProblems]),
+    conflictProblems: Object.freeze([...conflictProblems]),
     problems: Object.freeze([...problems]),
     requirementsRef,
   });

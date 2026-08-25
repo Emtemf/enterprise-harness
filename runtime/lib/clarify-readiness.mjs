@@ -27,7 +27,9 @@ export const CLARIFY_ITEMS = Object.freeze([
 ]);
 
 const RECOVERIES = Object.freeze({
+  researchLanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: 'Decide applicability for both code and docs research lanes.' },
   research: { code: 'EH-CLARIFY-RESEARCH-131', action: 'Complete and persist every required ResearchPacket.' },
+  researchConflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: 'Dispose degraded research, conflicts, and remaining fact uncertainty.' },
   topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: 'Confirm the evidence-derived component topology.' },
   ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: 'Resolve the weakest evidence-bound ambiguity and recompute requirements.' },
   question: { code: 'EH-CLARIFY-QUESTION-134', action: 'Resolve the one authorized pending Clarify question.' },
@@ -132,9 +134,9 @@ export function buildClarifyReadiness(root, changeId) {
   const items = [];
   const requirements = readRequirements(root, changeId);
   const research = readClarifyResearchEvidence(root, changeId, requirements.ref, requirements.content);
-  items.push(immutableItem('research-lanes-decided', research.lanesDecided ? 'pass' : 'blocked', research.lanesDecided ? [requirements.ref] : [], RECOVERIES.research));
-  items.push(immutableItem('required-research-fresh', research.fresh ? 'pass' : statusFor(research.problems.join('; ')), research.refs, RECOVERIES.research));
-  items.push(immutableItem('research-conflicts-disposed', research.conflictsDisposed ? 'pass' : 'blocked', research.refs, RECOVERIES.research));
+  items.push(immutableItem('research-lanes-decided', research.lanesDecided ? 'pass' : 'blocked', research.lanesDecided ? [requirements.ref] : [], RECOVERIES.researchLanes));
+  items.push(immutableItem('required-research-fresh', research.fresh ? 'pass' : statusFor(research.packetProblems.join('; ')), research.refs, RECOVERIES.research));
+  items.push(immutableItem('research-conflicts-disposed', research.conflictsDisposed ? 'pass' : 'blocked', research.refs, RECOVERIES.researchConflicts));
 
   const predicates = requirementsPredicates(requirements.content);
   items.push(immutableItem('topology-confirmed', predicates.topology ? 'pass' : 'blocked', predicates.topology ? [requirements.ref] : [], RECOVERIES.topology));

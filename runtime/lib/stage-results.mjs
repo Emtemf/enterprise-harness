@@ -233,6 +233,7 @@ export function stageCompletionFor(root, changeId, stage, {
   if (!check.result) reviewProblems.push(`${checkCandidate.runId}: ReviewResult is missing`);
   if (check.result) {
     reviewProblems.push(...validateReviewResult(root, check.result, { stageResult: execution.result }).map((problem) => `${checkCandidate.runId}: ${problem}`));
+    if (check.result.runId !== check.input.runId) reviewProblems.push(`${checkCandidate.runId}: ReviewResult does not bind the check handoff run ID`);
     if (JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)) reviewProblems.push(`${checkCandidate.runId}: ReviewResult rubrics do not match the check handoff`);
     if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)) reviewProblems.push(`${checkCandidate.runId}: ReviewResult artifacts do not match the StageResult`);
     if (!matchingReviewer(check.result, check.input)) reviewProblems.push(`${checkCandidate.runId}: ReviewResult reviewer does not match handoff agent`);
