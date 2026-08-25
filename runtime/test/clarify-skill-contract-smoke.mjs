@@ -93,8 +93,16 @@ for (const field of [
   `Incomplete fact gate must emit ${field}`);
 assert.match(factGate, /输出 `User question: none` 后立即结束本次响应/iu,
   'Incomplete fact gate must terminate immediately after its fixed gate block');
-assert.match(factGate, /任何用户消息和任何工具调用都禁止/iu,
-  'Incomplete fact gate must prohibit every user message and tool call');
+assert.match(factGate,
+  /fact gate incomplete[\s\S]{0,160}允许且必须执行 runtime 返回或 `Next research action` 所需的单一\s*research\/recovery 工具动作/iu,
+  'Incomplete fact gate must keep the single research/recovery action executable');
+assert.match(factGate, /工具动作完成后重新计算全部\s*required lane 状态/iu,
+  'Incomplete fact gate must recompute lane state after its research/recovery action');
+assert.match(factGate,
+  /若仍不能推进[\s\S]{0,240}terminal gate block[\s\S]{0,240}`User question: none` 后立即结束本次响应，禁止尾随文本、用户请求或工具调用/iu,
+  'Only a selected terminal gate response must prohibit trailing text, user requests, and tool calls');
+assert.doesNotMatch(factGate, /fact gate complete 前[^\n]*任何工具调用都禁止/iu,
+  'Incomplete fact gate must not deadlock required research/recovery tool actions');
 assert.match(factGate, /raw request、repository 或 fact worker/iu,
   'Missing brief inputs must come from non-user fact sources');
 assert.match(factGate, /user-only、topology 或 scope[^\n]*(?:不是例外|无例外)/iu,

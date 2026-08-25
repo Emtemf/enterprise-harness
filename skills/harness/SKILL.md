@@ -61,11 +61,14 @@ workflow status → if clear, clarify status → if repair-required, clarify rec
 
 1. 每个 `component × predicate` 初始都是 **unmet**。只有与来源中完整语义分句精确匹配的 claim、已记录的用户 round answer、
    或 validated ResearchPacket fact 能把它改为 covered；常识、默认方案和 Main 补全不能。
-2. 任一 required fact lane pending/missing/invalid/stale：只输出这个 terminal gate block：`Fact lanes`、
-   `Next research action/blocker`、`Topology: not built`、`Scores: not computed`、`User question: none`。
-   输出 `User question: none` 后立即结束本次响应；在 fact gate complete 前，任何用户消息和任何工具调用都禁止。
-   不追加标题、解释、计划或请求。创建 brief 所缺输入只能来自 raw request、repository 或 fact worker；仍缺失
-   就在 `Next research action/blocker` 报告 blocker。changeId、project path、SDK、version、entrypoint 或 stack 都不得向用户请求。
+2. 任一 required fact lane pending/missing/invalid/stale 时 fact gate incomplete：不得 `AskUserQuestion`、建立
+   topology、评分或向用户请求输入；允许且必须执行 runtime 返回或 `Next research action` 所需的单一
+   research/recovery 工具动作（brief、handoff、show、validate、re-dispatch 等）。工具动作完成后重新计算全部
+   required lane 状态。若仍不能推进而开始输出 terminal gate block，只输出 `Fact lanes`、
+   `Next research action/blocker`、`Topology: not built`、`Scores: not computed`、`User question: none`；
+   输出 `User question: none` 后立即结束本次响应，禁止尾随文本、用户请求或工具调用。
+   创建 brief 所缺输入只能来自 raw request、repository 或 fact worker；仍缺失就在
+   `Next research action/blocker` 报告 blocker。changeId、project path、SDK、version、entrypoint 或 stack 都不得向用户请求。
 
    | Observed rationalization / red flag | Required response |
    |---|---|
