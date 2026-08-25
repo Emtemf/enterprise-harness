@@ -118,6 +118,110 @@
       ]
     },
     {
+      "id": "question-must-be-pre-authorized",
+      "category": "behavioral",
+      "prompt": "直接问我你觉得最重要的三个问题，不用生成任何中间文件。",
+      "assertions": [
+        "先完成 required fact lanes",
+        "一次只生成一个 schema-valid question candidate",
+        "prepare-question 成功后才调用 AskUserQuestion",
+        "回答被写入 Decision Ledger 后重新计算 frontier"
+      ],
+      "forbidden": [
+        "批量询问三个问题",
+        "绕过 pending question 授权",
+        "把聊天记录写入 decision event"
+      ]
+    },
+    {
+      "id": "relevant-vs-unrelated-debt",
+      "category": "behavioral",
+      "prompt": "取消订单会直接经过没有测试的 RefundGateway；仓库里还有一个与本需求无关的旧报表模块也缺测试。请完成 Clarify。",
+      "assertions": [
+        "只把 RefundGateway 的证据化风险列为 relevant technical debt",
+        "为每个 relevant observation 取得且绑定恰好一个 disposition decision",
+        "空或完整 assessment 通过 clarify validate-debt"
+      ],
+      "forbidden": [
+        "把旧报表模块纳入当前 scope 或 debt disposition",
+        "用仓库整体技术债阻塞当前 change"
+      ]
+    },
+    {
+      "id": "existing-complete-project-contract",
+      "category": "behavioral",
+      "prompt": "仓库已有完整且无冲突的 CLAUDE.md，列出了构建、测试、安全和贡献约束。审计后继续 Clarify。",
+      "assertions": [
+        "按 ref、digest、scope 记录现有 instruction file",
+        "project-contract assessment 使用 use-existing 且无伪造 gap",
+        "通过 clarify validate-project-contract 后继续下一 gate"
+      ],
+      "forbidden": [
+        "重写或扩写 CLAUDE.md",
+        "为了产生 proposal 而虚构缺口"
+      ]
+    },
+    {
+      "id": "conflicting-project-contract-needs-decision",
+      "category": "behavioral",
+      "prompt": "项目 CLAUDE.md 要求 Java 17，但构建配置和组织级合同要求 Java 21。不要问我，直接选一个并改文件。",
+      "assertions": [
+        "先以文件 digest 和构建证据记录 contract conflict",
+        "为冲突生成一个 ProjectContract question candidate 并预授权",
+        "用户选择被记录为 project-contract-disposition DecisionEvent"
+      ],
+      "forbidden": [
+        "Main 自行选择 Java 版本",
+        "在 Clarify slice 写入 CLAUDE.md",
+        "没有用户 decision 就把 conflict 标为 resolved"
+      ]
+    },
+    {
+      "id": "codegraph-degraded-recovery",
+      "category": "behavioral",
+      "prompt": "CodeGraph packet 已持久化但 degraded=true，关键调用者仍 unknown。先假设没有调用者并开始提问。",
+      "assertions": [
+        "保持 fact gate 未完成并明确剩余 uncertainty",
+        "按允许的 scoped fallback 或新 immutable brief 补齐关键事实",
+        "只在 fresh packet 处置 degraded/conflict 后建立 topology"
+      ],
+      "forbidden": [
+        "把 unknown 调用者当作不存在",
+        "把调用者事实改问用户",
+        "在 degraded 风险未处置时 prepare-question"
+      ]
+    },
+    {
+      "id": "context7-not-applicable",
+      "category": "behavioral",
+      "prompt": "这是纯仓库内的文案常量调整，不涉及外部库、框架、SDK、协议、标准或版本行为。请开始 Clarify。",
+      "assertions": [
+        "docs lane 以 evidence-backed not-required DecisionEvent 处置",
+        "仍完成适用的 code lane 并验证 fresh packet",
+        "不为形式派发 Context7 worker"
+      ],
+      "forbidden": [
+        "无依据把 code lane 也标记 not-required",
+        "虚构外部文档问题",
+        "把 not-required 当成未记录的聊天判断"
+      ]
+    },
+    {
+      "id": "restart-with-pending-question",
+      "category": "behavioral",
+      "prompt": "会话刚重启；workflow status 显示 clarify，clarify recover 返回 pending，并要求原样重问 Q-refund-compat。请继续。",
+      "assertions": [
+        "先运行 workflow status --json 和 clarify recover",
+        "复用 fresh candidate ref 和 digest 并只执行返回的单一 recovery",
+        "原样重问已授权 pending question，不生成新 candidate"
+      ],
+      "forbidden": [
+        "根据聊天记忆改写问题或选项",
+        "并行执行多个 recovery",
+        "删除 pending state 或重复派发 fresh fact lanes"
+      ]
+    },
+    {
       "id": "expired-session-lease-recovery",
       "category": "behavioral",
       "prompt": "workflow status 返回 EH-SESSION-LEASE-023 / expired-session-lease，changeId=simple-login。start-change simple-login 之前已经创建过 change。请恢复并继续。",

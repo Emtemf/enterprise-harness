@@ -86,6 +86,14 @@ user-decision 行可以用逗号列出多个 `.confirmed`；不要从包含“�
 
 每轮只推进一个 frontier；回答或 ResearchPacket 返回后重新计算受影响分数和 frontier。
 
+## Decision refs
+
+只记录 append-only Decision Ledger 中的公开事件引用；不得粘贴聊天记录、prompt、隐藏推理或 secrets。
+
+| Decision type | Event ID / ref | Target | Selected option | Bound evidence / input digest | Status |
+|---|---|---|---|---|---|
+| lane-applicability / clarify-answer / scope-confirmation / classification-route | D-* | component / artifact ref | option-id | E-* / artifact digest | resolved / stale |
+
 ## 事实、约束与条件分支
 
 ### ResearchPacket
@@ -126,12 +134,38 @@ CodeGraph/Context7 解决，剩余 Decision 才进入一问一答。
 - 性能与运行约束：
 - 风险与回滚边界：
 
+## Relevant technical debt
+
+只收录本 change 直接触及且有代码位置或 execution evidence 的债务；不相关的 repository debt 明确排除，
+不借 Clarify 扩 scope。详细结构与 disposition 由 canonical `debt-assessment.json` 和 runtime validator 管理。
+
+| Debt ID | Relevant claim | Evidence ref | Change impact | Disposition event / status |
+|---|---|---|---|---|
+| debt-id | | | | D-* / fix-now / enabling-task / defer / accepted-constraint / not-debt |
+
+## Project-contract disposition
+
+| Instruction ref | Digest / scope | Gap or conflict | Status | Decision / proposal ref |
+|---|---|---|---|---|
+| AGENTS.md / existing project instruction | | none / evidence-backed finding | use-existing / proposal-required / conflict / deferred | D-* / proposal ref |
+
+本阶段只审计并处置 project contract；不得创建、修改或写入 `CLAUDE.md`。
+
 ## Classification
 
 - tier：L0 / L1 / L2 / L3
 - impact：api / data / architecture / rule / security
 - owning module / service：
 - classification evidence：
+
+### Classification inputs
+
+- requirements ref / digest：
+- required ResearchPacket refs / digests：
+- decision snapshot ref / digest：
+- debt assessment ref / digest：
+- project-contract assessment ref / digest：
+- classification-route Decision ref：
 
 Classification 是 clarify 后的 durable artifact，不是 lifecycle stage。
 
