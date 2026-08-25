@@ -13,7 +13,9 @@ import { evaluateHookHealth } from './lib/hook-health.mjs';
 import { updateChangeState } from './core/change-state.mjs';
 import {
   requiredStageResultArtifacts,
+  resolveStageCompletionCandidate,
   resolveStageCompletionProof,
+  stageCompletionFor,
 } from './lib/stage-results.mjs';
 import { atomicWriteJson } from './lib/state-store.mjs';
 import { assertForwardTransition } from './core/stage-transition.mjs';
@@ -140,10 +142,17 @@ function assertCurrentSessionChange(changeId) {
 
 function persistStageCompletionProof(changeId, stage) {
   const requiredArtifactPaths = requiredStageResultArtifacts(changeId, stage);
-  const { proof, problems } = resolveStageCompletionProof(repoRoot, changeId, stage, { requiredArtifactPaths });
+  const resolver = stage === 'implement' ? resolveStageCompletionProof : resolveStageCompletionCandidate;
+  const { proof, problems } = resolver(repoRoot, changeId, stage, { requiredArtifactPaths });
   if (!proof) return { proof: null, problems };
   const target = path.join(changePath(changeId), 'evidence', 'completion', `${stage}.json`);
   atomicWriteJson(target, proof);
+  if (stage !== 'implement') {
+    const verified = stageCompletionFor(repoRoot, changeId, stage, { requiredArtifactPaths });
+    if (verified.proof.status !== 'pass' || verified.problems.length > 0) {
+      return { proof: null, problems: verified.problems };
+    }
+  }
   return { proof, problems: [] };
 }
 

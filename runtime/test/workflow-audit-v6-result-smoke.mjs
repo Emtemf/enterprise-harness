@@ -4,8 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { auditWorkflow } from '../lib/workflow-audit.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
@@ -14,6 +16,7 @@ import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
+const workflow = fileURLToPath(new URL('../workflow.mjs', import.meta.url));
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-workflow-audit-v6-'));
 const changeId = 'audit-design';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
@@ -29,6 +32,14 @@ let state = {
   artifacts: { classification: null },
   validation: { status: 'stale', digest: null, validatedAt: null },
 };
+
+function runAuditCommand() {
+  return spawnSync(process.execPath, [workflow, 'audit', changeId, '--json'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+  });
+}
 
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
@@ -140,6 +151,29 @@ try {
   fs.writeFileSync(v2ResultPath(root, changeId, clarifyExecute.runId), JSON.stringify(clarifyResult));
   fs.writeFileSync(clarifyReviewPath, JSON.stringify(clarifyReview));
 
+  const clarifyProofPath = path.join(changeDir, 'evidence', 'completion', 'clarify.json');
+  const missingClarifyProof = auditWorkflow(root, changeId, state);
+  const missingClarifyStage = missingClarifyProof.stages.find((stage) => stage.stage === 'clarify');
+  assert.equal(missingClarifyStage.status, 'block', 'read-only audit must block without a persisted Clarify proof');
+  assert.match(
+    missingClarifyStage.blockers.map(({ message }) => message).join('\n'),
+    /Clarify.*CompletionProof is missing|clarify CompletionProof is missing/u,
+  );
+  assert.equal(fs.existsSync(clarifyProofPath), false, 'read-only audit must not publish a candidate proof');
+  const missingClarifyProofCommand = runAuditCommand();
+  assert.equal(missingClarifyProofCommand.status, 2, 'workflow audit command must block without a persisted Clarify proof');
+  assert.equal(fs.existsSync(clarifyProofPath), false, 'workflow audit command must remain read-only');
+
+  const clarifyProof = buildCompletionProof(root, {
+    stageResult: clarifyResult,
+    reviewResult: clarifyReview,
+    producerAgentIds: ['enterprise-harness:main'],
+    reviewerAgentIds: ['agent-clarify-review'],
+    createdAt: '2026-08-13T00:00:02.000Z',
+  });
+  fs.mkdirSync(path.dirname(clarifyProofPath), { recursive: true });
+  fs.writeFileSync(clarifyProofPath, `${JSON.stringify(clarifyProof, null, 2)}\n`);
+
   const missing = auditWorkflow(root, changeId, state);
   const missingDesign = missing.stages.find((stage) => stage.stage === 'design');
   const expectedResultGates = {
@@ -221,11 +255,48 @@ try {
   appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
   appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-design-review' });
 
+  const designProofPath = path.join(changeDir, 'evidence', 'completion', 'design.json');
+  const missingDesignProof = auditWorkflow(root, changeId, state);
+  const missingDesignProofStage = missingDesignProof.stages.find((stage) => stage.stage === 'design');
+  assert.equal(missingDesignProofStage.status, 'block', 'read-only audit must block without a persisted Design proof');
+  assert.equal(fs.existsSync(designProofPath), false, 'read-only audit must not publish a Design candidate proof');
+
+  const designProof = buildCompletionProof(root, {
+    stageResult,
+    reviewResult: review,
+    createdAt: '2026-08-14T00:00:02.000Z',
+  });
+  fs.mkdirSync(path.dirname(designProofPath), { recursive: true });
+  fs.writeFileSync(designProofPath, `${JSON.stringify({
+    ...designProof,
+    artifacts: designProof.artifacts.map((artifact, index) => (
+      index === 0 ? { ...artifact, digest: 'f'.repeat(64) } : artifact
+    )),
+  }, null, 2)}\n`);
+  const staleDesignProof = auditWorkflow(root, changeId, state);
+  assert.equal(
+    staleDesignProof.stages.find((stage) => stage.stage === 'design').status,
+    'block',
+    'read-only audit must block a stale persisted proof',
+  );
+  assert.equal(runAuditCommand().status, 2, 'workflow audit command must block a stale persisted proof');
+
+  fs.writeFileSync(designProofPath, `${JSON.stringify({ ...designProof, target: 'mismatched target' }, null, 2)}\n`);
+  const mismatchedDesignProof = auditWorkflow(root, changeId, state);
+  assert.equal(
+    mismatchedDesignProof.stages.find((stage) => stage.stage === 'design').status,
+    'block',
+    'read-only audit must block a mismatched persisted proof',
+  );
+  assert.equal(runAuditCommand().status, 2, 'workflow audit command must block a mismatched persisted proof');
+
+  fs.writeFileSync(designProofPath, `${JSON.stringify(designProof, null, 2)}\n`);
   const complete = auditWorkflow(root, changeId, state);
   const completeDesign = complete.stages.find((stage) => stage.stage === 'design');
   assert.equal(complete.verdict, 'pass');
   assert.equal(completeDesign.status, 'pass');
   assert.deepEqual(completeDesign.results.map((result) => result.status), ['pass']);
+  assert.equal(runAuditCommand().status, 0, 'workflow audit command must accept exact persisted proofs');
 
   fs.writeFileSync(path.join(changeDir, 'tasks.md'), '# Tasks\n\n## Task 1: task-one\n');
   const includingCurrent = auditWorkflow(root, changeId, state, { includeCurrent: true });

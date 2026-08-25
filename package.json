@@ -63,5 +63,8 @@
     "enterprise-harness",
     "agentic-workflow",
     "portable-runtime"
-  ]
+  ],
+  "devDependencies": {
+    "ajv": "8.20.0"
+  }
 }

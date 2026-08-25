@@ -467,12 +467,9 @@ export function applyV6ScopeConfirmationDecision(
         `EH-WORKFLOW-STAGE-GATE-007: Clarify result gate failed: ${stageProblems.join('; ')}`,
       );
     }
-    return {
-      ...data,
-      stage: 'design',
-      blocker: null,
-      artifacts: artifacts ? { ...data.artifacts, ...artifacts } : data.artifacts,
-    };
+    throw new Error(
+      'EH-WORKFLOW-STAGE-GATE-007: State v6 Clarify transition must use the lifecycle state command so the runtime can atomically persist and revalidate CompletionProof.',
+    );
   }
   if (decision === 'revise-scope') {
     return {

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
+import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { createEvidencePolicy } from '../lib/evidence-policy.mjs';
 import {
@@ -88,7 +89,7 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
     tecpc,
   });
   const checkResultPath = v2ResultPath(root, changeId, check.runId, 'check');
-  writeResult(check.runId, 'check', {
+  const reviewResult = {
     resultVersion: 1,
     type: 'review-result',
     changeId,
@@ -103,13 +104,21 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
     verdict: 'pass',
     correction: null,
     reviewedAt: '2026-08-16T00:00:02.000Z',
-  });
+  };
+  writeResult(check.runId, 'check', reviewResult);
   appendCompletedHandoffBinding(root, changeId, execute.input, {
     agentId: `${stage}-executor`,
   });
   appendCompletedHandoffBinding(root, changeId, check.input, {
     agentId: `${stage}-reviewer`,
   });
+  const proofPath = path.join(changeDir, 'evidence', 'completion', `${stage}.json`);
+  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+  fs.writeFileSync(proofPath, `${JSON.stringify(buildCompletionProof(root, {
+    stageResult,
+    reviewResult,
+    createdAt: '2026-08-16T00:00:03.000Z',
+  }), null, 2)}\n`);
   return { execute, check, checkResultPath };
 }
 

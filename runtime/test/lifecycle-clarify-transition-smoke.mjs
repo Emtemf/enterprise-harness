@@ -7,9 +7,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendDecisionEvent } from '../core/decision-ledger.mjs';
-import { stageCompletionFor } from '../lib/stage-results.mjs';
+import { stageCompletionFor, validateStageGate } from '../lib/stage-results.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
@@ -18,6 +19,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
+const workflow = path.join(sourceRoot, 'runtime', 'workflow.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-lifecycle-clarify-gate-'));
 const changeId = 'clarify-transition';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
@@ -30,6 +32,24 @@ const {
 
 function advance() {
   return spawnSync(process.execPath, [lifecycle, 'state', changeId, 'design'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: unboundEnv,
+  });
+}
+
+function confirmScopeShortcut() {
+  return spawnSync(process.execPath, [workflow, 'decide', changeId, 'confirm-scope', 'scope already confirmed'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: unboundEnv,
+  });
+}
+
+function workflowStatus() {
+  return spawnSync(process.execPath, [workflow, 'status', changeId, '--json'], {
     cwd: root,
     encoding: 'utf-8',
     shell: false,
@@ -247,11 +267,40 @@ try {
 
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({ ...stageResult, artifacts: completeArtifacts }));
   fs.writeFileSync(independentReviewPath, JSON.stringify(independentReview));
+  const proofPath = path.join(changeDir, 'evidence', 'completion', 'clarify.json');
+  const preexistingProof = buildCompletionProof(root, {
+    stageResult: { ...stageResult, artifacts: completeArtifacts },
+    reviewResult: independentReview,
+    producerAgentIds: ['enterprise-harness:main'],
+    reviewerAgentIds: ['agent-clarify-review'],
+    createdAt: '2026-08-25T00:02:00.000Z',
+  });
+  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+  fs.writeFileSync(proofPath, `${JSON.stringify(preexistingProof, null, 2)}\n`);
+  const shortcut = confirmScopeShortcut();
+  assert.equal(shortcut.status, 2, 'workflow confirm-scope must not be a second Clarify transition path');
+  assert.match(`${shortcut.stdout}\n${shortcut.stderr}`, /EH-WORKFLOW-STAGE-GATE-007.*lifecycle/u);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'clarify');
+
+  fs.rmSync(proofPath);
+  assert.match(
+    validateStageGate(root, changeId, 'clarify').join('; '),
+    /CompletionProof is missing/u,
+    'read-only gate validation must require the persisted exact proof',
+  );
+  assert.equal(fs.existsSync(proofPath), false, 'read-only gate validation must not publish the candidate proof');
+  const statusWithoutProof = workflowStatus();
+  assert.equal(statusWithoutProof.status, 0, statusWithoutProof.stderr);
+  assert.equal(
+    JSON.parse(statusWithoutProof.stdout).clarifyReadiness.recovery.code,
+    'EH-CLARIFY-PROOF-143',
+    'workflow status must project the missing persisted proof',
+  );
+  assert.equal(fs.existsSync(proofPath), false, 'workflow status must remain read-only');
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'design');
 
-  const proofPath = path.join(changeDir, 'evidence', 'completion', 'clarify.json');
   const proof = JSON.parse(fs.readFileSync(proofPath, 'utf-8'));
   assert.deepEqual(proof.reviewedArtifacts, completeArtifacts);
   assert.deepEqual(proof.decisionSnapshotRef, completeArtifacts[4]);

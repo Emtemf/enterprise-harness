@@ -63,7 +63,10 @@
       "then": {
         "required": ["reviewedArtifacts", "decisionSnapshotRef", "assertions", "tecpc"],
         "properties": {
-          "artifacts": { "minItems": 5, "maxItems": 5 },
+          "artifacts": { "$ref": "#/$defs/clarifyArtifactSet" },
+          "reviewedArtifacts": { "$ref": "#/$defs/clarifyArtifactSet" },
+          "decisionSnapshotRef": { "$ref": "#/$defs/clarifyDecisionSnapshotArtifact" },
+          "assertions": { "$ref": "#/$defs/clarifyAssertions" },
           "tecpc": {
             "allOf": [
               { "$ref": "tecpc.schema.json" },
@@ -104,6 +107,44 @@
         "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
       },
       "additionalProperties": false
+    },
+    "clarifyArtifactSet": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/artifact" },
+      "allOf": [
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/requirements\\.md$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/classification\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/debt-assessment\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/project-contract-assessment\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/evidence/decisions/clarify-decision-snapshot\\.json$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "clarifyDecisionSnapshotArtifact": {
+      "allOf": [
+        { "$ref": "#/$defs/artifact" },
+        {
+          "properties": {
+            "path": { "pattern": "^harness/changes/[^/]+/evidence/decisions/clarify-decision-snapshot\\.json$" }
+          }
+        }
+      ]
+    },
+    "clarifyAssertions": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": { "$ref": "#/$defs/assertion" },
+      "allOf": [
+        { "contains": { "properties": { "id": { "const": "research-complete" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "decisions-durable" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "technical-debt-disposed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "project-contract-disposed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "requirements-ready" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "classification-ready" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "id": { "const": "scope-confirmed" } }, "required": ["id"] }, "minContains": 1, "maxContains": 1 }
+      ]
     }
   }
 }

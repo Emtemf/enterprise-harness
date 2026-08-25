@@ -4,11 +4,11 @@
 
 | 当前阶段 | 允许推进的必要证据 |
 |---|---|
-| clarify | 已确认 requirements、classification、ResearchPacket（适用时）以及新鲜独立 review |
+| clarify | canonical `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`，由不同 trusted identity/run 独立 passing review，且 TECPC 完整、generic CompletionProof 已持久化并 fresh |
 | design | schema-valid StageResult、全部 design assertions、独立 passing ReviewResult、TECPC 与 fresh input/output digest |
 | plan | 冻结 tasks、strategy evidence 与独立 review |
 | implement | task-level execution receipt、self-check 与独立 review |
 | verify | fresh validation、final ReviewResult 与 completion TECPC |
 | archive | verify evidence 仍 fresh 且归档前检查通过 |
 
-主 Harness 只为真正的业务选择向用户提问。stage transition 不依赖 v5 state boolean projection；它读取结构化结果和 digest freshness。
+主 Harness 只为真正的业务选择向用户提问。stage transition 不依赖 v5 state boolean projection；它读取结构化结果和 digest freshness。Clarify 只通过 lifecycle state command 推进；该命令原子写入 candidate CompletionProof、重新读取 canonical gate，再 CAS 更新 stage。`workflow status`、`workflow audit` 与旧 `confirm-scope` decision 均保持只读，不生成 proof 或推进 stage。

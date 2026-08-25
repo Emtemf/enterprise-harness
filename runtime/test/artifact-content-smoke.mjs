@@ -86,6 +86,11 @@ try {
     false,
     'Harness development evals must not ship in the plugin artifact',
   );
+  assert.equal(
+    [...listed].some((file) => /^node_modules\//u.test(file)),
+    false,
+    'Development-only dependencies must not ship in the plugin artifact',
+  );
   // Shipped runtime must not hardcode paths from this repo's own demo service.
   // A checker that silently returns [] when those paths are absent reports zero
   // findings on every real target project while looking like it passed.
@@ -96,6 +101,11 @@ try {
       /reference-service/u.test(text),
       false,
       `${entry.path} hardcodes reference-service paths, which do not exist in a target project`,
+    );
+    assert.equal(
+      /(?:from|import\()\s*['"]ajv(?:\/|['"])/u.test(text),
+      false,
+      `${entry.path} imports the development-only JSON Schema validator`,
     );
   }
 

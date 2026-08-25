@@ -1,11 +1,14 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-21
+lastVerified: 2026-08-25
 implementationRefs:
+  - runtime/core/completion-proof.mjs
   - runtime/lib/stage-contract.mjs
+  - runtime/lib/stage-results.mjs
   - runtime/lib/workflow-audit.mjs
   - runtime/lib/status-summary.mjs
+  - runtime/lifecycle.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
 testRefs:
@@ -45,7 +48,9 @@ sequenceDiagram
   M->>R: clarify execute result
   M->>K: independent clarify check
   K->>D: digest-bound ReviewResult
-  M->>R: legal workflow decision
+  M->>R: lifecycle state transition
+  R->>D: atomically persist generic CompletionProof
+  R->>R: freshly reread and revalidate stage gate
 
   loop design → plan → implement → verify → archive
     M->>S: invoke stage Skill
@@ -80,7 +85,7 @@ sequenceDiagram
 3. `runs/<execute-run>/result.json`：schema-valid StageResult 或 task result，绑定输入和 artifact digest。
 4. `runs/<check-run>/input.json`：不同 runId、`parentRunId` 指向 execute run。
 5. `runs/<check-run>/check.json`：独立 ReviewResult、rubricIds、reviewed digest 与 TECPC。
-6. runtime CompletionProof：只有结构、独立性、agent binding 和 freshness 均有效才成立。
+6. persisted generic CompletionProof：只有结构、独立性、agent binding 和 freshness 均有效才成立；只读 gate 不生成 proof。
 
 Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale；不得靠 state boolean 恢复。
 
@@ -88,7 +93,7 @@ Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale
 
 | Stage | 必要 durable artifact/state | Executor | 独立检查 | 合法推进条件 |
 |---|---|---|---|---|
-| clarify | `requirements.md`；classification path+digest；适用 ResearchPacket | Main（用户循环）+ fact agents | reviewer requirements rubric | topology/scope 已确认；component × dimension 达标；Clarify result/review/completion fresh |
+| clarify | `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`；适用 ResearchPacket | Main（用户循环）+ fact agents | 不同 trusted identity/run 的 reviewer，绑定五项 canonical artifact | 五项 artifact、StageResult、独立 passing ReviewResult、完整 TECPC 与 persisted generic CompletionProof 均 fresh |
 | design | `design.md` | artifact-worker + design Skill | reviewer selected rubrics | StageResult、全部 assertions、ReviewResult、TECPC 与 digest fresh |
 | plan | `tasks.md` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope frozen，result/review fresh |
 | implement | `currentTask`；task receipts；产品变更 | implementer + implement Skill | reviewer task rubrics | 每 task receipt/self-check/review fresh，write scope 合规 |
@@ -96,7 +101,8 @@ Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale
 | archive | immutable archive artifact/state | artifact-worker + archive Skill | reviewer archive rubric | verify evidence 未 stale，归档前检查和 CompletionProof 通过 |
 
 Classification 是 clarify artifact；execution strategy 是 implement task 属性。没有 `route` 或 `tdd`
-lifecycle stage。
+lifecycle stage。Clarify 只能通过 lifecycle state command 推进；该命令写入并重新读取 CompletionProof 后才 CAS 更新 stage。
+`workflow status`、`workflow audit` 和旧的 `confirm-scope` decision 都不会生成 proof 或绕过此 gate。
 
 ## 诊断入口
 

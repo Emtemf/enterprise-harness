@@ -20,7 +20,7 @@
 - [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、evidence-bound readiness predicates、条件风险面与 Decision frontier
 - [tdd-execution.md](tdd-execution.md)
 - [verify-contract.md](verify-contract.md)
-- [stage-observability.md](stage-observability.md) — 阶段时序、事件、artifact 与 `workflow audit` 的可执行合同
+- [stage-observability.md](stage-observability.md) — 阶段时序、artifact、独立 review、persisted proof gate 与 `workflow audit` 的可执行合同
 - [upstream-mapping.md](upstream-mapping.md) — 三套 Clarify 方法、Claude Code 职责边界与固定审阅来源
 - [skill-packaging.md](skill-packaging.md) — Skill 目录结构、运行资源、研发 eval 分离和路径约定
 

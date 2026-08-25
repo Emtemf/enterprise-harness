@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateStageGate } from '../lib/stage-results.mjs';
 
@@ -140,6 +141,19 @@ try {
   assert.match(selfApproved.join('; '), /distinct.*agent|same agent/u);
 
   appendCompletedBinding(check.input, 'agent-reviewer', 'enterprise-harness:reviewer');
+  assert.match(
+    validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef }).join('; '),
+    /CompletionProof is missing/u,
+    'independent review alone must not satisfy a read-only stage gate',
+  );
+  const proof = buildCompletionProof(root, {
+    stageResult,
+    reviewResult: review,
+    createdAt: '2026-08-16T00:00:02.000Z',
+  });
+  const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'design.json');
+  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+  fs.writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
   assert.deepEqual(
     validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef }),
     [],

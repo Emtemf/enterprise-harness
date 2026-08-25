@@ -24,6 +24,7 @@ runtime/.bootstrap-ran
 .superpowers/
 
 # Build outputs
+node_modules/
 **/target/
 **/build/
 dist/

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateDesignStageGate } from '../lib/stage-results.mjs';
@@ -79,6 +80,13 @@ try {
   fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
   appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
   appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-review' });
+  const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'design.json');
+  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+  fs.writeFileSync(proofPath, `${JSON.stringify(buildCompletionProof(root, {
+    stageResult,
+    reviewResult: review,
+    createdAt: '2026-08-14T00:00:02.000Z',
+  }), null, 2)}\n`);
 
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
 

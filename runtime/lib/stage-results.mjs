@@ -217,7 +217,7 @@ function sameProofBinding(proof, candidate) {
     && proof?.path === candidate?.path;
 }
 
-export function stageCompletionFor(root, changeId, stage, {
+function stageCompletionCandidateFor(root, changeId, stage, {
   requiredArtifactPath = null,
   requiredArtifactPaths = [],
 } = {}) {
@@ -323,16 +323,32 @@ export function stageCompletionFor(root, changeId, stage, {
   } catch (error) {
     return fail('proof', [executionRef, reviewRef], [error.message]);
   }
+  state.problems = [];
+  return state;
+}
+
+export function stageCompletionFor(root, changeId, stage, options = {}) {
+  const state = stageCompletionCandidateFor(root, changeId, stage, options);
+  if (!state.candidateProof) return state;
   const proofRef = `harness/changes/${changeId}/evidence/completion/${stage}.json`;
   const proofPath = path.join(root, proofRef);
-  if (!fs.existsSync(proofPath)) return fail('proof', [], [`${stage} CompletionProof is missing`]);
+  if (!fs.existsSync(proofPath)) {
+    const problems = [`${stage} CompletionProof is missing`];
+    state.proof = layer('blocked', [], problems);
+    state.problems = problems;
+    return state;
+  }
   const proofProblems = [];
   const proof = readJson(proofPath, proofRef, proofProblems);
   if (proof) {
     proofProblems.push(...validateCompletionProof(root, proof));
     if (!sameProofBinding(proof, state.candidateProof)) proofProblems.push(`${stage} CompletionProof does not exactly bind canonical result, TECPC, artifacts, and run IDs`);
   }
-  if (proofProblems.length > 0) return fail('proof', [proofRef], proofProblems);
+  if (proofProblems.length > 0) {
+    state.proof = layer(layerStatus(proofProblems), [proofRef], proofProblems);
+    state.problems = proofProblems;
+    return state;
+  }
   state.proof = layer('pass', [proofRef]);
   state.problems = [];
   return state;
@@ -464,7 +480,7 @@ export function resolveStageCompletionProof(root, changeId, stage, {
 
   if (stage !== 'implement') {
     const completion = stageCompletionFor(root, changeId, stage, { requiredArtifactPath, requiredArtifactPaths });
-    return completion.candidateProof
+    return completion.proof.status === 'pass' && completion.candidateProof
       ? { proof: completion.candidateProof, problems: [] }
       : { proof: null, problems: completion.problems };
   }
@@ -529,8 +545,17 @@ export function resolveStageCompletionProof(root, changeId, stage, {
   return { proof: null, problems };
 }
 
+export function resolveStageCompletionCandidate(root, changeId, stage, options = {}) {
+  if (stage === 'implement') return resolveStageCompletionProof(root, changeId, stage, options);
+  const completion = stageCompletionCandidateFor(root, changeId, stage, options);
+  return completion.candidateProof
+    ? { proof: completion.candidateProof, problems: [] }
+    : { proof: null, problems: completion.problems };
+}
+
 export function validateStageGate(root, changeId, stage, options) {
-  return resolveStageCompletionProof(root, changeId, stage, options).problems;
+  if (stage === 'implement') return resolveStageCompletionProof(root, changeId, stage, options).problems;
+  return stageCompletionFor(root, changeId, stage, options).problems;
 }
 
 export function validateDesignStageGate(root, changeId) {

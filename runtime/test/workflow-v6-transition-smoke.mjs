@@ -13,7 +13,6 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const runner = fs.readFileSync(path.join(root, 'runtime', 'workflow.mjs'), 'utf-8');
 const initial = Object.freeze({
   schemaVersion: 6,
   revision: 1,
@@ -40,24 +39,19 @@ assert.throws(
   'v6 confirm-scope must fail closed until the Clarify result gate passes',
 );
 
-const advanced = applyV6ScopeConfirmationDecision(initial, 'confirm-scope', {
-  stageProblems: [],
-});
-assert.notEqual(advanced, initial);
+assert.throws(
+  () => applyV6ScopeConfirmationDecision(initial, 'confirm-scope', { stageProblems: [] }),
+  /EH-WORKFLOW-STAGE-GATE-007.*lifecycle state command/u,
+  'v6 confirm-scope must not bypass the canonical proof-persisting lifecycle transition',
+);
 assert.equal(initial.stage, 'clarify');
-assert.equal(advanced.stage, 'design');
-assert.ok(!Object.hasOwn(advanced, 'workflow'), 'v6 transition must not reintroduce projection booleans');
-assert.deepEqual(validateV6State(advanced, advanced.changeId), []);
 
-const revised = applyV6ScopeConfirmationDecision(advanced, 'revise-scope', {
+const revised = applyV6ScopeConfirmationDecision(initial, 'revise-scope', {
   stageProblems: [],
 });
 assert.equal(revised.stage, 'clarify');
 assert.ok(!Object.hasOwn(revised, 'workflow'));
 assert.deepEqual(validateV6State(revised, revised.changeId), []);
-
-assert.match(runner, /validateStageGate\(root, changeId, 'clarify'/u);
-assert.match(runner, /applyV6ScopeConfirmationDecision/u);
 
 const planRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'workflow-v6-plan-ready-'));
 try {
