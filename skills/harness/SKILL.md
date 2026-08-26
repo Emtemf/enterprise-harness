@@ -18,16 +18,16 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## Status-first controller
 
-任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。若返回 blocker、recovery 或 `nextAction`，只执行其一个动作并结束本轮；workflow recovery 永远优先。只有 status 明确 active v6 Clarify 且无前置动作，才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。此优先级不得下沉到 reference。
+任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。若返回 blocker、recovery 或 `nextAction`，只执行其一个动作并结束本轮；动作经 research/entry authority，记为 entry/recovery selected，workflow recovery 永远优先。只有 status 明确 active v6 Clarify 且无前置动作，才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。此优先级不得下沉到 reference。
 
 ## State router
 
 每次只选一个 observable state，读取一个 phase reference，执行其中一个 durable action，然后返回本 controller：
 
-1. active Clarify 且 `factGateOpen`：读取 [research/entry authority](references/clarify-research.md)。
-2. `factGateOpen=false` 且 topology/frontier 未关闭：读取 [decision authority](references/clarify-decisions.md)。
-3. `factGateOpen=false`、topology confirmed、user Decisions resolved，但 completion gate 未关闭：读取 [completion authority](references/clarify-completion.md)。
-4. Clarify proof 已通过才按 `clarify → design → plan → implement → verify → archive` 推进；此时读取 [capability map](references/behavior-map.md) 和 [transition contract](references/stage-decisions.md)。Implement 使用原生 worktree；每阶段使用独立 reviewer。
+1. no active Clarify、entry/recovery selected、lane applicability undecided、`factGateOpen`，或 earliest invalid gate 是 research：读取 [research/entry authority](references/clarify-research.md)。
+2. Clarify proof 已通过：读取 [capability map](references/behavior-map.md) 和 [transition contract](references/stage-decisions.md)，按 `clarify → design → plan → implement → verify → archive` 推进。Implement 使用原生 worktree；每阶段使用独立 reviewer。
+3. active Clarify、`factGateOpen=false`、Phase 2–3 frontier open，且 earliest invalid gate 不是 completion：读取 [decision authority](references/clarify-decisions.md)。
+4. active Clarify、proof 未通过，且 Phase 2–3 frontier closed 或 earliest invalid gate 是 completion：读取 [completion authority](references/clarify-completion.md)。以上条件是互斥且完备的分区。
 
 首次生成 Clarify artifact 或 final self-check 前读取 [semantic output contract](references/output-contract.md)；只有要校准 dispatch、Fast Path 或问题质量时读取 [few-shots](references/clarify-few-shots.md)。[assets](assets/) 与 [scripts](scripts/) 仅由当前 phase reference 导航，不自动加载。
 

@@ -131,7 +131,7 @@ function requireCanonicalManifest(target) {
 function validDate(value) {
   if (typeof value !== 'string') return false;
   const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|[+-](\d{2}):(\d{2}))$/u,
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/u,
   );
   if (!match) return false;
   const [, yearText, monthText, dayText, hourText, minuteText, secondText,
@@ -147,9 +147,38 @@ function validDate(value) {
     && day <= daysInMonth[month - 1]
     && Number(hourText) <= 23
     && Number(minuteText) <= 59
-    && Number(secondText) <= 60
+    && Number(secondText) <= 59
     && (offsetHourText === undefined || Number(offsetHourText) <= 23)
     && (offsetMinuteText === undefined || Number(offsetMinuteText) <= 59);
+}
+
+function validateWorkspaceRoot(workspaceRoot) {
+  const canonicalTemp = fs.realpathSync(os.tmpdir());
+  const resolved = typeof workspaceRoot === 'string' ? path.resolve(workspaceRoot) : '';
+  const checkoutRelative = resolved ? path.relative(repoRoot, resolved) : '';
+  const insideCheckout = checkoutRelative === ''
+    || (!checkoutRelative.startsWith(`..${path.sep}`) && checkoutRelative !== '..' && !path.isAbsolute(checkoutRelative));
+  if (workspaceRoot !== resolved
+      || path.dirname(resolved) !== canonicalTemp
+      || !/^eh-clarify-skill-eval-.+/u.test(path.basename(resolved))
+      || insideCheckout) {
+    throw new Error('manifest workspace root must be a canonical owned tmp prefix outside checkout');
+  }
+}
+
+function validateProcessOutcome(entry) {
+  const completed = entry.processStatus === 'completed'
+    && entry.exitCode === 0 && entry.signal === null && entry.timedOut === false;
+  const nonzeroExit = entry.processStatus === 'exit-nonzero'
+    && entry.timedOut === false
+    && ((Number.isInteger(entry.exitCode) && entry.exitCode !== 0 && entry.signal === null)
+      || (entry.exitCode === null && typeof entry.signal === 'string' && entry.signal.length > 0));
+  const timeout = entry.processStatus === 'timeout'
+    && entry.exitCode === null && typeof entry.signal === 'string' && entry.signal.length > 0
+    && entry.timedOut === true;
+  if (!completed && !nonzeroExit && !timeout) {
+    throw new Error(`${entry.runId} process outcome metadata is inconsistent`);
+  }
 }
 
 function validateOutputEvidence(manifestPath, entry, stream) {
@@ -221,6 +250,7 @@ function validateManifestForReview(manifestPath, manifest) {
       || !['removed', 'cleanup-failed'].includes(manifest.workspace.cleanupStatus)) {
     throw new Error('manifest workspace cleanup metadata is invalid');
   }
+  validateWorkspaceRoot(manifest.workspace.root);
   if (!['complete', 'aborted'].includes(manifest.collectionStatus)
       || !Number.isSafeInteger(manifest.plannedRunCount) || manifest.plannedRunCount < 1
       || !Number.isSafeInteger(manifest.recordedRunCount)
@@ -258,6 +288,7 @@ function validateManifestForReview(manifestPath, manifest) {
     if (!validDate(entry.startedAt) || !validDate(entry.completedAt)) {
       throw new Error(`${entry.runId} timestamps must be strict RFC3339`);
     }
+    validateProcessOutcome(entry);
     if (expectedShapeId === null) {
       if (entry.mechanicalShape !== null) throw new Error('manifest shape metadata is invalid');
     } else if (entry.mechanicalShape?.id !== expectedShapeId
@@ -461,7 +492,7 @@ try {
   }
   fs.mkdirSync(runDirectory, { recursive: false });
   fs.mkdirSync(outputsDirectory);
-  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-skill-eval-'));
+  const workspaceRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-skill-eval-')));
   const manifestPath = path.join(runDirectory, 'scoring-manifest.json');
   const manifest = {
     manifestVersion: 1,
@@ -528,6 +559,7 @@ try {
         durationMs: Date.now() - startedAt.getTime(),
         exitCode: child.status,
         signal: child.signal,
+        timedOut,
         processStatus,
         mechanicalShape: mechanicalShapeFor(selected.mechanicalShape, stdout),
         stdoutRef,

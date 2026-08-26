@@ -195,9 +195,14 @@ try {
   assert.equal(manifest.hostContaminationFixture, undefined, 'host configuration is evidence input, not copied into results');
   assert.equal(manifest.workspace.cleanupStatus, 'removed');
   assert.equal(fs.existsSync(manifest.workspace.root), false, 'collector must remove its external temporary workspace');
+  assert.equal(path.dirname(manifest.workspace.root), fs.realpathSync(os.tmpdir()));
+  assert.match(path.basename(manifest.workspace.root), /^eh-clarify-skill-eval-/u);
   assert.equal(new Set(manifest.runs.map(({ cwdRef }) => cwdRef)).size, 10, 'every repetition must use a fresh workspace/process');
   assert.ok(manifest.runs.every((entry) => (
     entry.processStatus === 'completed'
+      && entry.exitCode === 0
+      && entry.signal === null
+      && entry.timedOut === false
       && entry.semanticVerdict === null
       && entry.assertions.length > 0
       && entry.forbidden.length > 0
@@ -360,9 +365,39 @@ try {
   assert.equal(tamperedIsolationProjectionReview.status, 2);
   assert.match(tamperedIsolationProjectionReview.stderr, /recomputed execution plan/u);
 
+  const processOutcomeTamperMutations = [
+    ['exit-code', (entry) => { entry.exitCode = 7; }],
+    ['signal', (entry) => { entry.signal = 'SIGTERM'; }],
+    ['timeout', (entry) => { entry.timedOut = true; }],
+  ];
+  for (const [label, mutate] of processOutcomeTamperMutations) {
+    const fixture = cloneCollection(unreviewedManifestPath, `tampered-process-${label}`, (candidate) => {
+      mutate(candidate.runs[0]);
+    });
+    const review = passReviewFor(fixture, `tampered-process-${label}`);
+    assert.equal(review.status, 2, `${label} must agree with processStatus`);
+    assert.match(review.stderr, /process outcome metadata/u);
+  }
+
+  for (const [label, root] of [
+    ['inside-checkout', path.join(checkoutRoot, '.coordinated-eval-workspace')],
+    ['wrong-prefix', path.join(fs.realpathSync(os.tmpdir()), 'not-owned-eval-workspace')],
+    ['non-canonical', `${fs.realpathSync(os.tmpdir())}${path.sep}child${path.sep}..${path.sep}eh-clarify-skill-eval-tampered`],
+  ]) {
+    const fixture = cloneCollection(unreviewedManifestPath, `tampered-workspace-${label}`, (candidate) => {
+      candidate.workspace.root = root;
+      for (const entry of candidate.runs) entry.cwd = path.join(root, entry.runId);
+    });
+    const review = passReviewFor(fixture, `tampered-workspace-${label}`);
+    assert.equal(review.status, 2, `${label} coordinated workspace tamper must be rejected`);
+    assert.match(review.stderr, /workspace root/u);
+  }
+
   for (const [field, value] of [
     ['createdAt', '2026-02-30T00:00:00.000Z'],
     ['createdAt', '2026-08-26'],
+    ['createdAt', '2026-08-26t00:00:00.000z'],
+    ['createdAt', '2026-08-26T00:00:60Z'],
   ]) {
     const label = value.includes('T') ? 'calendar-invalid-created-at' : 'date-only-created-at';
     const fixture = cloneCollection(unreviewedManifestPath, label, (candidate) => { candidate[field] = value; });
@@ -410,6 +445,9 @@ try {
   assert.ok(failedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'exit-nonzero' && semanticVerdict === null
   )));
+  assert.ok(failedManifest.runs.every(({ exitCode, signal, timedOut }) => (
+    exitCode === 7 && signal === null && timedOut === false
+  )));
   assert.equal(failedManifest.collectionStatus, 'complete');
   assert.equal(failedManifest.completedRunCount, 0);
   assert.equal(failedManifest.evidenceEligible, false);
@@ -434,6 +472,9 @@ try {
   assert.equal(fs.existsSync(timedManifest.workspace.root), false);
   assert.ok(timedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'timeout' && semanticVerdict === null
+  )));
+  assert.ok(timedManifest.runs.every(({ exitCode, signal, timedOut }) => (
+    exitCode === null && typeof signal === 'string' && signal.length > 0 && timedOut === true
   )));
   assert.equal(timedManifest.collectionStatus, 'complete');
   assert.equal(timedManifest.completedRunCount, 0);

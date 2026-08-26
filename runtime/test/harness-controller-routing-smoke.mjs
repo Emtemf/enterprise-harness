@@ -49,9 +49,42 @@ for (const relative of phaseReferences) {
   assert.match(opening, /^Return to controller: .+$/mu, `${relative} needs an explicit return contract at its opening`);
   referenceBodies.set(relative, body);
 }
-assert.match(skill, /factGateOpen.*references\/clarify-research\.md/isu);
-assert.match(skill, /factGateOpen=false.*references\/clarify-decisions\.md/isu);
-assert.match(skill, /completion gate.*references\/clarify-completion\.md/isu);
+assert.match(skill, /no active Clarify.*entry\/recovery.*lane applicability undecided.*references\/clarify-research\.md/isu);
+assert.match(skill, /Phase 2[–-]3 frontier open.*references\/clarify-decisions\.md/isu);
+assert.match(skill, /Phase 2[–-]3 frontier closed.*earliest invalid gate.*completion.*references\/clarify-completion\.md/isu);
+
+function selectedRoute(state) {
+  if (!state.activeClarify || state.entryRecovery || state.lanesUndecided || state.factGateOpen
+      || state.earliestInvalidGate === 'research') return 'research';
+  if (state.clarifyProof) return 'transition';
+  if (state.phase23Frontier === 'closed' || state.earliestInvalidGate === 'completion') return 'completion';
+  return 'decisions';
+}
+
+const statePartitions = [
+  ['no-active', { activeClarify: false }, 'research'],
+  ['entry-recovery', { activeClarify: true, entryRecovery: true }, 'research'],
+  ['lanes-undecided', { activeClarify: true, lanesUndecided: true }, 'research'],
+  ['fact-gate-open', { activeClarify: true, factGateOpen: true }, 'research'],
+  ['research-gate', { activeClarify: true, earliestInvalidGate: 'research' }, 'research'],
+  ['proof', { activeClarify: true, clarifyProof: true, phase23Frontier: 'closed' }, 'transition'],
+  ['frontier-closed', { activeClarify: true, phase23Frontier: 'closed' }, 'completion'],
+  ['completion-gate', { activeClarify: true, phase23Frontier: 'open', earliestInvalidGate: 'completion' }, 'completion'],
+  ['frontier-open', { activeClarify: true, phase23Frontier: 'open' }, 'decisions'],
+];
+for (const [label, partial, expected] of statePartitions) {
+  const state = {
+    activeClarify: true,
+    entryRecovery: false,
+    lanesUndecided: false,
+    factGateOpen: false,
+    clarifyProof: false,
+    phase23Frontier: 'open',
+    earliestInvalidGate: 'decisions',
+    ...partial,
+  };
+  assert.equal(selectedRoute(state), expected, `${label} must select exactly one route`);
+}
 for (const retained of [
   'references/output-contract.md',
   'references/clarify-few-shots.md',
