@@ -64,6 +64,9 @@ function argvFor(selected, model, variant) {
     '-p',
     ...isolationArgvFor(variant),
     '--tools', toolProfile === 'read-only' ? 'Read' : '',
+    ...(toolProfile === 'read-only'
+      ? ['--allowedTools', 'Read', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}']
+      : []),
     '--permission-mode', toolProfile === 'read-only' ? 'dontAsk' : 'plan',
     '--no-session-persistence',
     '--output-format', 'stream-json',

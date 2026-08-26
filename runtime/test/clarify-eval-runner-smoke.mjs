@@ -194,7 +194,10 @@ try {
   const routingPlan = JSON.parse(routingDry.stdout);
   assert.ok(routingPlan.runs.every(({ argv }) => (
     argv.includes('--tools') && argv[argv.indexOf('--tools') + 1] === 'Read'
+      && argv.includes('--allowedTools') && argv[argv.indexOf('--allowedTools') + 1] === 'Read'
       && argv.includes('--permission-mode') && argv[argv.indexOf('--permission-mode') + 1] === 'dontAsk'
+      && argv.includes('--strict-mcp-config')
+      && argv.includes('--mcp-config') && argv[argv.indexOf('--mcp-config') + 1] === '{"mcpServers":{}}'
   )), 'tool-enabled reference routing must use the declared read-only tool profile');
   assert.ok(routingPlan.runs.every(({ workspaceFiles }) => (
     workspaceFiles.length === 1
