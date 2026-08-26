@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-24
+lastVerified: 2026-08-26
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -18,6 +18,7 @@ testRefs:
   - runtime/test/hook-health-lifecycle-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/pre-write-governed-target-smoke.mjs
+  - runtime/test/stop-terminal-fallback-smoke.mjs
 ---
 
 # Hooks Contract
@@ -33,6 +34,8 @@ released controller path.
 Hooks may only perform host-boundary mechanics:
 
 - SessionStart health/lease initialization and recovery guidance;
+- one-retry validation of the exact five-line Clarify fact-gate fallback when an explicitly
+  invoked Harness turn is unable to execute research in Plan mode;
 - synchronous path/policy guards for governed `Write`/`Edit`/`NotebookEdit` operations;
 - research and governed-write receipt capture;
 - SessionEnd cleanup.
@@ -51,6 +54,12 @@ file is not equivalent to an absent binding.
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
 receipts, and independent reviews provide proof.
+
+The Stop fallback validator is presentation-only. It derives the active Clarify research route
+from runtime readiness, validates only the fixed response shape, and returns `decision: block`
+with deterministic correction text at most once. `stop_hook_active=true`, missing invocation
+evidence, unreadable transcripts, non-Plan modes, and internal errors all fail open. It does not
+select a route, execute research, persist a decision, or prove lifecycle completion.
 
 ## Health and leases
 
