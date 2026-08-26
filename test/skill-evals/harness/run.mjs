@@ -71,7 +71,7 @@ function argvFor(selected, model, variant) {
     '--no-session-persistence',
     '--output-format', 'stream-json',
     '--verbose',
-    '--max-turns', '4',
+    '--max-turns', '8',
     '--model', model,
     '--max-budget-usd', '0.50',
     prompt,

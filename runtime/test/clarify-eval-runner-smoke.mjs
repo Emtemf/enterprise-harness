@@ -151,7 +151,7 @@ try {
   assert.ok(plan.runs.every(({ argv, shell, timeoutMs }) => (
     argv.includes('--no-session-persistence')
       && argv.includes('--output-format') && argv[argv.indexOf('--output-format') + 1] === 'stream-json'
-      && argv.includes('--max-turns') && argv[argv.indexOf('--max-turns') + 1] === '4'
+      && argv.includes('--max-turns') && argv[argv.indexOf('--max-turns') + 1] === '8'
       && argv.includes('--verbose') && shell === false && timeoutMs > 0
   )));
   assert.ok(plan.runs.every(({ argv }) => (
