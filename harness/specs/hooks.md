@@ -55,11 +55,13 @@ They must not interpret requirements, choose architecture, drive lifecycle trans
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
 receipts, and independent reviews provide proof.
 
-The Stop fallback validator is presentation-only. It derives the active Clarify research route
-from runtime readiness, validates only the fixed response shape, and returns `decision: block`
-with deterministic correction text at most once. `stop_hook_active=true`, missing invocation
-evidence, unreadable transcripts, non-Plan modes, and internal errors all fail open. It does not
-select a route, execute research, persist a decision, or prove lifecycle completion.
+The plugin-global Stop hook remains recovery guidance only. The Harness Skill frontmatter
+registers a separate session-scoped Stop handler after explicit skill invocation; that handler
+derives the active Clarify research route from runtime readiness, validates only the fixed response
+shape, and returns `decision: block` with deterministic correction text at most once per turn.
+`stop_hook_active=true`, non-Plan modes, non-research routes, and internal errors all fail open. It
+does not inspect asynchronous transcript text, select a route, execute research, persist a decision,
+or prove lifecycle completion.
 
 ## Health and leases
 

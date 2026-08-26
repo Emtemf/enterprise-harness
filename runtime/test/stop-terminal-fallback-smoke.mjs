@@ -21,8 +21,8 @@ const validFallback = [
   'User question: none',
 ].join('\n');
 
-function invoke(payload, input = JSON.stringify(payload)) {
-  return spawnSync('node', [stopScript], {
+function invoke(payload, input = JSON.stringify(payload), args = []) {
+  return spawnSync('node', [stopScript, ...args], {
     cwd: fixtureRoot,
     encoding: 'utf-8',
     input,
@@ -45,10 +45,17 @@ function harnessEvent(overrides = {}) {
 try {
   fs.writeFileSync(transcript, `${JSON.stringify({
     type: 'user',
-    message: { content: '<command-name>/enterprise-harness:harness</command-name>\\nContinue the change.' },
+    message: { content: 'Transcript content is not an invocation authority.' },
   })}\n`);
 
-  const invalid = invoke(harnessEvent());
+  const globalStop = invoke(harnessEvent());
+  assert.deepEqual(JSON.parse(globalStop.stdout), {}, 'the plugin-global Stop hook remains guidance-only');
+
+  const invalid = invoke(
+    harnessEvent({ session_id: 'terminal-fallback-session' }),
+    undefined,
+    ['--terminal-fallback-scope'],
+  );
   const invalidEnvelope = JSON.parse(invalid.stdout);
   assert.equal(invalid.status, 0, `invalid fallback must use the Stop JSON contract: ${invalid.stderr}`);
   assert.equal(invalidEnvelope.decision, 'block');
@@ -56,28 +63,16 @@ try {
   assert.match(invalidEnvelope.reason, /User question: none/u);
   assert.equal(invalid.stderr, '', 'mechanical correction must not emit diagnostic noise');
 
-  const valid = invoke(harnessEvent({ last_assistant_message: validFallback }));
+  const valid = invoke(harnessEvent({ last_assistant_message: validFallback }), undefined, ['--terminal-fallback-scope']);
   assert.equal(valid.status, 0);
   assert.deepEqual(JSON.parse(valid.stdout), {});
   assert.equal(valid.stderr, '');
 
-  const retry = invoke(harnessEvent({ stop_hook_active: true }));
+  const retry = invoke(harnessEvent({ stop_hook_active: true }), undefined, ['--terminal-fallback-scope']);
   assert.equal(retry.status, 0, 'the correction must never form a Stop-hook loop');
   assert.deepEqual(JSON.parse(retry.stdout), {});
 
-  fs.writeFileSync(transcript, `${JSON.stringify({
-    type: 'user',
-    message: { content: 'Help me outline a normal plan.' },
-  })}\n`);
-  const unrelatedPlan = invoke(harnessEvent());
-  assert.equal(unrelatedPlan.status, 0);
-  assert.deepEqual(JSON.parse(unrelatedPlan.stdout), {}, 'ordinary Plan turns are outside Harness fallback enforcement');
-
-  fs.writeFileSync(transcript, `${JSON.stringify({
-    type: 'user',
-    message: { content: '<command-name>/enterprise-harness:harness</command-name>' },
-  })}\n`);
-  const executableMode = invoke(harnessEvent({ permission_mode: 'default' }));
+  const executableMode = invoke(harnessEvent({ permission_mode: 'default' }), undefined, ['--terminal-fallback-scope']);
   assert.equal(executableMode.status, 0);
   assert.deepEqual(JSON.parse(executableMode.stdout), {}, 'non-Plan turns may execute the selected research action');
 
@@ -95,7 +90,7 @@ try {
     validation: { status: 'missing', digest: null, validatedAt: null },
   }, null, 2)}\n`);
   fs.writeFileSync(path.join(fixtureRoot, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);
-  const activeResearch = invoke(harnessEvent());
+  const activeResearch = invoke(harnessEvent(), undefined, ['--terminal-fallback-scope']);
   assert.equal(JSON.parse(activeResearch.stdout).decision, 'block', 'active Clarify research route has the same fallback obligation');
 
   fs.writeFileSync(path.join(changeDir, 'requirements.md'), [
@@ -109,7 +104,7 @@ try {
     '## 组件拓扑',
     '',
   ].join('\n'));
-  const activeDecisionRoute = invoke(harnessEvent());
+  const activeDecisionRoute = invoke(harnessEvent(), undefined, ['--terminal-fallback-scope']);
   assert.deepEqual(
     JSON.parse(activeDecisionRoute.stdout),
     {},
@@ -120,6 +115,10 @@ try {
   assert.equal(malformed.status, 2);
   assert.equal(malformed.stdout, '');
   assert.match(malformed.stderr, /EH-HOOK-INPUT-017/u);
+
+  const skill = fs.readFileSync(path.join(repoRoot, 'skills', 'harness', 'SKILL.md'), 'utf-8');
+  assert.match(skill, /^hooks:\n\s+Stop:/mu, 'Harness must register its terminal validator through skill frontmatter');
+  assert.match(skill, /stop\.mjs" --terminal-fallback-scope/u);
 
   if (mode === 'red') {
     console.error('Red precondition no longer holds.');

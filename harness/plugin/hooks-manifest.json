@@ -112,7 +112,7 @@
         "timeout": 30,
         "performanceBudgetMs": 2000,
         "failMode": "fail-open",
-        "statusMessage": "校验终止格式并输出恢复提示"
+        "statusMessage": "输出恢复提示"
       }
     ]
   }

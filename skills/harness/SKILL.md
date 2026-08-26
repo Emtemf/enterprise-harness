@@ -3,6 +3,13 @@ name: harness
 description: >
   Use when a software change needs governed clarification, durable artifacts,
   explicit scope approval, staged implementation, independent review, and fresh evidence.
+hooks:
+  Stop:
+    - hooks:
+        - type: command
+          command: node "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/stop.mjs" --terminal-fallback-scope
+          timeout: 30
+          statusMessage: 校验 Harness fact-gate 终止格式
 ---
 
 # Enterprise Harness

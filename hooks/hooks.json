@@ -148,7 +148,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/stop.mjs\"",
             "timeout": 30,
-            "statusMessage": "校验终止格式并输出恢复提示"
+            "statusMessage": "输出恢复提示"
           }
         ]
       }
