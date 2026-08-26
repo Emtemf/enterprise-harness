@@ -45,7 +45,7 @@ Return to controller: after exactly one assessment, scope, seal, classification,
 7. 用候选 CompletionProof 的全部前置证据计算
    `clarifyTransitionReady = canonicalStageResultValid && independentReviewPassing && tecpcComplete && requiredArtifactsFresh`。
    其中 canonical StageResult 必须通过 self-check，independent ReviewResult 必须来自不同 trusted identity/run，TECPC
-   必须完整且 `correction=null`，requirements、classification、assessments、decision snapshot 和各自 digest 必须齐全且
+   必须完整、`correction=null` 且覆盖 assertion evidence，requirements、classification、assessments、decision snapshot 和各自 digest 必须齐全且
    fresh。全部为 true 即表示 candidate proof 可派生；**persisted CompletionProof 不是此谓词的前置条件**。只报告
    `clarifyTransitionReady=true` 并返回 controller。scope confirmation 或 classification 不能单独置 true；任一前置缺失
    或绑定 artifact 修改都保持 false/C。此 reference 不加载 worker/transition reference，不生成 proof，也不执行或复制

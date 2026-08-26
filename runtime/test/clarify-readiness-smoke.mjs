@@ -13,14 +13,38 @@ import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
 import { writeDebtAssessment, writeProjectContractAssessment } from '../core/clarify-assessments.mjs';
 import { pendingQuestionPath } from '../core/clarify-question.mjs';
-import { stageCompletionFor } from '../lib/stage-results.mjs';
+import { resolveStageCompletionCandidate, stageCompletionFor } from '../lib/stage-results.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
+const sourceRoot = path.resolve(import.meta.dirname, '..', '..');
+const controller = fs.readFileSync(path.join(sourceRoot, 'skills', 'harness', 'SKILL.md'), 'utf-8');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-readiness-'));
 const changeId = 'readiness-v2';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
+
+function controllerRoutesFromWorkflowStatus(status) {
+  const expression = (name) => controller.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
+  const evaluate = (source, scope) => Function(
+    ...Object.keys(scope), `"use strict"; return Boolean(${source});`,
+  )(...Object.values(scope));
+  const itemStatus = new Map(status.clarifyReadiness.items.map((item) => [item.id, item.status]));
+  const isPassing = (id) => ['pass', 'not-applicable'].includes(itemStatus.get(id));
+  const scope = {
+    stage: status.stage, noActiveChange: !status.changeId,
+    entryRecoverySelected: status.status === 'blocked' && status.nextAction !== status.nextEntry,
+    laneApplicabilityDecided: isPassing('research-lanes-decided'),
+    laneApplicabilityUndecided: !isPassing('research-lanes-decided'),
+    factGateOpen: !['required-research-fresh', 'research-conflicts-disposed'].every(isPassing),
+    phase23FrontierOpen: !['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
+    phase23FrontierClosed: ['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
+    clarifyTransitionReady: status.clarifyReadiness.transitionReady,
+    stageTransitionReady: false,
+  };
+  for (const name of ['stageClarify', 'postClarifyStage', 'V']) scope[name] = evaluate(expression(name), scope);
+  return ['R', 'D', 'C', 'W', 'T'].filter((name) => evaluate(expression(name), scope));
+}
 
 try {
   fs.mkdirSync(changeDir, { recursive: true });
@@ -340,6 +364,37 @@ try {
   assertProgress(recovery.tecpc, statusesAfter(13));
   await new Promise((resolve) => setTimeout(resolve, 10));
   const completeProgression = addClarifyCompletion(root, progressiveId);
+  assertProgress(null, statusesAfter(14));
+  const unboundResearchTecpc = {
+    ...completeProgression.stageResult.tecpc,
+    evidence: completeProgression.stageResult.tecpc.evidence.filter((reference) => reference !== clean.packetRef),
+    context: completeProgression.stageResult.tecpc.context.filter((reference) => reference !== clean.packetRef),
+  };
+  fs.writeFileSync(v2ResultPath(root, progressiveId, completeProgression.execute.runId), `${JSON.stringify({
+    ...completeProgression.stageResult,
+    tecpc: unboundResearchTecpc,
+  }, null, 2)}\n`);
+  fs.writeFileSync(v2ResultPath(root, progressiveId, completeProgression.check.runId, 'check'), `${JSON.stringify({
+    ...completeProgression.review,
+    tecpc: unboundResearchTecpc,
+  }, null, 2)}\n`);
+  const unboundCandidate = resolveStageCompletionCandidate(root, progressiveId, 'clarify');
+  assert.equal(unboundCandidate.proof, null);
+  assert.match(unboundCandidate.problems.join('; '), /Clarify proof assertion evidence is unbound/u);
+  const unboundStatus = spawnSync(process.execPath, [workflow, 'status', progressiveId, '--json'], {
+    cwd: root, encoding: 'utf-8', shell: false,
+  });
+  assert.equal(unboundStatus.status, 0, unboundStatus.stderr);
+  const unboundWorkflow = JSON.parse(unboundStatus.stdout);
+  const unboundProjection = unboundWorkflow.clarifyReadiness;
+  assert.equal(unboundProjection.status, 'blocked', 'candidate-proof derivation failure must not report ready');
+  assert.equal(unboundProjection.transitionReady, false);
+  assert.equal(unboundProjection.items.find(({ id }) => id === 'tecpc-complete').status, 'blocked');
+  assert.equal(unboundProjection.items.filter(({ status }) => status === 'pass').length, 13);
+  assert.equal(unboundProjection.recovery.code, 'EH-CLARIFY-TECPC-142');
+  assert.deepEqual(controllerRoutesFromWorkflowStatus(unboundWorkflow), ['C']);
+  fs.writeFileSync(v2ResultPath(root, progressiveId, completeProgression.execute.runId), `${JSON.stringify(completeProgression.stageResult, null, 2)}\n`);
+  fs.writeFileSync(v2ResultPath(root, progressiveId, completeProgression.check.runId, 'check'), `${JSON.stringify(completeProgression.review, null, 2)}\n`);
   assertProgress(null, statusesAfter(14));
   const progressiveProof = (await import('../core/completion-proof.mjs')).buildCompletionProof(root, {
     stageResult: completeProgression.stageResult,

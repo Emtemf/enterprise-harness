@@ -85,7 +85,7 @@ sequenceDiagram
 3. `runs/<execute-run>/result.json`：schema-valid StageResult 或 task result，绑定输入和 artifact digest。
 4. `runs/<check-run>/input.json`：不同 runId、`parentRunId` 指向 execute run。
 5. `runs/<check-run>/check.json`：独立 ReviewResult、rubricIds、reviewed digest 与 TECPC。
-6. persisted generic CompletionProof：只有结构、独立性、agent binding 和 freshness 均有效才成立；只读 gate 不生成 proof。
+6. persisted generic CompletionProof：只有结构、独立性、agent binding 和 freshness 均有效才成立；只读 gate 不生成 proof。Clarify 的 `tecpc-complete` 还必须证明 assertion evidence 被 canonical artifact 或 TECPC envelope 覆盖，使 candidate proof 可派生。
 
 Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale；不得靠 state boolean 恢复。
 

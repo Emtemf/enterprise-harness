@@ -311,7 +311,6 @@ function stageCompletionCandidateFor(root, changeId, stage, {
     tecpcProblems.push('TECPC correction remains pending');
   }
   if (tecpcProblems.length > 0) return fail('tecpc', [executionRef, reviewRef], tecpcProblems);
-  state.tecpc = layer('pass', [executionRef, reviewRef]);
 
   try {
     state.candidateProof = buildCompletionProof(root, {
@@ -321,8 +320,9 @@ function stageCompletionCandidateFor(root, changeId, stage, {
       reviewerAgentIds: reviewerBindings.map(({ agentId }) => agentId),
     });
   } catch (error) {
-    return fail('proof', [executionRef, reviewRef], [error.message]);
+    return fail(stage === 'clarify' ? 'tecpc' : 'proof', [executionRef, reviewRef], [error.message]);
   }
+  state.tecpc = layer('pass', [executionRef, reviewRef]);
   state.problems = [];
   return state;
 }
