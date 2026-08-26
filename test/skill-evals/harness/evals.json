@@ -272,7 +272,7 @@
       "id": "reference-routing-research",
       "category": "behavioral-held-out",
       "toolProfile": "read-only",
-      "prompt": "这是只读 controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的 runtime snapshot，禁止从本提示推断状态。随后按 Harness controller 读取唯一需要的 phase reference，并只报告一个可执行 next action。",
+      "prompt": "这是只读、report-only controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的完整 runtime snapshot，禁止从本提示推断或补查状态。随后按 Harness controller 只读取唯一需要的 phase reference，并报告一个可执行 next action；不得执行该 action，也不得读取其 input refs、assets 或其它 reference。",
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
@@ -312,7 +312,7 @@
       "id": "reference-routing-decisions",
       "category": "behavioral-held-out",
       "toolProfile": "read-only",
-      "prompt": "这是只读 controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的 runtime snapshot，禁止从本提示推断状态。随后选择并读取唯一需要的 phase reference，并只报告一个 next action。",
+      "prompt": "这是只读、report-only controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的完整 runtime snapshot，禁止从本提示推断或补查状态。随后只读取唯一需要的 phase reference，并报告一个 next action；不得执行该 action，也不得读取其 input refs、assets 或其它 reference。",
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
@@ -352,7 +352,7 @@
       "id": "reference-routing-completion",
       "category": "behavioral-held-out",
       "toolProfile": "read-only",
-      "prompt": "这是只读 controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的 runtime snapshot，禁止从本提示推断状态。随后选择并读取唯一需要的 phase reference，并只报告一个 next action。",
+      "prompt": "这是只读、report-only controller routing eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的完整 runtime snapshot，禁止从本提示推断或补查状态。随后只读取唯一需要的 phase reference，并报告一个 next action；不得执行该 action，也不得读取其 input refs、assets 或其它 reference。",
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
@@ -392,7 +392,7 @@
       "id": "status-first-question-recovery-held-out",
       "category": "behavioral-held-out",
       "toolProfile": "read-only",
-      "prompt": "重启恢复 eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的 runtime snapshot，禁止从本提示或聊天记忆推断状态。只给本轮动作。",
+      "prompt": "这是只读、report-only 重启恢复 eval。先 Read 当前 workspace 的 controller-snapshot.json；它是本次捕获的完整 runtime snapshot，禁止从本提示、聊天记忆推断或补查状态。只报告本轮 exact nextAction；不得执行它，也不得读取任何 phase reference、input ref 或 asset。",
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
