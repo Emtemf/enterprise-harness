@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Clarify now completes required CodeGraph/Context7 fact lanes before topology or interviewing,
+  pre-authorizes one user Decision at a time, durably records public choices, and recomputes the
+  weakest evidence-bound frontier after every answer.
+- Technical-debt and project-contract gaps now require explicit dispositions; classification,
+  fourteen-item readiness, independent review, TECPC, and ClarifyProof are digest-bound rather
+  than inferred from editable ready flags.
+- The Harness Skill registers a lightweight Claude Code Stop hook that corrects only the exact
+  five-line Plan-mode fact-gate fallback. The plugin-global Stop hook remains recovery guidance and
+  no hook owns routing, requirements, or lifecycle correctness.
+
+### Security
+
+- Clarify questions are bound to canonical candidate paths and current evidence digests; stale or
+  unprepared questions, duplicate decision events, path escape, and symlink escape fail closed.
+
+### Notes
+
+- This vertical slice audits the project instruction contract but does not create or modify project
+  `CLAUDE.md` files. Safe proposal/apply support remains deferred.
+
 ## [0.5.9] - 2026-08-24
 
 ### Fixed

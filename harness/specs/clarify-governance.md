@@ -99,3 +99,13 @@ Readiness exposes fourteen ordered, proof-free prerequisite items through status
 A changed or stale ResearchPacket invalidates derived requirements, assessments, question candidates, classification, readiness, and downstream Clarify completion evidence. A changed requirements artifact invalidates candidates, decisions that bind its digest, assessments, classification, readiness, and downstream completion evidence. A new decision ledger event does not mutate a previously sealed prefix, but any change to a decision included in a required prefix requires a new snapshot and invalidates its classification and completion evidence. A changed assessment or snapshot invalidates classification, readiness, and completion evidence. A changed classification invalidates readiness and completion evidence. A changed StageResult, ReviewResult, or proof invalidates only the corresponding downstream completion projection.
 
 These invalidation edges are mechanical and digest-derived. Recovery always starts with the first blocked gate in the table; chat history and editable status flags are not recovery evidence.
+
+## Compatibility Boundary
+
+`workflow.clarifyReady`, `workflow.userConfirmedScope`, legacy ambiguity/router projections,
+and direct state-tier checks remain only in v4/v5 migration, compatibility readers, and their
+fixtures. They may explain or migrate an old active change, but they are not v6 Clarify readiness,
+completion, or transition authorities. A v6 path must consume the canonical artifacts, derived
+fourteen-item readiness, fresh StageResult, independent ReviewResult, complete TECPC, and the
+transition-owned ClarifyProof described above. Archived state and dynamic `harness/changes/**`
+records are evidence instances, not alternate contracts.
