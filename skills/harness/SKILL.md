@@ -22,12 +22,14 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## State router
 
-每次只选一个 observable state，读取一个 phase reference，执行其中一个 durable action，然后返回本 controller：
+从 observable snapshot 计算 raw booleans，不用 ordered-if 或 default：
 
-1. no active Clarify、entry/recovery selected、lane applicability undecided、`factGateOpen`，或 earliest invalid gate 是 research：读取 [research/entry authority](references/clarify-research.md)。
-2. Clarify proof 已通过：读取 [capability map](references/behavior-map.md) 和 [transition contract](references/stage-decisions.md)，按 `clarify → design → plan → implement → verify → archive` 推进。Implement 使用原生 worktree；每阶段使用独立 reviewer。
-3. active Clarify、`factGateOpen=false`、Phase 2–3 frontier open，且 earliest invalid gate 不是 completion：读取 [decision authority](references/clarify-decisions.md)。
-4. active Clarify、proof 未通过，且 Phase 2–3 frontier closed 或 earliest invalid gate 是 completion：读取 [completion authority](references/clarify-completion.md)。以上条件是互斥且完备的分区。
+- `R = noActiveClarify || entryRecoverySelected || laneApplicabilityUndecided || factGateOpen`
+- `D = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierOpen`
+- `C = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierClosed && !completionClosed`
+- `T = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierClosed && completionClosed && clarifyProofPassed`
+
+恰好一个 predicate 为 true 才行动；零个或多个只报告 blocker。R 读取 [research/entry authority](references/clarify-research.md)；D（Phase 2–3 frontier open）读取 [decision authority](references/clarify-decisions.md)；C 的 Phase 2–3 frontier closed 使 earliest invalid gate 为 completion-owned，读取 [completion authority](references/clarify-completion.md)；T 读取 [capability map](references/behavior-map.md) 和 [transition contract](references/stage-decisions.md)，按 `clarify → design → plan → implement → verify → archive` 推进。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
 首次生成 Clarify artifact 或 final self-check 前读取 [semantic output contract](references/output-contract.md)；只有要校准 dispatch、Fast Path 或问题质量时读取 [few-shots](references/clarify-few-shots.md)。[assets](assets/) 与 [scripts](scripts/) 仅由当前 phase reference 导航，不自动加载。
 

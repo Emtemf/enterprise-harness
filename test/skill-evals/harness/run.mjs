@@ -131,25 +131,36 @@ function requireCanonicalManifest(target) {
 function validDate(value) {
   if (typeof value !== 'string') return false;
   const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/u,
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|([+-])(\d{2}):(\d{2}))$/u,
   );
   if (!match) return false;
   const [, yearText, monthText, dayText, hourText, minuteText, secondText,
-    offsetHourText, offsetMinuteText] = match;
+    zoneText, offsetSign, offsetHourText, offsetMinuteText] = match;
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
   const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return month >= 1
+  const calendarAndClockValid = month >= 1
     && month <= 12
     && day >= 1
     && day <= daysInMonth[month - 1]
     && Number(hourText) <= 23
     && Number(minuteText) <= 59
-    && Number(secondText) <= 59
     && (offsetHourText === undefined || Number(offsetHourText) <= 23)
     && (offsetMinuteText === undefined || Number(offsetMinuteText) <= 59);
+  if (!calendarAndClockValid) return false;
+  const second = Number(secondText);
+  if (second <= 59) return true;
+  if (second !== 60) return false;
+  const offsetMinutes = zoneText === 'Z' ? 0 : (offsetSign === '+' ? 1 : -1)
+    * (Number(offsetHourText) * 60 + Number(offsetMinuteText));
+  const utc = new Date(Date.UTC(year, month - 1, day, Number(hourText), Number(minuteText), 59)
+    - offsetMinutes * 60_000);
+  return utc.getUTCHours() === 23
+    && utc.getUTCMinutes() === 59
+    && ((utc.getUTCMonth() === 5 && utc.getUTCDate() === 30)
+      || (utc.getUTCMonth() === 11 && utc.getUTCDate() === 31));
 }
 
 function validateWorkspaceRoot(workspaceRoot) {
@@ -160,10 +171,57 @@ function validateWorkspaceRoot(workspaceRoot) {
     || (!checkoutRelative.startsWith(`..${path.sep}`) && checkoutRelative !== '..' && !path.isAbsolute(checkoutRelative));
   if (workspaceRoot !== resolved
       || path.dirname(resolved) !== canonicalTemp
-      || !/^eh-clarify-skill-eval-.+/u.test(path.basename(resolved))
+      || !/^eh-clarify-skill-eval-[A-Za-z0-9]{6}$/u.test(path.basename(resolved))
       || insideCheckout) {
     throw new Error('manifest workspace root must be a canonical owned tmp prefix outside checkout');
   }
+  let stat;
+  try {
+    stat = fs.lstatSync(resolved);
+  } catch {
+    throw new Error('manifest workspace root must exist through manual review');
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(resolved) !== resolved) {
+    throw new Error('manifest workspace root must be an actual non-symlink directory through manual review');
+  }
+  return resolved;
+}
+
+function validateWorkspaceOwnership(workspace) {
+  const workspaceRoot = validateWorkspaceRoot(workspace.root);
+  if (workspace.markerRef !== '.eh-eval-workspace-owner.json'
+      || !/^[a-f0-9]{64}$/u.test(workspace.markerSha256 || '')
+      || !/^[a-f0-9]{64}$/u.test(workspace.markerNonce || '')) {
+    throw new Error('manifest workspace ownership marker metadata is invalid');
+  }
+  const markerPath = path.join(workspaceRoot, workspace.markerRef);
+  let stat;
+  try {
+    stat = fs.lstatSync(markerPath);
+  } catch {
+    throw new Error('manifest workspace ownership marker is missing');
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(markerPath) !== markerPath) {
+    throw new Error('manifest workspace ownership marker must be a regular non-symlink file');
+  }
+  const markerBytes = fs.readFileSync(markerPath);
+  if (sha256(markerBytes) !== workspace.markerSha256) {
+    throw new Error('manifest workspace ownership marker digest mismatch');
+  }
+  let marker;
+  try {
+    marker = JSON.parse(markerBytes.toString('utf-8'));
+  } catch {
+    throw new Error('manifest workspace ownership marker content is invalid');
+  }
+  if (marker.markerVersion !== 1
+      || marker.type !== 'clarify-skill-eval-workspace-owner'
+      || marker.nonce !== workspace.markerNonce
+      || marker.workspaceRoot !== workspaceRoot
+      || !validDate(marker.createdAt)) {
+    throw new Error('manifest workspace ownership marker content is invalid');
+  }
+  return workspaceRoot;
 }
 
 function validateProcessOutcome(entry) {
@@ -247,10 +305,10 @@ function validateManifestForReview(manifestPath, manifest) {
     throw new Error('manifest shape metadata is invalid');
   }
   if (!manifest.workspace || manifest.workspace.strategy !== 'mkdtemp-outside-checkout'
-      || !['removed', 'cleanup-failed'].includes(manifest.workspace.cleanupStatus)) {
+      || manifest.workspace.cleanupStatus !== 'retained-for-review') {
     throw new Error('manifest workspace cleanup metadata is invalid');
   }
-  validateWorkspaceRoot(manifest.workspace.root);
+  const workspaceRoot = validateWorkspaceOwnership(manifest.workspace);
   if (!['complete', 'aborted'].includes(manifest.collectionStatus)
       || !Number.isSafeInteger(manifest.plannedRunCount) || manifest.plannedRunCount < 1
       || !Number.isSafeInteger(manifest.recordedRunCount)
@@ -313,6 +371,17 @@ function validateManifestForReview(manifestPath, manifest) {
         || JSON.stringify(entry.forbidden) !== JSON.stringify(selectedCase.forbidden)) {
       throw new Error(`${entry.runId} does not match the recomputed execution plan`);
     }
+    const expectedWorkspace = path.join(workspaceRoot, entry.runId);
+    let workspaceStat;
+    try {
+      workspaceStat = fs.lstatSync(expectedWorkspace);
+    } catch {
+      throw new Error(`${entry.runId} run workspace is missing`);
+    }
+    if (!workspaceStat.isDirectory() || workspaceStat.isSymbolicLink()
+        || fs.realpathSync(expectedWorkspace) !== expectedWorkspace) {
+      throw new Error(`${entry.runId} run workspace must be an actual non-symlink directory`);
+    }
     validateOutputEvidence(manifestPath, entry, 'stdout');
     validateOutputEvidence(manifestPath, entry, 'stderr');
   }
@@ -325,7 +394,7 @@ function validateManifestForReview(manifestPath, manifest) {
   const evidenceEligible = manifest.collectionStatus === 'complete'
     && collectionComplete
     && completedRunCount === manifest.plannedRunCount
-    && manifest.workspace.cleanupStatus === 'removed'
+    && manifest.workspace.cleanupStatus === 'retained-for-review'
     && manifest.runs.every(({ mechanicalShape }) => mechanicalShape === null || mechanicalShape.pass);
   if (manifest.completedRunCount !== completedRunCount
       || manifest.collectionStatus !== (collectionComplete ? 'complete' : 'aborted')
@@ -401,6 +470,16 @@ function recordReview(manifestArgument, reviewArgument) {
       reviewedAt: canonicalReview.reviewedAt,
       overallVerdict: canonicalReview.overallVerdict,
     },
+    workspace: {
+      ...manifest.workspace,
+      cleanupStatus: 'removed-after-review',
+      cleanupReceipt: {
+        reviewSha256: sha256(reviewBytes),
+        markerSha256: manifest.workspace.markerSha256,
+        workspaceRootSha256: sha256(Buffer.from(manifest.workspace.root, 'utf-8')),
+        removedAt: new Date().toISOString(),
+      },
+    },
   };
   const temporaryManifest = path.join(collectionDir, `.scoring-manifest.${process.pid}.tmp`);
   let reviewCreated = false;
@@ -409,6 +488,7 @@ function recordReview(manifestArgument, reviewArgument) {
     fs.writeFileSync(canonicalReviewPath, reviewBytes, { flag: 'wx' });
     reviewCreated = true;
     fs.writeFileSync(temporaryManifest, `${JSON.stringify(updatedManifest, null, 2)}\n`, { flag: 'wx' });
+    removeOwnedTemporaryWorkspace(manifest.workspace.root);
     fs.renameSync(temporaryManifest, manifestPath);
     manifestCommitted = true;
   } catch (error) {
@@ -493,6 +573,16 @@ try {
   fs.mkdirSync(runDirectory, { recursive: false });
   fs.mkdirSync(outputsDirectory);
   const workspaceRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-skill-eval-')));
+  const markerRef = '.eh-eval-workspace-owner.json';
+  const markerNonce = crypto.randomBytes(32).toString('hex');
+  const markerBytes = Buffer.from(`${JSON.stringify({
+    markerVersion: 1,
+    type: 'clarify-skill-eval-workspace-owner',
+    nonce: markerNonce,
+    workspaceRoot,
+    createdAt: new Date().toISOString(),
+  })}\n`, 'utf-8');
+  fs.writeFileSync(path.join(workspaceRoot, markerRef), markerBytes, { flag: 'wx', mode: 0o600 });
   const manifestPath = path.join(runDirectory, 'scoring-manifest.json');
   const manifest = {
     manifestVersion: 1,
@@ -511,7 +601,14 @@ try {
       skillSha256: sha256(fs.readFileSync(path.join(repoRoot, 'skills', 'harness', 'SKILL.md'))),
       claudeVersion: commandOutput('claude', ['--version'], 'claude --version'),
     },
-    workspace: { strategy: 'mkdtemp-outside-checkout', root: workspaceRoot, cleanupStatus: 'pending' },
+    workspace: {
+      strategy: 'mkdtemp-outside-checkout',
+      root: workspaceRoot,
+      markerRef,
+      markerNonce,
+      markerSha256: sha256(markerBytes),
+      cleanupStatus: 'pending',
+    },
     semanticScoring: 'manual-required',
     scoringInstructions: 'Read every stdout/stderr artifact. Record a human verdict against the copied assertions and forbidden behaviors; process completion alone is not a semantic pass.',
     assertions: [...selected.assertions],
@@ -526,7 +623,6 @@ try {
   };
   writeJson(manifestPath, manifest);
 
-  let cleanupError = null;
   try {
     for (const planned of runs) {
       const workspace = path.join(workspaceRoot, planned.runId);
@@ -577,25 +673,16 @@ try {
       process.stderr.write(`DONE variant=${planned.variant} rep=${planned.repetition}/${repetitions} status=${processStatus} stdout=${stdoutRef} stderr=${stderrRef}\n`);
     }
   } finally {
-    try {
-      removeOwnedTemporaryWorkspace(workspaceRoot);
-      manifest.workspace.cleanupStatus = 'removed';
-    } catch (error) {
-      cleanupError = error;
-      manifest.workspace.cleanupStatus = 'cleanup-failed';
-      manifest.workspace.cleanupError = error.message;
-    }
+    manifest.workspace.cleanupStatus = 'retained-for-review';
     manifest.recordedRunCount = manifest.runs.length;
     manifest.completedRunCount = manifest.runs.filter(({ processStatus }) => processStatus === 'completed').length;
     manifest.collectionStatus = manifest.recordedRunCount === manifest.plannedRunCount ? 'complete' : 'aborted';
     manifest.evidenceEligible = manifest.collectionStatus === 'complete'
       && manifest.completedRunCount === manifest.plannedRunCount
-      && manifest.workspace.cleanupStatus === 'removed'
+      && manifest.workspace.cleanupStatus === 'retained-for-review'
       && manifest.runs.every(({ mechanicalShape }) => mechanicalShape === null || mechanicalShape.pass);
     writeJson(manifestPath, manifest);
   }
-
-  if (cleanupError) throw cleanupError;
 
   const collectionComplete = manifest.evidenceEligible;
   console.log(JSON.stringify({ collectionComplete, semanticScoring: 'manual-required', manifestPath }, null, 2));

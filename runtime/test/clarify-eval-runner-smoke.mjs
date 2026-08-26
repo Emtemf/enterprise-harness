@@ -193,10 +193,20 @@ try {
   assert.equal(manifest.evidenceEligible, true);
   assert.equal(manifest.shapeContract, null);
   assert.equal(manifest.hostContaminationFixture, undefined, 'host configuration is evidence input, not copied into results');
-  assert.equal(manifest.workspace.cleanupStatus, 'removed');
-  assert.equal(fs.existsSync(manifest.workspace.root), false, 'collector must remove its external temporary workspace');
+  assert.equal(manifest.workspace.cleanupStatus, 'retained-for-review');
+  assert.equal(fs.realpathSync(manifest.workspace.root), manifest.workspace.root,
+    'collector must retain its actual external temporary workspace through review');
   assert.equal(path.dirname(manifest.workspace.root), fs.realpathSync(os.tmpdir()));
-  assert.match(path.basename(manifest.workspace.root), /^eh-clarify-skill-eval-/u);
+  assert.match(path.basename(manifest.workspace.root), /^eh-clarify-skill-eval-[A-Za-z0-9]{6}$/u);
+  assert.equal(manifest.workspace.markerRef, '.eh-eval-workspace-owner.json');
+  assert.match(manifest.workspace.markerNonce, /^[a-f0-9]{64}$/u);
+  const ownershipMarkerPath = path.join(manifest.workspace.root, manifest.workspace.markerRef);
+  assert.equal(fs.lstatSync(ownershipMarkerPath).isFile(), true);
+  assert.equal(
+    manifest.workspace.markerSha256,
+    crypto.createHash('sha256').update(fs.readFileSync(ownershipMarkerPath)).digest('hex'),
+  );
+  assert.equal(JSON.parse(fs.readFileSync(ownershipMarkerPath, 'utf-8')).nonce, manifest.workspace.markerNonce);
   assert.equal(new Set(manifest.runs.map(({ cwdRef }) => cwdRef)).size, 10, 'every repetition must use a fresh workspace/process');
   assert.ok(manifest.runs.every((entry) => (
     entry.processStatus === 'completed'
@@ -247,7 +257,7 @@ try {
   )));
 
   const reviewInput = path.join(sandbox, 'review-input.json');
-  writeReviewInput(reviewInput, shapeManifest);
+  writeReviewInput(reviewInput, shapeManifest, 'pass', () => 'pass', '2016-12-31T23:59:60Z');
   const preReviewBytes = fs.readFileSync(shapeManifest.manifestPath);
   const recorded = run([
     '--record-review', shapeManifest.manifestPath,
@@ -262,6 +272,11 @@ try {
     reviewedManifest.manualReview.sha256,
     crypto.createHash('sha256').update(fs.readFileSync(canonicalReviewPath)).digest('hex'),
   );
+  assert.equal(reviewedManifest.workspace.cleanupStatus, 'removed-after-review');
+  assert.equal(fs.existsSync(reviewedManifest.workspace.root), false);
+  assert.equal(reviewedManifest.workspace.cleanupReceipt.reviewSha256, reviewedManifest.manualReview.sha256);
+  assert.equal(reviewedManifest.workspace.cleanupReceipt.markerSha256, shapeManifest.workspace.markerSha256);
+  assert.match(reviewedManifest.workspace.cleanupReceipt.removedAt, /^\d{4}-\d{2}-\d{2}T/u);
   const canonicalReview = JSON.parse(fs.readFileSync(canonicalReviewPath, 'utf-8'));
   assert.equal(canonicalReview.manifestSha256, crypto.createHash('sha256').update(preReviewBytes).digest('hex'),
     'manual review must bind the pre-review manifest containing output digests');
@@ -379,8 +394,61 @@ try {
     assert.match(review.stderr, /process outcome metadata/u);
   }
 
+  const markerDigestTamper = cloneCollection(unreviewedManifestPath, 'tampered-marker-digest', (candidate) => {
+    candidate.workspace.markerSha256 = '0'.repeat(64);
+  });
+  const markerDigestReview = passReviewFor(markerDigestTamper, 'tampered-marker-digest');
+  assert.equal(markerDigestReview.status, 2);
+  assert.match(markerDigestReview.stderr, /workspace ownership marker digest/u);
+
+  const markerNonceTamper = cloneCollection(unreviewedManifestPath, 'tampered-marker-nonce', (candidate) => {
+    candidate.workspace.markerNonce = 'f'.repeat(64);
+  });
+  const markerNonceReview = passReviewFor(markerNonceTamper, 'tampered-marker-nonce');
+  assert.equal(markerNonceReview.status, 2);
+  assert.match(markerNonceReview.stderr, /workspace ownership marker content/u);
+
+  const markerPath = path.join(unreviewedManifest.workspace.root, unreviewedManifest.workspace.markerRef);
+  const markerBackup = `${markerPath}.test-backup`;
+  fs.renameSync(markerPath, markerBackup);
+  try {
+    const missingMarker = cloneCollection(unreviewedManifestPath, 'missing-marker');
+    const missingMarkerReview = passReviewFor(missingMarker, 'missing-marker');
+    assert.equal(missingMarkerReview.status, 2);
+    assert.match(missingMarkerReview.stderr, /workspace ownership marker/u);
+  } finally {
+    fs.renameSync(markerBackup, markerPath);
+  }
+
+  fs.renameSync(markerPath, markerBackup);
+  fs.symlinkSync(markerBackup, markerPath);
+  try {
+    const symlinkMarker = cloneCollection(unreviewedManifestPath, 'symlink-marker');
+    const symlinkMarkerReview = passReviewFor(symlinkMarker, 'symlink-marker');
+    assert.equal(symlinkMarkerReview.status, 2);
+    assert.match(symlinkMarkerReview.stderr, /workspace ownership marker.*non-symlink/u);
+  } finally {
+    fs.rmSync(markerPath);
+    fs.renameSync(markerBackup, markerPath);
+  }
+
+  const firstRunWorkspace = unreviewedManifest.runs[0].cwd;
+  const firstRunBackup = `${firstRunWorkspace}.test-backup`;
+  fs.renameSync(firstRunWorkspace, firstRunBackup);
+  fs.symlinkSync(firstRunBackup, firstRunWorkspace, process.platform === 'win32' ? 'junction' : 'dir');
+  try {
+    const symlinkRun = cloneCollection(unreviewedManifestPath, 'symlink-run-workspace');
+    const symlinkRunReview = passReviewFor(symlinkRun, 'symlink-run-workspace');
+    assert.equal(symlinkRunReview.status, 2);
+    assert.match(symlinkRunReview.stderr, /run workspace.*non-symlink/u);
+  } finally {
+    fs.rmSync(firstRunWorkspace);
+    fs.renameSync(firstRunBackup, firstRunWorkspace);
+  }
+
   for (const [label, root] of [
     ['inside-checkout', path.join(checkoutRoot, '.coordinated-eval-workspace')],
+    ['forged-owned-prefix', path.join(fs.realpathSync(os.tmpdir()), 'eh-clarify-skill-eval-Ab12Cd')],
     ['wrong-prefix', path.join(fs.realpathSync(os.tmpdir()), 'not-owned-eval-workspace')],
     ['non-canonical', `${fs.realpathSync(os.tmpdir())}${path.sep}child${path.sep}..${path.sep}eh-clarify-skill-eval-tampered`],
   ]) {
@@ -440,8 +508,8 @@ try {
   ], 'fail');
   assert.equal(failed.status, 1);
   const failedManifest = onlyManifest(failedDir);
-  assert.equal(failedManifest.workspace.cleanupStatus, 'removed');
-  assert.equal(fs.existsSync(failedManifest.workspace.root), false);
+  assert.equal(failedManifest.workspace.cleanupStatus, 'retained-for-review');
+  assert.equal(fs.existsSync(failedManifest.workspace.root), true);
   assert.ok(failedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'exit-nonzero' && semanticVerdict === null
   )));
@@ -461,6 +529,9 @@ try {
   assert.equal(run([
     '--record-review', failedManifest.manifestPath, '--review-file', failedReview,
   ]).status, 0, 'nonzero runs remain reviewable as fail');
+  const reviewedFailedManifest = JSON.parse(fs.readFileSync(failedManifest.manifestPath, 'utf-8'));
+  assert.equal(reviewedFailedManifest.workspace.cleanupStatus, 'removed-after-review');
+  assert.equal(fs.existsSync(reviewedFailedManifest.workspace.root), false);
 
   const timedDir = path.join(sandbox, 'timed');
   const timed = run([
@@ -468,8 +539,8 @@ try {
   ], 'hang');
   assert.equal(timed.status, 1);
   const timedManifest = onlyManifest(timedDir);
-  assert.equal(timedManifest.workspace.cleanupStatus, 'removed');
-  assert.equal(fs.existsSync(timedManifest.workspace.root), false);
+  assert.equal(timedManifest.workspace.cleanupStatus, 'retained-for-review');
+  assert.equal(fs.existsSync(timedManifest.workspace.root), true);
   assert.ok(timedManifest.runs.every(({ processStatus, semanticVerdict }) => (
     processStatus === 'timeout' && semanticVerdict === null
   )));
@@ -518,5 +589,19 @@ try {
 
   console.log(`PASS clarify-eval-runner ${mode}`);
 } finally {
+  for (const manifestPath of manifestPaths(sandbox)) {
+    try {
+      const candidate = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      const workspaceRoot = candidate.workspace?.root;
+      if (typeof workspaceRoot === 'string'
+          && path.dirname(workspaceRoot) === fs.realpathSync(os.tmpdir())
+          && /^eh-clarify-skill-eval-[A-Za-z0-9]{6}$/u.test(path.basename(workspaceRoot))
+          && fs.existsSync(workspaceRoot)) {
+        fs.rmSync(workspaceRoot, { recursive: true, force: true });
+      }
+    } catch {
+      // Best-effort cleanup for test-owned external workspaces.
+    }
+  }
   fs.rmSync(sandbox, { recursive: true, force: true });
 }

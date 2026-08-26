@@ -1,7 +1,7 @@
 # Clarify Entry and Research
 
-Load when: controller state is active v6 Clarify and either entry/recovery is selected or factGateOpen=true.
-Return to controller: after exactly one durable entry, research, or recovery action; recompute workflow and all required lane state before any further work.
+Load when: controller state has no active change, entry/recovery selected, lane applicability undecided, or active v6 Clarify with factGateOpen=true.
+Return to controller: after exactly one durable entry, research, or recovery action; recompute workflow, lane state, and the controller's raw route predicates before any further work.
 
 ## Phase 0：进入 Clarify
 
