@@ -11,6 +11,17 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const skill = fs.readFileSync(path.join(root, 'skills/harness/SKILL.md'), 'utf-8');
+const phaseFiles = {
+  research: 'skills/harness/references/clarify-research.md',
+  decisions: 'skills/harness/references/clarify-decisions.md',
+  completion: 'skills/harness/references/clarify-completion.md',
+};
+for (const relative of Object.values(phaseFiles)) {
+  assert.equal(fs.existsSync(path.join(root, relative)), true, `Harness phase reference missing: ${relative}`);
+}
+const research = fs.readFileSync(path.join(root, phaseFiles.research), 'utf-8');
+const decisions = fs.readFileSync(path.join(root, phaseFiles.decisions), 'utf-8');
+const completion = fs.readFileSync(path.join(root, phaseFiles.completion), 'utf-8');
 const questionTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/question-candidate.json.tmpl'),
   'utf-8',
@@ -21,29 +32,35 @@ const eventTemplate = JSON.parse(fs.readFileSync(
 ));
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
+for (const [body, tokens] of [
+  [research, ['../assets/research-brief.md.tmpl', 'handoff create', 'handoff validate', 'expired lease']],
+  [decisions, ['../assets/question-candidate.json.tmpl', 'clarify prepare-question']],
+  [completion, [
+    '../assets/decision-event.json.tmpl',
+    '../assets/classification-input.json.tmpl',
+    '../assets/debt-assessment.json.tmpl',
+    '../assets/project-contract-assessment.json.tmpl',
+    'clarify validate-debt',
+    'clarify validate-project-contract',
+    'clarify record-decision',
+    'clarify seal-decisions',
+    'clarify classify',
+    '../scripts/finalize-clarify-result.mjs',
+  ]],
+]) for (const token of tokens) assert.match(body, new RegExp(escapeRegExp(token), 'u'),
+  `Phase authority must reference ${token}`);
 for (const token of [
-  'assets/research-brief.md.tmpl',
-  'assets/question-candidate.json.tmpl',
-  'assets/decision-event.json.tmpl',
-  'assets/classification-input.json.tmpl',
-  'assets/debt-assessment.json.tmpl',
-  'assets/project-contract-assessment.json.tmpl',
+  'references/clarify-research.md',
+  'references/clarify-decisions.md',
+  'references/clarify-completion.md',
   'references/output-contract.md',
   'references/clarify-few-shots.md',
-  'clarify prepare-question',
-  'clarify validate-debt',
-  'clarify validate-project-contract',
-  'clarify record-decision',
-  'clarify seal-decisions',
-  'clarify classify',
-  'expired lease',
-  'finalize-clarify-result.mjs',
-]) assert.match(skill, new RegExp(escapeRegExp(token), 'u'), `Harness must reference ${token}`);
+]) assert.match(skill, new RegExp(escapeRegExp(token), 'u'), `Controller must route to ${token}`);
 
 const canonicalQuestionPath = questionCandidatePath('change-id', questionTemplate.questionId);
 assert.ok(
-  skill.includes('harness/changes/<change-id>/evidence/clarify/questions/<question-id>.json'),
-  `Skill question path must agree with runtime helper (${canonicalQuestionPath})`,
+  decisions.includes('harness/changes/<change-id>/evidence/clarify/questions/<question-id>.json'),
+  `Decision reference question path must agree with runtime helper (${canonicalQuestionPath})`,
 );
 assert.equal(questionTemplate.decisionType, 'scope-confirmation');
 assert.equal(questionTemplate.targetRef, 'harness/changes/change-id/requirements.md');
@@ -56,13 +73,13 @@ assert.equal(
 assert.deepEqual(validateQuestionCandidate(questionTemplate), [], 'question template must pass runtime shape validation');
 assert.deepEqual(validateDecisionEvent('change-id', eventTemplate), [], 'decision template must pass runtime shape validation');
 
-const dispatch = skill.indexOf('dispatch all required lanes');
-const ask = skill.indexOf('AskUserQuestion', dispatch);
-assert.ok(dispatch >= 0 && ask > dispatch,
-  'Harness must dispatch all required lanes before AskUserQuestion');
-assert.match(skill, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,
+assert.match(research, /dispatch all required lanes[\s\S]*before any `AskUserQuestion`/iu,
+  'Research authority must dispatch all required lanes before AskUserQuestion');
+assert.ok(skill.indexOf('references/clarify-research.md') < skill.indexOf('references/clarify-decisions.md'),
+  'Controller must route research before decisions');
+assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,
   'Harness must authorize exactly one question at a time');
-assert.match(skill, /(?:不得|禁止|do not)\s*(?:创建、修改或)?(?:写入|修改|write)\s*`?CLAUDE\.md`?/iu,
+assert.match(completion, /(?:不得|禁止|do not)\s*(?:创建、修改或)?(?:写入|修改|write)\s*`?CLAUDE\.md`?/iu,
   'Harness must forbid writing CLAUDE.md in this slice');
 const statusFirst = skill.indexOf('workflow status <change-id> --json');
 const questionStatus = skill.indexOf('clarify status <change-id> --json', statusFirst);
@@ -79,7 +96,7 @@ assert.doesNotMatch(skill, /(?:recover\/status|status\/recover)/iu,
   'Harness must not use an ambiguous shorthand that implies unconditional recovery');
 
 const factGateStart = skill.indexOf('## Turn entry：Fact gate');
-const factGateEnd = skill.indexOf('Clarify 开始时读取', factGateStart);
+const factGateEnd = skill.indexOf('## Status-first controller', factGateStart);
 assert.ok(factGateStart >= 0 && factGateEnd > factGateStart,
   'Harness must put a bounded required-fact-lane branch at turn entry');
 const factGate = skill.slice(factGateStart, factGateEnd);

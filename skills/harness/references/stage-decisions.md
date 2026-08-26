@@ -1,5 +1,8 @@
 # v6 阶段推进合同
 
+Load when: controller is preparing exactly one lifecycle transition after the current stage evidence is fresh.
+Return to controller: after validating or attempting that single transition; re-read status before another action.
+
 唯一 lifecycle：`clarify → design → plan → implement → verify → archive`。
 
 | 当前阶段 | 允许推进的必要证据 |

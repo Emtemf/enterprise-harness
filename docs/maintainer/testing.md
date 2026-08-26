@@ -9,6 +9,17 @@ Control 固定使用 `--safe-mode --disable-slash-commands --setting-sources ""`
 `--setting-sources "" --plugin-dir <checkout>` 且只允许该一个 plugin-dir。两组 cwd 都是 checkout 外的临时目录，
 采集结束后安全删除；manifest 保留每次 isolation argv、临时 cwd 与 cleanup 状态。
 
+人工核读完成后，用 `--record-review <scoring-manifest.json> --review-file <review.json>` 附加 immutable review。
+记录前 runner 会从当前 eval case 重算每个 run 的 variant、repetition、command、完整 argv、isolation argv、
+`shell:false`、timeout 与 cwdRef，并核对 stdout/stderr digest、collection completeness 和严格 calendar-valid
+RFC3339 时间；manifest 字段不能自证 provenance。任一 timeout、nonzero 或 mechanical-shape failure 不能评为 pass。
+Review 写入成功仍只代表该 collection 的人工 verdict，不会自动把 skill candidate promotion 为 best。
+
+带 `toolProfile: read-only` 的 held-out reference-routing cases 会把 `--tools Read` 同等应用于 control/treatment，
+用于证明 treatment 实际按 state 读取 research、decisions 或 completion reference。No-tools terminal case 与这些
+tool-enabled routing cases 分开评分，不能把 Plan mode 无法持久化 packet 当成模型失败，也不能用静态 path 检查
+替代 tool trace/manual review。
+
 分层：
 
 - unit：纯函数、schema、路径、parser、状态迁移

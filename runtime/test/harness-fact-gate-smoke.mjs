@@ -9,26 +9,30 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const skill = fs.readFileSync(path.join(root, 'skills/harness/SKILL.md'), 'utf-8');
+const research = fs.readFileSync(path.join(root, 'skills/harness/references/clarify-research.md'), 'utf-8');
+const decisions = fs.readFileSync(path.join(root, 'skills/harness/references/clarify-decisions.md'), 'utf-8');
+const completion = fs.readFileSync(path.join(root, 'skills/harness/references/clarify-completion.md'), 'utf-8');
 
-const facts = skill.indexOf('## Phase 1：完成事实探索');
-const synthesize = skill.indexOf('## Phase 2：综合事实并建立 topology');
-const interview = skill.indexOf('## Phase 3：只澄清 Decisions');
-assert.ok(facts >= 0 && synthesize > facts && interview > synthesize,
+const facts = skill.indexOf('references/clarify-research.md');
+const synthesize = skill.indexOf('references/clarify-decisions.md');
+const complete = skill.indexOf('references/clarify-completion.md');
+assert.ok(facts >= 0 && synthesize > facts && complete > synthesize,
   'Harness must order fact discovery before synthesis and decision clarification');
 
+const corpus = [skill, research, decisions, completion].join('\n');
 for (const contract of [
   'clarify.explore-code',
   'enterprise-harness:explore-code',
   'clarify.research-docs',
   'enterprise-harness:research-docs',
   '等待全部 required lanes',
-  '不得调用 `AskUserQuestion`',
+  '不得产生任何 user question',
   'ResearchPacket',
   'handoff validate',
   'assets/requirements.md.tmpl',
   'scripts/finalize-clarify-result.mjs',
 ]) {
-  assert.ok(skill.includes(contract), `Harness must make ${contract} executable`);
+  assert.ok(corpus.includes(contract), `Harness must make ${contract} executable`);
 }
 
 assert.equal(/Grill Me|Deep Interview|Superpowers Brainstorming/u.test(skill), false,

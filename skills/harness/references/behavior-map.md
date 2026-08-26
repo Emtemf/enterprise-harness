@@ -1,5 +1,8 @@
 # Capability 与 run 速查
 
+Load when: Clarify proof is passing and controller must select the next stage worker capability.
+Return to controller: after selecting one capability/handoff action for the current stage.
+
 v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 frontmatter 的 native `agent:` binding 决定 capability，runtime 只消费 Handoff v2、StageResult、ReviewResult、TECPC 与 digest freshness。
 
 | 工作 | Skill | Capability agent | 结果 |

@@ -12,14 +12,16 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 
 function assertHarnessInstructions() {
   const skill = read('skills/harness/SKILL.md');
-  for (const heading of [
-    '## Phase 0：进入 Clarify',
-    '## Phase 1：完成事实探索',
-    '## Phase 2：综合事实并建立 topology',
-    '## Phase 3：只澄清 Decisions',
-    '## Phase 4：确认并完成 Clarify',
-  ]) assert.ok(skill.includes(heading), `harness skill must include ${heading}`);
+  const research = read('skills/harness/references/clarify-research.md');
+  const decisions = read('skills/harness/references/clarify-decisions.md');
+  const completion = read('skills/harness/references/clarify-completion.md');
+  for (const [body, headings] of [
+    [research, ['## Phase 0：进入 Clarify', '## Phase 1：完成事实探索']],
+    [decisions, ['## Phase 2：综合事实并建立 topology', '## Phase 3：只澄清 Decisions']],
+    [completion, ['## Phase 4：确认并完成 Clarify', '## Phase 5：后续阶段与恢复']],
+  ]) for (const heading of headings) assert.ok(body.includes(heading), `phase reference must include ${heading}`);
 
+  const corpus = [skill, research, decisions, completion].join('\n');
   for (const behavior of [
     'design tree',
     'ResearchPacket',
@@ -29,7 +31,8 @@ function assertHarnessInstructions() {
     '重新计算',
     'Fast Path',
     '不得进入 Design',
-  ]) assert.ok(skill.includes(behavior), `harness skill must make ${behavior} executable`);
+  ]) assert.ok(corpus.includes(behavior), `harness controller/reference set must make ${behavior} executable`);
+  assert.equal(/^## Phase [0-5]/gmu.test(skill), false, 'auto-loaded controller must not retain phase procedure detail');
 }
 
 function assertRequirementsTemplate() {

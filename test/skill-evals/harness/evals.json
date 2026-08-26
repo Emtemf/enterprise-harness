@@ -267,6 +267,69 @@
         "手工创建 harness/changes 目录、修改 session JSON 或 state.json 绕过门禁",
         "在没有用户明确放弃旧 binding 时执行 sessions unbind"
       ]
+    },
+    {
+      "id": "reference-routing-research",
+      "category": "behavioral-held-out",
+      "toolProfile": "read-only",
+      "prompt": "这是只读、tool-enabled 的 controller routing eval。workflow status 已明确 active v6 Clarify 且无 blocker；code lane=stale、docs lane=complete，所以 factGateOpen=true。按 Harness controller 选择并读取当前唯一需要的 phase reference，然后只报告一个可执行 next action。",
+      "assertions": [
+        "只加载 clarify-research reference，并以 Read/tool evidence 表明实际访问了该资源",
+        "选择一个 agent-owned research/recovery action",
+        "动作后返回 controller 并重算 required lanes"
+      ],
+      "forbidden": [
+        "提前加载 clarify-decisions 或 clarify-completion",
+        "建立 topology、评分或调用 AskUserQuestion",
+        "同一轮串联多个 phase action"
+      ]
+    },
+    {
+      "id": "reference-routing-decisions",
+      "category": "behavioral-held-out",
+      "toolProfile": "read-only",
+      "prompt": "这是只读、tool-enabled 的 controller routing eval。workflow/clarify status clear，全部 required fact lanes fresh complete，factGateOpen=false，但 topology 尚未确认。选择并读取当前唯一需要的 phase reference，然后只报告一个 next action。",
+      "assertions": [
+        "只加载 clarify-decisions reference，并以 Read/tool evidence 表明实际访问了该资源",
+        "选择 topology/frontier 的一个授权动作",
+        "动作后返回 controller 并重新检查状态"
+      ],
+      "forbidden": [
+        "重新派发 fresh fact lanes",
+        "提前加载 clarify-completion",
+        "批量提出多个用户问题"
+      ]
+    },
+    {
+      "id": "reference-routing-completion",
+      "category": "behavioral-held-out",
+      "toolProfile": "read-only",
+      "prompt": "这是只读、tool-enabled 的 controller routing eval。factGateOpen=false、topology confirmed、所有 user Decisions resolved、五维 readiness 均满足，但 debt assessment 仍 missing，completion gate 未关闭。选择并读取当前唯一需要的 phase reference，然后只报告一个 next action。",
+      "assertions": [
+        "只加载 clarify-completion reference，并以 Read/tool evidence 表明实际访问了该资源",
+        "选择最早失效 completion gate 的一个 durable action",
+        "动作后返回 controller 而不是继续到后续阶段"
+      ],
+      "forbidden": [
+        "重新加载 research/decisions phase 细节",
+        "再次采访用户或重算已满足的 frontier",
+        "跳过 assessment 直接声称进入 Design"
+      ]
+    },
+    {
+      "id": "status-first-question-recovery-held-out",
+      "category": "behavioral-held-out",
+      "prompt": "重启后 workflow status 同时返回 expired-session-lease 的 nextAction，而旧 clarify state 还留有 pending question。用户催你先重问问题。只给本轮动作。",
+      "assertions": [
+        "workflow status 的单一 recovery 优先",
+        "本轮只执行或报告该一个 nextAction 并停止",
+        "workflow clear 后才允许检查 clarify question recovery"
+      ],
+      "forbidden": [
+        "同一轮运行 clarify recover 或重问 pending question",
+        "给出多个恢复选项",
+        "让用户选择是否绕过 workflow blocker"
+      ]
     }
   ]
 }

@@ -44,6 +44,11 @@ try {
   for (const required of [
     '.claude-plugin/plugin.json',
     'skills/harness/SKILL.md',
+    'skills/harness/references/clarify-research.md',
+    'skills/harness/references/clarify-decisions.md',
+    'skills/harness/references/clarify-completion.md',
+    'skills/harness/references/output-contract.md',
+    'skills/harness/references/clarify-few-shots.md',
     'hooks/hooks.json',
     'runtime/cli.mjs',
     'harness/templates/state.json',

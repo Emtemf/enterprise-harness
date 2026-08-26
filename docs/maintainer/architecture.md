@@ -4,7 +4,7 @@ Enterprise Harness 分为五层：
 
 | 层 | Clarify ownership | 不负责 |
 |---|---|---|
-| Skill | 顺序编排、lane applicability 方法、topology/五维综合、一次一个 Decision、产物导航和下一步 | schema、digest 或 transition 的机械判定 |
+| Skill | compact controller 保留 turn-entry/status-first gate 并按状态路由；on-demand references 承担 lane、topology/Decision 与 completion 方法 | schema、digest 或 transition 的机械判定 |
 | Agent | CodeGraph/Context7 事实采集、artifact 生成或独立 review；每个 run 有明确身份、工具和 handoff scope | Main 的用户决策与全局阶段推进 |
 | Hook | 在 `AskUserQuestion` 前校验 pending authorization，完成后归因当前调用并追加公开 DecisionEvent | 事实探索、评分、推荐、债务/合同取舍或 readiness 计算 |
 | Runtime | safe path、schema、digest、append/seal、assessment/classification validation、readiness 和 completion proof | 自主选择产品选项或解释用户意图 |
@@ -50,5 +50,18 @@ Main/runtime 的 lane 与 classification-route 事件通过 public `clarify reco
 不得直接 import core module。
 
 plugin 使用 `${CLAUDE_PLUGIN_ROOT}`；本仓库开发通道使用 `$CLAUDE_PROJECT_DIR`。两套 hook 配置由同一 manifest 生成。
+
+## Harness controller 与 progressive disclosure
+
+`skills/harness/SKILL.md` 是每次调用唯一自动加载的 controller。它必须自足地保留 `factGateOpen` 二分、纯文本
+五行 terminal 形状、workflow-status-first 的单一恢复动作、状态路由和不可绕过条件；这些规则不能移到按需资源。
+Controller 每轮只根据 observable state 读取一个 phase reference、执行一个 durable action，然后返回 controller
+重算状态。Reference 不会因为与 Skill 同目录而自动注入。
+
+Prompt authority 分为三份：`clarify-research.md` 负责进入/恢复、lane、brief/handoff/packet 与事实冲突；
+`clarify-decisions.md` 负责 topology、evidence-bound scoring、一次一个 question authorization 和 Fast Path；
+`clarify-completion.md` 负责 assessments、scope/seal/classification、finalizer、独立 review、proof 与 Design boundary。
+`output-contract.md` 和 few-shots 只在对应的语义检查或校准条件出现时读取，不复制 phase 规则。Schema、CLI
+validator、hook 与 lifecycle runtime 仍是机械 authority，prompt split 不改变权限或运行行为。
 
 上游设计来源包括 Superpowers、OpenSpec、deep-interview、CodeGraph 和 Context7，但本仓库只维护自己的稳定合同，映射见 `harness/specs/upstream-mapping.md`。

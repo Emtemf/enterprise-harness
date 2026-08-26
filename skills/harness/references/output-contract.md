@@ -1,6 +1,9 @@
 # Clarify Output Contract
 
-Read this contract when entering Clarify and before final self-check. It defines semantic quality; runtime schemas and
+Load when: controller is about to create the first Clarify artifact or run the final self-check.
+Return to controller: after checking the current artifact/action against this semantic rubric; this reference selects no phase action.
+
+This contract defines semantic quality; runtime schemas and
 validators remain the structural and freshness authorities. Use the canonical schemas rather than reproducing them:
 [question candidate](../../../harness/schemas/question-candidate.schema.json),
 [decision event](../../../harness/schemas/decision-event.schema.json),

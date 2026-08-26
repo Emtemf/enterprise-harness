@@ -10,13 +10,18 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const skill = fs.readFileSync(path.join(root, 'skills/harness/SKILL.md'), 'utf-8');
 const entryStart = skill.indexOf('## Turn entry：Fact gate');
-const flowStart = skill.indexOf('Clarify 开始时读取');
-assert.ok(entryStart >= 0 && flowStart > entryStart,
+const statusStart = skill.indexOf('## Status-first controller');
+const routerStart = skill.indexOf('## State router');
+assert.ok(entryStart >= 0 && statusStart > entryStart && routerStart > statusStart,
   'Fact gate turn-entry contract must precede every Clarify flow instruction');
-assert.equal(skill.indexOf('AskUserQuestion') > entryStart, true,
+const bodyAfterFrontmatter = skill.slice(skill.indexOf('\n---', 4) + 4);
+assert.equal(bodyAfterFrontmatter.match(/^## .+$/gmu)?.[0], '## Turn entry：Fact gate',
+  'Fact gate must be the first controller section after the title');
+assert.equal(skill.indexOf('AskUserQuestion') > statusStart, true,
   'Fact gate turn-entry contract must precede every AskUserQuestion instruction');
 
-const entry = skill.slice(entryStart, flowStart);
+const entry = skill.slice(entryStart, statusStart);
+const statusController = skill.slice(statusStart, routerStart);
 assert.match(entry, /factGateOpen iff 任一 required lane 为 pending、missing、invalid 或 stale/u);
 assert.match(entry, /只执行一个 agent-owned research\/recovery action[\s\S]*重算[\s\S]*回到本入口/u);
 assert.match(entry, /Plan mode、tools disabled、packet in-flight/u);
@@ -35,8 +40,14 @@ for (const line of [
   'Scores: not computed',
   'User question: none',
 ]) assert.match(entry, new RegExp(line.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-assert.ok(skill.trim().split(/\s+/u).length <= 1528,
-  'Entry-gate stabilization must not grow the Harness Skill word count');
+assert.match(statusController, /workflow status <change-id> --json/u,
+  'Status-first recovery priority must remain in the auto-loaded controller');
+assert.match(statusController, /blocker、recovery 或 `nextAction`[\s\S]*只执行其一个动作[\s\S]*结束本轮/u,
+  'Status-first controller must execute one returned action and stop');
+assert.match(statusController, /active v6 Clarify[\s\S]*clarify status <change-id> --json[\s\S]*repair-required[\s\S]*clarify recover <change-id>/u,
+  'Question repair must stay conditional and lower priority than workflow recovery');
+assert.ok(skill.trim().split(/\s+/u).length < 500,
+  'Auto-loaded Harness controller must stay below 500 words');
 
 const shapeModuleUrl = pathToFileURL(path.join(
   root, 'test', 'skill-evals', 'harness', 'terminal-shape.mjs',

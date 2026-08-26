@@ -1,6 +1,9 @@
 # Clarify Few-Shots
 
-Read only when calibrating dispatch, Fast Path, or a question candidate. These are compact artifact projections, not
+Load when: the selected phase needs calibration for fact-first dispatch, Fast Path, or one high-value question candidate.
+Return to controller: after applying one analogous pattern to the current phase action; never continue the example workflow.
+
+These are compact artifact projections, not
 chat transcripts or hidden reasoning. Example digests use the valid all-zero placeholder and must be replaced with the
 fresh artifact digest before preparation.
 

@@ -79,10 +79,16 @@ function manifestPaths(directory) {
     .map((entry) => path.join(directory, entry));
 }
 
-function writeReviewInput(target, manifest, overallVerdict = 'pass', verdictFor = () => 'pass') {
+function writeReviewInput(
+  target,
+  manifest,
+  overallVerdict = 'pass',
+  verdictFor = () => 'pass',
+  reviewedAt = '2026-08-26T00:00:00.000Z',
+) {
   fs.writeFileSync(target, `${JSON.stringify({
     reviewer: 'root-controller',
-    reviewedAt: '2026-08-26T00:00:00.000Z',
+    reviewedAt,
     overallVerdict,
     runs: manifest.runs.map((entry) => ({
       runId: entry.runId,
@@ -152,6 +158,16 @@ try {
   assert.deepEqual(guidedPlan.variants, ['with-skill']);
   assert.equal(guidedPlan.runs.length, 5);
   assert.ok(guidedPlan.runs.every(({ variant }) => variant === 'with-skill'));
+
+  const routingDry = run([
+    '--case', 'reference-routing-research', '--model', 'sonnet',
+    '--variant', 'with-skill', '--reps', '5', '--dry-run',
+  ]);
+  assert.equal(routingDry.status, 0, routingDry.stderr);
+  const routingPlan = JSON.parse(routingDry.stdout);
+  assert.ok(routingPlan.runs.every(({ argv }) => (
+    argv.includes('--tools') && argv[argv.indexOf('--tools') + 1] === 'Read'
+  )), 'tool-enabled reference routing must use the declared read-only tool profile');
 
   const completed = run([
     '--case', 'question-must-be-pre-authorized', '--model', 'sonnet',
@@ -317,6 +333,58 @@ try {
   const malformedEvalReview = passReviewFor(malformedEval, 'malformed-eval');
   assert.equal(malformedEvalReview.status, 2);
   assert.match(malformedEvalReview.stderr, /eval metadata/u);
+
+  const planTamperMutations = [
+    ['variant', (entry) => { entry.variant = 'control'; }],
+    ['repetition', (entry) => { entry.repetition = 5; }],
+    ['command', (entry) => { entry.command = 'claude-wrapper'; }],
+    ['argv', (entry) => { entry.argv = [...entry.argv, '--tampered']; }],
+    ['isolation-argv', (entry) => { entry.isolationArgv = ['--setting-sources', 'user']; }],
+    ['shell', (entry) => { entry.shell = true; }],
+    ['timeout', (entry) => { entry.timeoutMs += 1; }],
+    ['cwd-ref', (entry) => { entry.cwdRef = 'temporary:with-skill-99'; }],
+  ];
+  for (const [label, mutate] of planTamperMutations) {
+    const fixture = cloneCollection(unreviewedManifestPath, `tampered-plan-${label}`, (candidate) => {
+      mutate(candidate.runs[0]);
+    });
+    const review = passReviewFor(fixture, `tampered-plan-${label}`);
+    assert.equal(review.status, 2, `${label} tamper must invalidate manual evidence`);
+    assert.match(review.stderr, /recomputed execution plan/u);
+  }
+
+  const tamperedIsolationProjection = cloneCollection(unreviewedManifestPath, 'tampered-isolation-projection', (candidate) => {
+    candidate.isolation['with-skill'] = ['--safe-mode'];
+  });
+  const tamperedIsolationProjectionReview = passReviewFor(tamperedIsolationProjection, 'tampered-isolation-projection');
+  assert.equal(tamperedIsolationProjectionReview.status, 2);
+  assert.match(tamperedIsolationProjectionReview.stderr, /recomputed execution plan/u);
+
+  for (const [field, value] of [
+    ['createdAt', '2026-02-30T00:00:00.000Z'],
+    ['createdAt', '2026-08-26'],
+  ]) {
+    const label = value.includes('T') ? 'calendar-invalid-created-at' : 'date-only-created-at';
+    const fixture = cloneCollection(unreviewedManifestPath, label, (candidate) => { candidate[field] = value; });
+    const review = passReviewFor(fixture, label);
+    assert.equal(review.status, 2, `${value} must not satisfy strict RFC3339`);
+    assert.match(review.stderr, /RFC3339/u);
+  }
+  const invalidRunDate = cloneCollection(unreviewedManifestPath, 'calendar-invalid-run-date', (candidate) => {
+    candidate.runs[0].startedAt = '2026-02-30T00:00:00.000Z';
+  });
+  const invalidRunDateReview = passReviewFor(invalidRunDate, 'calendar-invalid-run-date');
+  assert.equal(invalidRunDateReview.status, 2);
+  assert.match(invalidRunDateReview.stderr, /RFC3339/u);
+
+  const invalidReviewDate = cloneCollection(unreviewedManifestPath, 'calendar-invalid-review-date');
+  const invalidReviewDateInput = path.join(sandbox, 'calendar-invalid-review-date.json');
+  writeReviewInput(invalidReviewDateInput, invalidReviewDate.manifest, 'pass', () => 'pass', '2026-02-30T00:00:00.000Z');
+  const invalidReviewDateResult = run([
+    '--record-review', invalidReviewDate.manifestPath, '--review-file', invalidReviewDateInput,
+  ]);
+  assert.equal(invalidReviewDateResult.status, 2);
+  assert.match(invalidReviewDateResult.stderr, /reviewedAt must be a strict RFC3339/u);
 
   const symlinkReal = cloneCollection(unreviewedManifestPath, 'symlink-real');
   const symlinkCollection = path.join(sandbox, 'symlink-collection');

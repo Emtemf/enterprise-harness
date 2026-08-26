@@ -56,10 +56,14 @@ function argvFor(selected, model, variant) {
   const prompt = variant === 'with-skill'
     ? `/enterprise-harness:harness\n\n${selected.prompt}`
     : selected.prompt;
+  const toolProfile = selected.toolProfile || 'none';
+  if (!['none', 'read-only'].includes(toolProfile)) {
+    throw new Error(`unsupported eval toolProfile ${toolProfile}`);
+  }
   return [
     '-p',
     ...isolationArgvFor(variant),
-    '--tools', '',
+    '--tools', toolProfile === 'read-only' ? 'Read' : '',
     '--permission-mode', 'plan',
     '--no-session-persistence',
     '--model', model,
@@ -125,7 +129,27 @@ function requireCanonicalManifest(target) {
 }
 
 function validDate(value) {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+  if (typeof value !== 'string') return false;
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|[+-](\d{2}):(\d{2}))$/u,
+  );
+  if (!match) return false;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText,
+    offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return month >= 1
+    && month <= 12
+    && day >= 1
+    && day <= daysInMonth[month - 1]
+    && Number(hourText) <= 23
+    && Number(minuteText) <= 59
+    && Number(secondText) <= 60
+    && (offsetHourText === undefined || Number(offsetHourText) <= 23)
+    && (offsetMinuteText === undefined || Number(offsetMinuteText) <= 59);
 }
 
 function validateOutputEvidence(manifestPath, entry, stream) {
@@ -163,6 +187,9 @@ function validateManifestForReview(manifestPath, manifest) {
     throw new Error('manifestPath must equal the actual canonical path');
   }
   const selectedCase = definition.cases.find(({ id }) => id === manifest.caseId);
+  if (!validDate(manifest.createdAt)) {
+    throw new Error('manifest createdAt must be a strict RFC3339 timestamp');
+  }
   if (manifest.evalSuiteVersion !== definition.version
       || typeof manifest.caseId !== 'string'
       || !selectedCase
@@ -172,7 +199,6 @@ function validateManifestForReview(manifestPath, manifest) {
       || !manifest.variants.every((variant) => variants.includes(variant))
       || !Number.isSafeInteger(manifest.repetitionsPerVariant) || manifest.repetitionsPerVariant < 5
       || !Number.isSafeInteger(manifest.timeoutMs) || manifest.timeoutMs < 1
-      || !validDate(manifest.createdAt)
       || manifest.semanticScoring !== 'manual-required'
       || typeof manifest.scoringInstructions !== 'string' || manifest.scoringInstructions.length < 1
       || JSON.stringify(manifest.assertions) !== JSON.stringify(selectedCase.assertions)
@@ -203,21 +229,34 @@ function validateManifestForReview(manifestPath, manifest) {
     throw new Error('manifest collection metadata is invalid');
   }
   const runIds = manifest.runs.map(({ runId }) => runId);
-  const expectedRunIds = manifest.variants.flatMap((variant) => (
-    Array.from({ length: manifest.repetitionsPerVariant }, (_, index) => (
-      `${variant}-${String(index + 1).padStart(2, '0')}`
-    ))
-  ));
+  const expectedPlan = runPlan(
+    selectedCase,
+    manifest.model,
+    manifest.variants,
+    manifest.repetitionsPerVariant,
+    manifest.timeoutMs,
+  );
+  const expectedRunIds = expectedPlan.map(({ runId }) => runId);
+  const expectedPlanByRunId = new Map(expectedPlan.map((entry) => [entry.runId, entry]));
+  const expectedIsolation = Object.fromEntries(
+    manifest.variants.map((variant) => [variant, isolationArgvFor(variant)]),
+  );
   if (new Set(runIds).size !== runIds.length || manifest.recordedRunCount !== manifest.runs.length
       || manifest.recordedRunCount > manifest.plannedRunCount
       || manifest.plannedRunCount !== expectedRunIds.length
       || !runIds.every((runId) => expectedRunIds.includes(runId))) {
     throw new Error('manifest planned/recorded run counts are inconsistent');
   }
+  if (JSON.stringify(manifest.isolation) !== JSON.stringify(expectedIsolation)) {
+    throw new Error('manifest isolation does not match the recomputed execution plan');
+  }
   for (const entry of manifest.runs) {
     if (typeof entry.runId !== 'string' || !/^(?:control|with-skill)-\d{2,}$/u.test(entry.runId)
         || !['completed', 'exit-nonzero', 'timeout'].includes(entry.processStatus)) {
       throw new Error('manifest run metadata is invalid');
+    }
+    if (!validDate(entry.startedAt) || !validDate(entry.completedAt)) {
+      throw new Error(`${entry.runId} timestamps must be strict RFC3339`);
     }
     if (expectedShapeId === null) {
       if (entry.mechanicalShape !== null) throw new Error('manifest shape metadata is invalid');
@@ -227,6 +266,21 @@ function validateManifestForReview(manifestPath, manifest) {
         || entry.mechanicalShape.semanticPass !== false
         || entry.mechanicalShape.manualReviewRequired !== true) {
       throw new Error('manifest shape metadata is invalid');
+    }
+    const planned = expectedPlanByRunId.get(entry.runId);
+    if (!planned
+        || entry.variant !== planned.variant
+        || entry.repetition !== planned.repetition
+        || entry.command !== planned.command
+        || JSON.stringify(entry.argv) !== JSON.stringify(planned.argv)
+        || JSON.stringify(entry.isolationArgv) !== JSON.stringify(planned.isolationArgv)
+        || entry.shell !== planned.shell
+        || entry.timeoutMs !== planned.timeoutMs
+        || entry.cwdRef !== `temporary:${entry.runId}`
+        || entry.cwd !== path.join(manifest.workspace.root, entry.runId)
+        || JSON.stringify(entry.assertions) !== JSON.stringify(selectedCase.assertions)
+        || JSON.stringify(entry.forbidden) !== JSON.stringify(selectedCase.forbidden)) {
+      throw new Error(`${entry.runId} does not match the recomputed execution plan`);
     }
     validateOutputEvidence(manifestPath, entry, 'stdout');
     validateOutputEvidence(manifestPath, entry, 'stderr');
@@ -260,8 +314,8 @@ function recordReview(manifestArgument, reviewArgument) {
   if (typeof review.reviewer !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(review.reviewer)) {
     throw new Error('reviewer must be a safe identifier');
   }
-  if (typeof review.reviewedAt !== 'string' || Number.isNaN(Date.parse(review.reviewedAt))) {
-    throw new Error('reviewedAt must be an RFC3339 timestamp');
+  if (!validDate(review.reviewedAt)) {
+    throw new Error('reviewedAt must be a strict RFC3339 timestamp');
   }
   if (!['pass', 'fail'].includes(review.overallVerdict) || !Array.isArray(review.runs)) {
     throw new Error('manual review must include overallVerdict and runs');
