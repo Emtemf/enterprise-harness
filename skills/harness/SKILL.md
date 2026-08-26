@@ -22,14 +22,15 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## State router
 
-从 observable snapshot 计算 raw booleans，不用 ordered-if 或 default：
+从 snapshot 计算 raw booleans，不用 ordered-if/default。`stageClarify = stage=="clarify"`；`postClarifyStage = ["design","plan","implement","verify","archive"].includes(stage)`；`V = ["none","clarify","design","plan","implement","verify","archive"].includes(stage) && noActiveChange==(stage=="none") && !(laneApplicabilityUndecided&&laneApplicabilityDecided) && !(phase23FrontierOpen&&phase23FrontierClosed)`：
 
-- `R = noActiveClarify || entryRecoverySelected || laneApplicabilityUndecided || factGateOpen`
-- `D = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierOpen`
-- `C = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierClosed && !completionClosed`
-- `T = !noActiveClarify && activeClarify && !entryRecoverySelected && !laneApplicabilityUndecided && laneApplicabilityDecided && !factGateOpen && phase23FrontierClosed && completionClosed && clarifyProofPassed`
+- `R = V && (noActiveChange || entryRecoverySelected || (stageClarify && (laneApplicabilityUndecided || factGateOpen)))`
+- `D = V && !noActiveChange && !entryRecoverySelected && stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && phase23FrontierOpen && !phase23FrontierClosed`
+- `C = V && !noActiveChange && !entryRecoverySelected && stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && !phase23FrontierOpen && phase23FrontierClosed && !clarifyTransitionReady`
+- `T = V && !noActiveChange && !entryRecoverySelected && ((stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && !phase23FrontierOpen && phase23FrontierClosed && clarifyTransitionReady) || (postClarifyStage && stageTransitionReady))`
+- `W = V && !noActiveChange && !entryRecoverySelected && postClarifyStage && !stageTransitionReady`
 
-恰好一个 predicate 为 true 才行动；零个或多个只报告 blocker。R 读取 [research/entry authority](references/clarify-research.md)；D（Phase 2–3 frontier open）读取 [decision authority](references/clarify-decisions.md)；C 的 Phase 2–3 frontier closed 使 earliest invalid gate 为 completion-owned，读取 [completion authority](references/clarify-completion.md)；T 读取 [capability map](references/behavior-map.md) 和 [transition contract](references/stage-decisions.md)，按 `clarify → design → plan → implement → verify → archive` 推进。Implement 使用原生 worktree；每阶段使用独立 reviewer。
+恰好一个为 true 才行动，否则只报告 blocker。R→[research](references/clarify-research.md)；D→[decisions](references/clarify-decisions.md)；C→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T→[single transition](references/stage-decisions.md)。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
 首次生成 Clarify artifact 或 final self-check 前读取 [semantic output contract](references/output-contract.md)；只有要校准 dispatch、Fast Path 或问题质量时读取 [few-shots](references/clarify-few-shots.md)。[assets](assets/) 与 [scripts](scripts/) 仅由当前 phase reference 导航，不自动加载。
 

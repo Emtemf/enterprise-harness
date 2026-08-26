@@ -48,7 +48,7 @@ else {
 `);
 fs.chmodSync(fakeClaude, 0o755);
 
-function run(args, fakeMode = 'success') {
+function run(args, fakeMode = 'success', extraEnv = {}) {
   return spawnSync(process.execPath, [runner, ...args], {
     cwd: repoRoot,
     encoding: 'utf-8',
@@ -58,6 +58,7 @@ function run(args, fakeMode = 'success') {
       PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}`,
       EH_FAKE_CLAUDE_MODE: fakeMode,
       CLAUDE_CONFIG_DIR: pollutedConfigDir,
+      ...extraEnv,
     },
   });
 }
@@ -282,6 +283,38 @@ try {
     'manual review must bind the pre-review manifest containing output digests');
   assert.equal(run(['--record-review', shapeManifest.manifestPath, '--review-file', reviewInput]).status, 2,
     'manual review recording must refuse overwrite');
+
+  for (const failurePoint of ['after-review-commit', 'after-workspace-remove']) {
+    const phaseDir = path.join(sandbox, `cleanup-${failurePoint}`);
+    assert.equal(run([
+      '--case', 'fact-lanes-before-interview', '--variant', 'with-skill', '--reps', '5',
+      '--timeout-ms', '2000', '--results-dir', phaseDir,
+    ], 'shape').status, 0);
+    const phaseManifest = onlyManifest(phaseDir);
+    const phaseReviewInput = path.join(sandbox, `${failurePoint}-review.json`);
+    writeReviewInput(phaseReviewInput, phaseManifest);
+    const interrupted = run([
+      '--record-review', phaseManifest.manifestPath, '--review-file', phaseReviewInput,
+    ], 'success', { EH_EVAL_TEST_FAIL_AFTER: failurePoint });
+    assert.equal(interrupted.status, 2, `${failurePoint} must expose an interrupted cleanup`);
+    assert.match(interrupted.stderr, new RegExp(failurePoint, 'u'));
+    const pendingManifest = JSON.parse(fs.readFileSync(phaseManifest.manifestPath, 'utf-8'));
+    assert.equal(pendingManifest.workspace.cleanupStatus, 'pending-after-review');
+    assert.equal(pendingManifest.workspace.cleanupPending.reviewSha256, pendingManifest.manualReview.sha256);
+    assert.equal(fs.existsSync(path.join(path.dirname(phaseManifest.manifestPath), 'manual-review.json')), true,
+      'phase A must retain the canonical review after interruption');
+    assert.equal(
+      fs.existsSync(pendingManifest.workspace.root),
+      failurePoint === 'after-review-commit',
+      'phase A keeps the workspace; phase B may remove it only after the pending manifest is durable',
+    );
+    const resumed = run(['--record-review', phaseManifest.manifestPath, '--review-file', phaseReviewInput]);
+    assert.equal(resumed.status, 0, resumed.stderr);
+    const finalizedManifest = JSON.parse(fs.readFileSync(phaseManifest.manifestPath, 'utf-8'));
+    assert.equal(finalizedManifest.workspace.cleanupStatus, 'removed-after-review');
+    assert.equal(finalizedManifest.workspace.cleanupReceipt.reviewSha256, finalizedManifest.manualReview.sha256);
+    assert.equal(fs.existsSync(finalizedManifest.workspace.root), false);
+  }
 
   const incompleteReview = path.join(sandbox, 'incomplete-review.json');
   fs.writeFileSync(incompleteReview, `${JSON.stringify({

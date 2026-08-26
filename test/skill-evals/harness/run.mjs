@@ -239,6 +239,20 @@ function validateProcessOutcome(entry) {
   }
 }
 
+function validateRunWorkspace(workspaceRoot, entry) {
+  const expectedWorkspace = path.join(workspaceRoot, entry.runId);
+  let workspaceStat;
+  try {
+    workspaceStat = fs.lstatSync(expectedWorkspace);
+  } catch {
+    throw new Error(`${entry.runId} run workspace is missing`);
+  }
+  if (!workspaceStat.isDirectory() || workspaceStat.isSymbolicLink()
+      || fs.realpathSync(expectedWorkspace) !== expectedWorkspace) {
+    throw new Error(`${entry.runId} run workspace must be an actual non-symlink directory`);
+  }
+}
+
 function validateOutputEvidence(manifestPath, entry, stream) {
   const collectionDir = path.dirname(manifestPath);
   const refField = `${stream}Ref`;
@@ -371,17 +385,7 @@ function validateManifestForReview(manifestPath, manifest) {
         || JSON.stringify(entry.forbidden) !== JSON.stringify(selectedCase.forbidden)) {
       throw new Error(`${entry.runId} does not match the recomputed execution plan`);
     }
-    const expectedWorkspace = path.join(workspaceRoot, entry.runId);
-    let workspaceStat;
-    try {
-      workspaceStat = fs.lstatSync(expectedWorkspace);
-    } catch {
-      throw new Error(`${entry.runId} run workspace is missing`);
-    }
-    if (!workspaceStat.isDirectory() || workspaceStat.isSymbolicLink()
-        || fs.realpathSync(expectedWorkspace) !== expectedWorkspace) {
-      throw new Error(`${entry.runId} run workspace must be an actual non-symlink directory`);
-    }
+    validateRunWorkspace(workspaceRoot, entry);
     validateOutputEvidence(manifestPath, entry, 'stdout');
     validateOutputEvidence(manifestPath, entry, 'stderr');
   }
@@ -403,14 +407,99 @@ function validateManifestForReview(manifestPath, manifest) {
   }
 }
 
+function replaceJsonAtomically(target, value) {
+  const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`);
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+    fs.renameSync(temporary, target);
+  } finally {
+    if (fs.existsSync(temporary)) fs.rmSync(temporary);
+  }
+}
+
+function injectReviewFailure(point) {
+  if (process.env.EH_EVAL_TEST_FAIL_AFTER === point) {
+    throw new Error(`injected review cleanup failure ${point}`);
+  }
+}
+
+function comparableReview(review) {
+  return {
+    reviewer: review.reviewer,
+    reviewedAt: review.reviewedAt,
+    overallVerdict: review.overallVerdict,
+    runs: Array.isArray(review.runs)
+      ? review.runs.map(({ runId, verdict, notes }) => ({ runId, verdict, notes: typeof notes === 'string' ? notes.trim() : notes }))
+      : null,
+  };
+}
+
+function preReviewProjection(manifest) {
+  const projected = {
+    ...manifest,
+    workspace: { ...manifest.workspace, cleanupStatus: 'retained-for-review' },
+  };
+  delete projected.manualReview;
+  delete projected.workspace.cleanupPending;
+  return projected;
+}
+
+function finalizeReviewCleanup(manifestPath, manifest, reviewInput) {
+  const collectionDir = path.dirname(manifestPath);
+  const canonicalReviewPath = path.join(collectionDir, 'manual-review.json');
+  const canonicalReviewFile = requireRegularFile(canonicalReviewPath, 'canonical review');
+  if (fs.realpathSync(canonicalReviewFile) !== canonicalReviewFile) {
+    throw new Error('canonical review and parents must not contain a symlink');
+  }
+  const reviewBytes = fs.readFileSync(canonicalReviewFile);
+  if (sha256(reviewBytes) !== manifest.manualReview?.sha256) {
+    throw new Error('canonical review digest mismatch during cleanup resume');
+  }
+  const canonicalReview = JSON.parse(reviewBytes.toString('utf-8'));
+  if (JSON.stringify(comparableReview(reviewInput)) !== JSON.stringify(comparableReview(canonicalReview))) {
+    throw new Error('cleanup resume requires the same canonical review');
+  }
+  const pending = manifest.workspace?.cleanupPending;
+  if (manifest.workspace?.cleanupStatus !== 'pending-after-review'
+      || pending?.reviewSha256 !== manifest.manualReview.sha256
+      || pending?.markerSha256 !== manifest.workspace.markerSha256
+      || pending?.workspaceRootSha256 !== sha256(Buffer.from(manifest.workspace.root, 'utf-8'))
+      || canonicalReview.manifestSha256 !== sha256(Buffer.from(`${JSON.stringify(preReviewProjection(manifest), null, 2)}\n`, 'utf-8'))) {
+    throw new Error('pending review cleanup metadata is inconsistent');
+  }
+  if (fs.existsSync(manifest.workspace.root)) {
+    const workspaceRoot = validateWorkspaceOwnership(manifest.workspace);
+    for (const entry of manifest.runs) validateRunWorkspace(workspaceRoot, entry);
+    removeOwnedTemporaryWorkspace(workspaceRoot);
+  }
+  injectReviewFailure('after-workspace-remove');
+  const workspace = {
+    ...manifest.workspace,
+    cleanupStatus: 'removed-after-review',
+    cleanupReceipt: {
+      reviewSha256: manifest.manualReview.sha256,
+      markerSha256: manifest.workspace.markerSha256,
+      workspaceRootSha256: sha256(Buffer.from(manifest.workspace.root, 'utf-8')),
+      removedAt: new Date().toISOString(),
+    },
+  };
+  delete workspace.cleanupPending;
+  replaceJsonAtomically(manifestPath, { ...manifest, workspace });
+  console.log(JSON.stringify({ manifestPath, manualReviewRef: 'manual-review.json' }, null, 2));
+}
+
 function recordReview(manifestArgument, reviewArgument) {
   const manifestPath = requireCanonicalManifest(manifestArgument);
   const reviewInputPath = requireRegularFile(reviewArgument, 'review file');
   const manifestBytes = fs.readFileSync(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString('utf-8'));
+  const review = JSON.parse(fs.readFileSync(reviewInputPath, 'utf-8'));
+  if (manifest.workspace?.cleanupStatus === 'pending-after-review' && manifest.manualReview) {
+    finalizeReviewCleanup(manifestPath, manifest, review);
+    return;
+  }
   validateManifestForReview(manifestPath, manifest);
   if (manifest.manualReview) throw new Error('manifest already references a manual review');
-  const review = JSON.parse(fs.readFileSync(reviewInputPath, 'utf-8'));
   if (typeof review.reviewer !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(review.reviewer)) {
     throw new Error('reviewer must be a safe identifier');
   }
@@ -461,42 +550,39 @@ function recordReview(manifestArgument, reviewArgument) {
   const collectionDir = path.dirname(manifestPath);
   const canonicalReviewPath = path.join(collectionDir, 'manual-review.json');
   if (fs.existsSync(canonicalReviewPath)) throw new Error('manual-review.json already exists');
-  const updatedManifest = {
+  const reviewSha256 = sha256(reviewBytes);
+  const pendingManifest = {
     ...manifest,
     manualReview: {
       ref: 'manual-review.json',
-      sha256: sha256(reviewBytes),
+      sha256: reviewSha256,
       reviewer: canonicalReview.reviewer,
       reviewedAt: canonicalReview.reviewedAt,
       overallVerdict: canonicalReview.overallVerdict,
     },
     workspace: {
       ...manifest.workspace,
-      cleanupStatus: 'removed-after-review',
-      cleanupReceipt: {
-        reviewSha256: sha256(reviewBytes),
+      cleanupStatus: 'pending-after-review',
+      cleanupPending: {
+        reviewSha256,
         markerSha256: manifest.workspace.markerSha256,
         workspaceRootSha256: sha256(Buffer.from(manifest.workspace.root, 'utf-8')),
-        removedAt: new Date().toISOString(),
       },
     },
   };
-  const temporaryManifest = path.join(collectionDir, `.scoring-manifest.${process.pid}.tmp`);
   let reviewCreated = false;
-  let manifestCommitted = false;
+  let pendingCommitted = false;
   try {
     fs.writeFileSync(canonicalReviewPath, reviewBytes, { flag: 'wx' });
     reviewCreated = true;
-    fs.writeFileSync(temporaryManifest, `${JSON.stringify(updatedManifest, null, 2)}\n`, { flag: 'wx' });
-    removeOwnedTemporaryWorkspace(manifest.workspace.root);
-    fs.renameSync(temporaryManifest, manifestPath);
-    manifestCommitted = true;
+    replaceJsonAtomically(manifestPath, pendingManifest);
+    pendingCommitted = true;
   } catch (error) {
-    if (fs.existsSync(temporaryManifest)) fs.rmSync(temporaryManifest);
-    if (reviewCreated && !manifestCommitted && fs.existsSync(canonicalReviewPath)) fs.rmSync(canonicalReviewPath);
+    if (reviewCreated && !pendingCommitted && fs.existsSync(canonicalReviewPath)) fs.rmSync(canonicalReviewPath);
     throw error;
   }
-  console.log(JSON.stringify({ manifestPath, manualReviewRef: 'manual-review.json' }, null, 2));
+  injectReviewFailure('after-review-commit');
+  finalizeReviewCleanup(manifestPath, pendingManifest, review);
 }
 
 function mechanicalShapeFor(id, stdout) {

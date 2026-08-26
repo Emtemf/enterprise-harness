@@ -7,7 +7,7 @@ Clarify behavioral eval 定义位于 `test/skill-evals/harness/evals.json`。静
 manifest 把每份输出绑定 assertions/forbidden。进程成功不代表行为通过，必须人工核读并填写 verdict。
 Control 固定使用 `--safe-mode --disable-slash-commands --setting-sources ""`；with-skill 使用
 `--setting-sources "" --plugin-dir <checkout>` 且只允许该一个 plugin-dir。两组 cwd 都是 checkout 外的临时目录，
-采集结束后安全删除；manifest 保留每次 isolation argv、临时 cwd 与 cleanup 状态。
+采集后保留实际隔离 workspace 直到 manual review；review 验证 ownership marker 与每次 cwd 后再事务化清理，manifest 保留 isolation argv、临时 cwd、review-bound cleanup 状态与 receipt。
 
 人工核读完成后，用 `--record-review <scoring-manifest.json> --review-file <review.json>` 附加 immutable review。
 记录前 runner 会从当前 eval case 重算每个 run 的 variant、repetition、command、完整 argv、isolation argv、

@@ -42,17 +42,10 @@ Return to controller: after exactly one assessment, scope, seal, classification,
    只接受 finalizer 成功返回的单一 persisted-result path；失败时留在 Clarify 并按错误修复 artifact。
 6. 创建独立 `enterprise-harness:reviewer` check run。Reviewer 检查遗漏 component、事实门禁、评分依据、
    矛盾、不可验收 requirement、scope creep 与过早 design，不重新采访用户。
-7. 只有 fresh canonical `StageResult + passing independent ReviewResult + complete TECPC + CompletionProof`
-   都有效时才允许推进到 Design。scope confirmation 或 classification 不能单独推进；绑定的 artifact 修改会使
-   旧结论 stale，sealed snapshot 之后的 live ledger 追加事件除外。
+7. fresh canonical `StageResult + passing independent ReviewResult + complete TECPC + CompletionProof` 全部有效时，
+   只报告 `clarifyTransitionReady=true` 并返回 controller。scope confirmation 或 classification 不能单独置 true；
+   绑定 artifact 修改会使它失效。此 reference 不加载 worker/transition reference，不执行或复制 stage transition。
 
 ## Phase 5：后续阶段与恢复
 
-Clarify 通过后、选择下一 stage worker 时才读取 [capability 映射](behavior-map.md)；每次准备
-transition 时才读取 [阶段推进合同](stage-decisions.md)。不要在 Clarify 事实探索前加载它们。
-
-- Design/Plan/Verify 使用对应 stage Skill 和独立 reviewer；`NEEDS_DECISION` 只带回一个问题给 Main。
-- Implement 使用原生 worktree 隔离、冻结 task scope、machine receipt 和独立 reviewer。
-- Archive 只在 completion evidence fresh 时执行。
-- 任一 status/recovery 状态都立即返回 controller；controller 再按 observable state 路由到
-  [entry/research authority](clarify-research.md)。本 reference 不复制 recovery 优先级或命令。
+本 reference 在此结束并返回 controller；后续 worker 与 transition 只能由新的 W/T snapshot route 选择。

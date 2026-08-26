@@ -53,67 +53,85 @@ const researchOpening = referenceBodies.get('references/clarify-research.md').sp
 assert.match(researchOpening, /no active change.*entry\/recovery selected.*lane applicability undecided.*active v6 Clarify.*factGateOpen=true/isu);
 assert.match(researchOpening, /recompute.*controller.*route predicates/isu);
 const completionOpening = referenceBodies.get('references/clarify-completion.md').split('\n').slice(0, 4).join('\n');
+const completionBody = referenceBodies.get('references/clarify-completion.md');
 assert.doesNotMatch(completionOpening, /user Decisions are resolved/iu);
 assert.doesNotMatch(completionOpening, /transition action/iu);
 assert.match(completionOpening, /factGateOpen=false.*topology.*Phase 2[–-]3.*frontier.*closed.*earliest invalid gate.*(?:debt|project-contract).*proof/isu);
-assert.match(skill, /R\s*=\s*noActiveClarify\s*\|\|\s*entryRecoverySelected\s*\|\|\s*laneApplicabilityUndecided\s*\|\|\s*factGateOpen/u);
-assert.match(skill, /D\s*=\s*!noActiveClarify\s*&&\s*activeClarify\s*&&.*!laneApplicabilityUndecided.*!factGateOpen.*phase23FrontierOpen/isu);
-assert.match(skill, /C\s*=\s*!noActiveClarify\s*&&\s*activeClarify\s*&&.*!laneApplicabilityUndecided.*!factGateOpen.*phase23FrontierClosed.*!completionClosed/isu);
-assert.match(skill, /T\s*=\s*!noActiveClarify\s*&&\s*activeClarify\s*&&.*!laneApplicabilityUndecided.*!factGateOpen.*phase23FrontierClosed.*completionClosed.*clarifyProofPassed/isu);
-assert.match(skill, /Phase 2[–-]3 frontier open.*references\/clarify-decisions\.md/isu);
-assert.match(skill, /Phase 2[–-]3 frontier closed.*earliest invalid gate.*completion.*references\/clarify-completion\.md/isu);
+assert.match(completionBody, /clarifyTransitionReady.*(?:return|返回).*controller/isu);
+assert.doesNotMatch(completionBody, /\]\((?:behavior-map|stage-decisions)\.md\)/u);
+const behaviorOpening = read('references/behavior-map.md').split('\n').slice(0, 4).join('\n');
+assert.match(behaviorOpening, /active stage.*worker/isu);
+const transitionOpening = read('references/stage-decisions.md').split('\n').slice(0, 4).join('\n');
+assert.match(transitionOpening, /clarifyTransitionReady.*stageTransitionReady/isu);
+for (const term of [
+  'laneApplicabilityDecided', 'laneApplicabilityUndecided', 'phase23FrontierOpen',
+  'phase23FrontierClosed', 'clarifyTransitionReady', 'stageTransitionReady',
+]) assert.match(skill, new RegExp(term, 'u'), `controller route expressions must include ${term}`);
+assert.match(skill, /R\s*=.*noActiveChange.*entryRecoverySelected.*stageClarify.*laneApplicabilityUndecided.*factGateOpen/isu);
+assert.match(skill, /D\s*=.*stageClarify.*laneApplicabilityDecided.*phase23FrontierOpen/isu);
+assert.match(skill, /C\s*=.*stageClarify.*laneApplicabilityDecided.*phase23FrontierClosed.*!clarifyTransitionReady/isu);
+assert.match(skill, /T\s*=.*stageClarify.*clarifyTransitionReady.*postClarifyStage.*stageTransitionReady/isu);
+assert.match(skill, /W\s*=.*postClarifyStage.*!stageTransitionReady/isu);
+assert.match(skill, /R.*references\/clarify-research\.md.*D.*references\/clarify-decisions\.md.*C.*references\/clarify-completion\.md.*W.*references\/behavior-map\.md.*T.*references\/stage-decisions\.md/isu);
 
 function matchingRoutes(state) {
-  const matches = {
-    research: state.noActiveClarify || state.entryRecovery || state.lanesUndecided || state.factGateOpen,
-    decisions: !state.noActiveClarify && state.activeClarify && !state.entryRecovery && !state.lanesUndecided
-      && !state.factGateOpen && state.phase23Frontier === 'open',
-    completion: !state.noActiveClarify && state.activeClarify && !state.entryRecovery && !state.lanesUndecided
-      && !state.factGateOpen && state.phase23Frontier === 'closed' && !state.completionClosed,
-    transition: !state.noActiveClarify && state.activeClarify && !state.entryRecovery && !state.lanesUndecided
-      && !state.factGateOpen && state.phase23Frontier === 'closed'
-      && state.completionClosed && state.clarifyProof,
-  };
+  const expression = (name) => skill.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
+  const evaluate = (source, scope) => Function(...Object.keys(scope), `"use strict"; return Boolean(${source});`)(...Object.values(scope));
+  const scope = { ...state };
+  for (const name of ['stageClarify', 'postClarifyStage', 'V']) {
+    const source = expression(name);
+    assert.equal(typeof source, 'string', `controller must expose parseable ${name}`);
+    scope[name] = evaluate(source, scope);
+  }
+  const matches = Object.fromEntries([
+    ['research', 'R'], ['decisions', 'D'], ['completion', 'C'], ['worker', 'W'], ['transition', 'T'],
+  ].map(([route, name]) => [route, evaluate(expression(name), scope)]));
   return Object.entries(matches).filter(([, selected]) => selected).map(([route]) => route);
 }
 
 const statePartitions = [
-  ['no-active', { noActiveClarify: true, activeClarify: false }, 'research'],
-  ['entry-recovery', { activeClarify: true, entryRecovery: true }, 'research'],
-  ['lanes-undecided', { activeClarify: true, lanesUndecided: true }, 'research'],
-  ['fact-gate-open', { activeClarify: true, factGateOpen: true }, 'research'],
-  ['proof', { activeClarify: true, clarifyProof: true, completionClosed: true, phase23Frontier: 'closed' }, 'transition'],
-  ['frontier-closed', { activeClarify: true, phase23Frontier: 'closed', completionClosed: false }, 'completion'],
-  ['frontier-open', { activeClarify: true, phase23Frontier: 'open' }, 'decisions'],
-  ['fact-open-plus-proof', { activeClarify: true, factGateOpen: true, clarifyProof: true, completionClosed: true, phase23Frontier: 'closed' }, 'research'],
-  ['recovery-plus-frontier-open', { activeClarify: true, entryRecovery: true, phase23Frontier: 'open' }, 'research'],
-  ['lanes-undecided-plus-proof', { activeClarify: true, lanesUndecided: true, clarifyProof: true, completionClosed: true, phase23Frontier: 'closed' }, 'research'],
-  ['contradictory-active-and-no-active', { noActiveClarify: true, activeClarify: true, phase23Frontier: 'open' }, 'research'],
+  ['no-active', { stage: 'none', noActiveChange: true }, 'research'],
+  ['clarify-entry-recovery', { entryRecoverySelected: true }, 'research'],
+  ['clarify-lanes-undecided', { laneApplicabilityDecided: false, laneApplicabilityUndecided: true }, 'research'],
+  ['clarify-fact-open', { factGateOpen: true }, 'research'],
+  ['clarify-decisions', {}, 'decisions'],
+  ['clarify-completion', { phase23FrontierOpen: false, phase23FrontierClosed: true }, 'completion'],
+  ['clarify-transition', { phase23FrontierOpen: false, phase23FrontierClosed: true, clarifyTransitionReady: true }, 'transition'],
+  ...['design', 'plan', 'implement', 'verify', 'archive'].flatMap((stage) => [
+    [`${stage}-worker`, { stage, phase23FrontierOpen: false, phase23FrontierClosed: false }, 'worker'],
+    [`${stage}-transition`, { stage, phase23FrontierOpen: false, phase23FrontierClosed: false, stageTransitionReady: true }, 'transition'],
+  ]),
 ];
 for (const [label, partial, expected] of statePartitions) {
   const state = {
-    activeClarify: true,
-    noActiveClarify: false,
-    entryRecovery: false,
-    lanesUndecided: false,
+    stage: 'clarify',
+    noActiveChange: false,
+    entryRecoverySelected: false,
+    laneApplicabilityUndecided: false,
+    laneApplicabilityDecided: true,
     factGateOpen: false,
-    clarifyProof: false,
-    completionClosed: false,
-    phase23Frontier: 'open',
+    phase23FrontierOpen: true,
+    phase23FrontierClosed: false,
+    clarifyTransitionReady: false,
+    stageTransitionReady: false,
     ...partial,
   };
   assert.deepEqual(matchingRoutes(state), [expected], `${label} must select exactly one raw predicate`);
 }
-assert.deepEqual(matchingRoutes({
-  activeClarify: true,
-  noActiveClarify: false,
-  entryRecovery: false,
-  lanesUndecided: false,
-  factGateOpen: false,
-  clarifyProof: false,
-  completionClosed: true,
-  phase23Frontier: 'closed',
-}), [], 'inconsistent closed-without-proof state must not be hidden by a default route');
+const invalidPartitions = [
+  ['no-active-plus-active-stage', { stage: 'clarify', noActiveChange: true }],
+  ['lanes-both', { laneApplicabilityUndecided: true, laneApplicabilityDecided: true }],
+  ['frontiers-both', { phase23FrontierOpen: true, phase23FrontierClosed: true }],
+  ['invalid-stage', { stage: 'deploy' }],
+];
+for (const [label, partial] of invalidPartitions) {
+  assert.deepEqual(matchingRoutes({
+    stage: 'clarify', noActiveChange: false, entryRecoverySelected: false,
+    laneApplicabilityUndecided: false, laneApplicabilityDecided: true, factGateOpen: false,
+    phase23FrontierOpen: true, phase23FrontierClosed: false,
+    clarifyTransitionReady: false, stageTransitionReady: false, ...partial,
+  }), [], `${label} must match zero raw predicates without a default`);
+}
 for (const retained of [
   'references/output-contract.md',
   'references/clarify-few-shots.md',
