@@ -51,7 +51,8 @@ for (const relative of phaseReferences) {
   referenceBodies.set(relative, body);
 }
 const researchOpening = referenceBodies.get('references/clarify-research.md').split('\n').slice(0, 4).join('\n');
-assert.match(researchOpening, /no active change.*entry\/recovery selected.*lane applicability undecided.*active v6 Clarify.*factGateOpen=true/isu);
+assert.match(researchOpening, /no active change.*lane applicability undecided.*active v6 Clarify.*factGateOpen=true.*pre-entry recovery never loads/isu);
+assert.match(skill, /pre-entry recovery.*tools\/permission.*blocker.*不加载 phase reference/isu);
 assert.match(researchOpening, /reload.*runtime.*readiness route/isu);
 const completionOpening = referenceBodies.get('references/clarify-completion.md').split('\n').slice(0, 4).join('\n');
 const completionBody = referenceBodies.get('references/clarify-completion.md');

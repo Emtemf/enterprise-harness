@@ -1,6 +1,6 @@
 # Clarify Entry and Research
 
-Load when: controller state has no active change, entry/recovery selected, lane applicability undecided, or active v6 Clarify with factGateOpen=true.
+Load when: controller state has no active change, lane applicability undecided, or active v6 Clarify with factGateOpen=true; a selected top-level pre-entry recovery never loads this reference.
 Return to controller: after exactly one durable entry, research, or recovery action; reload workflow, lane state, and the runtime readiness route before any further work.
 
 ## Phase 0：进入 Clarify

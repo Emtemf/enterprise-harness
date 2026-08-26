@@ -18,11 +18,11 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## Status-first controller
 
-任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。仅 top-level `status=blocked` 且 `nextAction!=nextEntry` 时执行一个 pre-entry recovery、记为 entry/recovery selected 并结束；`nextAction=/harness` 是当前入口，不是 recovery。nested `clarifyReadiness.recovery` 进入 snapshot 的 earliest invalid gate。只有 active v6 Clarify 才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。
+任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。仅 top-level `status=blocked` 且 `nextAction!=nextEntry` 时执行一个 pre-entry recovery、记为 entry/recovery selected 并结束；若该 exact nextAction 因 tools/permission 不可执行，只报告此 blocker 并结束，不加载 phase reference。`nextAction=/harness` 是当前入口，不是 recovery。nested `clarifyReadiness.recovery` 进入 snapshot 的 earliest invalid gate。只有 active v6 Clarify 才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。
 
 ## State router
 
-路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无 active change 或 status 选中 pre-entry recovery 时为 R。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 仅按 fresh stage gate 在 W/T 二选一。
+路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无 active change 时为 R；status 选中的 pre-entry recovery 已在上一节终止，不参与此 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 仅按 fresh stage gate 在 W/T 二选一。
 
 R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。每轮只加载所选 route 的一个 reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
