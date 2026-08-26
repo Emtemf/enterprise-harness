@@ -276,8 +276,12 @@
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
+          "changeId": "clarify-routing-research",
           "stage": "clarify",
+          "lifecycle": "active",
+          "currentTask": null,
           "clarifyReadiness": { "route": "research" },
+          "requiredLanes": { "code": "stale", "docs": "not-required" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -287,6 +291,9 @@
           "phase23FrontierClosed": false,
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "required-research-fresh:code=stale",
+          "pendingDecision": null,
+          "artifactFreshness": { "requirements": "fresh", "codeResearch": "stale" },
+          "runtimeNextAction": null,
           "nextAction": null
         }
       },
@@ -309,8 +316,12 @@
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
+          "changeId": "clarify-routing-decisions",
           "stage": "clarify",
+          "lifecycle": "active",
+          "currentTask": null,
           "clarifyReadiness": { "route": "decisions" },
+          "requiredLanes": { "code": "fresh", "docs": "not-required" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -320,6 +331,9 @@
           "phase23FrontierClosed": false,
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "topology-confirmed",
+          "pendingDecision": null,
+          "artifactFreshness": { "requirements": "fresh", "research": "fresh" },
+          "runtimeNextAction": null,
           "nextAction": null
         }
       },
@@ -342,8 +356,12 @@
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
+          "changeId": "clarify-routing-completion",
           "stage": "clarify",
+          "lifecycle": "active",
+          "currentTask": null,
           "clarifyReadiness": { "route": "completion" },
+          "requiredLanes": { "code": "fresh", "docs": "not-required" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -353,6 +371,9 @@
           "phase23FrontierClosed": true,
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "technical-debt-disposed",
+          "pendingDecision": null,
+          "artifactFreshness": { "requirements": "fresh", "research": "fresh", "debtAssessment": "missing" },
+          "runtimeNextAction": null,
           "nextAction": null
         }
       },
@@ -375,16 +396,25 @@
       "workspaceFiles": {
         "controller-snapshot.json": {
           "snapshotVersion": 1,
+          "changeId": "simple-login",
           "stage": "clarify",
+          "lifecycle": "recovery-required",
+          "currentTask": null,
           "clarifyReadiness": { "route": "research" },
+          "requiredLanes": { "code": "unknown", "docs": "unknown" },
           "noActiveChange": false,
           "entryRecoverySelected": true,
           "factGateOpen": false,
+          "clarifyTransitionReady": false,
           "pendingQuestion": "Q-refund-compat",
+          "pendingDecision": "Q-refund-compat",
+          "earliestInvalidGate": "workflow-session-lease",
+          "artifactFreshness": { "workflowBinding": "stale" },
           "workflowRecovery": {
             "code": "EH-SESSION-LEASE-023",
             "nextAction": "start-change simple-login"
           },
+          "runtimeNextAction": "start-change simple-login",
           "nextAction": "start-change simple-login"
         }
       },

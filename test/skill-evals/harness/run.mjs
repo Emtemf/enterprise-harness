@@ -84,6 +84,21 @@ function isolationArgvFor(variant) {
     : ['--setting-sources', '', '--plugin-dir', repoRoot];
 }
 
+function validateControllerSnapshot(snapshot) {
+  const required = [
+    'snapshotVersion', 'changeId', 'stage', 'lifecycle', 'currentTask', 'clarifyReadiness',
+    'requiredLanes', 'factGateOpen', 'earliestInvalidGate', 'pendingDecision',
+    'runtimeNextAction', 'artifactFreshness', 'clarifyTransitionReady',
+  ];
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)
+      || !required.every((field) => Object.hasOwn(snapshot, field))
+      || !['research', 'decisions', 'completion', 'transition'].includes(snapshot.clarifyReadiness?.route)
+      || !snapshot.requiredLanes || typeof snapshot.requiredLanes !== 'object' || Array.isArray(snapshot.requiredLanes)
+      || !snapshot.artifactFreshness || typeof snapshot.artifactFreshness !== 'object' || Array.isArray(snapshot.artifactFreshness)) {
+    throw new Error('controller-snapshot.json must contain the complete routing action envelope');
+  }
+}
+
 function workspaceFilesFor(selected) {
   const files = selected.workspaceFiles || {};
   if (!files || typeof files !== 'object' || Array.isArray(files)) {
@@ -93,6 +108,7 @@ function workspaceFilesFor(selected) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(ref) || ref.includes('..')) {
       throw new Error(`eval workspace file ${ref} must be a safe root filename`);
     }
+    if (ref === 'controller-snapshot.json') validateControllerSnapshot(value);
     const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf-8');
     return { ref, sha256: sha256(bytes) };
   }).sort((left, right) => left.ref.localeCompare(right.ref));
