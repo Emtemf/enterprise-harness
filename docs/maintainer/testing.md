@@ -14,8 +14,10 @@ Control 固定使用 `--safe-mode --disable-slash-commands --setting-sources ""`
 人工核读完成后，用 `--record-review <scoring-manifest.json> --review-file <review.json>` 附加 immutable review。
 记录前 runner 会从当前 eval case 重算每个 run 的 variant、repetition、command、完整 argv、isolation argv、
 `shell:false`、timeout 与 cwdRef，并核对 stdout/stderr digest、collection completeness 和严格 calendar-valid
-RFC3339 时间；manifest 字段不能自证 provenance。Claude 使用官方 `stream-json --verbose` 输出；runner 单独保存
-原始 trace，重算最终文本和 tool-use projection，并在 review 时同时核对三者。任一 timeout、nonzero 或
+RFC3339 时间；manifest 字段不能自证 provenance。Claude 使用官方 `stream-json --verbose` 输出，并以
+`--max-turns 4` 将本 eval 的 snapshot Read、phase-reference Read 与 final action 约束成有限回合；runner 单独保存
+原始 trace，重算最终文本和 tool-use projection，并在 review 时同时核对三者。非 completed run 可保留最后一个被
+signal 或 buffer 截断的 JSON fragment，completed run 或中间坏行仍 fail closed。任一 timeout、nonzero 或
 mechanical-shape failure 不能评为 pass。
 Review 写入成功仍只代表该 collection 的人工 verdict，不会自动把 skill candidate promotion 为 best。
 

@@ -68,6 +68,7 @@ function argvFor(selected, model, variant) {
     '--no-session-persistence',
     '--output-format', 'stream-json',
     '--verbose',
+    '--max-turns', '4',
     '--model', model,
     '--max-budget-usd', '0.50',
     prompt,
@@ -114,11 +115,15 @@ function sha256(value) {
 
 function parseClaudeStream(raw, { allowIncomplete = false } = {}) {
   const events = [];
-  for (const [index, line] of String(raw).split(/\r?\n/u).entries()) {
+  const lines = String(raw).split(/\r?\n/u);
+  let finalContentIndex = lines.length - 1;
+  while (finalContentIndex >= 0 && !lines[finalContentIndex].trim()) finalContentIndex -= 1;
+  for (const [index, line] of lines.entries()) {
     if (!line.trim()) continue;
     try {
       events.push(JSON.parse(line));
     } catch {
+      if (allowIncomplete && index === finalContentIndex) break;
       throw new Error(`Claude stream line ${index + 1} is not valid JSON`);
     }
   }

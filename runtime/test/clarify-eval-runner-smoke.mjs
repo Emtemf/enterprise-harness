@@ -40,6 +40,11 @@ else if (mode === 'hang-exit143') {
   process.on('SIGTERM', () => process.exit(143));
   setInterval(() => {}, 1000);
 }
+else if (mode === 'partial-exit') {
+  process.stdout.write(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'partial evidence' }] } }) + '\\n');
+  process.stdout.write('{"type":"result"');
+  process.exitCode = 7;
+}
 else {
   const fs = require('node:fs');
   const path = require('node:path');
@@ -146,6 +151,7 @@ try {
   assert.ok(plan.runs.every(({ argv, shell, timeoutMs }) => (
     argv.includes('--no-session-persistence')
       && argv.includes('--output-format') && argv[argv.indexOf('--output-format') + 1] === 'stream-json'
+      && argv.includes('--max-turns') && argv[argv.indexOf('--max-turns') + 1] === '4'
       && argv.includes('--verbose') && shell === false && timeoutMs > 0
   )));
   const controls = plan.runs.filter(({ variant }) => variant === 'control');
@@ -618,6 +624,22 @@ try {
   const reviewedFailedManifest = JSON.parse(fs.readFileSync(failedManifest.manifestPath, 'utf-8'));
   assert.equal(reviewedFailedManifest.workspace.cleanupStatus, 'removed-after-review');
   assert.equal(fs.existsSync(reviewedFailedManifest.workspace.root), false);
+
+  const partialDir = path.join(sandbox, 'partial-stream');
+  const partialRun = run([
+    '--case', 'question-must-be-pre-authorized', '--variant', 'with-skill',
+    '--reps', '5', '--timeout-ms', '2000', '--results-dir', partialDir,
+  ], 'partial-exit');
+  assert.equal(partialRun.status, 1, partialRun.stderr);
+  const partialManifest = onlyManifest(partialDir);
+  assert.equal(partialManifest.collectionStatus, 'complete');
+  assert.equal(partialManifest.recordedRunCount, 5);
+  assert.ok(partialManifest.runs.every((entry) => (
+    entry.processStatus === 'exit-nonzero'
+      && entry.exitCode === 7
+      && fs.readFileSync(path.join(path.dirname(partialManifest.manifestPath), entry.stdoutRef), 'utf-8') === 'partial evidence'
+      && fs.readFileSync(path.join(path.dirname(partialManifest.manifestPath), entry.traceRef), 'utf-8').endsWith('{"type":"result"')
+  )), 'a non-completed run must preserve evidence before one final truncated stream fragment');
 
   const timedDir = path.join(sandbox, 'timed');
   const timed = run([
