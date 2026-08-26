@@ -20,7 +20,6 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
 const workflow = path.join(sourceRoot, 'runtime', 'workflow.mjs');
-const controller = fs.readFileSync(path.join(sourceRoot, 'skills', 'harness', 'SKILL.md'), 'utf-8');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-lifecycle-clarify-gate-'));
 const changeId = 'clarify-transition';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
@@ -59,26 +58,10 @@ function workflowStatus() {
 }
 
 function controllerRoutesFromWorkflowStatus(status) {
-  const expression = (name) => controller.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
-  const evaluate = (source, scope) => Function(
-    ...Object.keys(scope), `"use strict"; return Boolean(${source});`,
-  )(...Object.values(scope));
-  const itemStatus = new Map(status.clarifyReadiness.items.map((item) => [item.id, item.status]));
-  const isPassing = (id) => ['pass', 'not-applicable'].includes(itemStatus.get(id));
-  const scope = {
-    stage: status.stage,
-    noActiveChange: !status.changeId,
-    entryRecoverySelected: status.status === 'blocked' && status.nextAction !== status.nextEntry,
-    laneApplicabilityDecided: isPassing('research-lanes-decided'),
-    laneApplicabilityUndecided: !isPassing('research-lanes-decided'),
-    factGateOpen: !['required-research-fresh', 'research-conflicts-disposed'].every(isPassing),
-    phase23FrontierOpen: !['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
-    phase23FrontierClosed: ['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
-    clarifyTransitionReady: status.clarifyReadiness.transitionReady,
-    stageTransitionReady: false,
-  };
-  for (const name of ['stageClarify', 'postClarifyStage', 'V']) scope[name] = evaluate(expression(name), scope);
-  return ['R', 'D', 'C', 'W', 'T'].filter((name) => evaluate(expression(name), scope));
+  const route = { research: 'R', decisions: 'D', completion: 'C', transition: 'T' }[
+    status.clarifyReadiness.route
+  ];
+  return route ? [route] : [];
 }
 
 function assertCompletionRecovery(label) {

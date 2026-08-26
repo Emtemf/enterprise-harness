@@ -18,32 +18,15 @@ import { resolveStageCompletionCandidate, stageCompletionFor } from '../lib/stag
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
-const sourceRoot = path.resolve(import.meta.dirname, '..', '..');
-const controller = fs.readFileSync(path.join(sourceRoot, 'skills', 'harness', 'SKILL.md'), 'utf-8');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-readiness-'));
 const changeId = 'readiness-v2';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 
 function controllerRoutesFromWorkflowStatus(status) {
-  const expression = (name) => controller.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
-  const evaluate = (source, scope) => Function(
-    ...Object.keys(scope), `"use strict"; return Boolean(${source});`,
-  )(...Object.values(scope));
-  const itemStatus = new Map(status.clarifyReadiness.items.map((item) => [item.id, item.status]));
-  const isPassing = (id) => ['pass', 'not-applicable'].includes(itemStatus.get(id));
-  const scope = {
-    stage: status.stage, noActiveChange: !status.changeId,
-    entryRecoverySelected: status.status === 'blocked' && status.nextAction !== status.nextEntry,
-    laneApplicabilityDecided: isPassing('research-lanes-decided'),
-    laneApplicabilityUndecided: !isPassing('research-lanes-decided'),
-    factGateOpen: !['required-research-fresh', 'research-conflicts-disposed'].every(isPassing),
-    phase23FrontierOpen: !['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
-    phase23FrontierClosed: ['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
-    clarifyTransitionReady: status.clarifyReadiness.transitionReady,
-    stageTransitionReady: false,
-  };
-  for (const name of ['stageClarify', 'postClarifyStage', 'V']) scope[name] = evaluate(expression(name), scope);
-  return ['R', 'D', 'C', 'W', 'T'].filter((name) => evaluate(expression(name), scope));
+  const route = { research: 'R', decisions: 'D', completion: 'C', transition: 'T' }[
+    status.clarifyReadiness.route
+  ];
+  return route ? [route] : [];
 }
 
 try {
@@ -51,6 +34,7 @@ try {
   const before = new Set(fs.readdirSync(changeDir));
   const readiness = buildClarifyReadiness(root, changeId);
   assert.equal(readiness.status, 'blocked');
+  assert.equal(readiness.route, 'research');
   assert.deepEqual(readiness.items.map(({ id }) => id), CLARIFY_ITEMS);
   assert.equal(readiness.items.length, 14);
   assert.ok(readiness.items.every((item) => (
@@ -88,6 +72,7 @@ try {
   assert.equal(jsonStatus.status, 0, jsonStatus.stderr);
   const projection = JSON.parse(jsonStatus.stdout);
   assert.equal(projection.clarifyReadiness.items.length, 14);
+  assert.equal(projection.clarifyReadiness.route, 'research');
   assert.deepEqual(projection.clarifyReadiness.recovery, readiness.recovery);
   const textStatus = spawnSync(process.execPath, [workflow, 'status', changeId], {
     cwd: root,
@@ -286,6 +271,8 @@ try {
     assert.deepEqual(projected.items.map(({ status }) => status), expectedStatuses);
     assert.equal(projected.items.length, 14);
     assert.equal(projected.transitionReady, expectedRecovery === null);
+    const passed = expectedStatuses.filter((status) => status === 'pass').length;
+    assert.equal(projected.route, passed < 3 ? 'research' : passed < 6 ? 'decisions' : passed < 14 ? 'completion' : 'transition');
     assert.equal(fs.existsSync(path.join(progressiveDir, 'clarify-readiness.json')), false);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'checklist.json')), false);
     return projected;

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { CLARIFY_ITEMS, selectClarifyControllerRoute } from '../lib/clarify-readiness.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -51,7 +52,7 @@ for (const relative of phaseReferences) {
 }
 const researchOpening = referenceBodies.get('references/clarify-research.md').split('\n').slice(0, 4).join('\n');
 assert.match(researchOpening, /no active change.*entry\/recovery selected.*lane applicability undecided.*active v6 Clarify.*factGateOpen=true/isu);
-assert.match(researchOpening, /recompute.*controller.*route predicates/isu);
+assert.match(researchOpening, /reload.*runtime.*readiness route/isu);
 const completionOpening = referenceBodies.get('references/clarify-completion.md').split('\n').slice(0, 4).join('\n');
 const completionBody = referenceBodies.get('references/clarify-completion.md');
 assert.doesNotMatch(completionOpening, /user Decisions are resolved/iu);
@@ -101,88 +102,29 @@ assert.doesNotMatch(clarifyEvidenceRow, /CompletionProof 已持久化|generic Co
   'persisted proof must not be an input to the Clarify transition command');
 assert.match(transitionBody, /(?:原子|atomically).*CompletionProof.*(?:重新读取|re-read).*canonical gate.*CAS/isu,
   'Clarify transition must create the proof, re-read the gate, then CAS the stage');
-for (const term of [
-  'laneApplicabilityDecided', 'laneApplicabilityUndecided', 'phase23FrontierOpen',
-  'phase23FrontierClosed', 'clarifyTransitionReady', 'stageTransitionReady',
-]) assert.match(skill, new RegExp(term, 'u'), `controller route expressions must include ${term}`);
-assert.match(skill, /R\s*=.*noActiveChange.*entryRecoverySelected.*stageClarify.*laneApplicabilityUndecided.*factGateOpen/isu);
-assert.match(skill, /D\s*=.*stageClarify.*laneApplicabilityDecided.*phase23FrontierOpen/isu);
-assert.match(skill, /C\s*=.*stageClarify.*laneApplicabilityDecided.*phase23FrontierClosed.*!clarifyTransitionReady/isu);
-assert.match(skill, /T\s*=.*stageClarify.*clarifyTransitionReady.*postClarifyStage.*stageTransitionReady/isu);
-assert.match(skill, /W\s*=.*postClarifyStage.*!stageTransitionReady/isu);
-assert.match(skill, /R.*references\/clarify-research\.md.*D.*references\/clarify-decisions\.md.*C.*references\/clarify-completion\.md.*W.*references\/behavior-map\.md.*T.*references\/stage-decisions\.md/isu);
+assert.match(skill, /路由是 runtime 派生值.*不在模型中重算布尔表达式/isu);
+assert.match(skill, /clarifyReadiness\.route.*research\|decisions\|completion\|transition/isu);
+assert.doesNotMatch(skill, /\b[RDCTWV]\s*=|stageClarify\s*=|postClarifyStage\s*=/u,
+  'the model-facing controller must not recompute runtime route predicates');
+assert.match(skill, /R.*references\/clarify-research\.md.*decisions.*references\/clarify-decisions\.md.*completion.*references\/clarify-completion\.md.*W.*references\/behavior-map\.md.*transition.*references\/stage-decisions\.md/isu);
 
-function matchingRoutes(state) {
-  const expression = (name) => skill.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
-  const evaluate = (source, scope) => Function(...Object.keys(scope), `"use strict"; return Boolean(${source});`)(...Object.values(scope));
-  const scope = { ...state };
-  for (const name of ['stageClarify', 'postClarifyStage', 'V']) {
-    const source = expression(name);
-    assert.equal(typeof source, 'string', `controller must expose parseable ${name}`);
-    scope[name] = evaluate(source, scope);
-  }
-  const matches = Object.fromEntries([
-    ['research', 'R'], ['decisions', 'D'], ['completion', 'C'], ['worker', 'W'], ['transition', 'T'],
-  ].map(([route, name]) => [route, evaluate(expression(name), scope)]));
-  return Object.entries(matches).filter(([, selected]) => selected).map(([route]) => route);
+const statusesAfter = (passed) => CLARIFY_ITEMS.map((id, index) => ({ id, status: index < passed ? 'pass' : 'blocked' }));
+for (let passed = 0; passed <= CLARIFY_ITEMS.length; passed += 1) {
+  const expected = passed < 3 ? 'research' : passed < 6 ? 'decisions' : passed < 14 ? 'completion' : 'transition';
+  assert.equal(selectClarifyControllerRoute(statusesAfter(passed), passed === 14), expected,
+    `${passed} passing ordered gates must select ${expected}`);
 }
-
-const statePartitions = [
-  ['no-active', { stage: 'none', noActiveChange: true }, 'research'],
-  ['clarify-entry-recovery', { entryRecoverySelected: true }, 'research'],
-  ['clarify-lanes-undecided', { laneApplicabilityDecided: false, laneApplicabilityUndecided: true }, 'research'],
-  ['clarify-fact-open', { factGateOpen: true }, 'research'],
-  ['clarify-decisions', {}, 'decisions'],
-  ['clarify-completion', { phase23FrontierOpen: false, phase23FrontierClosed: true }, 'completion'],
-  ['clarify-transition', { phase23FrontierOpen: false, phase23FrontierClosed: true, clarifyTransitionReady: true }, 'transition'],
-  ...['design', 'plan', 'implement', 'verify', 'archive'].flatMap((stage) => [
-    [`${stage}-worker`, { stage, phase23FrontierOpen: false, phase23FrontierClosed: false }, 'worker'],
-    [`${stage}-transition`, { stage, phase23FrontierOpen: false, phase23FrontierClosed: false, stageTransitionReady: true }, 'transition'],
-  ]),
-];
-for (const [label, partial, expected] of statePartitions) {
-  const state = {
-    stage: 'clarify',
-    noActiveChange: false,
-    entryRecoverySelected: false,
-    laneApplicabilityUndecided: false,
-    laneApplicabilityDecided: true,
-    factGateOpen: false,
-    phase23FrontierOpen: true,
-    phase23FrontierClosed: false,
-    clarifyTransitionReady: false,
-    stageTransitionReady: false,
-    ...partial,
-  };
-  assert.deepEqual(matchingRoutes(state), [expected], `${label} must select exactly one raw predicate`);
-}
-const proofFreeClarifyState = {
-  stage: 'clarify', noActiveChange: false, entryRecoverySelected: false,
-  laneApplicabilityUndecided: false, laneApplicabilityDecided: true, factGateOpen: false,
-  phase23FrontierOpen: false, phase23FrontierClosed: true, stageTransitionReady: false,
-};
-assert.deepEqual(matchingRoutes({
-  ...proofFreeClarifyState,
-  clarifyTransitionReady: evaluateReadiness(completePrerequisites),
-}), ['transition'], 'derivable prerequisites without persisted proof must select T');
-assert.deepEqual(matchingRoutes({
-  ...proofFreeClarifyState,
-  clarifyTransitionReady: evaluateReadiness({ ...completePrerequisites, tecpcComplete: false }),
-}), ['completion'], 'a missing candidate-proof prerequisite must remain on C');
-const invalidPartitions = [
-  ['no-active-plus-active-stage', { stage: 'clarify', noActiveChange: true }],
-  ['lanes-both', { laneApplicabilityUndecided: true, laneApplicabilityDecided: true }],
-  ['frontiers-both', { phase23FrontierOpen: true, phase23FrontierClosed: true }],
-  ['invalid-stage', { stage: 'deploy' }],
-];
-for (const [label, partial] of invalidPartitions) {
-  assert.deepEqual(matchingRoutes({
-    stage: 'clarify', noActiveChange: false, entryRecoverySelected: false,
-    laneApplicabilityUndecided: false, laneApplicabilityDecided: true, factGateOpen: false,
-    phase23FrontierOpen: true, phase23FrontierClosed: false,
-    clarifyTransitionReady: false, stageTransitionReady: false, ...partial,
-  }), [], `${label} must match zero raw predicates without a default`);
-}
+assert.equal(selectClarifyControllerRoute(statusesAfter(14), false), 'completion',
+  'proof-free candidate failure must remain on completion');
+assert.equal(selectClarifyControllerRoute(statusesAfter(6), true), 'completion',
+  'transitionReady cannot bypass later Clarify gates');
+assert.throws(() => selectClarifyControllerRoute(statusesAfter(13).slice(1), false), /EH-CLARIFY-ROUTE-148/u);
+assert.throws(() => selectClarifyControllerRoute([
+  ...statusesAfter(14).slice(0, -1), statusesAfter(14)[0],
+], true), /EH-CLARIFY-ROUTE-148/u);
+assert.throws(() => selectClarifyControllerRoute([
+  ...statusesAfter(14).slice(0, -1), { id: CLARIFY_ITEMS.at(-1), status: 'unknown' },
+], false), /EH-CLARIFY-ROUTE-148/u);
 for (const retained of [
   'references/output-contract.md',
   'references/clarify-few-shots.md',

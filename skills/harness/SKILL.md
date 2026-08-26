@@ -22,21 +22,15 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## State router
 
-从 snapshot 计算 raw booleans，不用 ordered-if/default。`stageClarify = stage=="clarify"`；`postClarifyStage = ["design","plan","implement","verify","archive"].includes(stage)`；`V = ["none","clarify","design","plan","implement","verify","archive"].includes(stage) && noActiveChange==(stage=="none") && !(laneApplicabilityUndecided&&laneApplicabilityDecided) && !(phase23FrontierOpen&&phase23FrontierClosed)`：
+路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无 active change 或 status 选中 pre-entry recovery 时为 R。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 仅按 fresh stage gate 在 W/T 二选一。
 
-- `R = V && (noActiveChange || entryRecoverySelected || (stageClarify && (laneApplicabilityUndecided || factGateOpen)))`
-- `D = V && !noActiveChange && !entryRecoverySelected && stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && phase23FrontierOpen && !phase23FrontierClosed`
-- `C = V && !noActiveChange && !entryRecoverySelected && stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && !phase23FrontierOpen && phase23FrontierClosed && !clarifyTransitionReady`
-- `T = V && !noActiveChange && !entryRecoverySelected && ((stageClarify && laneApplicabilityDecided && !laneApplicabilityUndecided && !factGateOpen && !phase23FrontierOpen && phase23FrontierClosed && clarifyTransitionReady) || (postClarifyStage && stageTransitionReady))`
-- `W = V && !noActiveChange && !entryRecoverySelected && postClarifyStage && !stageTransitionReady`
-
-恰好一个为 true 才行动，否则只报告 blocker。R→[research](references/clarify-research.md)；D→[decisions](references/clarify-decisions.md)；C→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T→[single transition](references/stage-decisions.md)。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
+R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。每轮只加载所选 route 的一个 reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
 首次生成 Clarify artifact 或 final self-check 前读取 [semantic output contract](references/output-contract.md)；只有要校准 dispatch、Fast Path 或问题质量时读取 [few-shots](references/clarify-few-shots.md)。[assets](assets/) 与 [scripts](scripts/) 仅由当前 phase reference 导航，不自动加载。
 
 ### Controller action envelope
 
-Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, and `clarifyTransitionReady=clarifyReadiness.transitionReady`. Do not infer a missing value from chat, memory, or a reference example.
+Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, `clarifyReadiness.route`, and `clarifyTransitionReady=clarifyReadiness.transitionReady`. Do not infer a missing value from chat, memory, or a reference example.
 
 A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck. If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
 

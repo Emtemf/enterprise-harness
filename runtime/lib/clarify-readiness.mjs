@@ -44,6 +44,27 @@ const RECOVERIES = Object.freeze({
 
 const CORE_DIMENSIONS = ['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'];
 
+export function selectClarifyControllerRoute(items, transitionReady) {
+  if (!Array.isArray(items) || items.length !== CLARIFY_ITEMS.length) {
+    throw new Error('EH-CLARIFY-ROUTE-148: Clarify readiness items are incomplete');
+  }
+  const byId = new Map(items.map((item) => [item?.id, item?.status]));
+  const validStatuses = new Set(['pass', 'not-applicable', 'blocked', 'stale']);
+  if (byId.size !== CLARIFY_ITEMS.length
+    || !CLARIFY_ITEMS.every((id) => byId.has(id))
+    || ![...byId.values()].every((status) => validStatuses.has(status))) {
+    throw new Error('EH-CLARIFY-ROUTE-148: Clarify readiness items are invalid');
+  }
+  const passing = (id) => ['pass', 'not-applicable'].includes(byId.get(id));
+  if (!['research-lanes-decided', 'required-research-fresh', 'research-conflicts-disposed'].every(passing)) {
+    return 'research';
+  }
+  if (!['topology-confirmed', 'ambiguity-threshold-met', 'no-pending-question'].every(passing)) {
+    return 'decisions';
+  }
+  return transitionReady && CLARIFY_ITEMS.every(passing) ? 'transition' : 'completion';
+}
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   Object.freeze(value);
@@ -195,9 +216,12 @@ export function buildClarifyReadiness(root, changeId) {
   items.push(immutableItem('tecpc-complete', completion.tecpc.status, completion.tecpc.refs, RECOVERIES.tecpc));
 
   const first = items.find(({ status }) => !['pass', 'not-applicable'].includes(status));
+  const transitionReady = !first && Boolean(completion.candidateProof);
+  const route = selectClarifyControllerRoute(items, transitionReady);
   return deepFreeze({
     status: first ? 'blocked' : 'ready',
-    transitionReady: !first && Boolean(completion.candidateProof),
+    route,
+    transitionReady,
     items,
     recovery: first ? { code: first.code, action: first.action } : null,
   });

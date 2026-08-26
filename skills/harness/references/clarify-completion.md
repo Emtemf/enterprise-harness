@@ -1,7 +1,7 @@
 # Clarify Completion
 
 Load when: controller state is active v6 Clarify with factGateOpen=false and topology confirmed, and either the Phase 2–3 component/dimension frontier is closed or the earliest invalid gate is completion-owned: debt, project-contract, final-scope, seal, classification, finalizer, or review. A pending completion disposition stays completion-owned.
-Return to controller: after exactly one assessment, scope, seal, classification, finalization, or review action; re-read status and recompute the raw route predicates before selecting another action.
+Return to controller: after exactly one assessment, scope, seal, classification, finalization, or review action; re-read status and consume the fresh runtime readiness route before selecting another action.
 
 ## Phase 4：确认并完成 Clarify
 
@@ -47,7 +47,7 @@ Return to controller: after exactly one assessment, scope, seal, classification,
    其中 canonical StageResult 必须通过 self-check，independent ReviewResult 必须来自不同 trusted identity/run，TECPC
    必须完整、`correction=null` 且覆盖 assertion evidence，requirements、classification、assessments、decision snapshot 和各自 digest 必须齐全且
    fresh。全部为 true 即表示 candidate proof 可派生；**persisted CompletionProof 不是此谓词的前置条件**。只报告
-   `clarifyTransitionReady=true` 并返回 controller。scope confirmation 或 classification 不能单独置 true；任一前置缺失
+   重新读取 readiness；只有 runtime 同时返回 `clarifyTransitionReady=true` 与 `clarifyReadiness.route=transition` 才返回 controller 等待 T。scope confirmation 或 classification 不能单独置 true；任一前置缺失
    或绑定 artifact 修改都保持 false/C。此 reference 不加载 worker/transition reference，不生成 proof，也不执行或复制
    stage transition。
 

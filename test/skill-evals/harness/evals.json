@@ -277,6 +277,7 @@
         "controller-snapshot.json": {
           "snapshotVersion": 1,
           "stage": "clarify",
+          "clarifyReadiness": { "route": "research" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -309,6 +310,7 @@
         "controller-snapshot.json": {
           "snapshotVersion": 1,
           "stage": "clarify",
+          "clarifyReadiness": { "route": "decisions" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -341,6 +343,7 @@
         "controller-snapshot.json": {
           "snapshotVersion": 1,
           "stage": "clarify",
+          "clarifyReadiness": { "route": "completion" },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -373,6 +376,7 @@
         "controller-snapshot.json": {
           "snapshotVersion": 1,
           "stage": "clarify",
+          "clarifyReadiness": { "route": "research" },
           "noActiveChange": false,
           "entryRecoverySelected": true,
           "factGateOpen": false,

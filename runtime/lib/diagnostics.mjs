@@ -162,6 +162,7 @@ export const DIAGNOSTICS = Object.freeze({
   'EH-CLARIFY-REVIEW-141': { summary: 'Clarify independent ReviewResult 缺失或未通过。', recovery: '发布 fresh independent passing Clarify ReviewResult。' },
   'EH-CLARIFY-TECPC-142': { summary: 'Clarify TECPC 未闭合。', recovery: '闭合 Clarify TECPC 且不保留 pending correction。' },
   'EH-CLARIFY-PROOF-143': { summary: 'Clarify lifecycle transition 的 proof 发布后即时重验失败。', recovery: '保持 Clarify，修复报告的 proof 写入或验证失败后重试 transition。' },
+  'EH-CLARIFY-ROUTE-148': { summary: 'Clarify readiness items 无法派生可信 controller route。', recovery: '重新运行 workflow status；修复缺失、重复或未知状态的 readiness item，禁止在模型中猜测 route。' },
 });
 
 export function diagnostic(code) {
