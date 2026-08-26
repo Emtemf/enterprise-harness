@@ -42,8 +42,12 @@ for (const line of [
 ]) assert.match(entry, new RegExp(line.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
 assert.match(statusController, /workflow status <change-id> --json/u,
   'Status-first recovery priority must remain in the auto-loaded controller');
-assert.match(statusController, /blocker、recovery 或 `nextAction`[\s\S]*只执行其一个动作[\s\S]*结束本轮/u,
-  'Status-first controller must execute one returned action and stop');
+assert.match(statusController, /status=blocked[\s\S]*nextAction!=nextEntry[\s\S]*(?:一个|one)[\s\S]*pre-entry recovery[\s\S]*结束/u,
+  'Status-first controller must execute one true pre-entry recovery and stop');
+assert.match(statusController, /nextAction=\/harness[\s\S]*(?:当前入口|current entry)[\s\S]*(?:不是|not)[\s\S]*recovery/u,
+  'the current Harness entry must not self-select as a recovery');
+assert.match(statusController, /clarifyReadiness\.recovery[\s\S]*snapshot[\s\S]*earliest invalid gate/u,
+  'nested Clarify recovery must feed the current-stage route snapshot');
 assert.match(statusController, /active v6 Clarify[\s\S]*clarify status <change-id> --json[\s\S]*repair-required[\s\S]*clarify recover <change-id>/u,
   'Question repair must stay conditional and lower priority than workflow recovery');
 assert.ok(skill.trim().split(/\s+/u).length < 500,

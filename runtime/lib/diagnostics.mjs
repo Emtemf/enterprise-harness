@@ -161,7 +161,7 @@ export const DIAGNOSTICS = Object.freeze({
   'EH-CLARIFY-SELF-CHECK-140': { summary: 'Clarify StageResult self-check 缺失或未通过。', recovery: '发布 fresh passing Clarify StageResult self-check。' },
   'EH-CLARIFY-REVIEW-141': { summary: 'Clarify independent ReviewResult 缺失或未通过。', recovery: '发布 fresh independent passing Clarify ReviewResult。' },
   'EH-CLARIFY-TECPC-142': { summary: 'Clarify TECPC 未闭合。', recovery: '闭合 Clarify TECPC 且不保留 pending correction。' },
-  'EH-CLARIFY-PROOF-143': { summary: 'Fresh digest-bound ClarifyProof 缺失。', recovery: '发布与 StageResult 和 ReviewResult 绑定的 ClarifyProof。' },
+  'EH-CLARIFY-PROOF-143': { summary: 'Clarify lifecycle transition 的 proof 发布后即时重验失败。', recovery: '保持 Clarify，修复报告的 proof 写入或验证失败后重试 transition。' },
 });
 
 export function diagnostic(code) {

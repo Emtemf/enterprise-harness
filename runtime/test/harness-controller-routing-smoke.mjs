@@ -56,7 +56,9 @@ const completionOpening = referenceBodies.get('references/clarify-completion.md'
 const completionBody = referenceBodies.get('references/clarify-completion.md');
 assert.doesNotMatch(completionOpening, /user Decisions are resolved/iu);
 assert.doesNotMatch(completionOpening, /transition action/iu);
-assert.match(completionOpening, /factGateOpen=false.*topology.*Phase 2[–-]3.*frontier.*closed.*earliest invalid gate.*(?:debt|project-contract).*proof/isu);
+assert.match(completionOpening, /factGateOpen=false.*topology.*Phase 2[–-]3.*frontier.*closed.*earliest invalid gate.*(?:debt|project-contract).*review/isu);
+assert.doesNotMatch(completionOpening, /(?:gate|action).*(?:or proof|proof action)/iu,
+  'persisted proof is transition-owned and must not reopen the completion route');
 assert.match(completionBody, /clarifyTransitionReady.*(?:return|返回).*controller/isu);
 assert.doesNotMatch(completionBody, /\]\((?:behavior-map|stage-decisions)\.md\)/u);
 const readinessExpression = completionBody.match(/`clarifyTransitionReady = ([^`]+)`/u)?.[1];

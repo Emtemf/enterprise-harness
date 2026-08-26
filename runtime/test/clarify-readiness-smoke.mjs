@@ -28,7 +28,7 @@ try {
   const readiness = buildClarifyReadiness(root, changeId);
   assert.equal(readiness.status, 'blocked');
   assert.deepEqual(readiness.items.map(({ id }) => id), CLARIFY_ITEMS);
-  assert.equal(readiness.items.length, 15);
+  assert.equal(readiness.items.length, 14);
   assert.ok(readiness.items.every((item) => (
     CLARIFY_ITEMS.includes(item.id)
       && ['pass', 'blocked', 'stale', 'not-applicable'].includes(item.status)
@@ -63,7 +63,7 @@ try {
   });
   assert.equal(jsonStatus.status, 0, jsonStatus.stderr);
   const projection = JSON.parse(jsonStatus.stdout);
-  assert.equal(projection.clarifyReadiness.items.length, 15);
+  assert.equal(projection.clarifyReadiness.items.length, 14);
   assert.deepEqual(projection.clarifyReadiness.recovery, readiness.recovery);
   const textStatus = spawnSync(process.execPath, [workflow, 'status', changeId], {
     cwd: root,
@@ -71,7 +71,7 @@ try {
     shell: false,
   });
   assert.equal(textStatus.status, 0, textStatus.stderr);
-  assert.match(textStatus.stdout, /clarifyReadiness: 1\/15 passed/u);
+  assert.match(textStatus.stdout, /clarifyReadiness: 1\/14 passed/u);
   assert.equal((textStatus.stdout.match(/recovery:/gu) || []).length, 1);
   assert.match(textStatus.stdout, /EH-CLARIFY-RESEARCH-LANES-144/u);
 
@@ -255,13 +255,13 @@ try {
     selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: 'Publish a fresh passing Clarify StageResult self-check.' },
     review: { code: 'EH-CLARIFY-REVIEW-141', action: 'Publish a fresh independent passing Clarify ReviewResult.' },
     tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
-    proof: { code: 'EH-CLARIFY-PROOF-143', action: 'Publish the fresh digest-bound ClarifyProof.' },
   };
   const assertProgress = (expectedRecovery, expectedStatuses) => {
     const projected = buildClarifyReadiness(root, progressiveId);
     assert.deepEqual(projected.recovery, expectedRecovery, JSON.stringify(projected.items));
     assert.deepEqual(projected.items.map(({ status }) => status), expectedStatuses);
-    assert.equal(projected.items.length, 15);
+    assert.equal(projected.items.length, 14);
+    assert.equal(projected.transitionReady, expectedRecovery === null);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'clarify-readiness.json')), false);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'checklist.json')), false);
     return projected;
@@ -340,7 +340,7 @@ try {
   assertProgress(recovery.tecpc, statusesAfter(13));
   await new Promise((resolve) => setTimeout(resolve, 10));
   const completeProgression = addClarifyCompletion(root, progressiveId);
-  assertProgress(recovery.proof, statusesAfter(14));
+  assertProgress(null, statusesAfter(14));
   const progressiveProof = (await import('../core/completion-proof.mjs')).buildCompletionProof(root, {
     stageResult: completeProgression.stageResult,
     reviewResult: completeProgression.review,
@@ -351,19 +351,16 @@ try {
   const proofPath = path.join(progressiveDir, 'evidence', 'completion', 'clarify.json');
   fs.mkdirSync(path.dirname(proofPath), { recursive: true });
   fs.writeFileSync(proofPath, `${JSON.stringify({ ...progressiveProof, target: 'generic proof' }, null, 2)}\n`);
-  assertProgress(recovery.proof, statusesAfter(14));
+  assertProgress(null, statusesAfter(14));
   fs.writeFileSync(proofPath, `${JSON.stringify(progressiveProof, null, 2)}\n`);
-  assertProgress(null, statusesAfter(15));
+  assertProgress(null, statusesAfter(14));
 
   const completionCases = [
     ['blocked-stage', { stageStatus: 'block' }, 'self-check-passed', 'EH-CLARIFY-SELF-CHECK-140'],
     ['untrusted-reviewer', { reviewerTrusted: false }, 'independent-review-passed', 'EH-CLARIFY-REVIEW-141'],
     ['mismatched-reviewer', { reviewerMatches: false }, 'independent-review-passed', 'EH-CLARIFY-REVIEW-141'],
     ['pending-tecpc', { tecpcCorrection: 'Resolve remaining correction.' }, 'tecpc-complete', 'EH-CLARIFY-TECPC-142'],
-    ['missing-proof', {}, 'clarify-proof-fresh', 'EH-CLARIFY-PROOF-143'],
-    ['mismatched-proof', { proof: 'mismatched' }, 'clarify-proof-fresh', 'EH-CLARIFY-PROOF-143'],
     ['forged-review-run', { forgedReviewRunId: true, proof: 'valid' }, 'independent-review-passed', 'EH-CLARIFY-REVIEW-141'],
-    ['valid-proof', { proof: 'valid' }, 'clarify-proof-fresh', null],
   ];
   for (const [suffix, options, itemId, recoveryCode] of completionCases) {
     const candidateId = `readiness-${suffix}`;
@@ -375,6 +372,16 @@ try {
     if (suffix === 'forged-review-run') {
       assert.equal(stageCompletionFor(root, candidateId, 'clarify').review.status, 'blocked');
     }
+  }
+  for (const [suffix, proof] of [['missing-proof', 'missing'], ['mismatched-proof', 'mismatched'], ['valid-proof', 'valid']]) {
+    const candidateId = `readiness-${suffix}`;
+    prepareClassifiedClarify(root, candidateId);
+    addClarifyCompletion(root, candidateId, { proof });
+    const candidate = buildClarifyReadiness(root, candidateId);
+    assert.equal(candidate.status, 'ready', suffix);
+    assert.equal(candidate.transitionReady, true, suffix);
+    assert.equal(candidate.recovery, null, suffix);
+    assert.equal(candidate.items.some(({ id }) => id === 'clarify-proof-fresh'), false, suffix);
   }
 
   console.log(`PASS clarify-readiness ${mode}`);

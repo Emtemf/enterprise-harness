@@ -18,7 +18,7 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## Status-first controller
 
-任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。若返回 blocker、recovery 或 `nextAction`，只执行其一个动作并结束本轮；动作经 research/entry authority，记为 entry/recovery selected，workflow recovery 永远优先。只有 status 明确 active v6 Clarify 且无前置动作，才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。此优先级不得下沉到 reference。
+任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。仅 top-level `status=blocked` 且 `nextAction!=nextEntry` 时执行一个 pre-entry recovery、记为 entry/recovery selected 并结束；`nextAction=/harness` 是当前入口，不是 recovery。nested `clarifyReadiness.recovery` 进入 snapshot 的 earliest invalid gate。只有 active v6 Clarify 才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。
 
 ## State router
 
@@ -36,7 +36,7 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ### Controller action envelope
 
-Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, and artifact freshness. Do not infer a missing value from chat, memory, or a reference example.
+Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, and `clarifyTransitionReady=clarifyReadiness.transitionReady`. Do not infer a missing value from chat, memory, or a reference example.
 
 A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck. If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
 

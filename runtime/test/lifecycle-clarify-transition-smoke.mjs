@@ -20,6 +20,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
 const workflow = path.join(sourceRoot, 'runtime', 'workflow.mjs');
+const controller = fs.readFileSync(path.join(sourceRoot, 'skills', 'harness', 'SKILL.md'), 'utf-8');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-lifecycle-clarify-gate-'));
 const changeId = 'clarify-transition';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
@@ -55,6 +56,39 @@ function workflowStatus() {
     shell: false,
     env: unboundEnv,
   });
+}
+
+function controllerRoutesFromWorkflowStatus(status) {
+  const expression = (name) => controller.match(new RegExp(`\\b${name} = ([^\\x60]+)\\x60`, 'u'))?.[1];
+  const evaluate = (source, scope) => Function(
+    ...Object.keys(scope), `"use strict"; return Boolean(${source});`,
+  )(...Object.values(scope));
+  const itemStatus = new Map(status.clarifyReadiness.items.map((item) => [item.id, item.status]));
+  const isPassing = (id) => ['pass', 'not-applicable'].includes(itemStatus.get(id));
+  const scope = {
+    stage: status.stage,
+    noActiveChange: !status.changeId,
+    entryRecoverySelected: status.status === 'blocked' && status.nextAction !== status.nextEntry,
+    laneApplicabilityDecided: isPassing('research-lanes-decided'),
+    laneApplicabilityUndecided: !isPassing('research-lanes-decided'),
+    factGateOpen: !['required-research-fresh', 'research-conflicts-disposed'].every(isPassing),
+    phase23FrontierOpen: !['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
+    phase23FrontierClosed: ['topology-confirmed', 'ambiguity-threshold-met'].every(isPassing),
+    clarifyTransitionReady: status.clarifyReadiness.transitionReady,
+    stageTransitionReady: false,
+  };
+  for (const name of ['stageClarify', 'postClarifyStage', 'V']) scope[name] = evaluate(expression(name), scope);
+  return ['R', 'D', 'C', 'W', 'T'].filter((name) => evaluate(expression(name), scope));
+}
+
+function assertCompletionRecovery(label) {
+  const status = workflowStatus();
+  assert.equal(status.status, 0, status.stderr);
+  const projection = JSON.parse(status.stdout);
+  assert.equal(projection.clarifyReadiness.transitionReady, false, label);
+  assert.notEqual(projection.clarifyReadiness.recovery, null, label);
+  assert.notEqual(projection.clarifyReadiness.recovery.code, 'EH-CLARIFY-PROOF-143', label);
+  assert.deepEqual(controllerRoutesFromWorkflowStatus(projection), ['C'], label);
 }
 
 try {
@@ -166,6 +200,7 @@ try {
   assert.equal(missingBinding.status, 2, missingBinding.stderr || missingBinding.stdout);
   assert.match(`${missingBinding.stdout}\n${missingBinding.stderr}`, /does not bind.*debt-assessment\.json|Clarify artifacts must exactly bind/u);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'clarify');
+  assertCompletionRecovery('missing required artifact binding must remain on C');
 
   const staleArtifacts = completeArtifacts.map((artifact) => ({ ...artifact }));
   staleArtifacts[0].digest = 'f'.repeat(64);
@@ -177,6 +212,7 @@ try {
   const staleDigest = advance();
   assert.equal(staleDigest.status, 2, 'stale Clarify artifact digest must block Design');
   assert.match(`${staleDigest.stdout}\n${staleDigest.stderr}`, /artifact digest is stale/u);
+  assertCompletionRecovery('stale required artifact digest must remain on C');
 
   const missingSelfCheck = { ...stageResult, artifacts: completeArtifacts };
   delete missingSelfCheck.selfCheck;
@@ -185,6 +221,7 @@ try {
   const noSelfCheck = advance();
   assert.equal(noSelfCheck.status, 2, 'missing Clarify self-check must block Design');
   assert.match(`${noSelfCheck.stdout}\n${noSelfCheck.stderr}`, /selfCheck is required/u);
+  assertCompletionRecovery('missing StageResult self-check must remain on C');
 
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({
     ...stageResult,
@@ -193,6 +230,7 @@ try {
   const reusedReviewer = advance();
   assert.equal(reusedReviewer.status, 2, 'reviewer reusing the producer identity must block Design');
   assert.match(`${reusedReviewer.stdout}\n${reusedReviewer.stderr}`, /distinct agent identities/u);
+  assertCompletionRecovery('missing independent review must remain on C');
 
   const independentCheck = createHandoffV2(root, {
     changeId,
@@ -264,6 +302,13 @@ try {
   const incompleteTecpc = advance();
   assert.equal(incompleteTecpc.status, 2, 'incomplete Clarify TECPC must block Design');
   assert.match(`${incompleteTecpc.stdout}\n${incompleteTecpc.stderr}`, /Clarify TECPC requires correction=null|TECPC correction remains pending/u);
+  const statusWithIncompleteTecpc = workflowStatus();
+  assert.equal(statusWithIncompleteTecpc.status, 0, statusWithIncompleteTecpc.stderr);
+  const incompleteProjection = JSON.parse(statusWithIncompleteTecpc.stdout);
+  assert.deepEqual(controllerRoutesFromWorkflowStatus(incompleteProjection), ['C'],
+    'a real status with one missing candidate-proof prerequisite must remain on C');
+  assert.match(incompleteProjection.clarifyReadiness.recovery.code, /^EH-CLARIFY-(?:SELF-CHECK-140|TECPC-142)$/u);
+  assert.notEqual(incompleteProjection.clarifyReadiness.recovery.code, 'EH-CLARIFY-PROOF-143');
 
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify({ ...stageResult, artifacts: completeArtifacts }));
   fs.writeFileSync(independentReviewPath, JSON.stringify(independentReview));
@@ -291,11 +336,17 @@ try {
   assert.equal(fs.existsSync(proofPath), false, 'read-only gate validation must not publish the candidate proof');
   const statusWithoutProof = workflowStatus();
   assert.equal(statusWithoutProof.status, 0, statusWithoutProof.stderr);
-  assert.equal(
-    JSON.parse(statusWithoutProof.stdout).clarifyReadiness.recovery.code,
-    'EH-CLARIFY-PROOF-143',
-    'workflow status must project the missing persisted proof',
-  );
+  const proofFreeProjection = JSON.parse(statusWithoutProof.stdout);
+  assert.equal(proofFreeProjection.clarifyReadiness.status, 'ready');
+  assert.equal(proofFreeProjection.clarifyReadiness.transitionReady, true);
+  assert.equal(proofFreeProjection.clarifyReadiness.recovery, null,
+    'missing persisted proof is transition-owned output state, not status-first recovery');
+  assert.equal(proofFreeProjection.pendingDecision, null,
+    'v6 Clarify status must not revive the legacy confirm-scope shortcut');
+  assert.equal(proofFreeProjection.nextAction, proofFreeProjection.nextEntry,
+    'the current /harness entry is not a pre-entry recovery action');
+  assert.deepEqual(controllerRoutesFromWorkflowStatus(proofFreeProjection), ['T'],
+    'real proof-free status with all prerequisites fresh must select T');
   assert.equal(fs.existsSync(proofPath), false, 'workflow status must remain read-only');
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);

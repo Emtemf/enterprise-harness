@@ -150,7 +150,11 @@ function persistStageCompletionProof(changeId, stage) {
   if (stage !== 'implement') {
     const verified = stageCompletionFor(repoRoot, changeId, stage, { requiredArtifactPaths });
     if (verified.proof.status !== 'pass' || verified.problems.length > 0) {
-      return { proof: null, problems: verified.problems };
+      return {
+        proof: null,
+        problems: verified.problems,
+        errorCode: stage === 'clarify' ? 'EH-CLARIFY-PROOF-143' : null,
+      };
     }
   }
   return { proof, problems: [] };
@@ -177,6 +181,7 @@ function cmdStageAdvance(changeId, stage, tier) {
     }
     const completion = persistStageCompletionProof(changeId, current.stage);
     if (!completion.proof) {
+      if (completion.errorCode) console.error(`BLOCK ${completion.errorCode}: transition proof publication did not pass immediate canonical revalidation.`);
       console.error(`BLOCK: ${current.stage}→${stage} 需要 fresh StageResult、self-check、独立 ReviewResult 与 runtime CompletionProof。`);
       for (const problem of completion.problems) console.error(`- ${problem}`);
       process.exit(2);

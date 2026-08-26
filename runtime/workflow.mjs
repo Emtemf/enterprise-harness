@@ -221,6 +221,10 @@ function resolveChangeId(candidate, { json = false } = {}) {
 
 function applyDecision(changeId, decision, reason = null) {
   let data = loadChange(changeId);
+  if (data.schemaVersion === 6 && data.stage === 'clarify' && ['confirm-scope', 'revise-scope'].includes(decision)) {
+    console.error('EH-WORKFLOW-STAGE-GATE-007: State v6 Clarify transition must use the lifecycle state command so the runtime can atomically persist and revalidate CompletionProof.');
+    process.exit(2);
+  }
   const result = buildWorkflowResult(root, changeId, data, shouldSuppressExecutionReadiness);
   const pending = result.pendingDecision;
   if (!pending) {

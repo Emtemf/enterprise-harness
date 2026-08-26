@@ -27,9 +27,10 @@ enterprise-harness validate <change-id>
 enterprise-harness trace --change <change-id> --mermaid
 ```
 
-`status=blocked` 时只执行顶层 `nextAction`，不要根据投影的 stage 或 nextStage 自行推进。
-非阻断状态也只能执行 `pendingDecision.options` 中列出的决策；没有 pending decision 时不要自行
-构造 transition。`workflow audit` 返回 0 表示已完成阶段的证据符合合同，返回 2 表示存在阻断项。
+`status=blocked` 且顶层 `nextAction` 不等于当前 `nextEntry` 时，只执行该 pre-entry recovery，不要根据投影的
+stage 或 nextStage 自行推进。`nextAction=/harness` 是当前入口；nested Clarify readiness 由 controller 路由。
+非阻断状态的用户决策只能来自 `pendingDecision.options`；stage transition 则必须由对应 readiness 和 lifecycle
+命令授权。`workflow audit` 返回 0 表示已完成阶段的证据符合合同，返回 2 表示存在阻断项。
 
 ## clarify
 

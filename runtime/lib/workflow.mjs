@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { auditWorkflow } from './workflow-audit.mjs';
-import { validateStageGate } from './stage-results.mjs';
+import { resolveStageCompletionCandidate, validateStageGate } from './stage-results.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 import { buildClarifyReadiness } from './clarify-readiness.mjs';
 
@@ -139,12 +139,7 @@ export function inferPendingDecision(
       ? stageGateProblems
       : designGateProblems;
     if (stage === 'clarify') {
-      return {
-        kind: 'scope-confirmation',
-        message: currentGap,
-        options: ['confirm-scope', 'revise-scope'],
-        evidence: [`harness/changes/${changeId}/requirements.md`],
-      };
+      return null;
     }
     if (stage === 'design' && Array.isArray(gateProblems)) {
       if (gateProblems.length > 0 || shouldSuppressExecutionReadiness(changeId, data)) return null;
@@ -307,7 +302,9 @@ function resolveV6StageGateProblems(root, changeId, data, stage) {
   }[stage];
   if (!requiredArtifactPaths) return null;
   try {
-    return validateStageGate(root, changeId, stage, { requiredArtifactPaths });
+    return stage === 'clarify'
+      ? resolveStageCompletionCandidate(root, changeId, stage, { requiredArtifactPaths }).problems
+      : validateStageGate(root, changeId, stage, { requiredArtifactPaths });
   } catch (error) {
     return [`${error.name || 'Error'}: ${error.message}`];
   }
@@ -689,6 +686,10 @@ export function inferCurrentGap(root, changeId, data, workflowStage, stageGatePr
 
   switch (workflowStage) {
     case 'clarify':
+      if (data.schemaVersion === 6 && Array.isArray(stageGateProblems)) {
+        if (stageGateProblems.length > 0) return `clarify completion prerequisites blocked: ${stageGateProblems.join('; ')}`;
+        return 'clarify completion prerequisites are fresh; transition may publish proof and enter design.';
+      }
       if (!hasRequirements) return '缺少 requirements.md。';
       if (!data.workflow?.clarifyReady) return 'clarify 尚未达标。';
       if (!data.workflow?.userConfirmedScope) return '用户尚未确认执行范围。';

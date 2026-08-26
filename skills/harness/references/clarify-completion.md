@@ -1,7 +1,7 @@
 # Clarify Completion
 
-Load when: controller state is active v6 Clarify with factGateOpen=false and topology confirmed, and either the Phase 2–3 component/dimension frontier is closed or the earliest invalid gate is completion-owned: debt, project-contract, final-scope, seal, classification, finalizer, review, or proof. A pending completion disposition stays completion-owned.
-Return to controller: after exactly one assessment, scope, seal, classification, finalization, review, or proof action; re-read status and recompute the raw route predicates before selecting another action.
+Load when: controller state is active v6 Clarify with factGateOpen=false and topology confirmed, and either the Phase 2–3 component/dimension frontier is closed or the earliest invalid gate is completion-owned: debt, project-contract, final-scope, seal, classification, finalizer, or review. A pending completion disposition stays completion-owned.
+Return to controller: after exactly one assessment, scope, seal, classification, finalization, or review action; re-read status and recompute the raw route predicates before selecting another action.
 
 ## Phase 4：确认并完成 Clarify
 

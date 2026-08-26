@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-25
+lastVerified: 2026-08-26
 implementationRefs:
   - runtime/core/completion-proof.mjs
   - runtime/lib/stage-contract.mjs
@@ -93,7 +93,7 @@ Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale
 
 | Stage | 必要 durable artifact/state | Executor | 独立检查 | 合法推进条件 |
 |---|---|---|---|---|
-| clarify | `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`；适用 ResearchPacket | Main（用户循环）+ fact agents | 不同 trusted identity/run 的 reviewer，绑定五项 canonical artifact | 五项 artifact、StageResult、独立 passing ReviewResult、完整 TECPC 与 persisted generic CompletionProof 均 fresh |
+| clarify | `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`；适用 ResearchPacket | Main（用户循环）+ fact agents | 不同 trusted identity/run 的 reviewer，绑定五项 canonical artifact | 五项 artifact、StageResult、独立 passing ReviewResult 与完整 TECPC 均 fresh；transition command 随后持久化并重验 generic CompletionProof |
 | design | `design.md` | artifact-worker + design Skill | reviewer selected rubrics | StageResult、全部 assertions、ReviewResult、TECPC 与 digest fresh |
 | plan | `tasks.md` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope frozen，result/review fresh |
 | implement | `currentTask`；task receipts；产品变更 | implementer + implement Skill | reviewer task rubrics | 每 task receipt/self-check/review fresh，write scope 合规 |
@@ -113,8 +113,9 @@ enterprise-harness trace <run-id> <change-id>
 enterprise-harness trace --change <change-id> --mermaid
 ```
 
-- `status=blocked`：只执行顶层 `nextAction`，不使用投影字段猜测下一阶段。
-- 非阻断状态：只允许 `pendingDecision.options` 中的 transition；没有 pending decision 时不推进。
+- `status=blocked` 且顶层 `nextAction` 不等于当前 `nextEntry`：只执行该 pre-entry recovery，不使用投影字段猜测下一阶段。
+- `nextAction=/harness` 是当前入口标记；nested Clarify recovery/transition readiness 由 controller snapshot 路由，不形成自指 recovery。
+- 非阻断状态：用户 Decision 只允许 `pendingDecision.options`；stage transition 必须由对应 readiness 与 lifecycle command 授权。
 - audit 返回 0：已完成阶段的 state/artifact/result/review/digest 合同通过。
 - audit 返回 2：按最早 blocker 的 recovery 修复，不手工编辑 state。
 - trace 只渲染真实 ledger/runs，不绘制理想化的“应该发生”。

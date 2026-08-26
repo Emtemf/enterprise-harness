@@ -117,7 +117,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CLARIFY-SELF-CHECK-140` | Clarify self-check 未通过 | 发布 passing StageResult self-check |
 | `EH-CLARIFY-REVIEW-141` | independent review 未通过 | 发布 passing ReviewResult |
 | `EH-CLARIFY-TECPC-142` | TECPC 未闭合 | 清除 correction 并闭合 TECPC |
-| `EH-CLARIFY-PROOF-143` | ClarifyProof 缺失或过期 | 发布 fresh digest-bound ClarifyProof |
+| `EH-CLARIFY-PROOF-143` | lifecycle transition 已尝试发布 ClarifyProof，但即时重验失败 | 保持 Clarify，修复报告的 proof 写入/验证失败后重试 transition |
 | `EH-TDD-RECEIPT-007` | v5 compatibility 流程缺少真实 TDD receipt | 仅在 v5 change 中用 tdd-run 执行冻结命令；v6 改用 task-run |
 | `EH-COMPLETION-GATE-008` | 完成证据不足 | workflow status |
 | `EH-AGENT-FAILURE-009` | agent 调用失败 | 修复后新 attempt |

@@ -1,7 +1,7 @@
 ---
 status: active
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-25
+lastVerified: 2026-08-26
 implementationRefs:
   - skills/harness/SKILL.md
   - harness/schemas/question-candidate.schema.json
@@ -19,6 +19,7 @@ implementationRefs:
   - runtime/core/classification-artifact.mjs
   - runtime/core/completion-proof.mjs
   - runtime/lib/clarify-readiness.mjs
+  - runtime/lib/workflow.mjs
   - runtime/lib/stage-contract.mjs
   - runtime/lib/stage-results.mjs
   - runtime/lib/status-summary.mjs
@@ -78,7 +79,7 @@ A passing Clarify `StageResult` binds the current requirements, classification, 
 
 Classification v2 sums the four evidence-bearing integer scores (`functionalSize`, `uncertainty`, `changeRisk`, `verificationDifficulty`) and selects L0 for totals 0–2, L1 for 3–5, L2 for 6–8, and L3 for 9–12. Public API break, security boundary, or cross-service transaction flags can only upgrade to at least L2; irreversible data migration or unknown compliance obligation upgrades to L3. The matching append-only `classification-route` event must select the derived tier before the artifact can be persisted.
 
-Readiness exposes the ordered in-memory projection through status. Its stable recoveries include `EH-CLARIFY-RESEARCH-LANES-144`, `EH-CLARIFY-RESEARCH-131`, `EH-CLARIFY-RESEARCH-CONFLICTS-145`, and the ordered stage gates `EH-CLARIFY-TOPOLOGY-132` through `EH-CLARIFY-PROOF-143`; exactly the first non-passing item supplies the recovery action. `EH-CLASSIFICATION-ROUTE-128` identifies route-event disagreement and `EH-CLASSIFICATION-STALE-129` identifies stale classification inputs.
+Readiness exposes fourteen ordered, proof-free prerequisite items through status. Its stable recoveries include `EH-CLARIFY-RESEARCH-LANES-144`, `EH-CLARIFY-RESEARCH-131`, `EH-CLARIFY-RESEARCH-CONFLICTS-145`, and the ordered stage gates `EH-CLARIFY-TOPOLOGY-132` through `EH-CLARIFY-TECPC-142`; exactly the first non-passing prerequisite supplies the recovery action. When all fourteen pass, `transitionReady=true` even when no persisted proof exists. The lifecycle transition alone publishes and revalidates CompletionProof before CAS. `EH-CLASSIFICATION-ROUTE-128` identifies route-event disagreement and `EH-CLASSIFICATION-STALE-129` identifies stale classification inputs.
 
 | Blocked gate | Single recovery action |
 | --- | --- |
@@ -90,7 +91,8 @@ Readiness exposes the ordered in-memory projection through status. Its stable re
 | The project-contract audit is incomplete or conflicted | Record the matching project-contract disposition and persist the assessment. |
 | The decision history is unsealed or no longer matches its prefix | Seal the ordered Clarify decision-ledger prefix. |
 | Requirements or classification inputs are stale | Recompute the affected derived artifact from current authoritative inputs. |
-| Self-check, independent review, TECPC, or proof is missing/stale/blocked | Re-run the Clarify completion flow and publish fresh completion evidence. |
+| Self-check, independent review, or TECPC is missing/stale/blocked | Re-run the Clarify completion flow and publish fresh prerequisite evidence. |
+| Transition-owned proof publication or immediate revalidation fails | Stay in Clarify and retry the lifecycle transition after repairing the reported failure. |
 
 ## Invalidation
 

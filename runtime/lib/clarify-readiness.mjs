@@ -23,7 +23,6 @@ export const CLARIFY_ITEMS = Object.freeze([
   'self-check-passed',
   'independent-review-passed',
   'tecpc-complete',
-  'clarify-proof-fresh',
 ]);
 
 const RECOVERIES = Object.freeze({
@@ -41,7 +40,6 @@ const RECOVERIES = Object.freeze({
   selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: 'Publish a fresh passing Clarify StageResult self-check.' },
   review: { code: 'EH-CLARIFY-REVIEW-141', action: 'Publish a fresh independent passing Clarify ReviewResult.' },
   tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
-  proof: { code: 'EH-CLARIFY-PROOF-143', action: 'Publish the fresh digest-bound ClarifyProof.' },
 });
 
 const CORE_DIMENSIONS = ['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'];
@@ -195,11 +193,11 @@ export function buildClarifyReadiness(root, changeId) {
   items.push(immutableItem('self-check-passed', completion.selfCheck.status, completion.selfCheck.refs, RECOVERIES.selfCheck));
   items.push(immutableItem('independent-review-passed', completion.review.status, completion.review.refs, RECOVERIES.review));
   items.push(immutableItem('tecpc-complete', completion.tecpc.status, completion.tecpc.refs, RECOVERIES.tecpc));
-  items.push(immutableItem('clarify-proof-fresh', completion.proof.status, completion.proof.refs, RECOVERIES.proof));
 
   const first = items.find(({ status }) => !['pass', 'not-applicable'].includes(status));
   return deepFreeze({
     status: first ? 'blocked' : 'ready',
+    transitionReady: !first && Boolean(completion.candidateProof),
     items,
     recovery: first ? { code: first.code, action: first.action } : null,
   });
