@@ -12,5 +12,6 @@ v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 fr
 | 设计/计划/验证制品 | stage Skill | `enterprise-harness:artifact-worker` | StageResult |
 | 产品代码 | `implement` | `enterprise-harness:implementer` | task execution receipt |
 | 独立挑战 | `review` | `enterprise-harness:reviewer` | ReviewResult |
+| 归档 | `archive` | `enterprise-harness:artifact-worker` | StageResult |
 
 `classification` 是 clarify 后的内部制品；`tdd` 是 task execution strategy。它们不是 v6 lifecycle stage。

@@ -7,7 +7,7 @@ Return to controller: after validating or attempting that single transition; re-
 
 | 当前阶段 | 允许推进的必要证据 |
 |---|---|
-| clarify | canonical `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`，由不同 trusted identity/run 独立 passing review，且 TECPC 完整、generic CompletionProof 已持久化并 fresh |
+| clarify | fresh canonical StageResult（含 required artifacts 与 digests）、不同 trusted identity/run 的 passing independent ReviewResult、完整且无 pending correction 的 TECPC；这些证据必须足以派生 candidate CompletionProof，但 persisted proof 不是输入前置条件 |
 | design | schema-valid StageResult、全部 design assertions、独立 passing ReviewResult、TECPC 与 fresh input/output digest |
 | plan | 冻结 tasks、strategy evidence 与独立 review |
 | implement | task-level execution receipt、self-check 与独立 review |

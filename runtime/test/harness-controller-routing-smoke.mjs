@@ -59,10 +59,46 @@ assert.doesNotMatch(completionOpening, /transition action/iu);
 assert.match(completionOpening, /factGateOpen=false.*topology.*Phase 2[–-]3.*frontier.*closed.*earliest invalid gate.*(?:debt|project-contract).*proof/isu);
 assert.match(completionBody, /clarifyTransitionReady.*(?:return|返回).*controller/isu);
 assert.doesNotMatch(completionBody, /\]\((?:behavior-map|stage-decisions)\.md\)/u);
-const behaviorOpening = read('references/behavior-map.md').split('\n').slice(0, 4).join('\n');
+const readinessExpression = completionBody.match(/`clarifyTransitionReady = ([^`]+)`/u)?.[1];
+assert.equal(typeof readinessExpression, 'string', 'completion must expose a mechanically testable readiness predicate');
+assert.doesNotMatch(readinessExpression, /CompletionProof|proof/iu,
+  'persisted CompletionProof must not be a Clarify transition-readiness prerequisite');
+const readinessTerms = [
+  'canonicalStageResultValid', 'independentReviewPassing', 'tecpcComplete', 'requiredArtifactsFresh',
+];
+for (const term of readinessTerms) assert.match(readinessExpression, new RegExp(`\\b${term}\\b`, 'u'));
+const evaluateReadiness = (scope) => Function(
+  ...Object.keys(scope), `"use strict"; return Boolean(${readinessExpression});`,
+)(...Object.values(scope));
+const completePrerequisites = Object.fromEntries(readinessTerms.map((term) => [term, true]));
+assert.equal(evaluateReadiness(completePrerequisites), true,
+  'fresh prerequisite evidence must be transition-ready without a persisted proof');
+for (const missing of readinessTerms) {
+  assert.equal(evaluateReadiness({ ...completePrerequisites, [missing]: false }), false,
+    `missing ${missing} must remain on completion route C`);
+}
+const behaviorBody = read('references/behavior-map.md');
+const behaviorOpening = behaviorBody.split('\n').slice(0, 4).join('\n');
 assert.match(behaviorOpening, /active stage.*worker/isu);
-const transitionOpening = read('references/stage-decisions.md').split('\n').slice(0, 4).join('\n');
+const behaviorRows = behaviorBody.split('\n')
+  .filter((line) => /^\|.+\|$/u.test(line) && !/^\|(?:---| 工作)/u.test(line))
+  .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim().replaceAll('`', '')));
+assert.deepEqual(
+  behaviorRows.filter(([, skillName]) => skillName === 'archive'),
+  [['归档', 'archive', 'enterprise-harness:artifact-worker', 'StageResult']],
+  'the W-only behavior map must select the Archive skill and its capability agent',
+);
+const transitionBody = read('references/stage-decisions.md');
+const transitionOpening = transitionBody.split('\n').slice(0, 4).join('\n');
 assert.match(transitionOpening, /clarifyTransitionReady.*stageTransitionReady/isu);
+const clarifyEvidenceRow = transitionBody.split('\n').find((line) => /^\| clarify \|/u.test(line));
+assert.equal(typeof clarifyEvidenceRow, 'string', 'transition contract must define Clarify evidence');
+assert.match(clarifyEvidenceRow, /persisted proof.*不是.*(?:输入)?前置/iu,
+  'Clarify transition evidence must explicitly exclude persisted proof as a prerequisite');
+assert.doesNotMatch(clarifyEvidenceRow, /CompletionProof 已持久化|generic CompletionProof.*(?:已持久化|fresh)/iu,
+  'persisted proof must not be an input to the Clarify transition command');
+assert.match(transitionBody, /(?:原子|atomically).*CompletionProof.*(?:重新读取|re-read).*canonical gate.*CAS/isu,
+  'Clarify transition must create the proof, re-read the gate, then CAS the stage');
 for (const term of [
   'laneApplicabilityDecided', 'laneApplicabilityUndecided', 'phase23FrontierOpen',
   'phase23FrontierClosed', 'clarifyTransitionReady', 'stageTransitionReady',
@@ -118,6 +154,19 @@ for (const [label, partial, expected] of statePartitions) {
   };
   assert.deepEqual(matchingRoutes(state), [expected], `${label} must select exactly one raw predicate`);
 }
+const proofFreeClarifyState = {
+  stage: 'clarify', noActiveChange: false, entryRecoverySelected: false,
+  laneApplicabilityUndecided: false, laneApplicabilityDecided: true, factGateOpen: false,
+  phase23FrontierOpen: false, phase23FrontierClosed: true, stageTransitionReady: false,
+};
+assert.deepEqual(matchingRoutes({
+  ...proofFreeClarifyState,
+  clarifyTransitionReady: evaluateReadiness(completePrerequisites),
+}), ['transition'], 'derivable prerequisites without persisted proof must select T');
+assert.deepEqual(matchingRoutes({
+  ...proofFreeClarifyState,
+  clarifyTransitionReady: evaluateReadiness({ ...completePrerequisites, tecpcComplete: false }),
+}), ['completion'], 'a missing candidate-proof prerequisite must remain on C');
 const invalidPartitions = [
   ['no-active-plus-active-stage', { stage: 'clarify', noActiveChange: true }],
   ['lanes-both', { laneApplicabilityUndecided: true, laneApplicabilityDecided: true }],
