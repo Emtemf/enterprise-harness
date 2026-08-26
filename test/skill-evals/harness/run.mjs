@@ -64,7 +64,7 @@ function argvFor(selected, model, variant) {
     '-p',
     ...isolationArgvFor(variant),
     '--tools', toolProfile === 'read-only' ? 'Read' : '',
-    '--permission-mode', 'plan',
+    '--permission-mode', toolProfile === 'read-only' ? 'dontAsk' : 'plan',
     '--no-session-persistence',
     '--output-format', 'stream-json',
     '--verbose',

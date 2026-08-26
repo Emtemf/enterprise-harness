@@ -154,6 +154,9 @@ try {
       && argv.includes('--max-turns') && argv[argv.indexOf('--max-turns') + 1] === '4'
       && argv.includes('--verbose') && shell === false && timeoutMs > 0
   )));
+  assert.ok(plan.runs.every(({ argv }) => (
+    argv.includes('--permission-mode') && argv[argv.indexOf('--permission-mode') + 1] === 'plan'
+  )), 'no-tools interview evals must retain Plan mode');
   const controls = plan.runs.filter(({ variant }) => variant === 'control');
   const guided = plan.runs.filter(({ variant }) => variant === 'with-skill');
   assert.ok(controls.every(({ argv, isolationArgv }) => (
@@ -191,6 +194,7 @@ try {
   const routingPlan = JSON.parse(routingDry.stdout);
   assert.ok(routingPlan.runs.every(({ argv }) => (
     argv.includes('--tools') && argv[argv.indexOf('--tools') + 1] === 'Read'
+      && argv.includes('--permission-mode') && argv[argv.indexOf('--permission-mode') + 1] === 'dontAsk'
   )), 'tool-enabled reference routing must use the declared read-only tool profile');
   assert.ok(routingPlan.runs.every(({ workspaceFiles }) => (
     workspaceFiles.length === 1

@@ -21,7 +21,7 @@ signal 或 buffer 截断的 JSON fragment，completed run 或中间坏行仍 fai
 mechanical-shape failure 不能评为 pass。
 Review 写入成功仍只代表该 collection 的人工 verdict，不会自动把 skill candidate promotion 为 best。
 
-带 `toolProfile: read-only` 的 held-out reference-routing cases 会把 `--tools Read` 同等应用于 control/treatment，
+带 `toolProfile: read-only` 的 held-out reference-routing cases 会把 `--tools Read --permission-mode dontAsk` 同等应用于 control/treatment，避免 Plan-mode terminal fallback 与 phase-reference routing 合同互相冲突；真正的 no-tools terminal case 仍使用 Plan mode。
 并在每次 owned workspace 写入 digest-bound `controller-snapshot.json`。模型必须先 Read 该 runtime-snapshot fixture，
 不能从 eval prompt 推断状态；随后对 research、decisions 或 completion reference 的实际读取也必须由 trace 中的
 Read tool-use 证明，模型自述或引用独有内容不能替代。No-tools terminal case 与这些
