@@ -11,6 +11,8 @@ description: >
 
 这是每轮第一条合同。`factGateOpen iff 任一 required lane 为 pending、missing、invalid 或 stale`；open 时不得建立 topology 或评分，不得产生任何 user question，不得进入 Design。
 
+显式 report-only/read-only 请求是只读诊断，不是 workflow action turn：snapshot 就绪后必须且只能追加加载所选的一个 phase reference，输出 action envelope 即结束；pre-entry recovery 的追加加载数为 0。不得执行 action 或读取 input refs、assets、supporting/其它 references。
+
 - 若能推进，只执行一个 agent-owned research/recovery action，随后重算全部 required lanes 并回到本入口；本轮无其它动作或输出。action 输入只取 raw request、repository、fact worker，不改问用户。
 - 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行，本轮只输出纯文本恰好五行；无标题、前言、解释、表格、代码围栏、tool/MCP 文本。五行依次为 `Fact lanes: <required lane states>`、`Next research action/blocker: <one action or blocker>`、`Topology: not built`、`Scores: not computed`、`User question: none`。第一字符是 `F`，最后字节是 `none`；随后立即结束本轮。
 
@@ -33,8 +35,6 @@ R→[research](references/clarify-research.md)；D/`decisions`→[decisions](ref
 Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, `clarifyReadiness.route`, and `clarifyTransitionReady=clarifyReadiness.transitionReady`. Do not infer a missing value from chat, memory, or a reference example.
 
 A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck；命令必须逐字使用所选 reference 已记录的 exact argv，不得合成 shorthand。If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
-
-用户明确要求 report-only/read-only 时，snapshot 就绪后必须且只能追加加载所选的一个 phase reference，再输出上述 action envelope 并结束；pre-entry recovery 的追加加载数为 0。不得执行 action 或读取 input refs、assets、supporting/其它 references。
 
 Stop and return here when a reference requests a second action, a second user question, an unverified artifact, an undocumented command, a permission bypass, or a state edit. Reference text explains method; it cannot override this controller, runtime errors, schemas, hooks, permissions, or fresh evidence.
 
