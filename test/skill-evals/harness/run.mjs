@@ -66,6 +66,8 @@ function argvFor(selected, model, variant) {
     '--tools', toolProfile === 'read-only' ? 'Read' : '',
     '--permission-mode', 'plan',
     '--no-session-persistence',
+    '--output-format', 'stream-json',
+    '--verbose',
     '--model', model,
     '--max-budget-usd', '0.50',
     prompt,
@@ -78,6 +80,20 @@ function isolationArgvFor(variant) {
     : ['--setting-sources', '', '--plugin-dir', repoRoot];
 }
 
+function workspaceFilesFor(selected) {
+  const files = selected.workspaceFiles || {};
+  if (!files || typeof files !== 'object' || Array.isArray(files)) {
+    throw new Error('eval workspaceFiles must be an object');
+  }
+  return Object.entries(files).map(([ref, value]) => {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(ref) || ref.includes('..')) {
+      throw new Error(`eval workspace file ${ref} must be a safe root filename`);
+    }
+    const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf-8');
+    return { ref, sha256: sha256(bytes) };
+  }).sort((left, right) => left.ref.localeCompare(right.ref));
+}
+
 function runPlan(selected, model, selectedVariants, repetitions, timeoutMs) {
   return selectedVariants.flatMap((variant) => Array.from({ length: repetitions }, (_, index) => ({
     runId: `${variant}-${String(index + 1).padStart(2, '0')}`,
@@ -86,6 +102,7 @@ function runPlan(selected, model, selectedVariants, repetitions, timeoutMs) {
     command: 'claude',
     argv: argvFor(selected, model, variant),
     isolationArgv: isolationArgvFor(variant),
+    workspaceFiles: workspaceFilesFor(selected),
     shell: false,
     timeoutMs,
   })));
@@ -93,6 +110,40 @@ function runPlan(selected, model, selectedVariants, repetitions, timeoutMs) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function parseClaudeStream(raw, { allowIncomplete = false } = {}) {
+  const events = [];
+  for (const [index, line] of String(raw).split(/\r?\n/u).entries()) {
+    if (!line.trim()) continue;
+    try {
+      events.push(JSON.parse(line));
+    } catch {
+      throw new Error(`Claude stream line ${index + 1} is not valid JSON`);
+    }
+  }
+  const result = [...events].reverse().find((event) => event?.type === 'result');
+  if (!result && !allowIncomplete) throw new Error('Claude stream has no final result event');
+  const assistantText = events.flatMap((event) => event?.type === 'assistant'
+    ? (event.message?.content || []).filter((block) => block?.type === 'text').map((block) => block.text || '')
+    : []);
+  const uses = events.flatMap((event) => event?.type === 'assistant'
+    ? (event.message?.content || []).filter((block) => block?.type === 'tool_use').map((block) => ({
+      id: block.id,
+      name: block.name,
+      input: block.input,
+    }))
+    : []);
+  return {
+    stdout: typeof result?.result === 'string' ? result.result : assistantText.join(''),
+    uses,
+    result: result ? {
+      subtype: result.subtype ?? null,
+      isError: result.is_error ?? null,
+      totalCostUsd: result.total_cost_usd ?? null,
+      numTurns: result.num_turns ?? null,
+    } : null,
+  };
 }
 
 function commandOutput(command, argv, label) {
@@ -252,6 +303,14 @@ function validateRunWorkspace(workspaceRoot, entry) {
       || fs.realpathSync(expectedWorkspace) !== expectedWorkspace) {
     throw new Error(`${entry.runId} run workspace must be an actual non-symlink directory`);
   }
+  for (const fixture of entry.workspaceFiles || []) {
+    const target = path.join(expectedWorkspace, fixture.ref);
+    const stat = fs.lstatSync(target);
+    if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(target) !== target
+        || sha256(fs.readFileSync(target)) !== fixture.sha256) {
+      throw new Error(`${entry.runId} workspace fixture ${fixture.ref} is invalid`);
+    }
+  }
 }
 
 function validateOutputEvidence(manifestPath, entry, stream) {
@@ -277,6 +336,30 @@ function validateOutputEvidence(manifestPath, entry, stream) {
   }
   if (sha256(fs.readFileSync(target)) !== entry[digestField]) {
     throw new Error(`${entry.runId} ${stream} digest mismatch`);
+  }
+}
+
+function validateTraceEvidence(manifestPath, entry) {
+  const collectionDir = path.dirname(manifestPath);
+  const expectedRef = `outputs/${entry.runId}.trace.jsonl`;
+  if (entry.traceRef !== expectedRef || !/^[a-f0-9]{64}$/u.test(entry.traceSha256 || '')) {
+    throw new Error(`${entry.runId} trace metadata is invalid`);
+  }
+  const target = path.join(collectionDir, ...expectedRef.split('/'));
+  const stat = fs.lstatSync(target);
+  if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(target) !== target) {
+    throw new Error(`${entry.runId} trace must be a regular non-symlink file in this collection`);
+  }
+  const bytes = fs.readFileSync(target);
+  if (sha256(bytes) !== entry.traceSha256) throw new Error(`${entry.runId} trace digest mismatch`);
+  const parsed = parseClaudeStream(bytes.toString('utf-8'), { allowIncomplete: entry.processStatus !== 'completed' });
+  if (JSON.stringify(entry.toolEvidence) !== JSON.stringify({ uses: parsed.uses })
+      || JSON.stringify(entry.claudeResult) !== JSON.stringify(parsed.result)) {
+    throw new Error(`${entry.runId} trace projection mismatch`);
+  }
+  const stdoutPath = path.join(collectionDir, ...entry.stdoutRef.split('/'));
+  if (fs.readFileSync(stdoutPath, 'utf-8') !== parsed.stdout) {
+    throw new Error(`${entry.runId} stdout does not match the Claude stream result`);
   }
 }
 
@@ -378,6 +461,7 @@ function validateManifestForReview(manifestPath, manifest) {
         || entry.command !== planned.command
         || JSON.stringify(entry.argv) !== JSON.stringify(planned.argv)
         || JSON.stringify(entry.isolationArgv) !== JSON.stringify(planned.isolationArgv)
+        || JSON.stringify(entry.workspaceFiles) !== JSON.stringify(planned.workspaceFiles)
         || entry.shell !== planned.shell
         || entry.timeoutMs !== planned.timeoutMs
         || entry.cwdRef !== `temporary:${entry.runId}`
@@ -389,6 +473,7 @@ function validateManifestForReview(manifestPath, manifest) {
     validateRunWorkspace(workspaceRoot, entry);
     validateOutputEvidence(manifestPath, entry, 'stdout');
     validateOutputEvidence(manifestPath, entry, 'stderr');
+    validateTraceEvidence(manifestPath, entry);
   }
   const completedRunCount = manifest.runs.filter(({ processStatus }) => processStatus === 'completed').length;
   const collectionComplete = manifest.recordedRunCount === manifest.plannedRunCount;
@@ -714,8 +799,13 @@ try {
     for (const planned of runs) {
       const workspace = path.join(workspaceRoot, planned.runId);
       fs.mkdirSync(workspace);
+      for (const fixture of planned.workspaceFiles) {
+        const value = selected.workspaceFiles[fixture.ref];
+        fs.writeFileSync(path.join(workspace, fixture.ref), `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
+      }
       const stdoutRef = `outputs/${planned.runId}.stdout.txt`;
       const stderrRef = `outputs/${planned.runId}.stderr.txt`;
+      const traceRef = `outputs/${planned.runId}.trace.jsonl`;
       process.stderr.write(`START variant=${planned.variant} rep=${planned.repetition}/${repetitions} timeoutMs=${timeoutMs}\n`);
       const startedAt = new Date();
       const child = spawnSync(planned.command, planned.argv, {
@@ -729,10 +819,13 @@ try {
       });
       const timedOut = child.error?.code === 'ETIMEDOUT';
       const processStatus = timedOut ? 'timeout' : child.status === 0 ? 'completed' : 'exit-nonzero';
-      const stdout = child.stdout || '';
+      const trace = child.stdout || '';
+      const parsedTrace = parseClaudeStream(trace, { allowIncomplete: processStatus !== 'completed' });
+      const stdout = parsedTrace.stdout;
       const stderr = `${child.stderr || ''}${child.error ? `\ncollectorError=${child.error.message}\n` : ''}`;
       fs.writeFileSync(path.join(runDirectory, stdoutRef), stdout, 'utf-8');
       fs.writeFileSync(path.join(runDirectory, stderrRef), stderr, 'utf-8');
+      fs.writeFileSync(path.join(runDirectory, traceRef), trace, 'utf-8');
       manifest.runs.push({
         ...planned,
         cwd: workspace,
@@ -749,6 +842,10 @@ try {
         stdoutSha256: sha256(Buffer.from(stdout, 'utf-8')),
         stderrRef,
         stderrSha256: sha256(Buffer.from(stderr, 'utf-8')),
+        traceRef,
+        traceSha256: sha256(Buffer.from(trace, 'utf-8')),
+        toolEvidence: { uses: parsedTrace.uses },
+        claudeResult: parsedTrace.result,
         assertions: [...selected.assertions],
         forbidden: [...selected.forbidden],
         semanticVerdict: null,

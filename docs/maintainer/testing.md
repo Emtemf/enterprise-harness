@@ -14,11 +14,15 @@ Control 固定使用 `--safe-mode --disable-slash-commands --setting-sources ""`
 人工核读完成后，用 `--record-review <scoring-manifest.json> --review-file <review.json>` 附加 immutable review。
 记录前 runner 会从当前 eval case 重算每个 run 的 variant、repetition、command、完整 argv、isolation argv、
 `shell:false`、timeout 与 cwdRef，并核对 stdout/stderr digest、collection completeness 和严格 calendar-valid
-RFC3339 时间；manifest 字段不能自证 provenance。任一 timeout、nonzero 或 mechanical-shape failure 不能评为 pass。
+RFC3339 时间；manifest 字段不能自证 provenance。Claude 使用官方 `stream-json --verbose` 输出；runner 单独保存
+原始 trace，重算最终文本和 tool-use projection，并在 review 时同时核对三者。任一 timeout、nonzero 或
+mechanical-shape failure 不能评为 pass。
 Review 写入成功仍只代表该 collection 的人工 verdict，不会自动把 skill candidate promotion 为 best。
 
 带 `toolProfile: read-only` 的 held-out reference-routing cases 会把 `--tools Read` 同等应用于 control/treatment，
-用于证明 treatment 实际按 state 读取 research、decisions 或 completion reference。No-tools terminal case 与这些
+并在每次 owned workspace 写入 digest-bound `controller-snapshot.json`。模型必须先 Read 该 runtime-snapshot fixture，
+不能从 eval prompt 推断状态；随后对 research、decisions 或 completion reference 的实际读取也必须由 trace 中的
+Read tool-use 证明，模型自述或引用独有内容不能替代。No-tools terminal case 与这些
 tool-enabled routing cases 分开评分，不能把 Plan mode 无法持久化 packet 当成模型失败，也不能用静态 path 检查
 替代 tool trace/manual review。
 

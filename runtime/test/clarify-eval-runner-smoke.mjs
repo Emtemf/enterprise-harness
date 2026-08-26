@@ -25,6 +25,15 @@ fs.writeFileSync(path.join(pollutedConfigDir, 'settings.json'), `${JSON.stringif
 const fakeClaude = path.join(binDir, process.platform === 'win32' ? 'claude.cmd' : 'claude');
 fs.writeFileSync(fakeClaude, `#!/usr/bin/env node
 const mode = process.env.EH_FAKE_CLAUDE_MODE || 'success';
+const stream = process.argv.slice(2).includes('--output-format')
+  && process.argv[process.argv.indexOf('--output-format') + 1] === 'stream-json';
+function emit(result, toolUses = []) {
+  if (!stream) { process.stdout.write(result); return; }
+  for (const tool of toolUses) process.stdout.write(JSON.stringify({
+    type: 'assistant', message: { content: [{ type: 'tool_use', ...tool }] },
+  }) + '\\n');
+  process.stdout.write(JSON.stringify({ type: 'result', subtype: 'success', result }) + '\\n');
+}
 if (process.argv.slice(2).includes('--version')) process.stdout.write('2.1.245 (Claude Code)\\n');
 else if (mode === 'hang') setInterval(() => {}, 1000);
 else if (mode === 'hang-exit143') {
@@ -44,9 +53,11 @@ else {
       'User question: none',
     ].join('\\n');
     const fence = String.fromCharCode(96).repeat(3);
-    process.stdout.write(mode === 'shape-bad' ? fence + '\\n' + shaped + '\\n' + fence : shaped);
+    emit(mode === 'shape-bad' ? fence + '\\n' + shaped + '\\n' + fence : shaped);
   }
-  else process.stdout.write(JSON.stringify({ argv: process.argv.slice(2), mode, cwd: process.cwd(), config }));
+  else emit(JSON.stringify({ argv: process.argv.slice(2), mode, cwd: process.cwd(), config }), mode === 'trace-read'
+    ? [{ id: 'tool-1', name: 'Read', input: { file_path: 'controller-snapshot.json' } }]
+    : []);
   if (mode === 'fail') { process.stderr.write('fixture failure\\n'); process.exitCode = 7; }
 }
 `);
@@ -133,7 +144,9 @@ try {
   assert.equal(plan.runs.length, 10);
   assert.deepEqual([...new Set(plan.runs.map(({ variant }) => variant))], ['control', 'with-skill']);
   assert.ok(plan.runs.every(({ argv, shell, timeoutMs }) => (
-    argv.includes('--no-session-persistence') && shell === false && timeoutMs > 0
+    argv.includes('--no-session-persistence')
+      && argv.includes('--output-format') && argv[argv.indexOf('--output-format') + 1] === 'stream-json'
+      && argv.includes('--verbose') && shell === false && timeoutMs > 0
   )));
   const controls = plan.runs.filter(({ variant }) => variant === 'control');
   const guided = plan.runs.filter(({ variant }) => variant === 'with-skill');
@@ -173,6 +186,25 @@ try {
   assert.ok(routingPlan.runs.every(({ argv }) => (
     argv.includes('--tools') && argv[argv.indexOf('--tools') + 1] === 'Read'
   )), 'tool-enabled reference routing must use the declared read-only tool profile');
+  assert.ok(routingPlan.runs.every(({ workspaceFiles }) => (
+    workspaceFiles.length === 1
+      && workspaceFiles[0].ref === 'controller-snapshot.json'
+      && /^[a-f0-9]{64}$/u.test(workspaceFiles[0].sha256)
+  )), 'routing evals must bind a durable controller snapshot fixture');
+
+  const routingTraceDir = path.join(sandbox, 'routing-trace');
+  const routingTrace = run([
+    '--case', 'reference-routing-research', '--model', 'sonnet',
+    '--variant', 'with-skill', '--reps', '5', '--timeout-ms', '2000', '--results-dir', routingTraceDir,
+  ], 'trace-read');
+  assert.equal(routingTrace.status, 0, routingTrace.stderr);
+  const routingTraceManifest = onlyManifest(routingTraceDir);
+  assert.ok(routingTraceManifest.runs.every((entry) => (
+    entry.toolEvidence.uses.length === 1
+      && entry.toolEvidence.uses[0].name === 'Read'
+      && entry.toolEvidence.uses[0].input.file_path === 'controller-snapshot.json'
+      && fs.existsSync(path.join(entry.cwd, 'controller-snapshot.json'))
+  )), 'structured trace must prove the fixture Read tool call');
 
   const completed = run([
     '--case', 'question-must-be-pre-authorized', '--model', 'sonnet',
@@ -223,8 +255,12 @@ try {
       && entry.forbidden.length > 0
       && /^[a-f0-9]{64}$/u.test(entry.stdoutSha256)
       && /^[a-f0-9]{64}$/u.test(entry.stderrSha256)
+      && entry.traceRef === `outputs/${entry.runId}.trace.jsonl`
+      && /^[a-f0-9]{64}$/u.test(entry.traceSha256)
+      && Array.isArray(entry.toolEvidence?.uses)
       && fs.existsSync(path.join(path.dirname(manifest.manifestPath), entry.stdoutRef))
       && fs.existsSync(path.join(path.dirname(manifest.manifestPath), entry.stderrRef))
+      && fs.existsSync(path.join(path.dirname(manifest.manifestPath), entry.traceRef))
   )));
   for (const entry of manifest.runs) {
     const observed = JSON.parse(fs.readFileSync(path.join(path.dirname(manifest.manifestPath), entry.stdoutRef), 'utf-8'));
@@ -355,6 +391,19 @@ try {
   const stderrTamperedReview = passReviewFor(stderrTampered, 'tampered-stderr');
   assert.equal(stderrTamperedReview.status, 2);
   assert.match(stderrTamperedReview.stderr, /stderr digest mismatch/u);
+
+  const traceTampered = cloneCollection(unreviewedManifestPath, 'tampered-trace');
+  fs.appendFileSync(path.join(traceTampered.directory, traceTampered.manifest.runs[0].traceRef), '{}\n');
+  const traceTamperedReview = passReviewFor(traceTampered, 'tampered-trace');
+  assert.equal(traceTamperedReview.status, 2);
+  assert.match(traceTamperedReview.stderr, /trace digest mismatch/u);
+
+  const toolProjectionTampered = cloneCollection(unreviewedManifestPath, 'tampered-tool-projection', (candidate) => {
+    candidate.runs[0].toolEvidence.uses.push({ id: 'forged', name: 'Read', input: { file_path: 'forged' } });
+  });
+  const toolProjectionTamperedReview = passReviewFor(toolProjectionTampered, 'tampered-tool-projection');
+  assert.equal(toolProjectionTamperedReview.status, 2);
+  assert.match(toolProjectionTamperedReview.stderr, /trace projection mismatch/u);
 
   const traversal = cloneCollection(unreviewedManifestPath, 'traversal-ref', (candidate) => {
     candidate.runs[0].stdoutRef = '../escape.txt';
