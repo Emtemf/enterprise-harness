@@ -232,7 +232,8 @@ function validateProcessOutcome(entry) {
     && ((Number.isInteger(entry.exitCode) && entry.exitCode !== 0 && entry.signal === null)
       || (entry.exitCode === null && typeof entry.signal === 'string' && entry.signal.length > 0));
   const timeout = entry.processStatus === 'timeout'
-    && entry.exitCode === null && typeof entry.signal === 'string' && entry.signal.length > 0
+    && ((entry.exitCode === null && typeof entry.signal === 'string' && entry.signal.length > 0)
+      || (entry.exitCode === 143 && entry.signal === null))
     && entry.timedOut === true;
   if (!completed && !nonzeroExit && !timeout) {
     throw new Error(`${entry.runId} process outcome metadata is inconsistent`);

@@ -5,6 +5,8 @@ Clarify behavioral eval 定义位于 `test/skill-evals/harness/evals.json`。静
 检查 exact argv，再移除 `--dry-run`。Runner 分别采集 no-guidance control 与 with-skill，每组至少 5 次 fresh
 无 session 进程；逐次进度、timeout/exit 和原始输出写到被忽略的 `test/skill-evals/harness/results/`，scoring
 manifest 把每份输出绑定 assertions/forbidden。进程成功不代表行为通过，必须人工核读并填写 verdict。
+timeout 可由平台记录为 `exitCode=null + signal`，也可由进程处理 `SIGTERM` 后记录为
+`exitCode=143 + signal=null`；两者都必须同时带 `processStatus=timeout` 与 `timedOut=true`，且 verdict 只能是 fail。
 Control 固定使用 `--safe-mode --disable-slash-commands --setting-sources ""`；with-skill 使用
 `--setting-sources "" --plugin-dir <checkout>` 且只允许该一个 plugin-dir。两组 cwd 都是 checkout 外的临时目录，
 采集后保留实际隔离 workspace 直到 manual review；review 验证 ownership marker 与每次 cwd 后再事务化清理，manifest 保留 isolation argv、临时 cwd、review-bound cleanup 状态与 receipt。

@@ -27,6 +27,10 @@ fs.writeFileSync(fakeClaude, `#!/usr/bin/env node
 const mode = process.env.EH_FAKE_CLAUDE_MODE || 'success';
 if (process.argv.slice(2).includes('--version')) process.stdout.write('2.1.245 (Claude Code)\\n');
 else if (mode === 'hang') setInterval(() => {}, 1000);
+else if (mode === 'hang-exit143') {
+  process.on('SIGTERM', () => process.exit(143));
+  setInterval(() => {}, 1000);
+}
 else {
   const fs = require('node:fs');
   const path = require('node:path');
@@ -589,6 +593,33 @@ try {
     '--record-review', timedManifest.manifestPath, '--review-file', timedPassReview,
   ]).status, 2, 'timeout runs cannot receive pass verdicts');
   assert.match(timed.stderr, /status=timeout/u);
+
+  const timedExit143Dir = path.join(sandbox, 'timed-exit143');
+  const timedExit143 = run([
+    '--case', 'question-must-be-pre-authorized', '--variant', 'with-skill',
+    '--reps', '5', '--timeout-ms', '50', '--results-dir', timedExit143Dir,
+  ], 'hang-exit143');
+  assert.equal(timedExit143.status, 1);
+  const timedExit143Manifest = onlyManifest(timedExit143Dir);
+  assert.ok(timedExit143Manifest.runs.every(({ processStatus, exitCode, signal, timedOut }) => (
+    processStatus === 'timeout' && exitCode === 143 && signal === null && timedOut === true
+  )), 'collector must preserve a timeout process that handles SIGTERM by exiting 143');
+  const timedExit143PassReview = path.join(sandbox, 'timed-exit143-pass-review.json');
+  writeReviewInput(timedExit143PassReview, timedExit143Manifest);
+  assert.equal(run([
+    '--record-review', timedExit143Manifest.manifestPath, '--review-file', timedExit143PassReview,
+  ]).status, 2, 'an exit-143 timeout must never receive a pass verdict');
+  const timedExit143Review = path.join(sandbox, 'timed-exit143-review.json');
+  writeReviewInput(timedExit143Review, timedExit143Manifest, 'fail', () => 'fail');
+  const recordedTimedExit143 = run([
+    '--record-review', timedExit143Manifest.manifestPath, '--review-file', timedExit143Review,
+  ]);
+  assert.equal(recordedTimedExit143.status, 0,
+    `collector-produced exit-143 timeout must remain reviewable as fail: ${recordedTimedExit143.stderr}`);
+  assert.equal(
+    JSON.parse(fs.readFileSync(timedExit143Manifest.manifestPath, 'utf-8')).workspace.cleanupStatus,
+    'removed-after-review',
+  );
 
   const shapeFailedDir = path.join(sandbox, 'shape-failed');
   assert.equal(run([
