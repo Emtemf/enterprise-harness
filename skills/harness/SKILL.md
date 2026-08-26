@@ -32,7 +32,7 @@ R→[research](references/clarify-research.md)；D/`decisions`→[decisions](ref
 
 Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, `clarifyReadiness.route`, and `clarifyTransitionReady=clarifyReadiness.transitionReady`. Do not infer a missing value from chat, memory, or a reference example.
 
-A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck. If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
+A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck；命令必须逐字使用所选 reference 已记录的 exact argv，不得合成 shorthand。If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
 
 用户明确要求 report-only/read-only 时，只读取 snapshot 与所选 phase reference，输出上述 action envelope 后结束；不得执行 action 或读取其 input refs、assets、supporting references。
 

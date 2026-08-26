@@ -107,6 +107,7 @@ assert.match(skill, /路由是 runtime 派生值.*不在模型中重算布尔表
 assert.match(skill, /clarifyReadiness\.route.*research\|decisions\|completion\|transition/isu);
 assert.match(skill, /链接相对当前 SKILL\/reference 文件解析.*绝不相对项目 cwd/isu);
 assert.match(skill, /report-only\/read-only.*snapshot.*所选 phase reference.*不得执行 action.*input refs、assets、supporting references/isu);
+assert.match(skill, /命令必须逐字使用所选 reference.*exact argv.*不得合成 shorthand/isu);
 assert.doesNotMatch(skill, /\b[RDCTWV]\s*=|stageClarify\s*=|postClarifyStage\s*=/u,
   'the model-facing controller must not recompute runtime route predicates');
 assert.match(skill, /R.*references\/clarify-research\.md.*decisions.*references\/clarify-decisions\.md.*completion.*references\/clarify-completion\.md.*W.*references\/behavior-map\.md.*transition.*references\/stage-decisions\.md/isu);
