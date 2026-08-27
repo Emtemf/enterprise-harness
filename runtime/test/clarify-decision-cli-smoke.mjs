@@ -18,6 +18,7 @@ import {
 } from '../core/clarify-assessments.mjs';
 import { classificationArtifactPath } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -67,13 +68,17 @@ try {
   });
   const requirementsRef = `harness/changes/${changeId}/requirements.md`;
   fs.writeFileSync(path.join(root, requirementsRef), [
-    '# Requirements', '', '## 事实探索门禁',
+    '# Requirements', '', '## 目标与验收', '### 原始需求',
+    'Classify a CLI fixture change.', '### 澄清后的目标', 'Classify the current fixture.',
+    '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
     '| code | no | none | none | none | not-required | No repository behavior is in scope. |',
     '| docs | no | none | none | none | not-required | No external contract is in scope. |',
     '- remaining fact uncertainty: none', '',
   ].join('\n'));
+  recordPromptReceipt(root, { session_id: 'clarify-cli-prompt', prompt: 'Classify a CLI fixture change.' });
+  bindLatestPromptReceipt(root, changeId, 'clarify-cli-prompt');
   const requirementsDigest = sha256Artifact(root, requirementsRef);
 
   const laneId = 'lane-code';
@@ -115,7 +120,9 @@ try {
   assert.equal(stale.status, 2);
   assert.match(stale.stderr, /EH-DECISION-STALE-146/u);
   fs.writeFileSync(path.join(root, requirementsRef), [
-    '# Requirements', '', '## 事实探索门禁',
+    '# Requirements', '', '## 目标与验收', '### 原始需求',
+    'Classify a CLI fixture change.', '### 澄清后的目标', 'Classify the current fixture.',
+    '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
     '| code | no | none | none | none | not-required | No repository behavior is in scope. |',

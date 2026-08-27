@@ -5,6 +5,7 @@ import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 export function approvedRequirements() {
   const predicates = {
@@ -53,7 +54,12 @@ export function approvedRequirements() {
 export function prepareClassifiedClarify(root, changeId) {
   const dir = path.join(root, 'harness', 'changes', changeId);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'requirements.md'), approvedRequirements());
+  const requirements = approvedRequirements();
+  fs.writeFileSync(path.join(dir, 'requirements.md'), requirements);
+  const rawRequest = requirements.match(/### 原始需求\n([\s\S]*?)\n### 澄清后的目标/u)?.[1] || '';
+  const sessionId = `fixture-${changeId}`;
+  recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
+  bindLatestPromptReceipt(root, changeId, sessionId);
   const classification = writeClassificationV2Fixture(root, changeId, { tier: 'L1' });
   fs.writeFileSync(path.join(dir, 'state.json'), `${JSON.stringify({
     schemaVersion: 6, revision: 1, changeId, lifecycle: 'active', stage: 'clarify',

@@ -8,6 +8,7 @@ import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/h
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -214,6 +215,23 @@ function requirements(overrides = {}) {
 
 try {
   fs.mkdirSync(changeDir, { recursive: true });
+  const promptSessionId = 'clarify-stage-prompt';
+  recordPromptReceipt(root, {
+    session_id: promptSessionId,
+    prompt: [
+      '构建可恢复的订单取消流程。',
+      '想做个简单的登陆',
+      '想做个简单的登录',
+      'Please add sign-in.',
+      '增加用户认证。',
+      '登录',
+      '## 目标与验收',
+      '隐藏认证需求',
+      '### Background',
+      '- scope confirmed：true',
+    ].join('\n'),
+  });
+  bindLatestPromptReceipt(root, changeId, promptSessionId);
   fs.mkdirSync(path.join(root, path.dirname(briefRef)), { recursive: true });
   fs.writeFileSync(path.join(root, briefRef), '# Research Brief\n\nInspect cancellation symbols.\n');
   const research = createHandoffV2(root, {
@@ -544,7 +562,7 @@ try {
     ['research JSON key is not a fact', requirements({ researchClaim: 'claim' }), /exactly match a fact claim/u],
     ['sign-in alias requires auth surfaces', requirements({ rawPreamble: 'Please add sign-in.' }), /authentication decision surfaces/u],
     ['Chinese auth alias requires auth surfaces', requirements({ rawPreamble: '增加用户认证。' }), /authentication decision surfaces/u],
-    ['duplicate goal heading injection', requirements({ rawPreamble: '登录\n## 目标与验收\n隐藏认证需求' }), /exactly one ## 目标与验收 heading/u],
+    ['duplicate goal heading injection', requirements({ rawPreamble: '登录\n## 目标与验收\n隐藏认证需求' }), /bound UserPromptSubmit host receipt|exactly one ## 目标与验收 heading/u],
     ['level-3 heading cannot hide authentication', requirements({ rawPreamble: '### Background\nPlease add sign-in.' }), /unescaped level-3 heading|authentication decision surfaces/u],
     ['missing gap classification', requirements({ gapType: '' }), /Gap type must be Fact, Decision, or resolved/u],
     ['unconfirmed topology', requirements({ topologyConfirmed: 'false' }), /topology confirmed: true/u],

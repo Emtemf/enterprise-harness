@@ -8,7 +8,7 @@ import { validateTaskRunLauncher } from '../task-run-authorization.mjs';
 import { boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
-import { changeTransactionInProgress } from '../state-store.mjs';
+import { acquireChangeWriteLease } from '../state-store.mjs';
 
 const UNENGAGED_HARNESS_REASONS = new Set([
   'missing-session-binding',
@@ -20,13 +20,6 @@ export function preWrite({ root, event }) {
   if (dedupGuard('pre-write', event.tool_use_id, event.cwd)) return { exitCode: 0 };
 
   const activeForRunner = loadHookChange(root, event);
-  if (activeForRunner.ok && changeTransactionInProgress(root, activeForRunner.changeId)) {
-    return block(
-      root,
-      `EH-CHANGE-TRANSACTION-150 ${activeForRunner.changeId} 正在发布并校验阶段证据；本次写入必须在 transition 完成后重试。`,
-      activeForRunner,
-    );
-  }
   const agentId = String(event.agent_id || '').trim();
   const v6Implementer = activeForRunner.ok
     && activeForRunner.data?.schemaVersion === 6
@@ -67,7 +60,7 @@ export function preWrite({ root, event }) {
     } catch (error) {
       return block(root, `EH-HOOK-SNAPSHOT-010 无法建立 task-run 写入前快照：${error.message}`);
     }
-    return { exitCode: 0 };
+    return allowWithLease(root, event, activeForRunner);
   }
 
   if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
@@ -119,7 +112,19 @@ export function preWrite({ root, event }) {
         `静态阶段链未通过验证（${stageGate.reason}）。先运行: enterprise-harness validate ${active.changeId}`, active);
     }
   }
-  return { exitCode: 0 };
+  return allowWithLease(root, event, activeForRunner);
+}
+
+function allowWithLease(root, event, active) {
+  if (!active?.ok) return { exitCode: 0 };
+  try {
+    acquireChangeWriteLease(root, active.changeId, event.tool_use_id, {
+      sessionId: event.session_id,
+    });
+    return { exitCode: 0 };
+  } catch (error) {
+    return block(root, error.message, active);
+  }
 }
 
 function activeChangeRecovery(active) {

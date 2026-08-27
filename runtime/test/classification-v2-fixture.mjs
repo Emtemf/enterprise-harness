@@ -15,6 +15,11 @@ import {
 import { classifyClarify, writeClassificationArtifact } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
+import {
+  bindLatestPromptReceipt,
+  readPromptBinding,
+  recordPromptReceipt,
+} from '../lib/prompt-receipts.mjs';
 
 const TIER_VALUES = Object.freeze({
   L0: [0, 0, 1, 0],
@@ -62,7 +67,25 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
   const requirementsPath = path.join(root, requirementsRef);
   fs.mkdirSync(path.dirname(requirementsPath), { recursive: true });
   if (!fs.existsSync(requirementsPath)) fs.writeFileSync(requirementsPath, '# Requirements\n', 'utf-8');
-  const requirements = fs.readFileSync(requirementsPath, 'utf-8');
+  let requirements = fs.readFileSync(requirementsPath, 'utf-8');
+  if (!requirements.includes('### 原始需求')) {
+    fs.appendFileSync(requirementsPath, [
+      '',
+      '## 目标与验收',
+      '### 原始需求',
+      `Fixture request for ${changeId}`,
+      '### 澄清后的目标',
+      `Exercise ${changeId}.`,
+      '',
+    ].join('\n'));
+    requirements = fs.readFileSync(requirementsPath, 'utf-8');
+  }
+  if (!readPromptBinding(root, changeId)) {
+    const rawRequest = requirements.match(/### 原始需求\n([\s\S]*?)\n### 澄清后的目标/u)?.[1] || '';
+    const sessionId = `fixture-${changeId}`;
+    recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
+    bindLatestPromptReceipt(root, changeId, sessionId);
+  }
   if (!requirements.includes('## 事实探索门禁')) {
     fs.appendFileSync(requirementsPath, [
       '',

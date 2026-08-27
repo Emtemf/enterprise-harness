@@ -256,7 +256,19 @@ export function sealClarifyDecisionSnapshot(root, changeId, eventIds) {
         const historyAbsolutePath = resolveDecisionTarget(
           root, changeId, historyRelativePath, 'clarify decision snapshot history', { createParent: true },
         );
-        if (!fs.existsSync(historyAbsolutePath)) atomicWriteJson(historyAbsolutePath, previous);
+        if (fs.existsSync(historyAbsolutePath)) {
+          let archived;
+          try {
+            archived = JSON.parse(fs.readFileSync(historyAbsolutePath, 'utf-8'));
+          } catch (error) {
+            throw new Error(`EH-DECISION-SNAPSHOT-105: invalid immutable history at ${historyRelativePath}: ${error.message}`);
+          }
+          if (JSON.stringify(archived) !== JSON.stringify(previous)) {
+            throw new Error(`EH-DECISION-SNAPSHOT-105: immutable history conflicts at ${historyRelativePath}`);
+          }
+        } else {
+          writeExclusiveSnapshot(root, changeId, historyRelativePath, previous);
+        }
         atomicWriteJson(snapshotAbsolutePath, snapshot);
       } else {
         writeExclusiveSnapshot(root, changeId, snapshotRelativePath, snapshot);

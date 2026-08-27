@@ -1,13 +1,15 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-26
+lastVerified: 2026-08-27
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
   - runtime/lib/hooks/
   - runtime/lib/hook-health.mjs
   - runtime/lib/sessions.mjs
+  - runtime/lib/prompt-receipts.mjs
+  - runtime/lib/state-store.mjs
   - runtime/lib/change-locks.mjs
 testRefs:
   - runtime/test/hook-manifest-parity-smoke.mjs
@@ -18,6 +20,8 @@ testRefs:
   - runtime/test/hook-health-lifecycle-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/pre-write-governed-target-smoke.mjs
+  - runtime/test/change-transaction-lease-smoke.mjs
+  - runtime/test/user-prompt-receipt-hook-smoke.mjs
   - runtime/test/stop-terminal-fallback-smoke.mjs
 ---
 
@@ -34,6 +38,7 @@ released controller path.
 Hooks may only perform host-boundary mechanics:
 
 - SessionStart health/lease initialization and recovery guidance;
+- UserPromptSubmit request-digest capture without retaining prompt text;
 - one-retry validation of the exact five-line Clarify fact-gate fallback when an explicitly
   invoked Harness turn is unable to execute research in Plan mode;
 - synchronous path/policy guards for governed `Write`/`Edit`/`NotebookEdit` operations;
@@ -51,10 +56,12 @@ test, and API roots. Once a session binding or legacy active change exists, unre
 expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
 file is not equivalent to an absent binding.
 
-While a lifecycle transition holds the per-change transaction lock, PreToolUse rejects every
-hook-mediated write with `EH-CHANGE-TRANSACTION-150`. Runtime decision, assessment,
-classification, and handoff-result writers acquire the same lock, so proof revalidation and the
-state CAS cannot race a supported authority write.
+An allowed write acquires a per-change shared lease in PreToolUse and keeps it until the matching
+PostToolUse or PostToolUseFailure. A lifecycle transition and every runtime decision, assessment,
+classification, and handoff-result writer acquire the exclusive transaction only when no shared
+write lease exists. Both paths serialize through the same coordinator, so authorization cannot
+race proof revalidation or the state CAS. `EH-CHANGE-TRANSACTION-150` identifies an active
+exclusive transaction and `EH-CHANGE-WRITE-LEASE-151` identifies an in-flight host write.
 
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
@@ -85,6 +92,11 @@ not create a false worktree conflict. `workflow status --json`
 reports the bound changeId and the supported `start-change <same-change-id>` recovery action.
 Changing to a different binding requires inspection and explicit user authorization before
 `sessions unbind`. A lease is operational coordination, not completion evidence.
+
+Filesystem locks carry owner PID, host, token, and acquisition time. A later operation
+automatically quarantines a lock owned by a dead local process; a live owner is never removed.
+Write-tool leases are bounded and matching PostToolUse success/failure releases them. This is the
+supported crash-recovery path; users do not delete lock directories manually.
 
 ## Native worktrees
 

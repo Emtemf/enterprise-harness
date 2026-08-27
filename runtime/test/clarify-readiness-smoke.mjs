@@ -14,6 +14,7 @@ import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } 
 import { writeDebtAssessment, writeProjectContractAssessment } from '../core/clarify-assessments.mjs';
 import { pendingQuestionPath } from '../core/clarify-question.mjs';
 import { resolveStageCompletionCandidate, stageCompletionFor } from '../lib/stage-results.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -239,12 +240,14 @@ try {
     targetRef: `${selfAuthoredRef}#fact-lane-${lane}#sha256=${requirementsDigest}`,
     questionId: `self-authored-${lane}-question`, options: ['required', 'not-required'],
     recommendedOption: 'not-required', selectedOption: 'not-required', publicRationale: 'Main self-authorizes.',
-    evidenceRefs: [sideRef], inputDigests: { [sideRef]: sideDigest }, recordedAt: '2026-08-25T00:00:00.000Z',
+    evidenceRefs: [selfAuthoredRef, sideRef],
+    inputDigests: { [selfAuthoredRef]: requirementsDigest, [sideRef]: sideDigest },
+    recordedAt: '2026-08-25T00:00:00.000Z',
   });
   const selfAuthored = buildClarifyReadiness(root, selfAuthoredId);
   assert.equal(selfAuthored.route, 'research');
   assert.equal(selfAuthored.items.find(({ id }) => id === 'required-research-fresh').status, 'blocked',
-    'a main-authored side file cannot prove lane applicability');
+    'main-authored requirements plus a side file cannot replace a host-attested user request');
 
   const lowInfoId = 'readiness-low-information';
   const lowInfoRef = `harness/changes/${lowInfoId}/requirements.md`;
@@ -265,6 +268,8 @@ try {
     '- unresolved high-risk assumption: none', '## 未决决策与确认', '- unresolved high-risk decision: none',
     '- scope confirmed: true', '',
   ].join('\n'));
+  recordPromptReceipt(root, { session_id: `fixture-${lowInfoId}`, prompt: 'x' });
+  bindLatestPromptReceipt(root, lowInfoId, `fixture-${lowInfoId}`);
   appendLaneApplicabilityFixture(root, lowInfoId, lowInfoRef);
   const lowInfo = buildClarifyReadiness(root, lowInfoId);
   assert.deepEqual(lowInfo.items.slice(0, 5).map(({ status }) => status), [
@@ -314,6 +319,13 @@ try {
   ].join('\n');
   const writeProgressiveRequirements = (options = {}) => {
     fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText(options));
+    if (!fs.existsSync(path.join(root, '.git', 'enterprise-harness', 'prompt-receipts', 'bindings', `${progressiveId}.json`))) {
+      recordPromptReceipt(root, {
+        session_id: `fixture-${progressiveId}`,
+        prompt: progressiveEvidence.map(({ claim }) => claim).join('；'),
+      });
+      bindLatestPromptReceipt(root, progressiveId, `fixture-${progressiveId}`);
+    }
     appendLaneApplicabilityFixture(root, progressiveId, progressiveRequirementsRef, {
       code: 'required', docs: 'not-required',
     });

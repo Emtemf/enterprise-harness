@@ -14,7 +14,11 @@ import {
 import { canonicalPath, pathIsWithin } from '../safe-paths.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
-import { atomicWriteJson } from '../state-store.mjs';
+import {
+  atomicWriteJson,
+  releaseChangeWriteLease,
+  withChangeWriteLeaseUpgrade,
+} from '../state-store.mjs';
 import { updateChangeState } from '../../core/change-state.mjs';
 
 export function markValidationStaleForWrite(root, statePath, target) {
@@ -43,7 +47,33 @@ export function markValidationStaleForWrite(root, statePath, target) {
   return next;
 }
 
+export function releaseHookWriteLease(root, event) {
+  if (!event?.tool_use_id) return false;
+  const active = loadHookChange(root, event);
+  if (!active.ok) return false;
+  return releaseChangeWriteLease(root, active.changeId, event.tool_use_id);
+}
+
 export function postWrite({ root, raw, event: inputEvent = null }) {
+  const active = inputEvent ? loadHookChange(root, inputEvent) : null;
+  try {
+    if (active?.ok && inputEvent?.tool_use_id) {
+      return withChangeWriteLeaseUpgrade(root, active.changeId, inputEvent.tool_use_id, () => (
+        postWriteCore({ root, raw, event: inputEvent })
+      ));
+    }
+    return postWriteCore({ root, raw, event: inputEvent });
+  } finally {
+    try {
+      releaseHookWriteLease(root, inputEvent);
+    } catch {
+      // A failed release is recovered by the bounded lease expiry. Preserve the
+      // primary PostToolUse verdict instead of masking it with cleanup noise.
+    }
+  }
+}
+
+function postWriteCore({ root, raw, event: inputEvent = null }) {
   if (!isHarnessManaged(root) && !hasChangeTracking(root)) return { status: 'allow', exitCode: 0 };
   if (!raw) return { status: 'allow', exitCode: 0 };
 

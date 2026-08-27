@@ -6,9 +6,11 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { bindSession } from '../lib/sessions.mjs';
+import { withChangeTransaction } from '../lib/state-store.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preWritePath = path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs');
+const postWritePath = path.join(repoRoot, 'hooks', 'scripts', 'post-write.mjs');
 const validatePath = path.join(repoRoot, 'runtime', 'validate.mjs');
 const mode = process.argv[2];
 
@@ -63,15 +65,31 @@ function bindFixtureSession(tempRoot, sessionId, changeId, overrides = {}) {
   }, { commonDir: path.join(tempRoot, '.git') });
 }
 
+let toolUseSequence = 0;
 function runPreWrite(tempRoot, filePath, { sessionId = null, toolName = 'Write' } = {}) {
   const pathField = toolName === 'NotebookEdit' ? 'notebook_path' : 'file_path';
-  return spawnSync('node', [preWritePath], {
+  const toolUseId = `pre-write-fixture-${toolUseSequence += 1}`;
+  const result = spawnSync('node', [preWritePath], {
     cwd: tempRoot,
     encoding: 'utf-8',
     input: JSON.stringify({
       tool_name: toolName,
+      tool_use_id: toolUseId,
       tool_input: { [pathField]: filePath },
       ...(sessionId ? { session_id: sessionId } : {}),
+    }),
+  });
+  return Object.assign(result, { toolUseId });
+}
+
+function runPostWrite(tempRoot, filePath, toolUseId) {
+  return spawnSync('node', [postWritePath], {
+    cwd: tempRoot,
+    encoding: 'utf-8',
+    input: JSON.stringify({
+      tool_name: 'Write',
+      tool_use_id: toolUseId,
+      tool_input: { file_path: filePath },
     }),
   });
 }
@@ -431,6 +449,23 @@ check('X: a change transaction blocks direct hook-mediated writes', () => {
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
     assert.match(result.stderr, /EH-CHANGE-TRANSACTION-150/u);
+  });
+});
+
+check('Y: PreToolUse lease excludes transition until matching PostToolUse', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const target = path.join(tempRoot, 'scripts', 'notes.txt');
+    writeText(target, 'fixture\n');
+    const pre = runPreWrite(tempRoot, target);
+    assert.equal(pre.status, 0, `expected PreToolUse allow, got ${pre.status}; stderr=${pre.stderr}`);
+    assert.throws(
+      () => withChangeTransaction(tempRoot, 'fixture-change', () => 'must-not-run'),
+      /EH-CHANGE-WRITE-LEASE-151/u,
+    );
+    const post = runPostWrite(tempRoot, target, pre.toolUseId);
+    assert.equal(post.status, 0, `expected PostToolUse release, got ${post.status}; stderr=${post.stderr}`);
+    assert.equal(withChangeTransaction(tempRoot, 'fixture-change', () => 'committed'), 'committed');
   });
 });
 

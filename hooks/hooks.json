@@ -12,6 +12,18 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/user-prompt-receipt.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录用户请求摘要凭据"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "hooks": [
@@ -129,6 +141,17 @@
       }
     ],
     "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-write-release.mjs\"",
+            "timeout": 10,
+            "statusMessage": "释放失败写入的治理租约"
+          }
+        ],
+        "matcher": "Write|Edit|NotebookEdit|Bash"
+      },
       {
         "hooks": [
           {

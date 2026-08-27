@@ -19,6 +19,7 @@ import {
 } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -34,6 +35,11 @@ try {
   fs.mkdirSync(path.join(root, path.dirname(snapshotRef)), { recursive: true });
   fs.writeFileSync(path.join(root, requirementsRef), [
     '# Requirements',
+    '## 目标与验收',
+    '### 原始需求',
+    'Classify a bounded fixture change.',
+    '### 澄清后的目标',
+    'Classify the current change.',
     '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
@@ -42,6 +48,8 @@ try {
     '- remaining fact uncertainty: none',
     '',
   ].join('\n'));
+  recordPromptReceipt(root, { session_id: 'classification-v2-prompt', prompt: 'Classify a bounded fixture change.' });
+  bindLatestPromptReceipt(root, changeId, 'classification-v2-prompt');
   appendLaneApplicabilityFixture(root, changeId, requirementsRef);
   appendDecisionEvent(root, changeId, {
     eventVersion: 1,

@@ -118,6 +118,12 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CLARIFY-REVIEW-141` | independent review 未通过 | 发布 passing ReviewResult |
 | `EH-CLARIFY-TECPC-142` | TECPC 未闭合，或 assertion evidence 未被 canonical artifact/TECPC envelope 覆盖 | 清除 correction、补齐 evidence/context 绑定并重新生成 completion result/review |
 | `EH-CLARIFY-PROOF-143` | lifecycle transition 已尝试发布 ClarifyProof，但即时重验失败 | 保持 Clarify，修复报告的 proof 写入/验证失败后重试 transition |
+| `EH-CHANGE-TRANSACTION-150` | change 正在执行独占阶段事务 | 等当前 transition/writer 完成后重试；不要手动删除 lock |
+| `EH-CHANGE-WRITE-LEASE-151` | 仍有已授权的写工具尚未完成 PostToolUse | 等对应工具完成；失败时由 PostToolUseFailure 释放，过期 lease 由 runtime 回收 |
+| `EH-CHANGE-WRITE-LEASE-152` | 写 hook 缺少 Claude Code `tool_use_id` | 检查 hook 输入/宿主版本并重试；不要绕过 PreToolUse |
+| `EH-CHANGE-WRITE-LEASE-153` | 失败写工具的 lease 释放异常 | 运行 `enterprise-harness doctor`，保留错误码与脱敏 hook 输入 |
+| `EH-PROMPT-RECEIPT-154` | 当前 change 没有可绑定的 UserPromptSubmit 摘要凭据 | 在同一 Claude Code session 重新提交真实需求并从 `/harness` 恢复；无需提交完整 prompt |
+| `EH-PROMPT-RECEIPT-155` | change 已绑定另一个用户请求摘要 | 检查 change/session 是否选错；新需求使用新的 change，不手改 binding |
 | `EH-CLARIFY-ROUTE-148` | readiness items 无法派生可信 Clarify route | 重新运行 status，修复缺失、重复或未知状态的 item；不要在模型中猜测 route |
 | `EH-STOP-FALLBACK-149` | Stop hook 无法完成 terminal fact-gate 机械格式校验 | 保留当前回复并重新触发 Stop；校验会 fail open，不能把该错误当成 lifecycle 通过证据 |
 | `EH-DECISION-TARGET-106` | 同一 typed decision target 已有不可变选择 | 复用已有事件；若需求内容已形成新 revision，使用 runtime 生成的新 digest-versioned target，并重新 seal snapshot |

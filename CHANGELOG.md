@@ -15,11 +15,15 @@
 - The Harness Skill registers a lightweight Claude Code Stop hook that corrects only the exact
   five-line Plan-mode fact-gate fallback. The plugin-global Stop hook remains recovery guidance and
   no hook owns routing, requirements, or lifecycle correctness.
+- UserPromptSubmit now records a text-free host receipt so Clarify can bind preserved raw-request
+  clauses without storing conversation content.
 
 ### Security
 
 - Clarify questions are bound to canonical candidate paths and current evidence digests; stale or
   unprepared questions, duplicate decision events, path escape, and symlink escape fail closed.
+- Shared Pre/Post write leases now exclude lifecycle transactions without a TOCTOU gap; dead-owner
+  locks recover automatically, and preoccupied immutable snapshot history fails closed.
 
 ### Notes
 

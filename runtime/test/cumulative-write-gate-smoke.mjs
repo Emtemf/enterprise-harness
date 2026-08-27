@@ -108,11 +108,12 @@ function fixture() {
   return { root, statePath: path.join(changeDir, 'state.json'), planReview: path.join(changeDir, 'reviews/plan-critic.json') };
 }
 
+let hookCallSequence = 0;
 function hookCall(root, event) {
   const { ENTERPRISE_HARNESS_SESSION_ID: _harnessSessionId, CLAUDE_SESSION_ID: _claudeSessionId, ...env } = process.env;
   return spawnSync(process.execPath, [hook], {
     cwd: root,
-    input: JSON.stringify(event),
+    input: JSON.stringify({ tool_use_id: `cumulative-write-${hookCallSequence += 1}`, ...event }),
     encoding: 'utf-8',
     shell: false,
     env,

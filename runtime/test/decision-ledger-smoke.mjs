@@ -204,6 +204,26 @@ try {
   assert.deepEqual(JSON.parse(fs.readFileSync(historyPath, 'utf-8')), sealed,
     'an extended latest snapshot must archive the prior immutable revision');
 
+  const forgedHistoryChange = 'forged-history-ledger';
+  const forgedFirst = eventFor(forgedHistoryChange, 'forged-prefix-1');
+  const forgedSecond = eventFor(forgedHistoryChange, 'forged-prefix-2');
+  appendDecisionEvent(root, forgedHistoryChange, forgedFirst);
+  appendDecisionEvent(root, forgedHistoryChange, forgedSecond);
+  sealClarifyDecisionSnapshot(root, forgedHistoryChange, [forgedFirst.eventId]);
+  const forgedPrevious = readClarifyDecisionSnapshot(root, forgedHistoryChange);
+  const forgedHistoryPath = path.join(
+    root, 'harness', 'changes', forgedHistoryChange, 'evidence', 'decisions', 'snapshots', `${forgedPrevious.prefixDigest}.json`,
+  );
+  fs.mkdirSync(path.dirname(forgedHistoryPath), { recursive: true });
+  fs.writeFileSync(forgedHistoryPath, '{"forged":true}\n', 'utf-8');
+  assert.throws(
+    () => sealClarifyDecisionSnapshot(root, forgedHistoryChange, [forgedFirst.eventId, forgedSecond.eventId]),
+    /EH-DECISION-SNAPSHOT-105/u,
+    'a preoccupied history path must not suppress the real immutable revision',
+  );
+  assert.deepEqual(readClarifyDecisionSnapshot(root, forgedHistoryChange), forgedPrevious,
+    'latest must remain unchanged when immutable history conflicts');
+
   console.log(`PASS decision-ledger ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

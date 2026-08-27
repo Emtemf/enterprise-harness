@@ -6,6 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -96,6 +97,11 @@ try {
 
   fs.writeFileSync(path.join(changeDir, 'requirements.md'), [
     '# Requirements',
+    '## 目标与验收',
+    '### 原始需求',
+    'Decide a bounded fixture without research.',
+    '### 澄清后的目标',
+    'Exercise the decisions route.',
     '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
@@ -105,6 +111,11 @@ try {
     '## 组件拓扑',
     '',
   ].join('\n'));
+  recordPromptReceipt(fixtureRoot, {
+    session_id: 'terminal-route-prompt',
+    prompt: 'Decide a bounded fixture without research.',
+  });
+  bindLatestPromptReceipt(fixtureRoot, changeId, 'terminal-route-prompt');
   appendLaneApplicabilityFixture(
     fixtureRoot,
     changeId,

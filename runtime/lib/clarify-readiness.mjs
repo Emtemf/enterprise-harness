@@ -166,7 +166,7 @@ function requirementsPredicates(content, research) {
     const supports = new Set(supportsValue.split(',').map((item) => item.trim()).filter(Boolean));
     const normalized = normalizedClause(claim);
     const sourceMatches = kind === 'raw-request'
-      ? locator === 'original-request' && originalClauses.has(normalized)
+      ? research?.rawRequestAttested === true && locator === 'original-request' && originalClauses.has(normalized)
       : kind === 'user-decision'
         ? Boolean(locator.match(/^round:(\d+)$/u)?.[1]
           && roundAnswers.get(locator.match(/^round:(\d+)$/u)[1])?.has(normalized))

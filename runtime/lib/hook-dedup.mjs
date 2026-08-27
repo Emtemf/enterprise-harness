@@ -55,6 +55,13 @@ export function stopEventIdentity(event) {
   return `${event.session_id}:${stamp}`;
 }
 
+export function userPromptEventIdentity(event) {
+  if (!event?.session_id) return null;
+  const stamp = transcriptStamp(event);
+  if (!stamp) return null;
+  return `${event.session_id}:${stamp}`;
+}
+
 function transcriptStamp(event) {
   const transcript = event?.transcript_path;
   if (!transcript) return null;

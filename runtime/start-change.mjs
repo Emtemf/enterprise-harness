@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { assertSafeId } from './lib/safe-paths.mjs';
 import { bindSession, readSession, sessionIdFromEnv } from './lib/sessions.mjs';
+import { bindLatestPromptReceipt } from './lib/prompt-receipts.mjs';
 
 const repoRoot = process.cwd();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd。
@@ -65,6 +66,13 @@ console.log(`changeId=${changeId} owner=${owner} tier=${tier}`);
 assertSessionCanBind();
 bindCurrentSession();
 run(['scaffold', changeId, owner, tier, topic]);
+const currentSessionId = sessionIdFromEnv();
+if (currentSessionId) {
+  const promptBinding = bindLatestPromptReceipt(repoRoot, changeId, currentSessionId);
+  if (!promptBinding) {
+    console.error('WARN [EH-PROMPT-RECEIPT-154] 当前 session 没有 UserPromptSubmit receipt；Clarify 在绑定真实用户请求前不会放行。');
+  }
+}
 if (topic && topic !== '-' && topic !== 'none') {
   run(['exploration', changeId, topic]);
 }

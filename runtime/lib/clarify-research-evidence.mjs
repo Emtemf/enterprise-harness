@@ -5,6 +5,7 @@ import { readDecisionEvents } from '../core/decision-ledger.mjs';
 import { trustedHandoffAgentBindings } from './agent-evidence.mjs';
 import { sha256Artifact, validateResearchPacket } from './result-contract.mjs';
 import { assertNoSymlinkComponents, isSafeRelativePath, resolveWithin } from './safe-paths.mjs';
+import { promptBindingCovers } from './prompt-receipts.mjs';
 
 function splitMarkdownRow(line) {
   const cells = [];
@@ -32,6 +33,13 @@ function section(content, heading, nextHeading = '\n## ') {
   return end < 0 ? rest : rest.slice(0, end);
 }
 
+function between(content, startHeading, endHeading) {
+  const start = content.indexOf(startHeading);
+  const end = content.indexOf(endHeading, start + startHeading.length);
+  if (start < 0 || end < 0) return '';
+  return content.slice(start + startHeading.length, end);
+}
+
 function tableRows(content) {
   return content.split('\n')
     .map((line) => line.trim())
@@ -53,6 +61,11 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
   const packetProblems = [];
   const refs = [];
   const packets = [];
+  const rawRequest = between(section(content, '## 目标与验收'), '### 原始需求', '### 澄清后的目标');
+  const rawRequestAttested = promptBindingCovers(root, changeId, rawRequest);
+  if (!rawRequestAttested) {
+    laneProblems.push('requirements original request is not covered by the bound UserPromptSubmit host receipt');
+  }
   let decisionEvents = [];
   try {
     decisionEvents = readDecisionEvents(root, changeId);
@@ -166,5 +179,6 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
     conflictProblems: Object.freeze([...conflictProblems]),
     problems: Object.freeze([...problems]),
     requirementsRef,
+    rawRequestAttested,
   });
 }
