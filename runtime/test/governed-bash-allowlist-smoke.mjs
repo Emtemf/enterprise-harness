@@ -53,11 +53,13 @@ try {
     `find "${path.dirname(leaseDirectory)}" -delete`,
     `python3 "${path.join(root, 'mutate.py')}"`,
     `bash "${path.join(root, 'mutate.sh')}"`,
+    'rg needle .',
     `rg fixture . --pre "rm -rf ${leaseDirectory}"`,
     'git status --short',
     'git diff --stat',
     'git log -1 --oneline',
     'git show --stat HEAD',
+    'git ls-files',
     'git status && rm -rf harness',
     `node "${runtimeCli}" task-run fake-change fake-task fake-run verify`,
     'enterprise-harness task-run fake-change fake-task fake-run verify',
@@ -73,9 +75,8 @@ try {
   for (const [index, command] of [
     'pwd -P',
     'ls -la harness',
-    'rg --files harness',
+    'rg --no-config --files harness',
     'git rev-parse --show-toplevel',
-    'git ls-files',
     `node "${runtimeCli}" status`,
     'enterprise-harness status',
   ].entries()) {
@@ -103,6 +104,22 @@ try {
     bash(`node "${runtimeCli}" doctor --json`, 'corrupt-binding-recovery', 'corrupt-binding').exitCode,
     0,
     'canonical runtime recovery must remain available for a corrupt binding',
+  );
+  for (const [index, command] of [
+    `node "${runtimeCli}" lifecycle scaffold bypass-change`,
+    `node "${runtimeCli}" install --write-local-adapter`,
+    'enterprise-harness sync --json',
+  ].entries()) {
+    assert.equal(
+      bash(command, `corrupt-binding-mutator-${index}`, 'corrupt-binding').exitCode,
+      2,
+      `unresolved binding must not allow non-recovery runtime action: ${command}`,
+    );
+  }
+  assert.equal(
+    bash('enterprise-harness sessions unbind corrupt-binding', 'corrupt-binding-unbind', 'corrupt-binding').exitCode,
+    0,
+    'the current corrupt session may invoke its exact unbind recovery command',
   );
 
   bindSession(root, {

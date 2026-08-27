@@ -14,7 +14,7 @@ const TRUSTED_RUNTIME_SCRIPTS = new Map([
   ['${CLAUDE_SKILL_DIR}/../../runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
   ['${CLAUDE_PLUGIN_ROOT}/bin/enterprise-harness.mjs', path.join(pluginRoot, 'bin', 'enterprise-harness.mjs')],
 ]);
-const READ_ONLY_GIT_COMMANDS = new Set(['rev-parse', 'ls-files']);
+const READ_ONLY_GIT_COMMANDS = new Set(['rev-parse']);
 const FORBIDDEN_READ_FLAGS = /^(?:--output(?:=|$)|--ext-diff$|--textconv$|--exec(?:=|$)|--pre(?:=|$)|--hostname-bin(?:=|$))/u;
 
 export function tokenizeGovernedBash(command) {
@@ -55,17 +55,20 @@ function trustedRuntimeScript(root, cwd, value) {
 
 function runtimeCommandKind(root, cwd, tokens) {
   if (tokens[0] === 'enterprise-harness' && tokens.length >= 2) {
-    return tokens[1] === 'task-run' ? 'task-run' : 'runtime';
+    return { kind: tokens[1] === 'task-run' ? 'task-run' : 'runtime', action: tokens[1], args: tokens.slice(2) };
   }
   if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 3) return null;
   if (!trustedRuntimeScript(root, cwd, tokens[1])) return null;
-  return tokens[2] === 'task-run' ? 'task-run' : 'runtime';
+  return { kind: tokens[2] === 'task-run' ? 'task-run' : 'runtime', action: tokens[2], args: tokens.slice(3) };
 }
 
 function isReadOnlyDiagnostic(tokens) {
   if (tokens[0] === 'pwd') return tokens.slice(1).every((token) => ['-L', '-P'].includes(token));
   if (tokens[0] === 'ls') return tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
-  if (tokens[0] === 'rg') return tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
+  if (tokens[0] === 'rg') {
+    return tokens.includes('--no-config')
+      && tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
+  }
   if (tokens[0] !== 'git' || !READ_ONLY_GIT_COMMANDS.has(tokens[1])) return false;
   return tokens.slice(2).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
 }
@@ -73,9 +76,9 @@ function isReadOnlyDiagnostic(tokens) {
 export function classifyGovernedBash(root, command, cwd = root) {
   const tokens = tokenizeGovernedBash(command);
   if (!tokens) return { allowed: false, kind: 'denied' };
-  const runtimeKind = runtimeCommandKind(root, cwd, tokens);
-  if (runtimeKind === 'task-run') return { allowed: false, kind: 'task-run' };
-  if (runtimeKind === 'runtime') return { allowed: true, kind: 'runtime' };
+  const runtime = runtimeCommandKind(root, cwd, tokens);
+  if (runtime?.kind === 'task-run') return { allowed: false, ...runtime };
+  if (runtime?.kind === 'runtime') return { allowed: true, ...runtime };
   if (isReadOnlyDiagnostic(tokens)) return { allowed: true, kind: 'read-only' };
   return { allowed: false, kind: 'denied' };
 }

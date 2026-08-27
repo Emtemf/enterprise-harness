@@ -83,7 +83,9 @@ export function preWrite({ root, event }) {
   if (event.tool_name === 'Bash' && !activeForRunner.ok
       && !UNENGAGED_HARNESS_REASONS.has(activeForRunner.reason)) {
     const governed = classifyGovernedBash(root, event.tool_input?.command, event.cwd || root);
-    if (governed.allowed) return { exitCode: 0 };
+    if (governed.kind === 'read-only' || recoveryRuntimeAllowed(governed, activeForRunner, event)) {
+      return { exitCode: 0 };
+    }
     return block(root, activeChangeRecovery(activeForRunner), activeForRunner);
   }
 
@@ -141,6 +143,30 @@ export function preWrite({ root, event }) {
     }
   }
   return allowWithLease(root, event, activeForRunner);
+}
+
+function recoveryRuntimeAllowed(governed, active, event) {
+  if (!governed.allowed || governed.kind !== 'runtime') return false;
+  if (['doctor', 'doctor-hooks'].includes(governed.action)) {
+    return governed.args.length === 0
+      || (governed.args.length === 1 && governed.args[0] === '--json');
+  }
+  if (governed.action === 'status') {
+    return governed.args.length === 0
+      || (governed.args.length === 1 && governed.args[0] === '--json');
+  }
+  if (governed.action === 'start-change') {
+    return Boolean(active.changeId)
+      && governed.args.length === 1
+      && governed.args[0] === active.changeId;
+  }
+  if (governed.action === 'sessions') {
+    const [operation, sessionId, ...rest] = governed.args;
+    return ['show', 'unbind'].includes(operation)
+      && rest.length === 0
+      && (!sessionId || sessionId === active.sessionId || sessionId === event.session_id);
+  }
+  return false;
 }
 
 function allowWithLease(root, event, active) {

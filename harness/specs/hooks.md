@@ -60,7 +60,8 @@ Write/Edit, and only the bound implementer may launch canonical task-run. Runtim
 manage their own transaction; read-only diagnostics acquire no write lease. This prevents
 equivalent interpreter or utility spellings from deleting hook/runtime coordination while a
 write lease is active. Git commands that can invoke configured fsmonitor, textconv, diff, pager,
-or hook programs are not in the allowlist; only non-extensible plumbing queries are admitted.
+or hook programs are not in the allowlist; only non-extensible plumbing queries are admitted,
+and `rg` must opt out of environment-supplied configuration with `--no-config`.
 Generic runtime classification never authorizes `task-run`. Direct writes to the git-common-dir
 runtime root are always blocked.
 
@@ -70,8 +71,10 @@ Governed-write enforcement is session-scoped and opt-in. A hook event with no se
 test, and API roots. Once a session binding or legacy active change exists, unresolved state,
 expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
 file is not equivalent to an absent binding. When binding/state resolution fails, arbitrary Bash
-also remains blocked; only canonical runtime recovery commands and the bounded read-only
-diagnostics remain available.
+also remains blocked; only exact, argument-bounded recovery actions (`doctor`, `doctor-hooks`,
+status, same-change renewal, and current-session show/unbind) plus bounded read-only diagnostics
+remain available. Other canonical runtime mutators do not become recovery commands merely because
+their executable is trusted.
 
 An allowed write acquires a per-change shared lease under the git common directory in PreToolUse and keeps it until the matching
 PostToolUse correctness work has run, or PostToolUseFailure releases it. A lifecycle transition and every runtime decision, assessment,
@@ -111,7 +114,9 @@ Changing to a different binding requires inspection and explicit user authorizat
 `sessions unbind`. A lease is operational coordination, not completion evidence.
 
 Filesystem locks and their acquisition/recovery gates carry owner PID, host, token, and
-acquisition time. A later operation quarantines a target lock owned by a dead local process; in a
+acquisition time. Initial target ownership is written completely to a private sibling file and
+published with an atomic no-replace hard link, so a crash cannot expose an ownerless lock. A later
+operation quarantines a target lock owned by a dead local process; in a
 Git-backed governed workflow, acquisition-gate ownership is replaced only by `update-ref`
 compare-and-swap against the exact observed owner. Contenders therefore cannot remove a newer
 live gate while recovering an older one. Only a provably dead owner on the current host is

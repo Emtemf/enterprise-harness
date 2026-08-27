@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import {
   acquireChangeWriteLease,
   changeTransactionTarget,
   releaseChangeWriteLease,
   withChangeTransaction,
+  withFileLock,
 } from '../lib/state-store.mjs';
 
 const mode = process.argv[2] || 'verify';
@@ -17,6 +19,17 @@ const changeId = 'lease-fixture';
 fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
 
 try {
+  const atomicTarget = path.join(root, 'atomic-publication.json');
+  fs.writeFileSync(`${atomicTarget}.lock.pending.crashed-writer`, '{partial-owner');
+  withFileLock(atomicTarget, () => {
+    const publishedLock = `${atomicTarget}.lock`;
+    assert.equal(fs.statSync(publishedLock).isFile(), true, 'a visible lock must be one complete atomic file');
+    const owner = JSON.parse(fs.readFileSync(publishedLock, 'utf-8'));
+    assert.equal(owner.pid, process.pid);
+    assert.equal(owner.hostname, os.hostname());
+  });
+  assert.equal(fs.existsSync(`${atomicTarget}.lock`), false);
+
   acquireChangeWriteLease(root, changeId, 'tool-write-1', { sessionId: 'session-1' });
   assert.equal(
     changeTransactionTarget(root, changeId).startsWith(path.join(root, 'harness', 'changes')),

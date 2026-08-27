@@ -239,7 +239,12 @@ function lockOwner(token) {
 
 function readLockOwner(lock) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(lock, LOCK_OWNER_FILE), 'utf-8'));
+    const stat = fs.lstatSync(lock);
+    if (stat.isSymbolicLink()) return null;
+    const ownerPath = stat.isDirectory() ? path.join(lock, LOCK_OWNER_FILE) : lock;
+    const ownerStat = fs.lstatSync(ownerPath);
+    if (!ownerStat.isFile() || ownerStat.isSymbolicLink()) return null;
+    return JSON.parse(fs.readFileSync(ownerPath, 'utf-8'));
   } catch {
     return null;
   }
@@ -294,20 +299,23 @@ function acquireOwnedLock(lock, file, token) {
 }
 
 function tryCreateOwnedLock(lock, token) {
-  let directoryCreated = false;
+  const pending = `${lock}.pending.${token}`;
   try {
-    fs.mkdirSync(lock);
-    directoryCreated = true;
     fs.writeFileSync(
-      path.join(lock, LOCK_OWNER_FILE),
+      pending,
       `${JSON.stringify(lockOwner(token), null, 2)}\n`,
       { encoding: 'utf-8', mode: 0o600, flag: 'wx' },
     );
+    // The hard link is an atomic no-replace publication of an already complete
+    // owner record. A crash before link leaves only an ignored pending file; a
+    // crash after link leaves a fully attributable lock.
+    fs.linkSync(pending, lock);
     return true;
   } catch (error) {
-    if (error.code === 'EEXIST' && !directoryCreated) return false;
-    if (directoryCreated) fs.rmSync(lock, { recursive: true, force: true });
+    if (error.code === 'EEXIST') return false;
     throw error;
+  } finally {
+    fs.rmSync(pending, { force: true });
   }
 }
 
