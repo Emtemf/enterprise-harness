@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "enterprise-harness",
-  "version": "0.5.9",
-  "description": "Clarify-first staged workflow, runtime governance, and durable change assets for Claude Code.",
+  "version": "0.5.10",
+  "description": "面向 Claude Code 的澄清优先分阶段工作流、运行时治理与持久化变更制品。",
   "author": {
     "name": "wula"
   },

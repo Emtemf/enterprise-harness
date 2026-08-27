@@ -4,7 +4,16 @@
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-08-27
+
+### Added
+
+- Clarify 状态新增从 Evidence ledger 与 predicate coverage 机械派生的只读歧义指数、组件最低维度分数和高风险未决数，不新增可编辑评分真相源。
+- 新增跨 Design、Plan、Implement、Review、Verify/E2E、Archive 的共享下游坑点与恢复检查清单。
+
 ### Changed
+
+- Skill、插件清单、问题模板和 Clarify 恢复动作改为中文团队入口；机器字段、错误码与既有 durable decision literals 保持兼容。
 
 - Clarify now completes required CodeGraph/Context7 fact lanes before topology or interviewing,
   pre-authorizes one user Decision at a time, durably records public choices, and recomputes the

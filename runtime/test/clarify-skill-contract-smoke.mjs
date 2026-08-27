@@ -22,6 +22,8 @@ for (const relative of Object.values(phaseFiles)) {
 const research = fs.readFileSync(path.join(root, phaseFiles.research), 'utf-8');
 const decisions = fs.readFileSync(path.join(root, phaseFiles.decisions), 'utf-8');
 const completion = fs.readFileSync(path.join(root, phaseFiles.completion), 'utf-8');
+const pitfallsRef = 'skills/harness/references/downstream-pitfalls.md';
+assert.equal(fs.existsSync(path.join(root, pitfallsRef)), true, 'Downstream pitfall reference must exist');
 const questionTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/question-candidate.json.tmpl'),
   'utf-8',
@@ -55,7 +57,29 @@ for (const token of [
   'references/clarify-completion.md',
   'references/output-contract.md',
   'references/clarify-few-shots.md',
+  'references/downstream-pitfalls.md',
 ]) assert.match(skill, new RegExp(escapeRegExp(token), 'u'), `Controller must route to ${token}`);
+
+for (const relative of [
+  'skills/harness/SKILL.md', 'skills/explore-code/SKILL.md', 'skills/research-docs/SKILL.md',
+  'skills/design/SKILL.md', 'skills/plan/SKILL.md', 'skills/implement/SKILL.md',
+  'skills/review/SKILL.md', 'skills/verify/SKILL.md', 'skills/archive/SKILL.md',
+]) {
+  const body = fs.readFileSync(path.join(root, relative), 'utf-8');
+  const description = body.match(/^description:\s*>\n([\s\S]*?)\n(?:user-invocable|context|hooks|---):/mu)?.[1] || '';
+  assert.match(description, /[\u3400-\u9fff]/u, `${relative} description must be Chinese`);
+}
+for (const relative of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'harness/plugin/manifest.json']) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, relative), 'utf-8'));
+  assert.match(manifest.description, /[\u3400-\u9fff]/u, `${relative} description must be Chinese`);
+  if (manifest.plugins) for (const plugin of manifest.plugins) {
+    assert.match(plugin.description, /[\u3400-\u9fff]/u, `${relative} plugin description must be Chinese`);
+  }
+}
+for (const option of questionTemplate.options) {
+  assert.match(option.label, /[\u3400-\u9fff]/u, 'Question option labels must be Chinese');
+  assert.match(option.description, /[\u3400-\u9fff]/u, 'Question option descriptions must be Chinese');
+}
 
 const canonicalQuestionPath = questionCandidatePath('change-id', questionTemplate.questionId);
 assert.ok(

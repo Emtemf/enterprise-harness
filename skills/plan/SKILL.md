@@ -1,8 +1,7 @@
 ---
 name: plan
 description: >
-  Freeze independent, strategy-bound, digest-locked implementation tasks
-  with exact argv and write scope. Use after design is approved.
+  用于 Design 获批后，冻结相互独立、绑定执行策略与摘要锁定的实现任务，并明确 exact argv 和写入范围。
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -60,6 +59,8 @@ Testable），可单独执行、审查、回滚和验证，且写明：
    将结果持久化为 execute run 的 immutable `result.json`。
 4. 由 Main 创建独立 `review` check run。Plan worker 的成功不等于 plan approved；只有
    digest-bound `ReviewResult` 与 runtime CompletionProof 通过后才可进入 implement。
+
+交接前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Plan 行，并把命中项作为 self-check finding 处理。
 
 ## 禁止事项
 

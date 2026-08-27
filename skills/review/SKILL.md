@@ -1,8 +1,7 @@
 ---
 name: review
 description: >
-  Apply independent, digest-bound, runtime-verified review criteria
-  to Harness artifacts and task results. Use after any stage produces a StageResult.
+  用于任一阶段产出 StageResult 后，对 Harness 制品和任务结果执行独立、摘要绑定且经运行时验证的评审。
 user-invocable: false
 context: fork
 agent: enterprise-harness:reviewer
@@ -46,3 +45,5 @@ background: false
 - `references/archive.md`
 
 `ReviewResult` 不是批准词；runtime 只在 result schema、独立性、rubric 选择和 freshness 均通过时放行后续 transition。
+
+给出 verdict 前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Review 行；命中任何未处置项时不得返回 `pass`。

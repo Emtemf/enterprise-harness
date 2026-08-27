@@ -1,7 +1,7 @@
 ---
 name: explore-code
 description: >
-  Use when the harness needs isolated, verifiable code-level facts for clarify, design, or verify.
+  用于 Harness 在 Clarify、Design 或 Verify 阶段需要隔离且可验证的代码级事实时。
 user-invocable: false
 context: fork
 agent: enterprise-harness:code-explore

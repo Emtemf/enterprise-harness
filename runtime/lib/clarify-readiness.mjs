@@ -27,20 +27,20 @@ export const CLARIFY_ITEMS = Object.freeze([
 ]);
 
 const RECOVERIES = Object.freeze({
-  researchLanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: 'Decide applicability for both code and docs research lanes.' },
-  research: { code: 'EH-CLARIFY-RESEARCH-131', action: 'Complete and persist every required ResearchPacket.' },
-  researchConflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: 'Dispose degraded research, conflicts, and remaining fact uncertainty.' },
-  topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: 'Confirm the evidence-derived component topology.' },
-  ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: 'Resolve the weakest evidence-bound ambiguity and recompute requirements.' },
-  question: { code: 'EH-CLARIFY-QUESTION-134', action: 'Resolve the one authorized pending Clarify question.' },
-  decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: 'Seal the ordered Clarify decision-ledger prefix.' },
-  debt: { code: 'EH-CLARIFY-DEBT-136', action: 'Record and validate every applicable technical-debt disposition.' },
-  contract: { code: 'EH-CLARIFY-CONTRACT-137', action: 'Record and validate the project-contract disposition.' },
-  requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: 'Approve and persist the current evidence-derived requirements.' },
-  classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: 'Recompute and persist classification from current authoritative inputs.' },
-  selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: 'Publish a fresh passing Clarify StageResult self-check.' },
-  review: { code: 'EH-CLARIFY-REVIEW-141', action: 'Publish a fresh independent passing Clarify ReviewResult.' },
-  tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
+  researchLanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: '判定代码与外部文档两条研究通道是否适用。' },
+  research: { code: 'EH-CLARIFY-RESEARCH-131', action: '完成并持久化每个必需的 ResearchPacket。' },
+  researchConflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: '处置降级研究、证据冲突和剩余事实不确定性。' },
+  topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: '确认由证据推导出的组件拓扑。' },
+  ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: '解决证据约束下最薄弱的歧义点并重新计算需求。' },
+  question: { code: 'EH-CLARIFY-QUESTION-134', action: '解决当前唯一获准的 Clarify 待回答问题。' },
+  decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: '封存按顺序排列的 Clarify 决策账本前缀。' },
+  debt: { code: 'EH-CLARIFY-DEBT-136', action: '记录并验证每项适用的技术债处置。' },
+  contract: { code: 'EH-CLARIFY-CONTRACT-137', action: '记录并验证项目长期契约处置。' },
+  requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: '批准并持久化当前由证据推导出的需求。' },
+  classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: '根据当前权威输入重新计算并持久化复杂度分类。' },
+  selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: '发布新鲜且通过的 Clarify StageResult 自检结果。' },
+  review: { code: 'EH-CLARIFY-REVIEW-141', action: '发布新鲜、独立且通过的 Clarify ReviewResult。' },
+  tecpc: { code: 'EH-CLARIFY-TECPC-142', action: '完成 Clarify TECPC 闭环，且不得留下待处理纠正项。' },
 });
 
 const CORE_DIMENSIONS = ['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'];
@@ -184,22 +184,71 @@ function requirementsPredicates(content, research) {
     provenance.add(provenanceKey);
     evidence.set(id, { kind, locator, claim, supports });
   }
-  const active = tableRows(topologySection)
+  const active = [...new Set(tableRows(topologySection)
     .filter((cells) => cells[0] !== 'Component' && cells[2]?.toLowerCase() === 'active'
       && cells.length >= 5 && cells[1]?.trim().length >= 8
       && (evidence.has(cells[4]?.trim())
         || (cells[4]?.trim().toLowerCase() === 'user'
           && [...evidence.values()].some(({ kind }) => kind === 'user-decision'))))
-    .map((cells) => cells[0]);
+    .map((cells) => cells[0]))];
   const scoreRows = tableRows(section(content, '## Component × Dimension 评分')).filter((cells) => cells[0] !== 'Component');
+  const componentSummaries = active.map((component) => {
+    let coveredPredicates = 0;
+    const dimensionScores = [];
+    for (const dimension of CORE_DIMENSIONS) {
+      const matches = scoreRows.filter((cells) => cells[0] === component && cells[1] === dimension);
+      if (matches.length !== 1 || matches[0].length !== 9) continue;
+      const [, , , scoreValue, coverageValue, refsValue] = matches[0];
+      const score = scoreValue.trim() === '' ? Number.NaN : Number(scoreValue);
+      if (evidenceValid && Number.isInteger(score) && score >= 0 && score <= 5) dimensionScores.push(score);
+      const coverage = new Set(coverageValue.split(',').map((item) => item.trim()).filter(Boolean));
+      const refs = new Set(refsValue.split(',').map((item) => item.trim()).filter(Boolean));
+      coveredPredicates += READINESS_PREDICATES[dimension].filter((predicate) => {
+        const support = `${component}:${dimension}.${predicate}`;
+        return evidenceValid && coverage.has(predicate)
+          && [...refs].some((ref) => evidence.get(ref)?.supports.has(support));
+      }).length;
+    }
+    const highRiskRows = tableRows(section(content, '## Frontier（component × unresolved dimension）'))
+      .filter((cells) => cells[0] !== 'Priority' && cells[1] === component && /^high$/iu.test(cells[5] || ''));
+    return {
+      component,
+      coveredPredicates,
+      totalPredicates: Object.values(READINESS_PREDICATES).flat().length,
+      minimumDimensionScore: dimensionScores.length === CORE_DIMENSIONS.length ? Math.min(...dimensionScores) : null,
+      unresolvedHighRiskCount: highRiskRows.length,
+    };
+  });
+  const totalPredicates = componentSummaries.reduce((sum, item) => sum + item.totalPredicates, 0);
+  const coveredPredicates = componentSummaries.reduce((sum, item) => sum + item.coveredPredicates, 0);
+  const assumptionNone = /[-*]\s*unresolved high-risk assumption\s*[:：]\s*none\b/iu
+    .test(section(content, '## Component × Dimension 评分'));
+  const decisionNone = /[-*]\s*unresolved high-risk decision\s*[:：]\s*none\b/iu
+    .test(section(content, '## 未决决策与确认'));
+  const countedHighRisk = componentSummaries.reduce((sum, item) => sum + item.unresolvedHighRiskCount, 0);
+  const highRiskStatus = active.length === 0
+    ? 'not-applicable'
+    : countedHighRisk > 0
+      ? (assumptionNone && decisionNone ? 'conflict' : 'present')
+      : assumptionNone && decisionNone
+        ? 'none'
+        : 'untracked';
+  const ambiguitySummary = {
+    index: totalPredicates === 0 ? null : Math.round(((totalPredicates - coveredPredicates) / totalPredicates) * 100),
+    coveredPredicates,
+    totalPredicates,
+    unresolvedHighRiskCount: highRiskStatus === 'untracked' ? null : countedHighRisk,
+    highRiskStatus,
+    components: componentSummaries,
+  };
   const scoresReady = evidenceValid && active.length > 0 && active.every((component) => CORE_DIMENSIONS.every((dimension) => {
     const matches = scoreRows.filter((cells) => cells[0] === component && cells[1] === dimension);
     if (matches.length !== 1 || matches[0].length !== 9) return false;
     const [, , , scoreValue, coverageValue, refsValue, , gapType, ownerStatus] = matches[0];
-    const score = Number(scoreValue);
+    const score = scoreValue.trim() === '' ? Number.NaN : Number(scoreValue);
     const coverage = new Set(coverageValue.split(',').map((item) => item.trim()).filter(Boolean));
     const refs = new Set(refsValue.split(',').map((item) => item.trim()).filter(Boolean));
-    if (!Number.isInteger(score) || score < 4 || refs.size === 0
+    if (!Number.isInteger(score) || score < 4 || score > 5 || refs.size === 0
       || !['Fact', 'Decision', 'resolved'].includes(gapType) || !ownerStatus.trim()) return false;
     return READINESS_PREDICATES[dimension].every((predicate) => {
       const support = `${component}:${dimension}.${predicate}`;
@@ -209,10 +258,9 @@ function requirementsPredicates(content, research) {
   }));
   return {
     topology: active.length > 0 && /[-*]\s*topology confirmed\s*[:：]\s*true\b/iu.test(topologySection),
-    ambiguity: scoresReady
-      && /[-*]\s*unresolved high-risk assumption\s*[:：]\s*none\b/iu.test(section(content, '## Component × Dimension 评分'))
-      && /[-*]\s*unresolved high-risk decision\s*[:：]\s*none\b/iu.test(section(content, '## 未决决策与确认')),
+    ambiguity: scoresReady && highRiskStatus === 'none',
     approved: /[-*]\s*scope confirmed\s*[:：]\s*true\b/iu.test(section(content, '## 未决决策与确认')),
+    ambiguitySummary,
   };
 }
 
@@ -297,6 +345,7 @@ export function buildClarifyArtifactReadiness(root, changeId) {
   return deepFreeze({
     status: first ? 'blocked' : 'ready',
     items,
+    ambiguitySummary: predicates.ambiguitySummary,
     recovery: first ? { code: first.code, action: first.action } : null,
   });
 }
@@ -317,6 +366,7 @@ export function buildClarifyReadiness(root, changeId) {
     route,
     transitionReady,
     items,
+    ambiguitySummary: artifactReadiness.ambiguitySummary,
     recovery: first ? { code: first.code, action: first.action } : null,
   });
 }

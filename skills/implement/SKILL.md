@@ -1,8 +1,7 @@
 ---
 name: implement
 description: >
-  Execute a frozen task in an isolated worktree with strategy-matched
-  real execution receipts. Use after plan is approved.
+  用于 Plan 获批后，在隔离 worktree 中按冻结策略执行任务并生成匹配策略的真实执行回执。
 user-invocable: false
 context: fork
 agent: enterprise-harness:implementer
@@ -71,6 +70,8 @@ pass。
    持久化 StageResult；assertions 与 `selfCheck` 必须绑定 receipt、产物和输入 digest。
 4. Main 必须再创建不同 run 的 `review` check。worktree 只隔离文件，不建立 reviewer 独立性；
    只有独立 `ReviewResult` 和 runtime CompletionProof 才能完成 task/stage。
+
+每个 task 交接前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Implement 行，并把命中项作为 self-check finding 处理。
 
 ## 禁止事项
 

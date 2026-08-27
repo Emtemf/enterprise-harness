@@ -10,6 +10,7 @@ import {
   readProjectContractAssessment,
 } from './core/clarify-assessments.mjs';
 import { formatDiagnostic } from './lib/diagnostics.mjs';
+import { buildClarifyArtifactReadiness } from './lib/clarify-readiness.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
 import {
   persistClarifyClassification,
@@ -66,10 +67,12 @@ try {
       throw new Error('EH-QUESTION-INPUT-115: usage: clarify status <change-id> [--json]');
     }
     const status = recoverClarifyQuestion(root, args[0], { repair: false });
+    const ambiguitySummary = buildClarifyArtifactReadiness(root, args[0]).ambiguitySummary;
     if (args[1] === '--json') {
-      console.log(JSON.stringify(status));
+      console.log(JSON.stringify({ ...status, ambiguitySummary }));
     } else {
       console.log(`Clarify question status: ${status.status}`);
+      console.log(`歧义指数: ${ambiguitySummary.index ?? '尚不可计算'}（未覆盖 ${ambiguitySummary.totalPredicates - ambiguitySummary.coveredPredicates}/${ambiguitySummary.totalPredicates}）`);
       if (status.recovery) console.log(status.recovery);
     }
   } else if (subcommand === 'recover') {

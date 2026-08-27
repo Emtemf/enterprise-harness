@@ -433,6 +433,8 @@ switch (action) {
         const passed = result.clarifyReadiness.items
           .filter(({ status }) => ['pass', 'not-applicable'].includes(status)).length;
         console.log(`clarifyReadiness: ${passed}/${result.clarifyReadiness.items.length} passed`);
+        const ambiguity = result.clarifyReadiness.ambiguitySummary;
+        if (ambiguity) console.log(`歧义指数: ${ambiguity.index ?? '尚不可计算'}（predicate 覆盖 ${ambiguity.coveredPredicates}/${ambiguity.totalPredicates}）`);
         if (result.clarifyReadiness.recovery) {
           console.log(`recovery: ${result.clarifyReadiness.recovery.code} ${result.clarifyReadiness.recovery.action}`);
         }

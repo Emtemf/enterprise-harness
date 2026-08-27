@@ -405,9 +405,13 @@ try {
   );
   assert.equal(restart.status, 0, restart.stderr);
   assert.equal(JSON.parse(restart.stdout).status, 'pending');
+  assert.deepEqual(JSON.parse(restart.stdout).ambiguitySummary, {
+    index: null, coveredPredicates: 0, totalPredicates: 0, unresolvedHighRiskCount: 0,
+    highRiskStatus: 'not-applicable', components: [],
+  });
   assert.equal(
     JSON.parse(restart.stdout).recovery,
-    'Re-ask the authorized pending question Q-003 without changing its text or options.',
+    '重新询问已授权的待回答问题 Q-003，不得修改问题正文或选项。',
   );
 
   const otherChange = 'safe-other';
@@ -452,7 +456,7 @@ try {
   prepareClarifyQuestion(root, unresolvedChange, writeCandidate(unresolvedCandidate));
   assert.deepEqual(recoverClarifyQuestion(root, unresolvedChange), {
     status: 'pending',
-    recovery: 'Re-ask the authorized pending question Q-010 without changing its text or options.',
+    recovery: '重新询问已授权的待回答问题 Q-010，不得修改问题正文或选项。',
   });
 
   const crashChange = 'crash-recovery';
@@ -486,8 +490,12 @@ try {
   assert.equal(crashStatus.status, 0, crashStatus.stderr);
   assert.deepEqual(JSON.parse(crashStatus.stdout), {
     status: 'repair-required',
-    recovery: `Run enterprise-harness clarify recover ${crashChange}.`,
+    recovery: `运行 enterprise-harness clarify recover ${crashChange}。`,
     eventId: 'D-011',
+    ambiguitySummary: {
+      index: null, coveredPredicates: 0, totalPredicates: 0, unresolvedHighRiskCount: 0,
+      highRiskStatus: 'not-applicable', components: [],
+    },
   });
   assert.equal(
     JSON.parse(fs.readFileSync(pendingQuestionPath(root, crashChange), 'utf-8')).status,

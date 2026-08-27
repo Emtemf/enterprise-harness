@@ -1,8 +1,7 @@
 ---
 name: design
 description: >
-  Generate digest-bound, reviewable, runtime-verified technical design artifacts.
-  Use after clarify produces approved requirements.
+  用于 Clarify 产出已批准需求后，生成摘要绑定、可评审且经运行时验证的技术设计制品。
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -21,6 +20,8 @@ background: false
 4. 依 [self-check](references/self-check.md) 自检，使用 [trace 示例](references/examples.md) 了解 trace 形状。
 5. 运行 `node "${CLAUDE_SKILL_DIR}/assert/artifact-shape.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/requirement-coverage.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/traceability.mjs"`；全部通过后运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 `StageResult`，再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。
 6. 将 result 交给独立 `review` run。只有 fresh `StageResult + ReviewResult + TECPC` 后才可从 design 进入 plan。
+
+交接前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Design 行，并把命中项作为 self-check finding 处理。
 
 ## 未决决策
 

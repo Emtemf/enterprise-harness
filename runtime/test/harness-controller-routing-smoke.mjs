@@ -29,7 +29,8 @@ for (let index = descriptionStart + 1; index < frontmatterLines.length; index +=
   descriptionLines.push(frontmatterLines[index].trim());
 }
 const description = descriptionLines.filter(Boolean).join(' ');
-assert.match(description, /^Use when /u, 'description must expose only a trigger condition');
+assert.match(description, /^(?:Use when .+|用于.+时。?)$/u,
+  'description must expose only a trigger condition in English or Chinese');
 assert.doesNotMatch(description, /dispatch|route|gate|reference|workflow|question/iu,
   'description must not summarize the controller workflow');
 assert.doesNotMatch(skill, /^## Phase [0-5]/gmu, 'Phase procedure detail belongs in on-demand references');
@@ -46,8 +47,10 @@ for (const relative of phaseReferences) {
     `controller must route to ${relative}`);
   const body = read(relative);
   const opening = body.split('\n').slice(0, 8).join('\n');
-  assert.match(opening, /^Load when: .+$/mu, `${relative} needs an observable load condition at its opening`);
-  assert.match(opening, /^Return to controller: .+$/mu, `${relative} needs an explicit return contract at its opening`);
+  assert.match(opening, /^(?:Load when: .+|加载时机[:：].+)$/mu,
+    `${relative} needs an observable load condition at its opening`);
+  assert.match(opening, /^(?:Return to controller: .+|返回控制器[:：].+)$/mu,
+    `${relative} needs an explicit return contract at its opening`);
   referenceBodies.set(relative, body);
 }
 const researchOpening = referenceBodies.get('references/clarify-research.md').split('\n').slice(0, 4).join('\n');
@@ -140,8 +143,10 @@ for (const reference of fs.readdirSync(path.join(skillDir, 'references')).filter
   const relative = `references/${reference}`;
   const body = read(relative);
   const opening = body.split('\n').slice(0, 8).join('\n');
-  assert.match(opening, /^Load when: .+$/mu, `${relative} needs an observable load condition at its opening`);
-  assert.match(opening, /^Return to controller: .+$/mu, `${relative} needs an explicit return contract at its opening`);
+  assert.match(opening, /^(?:Load when: .+|加载时机[:：].+)$/mu,
+    `${relative} needs an observable load condition at its opening`);
+  assert.match(opening, /^(?:Return to controller: .+|返回控制器[:：].+)$/mu,
+    `${relative} needs an explicit return contract at its opening`);
   referenceBodies.set(relative, body);
 }
 

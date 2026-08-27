@@ -1,8 +1,7 @@
 ---
 name: verify
 description: >
-  Run frozen validations and collect digest-bound completion evidence.
-  Use after all tasks pass with independent review.
+  用于所有任务通过独立评审后，执行冻结的验证命令并收集摘要绑定的完成证据。
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -52,3 +51,5 @@ evidence；fail、skip、unsupported 必须显式保留，`unsupported` 绝不�
    生成 CompletionProof。只有该 proof 才允许 `verify → archive`。
 
 范围、waiver 或验证策略存在业务取舍时，返回一个可由 Main 提问的 `NEEDS_DECISION`；只有主 Harness 可以向用户提问，不要在本 Skill 中直接用户交互或通过 state 布尔字段绕过验证。
+
+完成前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Verify / E2E 行；适用的端到端流程没有可观察证据时不得生成通过的完成结论。

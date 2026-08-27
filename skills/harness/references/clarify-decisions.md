@@ -35,6 +35,11 @@ current state 或任何认证策略；不得 Fast Path。
    不能截取关键词、复用同一句宽泛描述或自报 `Supports` 来替代未覆盖谓词。`user-decision` 必须绑定
    `user / resolved` 且 Source 为 user 的 Decision round；ResearchPacket claim 必须精确匹配 `facts[].claim`。
    API/Data 仅在相关时展开；不适用时写 `N/A` 与依据。
+   每次重算后从 runtime 读取只读摘要：全局 `ambiguity index = 未覆盖的适用 predicate / 适用 predicate 总数 × 100`、
+   每个 component 的覆盖数与最低维度分数、未决高风险数。指数 0 只表示 predicate 已覆盖；正式推进仍要求
+   全部维度 ≥4、无 high-risk pending、无 pending question。该摘要由同一评分表和 Evidence ledger 派生，
+   摘要只在 `clarify status --json` / `workflow status --json` 投影和用户输出中展示，不写回 requirements；
+   不得手填第二套分数，也不得恢复旧七维固定量表。
 3. 展示 provisional topology、每个 component 的边界和 fact-derived 评分依据。除 Fast Path 外，
    topology 确认也必须先走 Phase 3 的 candidate → prepare-question 协议，再用一次 `AskUserQuestion` 让用户
    添加、删除、合并、拆分或 defer components；确认后才锁 topology。
@@ -74,7 +79,7 @@ current state 或任何认证策略；不得 Fast Path。
    只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
    从 fresh frontier 生成新问题。
    回答 durable 后重新计算所有受影响分数，展示上轮→本轮、依据和新的 weakest/highest-risk frontier；下一问
-   必须从新 frontier 重新生成 candidate，不复用旧队列。
+   必须从新 frontier 重新生成 candidate，不复用旧队列。用户可见摘要必须同步展示歧义指数的上轮→本轮变化。
 5. 只要仍有 sibling component < 4，同一 component 最多连续问 2 个 Decision；只有 sibling 明确依赖
    当前决定才可例外，并在 round ledger 写 dependency evidence。
 

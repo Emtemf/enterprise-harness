@@ -55,6 +55,13 @@ Harness 先区分 Facts 与 Decisions：代码路径、调用链和 schema 由�
    decision，推荐选项放第一。
 5. 回答后重新评分并展示变化；用户可以修正 topology、评分或 scope。
 
+同时展示一个只读的“歧义指数”：`未覆盖的适用 predicate 数 / 适用 predicate 总数 × 100`。指数越低表示
+证据覆盖越完整，0 表示没有剩余 predicate 歧义；它还会同时展示每个 component 的最低维度分数和未决
+高风险数量。自由文本声明存在但没有结构化 Frontier 行时，高风险数量显示为未知（`null/untracked`），不会
+伪造一个近似数量。该指数由 Evidence ledger 与评分表机械派生，只在 runtime 状态和用户摘要中展示，
+不能写回 requirements 手工维护，也不替代“全部维度至少 4 分、
+无高风险未决项、无 pending question”的正式门禁。
+
 需求已明确时走 Fast Path：先生成 provisional topology、评分和 requirements 摘要；原始请求已
 明确授权完整 scope 时无需追加问题，否则用一次问题联合确认。评分、事实证据、scope confirmation
 和独立 review 门槛不降低。任一关键分数低于 4、仍有高风险 assumption 或 evidence stale 时都停在 clarify。
@@ -108,6 +115,13 @@ recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相�
 
 Archive 与最终完成声明使用同一套 fresh evidence。不能通过直接编辑 `state.json`、复制聊天输出
 或强制移动目录伪造成功。
+
+## 下游交接坑点
+
+插件维护一份跨阶段共享检查清单，供各阶段自检和独立 reviewer 使用。它重点拦截：Clarify 过早提问或
+机械扩面、Design 需求追踪断裂、Plan 的模糊 argv/write scope、Implement 绕过 runner 或伪造策略证据、
+Review 不独立、Verify/E2E 缺少可观察验收，以及 Archive 的部分发布与残留指针。命中项必须附 durable
+evidence ref，并回到最早失效 gate；清单不会增加新的 lifecycle stage。
 
 ## 上下文与文件隔离
 

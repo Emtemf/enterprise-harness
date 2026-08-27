@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "enterprise-harness",
-  "description": "Local marketplace for the Enterprise Harness Claude Code plugin",
+  "description": "Enterprise Harness Claude Code 插件的本地市场。",
   "owner": {
     "name": "wula"
   },
   "plugins": [
     {
       "name": "enterprise-harness",
-      "description": "Clarify-first staged workflow, runtime governance, durable change assets, and portable runtime commands for Claude Code.",
-      "version": "0.5.9",
+      "description": "面向 Claude Code 的澄清优先分阶段工作流、运行时治理、持久化变更制品与可移植运行时命令。",
+      "version": "0.5.10",
       "source": "./",
       "category": "productivity",
       "tags": [
@@ -21,5 +21,5 @@
       ]
     }
   ],
-  "version": "0.5.9"
+  "version": "0.5.10"
 }

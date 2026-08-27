@@ -546,13 +546,13 @@ export function recoverClarifyQuestion(root, changeId, { repair = true } = {}) {
     if (!event) {
       return Object.freeze({
         status: 'pending',
-        recovery: `Re-ask the authorized pending question ${candidate.questionId} without changing its text or options.`,
+        recovery: `重新询问已授权的待回答问题 ${candidate.questionId}，不得修改问题正文或选项。`,
       });
     }
     if (!repair) {
       return Object.freeze({
         status: 'repair-required',
-        recovery: `Run enterprise-harness clarify recover ${changeId}.`,
+        recovery: `运行 enterprise-harness clarify recover ${changeId}。`,
         eventId,
       });
     }

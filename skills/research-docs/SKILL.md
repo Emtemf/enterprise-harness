@@ -1,7 +1,7 @@
 ---
 name: research-docs
 description: >
-  Use when the harness needs isolated, version-bound library, framework, SDK, protocol, or standards evidence.
+  用于 Harness 需要隔离且绑定版本的库、框架、SDK、协议或标准证据时。
 user-invocable: false
 context: fork
 agent: enterprise-harness:doc-research

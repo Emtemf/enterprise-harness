@@ -40,9 +40,11 @@ Return to controller: after exactly one assessment, scope, seal, classification,
 5. 此时才运行 [Clarify finalizer](../scripts/finalize-clarify-result.mjs)：
    `node "${CLAUDE_SKILL_DIR}/scripts/finalize-clarify-result.mjs" <change-id> <run-id>`。
    只接受 finalizer 成功返回的单一 persisted-result path；失败时留在 Clarify 并按错误修复 artifact。
-6. 创建独立 `enterprise-harness:reviewer` check run。Reviewer 检查遗漏 component、事实门禁、评分依据、
+6. final self-check 时读取 [共享下游坑点清单](downstream-pitfalls.md) 的 Clarify 行；只处理当前阶段命中项，
+   每项绑定 durable evidence ref。命中未处置项时修复最早失效 gate，不继续创建通过结果。
+7. 创建独立 `enterprise-harness:reviewer` check run。Reviewer 检查遗漏 component、事实门禁、评分依据、
    矛盾、不可验收 requirement、scope creep 与过早 design，不重新采访用户。
-7. 用候选 CompletionProof 的全部前置证据计算
+8. 用候选 CompletionProof 的全部前置证据计算
    `clarifyTransitionReady = canonicalStageResultValid && independentReviewPassing && tecpcComplete && requiredArtifactsFresh`。
    其中 canonical StageResult 必须通过 self-check，independent ReviewResult 必须来自不同 trusted identity/run，TECPC
    必须完整、`correction=null` 且覆盖 assertion evidence，requirements、classification、assessments、decision snapshot 和各自 digest 必须齐全且

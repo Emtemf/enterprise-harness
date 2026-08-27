@@ -5,26 +5,26 @@
   "questionId": "Q-1",
   "componentId": "component-id",
   "dimension": "Scope",
-  "decisionNeeded": "Choose the compatibility boundary for this component.",
-  "whyUserOnly": "Repository and documentation facts do not authorize a product compatibility tradeoff.",
+  "decisionNeeded": "选择该组件的兼容性边界。",
+  "whyUserOnly": "仓库与文档事实不能代替用户决定产品兼容性取舍。",
   "decisionType": "scope-confirmation",
   "targetRef": "harness/changes/change-id/requirements.md",
-  "header": "Scope",
-  "question": "Which compatibility boundary should this change preserve?",
+  "header": "兼容范围",
+  "question": "本次变更应保留哪种兼容性边界？",
   "options": [
     {
       "id": "preserve-current",
-      "label": "Preserve current behavior",
-      "description": "Keep existing consumers compatible and constrain the new behavior."
+      "label": "保持现有行为",
+      "description": "保持现有调用方兼容，并约束新增行为的范围。"
     },
     {
       "id": "allow-breaking",
-      "label": "Allow a breaking change",
-      "description": "Permit incompatible behavior and require an explicit migration plan."
+      "label": "允许破坏性变更",
+      "description": "允许不兼容行为，但必须提供明确的迁移计划。"
     }
   ],
   "recommendedOption": "preserve-current",
-  "recommendationReason": "Current evidence identifies active consumers and no approved migration window.",
+  "recommendationReason": "当前证据表明存在活跃调用方，且尚未批准迁移窗口。",
   "evidenceRefs": [
     "harness/changes/change-id/requirements.md"
   ],

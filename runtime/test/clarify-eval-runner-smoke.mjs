@@ -229,7 +229,7 @@ try {
   const manifest = onlyManifest(resultsDir);
   assert.equal(manifest.runs.length, 10);
   assert.equal(manifest.semanticScoring, 'manual-required');
-  assert.equal(manifest.evalSuiteVersion, '0.5.9');
+  assert.equal(manifest.evalSuiteVersion, '0.5.10');
   assert.match(manifest.provenance.repositoryHead, /^[a-f0-9]{40}$/u);
   assert.equal(
     manifest.provenance.skillSha256,

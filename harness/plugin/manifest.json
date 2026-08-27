@@ -1,7 +1,7 @@
 {
   "name": "enterprise-harness-runtime",
-  "version": "0.5.9",
-  "description": "Portable runtime adapter for the Enterprise Harness project contract.",
+  "version": "0.5.10",
+  "description": "Enterprise Harness 项目契约的可移植运行时适配器。",
   "supportedOs": [
     "linux",
     "darwin",

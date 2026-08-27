@@ -36,6 +36,14 @@ try {
   const readiness = buildClarifyReadiness(root, changeId);
   assert.equal(readiness.status, 'blocked');
   assert.equal(readiness.route, 'research');
+  assert.deepEqual(readiness.ambiguitySummary, {
+    index: null,
+    coveredPredicates: 0,
+    totalPredicates: 0,
+    unresolvedHighRiskCount: 0,
+    highRiskStatus: 'not-applicable',
+    components: [],
+  });
   assert.deepEqual(readiness.items.map(({ id }) => id), CLARIFY_ITEMS);
   assert.equal(readiness.items.length, 14);
   assert.ok(readiness.items.every((item) => (
@@ -47,7 +55,7 @@ try {
   )));
   assert.deepEqual(readiness.recovery, {
     code: 'EH-CLARIFY-RESEARCH-LANES-144',
-    action: 'Decide applicability for both code and docs research lanes.',
+    action: '判定代码与外部文档两条研究通道是否适用。',
   });
   assert.deepEqual(new Set(fs.readdirSync(changeDir)), before, 'readiness must not persist an editable checklist');
   assert.equal(Object.isFrozen(readiness), true);
@@ -75,6 +83,7 @@ try {
   assert.equal(projection.clarifyReadiness.items.length, 14);
   assert.equal(projection.clarifyReadiness.route, 'research');
   assert.deepEqual(projection.clarifyReadiness.recovery, readiness.recovery);
+  assert.deepEqual(projection.clarifyReadiness.ambiguitySummary, readiness.ambiguitySummary);
   const textStatus = spawnSync(process.execPath, [workflow, 'status', changeId], {
     cwd: root,
     encoding: 'utf-8',
@@ -82,6 +91,7 @@ try {
   });
   assert.equal(textStatus.status, 0, textStatus.stderr);
   assert.match(textStatus.stdout, /clarifyReadiness: 1\/14 passed/u);
+  assert.match(textStatus.stdout, /歧义指数: 尚不可计算/u);
   assert.equal((textStatus.stdout.match(/recovery:/gu) || []).length, 1);
   assert.match(textStatus.stdout, /EH-CLARIFY-RESEARCH-LANES-144/u);
 
@@ -332,20 +342,20 @@ try {
     });
   };
   const recovery = {
-    lanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: 'Decide applicability for both code and docs research lanes.' },
-    research: { code: 'EH-CLARIFY-RESEARCH-131', action: 'Complete and persist every required ResearchPacket.' },
-    conflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: 'Dispose degraded research, conflicts, and remaining fact uncertainty.' },
-    topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: 'Confirm the evidence-derived component topology.' },
-    ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: 'Resolve the weakest evidence-bound ambiguity and recompute requirements.' },
-    question: { code: 'EH-CLARIFY-QUESTION-134', action: 'Resolve the one authorized pending Clarify question.' },
-    decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: 'Seal the ordered Clarify decision-ledger prefix.' },
-    debt: { code: 'EH-CLARIFY-DEBT-136', action: 'Record and validate every applicable technical-debt disposition.' },
-    contract: { code: 'EH-CLARIFY-CONTRACT-137', action: 'Record and validate the project-contract disposition.' },
-    requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: 'Approve and persist the current evidence-derived requirements.' },
-    classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: 'Recompute and persist classification from current authoritative inputs.' },
-    selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: 'Publish a fresh passing Clarify StageResult self-check.' },
-    review: { code: 'EH-CLARIFY-REVIEW-141', action: 'Publish a fresh independent passing Clarify ReviewResult.' },
-    tecpc: { code: 'EH-CLARIFY-TECPC-142', action: 'Complete the Clarify TECPC envelope without a pending correction.' },
+    lanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: '判定代码与外部文档两条研究通道是否适用。' },
+    research: { code: 'EH-CLARIFY-RESEARCH-131', action: '完成并持久化每个必需的 ResearchPacket。' },
+    conflicts: { code: 'EH-CLARIFY-RESEARCH-CONFLICTS-145', action: '处置降级研究、证据冲突和剩余事实不确定性。' },
+    topology: { code: 'EH-CLARIFY-TOPOLOGY-132', action: '确认由证据推导出的组件拓扑。' },
+    ambiguity: { code: 'EH-CLARIFY-AMBIGUITY-133', action: '解决证据约束下最薄弱的歧义点并重新计算需求。' },
+    question: { code: 'EH-CLARIFY-QUESTION-134', action: '解决当前唯一获准的 Clarify 待回答问题。' },
+    decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: '封存按顺序排列的 Clarify 决策账本前缀。' },
+    debt: { code: 'EH-CLARIFY-DEBT-136', action: '记录并验证每项适用的技术债处置。' },
+    contract: { code: 'EH-CLARIFY-CONTRACT-137', action: '记录并验证项目长期契约处置。' },
+    requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: '批准并持久化当前由证据推导出的需求。' },
+    classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: '根据当前权威输入重新计算并持久化复杂度分类。' },
+    selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: '发布新鲜且通过的 Clarify StageResult 自检结果。' },
+    review: { code: 'EH-CLARIFY-REVIEW-141', action: '发布新鲜、独立且通过的 Clarify ReviewResult。' },
+    tecpc: { code: 'EH-CLARIFY-TECPC-142', action: '完成 Clarify TECPC 闭环，且不得留下待处理纠正项。' },
   };
   const assertProgress = (expectedRecovery, expectedStatuses) => {
     const projected = buildClarifyReadiness(root, progressiveId);
@@ -354,6 +364,18 @@ try {
     assert.equal(projected.items.length, 14);
     assert.equal(projected.transitionReady, expectedRecovery === null);
     const passed = expectedStatuses.filter((status) => status === 'pass').length;
+    if (passed < 4) assert.equal(projected.ambiguitySummary.index, null);
+    else if (passed === 4) {
+      assert.equal(projected.ambiguitySummary.index, 100);
+      assert.equal(projected.ambiguitySummary.components[0].minimumDimensionScore, null);
+      assert.equal(projected.ambiguitySummary.unresolvedHighRiskCount, null);
+      assert.equal(projected.ambiguitySummary.highRiskStatus, 'untracked');
+    } else {
+      assert.equal(projected.ambiguitySummary.index, 0);
+      assert.equal(projected.ambiguitySummary.components[0].minimumDimensionScore, 4);
+      assert.equal(projected.ambiguitySummary.unresolvedHighRiskCount, 0);
+      assert.equal(projected.ambiguitySummary.highRiskStatus, 'none');
+    }
     assert.equal(projected.route, passed < 3 ? 'research' : passed < 6 ? 'decisions' : passed < 14 ? 'completion' : 'transition');
     assert.equal(fs.existsSync(path.join(progressiveDir, 'clarify-readiness.json')), false);
     assert.equal(fs.existsSync(path.join(progressiveDir, 'checklist.json')), false);
@@ -390,6 +412,78 @@ try {
   assertProgress(recovery.topology, statusesAfter(3));
   writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true });
   assertProgress(recovery.ambiguity, statusesAfter(4));
+  writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true });
+  assertProgress(recovery.question, statusesAfter(5));
+  const validAmbiguityRequirements = fs.readFileSync(path.join(root, progressiveRequirementsRef), 'utf-8');
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replace(
+    '## 未决决策与确认',
+    [
+      '## Frontier（component × unresolved dimension）',
+      '| Priority | Component | Unresolved dimension | Current score | Evidence / known fact | Risk | Next action |',
+      '|---:|---|---|---:|---|---|---|',
+      '| 1 | runtime | Constraints | 4 | E-CONSTRAINTS-RISK | high | ask |',
+      '## 未决决策与确认',
+    ].join('\n'),
+  ));
+  const conflictingRisk = buildClarifyReadiness(root, progressiveId);
+  assert.equal(conflictingRisk.ambiguitySummary.highRiskStatus, 'conflict');
+  assert.equal(conflictingRisk.ambiguitySummary.unresolvedHighRiskCount, 1);
+  assert.equal(conflictingRisk.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements
+    .replace('- unresolved high-risk assumption: none', '')
+    .replace('- unresolved high-risk decision: none', '')
+    .replace(
+      '## 未决决策与确认',
+    [
+      '## Frontier（component × unresolved dimension）',
+      '| Priority | Component | Unresolved dimension | Current score | Evidence / known fact | Risk | Next action |',
+      '|---:|---|---|---:|---|---|---|',
+      '| 1 | runtime | Constraints | 4 | E-CONSTRAINTS-RISK | high | ask |',
+      '## 未决决策与确认',
+    ].join('\n'),
+    ));
+  const presentRisk = buildClarifyReadiness(root, progressiveId);
+  assert.equal(presentRisk.ambiguitySummary.highRiskStatus, 'present');
+  assert.equal(presentRisk.ambiguitySummary.unresolvedHighRiskCount, 1);
+  assert.equal(presentRisk.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replace(
+    '| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |',
+    [
+      '| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |',
+      '| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |',
+    ].join('\n'),
+  ));
+  const duplicateComponent = buildClarifyReadiness(root, progressiveId);
+  assert.equal(duplicateComponent.ambiguitySummary.components.length, 1);
+  assert.equal(duplicateComponent.ambiguitySummary.totalPredicates, 11);
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replace(
+    '| runtime | Goal | 4 | 4 | consumer,outcome |',
+    '| runtime | Goal | 4 | 4 | consumer |',
+  ));
+  const partialCoverage = buildClarifyReadiness(root, progressiveId);
+  assert.equal(partialCoverage.ambiguitySummary.index, 9);
+  assert.equal(partialCoverage.ambiguitySummary.coveredPredicates, 10);
+  assert.equal(partialCoverage.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replace(
+    '| 4 | 4 |',
+    '| 4 |  |',
+  ));
+  const emptyScore = buildClarifyReadiness(root, progressiveId);
+  assert.equal(emptyScore.ambiguitySummary.components[0].minimumDimensionScore, null);
+  assert.equal(emptyScore.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
+  const duplicate = progressiveEvidence[0];
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replace(
+    '## Component × Dimension 评分',
+    `| ${duplicate.id} | raw-request | original-request | ${duplicate.claim} | ${duplicate.support} |\n## Component × Dimension 评分`,
+  ));
+  const invalidLedger = buildClarifyReadiness(root, progressiveId);
+  assert.equal(invalidLedger.ambiguitySummary.index, 100);
+  assert.equal(invalidLedger.ambiguitySummary.components[0].minimumDimensionScore, null);
+  assert.equal(invalidLedger.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), validAmbiguityRequirements.replaceAll('| 4 | 4 |', '| 4 | 6 |'));
+  const outOfRangeScore = buildClarifyReadiness(root, progressiveId);
+  assert.equal(outOfRangeScore.ambiguitySummary.components[0].minimumDimensionScore, null);
+  assert.equal(outOfRangeScore.items.find(({ id }) => id === 'ambiguity-threshold-met').status, 'blocked');
   writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true });
   assertProgress(recovery.question, statusesAfter(5));
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'resolved' }));

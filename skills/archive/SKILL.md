@@ -1,8 +1,7 @@
 ---
 name: archive
 description: >
-  Verify fresh CompletionProof and archive immutable change history.
-  Use after verify produces passing CompletionProof.
+  用于 Verify 产出通过的 CompletionProof 后，校验新鲜完成证据并归档不可变变更历史。
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
@@ -46,3 +45,5 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 - 只清理 compatibility pointer，session/lease/lock 属于 common-dir coordination，不属于归档业务证据。
 - 不可逆/未完成内容使用 `abandon <changeId> <reason>`，保留原因和证据。
 - 需要用户决定保留、waive 或 abandon 的情况，返回明确 `NEEDS_DECISION` 给 Main；不自行询问用户。
+
+物理移动前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Archive 行；命中部分发布、指针残留或历史覆盖风险时必须停止。

@@ -71,6 +71,8 @@ user-decision 行可以用逗号列出多个 `.confirmed`；不要从包含“�
 | component-id | Context | — | 0 | need,current-state | E-* | | | |
 
 - overall / coverage summary：
+- 只读歧义摘要不持久化在本文件；以 runtime `clarify status --json` / `workflow status --json` 返回的
+  `ambiguitySummary` 为准，禁止手工复制或维护第二套数值。
 - unresolved high-risk assumption：none / 具体说明
 - 用户确认 / 修正：
 

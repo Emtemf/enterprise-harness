@@ -1,7 +1,7 @@
-# Clarify Few-Shots
+# Clarify 少样本示例
 
-Load when: the selected phase needs calibration for fact-first dispatch, Fast Path, or one high-value question candidate.
-Return to controller: after applying one analogous pattern to the current phase action; never continue the example workflow.
+加载时机：当前阶段需要校准事实优先派发、Fast Path 或一个高价值问题候选时。
+返回控制器：只把一个相似模式应用到当前阶段动作，绝不继续执行示例工作流。
 
 These are compact artifact projections, not
 chat transcripts or hidden reasoning. Example digests use the valid all-zero placeholder and must be replaced with the
@@ -44,8 +44,8 @@ schema-valid event was persisted:
   "header": "Refund",
   "question": "How should paid-order cancellation preserve refund compatibility?",
   "options": [
-    {"id": "idempotent-current", "label": "Preserve consumers", "description": "Keep the response and require idempotency keys."},
-    {"id": "breaking-retry", "label": "Change retry semantics", "description": "Adopt new semantics with a consumer migration."}
+    {"id": "idempotent-current", "label": "保持调用方兼容", "description": "保持现有响应，并要求使用幂等键。"},
+    {"id": "breaking-retry", "label": "变更重试语义", "description": "采用新语义，同时迁移现有调用方。"}
   ],
   "recommendedOption": "idempotent-current",
   "recommendationReason": "Two active consumers exist and no migration window is approved.",
@@ -90,11 +90,11 @@ the change stays inside service and unit-test paths; API/data are untouched.
   "whyUserOnly": "Only the user can authorize transition on the complete scope.",
   "decisionType": "scope-confirmation",
   "targetRef": "harness/changes/cancel-pending/requirements.md",
-  "header": "Final scope",
-  "question": "Confirm this service-only scope and proceed to Design?",
+  "header": "最终范围",
+  "question": "是否确认仅修改服务层的范围并进入 Design？",
   "options": [
-    {"id": "confirm-scope", "label": "Confirm scope", "description": "Implement only the named method and unit tests."},
-    {"id": "revise-scope", "label": "Revise scope", "description": "Stay in Clarify and change the boundary."}
+    {"id": "confirm-scope", "label": "确认范围", "description": "只实现指定方法及其单元测试。"},
+    {"id": "revise-scope", "label": "修正范围", "description": "留在 Clarify 并调整边界。"}
   ],
   "recommendedOption": "confirm-scope",
   "recommendationReason": "All five dimensions are evidence-covered and no high-risk assumption remains.",
@@ -143,11 +143,11 @@ identity-source candidate below be prepared.
   "whyUserOnly": "The repository supports federation but the intended user population is a product decision.",
   "decisionType": "clarify-answer",
   "targetRef": "harness/changes/simple-login/requirements.md",
-  "header": "Identity",
-  "question": "Which identity source should authorize this login capability?",
+  "header": "身份来源",
+  "question": "该登录能力应由哪种身份来源授权？",
   "options": [
-    {"id": "organization-idp", "label": "Organization IdP", "description": "Reuse OIDC and avoid a new credential store; employee access only."},
-    {"id": "local-accounts", "label": "Local accounts", "description": "Create a credential authority and expand security, recovery, and data scope."}
+    {"id": "organization-idp", "label": "组织 IdP", "description": "复用 OIDC，避免新建凭证存储；仅允许员工访问。"},
+    {"id": "local-accounts", "label": "本地账户", "description": "新建凭证权威，并扩大安全、恢复和数据范围。"}
   ],
   "recommendedOption": "organization-idp",
   "recommendationReason": "Current code and pinned framework already support OIDC; local credentials add an unrequested security boundary.",
