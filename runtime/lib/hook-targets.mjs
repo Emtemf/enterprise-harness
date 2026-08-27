@@ -14,7 +14,7 @@ const TRUSTED_RUNTIME_SCRIPTS = new Map([
   ['${CLAUDE_SKILL_DIR}/../../runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
   ['${CLAUDE_PLUGIN_ROOT}/bin/enterprise-harness.mjs', path.join(pluginRoot, 'bin', 'enterprise-harness.mjs')],
 ]);
-const READ_ONLY_GIT_COMMANDS = new Set(['status', 'diff', 'log', 'show', 'rev-parse', 'ls-files']);
+const READ_ONLY_GIT_COMMANDS = new Set(['rev-parse', 'ls-files']);
 const FORBIDDEN_READ_FLAGS = /^(?:--output(?:=|$)|--ext-diff$|--textconv$|--exec(?:=|$)|--pre(?:=|$)|--hostname-bin(?:=|$))/u;
 
 export function tokenizeGovernedBash(command) {
@@ -53,10 +53,13 @@ function trustedRuntimeScript(root, cwd, value) {
   return null;
 }
 
-function isCanonicalRuntimeCommand(root, cwd, tokens) {
-  if (tokens[0] === 'enterprise-harness') return tokens.length >= 2;
-  if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 3) return false;
-  return Boolean(trustedRuntimeScript(root, cwd, tokens[1]));
+function runtimeCommandKind(root, cwd, tokens) {
+  if (tokens[0] === 'enterprise-harness' && tokens.length >= 2) {
+    return tokens[1] === 'task-run' ? 'task-run' : 'runtime';
+  }
+  if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 3) return null;
+  if (!trustedRuntimeScript(root, cwd, tokens[1])) return null;
+  return tokens[2] === 'task-run' ? 'task-run' : 'runtime';
 }
 
 function isReadOnlyDiagnostic(tokens) {
@@ -70,7 +73,9 @@ function isReadOnlyDiagnostic(tokens) {
 export function classifyGovernedBash(root, command, cwd = root) {
   const tokens = tokenizeGovernedBash(command);
   if (!tokens) return { allowed: false, kind: 'denied' };
-  if (isCanonicalRuntimeCommand(root, cwd, tokens)) return { allowed: true, kind: 'runtime' };
+  const runtimeKind = runtimeCommandKind(root, cwd, tokens);
+  if (runtimeKind === 'task-run') return { allowed: false, kind: 'task-run' };
+  if (runtimeKind === 'runtime') return { allowed: true, kind: 'runtime' };
   if (isReadOnlyDiagnostic(tokens)) return { allowed: true, kind: 'read-only' };
   return { allowed: false, kind: 'denied' };
 }

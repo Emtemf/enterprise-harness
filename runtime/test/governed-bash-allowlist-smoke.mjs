@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { preWrite } from '../lib/hooks/pre-write.mjs';
 import { changeWriteLeaseExists, changeTransactionTarget } from '../lib/state-store.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -17,13 +18,14 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-bash-allo
 const changeId = 'bash-allowlist';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 
-function bash(command, toolUseId) {
+function bash(command, toolUseId, sessionId = null) {
   return preWrite({
     root,
     event: {
       tool_name: 'Bash',
       tool_use_id: toolUseId,
       cwd: root,
+      ...(sessionId ? { session_id: sessionId } : {}),
       tool_input: { command },
     },
   });
@@ -52,7 +54,13 @@ try {
     `python3 "${path.join(root, 'mutate.py')}"`,
     `bash "${path.join(root, 'mutate.sh')}"`,
     `rg fixture . --pre "rm -rf ${leaseDirectory}"`,
+    'git status --short',
+    'git diff --stat',
+    'git log -1 --oneline',
+    'git show --stat HEAD',
     'git status && rm -rf harness',
+    `node "${runtimeCli}" task-run fake-change fake-task fake-run verify`,
+    'enterprise-harness task-run fake-change fake-task fake-run verify',
     'pwd > observed.txt',
     'echo $(rm -rf harness)',
   ];
@@ -66,10 +74,6 @@ try {
     'pwd -P',
     'ls -la harness',
     'rg --files harness',
-    'git status --short',
-    'git diff --stat',
-    'git log -1 --oneline',
-    'git show --stat HEAD',
     'git rev-parse --show-toplevel',
     'git ls-files',
     `node "${runtimeCli}" status`,
@@ -84,6 +88,38 @@ try {
       'read-only and transaction-owning runtime commands must not acquire hook write leases',
     );
   }
+
+  const sessionDirectory = path.join(root, '.git', 'enterprise-harness', 'sessions');
+  fs.mkdirSync(sessionDirectory, { recursive: true });
+  fs.writeFileSync(path.join(sessionDirectory, 'corrupt-binding.json'), '{not-json}\n');
+  const corruptBash = bash(
+    `awk 'BEGIN { system("touch escaped-marker") }'`,
+    'corrupt-binding-arbitrary',
+    'corrupt-binding',
+  );
+  assert.equal(corruptBash.exitCode, 2, 'a corrupt binding must not fall through to legacy Bash heuristics');
+  assert.match(corruptBash.stderr, /EH-SESSION-BINDING-024/u);
+  assert.equal(
+    bash(`node "${runtimeCli}" doctor --json`, 'corrupt-binding-recovery', 'corrupt-binding').exitCode,
+    0,
+    'canonical runtime recovery must remain available for a corrupt binding',
+  );
+
+  bindSession(root, {
+    sessionId: 'expired-binding',
+    changeId,
+    worktreePath: root,
+    controllerRevision: 'test-controller',
+    leaseExpiresAt: Date.now() - 1,
+  }, { commonDir: path.join(root, '.git') });
+  const expiredBash = bash('awk BEGIN', 'expired-binding-arbitrary', 'expired-binding');
+  assert.equal(expiredBash.exitCode, 2, 'an expired binding must remain fail closed for arbitrary Bash');
+  assert.match(expiredBash.stderr, /EH-SESSION-LEASE-023/u);
+  assert.equal(
+    bash('enterprise-harness start-change bash-allowlist', 'expired-binding-recovery', 'expired-binding').exitCode,
+    0,
+    'canonical lease recovery must remain available for an expired binding',
+  );
 
   console.log(`PASS governed-bash-allowlist ${mode}`);
 } finally {

@@ -124,9 +124,9 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CHANGE-WRITE-LEASE-153` | 失败写工具的 lease 释放异常 | 运行 `enterprise-harness doctor`，保留错误码与脱敏 hook 输入 |
 | `EH-PROMPT-RECEIPT-154` | 当前 change 没有可绑定的 UserPromptSubmit 摘要凭据 | 在同一 Claude Code session 重新提交真实需求并从 `/harness` 恢复；无需提交完整 prompt |
 | `EH-PROMPT-RECEIPT-155` | change 已绑定另一个用户请求摘要 | 检查 change/session 是否选错；新需求使用新的 change，不手改 binding |
-| `EH-HOOK-BASH-MUTATION-157` | v6 主流程运行了 Bash 白名单外的命令，或包含管道、重定向、命令替换/解释器逃逸 | 主流程改用 Write/Edit；诊断只用受支持的只读命令，状态变更用 canonical runtime；实现阶段只由 implementer 运行 task-run |
+| `EH-HOOK-BASH-MUTATION-157` | v6 主流程运行了 Bash 白名单外的命令、可调用外部程序的 Git 命令、task-run，或包含管道、重定向、命令替换/解释器逃逸 | 主流程改用 Write/Edit；诊断只用受支持的只读命令，状态变更用 canonical runtime；实现阶段只由绑定 implementer 运行 task-run |
 | `EH-HOOK-RUNTIME-INTEGRITY-158` | 工具尝试直接修改 git common-dir 协调数据 | 停止直接编辑 runtime coordination；用受支持的 hook/runtime 恢复路径 |
-| `EH-STATE-LOCK-159` | 另一个存活进程正在原子获取或恢复同一锁 | 等待当前短事务完成后重试；死亡的本机 owner 会在下一次操作中自动隔离，仍失败时运行 doctor 并保留诊断，不手动抢占 |
+| `EH-STATE-LOCK-159` | 另一个存活进程正在原子获取或恢复同一锁，或 owner 不属于可验证的本机进程 | 等待当前短事务完成后重试；仅死亡的本机 owner 会自动隔离，foreign/unknown owner 必须运行 doctor 并人工确认共享存储状态，不手动抢占 |
 | `EH-CLARIFY-ROUTE-148` | readiness items 无法派生可信 Clarify route | 重新运行 status，修复缺失、重复或未知状态的 item；不要在模型中猜测 route |
 | `EH-STOP-FALLBACK-149` | Stop hook 无法完成 terminal fact-gate 机械格式校验 | 保留当前回复并重新触发 Stop；校验会 fail open，不能把该错误当成 lifecycle 通过证据 |
 | `EH-DECISION-TARGET-106` | 同一 typed decision target 已有不可变选择 | 复用已有事件；若需求内容已形成新 revision，使用 runtime 生成的新 digest-versioned target，并重新 seal snapshot |

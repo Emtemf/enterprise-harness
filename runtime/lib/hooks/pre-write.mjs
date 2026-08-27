@@ -80,6 +80,13 @@ export function preWrite({ root, event }) {
     return { exitCode: 0 };
   }
 
+  if (event.tool_name === 'Bash' && !activeForRunner.ok
+      && !UNENGAGED_HARNESS_REASONS.has(activeForRunner.reason)) {
+    const governed = classifyGovernedBash(root, event.tool_input?.command, event.cwd || root);
+    if (governed.allowed) return { exitCode: 0 };
+    return block(root, activeChangeRecovery(activeForRunner), activeForRunner);
+  }
+
   if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
     try {
       writeHookSnapshot(root, event.tool_use_id, captureGovernedSnapshot(root));

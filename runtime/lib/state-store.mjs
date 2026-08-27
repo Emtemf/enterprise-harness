@@ -8,10 +8,10 @@ import { assertSafeId, resolveChild } from './safe-paths.mjs';
 import { runtimePaths } from './runtime-paths.mjs';
 
 const LOCK_OWNER_FILE = 'owner.json';
-const INVALID_LOCK_GRACE_MS = 30_000;
 const WRITE_LEASE_TTL_MS = 60 * 60 * 1000;
 const locallyHeldLocks = new Map();
 const gitCommonDirCache = new Map();
+const gitGateClaimants = new Map();
 
 function lockPathFor(file) {
   return `${file}.lock`;
@@ -35,6 +35,9 @@ export function withFileLock(file, action) {
   // The CAS-backed acquisition gate is needed only when an existing target may
   // require stale-owner recovery.
   if (!tryCreateOwnedLock(lock, token)) {
+    if (!lockIsRecoverable(lock)) {
+      throw new Error(`EH-STATE-LOCK-012: concurrent update in progress for ${file}`);
+    }
     withAcquisitionGate(lock, file, () => acquireOwnedLock(lock, file, token));
   }
   locallyHeldLocks.set(lock, 1);
@@ -115,13 +118,12 @@ function gitRefOwner(gitDir, ref) {
 
 function ownerRecordIsRecoverable(owner) {
   const alive = ownerIsAlive(owner);
-  if (alive === false) return true;
-  if (alive === true) return false;
-  const acquiredAt = Date.parse(owner?.acquiredAt);
-  return Number.isFinite(acquiredAt) && Date.now() - acquiredAt >= INVALID_LOCK_GRACE_MS;
+  return alive === false;
 }
 
-function withGitRefAcquisitionGate(gitDir, file, action) {
+function gitGateClaimant(gitDir, file) {
+  const key = `${gitDir}\0${path.resolve(file)}`;
+  if (gitGateClaimants.has(key)) return gitGateClaimants.get(key);
   const token = randomUUID();
   const owner = lockOwner(token);
   const object = git(gitDir, ['hash-object', '-w', '--stdin'], {
@@ -130,15 +132,21 @@ function withGitRefAcquisitionGate(gitDir, file, action) {
   if (object.status !== 0) {
     throw new Error(`EH-STATE-LOCK-159: cannot create acquisition owner for ${file}: ${object.stderr.trim()}`);
   }
-  const ownerOid = object.stdout.trim();
+  const claimant = { token, ownerOid: object.stdout.trim() };
+  gitGateClaimants.set(key, claimant);
+  return claimant;
+}
+
+function withGitRefAcquisitionGate(gitDir, file, action) {
   const digest = createHash('sha256').update(path.resolve(file)).digest('hex');
   const ref = `refs/enterprise-harness/acquisition-gates/${digest}`;
+  let observed = gitRefOwner(gitDir, ref);
+  if (observed && !ownerRecordIsRecoverable(observed.owner)) {
+    throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
+  }
+  const { ownerOid } = gitGateClaimant(gitDir, file);
   let acquired = false;
   for (let attempt = 0; attempt < 3 && !acquired; attempt += 1) {
-    const observed = gitRefOwner(gitDir, ref);
-    if (observed && !ownerRecordIsRecoverable(observed.owner)) {
-      throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
-    }
     const claim = git(gitDir, [
       'update-ref',
       ref,
@@ -146,6 +154,12 @@ function withGitRefAcquisitionGate(gitDir, file, action) {
       observed?.oid || '0'.repeat(ownerOid.length),
     ]);
     acquired = claim.status === 0;
+    if (!acquired) {
+      observed = gitRefOwner(gitDir, ref);
+      if (observed && !ownerRecordIsRecoverable(observed.owner)) {
+        throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
+      }
+    }
   }
   if (!acquired) {
     throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
@@ -244,13 +258,7 @@ function ownerIsAlive(owner) {
 function lockIsRecoverable(lock) {
   const owner = readLockOwner(lock);
   const alive = ownerIsAlive(owner);
-  if (alive === false) return true;
-  if (alive === true) return false;
-  try {
-    return Date.now() - fs.statSync(lock).mtimeMs >= INVALID_LOCK_GRACE_MS;
-  } catch {
-    return true;
-  }
+  return alive === false;
 }
 
 function quarantineStaleLock(lock, expectedOwner = readLockOwner(lock)) {

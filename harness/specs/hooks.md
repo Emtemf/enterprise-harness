@@ -59,14 +59,19 @@ operators, redirects, substitutions, or interpreter escape flags. Main must othe
 Write/Edit, and only the bound implementer may launch canonical task-run. Runtime-owned commands
 manage their own transaction; read-only diagnostics acquire no write lease. This prevents
 equivalent interpreter or utility spellings from deleting hook/runtime coordination while a
-write lease is active. Direct writes to the git-common-dir runtime root are always blocked.
+write lease is active. Git commands that can invoke configured fsmonitor, textconv, diff, pager,
+or hook programs are not in the allowlist; only non-extensible plumbing queries are admitted.
+Generic runtime classification never authorizes `task-run`. Direct writes to the git-common-dir
+runtime root are always blocked.
 
 Governed-write enforcement is session-scoped and opt-in. A hook event with no session binding
 (or a legacy event with no `ACTIVE_CHANGE`) is outside an active Harness workflow and ordinary
 `Write`/`Edit`/`NotebookEdit` must remain available, including under conventional production,
 test, and API roots. Once a session binding or legacy active change exists, unresolved state,
 expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
-file is not equivalent to an absent binding.
+file is not equivalent to an absent binding. When binding/state resolution fails, arbitrary Bash
+also remains blocked; only canonical runtime recovery commands and the bounded read-only
+diagnostics remain available.
 
 An allowed write acquires a per-change shared lease under the git common directory in PreToolUse and keeps it until the matching
 PostToolUse correctness work has run, or PostToolUseFailure releases it. A lifecycle transition and every runtime decision, assessment,
@@ -109,7 +114,9 @@ Filesystem locks and their acquisition/recovery gates carry owner PID, host, tok
 acquisition time. A later operation quarantines a target lock owned by a dead local process; in a
 Git-backed governed workflow, acquisition-gate ownership is replaced only by `update-ref`
 compare-and-swap against the exact observed owner. Contenders therefore cannot remove a newer
-live gate while recovering an older one, and a live owner is never replaced.
+live gate while recovering an older one. Only a provably dead owner on the current host is
+recoverable. Malformed, unknown-host, and foreign-host owners fail closed regardless of age; a
+live owner is never replaced.
 Write-tool leases are bounded and matching PostToolUse success/failure releases them. This is the
 supported crash-recovery path; users do not delete lock directories manually.
 

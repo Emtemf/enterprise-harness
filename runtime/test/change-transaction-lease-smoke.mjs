@@ -72,6 +72,21 @@ try {
   );
   assert.equal(fs.existsSync(acquisitionGate), false);
 
+  fs.mkdirSync(lock, { recursive: true });
+  fs.writeFileSync(path.join(lock, 'owner.json'), JSON.stringify({
+    version: 1,
+    token: 'foreign-owner',
+    pid: 2_147_483_647,
+    hostname: 'different-host.example.invalid',
+    acquiredAt: '2020-01-01T00:00:00.000Z',
+  }));
+  assert.throws(
+    () => withChangeTransaction(root, changeId, () => 'must-not-run'),
+    /EH-STATE-LOCK-012/u,
+    'foreign-host ownership must fail closed even when the record is old',
+  );
+  fs.rmSync(lock, { recursive: true, force: true });
+
   console.log(`PASS change-transaction-lease ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

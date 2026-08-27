@@ -28,6 +28,8 @@
   locks recover automatically, and preoccupied immutable snapshot history fails closed.
 - Active v6 workflows use an explicit canonical-runtime/read-only Bash allowlist, reject shell
   composition and interpreter aliases, and block direct common-dir coordination writes;
+  corrupt/expired bindings remain fail-closed, extensible Git commands and generic task-run are
+  excluded, and foreign/unknown lock owners cannot be reclaimed by age;
   acquisition gates left by killed local processes are atomically quarantined on retry;
   concurrent PostToolUse processing is serialized through lease release.
 
