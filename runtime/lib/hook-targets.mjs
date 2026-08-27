@@ -2,7 +2,7 @@ import path from 'node:path';
 import { isGovernedTarget } from './gates.mjs';
 
 const DIRECT_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
-const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i)|cp|mv|install|patch)\b|(?:^|[^>])>>?/u;
+const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i)|cp|mv|install|patch|rm|rmdir|unlink|mkdir|touch|ln|chmod|chown)\b|(?:^|[^>])>>?|\bnode\s+(?:--eval|-e)\b|\bnode\s+[^;&|]*hooks[\\/]scripts[\\/]|\b(?:python|python3|perl|ruby|bash|sh)\s+(?:-c|-e)\b/u;
 const TASK_RUN_COMMAND = /(?:^|[\/\\])task-run\.mjs\b|\bcli\.mjs["']?\s+task-run\b/u;
 const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+|harness\/changes\/[^\s'";|<>]+|runtime\/[^\s'";|<>]+))/gu;
 const SHELL_TOKEN = /"([^"]*)"|'([^']*)'|([^\s;&|<>]+)/gu;

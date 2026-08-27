@@ -100,6 +100,9 @@ try {
     `harness/changes/${changeId}/project-contract-assessment.json`,
     `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`,
   ];
+  const researchRefs = Object.keys(JSON.parse(fs.readFileSync(path.join(root, classification.path), 'utf-8')).inputDigests)
+    .filter((ref) => ref.includes('/runs/') && ref.endsWith('/result.json'));
+  const frozenClarifyRefs = [...requiredClarifyArtifacts, ...researchRefs];
   const clarifyAssertionIds = [
     'research-complete',
     'decisions-durable',
@@ -111,9 +114,9 @@ try {
   ];
   const tecpc = {
     target: 'confirm all canonical Clarify artifacts',
-    evidence: [...requiredClarifyArtifacts],
-    context: [...requiredClarifyArtifacts],
-    path: requiredClarifyArtifacts.join(' -> '),
+    evidence: [...frozenClarifyRefs],
+    context: [...frozenClarifyRefs],
+    path: frozenClarifyRefs.join(' -> '),
     correction: null,
   };
   const execute = createHandoffV2(root, {
@@ -121,7 +124,7 @@ try {
     stage: 'clarify',
     behavior: 'clarify.confirmed',
     agent: { type: 'enterprise-harness:main', skill: 'harness' },
-    inputRefs: requiredClarifyArtifacts,
+    inputRefs: frozenClarifyRefs,
     tecpc,
   });
   const completeArtifacts = requiredClarifyArtifacts
@@ -139,7 +142,7 @@ try {
     assertions: clarifyAssertionIds.map((id, index) => ({
       id,
       verdict: 'pass',
-      evidence: [[requirementsRef], [requiredClarifyArtifacts[4]], [requiredClarifyArtifacts[2]],
+      evidence: [[requirementsRef, ...researchRefs], [requiredClarifyArtifacts[4]], [requiredClarifyArtifacts[2]],
         [requiredClarifyArtifacts[3]], [requirementsRef], [classification.path], [requiredClarifyArtifacts[4]]][index],
     })),
     selfCheck: { verdict: 'pass', findings: [], evidence: [...requiredClarifyArtifacts] },
@@ -157,7 +160,7 @@ try {
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: requiredClarifyArtifacts,
+    inputRefs: frozenClarifyRefs,
     tecpc,
   });
   const reviewPath = v2ResultPath(root, changeId, check.runId, 'check');
@@ -223,7 +226,7 @@ try {
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: requiredClarifyArtifacts,
+    inputRefs: frozenClarifyRefs,
     tecpc,
   });
   const independentInput = JSON.parse(fs.readFileSync(independentCheck.path, 'utf-8'));

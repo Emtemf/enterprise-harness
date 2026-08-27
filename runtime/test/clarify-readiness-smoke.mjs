@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { buildClarifyReadiness, CLARIFY_ITEMS } from '../lib/clarify-readiness.mjs';
 import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { appendLaneApplicabilityFixture, writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { appendLaneApplicabilityFixture, ensureRequiredCodeResearchFixture, writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 import { addClarifyCompletion, approvedRequirements, prepareClassifiedClarify } from './clarify-readiness-fixture.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
@@ -270,6 +270,7 @@ try {
   ].join('\n'));
   recordPromptReceipt(root, { session_id: `fixture-${lowInfoId}`, prompt: 'x' });
   bindLatestPromptReceipt(root, lowInfoId, `fixture-${lowInfoId}`);
+  ensureRequiredCodeResearchFixture(root, lowInfoId, lowInfoRef);
   appendLaneApplicabilityFixture(root, lowInfoId, lowInfoRef);
   const lowInfo = buildClarifyReadiness(root, lowInfoId);
   assert.deepEqual(lowInfo.items.slice(0, 5).map(({ status }) => status), [

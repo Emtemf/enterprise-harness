@@ -29,7 +29,7 @@ export function withFileLock(file, action) {
   }
   fs.mkdirSync(path.dirname(lock), { recursive: true });
   const token = randomUUID();
-  acquireOwnedLock(lock, file, token);
+  withAcquisitionGate(lock, file, () => acquireOwnedLock(lock, file, token));
   locallyHeldLocks.set(lock, 1);
   const cleanup = () => releaseOwnedLock(lock, token);
   // Several CLI gates terminate with process.exit(2). Node does not unwind
@@ -42,6 +42,47 @@ export function withFileLock(file, action) {
     process.removeListener('exit', cleanup);
     locallyHeldLocks.delete(lock);
     cleanup();
+  }
+}
+
+function withAcquisitionGate(lock, file, action) {
+  const gate = `${lock}.acquire`;
+  const token = randomUUID();
+  try {
+    fs.mkdirSync(gate);
+    fs.writeFileSync(path.join(gate, LOCK_OWNER_FILE), `${JSON.stringify(lockOwner(token))}\n`, {
+      encoding: 'utf-8', mode: 0o600, flag: 'wx',
+    });
+  } catch (error) {
+    if (error.code === 'EEXIST') {
+      throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
+    }
+    fs.rmSync(gate, { recursive: true, force: true });
+    throw error;
+  }
+  const cleanup = () => {
+    if (readLockOwner(gate)?.token === token) fs.rmSync(gate, { recursive: true, force: true });
+  };
+  process.once('exit', cleanup);
+  try {
+    return action();
+  } finally {
+    process.removeListener('exit', cleanup);
+    cleanup();
+  }
+}
+
+export function withFileLockWait(file, action, options = {}) {
+  const timeoutMs = options.timeoutMs ?? 5_000;
+  const retryMs = options.retryMs ?? 10;
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    try {
+      return withFileLock(file, action);
+    } catch (error) {
+      if (!/EH-STATE-LOCK-(?:012|159)/u.test(String(error.message)) || Date.now() >= deadline) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, retryMs);
+    }
   }
 }
 
@@ -228,6 +269,11 @@ export function releaseChangeWriteLease(root, changeId, toolUseId) {
     fs.rmSync(file, { force: true });
     return existed;
   });
+}
+
+export function changeWriteLeaseExists(root, changeId, toolUseId) {
+  if (!String(toolUseId || '').trim()) return false;
+  return fs.existsSync(writeLeasePath(changeTransactionTarget(root, changeId), toolUseId));
 }
 
 export function atomicWriteJson(file, value) {

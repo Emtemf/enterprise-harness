@@ -16,7 +16,10 @@ import { dedupGuard } from '../hook-dedup.mjs';
 import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs';
 import {
   atomicWriteJson,
+  changeTransactionTarget,
+  changeWriteLeaseExists,
   releaseChangeWriteLease,
+  withFileLockWait,
 } from '../state-store.mjs';
 import { updateChangeState } from '../../core/change-state.mjs';
 
@@ -57,15 +60,33 @@ export function releaseHookWriteLease(root, event) {
 }
 
 export function postWrite({ root, raw, event: inputEvent = null }) {
-  try {
-    return postWriteCore({ root, raw, event: inputEvent });
-  } finally {
+  const active = inputEvent ? loadHookChange(root, inputEvent) : null;
+  const hadLease = active?.ok && inputEvent?.tool_use_id
+    ? changeWriteLeaseExists(root, active.changeId, inputEvent.tool_use_id)
+    : false;
+  const executeAndRelease = () => {
+    let result;
     try {
-      releaseHookWriteLease(root, inputEvent);
-    } catch {
-      // A failed release is recovered by the bounded lease expiry. Preserve the
-      // primary PostToolUse verdict instead of masking it with cleanup noise.
+      result = postWriteCore({ root, raw, event: inputEvent });
+    } catch (error) {
+      result = { status: 'block', exitCode: 2, stderr: `BLOCK [EH-HOOK-POST-WRITE-011] ${error.message}` };
     }
+    try {
+      const release = releaseHookWriteLease(root, inputEvent);
+      if (hadLease && release.engaged && !release.released) {
+        return { status: 'block', exitCode: 2, stderr: 'BLOCK [EH-CHANGE-WRITE-LEASE-153] active write lease was not released' };
+      }
+    } catch (error) {
+      return { status: 'block', exitCode: 2, stderr: `BLOCK [EH-CHANGE-WRITE-LEASE-153] ${error.message}` };
+    }
+    return result;
+  };
+  try {
+    return active?.ok
+      ? withFileLockWait(`${changeTransactionTarget(root, active.changeId)}-post-write`, executeAndRelease)
+      : executeAndRelease();
+  } catch (error) {
+    return { status: 'block', exitCode: 2, stderr: `BLOCK [EH-HOOK-POST-WRITE-011] ${error.message}` };
   }
 }
 

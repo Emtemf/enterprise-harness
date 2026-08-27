@@ -76,6 +76,10 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
     && new Set(lanes.map((cells) => cells[0])).size === 2
     && lanes.every((cells) => ['yes', 'no'].includes(String(cells[1]).toLowerCase()));
   if (!lanesDecided) laneProblems.push('requirements fact lanes must decide code and docs exactly once');
+  const codeLane = lanes.find((cells) => cells[0] === 'code');
+  if (String(codeLane?.[1] || '').toLowerCase() !== 'yes') {
+    laneProblems.push('code research is mandatory for governed software changes; main cannot self-certify code as not-required');
+  }
 
   for (const [lane, required, briefRef, runId, packetRef, status] of lanes) {
     const requiredValue = String(required).toLowerCase();

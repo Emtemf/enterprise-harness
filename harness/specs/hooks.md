@@ -50,6 +50,11 @@ Hooks deliberately do **not** gate ordinary reads, shell commands, or Agent disp
 runtime contracts own CodeGraph-first delegation, Context7-first research, handoff binding,
 self-check, review, and lifecycle semantics.
 
+Inside an active v6 workflow, arbitrary mutating Bash is not ordinary shell use: main must use
+Write/Edit or canonical runtime commands, and only the bound implementer may launch canonical
+task-run. This prevents a tool call from deleting hook/runtime coordination while its own write
+lease is active. Direct writes to the git-common-dir runtime root are always blocked.
+
 Governed-write enforcement is session-scoped and opt-in. A hook event with no session binding
 (or a legacy event with no `ACTIVE_CHANGE`) is outside an active Harness workflow and ordinary
 `Write`/`Edit`/`NotebookEdit` must remain available, including under conventional production,

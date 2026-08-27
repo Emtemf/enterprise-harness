@@ -19,6 +19,8 @@ import {
 import { classificationArtifactPath } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
+import { ensureRequiredCodeResearchFixture } from './classification-v2-fixture.mjs';
+import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -79,11 +81,13 @@ try {
   ].join('\n'));
   recordPromptReceipt(root, { session_id: 'clarify-cli-prompt', prompt: 'Classify a CLI fixture change.' });
   bindLatestPromptReceipt(root, changeId, 'clarify-cli-prompt');
+  ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
+  const canonicalRequirements = fs.readFileSync(path.join(root, requirementsRef), 'utf-8');
   const requirementsDigest = sha256Artifact(root, requirementsRef);
 
   const laneId = 'lane-code';
   const laneRef = decisionEventInputPath(changeId, laneId);
-  writeJson(laneRef, event(laneId, 'lane-applicability', `${requirementsRef}#fact-lane-code#sha256=${requirementsDigest}`, ['required', 'not-required'], 'not-required', {
+  writeJson(laneRef, event(laneId, 'lane-applicability', `${requirementsRef}#fact-lane-code#sha256=${requirementsDigest}`, ['required', 'not-required'], 'required', {
     [requirementsRef]: requirementsDigest,
   }));
   const recorded = run('record-decision', changeId, laneRef);
@@ -119,16 +123,7 @@ try {
   const stale = run('record-decision', changeId, laneRef);
   assert.equal(stale.status, 2);
   assert.match(stale.stderr, /EH-DECISION-STALE-146/u);
-  fs.writeFileSync(path.join(root, requirementsRef), [
-    '# Requirements', '', '## 目标与验收', '### 原始需求',
-    'Classify a CLI fixture change.', '### 澄清后的目标', 'Classify the current fixture.',
-    '## 事实探索门禁',
-    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
-    '|---|---|---|---|---|---|---|',
-    '| code | no | none | none | none | not-required | No repository behavior is in scope. |',
-    '| docs | no | none | none | none | not-required | No external contract is in scope. |',
-    '- remaining fact uncertainty: none', '',
-  ].join('\n'));
+  fs.writeFileSync(path.join(root, requirementsRef), canonicalRequirements);
 
   const docsLaneId = 'lane-docs';
   const docsLaneRef = decisionEventInputPath(changeId, docsLaneId);
@@ -163,7 +158,10 @@ try {
   assert.equal(run('validate-debt', changeId, debtRef).status, 0);
   assert.equal(run('validate-project-contract', changeId, contractRef).status, 0);
 
-  const authoritativeRefs = [requirementsRef, clarifyDecisionSnapshotPath(changeId), debtRef, contractRef];
+  const researchRefs = readClarifyResearchEvidence(
+    root, changeId, requirementsRef, fs.readFileSync(path.join(root, requirementsRef), 'utf-8'),
+  ).refs;
+  const authoritativeRefs = [requirementsRef, clarifyDecisionSnapshotPath(changeId), debtRef, contractRef, ...researchRefs];
   const inputDigests = Object.fromEntries(authoritativeRefs.map((ref) => [ref, sha256Artifact(root, ref)]));
   const routeId = 'route-L1';
   const routeRef = decisionEventInputPath(changeId, routeId);

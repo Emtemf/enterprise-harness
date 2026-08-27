@@ -17,6 +17,8 @@
   no hook owns routing, requirements, or lifecycle correctness.
 - UserPromptSubmit now records a text-free host receipt so Clarify can bind preserved raw-request
   clauses without storing conversation content.
+- Governed software changes now always require isolated code research; a local receipt or main-authored
+  rationale can no longer waive the CodeGraph lane.
 
 ### Security
 
@@ -24,6 +26,8 @@
   unprepared questions, duplicate decision events, path escape, and symlink escape fail closed.
 - Shared Pre/Post write leases now exclude lifecycle transactions without a TOCTOU gap; dead-owner
   locks recover automatically, and preoccupied immutable snapshot history fails closed.
+- Active v6 workflows reject arbitrary mutating Bash and direct common-dir coordination writes;
+  concurrent PostToolUse processing is serialized through lease release.
 
 ### Notes
 

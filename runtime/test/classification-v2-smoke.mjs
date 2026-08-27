@@ -18,8 +18,9 @@ import {
   writeClassificationArtifact,
 } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
+import { appendLaneApplicabilityFixture, ensureRequiredCodeResearchFixture } from './classification-v2-fixture.mjs';
 import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
+import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -50,6 +51,7 @@ try {
   ].join('\n'));
   recordPromptReceipt(root, { session_id: 'classification-v2-prompt', prompt: 'Classify a bounded fixture change.' });
   bindLatestPromptReceipt(root, changeId, 'classification-v2-prompt');
+  ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
   appendLaneApplicabilityFixture(root, changeId, requirementsRef);
   appendDecisionEvent(root, changeId, {
     eventVersion: 1,
@@ -101,11 +103,15 @@ try {
     },
     updatedAt: '2026-08-25T00:02:00.000Z',
   });
+  const researchRefs = readClarifyResearchEvidence(
+    root, changeId, requirementsRef, fs.readFileSync(path.join(root, requirementsRef), 'utf-8'),
+  ).refs;
   const inputDigests = {
     [requirementsRef]: sha256Artifact(root, requirementsRef),
     [snapshotRef]: sha256Artifact(root, snapshotRef),
     [debtRef]: sha256Artifact(root, debtRef),
     [contractRef]: sha256Artifact(root, contractRef),
+    ...Object.fromEntries(researchRefs.map((ref) => [ref, sha256Artifact(root, ref)])),
   };
   const score = (value, reason) => ({ value, evidenceRefs: [requirementsRef], reason });
   const scores = {

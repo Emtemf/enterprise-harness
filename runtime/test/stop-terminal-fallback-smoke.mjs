@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
+import { appendLaneApplicabilityFixture, ensureRequiredCodeResearchFixture } from './classification-v2-fixture.mjs';
 import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2];
@@ -116,6 +116,11 @@ try {
     prompt: 'Decide a bounded fixture without research.',
   });
   bindLatestPromptReceipt(fixtureRoot, changeId, 'terminal-route-prompt');
+  ensureRequiredCodeResearchFixture(
+    fixtureRoot,
+    changeId,
+    `harness/changes/${changeId}/requirements.md`,
+  );
   appendLaneApplicabilityFixture(
     fixtureRoot,
     changeId,

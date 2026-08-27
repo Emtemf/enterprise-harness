@@ -9,6 +9,7 @@ import { boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { acquireChangeWriteLease } from '../state-store.mjs';
+import { runtimePaths } from '../runtime-paths.mjs';
 
 const UNENGAGED_HARNESS_REASONS = new Set([
   'missing-session-binding',
@@ -63,6 +64,16 @@ export function preWrite({ root, event }) {
     return allowWithLease(root, event, activeForRunner);
   }
 
+  if (event.tool_name === 'Bash' && activeForRunner.ok
+      && activeForRunner.data?.schemaVersion === 6
+      && isPotentialWriteBash(event.tool_input?.command)) {
+    return block(
+      root,
+      'EH-HOOK-BASH-MUTATION-157 受治理 v6 主流程不允许任意 mutating Bash；使用 Write/Edit，或由 implementer 运行 canonical task-run。',
+      activeForRunner,
+    );
+  }
+
   if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {
     try {
       writeHookSnapshot(root, event.tool_use_id, captureGovernedSnapshot(root));
@@ -73,6 +84,10 @@ export function preWrite({ root, event }) {
 
   const targets = extractHookTargets(root, event);
   for (const target of targets) {
+    const commonRuntimeRoot = path.resolve(runtimePaths(root).runtimeRoot);
+    if (target === commonRuntimeRoot || target.startsWith(`${commonRuntimeRoot}${path.sep}`)) {
+      return block(root, 'EH-HOOK-RUNTIME-INTEGRITY-158 git common-dir runtime coordination is hook/runtime-owned.', activeForRunner);
+    }
     const legacyRulesRoot = path.resolve(root, 'rules');
     const legacyAgentsRoot = path.resolve(root, 'agents');
     const archiveRoot = path.resolve(root, 'harness/archive');

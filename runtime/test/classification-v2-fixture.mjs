@@ -15,6 +15,8 @@ import {
 import { classifyClarify, writeClassificationArtifact } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
+import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/handoff-v2.mjs';
+import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import {
   bindLatestPromptReceipt,
   readPromptBinding,
@@ -28,13 +30,46 @@ const TIER_VALUES = Object.freeze({
   L3: [3, 3, 2, 2],
 });
 
+export function ensureRequiredCodeResearchFixture(root, changeId, requirementsRef) {
+  const target = path.join(root, requirementsRef);
+  const content = fs.readFileSync(target, 'utf-8');
+  if (!/\|\s*code\s*\|\s*no\s*\|/iu.test(content)) return null;
+  const briefRef = `harness/changes/${changeId}/evidence/code-brief.md`;
+  fs.mkdirSync(path.dirname(path.join(root, briefRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, briefRef), '# Fixture code research brief\n');
+  const handoff = createHandoffV2(root, {
+    changeId, stage: 'clarify', behavior: 'clarify.explore-code',
+    agent: { type: 'enterprise-harness:code-explore', skill: 'explore-code' },
+    inputRefs: [briefRef],
+    tecpc: { target: 'Inspect fixture code', evidence: [briefRef], context: [briefRef], path: briefRef, correction: null },
+  });
+  const resultPath = v2ResultPath(root, changeId, handoff.runId);
+  const packetRef = path.relative(root, resultPath).split(path.sep).join('/');
+  persistHandoffV2Result(root, changeId, handoff.runId, {
+    packetVersion: 1, type: 'research-packet', changeId, source: 'code-explore',
+    question: 'Which code boundary is affected?', scope: ['fixture'],
+    facts: [{ claim: 'The fixture code boundary is known.', sources: [briefRef] }],
+    uncertainties: [], authority: 'codegraph-first', fallback: null, degraded: false,
+    recommendedDecision: null, inputRefs: [...handoff.input.inputRefs],
+    inputDigests: { ...handoff.input.inputDigests }, collectedAt: '2026-08-25T00:00:00.000Z',
+  });
+  appendCompletedHandoffBinding(root, changeId, handoff.input, { agentId: `${changeId}-code-fixture` });
+  fs.writeFileSync(target, content.replace(
+    /^\|\s*code\s*\|[^\n]*$/imu,
+    `| code | yes | ${briefRef} | ${handoff.runId} | ${packetRef} | complete | codegraph-first |`,
+  ));
+  return { briefRef, runId: handoff.runId, packetRef };
+}
+
 export function appendLaneApplicabilityFixture(root, changeId, requirementsRef, selections = {}) {
   const digest = sha256Artifact(root, requirementsRef);
+  const requirements = fs.readFileSync(path.join(root, requirementsRef), 'utf-8');
   const existingTargets = new Set(readDecisionEvents(root, changeId)
     .filter(({ decisionType }) => decisionType === 'lane-applicability')
     .map(({ targetRef }) => targetRef));
   for (const lane of ['code', 'docs']) {
-    const selectedOption = selections[lane] || 'not-required';
+    const selectedOption = selections[lane]
+      || (new RegExp(`\\|\\s*${lane}\\s*\\|\\s*yes\\s*\\|`, 'iu').test(requirements) ? 'required' : 'not-required');
     const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${digest}`;
     if (existingTargets.has(targetRef)) continue;
     appendDecisionEvent(root, changeId, {
@@ -98,6 +133,7 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
       '',
     ].join('\n'));
   }
+  ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
   const currentRequirements = fs.readFileSync(requirementsPath, 'utf-8');
   appendLaneApplicabilityFixture(root, changeId, requirementsRef, {
     code: /\|\s*code\s*\|\s*yes\s*\|/iu.test(currentRequirements) ? 'required' : 'not-required',

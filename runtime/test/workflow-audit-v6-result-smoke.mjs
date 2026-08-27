@@ -66,11 +66,14 @@ try {
     `harness/changes/${changeId}/project-contract-assessment.json`,
     `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`,
   ];
+  const researchRefs = Object.keys(JSON.parse(fs.readFileSync(path.join(root, classificationRef), 'utf-8')).inputDigests)
+    .filter((ref) => ref.includes('/runs/') && ref.endsWith('/result.json'));
+  const frozenClarifyRefs = [...requiredClarifyArtifacts, ...researchRefs];
   const clarifyTecpc = {
     target: 'confirm canonical Clarify artifacts',
-    evidence: requiredClarifyArtifacts,
-    context: requiredClarifyArtifacts,
-    path: requiredClarifyArtifacts.join(' -> '),
+    evidence: frozenClarifyRefs,
+    context: frozenClarifyRefs,
+    path: frozenClarifyRefs.join(' -> '),
     correction: null,
   };
   const clarifyExecute = createHandoffV2(root, {
@@ -78,7 +81,7 @@ try {
     stage: 'clarify',
     behavior: 'clarify.confirmed',
     agent: { type: 'enterprise-harness:main', skill: 'harness' },
-    inputRefs: requiredClarifyArtifacts,
+    inputRefs: frozenClarifyRefs,
     tecpc: clarifyTecpc,
   });
   const clarifyArtifacts = requiredClarifyArtifacts
@@ -93,14 +96,14 @@ try {
     inputDigests: { ...clarifyExecute.input.inputDigests },
     artifacts: clarifyArtifacts,
     assertions: [
-      ['research-complete', requirementsRef],
+      ['research-complete', [requirementsRef, ...researchRefs]],
       ['decisions-durable', requiredClarifyArtifacts[4]],
       ['technical-debt-disposed', requiredClarifyArtifacts[2]],
       ['project-contract-disposed', requiredClarifyArtifacts[3]],
       ['requirements-ready', requirementsRef],
       ['classification-ready', classificationRef],
       ['scope-confirmed', requiredClarifyArtifacts[4]],
-    ].map(([id, reference]) => ({ id, verdict: 'pass', evidence: [reference] })),
+    ].map(([id, reference]) => ({ id, verdict: 'pass', evidence: Array.isArray(reference) ? reference : [reference] })),
     selfCheck: { verdict: 'pass', findings: [], evidence: requiredClarifyArtifacts },
     tecpc: clarifyTecpc,
     status: 'pass',
@@ -115,7 +118,7 @@ try {
     role: 'check',
     parentRunId: clarifyExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: requiredClarifyArtifacts,
+    inputRefs: frozenClarifyRefs,
     tecpc: clarifyTecpc,
   });
   const clarifyReviewPath = v2ResultPath(root, changeId, clarifyCheck.runId, 'check');
