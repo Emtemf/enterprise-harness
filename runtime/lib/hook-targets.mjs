@@ -66,7 +66,7 @@ function isReadOnlyDiagnostic(tokens) {
   if (tokens[0] === 'pwd') return tokens.slice(1).every((token) => ['-L', '-P'].includes(token));
   if (tokens[0] === 'ls') return tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
   if (tokens[0] === 'rg') {
-    return tokens.includes('--no-config')
+    return tokens[1] === '--no-config'
       && tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
   }
   if (tokens[0] !== 'git' || !READ_ONLY_GIT_COMMANDS.has(tokens[1])) return false;

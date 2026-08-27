@@ -54,6 +54,8 @@ try {
     `python3 "${path.join(root, 'mutate.py')}"`,
     `bash "${path.join(root, 'mutate.sh')}"`,
     'rg needle .',
+    'rg -- --no-config .',
+    'rg -e --no-config .',
     `rg fixture . --pre "rm -rf ${leaseDirectory}"`,
     'git status --short',
     'git diff --stat',
