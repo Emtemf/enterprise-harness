@@ -298,6 +298,13 @@ try {
   let classificationOrdinal = 0;
 
   function run(content, afterHandoff = null, options = {}) {
+    const rawRequest = content.match(/### 原始需求\n([\s\S]*?)\n### 澄清后的目标/u)?.[1] || '';
+    fs.rmSync(path.join(
+      root, '.git', 'enterprise-harness', 'prompt-receipts', 'bindings', `${changeId}.json`,
+    ), { force: true });
+    const runPromptSession = `clarify-stage-prompt-${classificationOrdinal + 1}`;
+    recordPromptReceipt(root, { session_id: runPromptSession, prompt: rawRequest });
+    bindLatestPromptReceipt(root, changeId, runPromptSession);
     fs.writeFileSync(path.join(root, requirementsRef), content);
     classificationOrdinal += 1;
     try {

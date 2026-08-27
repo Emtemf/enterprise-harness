@@ -17,6 +17,7 @@ import {
   validateClarifyDecisionSnapshot,
   validateDecisionEvent,
 } from '../lib/result-contract.mjs';
+import { changeTransactionTarget } from '../lib/state-store.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -131,14 +132,14 @@ try {
   fs.rmSync(`${contendedPath}.lock`, { recursive: true });
 
   const transactionChange = 'transaction-contended';
-  const transactionDir = path.join(root, 'harness', 'changes', transactionChange);
-  fs.mkdirSync(path.join(transactionDir, '.change-transaction.lock'), { recursive: true });
+  const transactionLock = `${changeTransactionTarget(root, transactionChange)}.lock`;
+  fs.mkdirSync(transactionLock, { recursive: true });
   assert.throws(
     () => appendDecisionEvent(root, transactionChange, eventFor(transactionChange, 'decision-transaction')),
     /EH-STATE-LOCK-012/u,
     'decision writes must share the lifecycle change transaction lock',
   );
-  fs.rmSync(path.join(transactionDir, '.change-transaction.lock'), { recursive: true, force: true });
+  fs.rmSync(transactionLock, { recursive: true, force: true });
 
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-decision-escape-'));
   const symlinkChange = 'symlink-ledger';

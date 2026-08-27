@@ -4,6 +4,7 @@ import process from 'node:process';
 import os from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
 import { assertSafeId, resolveChild } from './safe-paths.mjs';
+import { runtimePaths } from './runtime-paths.mjs';
 
 const LOCK_OWNER_FILE = 'owner.json';
 const INVALID_LOCK_GRACE_MS = 30_000;
@@ -84,13 +85,22 @@ function lockIsRecoverable(lock) {
   }
 }
 
-function quarantineStaleLock(lock) {
+function quarantineStaleLock(lock, expectedOwner = readLockOwner(lock)) {
   const quarantine = `${lock}.stale.${randomUUID()}`;
   try {
     fs.renameSync(lock, quarantine);
   } catch (error) {
     if (error.code === 'ENOENT') return false;
     throw error;
+  }
+  const movedOwner = readLockOwner(quarantine);
+  if (movedOwner?.token !== expectedOwner?.token || !lockIsRecoverable(quarantine)) {
+    try {
+      fs.renameSync(quarantine, lock);
+    } catch (restoreError) {
+      throw new Error(`EH-STATE-LOCK-012: lock owner changed during stale recovery for ${lock}: ${restoreError.message}`);
+    }
+    return false;
   }
   fs.rmSync(quarantine, { recursive: true, force: true });
   return true;
@@ -111,7 +121,8 @@ function acquireOwnedLock(lock, file, token) {
         fs.rmSync(lock, { recursive: true, force: true });
         throw error;
       }
-      if (!lockIsRecoverable(lock) || !quarantineStaleLock(lock)) {
+      const observedOwner = readLockOwner(lock);
+      if (!lockIsRecoverable(lock) || !quarantineStaleLock(lock, observedOwner)) {
         throw new Error(`EH-STATE-LOCK-012: concurrent update in progress for ${file}`);
       }
     }
@@ -127,8 +138,11 @@ function releaseOwnedLock(lock, token) {
 
 export function changeTransactionTarget(root, changeId) {
   assertSafeId(changeId, 'changeId');
-  const changeRoot = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
-  return path.join(changeRoot, '.change-transaction');
+  return resolveChild(
+    path.join(runtimePaths(root).runtimeRoot, 'change-transactions'),
+    `${changeId}.transaction`,
+    'changeId',
+  );
 }
 
 export function withChangeTransaction(root, changeId, action) {
@@ -213,23 +227,6 @@ export function releaseChangeWriteLease(root, changeId, toolUseId) {
     const existed = fs.existsSync(file);
     fs.rmSync(file, { force: true });
     return existed;
-  });
-}
-
-export function withChangeWriteLeaseUpgrade(root, changeId, toolUseId, action) {
-  assertSafeId(changeId, 'changeId');
-  if (!String(toolUseId || '').trim()) return action();
-  const target = changeTransactionTarget(root, changeId);
-  return withFileLock(`${target}-coordinator`, () => {
-    removeExpiredWriteLeases(target);
-    const ownedLease = writeLeasePath(target, toolUseId);
-    if (!fs.existsSync(ownedLease)) return action();
-    fs.rmSync(ownedLease, { force: true });
-    const competing = listWriteLeases(target);
-    if (competing.length) {
-      throw new Error(`EH-CHANGE-WRITE-LEASE-151: ${changeId} has ${competing.length} other write tool(s) in progress`);
-    }
-    return withFileLock(target, action);
   });
 }
 

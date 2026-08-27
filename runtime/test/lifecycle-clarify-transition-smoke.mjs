@@ -13,6 +13,7 @@ import { appendDecisionEvent } from '../core/decision-ledger.mjs';
 import { stageCompletionFor, validateStageGate } from '../lib/stage-results.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { approvedRequirements } from './clarify-readiness-fixture.mjs';
+import { changeTransactionTarget } from '../lib/state-store.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -332,8 +333,8 @@ try {
     'real proof-free status with all prerequisites fresh must select T');
   assert.equal(fs.existsSync(proofPath), false, 'workflow status must remain read-only');
 
-  const transitionLock = path.join(changeDir, '.change-transaction.lock');
-  fs.mkdirSync(transitionLock);
+  const transitionLock = `${changeTransactionTarget(root, changeId)}.lock`;
+  fs.mkdirSync(transitionLock, { recursive: true });
   const concurrentAdvance = advance();
   assert.equal(concurrentAdvance.status, 2, 'a concurrent change-level transition must fail closed');
   assert.match(`${concurrentAdvance.stdout}\n${concurrentAdvance.stderr}`, /EH-STATE-LOCK-012/u);

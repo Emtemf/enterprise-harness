@@ -6,7 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { bindSession } from '../lib/sessions.mjs';
-import { withChangeTransaction } from '../lib/state-store.mjs';
+import { changeTransactionTarget, withChangeTransaction } from '../lib/state-store.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preWritePath = path.join(repoRoot, 'hooks', 'scripts', 'pre-write.mjs');
@@ -444,7 +444,7 @@ check('W: structurally invalid legacy active state fails closed', () => {
 check('X: a change transaction blocks direct hook-mediated writes', () => {
   withTempRoot((tempRoot) => {
     createChangeFixture(tempRoot, 'fixture-change', baseState());
-    fs.mkdirSync(path.join(tempRoot, 'harness', 'changes', 'fixture-change', '.change-transaction.lock'));
+    fs.mkdirSync(`${changeTransactionTarget(tempRoot, 'fixture-change')}.lock`, { recursive: true });
     const target = path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md');
     const result = runPreWrite(tempRoot, target);
     assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
@@ -465,6 +465,29 @@ check('Y: PreToolUse lease excludes transition until matching PostToolUse', () =
     );
     const post = runPostWrite(tempRoot, target, pre.toolUseId);
     assert.equal(post.status, 0, `expected PostToolUse release, got ${post.status}; stderr=${post.stderr}`);
+    assert.equal(withChangeTransaction(tempRoot, 'fixture-change', () => 'committed'), 'committed');
+  });
+});
+
+check('Z: parallel writes each complete PostToolUse before transition can proceed', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    const firstTarget = path.join(tempRoot, 'scripts', 'first.txt');
+    const secondTarget = path.join(tempRoot, 'scripts', 'second.txt');
+    writeText(firstTarget, 'first\n');
+    writeText(secondTarget, 'second\n');
+    const first = runPreWrite(tempRoot, firstTarget);
+    const second = runPreWrite(tempRoot, secondTarget);
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(second.status, 0, second.stderr);
+    const firstPost = runPostWrite(tempRoot, firstTarget, first.toolUseId);
+    assert.equal(firstPost.status, 0, `first PostToolUse must run with a competing lease: ${firstPost.stderr}`);
+    assert.throws(
+      () => withChangeTransaction(tempRoot, 'fixture-change', () => 'must-not-run'),
+      /EH-CHANGE-WRITE-LEASE-151/u,
+    );
+    const secondPost = runPostWrite(tempRoot, secondTarget, second.toolUseId);
+    assert.equal(secondPost.status, 0, secondPost.stderr);
     assert.equal(withChangeTransaction(tempRoot, 'fixture-change', () => 'committed'), 'committed');
   });
 });

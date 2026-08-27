@@ -7,7 +7,6 @@ import {
   changeTransactionTarget,
   releaseChangeWriteLease,
   withChangeTransaction,
-  withChangeWriteLeaseUpgrade,
 } from '../lib/state-store.mjs';
 
 const mode = process.argv[2] || 'verify';
@@ -19,6 +18,11 @@ fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true 
 
 try {
   acquireChangeWriteLease(root, changeId, 'tool-write-1', { sessionId: 'session-1' });
+  assert.equal(
+    changeTransactionTarget(root, changeId).startsWith(path.join(root, 'harness', 'changes')),
+    false,
+    'transaction locks and write leases must live outside tool-writable change artifacts',
+  );
   assert.throws(
     () => withChangeTransaction(root, changeId, () => 'must-not-run'),
     /EH-CHANGE-WRITE-LEASE-151/u,
@@ -26,15 +30,6 @@ try {
   );
   assert.equal(releaseChangeWriteLease(root, changeId, 'tool-write-1'), true);
   assert.equal(withChangeTransaction(root, changeId, () => 'committed'), 'committed');
-
-  acquireChangeWriteLease(root, changeId, 'tool-write-2', { sessionId: 'session-1' });
-  assert.equal(
-    withChangeWriteLeaseUpgrade(root, changeId, 'tool-write-2', () => (
-      withChangeTransaction(root, changeId, () => 'post-committed')
-    )),
-    'post-committed',
-    'PostToolUse must atomically upgrade its shared lease and allow reentrant state invalidation',
-  );
 
   const target = changeTransactionTarget(root, changeId);
   const lock = `${target}.lock`;

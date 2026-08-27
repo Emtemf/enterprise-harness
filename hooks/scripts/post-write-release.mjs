@@ -10,8 +10,13 @@ const raw = Buffer.concat(chunks).toString('utf-8').trim();
 
 try {
   const event = raw ? JSON.parse(raw) : null;
+  if (!event || typeof event !== 'object' || Array.isArray(event)
+      || typeof event.tool_use_id !== 'string' || !event.tool_use_id.trim()) {
+    throw new Error('PostToolUseFailure requires a non-empty tool_use_id');
+  }
   if (dedupGuard('post-write-release', event?.tool_use_id, event?.cwd)) process.exit(0);
-  releaseHookWriteLease(projectRoot(), event);
+  const result = releaseHookWriteLease(projectRoot(), event);
+  if (result.engaged && !result.released) throw new Error('active change write lease was not found');
   process.exit(0);
 } catch (error) {
   process.stderr.write(`BLOCK [EH-CHANGE-WRITE-LEASE-153] ${error.message}\n`);

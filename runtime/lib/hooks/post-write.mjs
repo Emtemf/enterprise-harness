@@ -17,7 +17,6 @@ import { artifactNameForPath, invalidateStateArtifacts } from '../artifacts.mjs'
 import {
   atomicWriteJson,
   releaseChangeWriteLease,
-  withChangeWriteLeaseUpgrade,
 } from '../state-store.mjs';
 import { updateChangeState } from '../../core/change-state.mjs';
 
@@ -48,20 +47,17 @@ export function markValidationStaleForWrite(root, statePath, target) {
 }
 
 export function releaseHookWriteLease(root, event) {
-  if (!event?.tool_use_id) return false;
+  if (!event?.tool_use_id) return { engaged: false, released: false };
   const active = loadHookChange(root, event);
-  if (!active.ok) return false;
-  return releaseChangeWriteLease(root, active.changeId, event.tool_use_id);
+  if (!active.ok) return { engaged: false, released: false };
+  return {
+    engaged: true,
+    released: releaseChangeWriteLease(root, active.changeId, event.tool_use_id),
+  };
 }
 
 export function postWrite({ root, raw, event: inputEvent = null }) {
-  const active = inputEvent ? loadHookChange(root, inputEvent) : null;
   try {
-    if (active?.ok && inputEvent?.tool_use_id) {
-      return withChangeWriteLeaseUpgrade(root, active.changeId, inputEvent.tool_use_id, () => (
-        postWriteCore({ root, raw, event: inputEvent })
-      ));
-    }
     return postWriteCore({ root, raw, event: inputEvent });
   } finally {
     try {

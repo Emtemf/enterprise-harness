@@ -22,6 +22,7 @@ testRefs:
   - runtime/test/pre-write-governed-target-smoke.mjs
   - runtime/test/change-transaction-lease-smoke.mjs
   - runtime/test/user-prompt-receipt-hook-smoke.mjs
+  - runtime/test/post-write-failure-release-smoke.mjs
   - runtime/test/stop-terminal-fallback-smoke.mjs
 ---
 
@@ -56,8 +57,8 @@ test, and API roots. Once a session binding or legacy active change exists, unre
 expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
 file is not equivalent to an absent binding.
 
-An allowed write acquires a per-change shared lease in PreToolUse and keeps it until the matching
-PostToolUse or PostToolUseFailure. A lifecycle transition and every runtime decision, assessment,
+An allowed write acquires a per-change shared lease under the git common directory in PreToolUse and keeps it until the matching
+PostToolUse correctness work has run, or PostToolUseFailure releases it. A lifecycle transition and every runtime decision, assessment,
 classification, and handoff-result writer acquire the exclusive transaction only when no shared
 write lease exists. Both paths serialize through the same coordinator, so authorization cannot
 race proof revalidation or the state CAS. `EH-CHANGE-TRANSACTION-150` identifies an active

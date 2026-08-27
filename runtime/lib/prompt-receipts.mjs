@@ -102,6 +102,7 @@ export function promptBindingCovers(root, changeId, rawRequest) {
   const binding = readPromptBinding(root, changeId);
   const clauses = promptClauses(rawRequest);
   if (!binding || clauses.length === 0) return false;
-  const allowed = new Set(binding.clauseDigests);
-  return clauses.every((clause) => allowed.has(sha256(clause)));
+  const required = new Set(clauses.map(sha256));
+  const captured = new Set(binding.clauseDigests);
+  return required.size === captured.size && [...required].every((digest) => captured.has(digest));
 }

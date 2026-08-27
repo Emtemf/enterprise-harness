@@ -30,8 +30,10 @@ try {
   bindLatestPromptReceipt(root, 'prompt-change', event.session_id);
   const binding = readPromptBinding(root, 'prompt-change');
   assert.equal(binding.source, 'UserPromptSubmit');
-  assert.equal(promptBindingCovers(root, 'prompt-change', 'Build order cancellation.'), true);
+  assert.equal(promptBindingCovers(root, 'prompt-change', event.prompt), true);
   assert.equal(promptBindingCovers(root, 'prompt-change', 'Invent an admin console.'), false);
+  assert.equal(promptBindingCovers(root, 'prompt-change', 'Do not change payment.'), false,
+    'requirements must preserve the complete prompt clause set, not a convenient subset');
 
   const malformed = spawnSync(process.execPath, [hook], {
     cwd: root,
