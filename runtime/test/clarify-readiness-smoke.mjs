@@ -7,8 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { buildClarifyReadiness, CLARIFY_ITEMS } from '../lib/clarify-readiness.mjs';
 import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
-import { addClarifyCompletion, prepareClassifiedClarify } from './clarify-readiness-fixture.mjs';
+import { appendLaneApplicabilityFixture, writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { addClarifyCompletion, approvedRequirements, prepareClassifiedClarify } from './clarify-readiness-fixture.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
 import { writeDebtAssessment, writeProjectContractAssessment } from '../core/clarify-assessments.mjs';
@@ -95,29 +95,7 @@ try {
   const staleStatusId = 'readiness-stale-status';
   const staleStatusDir = path.join(root, 'harness', 'changes', staleStatusId);
   fs.mkdirSync(staleStatusDir, { recursive: true });
-  fs.writeFileSync(path.join(staleStatusDir, 'requirements.md'), [
-    '# Requirements',
-    '## 事实探索门禁',
-    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
-    '|---|---|---|---|---|---|---|',
-    '| code | no | none | none | none | not-required | No code research needed. |',
-    '| docs | no | none | none | none | not-required | No docs research needed. |',
-    '- remaining fact uncertainty: none',
-    '## 组件拓扑',
-    '| Component | Description | Status |',
-    '|---|---|---|',
-    '| runtime | Workflow runtime | active |',
-    '- topology confirmed: true',
-    '## Component × Dimension 评分',
-    '| Component | Dimension | Evidence | Score |',
-    '|---|---|---|---|',
-    ...['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'].map((dimension) => `| runtime | ${dimension} | requirements | 4 |`),
-    '- unresolved high-risk assumption: none',
-    '## 未决决策与确认',
-    '- unresolved high-risk decision: none',
-    '- scope confirmed: true',
-    '',
-  ].join('\n'));
+  fs.writeFileSync(path.join(staleStatusDir, 'requirements.md'), approvedRequirements());
   const staleReference = writeClassificationV2Fixture(root, staleStatusId, { tier: 'L1' });
   fs.writeFileSync(path.join(staleStatusDir, 'state.json'), `${JSON.stringify({
     schemaVersion: 6,
@@ -226,6 +204,26 @@ try {
     'a ResearchPacket without trusted completed agent binding must not satisfy readiness',
   );
 
+  const bypassId = 'readiness-empty-not-required';
+  const bypassRef = `harness/changes/${bypassId}/requirements.md`;
+  fs.mkdirSync(path.dirname(path.join(root, bypassRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, bypassRef), [
+    '# Requirements', '## 事实探索门禁',
+    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
+    '|---|---|---|---|---|---|---|',
+    '| code | no | none | none | none | not-required | |',
+    '| docs | no | none | none | none | not-required | |',
+    '- remaining fact uncertainty: none', '',
+  ].join('\n'));
+  appendLaneApplicabilityFixture(root, bypassId, bypassRef);
+  const bypassReadiness = buildClarifyReadiness(root, bypassId);
+  assert.equal(bypassReadiness.route, 'research');
+  assert.equal(
+    bypassReadiness.items.find(({ id }) => id === 'required-research-fresh').status,
+    'blocked',
+    'empty not-required rationales must never satisfy the mechanical research gate',
+  );
+
   const progressiveId = 'readiness-progressive';
   const progressiveDir = path.join(root, 'harness', 'changes', progressiveId);
   const progressiveRequirementsRef = `harness/changes/${progressiveId}/requirements.md`;
@@ -235,6 +233,13 @@ try {
   const pendingPath = pendingQuestionPath(root, progressiveId);
   fs.mkdirSync(path.dirname(pendingPath), { recursive: true });
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'pending' }));
+  const progressivePredicates = {
+    Goal: ['consumer', 'outcome'], Scope: ['included', 'excluded'], Constraints: ['technical', 'risk'],
+    Acceptance: ['success', 'failure', 'observable'], Context: ['need', 'current-state'],
+  };
+  const progressiveEvidence = Object.entries(progressivePredicates).flatMap(([dimension, names]) => (
+    names.map((predicate) => ({ id: `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`, support: `runtime:${dimension}.${predicate}` }))
+  ));
   const requirementsText = ({ runId = 'none', packetRef = 'none', status = 'pending', remaining = 'unresolved', topology = false, ambiguity = false, approved = false } = {}) => [
     '# Requirements', '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
@@ -242,10 +247,14 @@ try {
     `| code | yes | ${brief} | ${runId} | ${packetRef} | ${status} | codegraph-first |`,
     '| docs | no | none | none | none | not-required | No docs research needed. |',
     `- remaining fact uncertainty: ${remaining}`,
-    '## 组件拓扑', '| Component | Description | Status |', '|---|---|---|',
-    ...(topology ? ['| runtime | Workflow runtime | active |', '- topology confirmed: true'] : []),
-    '## Component × Dimension 评分', '| Component | Dimension | Evidence | Score |', '|---|---|---|---|',
-    ...(ambiguity ? [...['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'].map((dimension) => `| runtime | ${dimension} | requirements | 4 |`), '- unresolved high-risk assumption: none'] : []),
+    '## 组件拓扑', '| Component | Outcome / boundary | Status | Depends on | Confirmation source |', '|---|---|---|---|---|',
+    ...(topology ? ['| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |', '- topology confirmed: true'] : []),
+    '## Evidence ledger', '| Evidence ID | Kind | Locator | Claim | Supports |', '|---|---|---|---|---|',
+    ...progressiveEvidence.map(({ id, support }) => `| ${id} | raw-request | original-request | Fixture ${support} | ${support} |`),
+    '## Component × Dimension 评分',
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
+    '|---|---|---:|---:|---|---|---|---|---|',
+    ...(ambiguity ? [...Object.entries(progressivePredicates).map(([dimension, names]) => `| runtime | ${dimension} | 4 | 4 | ${names.join(',')} | ${names.map((predicate) => `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`).join(',')} | none | resolved | agent / resolved |`), '- unresolved high-risk assumption: none'] : []),
     '## 未决决策与确认', ...(ambiguity ? ['- unresolved high-risk decision: none'] : []),
     `- scope confirmed: ${approved ? 'true' : 'false'}`, '',
   ].join('\n');
@@ -283,6 +292,9 @@ try {
   ];
   assertProgress(recovery.lanes, statusesAfter(0));
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText());
+  appendLaneApplicabilityFixture(root, progressiveId, progressiveRequirementsRef, {
+    code: 'required', docs: 'not-required',
+  });
   assertProgress(recovery.research, statusesAfter(1));
   const researchHandoff = (uncertainties) => {
     const run = createHandoffV2(root, {
@@ -311,30 +323,38 @@ try {
   fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true }));
   assertProgress(recovery.question, statusesAfter(5));
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'resolved' }));
+  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({
+    runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none',
+    topology: true, ambiguity: true, approved: true,
+  }));
   assertProgress(recovery.decisions, statusesAfter(6));
   fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Progressive fixture instructions\n');
   appendDecisionEvent(root, progressiveId, {
     eventVersion: 1, type: 'decision-event', eventId: 'progressive-scope', changeId: progressiveId, stage: 'clarify',
-    actor: { type: 'user', id: 'test-user' }, decisionType: 'scope-confirmation', targetRef: progressiveRequirementsRef,
+    actor: { type: 'user', id: 'test-user' }, decisionType: 'scope-confirmation',
+    targetRef: `${progressiveRequirementsRef}#sha256=${sha256Artifact(root, progressiveRequirementsRef)}`,
     questionId: 'progressive-question', options: ['confirm', 'revise'], recommendedOption: 'confirm', selectedOption: 'confirm',
-    publicRationale: 'Scope confirmed.', evidenceRefs: ['CLAUDE.md'], inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') },
+    publicRationale: 'Scope confirmed.', evidenceRefs: [progressiveRequirementsRef],
+    inputDigests: { [progressiveRequirementsRef]: sha256Artifact(root, progressiveRequirementsRef) },
     recordedAt: '2026-08-25T00:00:00.000Z',
   });
   sealClarifyDecisionSnapshot(root, progressiveId, readDecisionEvents(root, progressiveId).map(({ eventId }) => eventId));
-  assertProgress(recovery.debt, statusesAfter(7));
+  const afterScope = statusesAfter(7);
+  afterScope[9] = 'pass';
+  assertProgress(recovery.debt, afterScope);
   writeDebtAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'debt-assessment', changeId: progressiveId, observations: [], dispositions: [],
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:01:00.000Z',
   });
-  assertProgress(recovery.contract, statusesAfter(8));
+  const afterDebt = statusesAfter(8);
+  afterDebt[9] = 'pass';
+  assertProgress(recovery.contract, afterDebt);
   writeProjectContractAssessment(root, progressiveId, {
     assessmentVersion: 1, type: 'project-contract-assessment', changeId: progressiveId,
     files: [{ path: 'CLAUDE.md', digest: sha256Artifact(root, 'CLAUDE.md'), scope: 'project', ownership: 'project' }],
     gaps: [], conflicts: [], status: 'use-existing', decisionEventId: null, proposalRef: null,
     inputDigests: { 'CLAUDE.md': sha256Artifact(root, 'CLAUDE.md') }, updatedAt: '2026-08-25T00:02:00.000Z',
   });
-  assertProgress(recovery.requirements, statusesAfter(9));
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true, approved: true }));
   assertProgress(recovery.classification, statusesAfter(10));
   const progressiveClassification = writeClassificationV2Fixture(root, progressiveId, { tier: 'L1' }, 'progressive');
   fs.writeFileSync(path.join(progressiveDir, 'state.json'), `${JSON.stringify({

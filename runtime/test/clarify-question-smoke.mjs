@@ -522,7 +522,11 @@ try {
     recovery: null,
     eventId: 'D-011',
   });
-  assert.equal(prepareClarifyQuestion(root, crashChange, crashNextRef).status, 'pending');
+  assert.throws(
+    () => prepareClarifyQuestion(root, crashChange, crashNextRef),
+    /EH-QUESTION-TARGET-115/u,
+    'a resolved typed target must not be asked again under a new questionId',
+  );
 
   activate('missing-recovery');
   assert.deepEqual(recoverClarifyQuestion(root, 'missing-recovery'), {

@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -104,12 +105,27 @@ try {
     '## 组件拓扑',
     '',
   ].join('\n'));
+  appendLaneApplicabilityFixture(
+    fixtureRoot,
+    changeId,
+    `harness/changes/${changeId}/requirements.md`,
+  );
   const activeDecisionRoute = invoke(harnessEvent(), undefined, ['--terminal-fallback-scope']);
   assert.deepEqual(
     JSON.parse(activeDecisionRoute.stdout),
     {},
     'the Stop hook must not broaden mechanical fallback enforcement to a decisions route',
   );
+  const dualEvent = harnessEvent({
+    session_id: 'dual-registration-session',
+    last_assistant_message: validFallback,
+  });
+  const dualGlobal = invoke(dualEvent);
+  assert.deepEqual(JSON.parse(dualGlobal.stdout), {});
+  assert.match(dualGlobal.stderr, /Stop handoff guidance/u);
+  const dualSkill = invoke(dualEvent, undefined, ['--terminal-fallback-scope']);
+  assert.deepEqual(JSON.parse(dualSkill.stdout), {});
+  assert.equal(dualSkill.stderr, '', 'Skill-scoped Stop must not duplicate plugin-global guidance');
 
   const malformed = invoke(null, '{');
   assert.equal(malformed.status, 2);

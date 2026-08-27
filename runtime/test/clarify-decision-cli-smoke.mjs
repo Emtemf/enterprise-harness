@@ -78,7 +78,7 @@ try {
 
   const laneId = 'lane-code';
   const laneRef = decisionEventInputPath(changeId, laneId);
-  writeJson(laneRef, event(laneId, 'lane-applicability', requirementsRef, ['required', 'not-required'], 'not-required', {
+  writeJson(laneRef, event(laneId, 'lane-applicability', `${requirementsRef}#fact-lane-code`, ['required', 'not-required'], 'not-required', {
     [requirementsRef]: requirementsDigest,
   }));
   const recorded = run('record-decision', changeId, laneRef);
@@ -123,9 +123,17 @@ try {
     '- remaining fact uncertainty: none', '',
   ].join('\n'));
 
-  const sealed = run('seal-decisions', changeId, laneId);
+  const docsLaneId = 'lane-docs';
+  const docsLaneRef = decisionEventInputPath(changeId, docsLaneId);
+  writeJson(docsLaneRef, event(docsLaneId, 'lane-applicability', `${requirementsRef}#fact-lane-docs`, ['required', 'not-required'], 'not-required', {
+    [requirementsRef]: requirementsDigest,
+  }));
+  const docsRecorded = run('record-decision', changeId, docsLaneRef);
+  assert.equal(docsRecorded.status, 0, docsRecorded.stderr);
+
+  const sealed = run('seal-decisions', changeId, laneId, docsLaneId);
   assert.equal(sealed.status, 0, sealed.stderr);
-  const sealedAgain = run('seal-decisions', changeId, laneId);
+  const sealedAgain = run('seal-decisions', changeId, laneId, docsLaneId);
   assert.equal(sealedAgain.status, 0, sealedAgain.stderr);
   const wrongSeal = run('seal-decisions', changeId, 'missing-event');
   assert.equal(wrongSeal.status, 2);
@@ -171,7 +179,7 @@ try {
   assert.equal(JSON.parse(run('classify', changeId, classifyRef).stdout).duplicate, true);
   const state = JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8'));
   assert.equal(state.artifacts.classification.path, classificationArtifactPath(changeId));
-  assert.deepEqual(readDecisionEvents(root, changeId).map(({ eventId }) => eventId), [laneId, routeId]);
+  assert.deepEqual(readDecisionEvents(root, changeId).map(({ eventId }) => eventId), [laneId, docsLaneId, routeId]);
 
   console.log(`PASS clarify-decision-cli ${mode}`);
 } finally {

@@ -439,6 +439,16 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
     if (fresh.candidateDigest !== loaded.candidateDigest) {
       throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${candidateRef}`);
     }
+    const resolvedTarget = readDecisionEvents(root, changeId).find((event) => (
+      event.decisionType === fresh.candidate.decisionType
+      && event.targetRef === fresh.candidate.targetRef
+    ));
+    if (resolvedTarget) {
+      throw questionError(
+        'EH-QUESTION-TARGET-115',
+        `decision target ${fresh.candidate.decisionType}:${fresh.candidate.targetRef} is already resolved by ${resolvedTarget.eventId}`,
+      );
+    }
     const pending = {
       pendingVersion: 1,
       changeId,

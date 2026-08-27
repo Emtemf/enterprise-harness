@@ -41,6 +41,10 @@ export function stop({ root, event, terminalFallbackScope = false }) {
     console.error(`EH-STOP-FALLBACK-149: terminal fallback check failed open: ${error.message}`);
   }
 
+  // Skill-scoped Stop owns only the fixed terminal shape. Recovery guidance is
+  // exclusively plugin-global so the two official registrations cannot duplicate it.
+  if (terminalFallbackScope) return allow();
+
   const changesDir = path.join(root, 'harness', 'changes');
   if (!fs.existsSync(changesDir)) return allow();
   if (!active.ok) {

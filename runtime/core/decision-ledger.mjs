@@ -129,6 +129,16 @@ export function appendDecisionEvent(root, changeId, event) {
       throw new Error(`EH-DECISION-CONFLICT-102: eventId ${event.eventId} already has different content`);
     }
     if (prior) return Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: true });
+    const resolvedTarget = event.decisionType === 'classification-route'
+      ? null
+      : existing.find((item) => (
+        item.decisionType === event.decisionType && item.targetRef === event.targetRef
+      ));
+    if (resolvedTarget) {
+      throw new Error(
+        `EH-DECISION-TARGET-106: ${event.decisionType}:${event.targetRef} is already resolved by ${resolvedTarget.eventId}`,
+      );
+    }
     resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
     appendJsonLineOnce(absolutePath, clone(event));
     return Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: false });

@@ -6,7 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { computeValidationDigest } from './lib/checks.mjs';
 import { renderTECPCCard } from './lib/tecp-card.mjs';
 import { buildWorkflowResult } from './lib/workflow.mjs';
-import { assertSafeId, resolveChild, safeSlug } from './lib/safe-paths.mjs';
+import {
+  assertNoSymlinkComponents,
+  assertSafeId,
+  resolveChild,
+  resolveWithin,
+  safeSlug,
+} from './lib/safe-paths.mjs';
 import { listSessions, readSession, sessionIdFromEnv, unbindSession } from './lib/sessions.mjs';
 import { loadActiveChange } from './lib/gates.mjs';
 import { evaluateHookHealth } from './lib/hook-health.mjs';
@@ -17,7 +23,7 @@ import {
   resolveStageCompletionProof,
   stageCompletionFor,
 } from './lib/stage-results.mjs';
-import { atomicWriteJson } from './lib/state-store.mjs';
+import { atomicWriteJson, withFileLock } from './lib/state-store.mjs';
 import { assertForwardTransition } from './core/stage-transition.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 
@@ -145,8 +151,20 @@ function persistStageCompletionProof(changeId, stage) {
   const resolver = stage === 'implement' ? resolveStageCompletionProof : resolveStageCompletionCandidate;
   const { proof, problems } = resolver(repoRoot, changeId, stage, { requiredArtifactPaths });
   if (!proof) return { proof: null, problems };
-  const target = path.join(changePath(changeId), 'evidence', 'completion', `${stage}.json`);
-  atomicWriteJson(target, proof);
+  const changeRoot = changePath(changeId);
+  const relativeTarget = path.join('evidence', 'completion', `${stage}.json`);
+  let target;
+  try {
+    target = resolveWithin(changeRoot, relativeTarget, 'completion proof');
+    assertNoSymlinkComponents(changeRoot, target, 'completion proof');
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    target = resolveWithin(changeRoot, relativeTarget, 'completion proof');
+    assertNoSymlinkComponents(changeRoot, target, 'completion proof');
+    atomicWriteJson(target, proof);
+    assertNoSymlinkComponents(changeRoot, target, 'completion proof');
+  } catch (error) {
+    throw new Error(`EH-PATH-001: ${error.message}`);
+  }
   if (stage !== 'implement') {
     const verified = stageCompletionFor(repoRoot, changeId, stage, { requiredArtifactPaths });
     if (verified.proof.status !== 'pass' || verified.problems.length > 0) {
@@ -161,37 +179,53 @@ function persistStageCompletionProof(changeId, stage) {
 }
 
 function cmdStageAdvance(changeId, stage, tier) {
-  const current = readJson(statePathFor(repoRoot, changeId));
   assertCurrentSessionChange(changeId);
-  if (current.schemaVersion === 6) {
-    assertFreshHookHealth(`${current.stage}→${stage}`);
-    if (stage === 'archive') {
-      console.error('BLOCK: verify→archive 必须通过 archive 命令；不能直接使用 state advance。');
-      process.exit(2);
-    }
+  const initial = readJson(statePathFor(repoRoot, changeId));
+  if (initial.schemaVersion === 6) {
+    const transitionLock = path.join(changePath(changeId), '.stage-transition');
     try {
-      assertForwardTransition(current.stage, stage);
+      withFileLock(transitionLock, () => {
+        const current = readJson(statePathFor(repoRoot, changeId));
+        assertFreshHookHealth(`${current.stage}→${stage}`);
+        if (stage === 'archive') {
+          console.error('BLOCK: verify→archive 必须通过 archive 命令；不能直接使用 state advance。');
+          process.exit(2);
+        }
+        try {
+          assertForwardTransition(current.stage, stage);
+        } catch (error) {
+          console.error(`BLOCK: ${error.message}`);
+          process.exit(2);
+        }
+        if (stage === 'implement' && (!current.currentTask || !String(current.currentTask).trim())) {
+          console.error('BLOCK: 进入 implement 前必须先设置非空 currentTask。');
+          process.exit(2);
+        }
+        let completion;
+        try {
+          completion = persistStageCompletionProof(changeId, current.stage);
+        } catch (error) {
+          console.error(`BLOCK ${error.message}`);
+          process.exit(2);
+        }
+        if (!completion.proof) {
+          if (completion.errorCode) console.error(`BLOCK ${completion.errorCode}: transition proof publication did not pass immediate canonical revalidation.`);
+          console.error(`BLOCK: ${current.stage}→${stage} 需要 fresh StageResult、self-check、独立 ReviewResult 与 runtime CompletionProof。`);
+          for (const problem of completion.problems) console.error(`- ${problem}`);
+          process.exit(2);
+        }
+        updateChangeState(repoRoot, changeId, (data) => ({ ...data, stage }), {
+          expectedRevision: current.revision,
+          type: 'stage-advance',
+        });
+        console.log(`Stage advanced: ${changeId} -> ${stage}`);
+      });
     } catch (error) {
-      console.error(`BLOCK: ${error.message}`);
+      console.error(`BLOCK ${error.message}`);
       process.exit(2);
     }
-    if (stage === 'implement' && (!current.currentTask || !String(current.currentTask).trim())) {
-      console.error('BLOCK: 进入 implement 前必须先设置非空 currentTask。');
-      process.exit(2);
-    }
-    const completion = persistStageCompletionProof(changeId, current.stage);
-    if (!completion.proof) {
-      if (completion.errorCode) console.error(`BLOCK ${completion.errorCode}: transition proof publication did not pass immediate canonical revalidation.`);
-      console.error(`BLOCK: ${current.stage}→${stage} 需要 fresh StageResult、self-check、独立 ReviewResult 与 runtime CompletionProof。`);
-      for (const problem of completion.problems) console.error(`- ${problem}`);
-      process.exit(2);
-    }
-    updateChangeState(repoRoot, changeId, (data) => ({ ...data, stage }), {
-      expectedRevision: current.revision,
-      type: 'stage-advance',
-    });
-    console.log(`Stage advanced: ${changeId} -> ${stage}`);
   } else {
+    const current = initial;
     if (stage === 'EXECUTING' && (!current.currentTask || !String(current.currentTask).trim())) {
       console.error('BLOCK: 进入 EXECUTING 前必须先设置非空 currentTask。');
       process.exit(2);

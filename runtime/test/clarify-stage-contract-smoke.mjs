@@ -276,12 +276,7 @@ try {
       handoffRole: 'execute', parentRunId: null,
     },
   ]) appendAgentEvent(root, changeId, { ...event, cwd: root });
-  let classification = writeClassificationArtifact(root, changeId, {
-    tier: 'L1',
-    impact: { api: 'no', data: 'no', architecture: 'yes', rule: 'no', security: 'no' },
-    owningModule: 'order-service',
-    evidence: [requirementsRef],
-  });
+  let classification = null;
   let classificationOrdinal = 0;
 
   function run(content, afterHandoff = null, options = {}) {
@@ -555,11 +550,11 @@ try {
     ['unconfirmed topology', requirements({ topologyConfirmed: 'false' }), /topology confirmed: true/u],
     ['unconfirmed scope', requirements({ scopeConfirmed: 'false' }), /scope confirmed: true/u],
     ['high-risk decision', requirements({ highRisk: 'refund compatibility' }), /unresolved high-risk/u],
-    ['missing fact gate', requirements({ includeFactGate: false }), /fact gate complete: true/u],
+    ['missing fact gate', requirements({ includeFactGate: false }), /authoritative research input is invalid|fact gate complete: true/u],
     ['pending fact gate', requirements({ factGateComplete: 'false' }), /fact gate complete: true/u],
     ['pending required packet', requirements({ factStatus: 'pending' }), /required research is incomplete/u],
     ['missing docs lane', requirements({ omitDocs: true }), /fact lanes must decide code and docs exactly once/u],
-    ['missing not-required rationale', requirements({ docsReason: '' }), /not-required lane docs must record rationale/u],
+    ['missing not-required rationale', requirements({ docsReason: '' }), /not-required (?:lane docs must record rationale|rationale is missing)/u],
     ['remaining fact uncertainty', requirements({ remainingFact: 'SDK behavior unknown' }), /remaining fact uncertainty is not disposed/u],
     [
       'unknown research run',

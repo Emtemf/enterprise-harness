@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readDebtAssessment, readProjectContractAssessment } from '../core/clarify-assessments.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
-import { readClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
+import { readClarifyDecisionSnapshot, readDecisionEvents } from '../core/decision-ledger.mjs';
 import { pendingQuestionPath } from '../core/clarify-question.mjs';
 import { readClarifyResearchEvidence } from './clarify-research-evidence.mjs';
+import { sha256Artifact } from './result-contract.mjs';
 import { stageCompletionFor } from './stage-results.mjs';
 import { assertNoSymlinkComponents, assertSafeId, resolveWithin } from './safe-paths.mjs';
 
@@ -43,6 +44,13 @@ const RECOVERIES = Object.freeze({
 });
 
 const CORE_DIMENSIONS = ['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'];
+const READINESS_PREDICATES = Object.freeze({
+  Goal: ['consumer', 'outcome'],
+  Scope: ['included', 'excluded'],
+  Constraints: ['technical', 'risk'],
+  Acceptance: ['success', 'failure', 'observable'],
+  Context: ['need', 'current-state'],
+});
 
 export function selectClarifyControllerRoute(items, transitionReady) {
   if (!Array.isArray(items) || items.length !== CLARIFY_ITEMS.length) {
@@ -120,11 +128,32 @@ function readRequirements(root, changeId) {
 
 function requirementsPredicates(content) {
   const topologySection = section(content, '## 组件拓扑');
-  const active = tableRows(topologySection).filter((cells) => cells[0] !== 'Component' && cells[2]?.toLowerCase() === 'active').map((cells) => cells[0]);
+  const active = tableRows(topologySection)
+    .filter((cells) => cells[0] !== 'Component' && cells[2]?.toLowerCase() === 'active'
+      && cells.length >= 5 && cells[4]?.trim())
+    .map((cells) => cells[0]);
+  const evidenceRows = tableRows(section(content, '## Evidence ledger'))
+    .filter((cells) => cells[0] !== 'Evidence ID');
+  const evidence = new Map(evidenceRows
+    .filter((cells) => cells.length === 5 && cells.every((cell) => cell.trim()))
+    .map(([id, kind, locator, claim, supports]) => [id, {
+      kind, locator, claim, supports: new Set(supports.split(',').map((item) => item.trim()).filter(Boolean)),
+    }]));
   const scoreRows = tableRows(section(content, '## Component × Dimension 评分')).filter((cells) => cells[0] !== 'Component');
   const scoresReady = active.length > 0 && active.every((component) => CORE_DIMENSIONS.every((dimension) => {
     const matches = scoreRows.filter((cells) => cells[0] === component && cells[1] === dimension);
-    return matches.length === 1 && Number.isInteger(Number(matches[0][3])) && Number(matches[0][3]) >= 4;
+    if (matches.length !== 1 || matches[0].length !== 9) return false;
+    const [, , , scoreValue, coverageValue, refsValue, , gapType, ownerStatus] = matches[0];
+    const score = Number(scoreValue);
+    const coverage = new Set(coverageValue.split(',').map((item) => item.trim()).filter(Boolean));
+    const refs = new Set(refsValue.split(',').map((item) => item.trim()).filter(Boolean));
+    if (!Number.isInteger(score) || score < 4 || refs.size === 0
+      || !['Fact', 'Decision', 'resolved'].includes(gapType) || !ownerStatus.trim()) return false;
+    return READINESS_PREDICATES[dimension].every((predicate) => {
+      const support = `${component}:${dimension}.${predicate}`;
+      return coverage.has(predicate)
+        && [...refs].some((ref) => evidence.get(ref)?.supports.has(support));
+    });
   }));
   return {
     topology: active.length > 0 && /[-*]\s*topology confirmed\s*[:：]\s*true\b/iu.test(topologySection),
@@ -167,8 +196,20 @@ export function buildClarifyArtifactReadiness(root, changeId) {
     items.push(immutableItem('no-pending-question', statusFor(error), [], RECOVERIES.question));
   }
 
+  let scopeDecisionFresh = false;
   try {
     const snapshot = readClarifyDecisionSnapshot(root, changeId);
+    const requirementsDigest = sha256Artifact(root, requirements.ref);
+    const expectedScopeTarget = `${requirements.ref}#sha256=${requirementsDigest}`;
+    const sealedIds = new Set(snapshot.eventIds);
+    const scopeEvents = readDecisionEvents(root, changeId).filter((event) => (
+      sealedIds.has(event.eventId)
+      && event.decisionType === 'scope-confirmation'
+      && event.targetRef === expectedScopeTarget
+      && event.selectedOption === 'confirm'
+      && event.inputDigests?.[requirements.ref] === requirementsDigest
+    ));
+    scopeDecisionFresh = scopeEvents.length === 1;
     items.push(immutableItem('decisions-sealed', 'pass', [snapshot.ledgerRef.path, `harness/changes/${changeId}/evidence/decisions/clarify-decision-snapshot.json`], RECOVERIES.decisions));
   } catch (error) {
     items.push(immutableItem('decisions-sealed', statusFor(error), [], RECOVERIES.decisions));
@@ -185,7 +226,8 @@ export function buildClarifyArtifactReadiness(root, changeId) {
   } catch (error) {
     items.push(immutableItem('project-contract-disposed', statusFor(error), [], RECOVERIES.contract));
   }
-  items.push(immutableItem('requirements-approved', predicates.approved ? 'pass' : 'blocked', predicates.approved ? [requirements.ref] : [], RECOVERIES.requirements));
+  const requirementsApproved = predicates.approved && scopeDecisionFresh;
+  items.push(immutableItem('requirements-approved', requirementsApproved ? 'pass' : 'blocked', requirementsApproved ? [requirements.ref] : [], RECOVERIES.requirements));
 
   try {
     const classificationRef = `harness/changes/${changeId}/classification.json`;

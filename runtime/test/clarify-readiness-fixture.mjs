@@ -7,6 +7,14 @@ import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
 
 export function approvedRequirements() {
+  const predicates = {
+    Goal: ['consumer', 'outcome'], Scope: ['included', 'excluded'], Constraints: ['technical', 'risk'],
+    Acceptance: ['success', 'failure', 'observable'], Context: ['need', 'current-state'],
+  };
+  const evidence = Object.entries(predicates).flatMap(([dimension, names]) => names.map((predicate) => ({
+    id: `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`,
+    support: `runtime:${dimension}.${predicate}`,
+  })));
   return [
     '# Requirements',
     '## 事实探索门禁',
@@ -16,14 +24,18 @@ export function approvedRequirements() {
     '| docs | no | none | none | none | not-required | No docs research needed. |',
     '- remaining fact uncertainty: none',
     '## 组件拓扑',
-    '| Component | Description | Status |',
-    '|---|---|---|',
-    '| runtime | Workflow runtime | active |',
+    '| Component | Outcome / boundary | Status | Depends on | Confirmation source |',
+    '|---|---|---|---|---|',
+    '| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |',
     '- topology confirmed: true',
+    '## Evidence ledger',
+    '| Evidence ID | Kind | Locator | Claim | Supports |',
+    '|---|---|---|---|---|',
+    ...evidence.map(({ id, support }) => `| ${id} | raw-request | original-request | Fixture ${support} | ${support} |`),
     '## Component × Dimension 评分',
-    '| Component | Dimension | Evidence | Score |',
-    '|---|---|---|---|',
-    ...['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'].map((dimension) => `| runtime | ${dimension} | requirements | 4 |`),
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
+    '|---|---|---:|---:|---|---|---|---|---|',
+    ...Object.entries(predicates).map(([dimension, names]) => `| runtime | ${dimension} | 4 | 4 | ${names.join(',')} | ${names.map((predicate) => `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`).join(',')} | none | resolved | agent / resolved |`),
     '- unresolved high-risk assumption: none',
     '## 未决决策与确认',
     '- unresolved high-risk decision: none',

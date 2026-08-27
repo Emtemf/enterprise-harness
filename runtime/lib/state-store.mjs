@@ -17,10 +17,16 @@ export function withFileLock(file, action) {
     }
     throw error;
   }
+  const cleanup = () => fs.rmSync(lock, { recursive: true, force: true });
+  // Several CLI gates terminate with process.exit(2). Node does not unwind
+  // JavaScript finally blocks in that case, so also remove the owned lock from
+  // the synchronous exit event to preserve restartability.
+  process.once('exit', cleanup);
   try {
     return action();
   } finally {
-    fs.rmSync(lock, { recursive: true, force: true });
+    process.removeListener('exit', cleanup);
+    cleanup();
   }
 }
 

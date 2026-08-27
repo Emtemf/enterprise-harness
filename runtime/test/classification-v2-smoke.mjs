@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { appendDecisionEvent, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
+import { appendDecisionEvent, readDecisionEvents, sealClarifyDecisionSnapshot } from '../core/decision-ledger.mjs';
 import {
   debtAssessmentPath,
   projectContractAssessmentPath,
@@ -18,6 +18,7 @@ import {
   writeClassificationArtifact,
 } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { appendLaneApplicabilityFixture } from './classification-v2-fixture.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -41,6 +42,7 @@ try {
     '- remaining fact uncertainty: none',
     '',
   ].join('\n'));
+  appendLaneApplicabilityFixture(root, changeId, requirementsRef);
   appendDecisionEvent(root, changeId, {
     eventVersion: 1,
     type: 'decision-event',
@@ -59,7 +61,7 @@ try {
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     recordedAt: '2026-08-25T00:00:00.000Z',
   });
-  sealClarifyDecisionSnapshot(root, changeId, ['scope-confirmation-1']);
+  sealClarifyDecisionSnapshot(root, changeId, readDecisionEvents(root, changeId).map(({ eventId }) => eventId));
   writeDebtAssessment(root, changeId, {
     assessmentVersion: 1,
     type: 'debt-assessment',

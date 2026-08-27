@@ -331,6 +331,27 @@ try {
   assert.deepEqual(controllerRoutesFromWorkflowStatus(proofFreeProjection), ['T'],
     'real proof-free status with all prerequisites fresh must select T');
   assert.equal(fs.existsSync(proofPath), false, 'workflow status must remain read-only');
+
+  const transitionLock = path.join(changeDir, '.stage-transition.lock');
+  fs.mkdirSync(transitionLock);
+  const concurrentAdvance = advance();
+  assert.equal(concurrentAdvance.status, 2, 'a concurrent change-level transition must fail closed');
+  assert.match(`${concurrentAdvance.stdout}\n${concurrentAdvance.stderr}`, /EH-STATE-LOCK-012/u);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'clarify');
+  fs.rmSync(transitionLock, { recursive: true, force: true });
+
+  const outsideCompletion = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-proof-outside-'));
+  const completionDir = path.dirname(proofPath);
+  fs.rmSync(completionDir, { recursive: true, force: true });
+  fs.symlinkSync(outsideCompletion, completionDir, 'dir');
+  const symlinkedAdvance = advance();
+  assert.equal(symlinkedAdvance.status, 2, 'nested completion symlink must block the transition-owned write');
+  assert.match(`${symlinkedAdvance.stdout}\n${symlinkedAdvance.stderr}`, /EH-PATH-001.*(?:symbolic-link component|escapes its parent)/u);
+  assert.equal(fs.existsSync(path.join(outsideCompletion, 'clarify.json')), false);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'clarify');
+  fs.rmSync(completionDir);
+  fs.rmSync(outsideCompletion, { recursive: true, force: true });
+
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'design');
@@ -349,7 +370,7 @@ try {
   assert.equal(stageCompletionFor(root, changeId, 'clarify').proof.status, 'stale');
   fs.writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
-  appendDecisionEvent(root, changeId, {
+  assert.throws(() => appendDecisionEvent(root, changeId, {
     eventVersion: 1,
     type: 'decision-event',
     eventId: 'later-design-note',
@@ -357,7 +378,7 @@ try {
     stage: 'clarify',
     actor: { type: 'user', id: 'test-user' },
     decisionType: 'scope-confirmation',
-    targetRef: requirementsRef,
+    targetRef: `${requirementsRef}#sha256=${sha256Artifact(root, requirementsRef)}`,
     questionId: 'later-design-question',
     options: ['confirm', 'revise'],
     recommendedOption: 'confirm',
@@ -366,11 +387,12 @@ try {
     evidenceRefs: [requirementsRef],
     inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
     recordedAt: '2026-08-25T00:03:00.000Z',
-  });
+  }), /EH-DECISION-TARGET-106/u,
+  'a later decision may not silently contradict or duplicate a resolved typed target');
   assert.equal(
     stageCompletionFor(root, changeId, 'clarify').proof.status,
     'pass',
-    'a later live decision-ledger suffix must not stale the immutable Clarify proof',
+    'a rejected duplicate decision must not stale the immutable Clarify proof',
   );
 
   console.log(`PASS lifecycle-clarify-transition ${mode}`);

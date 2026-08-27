@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { readDecisionEvents } from '../core/decision-ledger.mjs';
 import { trustedHandoffAgentBindings } from './agent-evidence.mjs';
-import { validateResearchPacket } from './result-contract.mjs';
-import { isSafeRelativePath } from './safe-paths.mjs';
+import { sha256Artifact, validateResearchPacket } from './result-contract.mjs';
+import { assertNoSymlinkComponents, isSafeRelativePath, resolveWithin } from './safe-paths.mjs';
 
 function splitMarkdownRow(line) {
   const cells = [];
@@ -52,6 +53,12 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
   const packetProblems = [];
   const refs = [];
   const packets = [];
+  let decisionEvents = [];
+  try {
+    decisionEvents = readDecisionEvents(root, changeId);
+  } catch (error) {
+    laneProblems.push(`lane applicability decisions are invalid: ${error.message}`);
+  }
   const lanesDecided = lanes.length === 2
     && new Set(lanes.map((cells) => cells[0])).size === 2
     && lanes.every((cells) => ['yes', 'no'].includes(String(cells[1]).toLowerCase()));
@@ -59,8 +66,43 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
 
   for (const [lane, required, briefRef, runId, packetRef, status] of lanes) {
     const requiredValue = String(required).toLowerCase();
+    const selectedOption = requiredValue === 'yes' ? 'required' : 'not-required';
+    const targetRef = `${requirementsRef}#fact-lane-${lane}`;
+    const laneEvents = decisionEvents.filter((event) => (
+      event.decisionType === 'lane-applicability' && event.targetRef === targetRef
+    ));
+    try {
+      const event = laneEvents.length === 1 ? laneEvents[0] : null;
+      if (!event) throw new Error(`requires exactly one DecisionEvent targeting ${targetRef}`);
+      if (event.selectedOption !== selectedOption
+        || JSON.stringify(event.options) !== JSON.stringify(['required', 'not-required'])) {
+        throw new Error(`DecisionEvent does not match Required=${required}`);
+      }
+      if (!event.publicRationale?.trim()) throw new Error('DecisionEvent requires a public rationale');
+      const requirementsPath = resolveWithin(root, requirementsRef, 'requirements');
+      assertNoSymlinkComponents(root, requirementsPath, 'requirements');
+      if (!Array.isArray(event.evidenceRefs) || event.evidenceRefs.length === 0) {
+        throw new Error('DecisionEvent requires evidenceRefs');
+      }
+      for (const evidenceRef of event.evidenceRefs) {
+        if (!Object.hasOwn(event.inputDigests || {}, evidenceRef)) {
+          throw new Error(`DecisionEvent evidence ${evidenceRef} has no input digest`);
+        }
+      }
+      for (const [inputRef, digest] of Object.entries(event.inputDigests || {})) {
+        const inputPath = resolveWithin(root, inputRef, 'lane applicability evidence');
+        assertNoSymlinkComponents(root, inputPath, 'lane applicability evidence');
+        if (sha256Artifact(root, inputRef) !== digest) {
+          throw new Error(`DecisionEvent evidence is stale: ${inputRef}`);
+        }
+      }
+    } catch (error) {
+      laneProblems.push(`${lane} lane applicability ${error.message}`);
+    }
     if (requiredValue === 'no') {
       if (String(status).toLowerCase() !== 'not-required') packetProblems.push(`${lane} must be not-required`);
+      const rationale = String(lanes.find((cells) => cells[0] === lane)?.[6] || '').trim().toLowerCase();
+      if (!rationale || ['none', 'n/a'].includes(rationale)) packetProblems.push(`${lane} not-required rationale is missing`);
       continue;
     }
     if (requiredValue !== 'yes' || String(status).toLowerCase() !== 'complete') {
@@ -97,7 +139,7 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
       packetProblems.push(`${lane} required ResearchPacket is invalid: ${error.message}`);
     }
   }
-  const fresh = lanesDecided && packetProblems.length === 0;
+  const fresh = lanesDecided && laneProblems.length === 0 && packetProblems.length === 0;
   const conflictProblems = [];
   if (fresh && packets.some((packet) => packet.degraded !== false)) conflictProblems.push('research packet is degraded');
   if (fresh && packets.some((packet) => packet.uncertainties.length > 0)) conflictProblems.push('research packet uncertainties remain');

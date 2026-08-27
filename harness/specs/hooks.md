@@ -61,7 +61,9 @@ derives the active Clarify research route from runtime readiness, validates only
 shape, and returns `decision: block` with deterministic correction text at most once per turn.
 `stop_hook_active=true`, non-Plan modes, non-research routes, and internal errors all fail open. It
 does not inspect asynchronous transcript text, select a route, execute research, persist a decision,
-or prove lifecycle completion.
+or prove lifecycle completion. After that shape check it returns immediately: only the plugin-global
+Stop may emit recovery guidance. The two registrations keep separate dedup namespaces so a global
+Stop invocation cannot suppress the Skill validator, but they never duplicate guidance output.
 
 ## Health and leases
 

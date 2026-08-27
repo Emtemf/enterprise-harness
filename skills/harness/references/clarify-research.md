@@ -21,8 +21,11 @@ Controller 已经应用 SKILL.md 的 status-first 优先级；本 reference 只�
    - brownfield、现有符号、调用链、schema、配置或影响面：`code = required`；
    - 外部 library、framework、SDK、协议、标准或版本行为：`docs = required`；
    - 不适用的 lane 写 `not-required` 和证据。不得为了省事把 applicable lane 标成不适用。
-   code/docs 两项判定都以 `lane-applicability` DecisionEvent 写入 append-only Decision Ledger；聊天中的判断
-   不算 durable 选择。已有 fresh 事件时复用，输入 digest 改变时重新判定。
+   code/docs 两项判定都以 `lane-applicability` DecisionEvent 写入 append-only Decision Ledger，targetRef
+   必须分别为 `requirements.md#fact-lane-code` 与 `requirements.md#fact-lane-docs`，并由 inputDigests 绑定
+   `evidence/clarify/lane-applicability.md` 中不可变的 raw-request、项目合同或仓库/依赖边界证据；聊天中的判断
+   不算 durable 选择。已有 fresh 事件时复用，输入 digest 改变时创建新的
+   requirements revision 后重新判定，不得在同一 target 上追加相反事件。
 
 ## Phase 1：完成事实探索
 

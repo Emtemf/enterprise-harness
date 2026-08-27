@@ -23,6 +23,40 @@ const TIER_VALUES = Object.freeze({
   L3: [3, 3, 2, 2],
 });
 
+export function appendLaneApplicabilityFixture(root, changeId, requirementsRef, selections = {}) {
+  const evidenceRef = `harness/changes/${changeId}/evidence/clarify/lane-applicability.md`;
+  const evidencePath = path.join(root, evidenceRef);
+  fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
+  if (!fs.existsSync(evidencePath)) fs.writeFileSync(evidencePath, '# Fixture lane applicability evidence\n');
+  const digest = sha256Artifact(root, evidenceRef);
+  const existingTargets = new Set(readDecisionEvents(root, changeId)
+    .filter(({ decisionType }) => decisionType === 'lane-applicability')
+    .map(({ targetRef }) => targetRef));
+  for (const lane of ['code', 'docs']) {
+    const selectedOption = selections[lane] || 'not-required';
+    const targetRef = `${requirementsRef}#fact-lane-${lane}`;
+    if (existingTargets.has(targetRef)) continue;
+    appendDecisionEvent(root, changeId, {
+      eventVersion: 1,
+      type: 'decision-event',
+      eventId: `fixture-lane-${lane}`,
+      changeId,
+      stage: 'clarify',
+      actor: { type: 'runtime', id: 'test-fixture' },
+      decisionType: 'lane-applicability',
+      targetRef,
+      questionId: `fixture-lane-${lane}-applicability`,
+      options: ['required', 'not-required'],
+      recommendedOption: selectedOption,
+      selectedOption,
+      publicRationale: `Fixture ${lane} lane is ${selectedOption}.`,
+      evidenceRefs: [evidenceRef],
+      inputDigests: { [evidenceRef]: digest },
+      recordedAt: '2026-08-25T00:00:00.000Z',
+    });
+  }
+}
+
 export function classificationV2Fixture(root, changeId, input = {}, suffix = null) {
   const refreshAuthoritative = input.refreshAuthoritative === true;
   const requestedTier = input.tier || input.decision?.tier || 'L1';
@@ -45,11 +79,20 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
       '',
     ].join('\n'));
   }
+  const currentRequirements = fs.readFileSync(requirementsPath, 'utf-8');
+  appendLaneApplicabilityFixture(root, changeId, requirementsRef, {
+    code: /\|\s*code\s*\|\s*yes\s*\|/iu.test(currentRequirements) ? 'required' : 'not-required',
+    docs: /\|\s*docs\s*\|\s*yes\s*\|/iu.test(currentRequirements) ? 'required' : 'not-required',
+  });
   const snapshotRef = clarifyDecisionSnapshotPath(changeId);
   if (refreshAuthoritative) fs.rmSync(path.join(root, snapshotRef), { force: true });
   if (!fs.existsSync(path.join(root, snapshotRef))) {
     const eventId = `fixture-scope-${suffix || 'initial'}`;
-    appendDecisionEvent(root, changeId, {
+    const scopeTarget = `${requirementsRef}#sha256=${sha256Artifact(root, requirementsRef)}`;
+    const existingScope = readDecisionEvents(root, changeId).find((event) => (
+      event.decisionType === 'scope-confirmation' && event.targetRef === scopeTarget
+    ));
+    if (!existingScope) appendDecisionEvent(root, changeId, {
       eventVersion: 1,
       type: 'decision-event',
       eventId,
@@ -57,7 +100,7 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
       stage: 'clarify',
       actor: { type: 'user', id: 'test-user' },
       decisionType: 'scope-confirmation',
-      targetRef: requirementsRef,
+      targetRef: scopeTarget,
       questionId: `question-${eventId}`,
       options: ['confirm', 'revise'],
       recommendedOption: 'confirm',
@@ -108,7 +151,6 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
     });
   }
   const ordinal = suffix || String(readDecisionEvents(root, changeId).length + 1);
-  const currentRequirements = fs.readFileSync(requirementsPath, 'utf-8');
   const researchRefs = readClarifyResearchEvidence(root, changeId, requirementsRef, currentRequirements).refs;
   const inputDigests = Object.fromEntries([
     requirementsRef,
