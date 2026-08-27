@@ -23,7 +23,7 @@ import {
   resolveStageCompletionProof,
   stageCompletionFor,
 } from './lib/stage-results.mjs';
-import { atomicWriteJson, withFileLock } from './lib/state-store.mjs';
+import { atomicWriteJson, withChangeTransaction } from './lib/state-store.mjs';
 import { assertForwardTransition } from './core/stage-transition.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
 
@@ -182,9 +182,8 @@ function cmdStageAdvance(changeId, stage, tier) {
   assertCurrentSessionChange(changeId);
   const initial = readJson(statePathFor(repoRoot, changeId));
   if (initial.schemaVersion === 6) {
-    const transitionLock = path.join(changePath(changeId), '.stage-transition');
     try {
-      withFileLock(transitionLock, () => {
+      withChangeTransaction(repoRoot, changeId, () => {
         const current = readJson(statePathFor(repoRoot, changeId));
         assertFreshHookHealth(`${current.stage}→${stage}`);
         if (stage === 'archive') {

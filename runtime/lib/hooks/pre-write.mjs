@@ -8,6 +8,7 @@ import { validateTaskRunLauncher } from '../task-run-authorization.mjs';
 import { boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
+import { changeTransactionInProgress } from '../state-store.mjs';
 
 const UNENGAGED_HARNESS_REASONS = new Set([
   'missing-session-binding',
@@ -19,6 +20,13 @@ export function preWrite({ root, event }) {
   if (dedupGuard('pre-write', event.tool_use_id, event.cwd)) return { exitCode: 0 };
 
   const activeForRunner = loadHookChange(root, event);
+  if (activeForRunner.ok && changeTransactionInProgress(root, activeForRunner.changeId)) {
+    return block(
+      root,
+      `EH-CHANGE-TRANSACTION-150 ${activeForRunner.changeId} 正在发布并校验阶段证据；本次写入必须在 transition 完成后重试。`,
+      activeForRunner,
+    );
+  }
   const agentId = String(event.agent_id || '').trim();
   const v6Implementer = activeForRunner.ok
     && activeForRunner.data?.schemaVersion === 6

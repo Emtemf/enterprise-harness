@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { assertSafeId, assertSafeRunId, pathIsWithin, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
 import { gitCommonDir, normalizeAgentType } from '../lib/agent-evidence.mjs';
-import { atomicWriteJson } from '../lib/state-store.mjs';
+import { atomicWriteJson, withChangeTransaction } from '../lib/state-store.mjs';
 import { selectReviewRubrics } from '../lib/review-rubrics.mjs';
 import {
   validateHandoffV2Contract,
@@ -103,6 +103,10 @@ export function loadHandoffV2(root, changeId, runId) {
 }
 
 export function persistHandoffV2Result(root, changeId, runId, result) {
+  return withChangeTransaction(root, changeId, () => persistHandoffV2ResultUnlocked(root, changeId, runId, result));
+}
+
+function persistHandoffV2ResultUnlocked(root, changeId, runId, result) {
   const input = loadHandoffV2(root, changeId, runId);
   const problems = [];
   const target = v2ResultPath(root, changeId, runId, input.role);

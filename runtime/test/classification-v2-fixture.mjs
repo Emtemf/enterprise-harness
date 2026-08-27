@@ -24,34 +24,30 @@ const TIER_VALUES = Object.freeze({
 });
 
 export function appendLaneApplicabilityFixture(root, changeId, requirementsRef, selections = {}) {
-  const evidenceRef = `harness/changes/${changeId}/evidence/clarify/lane-applicability.md`;
-  const evidencePath = path.join(root, evidenceRef);
-  fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
-  if (!fs.existsSync(evidencePath)) fs.writeFileSync(evidencePath, '# Fixture lane applicability evidence\n');
-  const digest = sha256Artifact(root, evidenceRef);
+  const digest = sha256Artifact(root, requirementsRef);
   const existingTargets = new Set(readDecisionEvents(root, changeId)
     .filter(({ decisionType }) => decisionType === 'lane-applicability')
     .map(({ targetRef }) => targetRef));
   for (const lane of ['code', 'docs']) {
     const selectedOption = selections[lane] || 'not-required';
-    const targetRef = `${requirementsRef}#fact-lane-${lane}`;
+    const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${digest}`;
     if (existingTargets.has(targetRef)) continue;
     appendDecisionEvent(root, changeId, {
       eventVersion: 1,
       type: 'decision-event',
-      eventId: `fixture-lane-${lane}`,
+      eventId: `fixture-lane-${lane}-${digest.slice(0, 12)}`,
       changeId,
       stage: 'clarify',
       actor: { type: 'runtime', id: 'test-fixture' },
       decisionType: 'lane-applicability',
       targetRef,
-      questionId: `fixture-lane-${lane}-applicability`,
+      questionId: `fixture-lane-${lane}-${digest.slice(0, 12)}-applicability`,
       options: ['required', 'not-required'],
       recommendedOption: selectedOption,
       selectedOption,
       publicRationale: `Fixture ${lane} lane is ${selectedOption}.`,
-      evidenceRefs: [evidenceRef],
-      inputDigests: { [evidenceRef]: digest },
+      evidenceRefs: [requirementsRef],
+      inputDigests: { [requirementsRef]: digest },
       recordedAt: '2026-08-25T00:00:00.000Z',
     });
   }
@@ -85,8 +81,7 @@ export function classificationV2Fixture(root, changeId, input = {}, suffix = nul
     docs: /\|\s*docs\s*\|\s*yes\s*\|/iu.test(currentRequirements) ? 'required' : 'not-required',
   });
   const snapshotRef = clarifyDecisionSnapshotPath(changeId);
-  if (refreshAuthoritative) fs.rmSync(path.join(root, snapshotRef), { force: true });
-  if (!fs.existsSync(path.join(root, snapshotRef))) {
+  if (refreshAuthoritative || !fs.existsSync(path.join(root, snapshotRef))) {
     const eventId = `fixture-scope-${suffix || 'initial'}`;
     const scopeTarget = `${requirementsRef}#sha256=${sha256Artifact(root, requirementsRef)}`;
     const existingScope = readDecisionEvents(root, changeId).find((event) => (

@@ -111,6 +111,22 @@ function tableRows(content) {
     .map(splitMarkdownRow).filter((cells) => !cells.every((cell) => /^:?-+:?$/u.test(cell)));
 }
 
+function normalizedClause(value) {
+  return String(value || '').normalize('NFKC').replace(/[。；;.!?！？]+$/gu, '')
+    .replace(/\s+/gu, ' ').trim().toLocaleLowerCase('en-US');
+}
+
+function sourceClauses(value) {
+  return new Set(String(value || '').split(/[。；;.!?！？\n]+/u).map(normalizedClause).filter(Boolean));
+}
+
+function between(content, startHeading, endHeading) {
+  const start = content.indexOf(startHeading);
+  const end = content.indexOf(endHeading, start + startHeading.length);
+  if (start < 0 || end < 0) return '';
+  return content.slice(start + startHeading.length, end);
+}
+
 function immutableItem(id, status, evidenceRefs, recovery) {
   return deepFreeze({ id, status, evidenceRefs: [...new Set(evidenceRefs)], ...recovery });
 }
@@ -126,21 +142,57 @@ function readRequirements(root, changeId) {
   return { ref, content: fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf-8') : '' };
 }
 
-function requirementsPredicates(content) {
+function requirementsPredicates(content, research) {
   const topologySection = section(content, '## 组件拓扑');
-  const active = tableRows(topologySection)
-    .filter((cells) => cells[0] !== 'Component' && cells[2]?.toLowerCase() === 'active'
-      && cells.length >= 5 && cells[4]?.trim())
-    .map((cells) => cells[0]);
+  const originalRequest = between(section(content, '## 目标与验收'), '### 原始需求', '### 澄清后的目标');
+  const originalClauses = sourceClauses(originalRequest);
+  const confirmationSection = section(content, '## 未决决策与确认');
+  const roundAnswers = new Map(tableRows(confirmationSection)
+    .filter((cells) => cells[0] !== 'Round' && cells[2] === 'Decision'
+      && /^user\s*\/\s*resolved$/iu.test(cells[6] || '') && /^user$/iu.test(cells[9] || ''))
+    .map((cells) => [String(cells[0]), sourceClauses(cells[5])]));
+  const researchClaims = new Map((research?.packets || []).map((packet) => [
+    packet.source === 'code-explore' ? 'fact:code' : 'fact:docs',
+    new Set(packet.facts.map(({ claim }) => normalizedClause(claim))),
+  ]));
   const evidenceRows = tableRows(section(content, '## Evidence ledger'))
     .filter((cells) => cells[0] !== 'Evidence ID');
-  const evidence = new Map(evidenceRows
-    .filter((cells) => cells.length === 5 && cells.every((cell) => cell.trim()))
-    .map(([id, kind, locator, claim, supports]) => [id, {
-      kind, locator, claim, supports: new Set(supports.split(',').map((item) => item.trim()).filter(Boolean)),
-    }]));
+  const evidence = new Map();
+  const provenance = new Set();
+  let evidenceValid = evidenceRows.length > 0;
+  for (const cells of evidenceRows) {
+    if (cells.length !== 5 || cells.some((cell) => !cell.trim())) { evidenceValid = false; continue; }
+    const [id, kind, locator, claim, supportsValue] = cells;
+    const supports = new Set(supportsValue.split(',').map((item) => item.trim()).filter(Boolean));
+    const normalized = normalizedClause(claim);
+    const sourceMatches = kind === 'raw-request'
+      ? locator === 'original-request' && originalClauses.has(normalized)
+      : kind === 'user-decision'
+        ? Boolean(locator.match(/^round:(\d+)$/u)?.[1]
+          && roundAnswers.get(locator.match(/^round:(\d+)$/u)[1])?.has(normalized))
+        : kind === 'research-packet'
+          ? researchClaims.get(locator)?.has(normalized)
+          : false;
+    const provenanceKey = `${kind}\u0000${locator}\u0000${normalized}`;
+    const supportShapeValid = supports.size === 1
+      || ([...supports].every((support) => support.endsWith('.confirmed'))
+        && ['raw-request', 'user-decision'].includes(kind));
+    if (!id || evidence.has(id) || !supportShapeValid || !sourceMatches || provenance.has(provenanceKey)) {
+      evidenceValid = false;
+      continue;
+    }
+    provenance.add(provenanceKey);
+    evidence.set(id, { kind, locator, claim, supports });
+  }
+  const active = tableRows(topologySection)
+    .filter((cells) => cells[0] !== 'Component' && cells[2]?.toLowerCase() === 'active'
+      && cells.length >= 5 && cells[1]?.trim().length >= 8
+      && (evidence.has(cells[4]?.trim())
+        || (cells[4]?.trim().toLowerCase() === 'user'
+          && [...evidence.values()].some(({ kind }) => kind === 'user-decision'))))
+    .map((cells) => cells[0]);
   const scoreRows = tableRows(section(content, '## Component × Dimension 评分')).filter((cells) => cells[0] !== 'Component');
-  const scoresReady = active.length > 0 && active.every((component) => CORE_DIMENSIONS.every((dimension) => {
+  const scoresReady = evidenceValid && active.length > 0 && active.every((component) => CORE_DIMENSIONS.every((dimension) => {
     const matches = scoreRows.filter((cells) => cells[0] === component && cells[1] === dimension);
     if (matches.length !== 1 || matches[0].length !== 9) return false;
     const [, , , scoreValue, coverageValue, refsValue, , gapType, ownerStatus] = matches[0];
@@ -186,7 +238,7 @@ export function buildClarifyArtifactReadiness(root, changeId) {
   items.push(immutableItem('required-research-fresh', research.fresh ? 'pass' : statusFor(research.packetProblems.join('; ')), research.refs, RECOVERIES.research));
   items.push(immutableItem('research-conflicts-disposed', research.conflictsDisposed ? 'pass' : 'blocked', research.refs, RECOVERIES.researchConflicts));
 
-  const predicates = requirementsPredicates(requirements.content);
+  const predicates = requirementsPredicates(requirements.content, research);
   items.push(immutableItem('topology-confirmed', predicates.topology ? 'pass' : 'blocked', predicates.topology ? [requirements.ref] : [], RECOVERIES.topology));
   items.push(immutableItem('ambiguity-threshold-met', predicates.ambiguity ? 'pass' : 'blocked', predicates.ambiguity ? [requirements.ref] : [], RECOVERIES.ambiguity));
   try {

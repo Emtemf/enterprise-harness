@@ -67,7 +67,9 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
   for (const [lane, required, briefRef, runId, packetRef, status] of lanes) {
     const requiredValue = String(required).toLowerCase();
     const selectedOption = requiredValue === 'yes' ? 'required' : 'not-required';
-    const targetRef = `${requirementsRef}#fact-lane-${lane}`;
+    let requirementsDigest = null;
+    try { requirementsDigest = sha256Artifact(root, requirementsRef); } catch { /* reported below */ }
+    const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${requirementsDigest || 'missing'}`;
     const laneEvents = decisionEvents.filter((event) => (
       event.decisionType === 'lane-applicability' && event.targetRef === targetRef
     ));
@@ -83,6 +85,11 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
       assertNoSymlinkComponents(root, requirementsPath, 'requirements');
       if (!Array.isArray(event.evidenceRefs) || event.evidenceRefs.length === 0) {
         throw new Error('DecisionEvent requires evidenceRefs');
+      }
+      if (!requirementsDigest
+        || !event.evidenceRefs.includes(requirementsRef)
+        || event.inputDigests?.[requirementsRef] !== requirementsDigest) {
+        throw new Error('DecisionEvent must bind the current requirements as canonical applicability evidence');
       }
       for (const evidenceRef of event.evidenceRefs) {
         if (!Object.hasOwn(event.inputDigests || {}, evidenceRef)) {

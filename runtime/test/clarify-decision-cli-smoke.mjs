@@ -78,7 +78,7 @@ try {
 
   const laneId = 'lane-code';
   const laneRef = decisionEventInputPath(changeId, laneId);
-  writeJson(laneRef, event(laneId, 'lane-applicability', `${requirementsRef}#fact-lane-code`, ['required', 'not-required'], 'not-required', {
+  writeJson(laneRef, event(laneId, 'lane-applicability', `${requirementsRef}#fact-lane-code#sha256=${requirementsDigest}`, ['required', 'not-required'], 'not-required', {
     [requirementsRef]: requirementsDigest,
   }));
   const recorded = run('record-decision', changeId, laneRef);
@@ -125,7 +125,7 @@ try {
 
   const docsLaneId = 'lane-docs';
   const docsLaneRef = decisionEventInputPath(changeId, docsLaneId);
-  writeJson(docsLaneRef, event(docsLaneId, 'lane-applicability', `${requirementsRef}#fact-lane-docs`, ['required', 'not-required'], 'not-required', {
+  writeJson(docsLaneRef, event(docsLaneId, 'lane-applicability', `${requirementsRef}#fact-lane-docs#sha256=${requirementsDigest}`, ['required', 'not-required'], 'not-required', {
     [requirementsRef]: requirementsDigest,
   }));
   const docsRecorded = run('record-decision', changeId, docsLaneRef);

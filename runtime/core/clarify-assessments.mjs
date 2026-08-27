@@ -9,7 +9,7 @@ import {
   resolveWithin,
 } from '../lib/safe-paths.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { atomicWriteJson, withFileLock } from '../lib/state-store.mjs';
+import { atomicWriteJson, withChangeTransaction, withFileLock } from '../lib/state-store.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
 const DEBT_STATUSES = new Set([
@@ -494,13 +494,13 @@ function throwProjectProblems(result) {
 function writeAssessment(root, changeId, relativePath, assessment, validateAndThrow, label) {
   const absolutePath = resolveAssessmentTarget(root, relativePath, label, { createParent: true });
   validateAndThrow();
-  return withFileLock(absolutePath, () => {
+  return withChangeTransaction(root, changeId, () => withFileLock(absolutePath, () => {
     resolveAssessmentTarget(root, relativePath, label);
     validateAndThrow();
     atomicWriteJson(absolutePath, clone(assessment));
     resolveAssessmentTarget(root, relativePath, label);
     return Object.freeze({ path: relativePath, digest: sha256Artifact(root, relativePath) });
-  });
+  }));
 }
 
 export function writeDebtAssessment(root, changeId, assessment) {

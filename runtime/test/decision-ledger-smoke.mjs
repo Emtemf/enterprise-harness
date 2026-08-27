@@ -130,6 +130,16 @@ try {
   );
   fs.rmSync(`${contendedPath}.lock`, { recursive: true });
 
+  const transactionChange = 'transaction-contended';
+  const transactionDir = path.join(root, 'harness', 'changes', transactionChange);
+  fs.mkdirSync(path.join(transactionDir, '.change-transaction.lock'), { recursive: true });
+  assert.throws(
+    () => appendDecisionEvent(root, transactionChange, eventFor(transactionChange, 'decision-transaction')),
+    /EH-STATE-LOCK-012/u,
+    'decision writes must share the lifecycle change transaction lock',
+  );
+  fs.rmSync(path.join(transactionDir, '.change-transaction.lock'), { recursive: true, force: true });
+
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-decision-escape-'));
   const symlinkChange = 'symlink-ledger';
   const evidence = path.join(root, 'harness', 'changes', symlinkChange, 'evidence');
@@ -181,6 +191,18 @@ try {
     snapshotRef,
     're-sealing the same immutable prefix must be idempotent',
   );
+  const extendedRef = sealClarifyDecisionSnapshot(root, prefixChange, [
+    prefixFirst.eventId, prefixSecond.eventId, 'prefix-3',
+  ]);
+  assert.notEqual(extendedRef.digest, snapshotRef.digest);
+  assert.deepEqual(readClarifyDecisionSnapshot(root, prefixChange).eventIds, [
+    prefixFirst.eventId, prefixSecond.eventId, 'prefix-3',
+  ]);
+  const historyPath = path.join(
+    root, 'harness', 'changes', prefixChange, 'evidence', 'decisions', 'snapshots', `${sealed.prefixDigest}.json`,
+  );
+  assert.deepEqual(JSON.parse(fs.readFileSync(historyPath, 'utf-8')), sealed,
+    'an extended latest snapshot must archive the prior immutable revision');
 
   console.log(`PASS decision-ledger ${mode}`);
 } finally {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { randomUUID } from 'node:crypto';
+import { assertSafeId, resolveChild } from './safe-paths.mjs';
 
 function lockPathFor(file) {
   return `${file}.lock`;
@@ -28,6 +29,20 @@ export function withFileLock(file, action) {
     process.removeListener('exit', cleanup);
     cleanup();
   }
+}
+
+export function changeTransactionTarget(root, changeId) {
+  assertSafeId(changeId, 'changeId');
+  const changeRoot = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
+  return path.join(changeRoot, '.change-transaction');
+}
+
+export function withChangeTransaction(root, changeId, action) {
+  return withFileLock(changeTransactionTarget(root, changeId), action);
+}
+
+export function changeTransactionInProgress(root, changeId) {
+  return fs.existsSync(`${changeTransactionTarget(root, changeId)}.lock`);
 }
 
 export function atomicWriteJson(file, value) {

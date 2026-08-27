@@ -423,6 +423,17 @@ check('W: structurally invalid legacy active state fails closed', () => {
   });
 });
 
+check('X: a change transaction blocks direct hook-mediated writes', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState());
+    fs.mkdirSync(path.join(tempRoot, 'harness', 'changes', 'fixture-change', '.change-transaction.lock'));
+    const target = path.join(tempRoot, 'harness', 'changes', 'fixture-change', 'requirements.md');
+    const result = runPreWrite(tempRoot, target);
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-CHANGE-TRANSACTION-150/u);
+  });
+});
+
 function fail(message) {
   console.error(message);
   for (const failure of failures) console.error(`  - ${failure}`);

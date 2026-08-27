@@ -122,6 +122,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-STOP-FALLBACK-149` | Stop hook 无法完成 terminal fact-gate 机械格式校验 | 保留当前回复并重新触发 Stop；校验会 fail open，不能把该错误当成 lifecycle 通过证据 |
 | `EH-DECISION-TARGET-106` | 同一 typed decision target 已有不可变选择 | 复用已有事件；若需求内容已形成新 revision，使用 runtime 生成的新 digest-versioned target，并重新 seal snapshot |
 | `EH-QUESTION-TARGET-115` | 新问题试图再次询问已解决的 typed target | 停止重问并读取已有 DecisionEvent；只有真正的新 target 才能创建新候选问题 |
+| `EH-CHANGE-TRANSACTION-150` | lifecycle 正在原子发布/重验阶段证据并推进 state | 等当前 transition 完成后重试写入；不要删除锁目录或绕过 runtime writer |
 | `EH-TDD-RECEIPT-007` | v5 compatibility 流程缺少真实 TDD receipt | 仅在 v5 change 中用 tdd-run 执行冻结命令；v6 改用 task-run |
 | `EH-COMPLETION-GATE-008` | 完成证据不足 | workflow status |
 | `EH-AGENT-FAILURE-009` | agent 调用失败 | 修复后新 attempt |

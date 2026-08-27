@@ -224,6 +224,53 @@ try {
     'empty not-required rationales must never satisfy the mechanical research gate',
   );
 
+  const selfAuthoredId = 'readiness-self-authored-lanes';
+  const selfAuthoredRef = `harness/changes/${selfAuthoredId}/requirements.md`;
+  const selfAuthoredText = approvedRequirements();
+  fs.mkdirSync(path.dirname(path.join(root, selfAuthoredRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, selfAuthoredRef), selfAuthoredText);
+  const sideRef = `harness/changes/${selfAuthoredId}/self-authored.txt`;
+  fs.writeFileSync(path.join(root, sideRef), 'Main says research is unnecessary.\n');
+  const sideDigest = sha256Artifact(root, sideRef);
+  const requirementsDigest = sha256Artifact(root, selfAuthoredRef);
+  for (const lane of ['code', 'docs']) appendDecisionEvent(root, selfAuthoredId, {
+    eventVersion: 1, type: 'decision-event', eventId: `self-authored-${lane}`, changeId: selfAuthoredId,
+    stage: 'clarify', actor: { type: 'main', id: 'main-agent' }, decisionType: 'lane-applicability',
+    targetRef: `${selfAuthoredRef}#fact-lane-${lane}#sha256=${requirementsDigest}`,
+    questionId: `self-authored-${lane}-question`, options: ['required', 'not-required'],
+    recommendedOption: 'not-required', selectedOption: 'not-required', publicRationale: 'Main self-authorizes.',
+    evidenceRefs: [sideRef], inputDigests: { [sideRef]: sideDigest }, recordedAt: '2026-08-25T00:00:00.000Z',
+  });
+  const selfAuthored = buildClarifyReadiness(root, selfAuthoredId);
+  assert.equal(selfAuthored.route, 'research');
+  assert.equal(selfAuthored.items.find(({ id }) => id === 'required-research-fresh').status, 'blocked',
+    'a main-authored side file cannot prove lane applicability');
+
+  const lowInfoId = 'readiness-low-information';
+  const lowInfoRef = `harness/changes/${lowInfoId}/requirements.md`;
+  fs.mkdirSync(path.dirname(path.join(root, lowInfoRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, lowInfoRef), [
+    '# Requirements', '## 目标与验收', '### 原始需求', 'x', '### 澄清后的目标', 'x',
+    '## 事实探索门禁', '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
+    '|---|---|---|---|---|---|---|', '| code | no | none | none | none | not-required | x |',
+    '| docs | no | none | none | none | not-required | x |', '- remaining fact uncertainty: none',
+    '## 组件拓扑', '| Component | Outcome / boundary | Status | Depends on | Confirmation source |',
+    '|---|---|---|---|---|', '| x | x | active | none | E-X |', '- topology confirmed: true',
+    '## Evidence ledger', '| Evidence ID | Kind | Locator | Claim | Supports |', '|---|---|---|---|---|',
+    '| E-X | raw-request | original-request | x | x:Goal.consumer |',
+    '## Component × Dimension 评分',
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap | Gap type | Owner / status |',
+    '|---|---|---:|---:|---|---|---|---|---|',
+    ...['Goal', 'Scope', 'Constraints', 'Acceptance', 'Context'].map((dimension) => `| x | ${dimension} | 4 | 4 | x | E-X | none | resolved | x |`),
+    '- unresolved high-risk assumption: none', '## 未决决策与确认', '- unresolved high-risk decision: none',
+    '- scope confirmed: true', '',
+  ].join('\n'));
+  appendLaneApplicabilityFixture(root, lowInfoId, lowInfoRef);
+  const lowInfo = buildClarifyReadiness(root, lowInfoId);
+  assert.deepEqual(lowInfo.items.slice(0, 5).map(({ status }) => status), [
+    'pass', 'pass', 'pass', 'blocked', 'blocked',
+  ], 'a low-information topology and self-referential score table must not pass readiness');
+
   const progressiveId = 'readiness-progressive';
   const progressiveDir = path.join(root, 'harness', 'changes', progressiveId);
   const progressiveRequirementsRef = `harness/changes/${progressiveId}/requirements.md`;
@@ -238,10 +285,17 @@ try {
     Acceptance: ['success', 'failure', 'observable'], Context: ['need', 'current-state'],
   };
   const progressiveEvidence = Object.entries(progressivePredicates).flatMap(([dimension, names]) => (
-    names.map((predicate) => ({ id: `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`, support: `runtime:${dimension}.${predicate}` }))
+    names.map((predicate) => ({
+      id: `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`,
+      support: `runtime:${dimension}.${predicate}`,
+      claim: `Progressive claim for runtime ${dimension} ${predicate}`,
+    }))
   ));
   const requirementsText = ({ runId = 'none', packetRef = 'none', status = 'pending', remaining = 'unresolved', topology = false, ambiguity = false, approved = false } = {}) => [
-    '# Requirements', '## 事实探索门禁',
+    '# Requirements', '## 目标与验收', '### 原始需求',
+    progressiveEvidence.map(({ claim }) => claim).join('；'),
+    '### 澄清后的目标', 'Use the progressive fixture requirements.',
+    '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
     `| code | yes | ${brief} | ${runId} | ${packetRef} | ${status} | codegraph-first |`,
@@ -250,7 +304,7 @@ try {
     '## 组件拓扑', '| Component | Outcome / boundary | Status | Depends on | Confirmation source |', '|---|---|---|---|---|',
     ...(topology ? ['| runtime | Workflow runtime | active | none | E-GOAL-CONSUMER |', '- topology confirmed: true'] : []),
     '## Evidence ledger', '| Evidence ID | Kind | Locator | Claim | Supports |', '|---|---|---|---|---|',
-    ...progressiveEvidence.map(({ id, support }) => `| ${id} | raw-request | original-request | Fixture ${support} | ${support} |`),
+    ...progressiveEvidence.map(({ id, support, claim }) => `| ${id} | raw-request | original-request | ${claim} | ${support} |`),
     '## Component × Dimension 评分',
     '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
     '|---|---|---:|---:|---|---|---|---|---|',
@@ -258,6 +312,12 @@ try {
     '## 未决决策与确认', ...(ambiguity ? ['- unresolved high-risk decision: none'] : []),
     `- scope confirmed: ${approved ? 'true' : 'false'}`, '',
   ].join('\n');
+  const writeProgressiveRequirements = (options = {}) => {
+    fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText(options));
+    appendLaneApplicabilityFixture(root, progressiveId, progressiveRequirementsRef, {
+      code: 'required', docs: 'not-required',
+    });
+  };
   const recovery = {
     lanes: { code: 'EH-CLARIFY-RESEARCH-LANES-144', action: 'Decide applicability for both code and docs research lanes.' },
     research: { code: 'EH-CLARIFY-RESEARCH-131', action: 'Complete and persist every required ResearchPacket.' },
@@ -291,10 +351,7 @@ try {
     ...Array(CLARIFY_ITEMS.length - passed).fill('blocked'),
   ];
   assertProgress(recovery.lanes, statusesAfter(0));
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText());
-  appendLaneApplicabilityFixture(root, progressiveId, progressiveRequirementsRef, {
-    code: 'required', docs: 'not-required',
-  });
+  writeProgressiveRequirements();
   assertProgress(recovery.research, statusesAfter(1));
   const researchHandoff = (uncertainties) => {
     const run = createHandoffV2(root, {
@@ -313,20 +370,20 @@ try {
     return { run, packetRef: path.relative(root, v2ResultPath(root, progressiveId, run.runId)).split(path.sep).join('/') };
   };
   const uncertain = researchHandoff(['Confirm one remaining fact.']);
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: uncertain.run.runId, packetRef: uncertain.packetRef, status: 'complete' }));
+  writeProgressiveRequirements({ runId: uncertain.run.runId, packetRef: uncertain.packetRef, status: 'complete' });
   assertProgress(recovery.conflicts, statusesAfter(2));
   const clean = researchHandoff([]);
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none' }));
+  writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none' });
   assertProgress(recovery.topology, statusesAfter(3));
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true }));
+  writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true });
   assertProgress(recovery.ambiguity, statusesAfter(4));
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true }));
+  writeProgressiveRequirements({ runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none', topology: true, ambiguity: true });
   assertProgress(recovery.question, statusesAfter(5));
   fs.writeFileSync(pendingPath, JSON.stringify({ status: 'resolved' }));
-  fs.writeFileSync(path.join(root, progressiveRequirementsRef), requirementsText({
+  writeProgressiveRequirements({
     runId: clean.run.runId, packetRef: clean.packetRef, status: 'complete', remaining: 'none',
     topology: true, ambiguity: true, approved: true,
-  }));
+  });
   assertProgress(recovery.decisions, statusesAfter(6));
   fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Progressive fixture instructions\n');
   appendDecisionEvent(root, progressiveId, {

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { atomicWriteJson, withFileLock } from '../lib/state-store.mjs';
+import { atomicWriteJson, withChangeTransaction, withFileLock } from '../lib/state-store.mjs';
 import { assertNoSymlinkComponents, assertSafeId, isSafeRelativePath, resolveWithin } from '../lib/safe-paths.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { readDecisionEvents, readClarifyDecisionSnapshot, clarifyDecisionSnapshotPath } from './decision-ledger.mjs';
@@ -276,7 +276,7 @@ export function classifyClarify(root, changeId, input) {
   return Object.freeze(clone(classification));
 }
 
-export function writeClassificationArtifact(root, changeId, classification) {
+function writeClassificationArtifactUnlocked(root, changeId, classification) {
   const problems = validateClassificationArtifact(root, changeId, classification);
   if (problems.length > 0) throw errorFor(problems);
   const relativePath = classificationArtifactPath(changeId);
@@ -285,21 +285,27 @@ export function writeClassificationArtifact(root, changeId, classification) {
   return Object.freeze({ path: relativePath, digest: sha256Artifact(root, relativePath) });
 }
 
+export function writeClassificationArtifact(root, changeId, classification) {
+  return withChangeTransaction(root, changeId, () => (
+    writeClassificationArtifactUnlocked(root, changeId, classification)
+  ));
+}
+
 export function replaceClassificationArtifact(root, changeId, classification, commitReference) {
   if (typeof commitReference !== 'function') throw new Error('EH-CLASSIFICATION-COMMIT-005: commitReference must be a function');
   const relativePath = classificationArtifactPath(changeId);
   const absolutePath = resolveWithin(root, relativePath, 'classification artifact');
-  return withFileLock(absolutePath, () => {
+  return withChangeTransaction(root, changeId, () => withFileLock(absolutePath, () => {
     const previous = fs.existsSync(absolutePath) ? JSON.parse(fs.readFileSync(absolutePath, 'utf-8')) : null;
     try {
-      const reference = writeClassificationArtifact(root, changeId, classification);
+      const reference = writeClassificationArtifactUnlocked(root, changeId, classification);
       return commitReference(reference);
     } catch (error) {
       if (previous === null) fs.rmSync(absolutePath, { force: true });
       else atomicWriteJson(absolutePath, previous);
       throw error;
     }
-  });
+  }));
 }
 
 export function readClassificationArtifact(root, changeId, reference) {

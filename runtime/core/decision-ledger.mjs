@@ -8,7 +8,7 @@ import {
   pathIsWithin,
   resolveWithin,
 } from '../lib/safe-paths.mjs';
-import { appendJsonLineOnce, withFileLock } from '../lib/state-store.mjs';
+import { appendJsonLineOnce, atomicWriteJson, withChangeTransaction, withFileLock } from '../lib/state-store.mjs';
 import {
   sha256Artifact,
   validateClarifyDecisionSnapshot,
@@ -121,7 +121,7 @@ export function appendDecisionEvent(root, changeId, event) {
   const problems = validateDecisionEvent(changeId, event);
   if (problems.length > 0) throw new Error(`EH-DECISION-SCHEMA-101: ${problems.join('; ')}`);
   const absolutePath = resolveDecisionTarget(root, changeId, relativePath, 'decision ledger', { createParent: true });
-  return withFileLock(absolutePath, () => {
+  return withChangeTransaction(root, changeId, () => withFileLock(absolutePath, () => {
     resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
     const existing = readDecisionEvents(root, changeId);
     const prior = existing.find((item) => item.eventId === event.eventId);
@@ -142,7 +142,7 @@ export function appendDecisionEvent(root, changeId, event) {
     resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
     appendJsonLineOnce(absolutePath, clone(event));
     return Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: false });
-  });
+  }));
 }
 
 function writeExclusiveSnapshot(root, changeId, relativePath, snapshot) {
@@ -208,16 +208,20 @@ export function sealClarifyDecisionSnapshot(root, changeId, eventIds) {
     { createParent: true },
   );
 
-  return withFileLock(ledgerAbsolutePath, () => {
+  return withChangeTransaction(root, changeId, () => withFileLock(ledgerAbsolutePath, () => {
     const ledger = readLedgerDocument(root, changeId);
     assertRequestedPrefix(eventIds, ledger.events);
     const existingSnapshotPath = resolveDecisionTarget(root, changeId, snapshotRelativePath, 'clarify decision snapshot');
     if (fs.existsSync(existingSnapshotPath)) {
       const existing = readClarifyDecisionSnapshot(root, changeId);
-      if (JSON.stringify(existing.eventIds) !== JSON.stringify(eventIds)) {
-        throw new Error(`EH-DECISION-SNAPSHOT-105: immutable snapshot already exists at ${snapshotRelativePath}`);
+      if (JSON.stringify(existing.eventIds) === JSON.stringify(eventIds)) {
+        return Object.freeze({ path: snapshotRelativePath, digest: sha256Artifact(root, snapshotRelativePath) });
       }
-      return Object.freeze({ path: snapshotRelativePath, digest: sha256Artifact(root, snapshotRelativePath) });
+      const extendsExisting = existing.eventIds.length < eventIds.length
+        && existing.eventIds.every((eventId, index) => eventIds[index] === eventId);
+      if (!extendsExisting) {
+        throw new Error(`EH-DECISION-SNAPSHOT-105: new snapshot must extend the current immutable prefix at ${snapshotRelativePath}`);
+      }
     }
     const prefixBytes = ledger.prefixEnds[eventIds.length - 1];
     const prefix = ledger.bytes.subarray(0, prefixBytes);
@@ -246,13 +250,23 @@ export function sealClarifyDecisionSnapshot(root, changeId, eventIds) {
       'clarify decision snapshot',
     );
     return withFileLock(snapshotAbsolutePath, () => {
-      writeExclusiveSnapshot(root, changeId, snapshotRelativePath, snapshot);
+      if (fs.existsSync(snapshotAbsolutePath)) {
+        const previous = JSON.parse(fs.readFileSync(snapshotAbsolutePath, 'utf-8'));
+        const historyRelativePath = `harness/changes/${changeId}/evidence/decisions/snapshots/${previous.prefixDigest}.json`;
+        const historyAbsolutePath = resolveDecisionTarget(
+          root, changeId, historyRelativePath, 'clarify decision snapshot history', { createParent: true },
+        );
+        if (!fs.existsSync(historyAbsolutePath)) atomicWriteJson(historyAbsolutePath, previous);
+        atomicWriteJson(snapshotAbsolutePath, snapshot);
+      } else {
+        writeExclusiveSnapshot(root, changeId, snapshotRelativePath, snapshot);
+      }
       return Object.freeze({
         path: snapshotRelativePath,
         digest: sha256Artifact(root, snapshotRelativePath),
       });
     });
-  });
+  }));
 }
 
 export function readClarifyDecisionSnapshot(root, changeId) {

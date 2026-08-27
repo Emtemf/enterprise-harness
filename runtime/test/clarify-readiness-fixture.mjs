@@ -14,9 +14,15 @@ export function approvedRequirements() {
   const evidence = Object.entries(predicates).flatMap(([dimension, names]) => names.map((predicate) => ({
     id: `E-${dimension.toUpperCase()}-${predicate.toUpperCase()}`,
     support: `runtime:${dimension}.${predicate}`,
+    claim: `Fixture claim for runtime ${dimension} ${predicate}`,
   })));
   return [
     '# Requirements',
+    '## 目标与验收',
+    '### 原始需求',
+    evidence.map(({ claim }) => claim).join('；'),
+    '### 澄清后的目标',
+    'Use the evidence-bound fixture requirements.',
     '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
@@ -31,7 +37,7 @@ export function approvedRequirements() {
     '## Evidence ledger',
     '| Evidence ID | Kind | Locator | Claim | Supports |',
     '|---|---|---|---|---|',
-    ...evidence.map(({ id, support }) => `| ${id} | raw-request | original-request | Fixture ${support} | ${support} |`),
+    ...evidence.map(({ id, support, claim }) => `| ${id} | raw-request | original-request | ${claim} | ${support} |`),
     '## Component × Dimension 评分',
     '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
     '|---|---|---:|---:|---|---|---|---|---|',

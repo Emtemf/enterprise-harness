@@ -51,6 +51,11 @@ test, and API roots. Once a session binding or legacy active change exists, unre
 expired leases, corrupt bindings, and failed write gates remain fail-closed. A corrupt binding
 file is not equivalent to an absent binding.
 
+While a lifecycle transition holds the per-change transaction lock, PreToolUse rejects every
+hook-mediated write with `EH-CHANGE-TRANSACTION-150`. Runtime decision, assessment,
+classification, and handoff-result writers acquire the same lock, so proof revalidation and the
+state CAS cannot race a supported authority write.
+
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
 receipts, and independent reviews provide proof.
