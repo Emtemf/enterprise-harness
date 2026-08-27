@@ -1,4 +1,6 @@
 import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { isGovernedTarget } from './gates.mjs';
 
 const DIRECT_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
@@ -6,6 +8,72 @@ const WRITE_COMMAND = /(?:^|[;&|]\s*)(?:tee(?:\s+-a)?|sed\s+(?:-[^\s]*i[^\s]*|-i
 const TASK_RUN_COMMAND = /(?:^|[\/\\])task-run\.mjs\b|\bcli\.mjs["']?\s+task-run\b/u;
 const PATH_CANDIDATE = /(?:^|[\s'"=])((?:\.\.?\/|\/)?[^\s'";|<>]+(?:src\/(?:main|test)\/java\/[^\s'";|<>]+|openapi\/[^\s'";|<>]+|harness\/changes\/[^\s'";|<>]+|runtime\/[^\s'";|<>]+))/gu;
 const SHELL_TOKEN = /"([^"]*)"|'([^']*)'|([^\s;&|<>]+)/gu;
+const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const TRUSTED_RUNTIME_SCRIPTS = new Map([
+  ['${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
+  ['${CLAUDE_SKILL_DIR}/../../runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
+  ['${CLAUDE_PLUGIN_ROOT}/bin/enterprise-harness.mjs', path.join(pluginRoot, 'bin', 'enterprise-harness.mjs')],
+]);
+const READ_ONLY_GIT_COMMANDS = new Set(['status', 'diff', 'log', 'show', 'rev-parse', 'ls-files']);
+const FORBIDDEN_READ_FLAGS = /^(?:--output(?:=|$)|--ext-diff$|--textconv$|--exec(?:=|$)|--pre(?:=|$)|--hostname-bin(?:=|$))/u;
+
+export function tokenizeGovernedBash(command) {
+  const input = String(command || '').trim();
+  if (!input || /[;&|<>`\n\r\0]/u.test(input) || input.includes('$(')) return null;
+  const tokens = [];
+  let index = 0;
+  while (index < input.length) {
+    while (/\s/u.test(input[index] || '')) index += 1;
+    if (index >= input.length) break;
+    const quote = input[index] === '"' || input[index] === "'" ? input[index] : null;
+    if (quote) index += 1;
+    let token = '';
+    while (index < input.length && (quote ? input[index] !== quote : !/\s/u.test(input[index]))) {
+      if (input[index] === '\\') {
+        index += 1;
+        if (index >= input.length) return null;
+      }
+      token += input[index];
+      index += 1;
+    }
+    if (quote && input[index] !== quote) return null;
+    if (!token) return null;
+    tokens.push(token);
+    if (quote) index += 1;
+  }
+  return tokens;
+}
+
+function trustedRuntimeScript(root, cwd, value) {
+  if (TRUSTED_RUNTIME_SCRIPTS.has(value)) return TRUSTED_RUNTIME_SCRIPTS.get(value);
+  const resolved = path.resolve(cwd || root, value);
+  for (const trusted of TRUSTED_RUNTIME_SCRIPTS.values()) {
+    if (resolved === trusted) return trusted;
+  }
+  return null;
+}
+
+function isCanonicalRuntimeCommand(root, cwd, tokens) {
+  if (tokens[0] === 'enterprise-harness') return tokens.length >= 2;
+  if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 3) return false;
+  return Boolean(trustedRuntimeScript(root, cwd, tokens[1]));
+}
+
+function isReadOnlyDiagnostic(tokens) {
+  if (tokens[0] === 'pwd') return tokens.slice(1).every((token) => ['-L', '-P'].includes(token));
+  if (tokens[0] === 'ls') return tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
+  if (tokens[0] === 'rg') return tokens.slice(1).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
+  if (tokens[0] !== 'git' || !READ_ONLY_GIT_COMMANDS.has(tokens[1])) return false;
+  return tokens.slice(2).every((token) => !FORBIDDEN_READ_FLAGS.test(token));
+}
+
+export function classifyGovernedBash(root, command, cwd = root) {
+  const tokens = tokenizeGovernedBash(command);
+  if (!tokens) return { allowed: false, kind: 'denied' };
+  if (isCanonicalRuntimeCommand(root, cwd, tokens)) return { allowed: true, kind: 'runtime' };
+  if (isReadOnlyDiagnostic(tokens)) return { allowed: true, kind: 'read-only' };
+  return { allowed: false, kind: 'denied' };
+}
 
 function absolute(root, value) {
   const text = String(value || '').trim();

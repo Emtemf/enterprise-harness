@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import os from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { assertSafeId, resolveChild } from './safe-paths.mjs';
 import { runtimePaths } from './runtime-paths.mjs';
 
@@ -10,6 +11,7 @@ const LOCK_OWNER_FILE = 'owner.json';
 const INVALID_LOCK_GRACE_MS = 30_000;
 const WRITE_LEASE_TTL_MS = 60 * 60 * 1000;
 const locallyHeldLocks = new Map();
+const gitCommonDirCache = new Map();
 
 function lockPathFor(file) {
   return `${file}.lock`;
@@ -29,7 +31,12 @@ export function withFileLock(file, action) {
   }
   fs.mkdirSync(path.dirname(lock), { recursive: true });
   const token = randomUUID();
-  withAcquisitionGate(lock, file, () => acquireOwnedLock(lock, file, token));
+  // Uncontended acquisition is already atomic and must stay cheap for hook latency.
+  // The CAS-backed acquisition gate is needed only when an existing target may
+  // require stale-owner recovery.
+  if (!tryCreateOwnedLock(lock, token)) {
+    withAcquisitionGate(lock, file, () => acquireOwnedLock(lock, file, token));
+  }
   locallyHeldLocks.set(lock, 1);
   const cleanup = () => releaseOwnedLock(lock, token);
   // Several CLI gates terminate with process.exit(2). Node does not unwind
@@ -46,20 +53,140 @@ export function withFileLock(file, action) {
 }
 
 function withAcquisitionGate(lock, file, action) {
-  const gate = `${lock}.acquire`;
-  const token = randomUUID();
+  const gitDir = gitCommonDirForFile(file);
+  if (gitDir) return withGitRefAcquisitionGate(gitDir, file, action);
+  return withFilesystemAcquisitionGate(lock, file, action);
+}
+
+function gitCommonDirForFile(file) {
+  let current = path.resolve(path.dirname(file));
+  const traversed = [];
+  while (true) {
+    if (gitCommonDirCache.has(current)) {
+      const cached = gitCommonDirCache.get(current);
+      for (const directory of traversed) gitCommonDirCache.set(directory, cached);
+      return cached;
+    }
+    traversed.push(current);
+    const dotGit = path.join(current, '.git');
+    if (path.basename(current) === '.git' && fs.existsSync(path.join(current, 'HEAD'))) {
+      for (const directory of traversed) gitCommonDirCache.set(directory, current);
+      return current;
+    }
+    if (fs.existsSync(dotGit)) {
+      const result = spawnSync('git', ['rev-parse', '--git-common-dir'], {
+        cwd: current,
+        encoding: 'utf-8',
+        shell: false,
+      });
+      if (result.status === 0) {
+        const gitDir = path.resolve(current, result.stdout.trim());
+        for (const directory of traversed) gitCommonDirCache.set(directory, gitDir);
+        return gitDir;
+      }
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return null;
+}
+
+function git(gitDir, args, options = {}) {
+  return spawnSync('git', [`--git-dir=${gitDir}`, ...args], {
+    encoding: 'utf-8',
+    shell: false,
+    ...options,
+  });
+}
+
+function gitRefOwner(gitDir, ref) {
+  const resolved = git(gitDir, ['rev-parse', '--verify', ref]);
+  if (resolved.status !== 0) return null;
+  const oid = resolved.stdout.trim();
+  const content = git(gitDir, ['cat-file', 'blob', oid]);
+  if (content.status !== 0) return { oid, owner: null };
   try {
-    fs.mkdirSync(gate);
-    fs.writeFileSync(path.join(gate, LOCK_OWNER_FILE), `${JSON.stringify(lockOwner(token))}\n`, {
-      encoding: 'utf-8', mode: 0o600, flag: 'wx',
-    });
-  } catch (error) {
-    if (error.code === 'EEXIST') {
+    return { oid, owner: JSON.parse(content.stdout) };
+  } catch {
+    return { oid, owner: null };
+  }
+}
+
+function ownerRecordIsRecoverable(owner) {
+  const alive = ownerIsAlive(owner);
+  if (alive === false) return true;
+  if (alive === true) return false;
+  const acquiredAt = Date.parse(owner?.acquiredAt);
+  return Number.isFinite(acquiredAt) && Date.now() - acquiredAt >= INVALID_LOCK_GRACE_MS;
+}
+
+function withGitRefAcquisitionGate(gitDir, file, action) {
+  const token = randomUUID();
+  const owner = lockOwner(token);
+  const object = git(gitDir, ['hash-object', '-w', '--stdin'], {
+    input: `${JSON.stringify(owner)}\n`,
+  });
+  if (object.status !== 0) {
+    throw new Error(`EH-STATE-LOCK-159: cannot create acquisition owner for ${file}: ${object.stderr.trim()}`);
+  }
+  const ownerOid = object.stdout.trim();
+  const digest = createHash('sha256').update(path.resolve(file)).digest('hex');
+  const ref = `refs/enterprise-harness/acquisition-gates/${digest}`;
+  let acquired = false;
+  for (let attempt = 0; attempt < 3 && !acquired; attempt += 1) {
+    const observed = gitRefOwner(gitDir, ref);
+    if (observed && !ownerRecordIsRecoverable(observed.owner)) {
       throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
     }
-    fs.rmSync(gate, { recursive: true, force: true });
-    throw error;
+    const claim = git(gitDir, [
+      'update-ref',
+      ref,
+      ownerOid,
+      observed?.oid || '0'.repeat(ownerOid.length),
+    ]);
+    acquired = claim.status === 0;
   }
+  if (!acquired) {
+    throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
+  }
+  const cleanup = () => { git(gitDir, ['update-ref', '-d', ref, ownerOid]); };
+  process.once('exit', cleanup);
+  try {
+    return action();
+  } finally {
+    process.removeListener('exit', cleanup);
+    cleanup();
+  }
+}
+
+function withFilesystemAcquisitionGate(lock, file, action) {
+  const gate = `${lock}.acquire`;
+  const token = randomUUID();
+  let acquired = false;
+  for (let attempt = 0; attempt < 3 && !acquired; attempt += 1) {
+    let directoryCreated = false;
+    try {
+      fs.mkdirSync(gate);
+      directoryCreated = true;
+      fs.writeFileSync(path.join(gate, LOCK_OWNER_FILE), `${JSON.stringify(lockOwner(token))}\n`, {
+        encoding: 'utf-8', mode: 0o600, flag: 'wx',
+      });
+      acquired = true;
+    } catch (error) {
+      if (error.code !== 'EEXIST') {
+        if (directoryCreated || readLockOwner(gate)?.token === token) {
+          fs.rmSync(gate, { recursive: true, force: true });
+        }
+        throw error;
+      }
+      const observedOwner = readLockOwner(gate);
+      if (!lockIsRecoverable(gate) || !quarantineStaleLock(gate, observedOwner)) {
+        throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
+      }
+    }
+  }
+  if (!acquired) throw new Error(`EH-STATE-LOCK-159: lock acquisition/recovery is already serialized for ${file}`);
   const cleanup = () => {
     if (readLockOwner(gate)?.token === token) fs.rmSync(gate, { recursive: true, force: true });
   };
@@ -149,26 +276,31 @@ function quarantineStaleLock(lock, expectedOwner = readLockOwner(lock)) {
 
 function acquireOwnedLock(lock, file, token) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      fs.mkdirSync(lock);
-      fs.writeFileSync(
-        path.join(lock, LOCK_OWNER_FILE),
-        `${JSON.stringify(lockOwner(token), null, 2)}\n`,
-        { encoding: 'utf-8', mode: 0o600, flag: 'wx' },
-      );
-      return;
-    } catch (error) {
-      if (error.code !== 'EEXIST') {
-        fs.rmSync(lock, { recursive: true, force: true });
-        throw error;
-      }
-      const observedOwner = readLockOwner(lock);
-      if (!lockIsRecoverable(lock) || !quarantineStaleLock(lock, observedOwner)) {
-        throw new Error(`EH-STATE-LOCK-012: concurrent update in progress for ${file}`);
-      }
+    if (tryCreateOwnedLock(lock, token)) return;
+    const observedOwner = readLockOwner(lock);
+    if (!lockIsRecoverable(lock) || !quarantineStaleLock(lock, observedOwner)) {
+      throw new Error(`EH-STATE-LOCK-012: concurrent update in progress for ${file}`);
     }
   }
   throw new Error(`EH-STATE-LOCK-012: concurrent update in progress for ${file}`);
+}
+
+function tryCreateOwnedLock(lock, token) {
+  let directoryCreated = false;
+  try {
+    fs.mkdirSync(lock);
+    directoryCreated = true;
+    fs.writeFileSync(
+      path.join(lock, LOCK_OWNER_FILE),
+      `${JSON.stringify(lockOwner(token), null, 2)}\n`,
+      { encoding: 'utf-8', mode: 0o600, flag: 'wx' },
+    );
+    return true;
+  } catch (error) {
+    if (error.code === 'EEXIST' && !directoryCreated) return false;
+    if (directoryCreated) fs.rmSync(lock, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function releaseOwnedLock(lock, token) {

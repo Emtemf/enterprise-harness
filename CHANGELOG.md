@@ -26,7 +26,9 @@
   unprepared questions, duplicate decision events, path escape, and symlink escape fail closed.
 - Shared Pre/Post write leases now exclude lifecycle transactions without a TOCTOU gap; dead-owner
   locks recover automatically, and preoccupied immutable snapshot history fails closed.
-- Active v6 workflows reject arbitrary mutating Bash and direct common-dir coordination writes;
+- Active v6 workflows use an explicit canonical-runtime/read-only Bash allowlist, reject shell
+  composition and interpreter aliases, and block direct common-dir coordination writes;
+  acquisition gates left by killed local processes are atomically quarantined on retry;
   concurrent PostToolUse processing is serialized through lease release.
 
 ### Notes

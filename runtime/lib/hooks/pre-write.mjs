@@ -2,7 +2,7 @@ import path from 'node:path';
 import { loadHookChange } from '../hook-change.mjs';
 import { isGovernedTarget } from '../gates.mjs';
 import { stageGateIsFresh, validateDynamicWriteGates } from '../execution-prerequisites.mjs';
-import { extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
+import { classifyGovernedBash, extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
 import { captureGovernedSnapshot, writeHookSnapshot } from '../hook-snapshots.mjs';
 import { validateTaskRunLauncher } from '../task-run-authorization.mjs';
 import { boundHarnessAgent } from '../agent-evidence.mjs';
@@ -65,13 +65,19 @@ export function preWrite({ root, event }) {
   }
 
   if (event.tool_name === 'Bash' && activeForRunner.ok
-      && activeForRunner.data?.schemaVersion === 6
-      && isPotentialWriteBash(event.tool_input?.command)) {
-    return block(
-      root,
-      'EH-HOOK-BASH-MUTATION-157 受治理 v6 主流程不允许任意 mutating Bash；使用 Write/Edit，或由 implementer 运行 canonical task-run。',
-      activeForRunner,
-    );
+      && activeForRunner.data?.schemaVersion === 6) {
+    const governed = classifyGovernedBash(root, event.tool_input?.command, event.cwd || root);
+    if (!governed.allowed) {
+      return block(
+        root,
+        'EH-HOOK-BASH-MUTATION-157 受治理 v6 主流程的 Bash 仅允许 canonical Harness runtime 命令或只读诊断；写入必须使用 Write/Edit，或由 implementer 运行 canonical task-run。',
+        activeForRunner,
+      );
+    }
+    // Runtime commands own their change transaction, and read-only diagnostics do not
+    // mutate repository state. Neither may create a hook write lease that could block
+    // the runtime command itself or require an irrelevant PostToolUse release.
+    return { exitCode: 0 };
   }
 
   if (event.tool_name === 'Bash' && isPotentialWriteBash(event.tool_input?.command)) {

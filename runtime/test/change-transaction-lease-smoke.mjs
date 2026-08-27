@@ -48,6 +48,30 @@ try {
   );
   assert.equal(fs.existsSync(lock), false);
 
+  const acquisitionGate = `${lock}.acquire`;
+  fs.mkdirSync(lock, { recursive: true });
+  fs.writeFileSync(path.join(lock, 'owner.json'), JSON.stringify({
+    version: 1,
+    token: 'killed-target-before-gate',
+    pid: 2_147_483_647,
+    hostname: os.hostname(),
+    acquiredAt: '2026-08-01T00:00:00.000Z',
+  }));
+  fs.mkdirSync(acquisitionGate, { recursive: true });
+  fs.writeFileSync(path.join(acquisitionGate, 'owner.json'), JSON.stringify({
+    version: 1,
+    token: 'killed-gate-owner',
+    pid: 2_147_483_647,
+    hostname: os.hostname(),
+    acquiredAt: '2026-08-01T00:00:00.000Z',
+  }));
+  assert.equal(
+    withChangeTransaction(root, changeId, () => 'recovered-gate'),
+    'recovered-gate',
+    'the next transaction must automatically recover an acquisition gate owned by a dead local process',
+  );
+  assert.equal(fs.existsSync(acquisitionGate), false);
+
   console.log(`PASS change-transaction-lease ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

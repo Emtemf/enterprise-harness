@@ -20,7 +20,9 @@ testRefs:
   - runtime/test/hook-health-lifecycle-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/pre-write-governed-target-smoke.mjs
+  - runtime/test/governed-bash-allowlist-smoke.mjs
   - runtime/test/change-transaction-lease-smoke.mjs
+  - runtime/test/state-store-acquisition-gate-smoke.mjs
   - runtime/test/user-prompt-receipt-hook-smoke.mjs
   - runtime/test/post-write-failure-release-smoke.mjs
   - runtime/test/stop-terminal-fallback-smoke.mjs
@@ -46,14 +48,18 @@ Hooks may only perform host-boundary mechanics:
 - research and governed-write receipt capture;
 - SessionEnd cleanup.
 
-Hooks deliberately do **not** gate ordinary reads, shell commands, or Agent dispatch. Skills and
-runtime contracts own CodeGraph-first delegation, Context7-first research, handoff binding,
-self-check, review, and lifecycle semantics.
+Hooks deliberately do **not** interpret ordinary reads or Agent dispatch. Skills and runtime
+contracts own CodeGraph-first delegation, Context7-first research, handoff binding, self-check,
+review, and lifecycle semantics. Shell policy is limited to the active v6 boundary below.
 
-Inside an active v6 workflow, arbitrary mutating Bash is not ordinary shell use: main must use
-Write/Edit or canonical runtime commands, and only the bound implementer may launch canonical
-task-run. This prevents a tool call from deleting hook/runtime coordination while its own write
-lease is active. Direct writes to the git-common-dir runtime root are always blocked.
+Inside an active v6 workflow, Bash is fail-closed by allowlist rather than classified by a
+mutation denylist. Main may run only canonical Harness runtime commands or bounded read-only
+diagnostics (`pwd`, `ls`, `rg`, and selected read-only `git` subcommands), without shell
+operators, redirects, substitutions, or interpreter escape flags. Main must otherwise use
+Write/Edit, and only the bound implementer may launch canonical task-run. Runtime-owned commands
+manage their own transaction; read-only diagnostics acquire no write lease. This prevents
+equivalent interpreter or utility spellings from deleting hook/runtime coordination while a
+write lease is active. Direct writes to the git-common-dir runtime root are always blocked.
 
 Governed-write enforcement is session-scoped and opt-in. A hook event with no session binding
 (or a legacy event with no `ACTIVE_CHANGE`) is outside an active Harness workflow and ordinary
@@ -99,8 +105,11 @@ reports the bound changeId and the supported `start-change <same-change-id>` rec
 Changing to a different binding requires inspection and explicit user authorization before
 `sessions unbind`. A lease is operational coordination, not completion evidence.
 
-Filesystem locks carry owner PID, host, token, and acquisition time. A later operation
-automatically quarantines a lock owned by a dead local process; a live owner is never removed.
+Filesystem locks and their acquisition/recovery gates carry owner PID, host, token, and
+acquisition time. A later operation quarantines a target lock owned by a dead local process; in a
+Git-backed governed workflow, acquisition-gate ownership is replaced only by `update-ref`
+compare-and-swap against the exact observed owner. Contenders therefore cannot remove a newer
+live gate while recovering an older one, and a live owner is never replaced.
 Write-tool leases are bounded and matching PostToolUse success/failure releases them. This is the
 supported crash-recovery path; users do not delete lock directories manually.
 
