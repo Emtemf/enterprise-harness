@@ -78,6 +78,19 @@ assert.equal(assertArtifactShape(complete, impact).verdict, 'pass');
 assert.equal(assertCoverage(requirements, design, complete).verdict, 'pass');
 assert.equal(assertTraceability(requirements, design, complete).verdict, 'pass');
 
+const legalBusinessAction = complete.replace('提交一次退款请求', '用户提交退款');
+assert.equal(assertArtifactShape(legalBusinessAction, impact).verdict, 'pass', 'business actions must remain legal');
+const concreteObservable = complete.replace(
+  '响应包含非空退款标识且持久化记录与 refund-001 一致',
+  '仅创建一条退款记录并返回相同退款标识',
+);
+assert.equal(assertArtifactShape(concreteObservable, impact).verdict, 'pass', 'a concrete observable quantity must remain legal');
+
+for (const dimension of ['api', 'data', 'migration', 'compatibility', 'rollback', 'security', 'concurrency', 'consistency', 'observability']) {
+  const candidate = complete.replace('| migration | 数据迁移 |', `| ${dimension} | 横切维度覆盖 |`);
+  assert.equal(assertCoverage(requirements, design, candidate).verdict, 'pass', `declared dimension ${dimension} must remain legal`);
+}
+
 function expectBlock(assertion, candidate, message) {
   const result = assertion(candidate);
   assert.equal(result.verdict, 'block', `${message}: ${result.problems?.join('; ') ?? 'no problems reported'}`);
@@ -112,6 +125,13 @@ expectBlock(
   complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', '系统验证成功'),
   'decorated generic observable assertion must block',
 );
+for (const generic of ['接口正常', '页面正确', '流程成功']) {
+  expectBlock(
+    (candidate) => assertArtifactShape(candidate, impact),
+    complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', generic),
+    `short generic observable assertion ${generic} must block`,
+  );
+}
 expectBlock(
   (candidate) => assertArtifactShape(candidate, impact),
   complete.replace('合法退款请求 refund-001', '<测试数据>'),
@@ -151,6 +171,14 @@ for (const [line, label] of [
   ['- exact argv：["./mvnw", "test"]', 'exact argv'],
   ['- 运行 npm test', 'test execution command'],
   ['- 使用 Playwright 打开浏览器并点击提交按钮', 'browser execution instruction'],
+  ['- node --test', 'node test runner'],
+  ['- ./gradlew test', 'Gradle test runner'],
+  ['- 在 Chrome 中打开页面并点击提交按钮', 'named browser instruction'],
+  ['```text\nrun-all-tests --critical\n```', 'code fence'],
+  ['- $ run-all-tests --critical', 'shell prompt shape'],
+  ['- argv = ["run-all-tests", "--critical"]', 'argv assignment shape'],
+  ['- 调用 WebDriver 执行关键旅程', 'browser driver instruction'],
+  ['- 通过 DevTools MCP 执行页面检查', 'DevTools MCP instruction'],
 ]) {
   expectBlock(
     (candidate) => assertArtifactShape(candidate, impact),
@@ -181,6 +209,16 @@ for (const unknownSource of ['R9', 'VO9']) {
       `| ${unknownSource} | 伪造上游来源 | normal | N/A | - | 伪造来源不适用 |\n| migration | 数据迁移 | normal | N/A | - | 本变更不修改数据结构 |`,
     ),
     `unknown coverage source ${unknownSource} must block`,
+  );
+}
+for (const invalidSource of ['R0', 'R01', 'VO0', 'VOx', 'arbitrary-dimension']) {
+  expectBlock(
+    (candidate) => assertCoverage(requirements, design, candidate),
+    complete.replace(
+      '| migration | 数据迁移 | normal | N/A | - | 本变更不修改数据结构 |',
+      `| ${invalidSource} | 非法 coverage source | normal | N/A | - | 非法来源不适用 |`,
+    ),
+    `invalid coverage source ${invalidSource} must block`,
   );
 }
 expectBlock(

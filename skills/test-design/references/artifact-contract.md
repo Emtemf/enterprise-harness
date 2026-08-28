@@ -29,13 +29,15 @@
 
 ## Coverage 与 journey
 
-Coverage Matrix 的列固定为 `Source / Concern / Criticality / Applicability / Covered By / N/A Reason`。每个上游 `R*` 和 `VO*` 必须恰好有一行 applicable coverage，未知 R/VO 或重复 Source 均 block。`Covered By` 只能是以 `/` 分隔的纯 `TC<number>` 列表，且每个 ID 都必须真实声明；critical 行必须解析到 critical-priority case。`N/A` 行的 `Covered By` 必须为 `-`，并提供具体理由。
+Coverage Matrix 的列固定为 `Source / Concern / Criticality / Applicability / Covered By / N/A Reason`。Source 只能是已声明的稳定 `R<number>` / `VO<number>`，或明确枚举的横切 dimension：`api|data|migration|compatibility|rollback|security|concurrency|consistency|observability`。`R0`、`R01`、`VO0`、`VOx`、未知 R/VO、任意 dimension 或重复 Source 均 block。每个上游 `R*` 和 `VO*` 必须恰好有一行 applicable coverage。`Covered By` 只能是以 `/` 分隔的纯 `TC<number>` 列表，且每个 ID 都必须真实声明；critical 行必须解析到 critical-priority case。`N/A` 行的 `Covered By` 必须为 `-`，并提供具体理由。
 
 输入范围必须唯一声明 E2E 为 `applicable` 或 `N/A` 并解释原因。适用时至少有一个 `J<number>` journey；journey 必须 trace 已声明的 `R/D/VO` 和存在的 `TC`，并给出前置、步骤、可观察结果和 `accepted` 状态。
 
 ## 语义边界
 
-Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。candidate 中的 exact argv、测试执行命令或浏览器执行说明直接 block。数据、清理和恢复必须足以暴露主要失败信号；“验证成功”“系统验证成功”等修饰后的泛化语句都不构成 observable assertion。
+Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。candidate 中的 code fence、shell prompt、shell/argv 字段、可执行脚本/runner token、常见测试命令，以及具体 browser/driver/DevTools/MCP 名称或执行说明直接 block。Actions 与 E2E Steps 仍允许“用户提交退款”等业务动作，但不能选择或指挥工具执行。
+
+数据、清理和恢复必须足以暴露主要失败信号。“接口正常”“页面正确”“流程成功”“验证成功”等主体加泛化终态的短句不构成 observable assertion；断言必须包含数量、相同值、唯一性、具体状态、记录或错误等可观察量，例如“仅创建一条退款记录并返回相同退款标识”。
 
 未决业务选择在 candidate 之外输出 `NEEDS_DECISION`，不能生成 `pass` candidate。candidate 任意语义位置出现 `NEEDS_DECISION`、未决、待补充、TBD/TODO 或模板标记都 block。self-check 的 passing 形状必须明确 `verdict: pass`、`unresolved decisions: none`、`placeholders: none`；self-check 不是 approval。
 

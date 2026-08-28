@@ -46,8 +46,8 @@
     },
     {
       "id": "adversarial-artifact",
-      "description": "重复或缺 TC1、未知 R/D/VO/TC、重复 coverage source、空或修饰后的泛化断言、未决占位符、非法枚举、第八节与执行越界",
-      "expected": "三个 assertions 对 needs-decision D、非纯 Covered By、无理由 N/A、exact argv、测试命令和浏览器说明 fail closed，并给出对应 problems",
+      "description": "重复或缺 TC1、非法 R/VO namespace 或 dimension、未知 D/TC、重复 coverage source、空或主体加泛化终态的断言、未决占位符、非法枚举、第八节与执行越界",
+      "expected": "三个 assertions 对 needs-decision D、非纯 Covered By、无理由 N/A、code fence、shell/argv、runner token、测试命令和具体浏览器工具 fail closed，同时保留合法业务动作与具体可观察量",
       "category": "runtime-gate"
     }
   ]

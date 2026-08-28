@@ -71,8 +71,10 @@ export function isPlaceholder(value, { allowDash = false } = {}) {
 
 function genericAssertion(value) {
   const normalized = value.trim().replace(/[。.!！\s]+$/gu, '');
-  return /(?:验证成功|测试通过|符合预期|运行正常|工作正常)$/iu.test(normalized)
-    || /^(?:通过|成功|正常|works?|success|pass(?:es|ed)?)$/iu.test(normalized);
+  const genericOutcome = /(?:正常|正确|成功|通过|无误|符合预期)$/u.test(normalized);
+  const concreteObservable = /(?:[0-9]|一条|一次|相同|唯一|仅|只|等于|包含|不存在|未创建|状态[为=]|错误码|记录数|响应[为是])/u.test(normalized);
+  return (genericOutcome && (normalized.length <= 12 || !concreteObservable))
+    || /^(?:works?|success|pass(?:es|ed)?)$/iu.test(normalized);
 }
 
 function duplicateIds(rows, idIndex, pattern, label, problems) {
@@ -178,14 +180,26 @@ function substantiveSection(testCasesText, heading, problems) {
 }
 
 function checkBehaviorBoundary(testCasesText, problems) {
-  if (/\bexact\s+argv\s*[：:]/iu.test(testCasesText)) {
-    problems.push('test-design candidate must not freeze exact argv');
+  const lines = testCasesText.split(/\r?\n/u);
+  const executableToken = /(?:^|[\s"'`[(=：])(?:\.\/)?(?:node|npm|npx|pnpm|yarn|bun|deno|pytest|python|mvn|mvnw|gradle|gradlew|go|cargo|dotnet|jest|vitest|mocha)(?:\.exe)?(?=$|[\s"'`)\],;])/iu;
+  const executableFile = /(?:^|[\s"'`[(=：])(?:\.{1,2}\/[^\s"'`|]+|[^\s"'`|]+\.(?:sh|bash|zsh|fish|exe|bat|cmd|ps1))(?=$|[\s"'`)\],;])/iu;
+  const namedBrowserTool = /(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|\bCDP\b|(?:browser|浏览器)\s*MCP|MCP\s*(?:browser|浏览器))/iu;
+
+  if (lines.some((line) => /^\s*(?:```|~~~)/u.test(line))) {
+    problems.push('test-design candidate must not contain a code fence');
   }
-  if (/^\s*(?:[-*]\s*)?(?:运行|执行)?\s*(?:npm\s+(?:test|run\b)|pnpm\s+(?:test|run\b)|yarn\s+(?:test|run\b)|\.\/mvnw\b.*\b(?:test|verify)\b|mvn\b.*\b(?:test|verify)\b|pytest\b|go\s+test\b)/imu.test(testCasesText)) {
-    problems.push('test-design candidate must not contain a test execution command');
+  if (lines.some((line) => {
+    const content = line.replace(/^\s*[-*]\s*/u, '').trim();
+    return /^(?:[$>]\s+\S|(?:exact\s+)?argv\s*[:=]|(?:shell|command)\s*[:=])/iu.test(content);
+  })) {
+    problems.push('test-design candidate must not contain shell or argv shapes');
   }
-  if (/(?:使用|调用|启动|通过)\s*(?:Playwright|浏览器|browser|DevTools)[^\n]*(?:打开|点击|输入|导航|执行|测试)/iu.test(testCasesText)) {
-    problems.push('test-design candidate must not contain browser execution instructions');
+  if (executableToken.test(testCasesText) || executableFile.test(testCasesText)) {
+    problems.push('test-design candidate must not name executable test tooling');
+  }
+  if (namedBrowserTool.test(testCasesText)
+      || /(?:使用|调用|启动|通过)\s*(?:浏览器|browser)[^\n]*(?:打开|点击|输入|导航|执行|测试)/iu.test(testCasesText)) {
+    problems.push('test-design candidate must not select or direct browser tooling');
   }
 }
 

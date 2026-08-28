@@ -4,6 +4,17 @@ const CASE_HEADER = ['TCID', 'Traces', 'Level', 'Priority', 'Preconditions', 'Da
 const COVERAGE_HEADER = ['Source', 'Concern', 'Criticality', 'Applicability', 'Covered By', 'N/A Reason'];
 const SCOPE_HEADER = ['Dimension', 'Applicability', 'Reason'];
 const JOURNEY_HEADER = ['Journey ID', 'Traces', 'Preconditions', 'Steps', 'Observable outcome', 'Status'];
+const COVERAGE_DIMENSIONS = new Set([
+  'api',
+  'data',
+  'migration',
+  'compatibility',
+  'rollback',
+  'security',
+  'concurrency',
+  'consistency',
+  'observability',
+]);
 
 function acceptanceSection(requirementsText) {
   return requirementsText.match(/^###\s+验收\s*$([\s\S]*?)(?=^#{2,3}\s+|(?![\s\S]))/mu)?.[1] ?? '';
@@ -56,8 +67,8 @@ export function assertCoverage(
 
   for (const [source, count] of sourceCounts) {
     if (count > 1) problems.push(`duplicate coverage source: ${source}`);
-    if (/^(?:R|VO)[1-9][0-9]*$/u.test(source) && !knownSources.has(source)) {
-      problems.push(`coverage references unknown upstream source: ${source}`);
+    if (!knownSources.has(source) && !COVERAGE_DIMENSIONS.has(source)) {
+      problems.push(`coverage source is neither a known R/VO nor an allowed dimension: ${source}`);
     }
   }
 
