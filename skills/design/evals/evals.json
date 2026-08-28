@@ -1,11 +1,11 @@
 {
   "skill": "design",
-  "version": "0.5.4",
+  "version": "0.5.11",
   "cases": [
     {
       "id": "digest-bound-input",
-      "description": "设计必须消费已确认 requirements、classification、impact 和 digest-bound research facts",
-      "expected": "inputDigests 校验通过，stale input 被拒绝",
+      "description": "Design 必须从指定 execute run 消费 requirements、classification 和全部 digest-bound research facts",
+      "expected": "prepare 输出与 handoff inputRefs/inputDigests 完全一致；缺 run、身份错误或 stale input 被拒绝",
       "category": "runtime-gate"
     },
     {
@@ -22,9 +22,27 @@
     },
     {
       "id": "assert-all-pass",
-      "description": "三个 assert（artifact-shape、requirement-coverage、traceability）全部通过才生成 StageResult",
-      "expected": "assert 结果全 pass，否则 finalize exit 2",
+      "description": "三个 assert 全部通过才生成 StageResult",
+      "expected": "章节、impact 分支、逐 requirement trace 均通过，否则 finalize exit 2",
       "category": "runtime-gate"
+    },
+    {
+      "id": "structured-requirement-trace",
+      "description": "每个 requirement 必须唯一绑定真实存在的 Decision、Evidence、Verification 和 Rollback ID",
+      "expected": "散落关键词、重复行、未知 ID、表头 ID 或占位符均 block",
+      "category": "behavioral"
+    },
+    {
+      "id": "design-vs-plan-granularity",
+      "description": "Design 冻结架构和契约，但不提前冻结无事实依据的类、文件、设计模式或 exact argv",
+      "expected": "输出可供 Plan 拆 Task，同时保留 Task 级详细设计给 Plan",
+      "category": "behavioral"
+    },
+    {
+      "id": "independent-semantic-review",
+      "description": "Design self-check 后必须由独立 run 审查交互失败路径、impact 分支和横切质量",
+      "expected": "worker 不自批；review rubric 覆盖 alternatives、安全、observability、技术债和测试设计",
+      "category": "behavioral"
     }
   ]
 }

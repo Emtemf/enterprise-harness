@@ -23,7 +23,7 @@ for (const [skill, agent] of Object.entries(skills)) {
   const source = fs.readFileSync(path.join(root, 'skills', skill, 'SKILL.md'), 'utf8');
   if (!source.includes('context: fork')) failures.push(`${skill} must fork context`);
   if (!source.includes(`agent: ${agent}`)) failures.push(`${skill} must bind ${agent}`);
-  if (!source.includes('background: false')) failures.push(`${skill} must await its result`);
+  if (/^background:/mu.test(source)) failures.push(`${skill} must not use agent-only background frontmatter`);
 }
 
 const explore = fs.readFileSync(path.join(root, 'agents', 'code-explore.md'), 'utf8');

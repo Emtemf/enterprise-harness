@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { createHandoffV2, loadHandoffV2, v2InputPath } from '../core/handoff-v2.mjs';
+import { createHandoffV2, loadHandoffV2, loadHandoffV2FromMarker, v2InputPath } from '../core/handoff-v2.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-handoff-v2-'));
 try {
@@ -31,6 +31,14 @@ try {
   assert.equal(loaded.handoffVersion, 2);
   assert.equal(loaded.inputRefs[0], 'harness/changes/handoff-v2/requirements.md');
   assert.ok(loaded.inputDigests[loaded.inputRefs[0]]);
+
+  const forgedDir = path.join(path.dirname(path.dirname(created.path)), 'run_forged');
+  fs.mkdirSync(forgedDir, { recursive: true });
+  const forgedPath = path.join(forgedDir, 'input.json');
+  fs.copyFileSync(created.path, forgedPath);
+  const forged = loadHandoffV2FromMarker(root, path.relative(root, forgedPath));
+  assert.equal(forged.ok, false, 'marker path must be the envelope identity canonical input path');
+  assert.match(forged.problems.join('; '), /canonical v2 input path/u);
 
   console.log('PASS handoff-v2-common-dir verify');
 } finally {

@@ -5,7 +5,6 @@ description: >
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
-background: false
 ---
 
 # Plan

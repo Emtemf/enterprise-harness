@@ -1,66 +1,47 @@
 # Design 方法
 
-设计输入由 `scripts/prepare-input.mjs` 冻结：已确认的 requirements、classification、impact 与 digest-bound research facts 是唯一事实来源。
+Design 把已批准需求转换成足够指导 Plan 的架构合同。它不重新澄清需求，也不提前完成代码级详细设计。
 
-## 方法论来源
+## 1. 冻结事实边界
 
-Design 方法融合自 superpowers brainstorming（obra/superpowers）：
+只消费 `prepare-input.mjs` 返回的 `inputRefs`、`inputDigests` 和 classification。代码结论必须来自已持久化的 CodeGraph-first ResearchPacket；版本化外部行为必须来自 Context7-first ResearchPacket。聊天记忆和 worker 自报不是事实源。
 
-1. **先理解**：clarify 已完成，requirements 和 topology 已确认
-2. **再设计**：基于代码事实和文档事实，形成 component boundaries、interfaces、error model
-3. **用户确认关键决策**：涉及产品行为或架构权衡的决策返回 NEEDS_DECISION
-4. **才进入 plan**：设计完成后才创建 executable tasks
+发现输入冲突、stale 或缺少业务选择时停止：技术事实缺口回 Main 重新派 research；真实业务取舍返回一个 `NEEDS_DECISION`，不得自行补默认值。
 
-## 设计流程
+## 2. 建立 requirement trace
 
-### 1. Requirement 映射
+为每个 `R*` 建立稳定映射：
 
-先将每个 requirement 映射到：
+```text
+Requirement → Decision → Evidence → Verification → Rollback
+```
 
-- 设计决策
-- 边界条件
-- 验证方式
-- 回滚策略
+每个引用使用模板中的 `D* / E* / V* / RB*` ID。一个通用“已覆盖”声明不能覆盖多条 requirement。
 
-没有事实支持的结论必须明确为假设或 `NEEDS_DECISION`。
+## 3. 比较方案再冻结决定
 
-### 2. Component Boundaries
+至少写出选定方案和最强替代方案。比较复杂度、兼容性、安全、运维成本及现有架构一致性；没有实际差异时不要制造虚假备选。
 
-对每个 component 确定：
+关键决定采用 `Context → Decision → Consequences → Status`。出现 `Status=needs-decision` 时不得生成 passing StageResult。
 
-- 接口边界（输入/输出/error）
-- 依赖关系
-- 数据模型影响
-- 并发/一致性考虑
+## 4. 定义边界与交互
 
-### 3. Impact 条件分支
+设计到可供 User Story/Plan 消费的粒度：
 
-API 与 Data 不是固定章节。仅当 `impact.api` 或 `impact.data` 为 `yes` 时，读取相应条件参考文件：
+- component/service/interface 的职责、依赖方向和事务所有权；
+- 主要成功路径、失败/超时/重试路径和外部可观察结果；
+- 适用的 API、错误模型、认证授权、幂等与兼容；
+- 适用的数据、SQL、迁移、回填和恢复点；
+- 安全、并发、一致性、observability 与测试场景。
 
-- [API 设计](api-design.md) — 当 impact.api=yes
-- [数据设计](data-design.md) — 当 impact.data=yes
+除非现有代码事实要求固定扩展点，不在 Design 提前冻结类名、方法名和完整文件清单；这些属于 Plan 的详细设计。
 
-不适用的维度记录 `N/A` 与理由。
+## 5. 设计测试与纠正路径
 
-### 4. 风险与兼容性
+每条 requirement 至少绑定一个可观察验证场景。Design 定义场景、层级、前置条件和断言；Plan 再冻结 exact argv。浏览器工具由 Verify 根据场景和环境选择，Design 不预先绑定 Playwright/MCP/DevTools。
 
-- 关键 failure modes 必须覆盖
-- API change 必须处理 compatibility
-- Data change 必须处理 migration / rollback
-- 必须明确是否引入不必要架构
-- 必须检查是否存在更简单的方案
+每个高风险决定给出可执行的失败检测、恢复/回滚动作及回滚后验证。不可逆迁移必须明确恢复点，不能伪装成“可回滚”。
 
-### 5. 验证路径
+## 6. 自检后交给独立 Review
 
-每个设计决策必须可验证：
-
-- 用什么测试证明这个决策是正确的
-- 失败时如何回滚
-- 验证覆盖了哪些场景
-
-## 设计原则
-
-- 基于现有代码事实（CodeGraph 确认），不凭空设计
-- 基于正确版本的外部 API（Context7 确认），不用 Claude 记忆中的旧 API
-- 简单优于复杂；有更简单方案时不引入不必要架构
-- 不可验证的设计决策不存在
+运行全部确定性 assertions，记录命中的下游坑点。Design worker 只能产出 self-check 和 StageResult；Main 必须创建不同 run 的 reviewer，并在 ReviewResult、TECPC 与 fresh proof 全部通过后推进 Plan。

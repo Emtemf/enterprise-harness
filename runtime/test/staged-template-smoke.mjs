@@ -13,7 +13,20 @@ const files = {
 };
 const expected = {
   requirements: ['## 目标与验收', '## 组件拓扑', '## Frontier', '## 事实、约束与条件分支', '## Classification'],
-  design: ['## T 目标', '## C 上下文', '## E 证据', '## P 路径', '### C 纠正预案', 'Design Self-Review'],
+  design: [
+    '## 目标与验收',
+    '## 事实与约束',
+    '## 方案与权衡',
+    '## Requirement Trace',
+    '## 架构边界',
+    '## 交互与失败路径',
+    '## API 设计',
+    '## 数据与 SQL 设计',
+    '## 安全、并发与可观测性',
+    '## 测试设计',
+    '## 风险、兼容与回滚',
+    '## Design Self-Check',
+  ],
   tasks: ['### Target and scope', '### Frozen inputs', '### Execution strategy', '### Commands and verification', '### Independent review'],
   validation: ['## Commands', '## Results', '## Freshness', '## Coverage and exceptions'],
 };

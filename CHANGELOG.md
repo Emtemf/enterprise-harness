@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.5.11] - 2026-08-28
+
+### Changed
+
+- 将 Design 升级为完整的摘要绑定架构合同：冻结全部 handoff 输入，逐 requirement 绑定决策、证据、验证和回滚。
+- 统一 Design 模板、确定性 assertions、自检与独立 review rubric，补齐交互失败路径、API/Data/SQL、横切质量和测试设计。
+- 明确 Design 与 Plan 粒度边界，阻止无事实依据的类、文件、设计模式和 exact argv 被提前冻结。
+- Design 原生 fork 现在只接受 canonical `HANDOFF_INPUT`，直接持久化不可变 StageResult，并拒绝伪造 marker、模板占位和缺失 alternatives。
+- 删除 Skills 中仅属于 subagent 的非官方 `background` frontmatter，保留默认前台等待语义。
+
 ## [0.5.10] - 2026-08-27
 
 ### Added

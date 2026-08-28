@@ -1,96 +1,84 @@
-# Design（闭环五检驱动）
+# Design
 
-> 每个设计决策必须回答四个问题：T 目标是什么、C 上下文有什么约束、E 用什么证据支撑、P 为什么选这条路径。
+> 本制品只记录可公开审计的设计结论与证据引用，不记录隐藏推理。所有 ID 在本 change 内稳定。
 
-## Role Ownership
-- 主导角色：Principal Architect 视角
-- 参与角色：Fullstack Developer / Quality Engineer / Human User
-- 本阶段交接物：提供给开发与测试消费的 `design.md`
+## 目标与验收
 
-## T 目标
+- 业务目标：
+- 成功标准：
+- 明确不做：
 
-### 业务目标
-> 这次变更要达成什么？什么叫成功？
+## 事实与约束
 
-### 成功标准
-> 怎么算做完了？验收条件是什么？
+| EID | 来源（artifact/path） | 已确认事实或约束 |
+|---|---|---|
+| E1 | | |
 
-## C 上下文
+## 方案与权衡
 
-### 当前状态（Evidence-based）
-> 用代码探索和文档调研的事实支撑，不是凭空猜。
-- 已探索的模块/文件/接口：
-- 已确认的技术约束：
-- 已知的依赖和风险：
+### Alternatives
 
-### 影响矩阵
-| 层 | 受影响文件 | 影响类型 |
-|----|-----------|---------|
-| Interface | | |
-| Application | | |
-| Domain | | |
-| Infrastructure | | |
-
-## E 证据
-
-### 设计决策依据
-> 每个关键决策都有证据支撑，不是"我觉得"。
-| 决策 | 证据来源 | 置信度 |
-|------|---------|--------|
-| | | |
-
-### 测试策略
-- Unit：
-- Integration：
-- Backend API E2E：
-- RED path：
-
-### 验证命令
-> 设计完成后用什么命令验证设计是对的？
-
-## P 路径
-
-### 方案选择
-| 方案 | 优点 | 缺点 | 为什么选/不选 |
-|------|------|------|-------------|
+| 方案 | 优点 | 代价/风险 | 结论 |
+|---|---|---|---|
 | A | | | |
 | B | | | |
 
-### 最终方案
-> 选定方案的完整设计。
+### Decisions
 
-#### 接口设计
-- External API：
-- Internal service contract：
-- Compatibility / caller impact：
+| DID | Context（EID） | Decision | Consequences | Status |
+|---|---|---|---|---|
+| D1 | E1 | | | accepted / needs-decision |
 
-#### 数据 / SQL 设计
-- Schema / table changes：
-- Migration：
-- Rollback：
-- Constraints / indexes / transactions：
+## Requirement Trace
 
-#### 架构边界
-- Layer ownership：
-- Object / mapper responsibility：
-- Error handling boundary：
+| Requirement | Decision | Evidence | Verification | Rollback |
+|---|---|---|---|---|
+| R1 | D1 | E1 | V1 | RB1 |
 
-#### 流程 / 状态变更
+## 架构边界
 
-### 风险与回滚
-- 风险：
-- 回滚策略：
+- 组件及职责：
+- 依赖方向与禁止依赖：
+- 所有权及事务边界：
+- 与现有模式的一致性：
 
-### C 纠正预案
-> 如果实施中发现设计有偏差，怎么恢复？
-- 降级方案：
-- 回退条件：
-- 监控指标：
+## 交互与失败路径
 
-## Design Self-Review
-- [ ] T 目标明确且可验收
-- [ ] C 上下文基于事实（非猜测）
-- [ ] E 每个关键决策有证据
-- [ ] P 路径清晰且有纠正预案
+| 场景 | 调用链/状态变化 | 失败、超时或重试 | 对外可观察结果 |
+|---|---|---|---|
+| | | | |
 
-## Approval
+## API 设计
+
+> `impact.api=yes` 时填写契约、错误、授权、幂等与兼容；否则写 `N/A：<理由>`。
+
+## 数据与 SQL 设计
+
+> `impact.data=yes` 时填写 schema/SQL、迁移、回填、事务与恢复点；否则写 `N/A：<理由>`。
+
+## 安全、并发与可观测性
+
+- 认证/授权与敏感数据：
+- 并发、一致性与幂等：
+- 日志、指标、trace 与告警：
+- 不适用项及理由：
+
+## 测试设计
+
+| VID | 层级 | 场景/前置条件 | 可观察断言 | 后续冻结入口 |
+|---|---|---|---|---|
+| V1 | unit / integration / contract / migration / E2E | | | Plan exact argv |
+
+## 风险、兼容与回滚
+
+| RID | 触发条件 | 回滚/恢复动作 | 回滚后验证 |
+|---|---|---|---|
+| RB1 | | | |
+
+## Design Self-Check
+
+- verdict：pass / block
+- unresolved decisions：none / `NEEDS_DECISION`
+- downstream findings：none / finding + evidence + correction
+- impact 分支与 N/A 理由：
+- 独立 Review：待 Main 创建新 run

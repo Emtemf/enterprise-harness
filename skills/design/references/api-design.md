@@ -1,3 +1,13 @@
 # API 设计条件分支
 
-仅在 `impact.api: yes` 时使用。明确外部与内部接口、请求/响应与错误模型、认证/授权、幂等与版本兼容性；将每项 API 改动连到 requirement 和验证方式。若仓库有 OpenAPI，设计必须说明契约与实现如何保持一致。
+仅在 `impact.api=yes` 时加载并形成实质内容：
+
+- 外部 API 与内部 service contract 的 owner、调用者和版本边界；
+- request/response、状态码、稳定错误码与错误信息暴露边界；
+- authentication、authorization、tenant/data scope；
+- idempotency key、重复/并发请求、timeout/retry 语义；
+- pagination、排序、兼容读取/写入和弃用窗口；
+- OpenAPI 与实现保持一致的方式；
+- success、validation、auth、conflict、timeout 和兼容场景对应的 `V*`。
+
+API 决定必须连接到 `R* / D* / E* / V* / RB*`。不得用 controller 类名或伪代码代替契约。

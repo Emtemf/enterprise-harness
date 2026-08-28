@@ -212,6 +212,12 @@ export function loadHandoffV2FromMarker(root, markerPath, expected = {}) {
     return { ok: false, path: absolute, problems: [`invalid input JSON: ${error.message}`] };
   }
   problems.push(...validateHandoffV2Contract(input));
+  try {
+    const canonicalInputPath = path.resolve(v2InputPath(root, input.changeId, input.runId));
+    if (absolute !== canonicalInputPath) problems.push('marker path is not the envelope canonical v2 input path');
+  } catch (error) {
+    problems.push(`canonical v2 input path is invalid: ${error.message}`);
+  }
   if (expected.changeId && input.changeId !== expected.changeId) problems.push('changeId does not match active change');
   if (expected.agentType && normalizeAgentType(input.agent?.type) !== normalizeAgentType(expected.agentType)) {
     problems.push('agent.type does not match dispatch');

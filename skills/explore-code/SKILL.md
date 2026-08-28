@@ -5,7 +5,6 @@ description: >
 user-invocable: false
 context: fork
 agent: enterprise-harness:code-explore
-background: false
 ---
 
 # Explore Code

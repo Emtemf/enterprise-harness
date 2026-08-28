@@ -1,41 +1,70 @@
 ---
 name: design
 description: >
-  用于 Clarify 产出已批准需求后，生成摘要绑定、可评审且经运行时验证的技术设计制品。
+  用于 Clarify 已批准且冻结输入齐备，需要生成可供独立评审和 Plan 消费的技术设计时。
+argument-hint: HANDOFF_INPUT=<canonical-input.json-path>
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
-background: false
 ---
 
 # Design
 
-只消费已确认 requirements、classification、impact 和 digest-bound research facts，产出 `design.md` 与 schema-valid `StageResult`。不替 Main 向用户提问、不写产品代码、不批准自身产物。只有主 Harness 可以向用户提问。
+本 Skill 在隔离上下文中把已批准 requirements 转换成摘要绑定的 `design.md` 和 schema-valid `StageResult`。它不写产品代码、不把 self-check 当 approval；只有主 Harness 可以向用户提问，并拥有用户决策和 stage transition 权限。
 
-## 执行顺序
+本次唯一 handoff：
 
-1. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs"`，拒绝 stage 错误、缺 requirements 或 stale input。
-2. 按 [设计方法](references/method.md) 形成 design；以 [artifact 合同](references/artifact-contract.md) 约束产物形状。
-3. 仅在 impact 适用时加载条件分支：[API 设计](references/api-design.md) 或 [数据设计](references/data-design.md)。
-4. 依 [self-check](references/self-check.md) 自检，使用 [trace 示例](references/examples.md) 了解 trace 形状。
-5. 运行 `node "${CLAUDE_SKILL_DIR}/assert/artifact-shape.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/requirement-coverage.mjs"`、`node "${CLAUDE_SKILL_DIR}/assert/traceability.mjs"`；全部通过后运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 `StageResult`，再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。
-6. 将 result 交给独立 `review` run。只有 fresh `StageResult + ReviewResult + TECPC` 后才可从 design 进入 plan。
+```text
+$ARGUMENTS
+```
 
-交接前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Design 行，并把命中项作为 self-check finding 处理。
+## 必须执行的流程
 
-## 未决决策
+1. `$ARGUMENTS` 必须且只能是 Main 从 `handoff create` 获得的原样 `HANDOFF_INPUT=<canonical input.json path>`。运行：
 
-缺少真实业务选择时返回 `NEEDS_DECISION`。不得从猜测生成 `pass`，也不得将自检当作 approval。
+   ```bash
+   node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs" "HANDOFF_INPUT=<canonical-input.json-path>"
+   ```
+
+   prepare 从 marker 读取并交叉校验 `changeId`、`runId`、agent identity 和 digest。非零退出立即返回其错误码和恢复动作；不得从聊天猜测这些值。
+
+2. 只读取 prepare 输出中的 `inputRefs`，并以 `inputDigests` 为冻结事实边界。始终读取 `references/method.md`、`references/artifact-contract.md` 和 `references/quality-design.md`；仅按 `conditionalReferences` 读取 `references/api-design.md` / `references/data-design.md`。
+
+3. 使用 `assets/design.md.tmpl` 生成 `harness/changes/<change-id>/design.md`。每个 requirement 必须形成：
+
+   ```text
+   R* → D* → E* → V* → RB*
+   ```
+
+   同时覆盖组件边界、交互与失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、测试设计和真实 alternatives。
+
+4. 依 `references/self-check.md` 自检，并读取 `../harness/references/downstream-pitfalls.md` 的 Design 行。技术事实缺口返回 Main 重新 research；真实业务选择返回一个紧凑 `NEEDS_DECISION`。存在未决项时不得运行 finalizer。
+
+5. 运行：
+
+   ```bash
+   node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>
+   ```
+
+   finalizer 统一执行 `assert/artifact-shape.mjs`、`assert/requirement-coverage.mjs` 和 `assert/traceability.mjs`，并把 passing StageResult 原子持久化到当前 v2 execute run。任一 block 都先修正制品再重跑，不能改 state 或 assertion 绕过。
+
+6. finalizer 成功后，返回 Main 的内容仅包含已持久化 StageResult、制品路径和一个下一动作；不附带隐藏推理，也不再使用 shell 重定向或第二套 persist 路径。
+
+7. Main 必须创建不同 run 的独立 `review`。只有 fresh StageResult、passing ReviewResult、完整 TECPC 与 DesignProof 全部通过后才能进入 Plan。
+
+## 粒度边界
+
+Design 冻结 User Story 级架构和契约，不提前冻结 Task 级类名、方法名、完整文件清单、设计模式或 exact argv；除非已有代码事实证明这些是不可替代的扩展点。
 
 ## Supporting files
 
-- `references/method.md` — 方法、事实边界和 impact 条件分支。
-- `references/artifact-contract.md` — `design.md` 与 traceability 合同。
-- `references/self-check.md` — StageResult 前的确定性检查。
-- `references/api-design.md` / `references/data-design.md` — 条件分支。
-- `references/examples.md` — requirement trace 形状示例。
-- `assets/design.md.tmpl` — 生成 design.md 时的输出骨架。
-- `scripts/prepare-input.mjs` — 冻结 design 输入和 input digest。
-- `scripts/finalize-result.mjs` — 汇总 assertions 并生成 StageResult。
-- `assert/artifact-shape.mjs` / `assert/requirement-coverage.mjs` / `assert/traceability.mjs` — 自检断言。
-- `evals/evals.json` — 4 个行为回归场景，验证 Skill 是否按意图执行。
+- `assets/design.md.tmpl` — 唯一 Design 输出骨架。
+- `references/method.md` — 设计顺序、事实边界与粒度。
+- `references/artifact-contract.md` — 产物语义和完成证据。
+- `references/quality-design.md` — 安全、并发、observability 与测试设计。
+- `references/api-design.md` / `references/data-design.md` — impact 条件分支。
+- `references/self-check.md` — worker 自检。
+- `references/examples.md` — trace 形状示例。
+- `scripts/prepare-input.mjs` / `scripts/finalize-result.mjs` — 冻结输入和生成 StageResult。
+- `assert/artifact-shape.mjs` / `assert/requirement-coverage.mjs` / `assert/traceability.mjs` — 确定性门禁。
+- `evals/evals.json` — 行为回归场景。

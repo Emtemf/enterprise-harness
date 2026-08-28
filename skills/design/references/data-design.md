@@ -1,3 +1,13 @@
-# Data 设计条件分支
+# Data / SQL 设计条件分支
 
-仅在 `impact.data: yes` 时使用。明确 schema/SQL 改动、数据迁移、索引与事务边界、兼容读取、回填和可验证的回滚步骤。不得把不可逆迁移描述为可回滚；应明确恢复点和失败处置。
+仅在 `impact.data=yes` 时加载并形成实质内容：
+
+- schema/table/column/constraint/index 的语义与必要 SQL；
+- 事务、锁、隔离级别、并发写和幂等边界；
+- expand/migrate/contract 或其他兼容发布顺序；
+- backfill 批次、失败恢复、校验和可重入性；
+- 新旧版本并存时的兼容读写；
+- dry-run、apply、rollback/restore-point 与迁移后验证；
+- 数据量、锁表时间、可用性和隐私风险对应的 `V* / RB*`。
+
+不可逆迁移必须标明恢复点和数据恢复流程，不能写成“执行反向 SQL 即可”。SQL 属于 durable design/plan artifact，不留在聊天中。
