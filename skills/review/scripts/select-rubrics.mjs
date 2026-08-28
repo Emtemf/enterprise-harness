@@ -9,7 +9,7 @@ export function selectRubrics(input) {
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
-  const [stage, impactJson = '{}'] = process.argv.slice(2);
+  const [stage, behavior, impactJson = '{}'] = process.argv.slice(2);
   const impact = JSON.parse(impactJson);
-  process.stdout.write(JSON.stringify(selectRubrics({ stage, impact })) + '\n');
+  process.stdout.write(JSON.stringify(selectRubrics({ stage, behavior, impact })) + '\n');
 }

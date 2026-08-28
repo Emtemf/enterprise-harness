@@ -15,7 +15,7 @@
     "design": {
       "facts": ["code-explore", "doc-research"],
       "artifact": "design.md",
-      "rubrics": ["design", "api", "data"]
+      "rubrics": ["design", "test-design", "api", "data", "architecture", "rule", "security"]
     },
     "plan": {
       "facts": ["code-explore"],
@@ -42,8 +42,11 @@
   "rubricToReviewer": {
     "requirements": "reviewer",
     "design": "reviewer",
+    "test-design": "reviewer",
     "api": "reviewer",
     "data": "reviewer",
+    "architecture": "reviewer",
+    "rule": "reviewer",
     "plan": "reviewer",
     "task": "reviewer",
     "final": "reviewer",

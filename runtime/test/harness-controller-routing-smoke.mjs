@@ -95,6 +95,14 @@ assert.deepEqual(
   [['归档', 'archive', 'enterprise-harness:artifact-worker', 'StageResult']],
   'the W-only behavior map must select the Archive skill and its capability agent',
 );
+assert.deepEqual(
+  behaviorRows.filter(([, skillName]) => ['design', 'test-design'].includes(skillName)),
+  [
+    ['架构设计', 'design', 'enterprise-harness:artifact-worker', 'architecture StageResult'],
+    ['测试用例设计', 'test-design', 'enterprise-harness:test-design-worker', 'test-design StageResult'],
+  ],
+  'Design W routing must distinguish the architecture and test-design workers',
+);
 const transitionBody = read('references/stage-decisions.md');
 const transitionOpening = transitionBody.split('\n').slice(0, 4).join('\n');
 assert.match(transitionOpening, /clarifyTransitionReady.*stageTransitionReady/isu);

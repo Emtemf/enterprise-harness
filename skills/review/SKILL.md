@@ -13,14 +13,14 @@ agent: enterprise-harness:reviewer
 
 ## Supporting files
 
-- [select-rubrics.mjs](scripts/select-rubrics.mjs) — 按 stage 与 classification 机械选择评审标准
+- [select-rubrics.mjs](scripts/select-rubrics.mjs) — 按 stage、behavior 与 classification 机械选择评审标准
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 将评审 verdict 编码为 schema-valid ReviewResult
 - [selected rubrics](references/) — 按 stage 选择后读取的评审标准文件
 - [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 执行合同
 
-1. 使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs"` 按 stage 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。
+1. 使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs" <stage> <behavior> '<classification-impact-json>'` 按 stage、behavior 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。Design 只接受 exact `design.produce|design.review` 的 architecture rubric 链，或 exact `design.test-cases|design.test-cases.review` 的 test-design rubric 链；缺 behavior 或未知 behavior 必须阻断，不能回退到通用 Design rubric。
 2. 逐一读取 [selected rubrics](references/) 中的选定标准，并验证每个 artifact digest 仍新鲜。
 3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 schema-valid `ReviewResult`；再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
 4. `pass` 才允许 `correction: null`；`block` 与 `unsupported` 必须写可执行 correction。
@@ -33,6 +33,7 @@ agent: enterprise-harness:reviewer
 - `references/requirements.md`
 - `references/classification.md`
 - `references/design.md`
+- `references/test-design.md`
 - `references/plan.md`
 - `references/task.md`
 - `references/api.md`

@@ -81,7 +81,7 @@ try {
   const execute = createHandoffV2(root, {
     changeId,
     stage: 'design',
-    behavior: 'design',
+    behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
     inputRefs: [requirementsRef],
     tecpc,
@@ -119,7 +119,7 @@ try {
   const check = createHandoffV2(root, {
     changeId,
     stage: 'design',
-    behavior: 'review',
+    behavior: 'design.review',
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
@@ -131,7 +131,7 @@ try {
     'create',
     changeId,
     'design',
-    'review',
+    'design.review',
     'check',
     execute.runId,
     '--input-ref',

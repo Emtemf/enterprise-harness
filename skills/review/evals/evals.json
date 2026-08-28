@@ -22,8 +22,8 @@
     },
     {
       "id": "rubric-selection",
-      "description": "按 stage 与 classification 机械选择评审标准",
-      "expected": "select-rubrics.mjs 输出与 stage 匹配",
+      "description": "按 stage、exact behavior 与 classification 机械选择评审标准",
+      "expected": "design.produce 选择 architecture review 链，design.test-cases 选择 test-design review 链，缺失或未知 behavior 阻断",
       "category": "behavioral"
     }
   ]

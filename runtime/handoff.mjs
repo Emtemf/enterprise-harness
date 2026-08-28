@@ -100,7 +100,11 @@ if (action === 'create') {
           parentRunId: parentRunId || null,
           agent: agentForV2Handoff(stage, behavior, role),
           inputRefs,
-          rubricIds: role === 'check' ? selectReviewRubrics({ stage, impact: classification?.impact }) : [],
+          rubricIds: role === 'check' ? selectReviewRubrics({
+            stage,
+            behavior,
+            impact: classification?.impact,
+          }) : [],
           tecpc: {
             target: target || behavior,
             evidence: inputRefs,

@@ -51,10 +51,15 @@ for (const concern of ['交互与失败路径', '安全', 'observability', '技�
 for (const handoffContract of [
   'handoff create',
   'design design.produce execute',
+  'design seal-architecture <change-id>',
+  'design design.test-cases execute',
   '--input-ref harness/changes/<change-id>/requirements.md',
   '--input-ref <classification-ref>',
+  '--input-ref harness/changes/<change-id>/design.md',
+  '--input-ref harness/changes/<change-id>/evidence/completion/design-architecture.json',
   'HANDOFF_INPUT=',
   'enterprise-harness:design',
+  'enterprise-harness:test-design',
 ]) {
   assert.match(behaviorMap, new RegExp(handoffContract.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'), `controller must wire ${handoffContract}`);
 }

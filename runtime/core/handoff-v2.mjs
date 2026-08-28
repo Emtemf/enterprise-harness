@@ -56,7 +56,7 @@ export function createHandoffV2(root, {
   inputRefs = [],
   parentRunId = null,
   tecpc,
-  rubricIds = role === 'check' ? selectReviewRubrics({ stage }) : [],
+  rubricIds = role === 'check' ? selectReviewRubrics({ stage, behavior }) : [],
 }) {
   assertSafeId(changeId, 'changeId');
   if (!ROLES.has(role)) throw new Error(`EH-HANDOFF-V2-023: invalid role ${role}`);

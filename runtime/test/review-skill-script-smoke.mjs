@@ -25,7 +25,7 @@ try {
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   const tecpc = { target: 'review design', evidence: [designRef], context: [requirementsRef], path: designRef, correction: null };
   const execute = createHandoffV2(root, {
-    changeId, stage: 'design', behavior: 'design',
+    changeId, stage: 'design', behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' }, inputRefs: [requirementsRef], tecpc,
   });
   const stageResult = {
@@ -39,7 +39,7 @@ try {
   };
   fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));
   const check = createHandoffV2(root, {
-    changeId, stage: 'design', behavior: 'review', role: 'check', parentRunId: execute.runId,
+    changeId, stage: 'design', behavior: 'design.review', role: 'check', parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: [designRef], tecpc,
   });
 
