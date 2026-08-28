@@ -121,6 +121,20 @@ assert.equal(weakResult.verdict, 'block', 'requirement names outside a structure
 const strongResult = traceResult(strongTrace);
 assert.equal(strongResult.verdict, 'pass', strongResult.problems.join('; '));
 
+const legacyTestDesign = `${strongTrace}\n## 测试设计\n\n| VID | 层级 | 场景 | 可观察断言 |\n|---|---|---|---|\n| V1 | integration | 创建退款 | 返回退款标识 |`;
+assert.equal(
+  assertArtifactShape(legacyTestDesign, 'design.md', impact).verdict,
+  'block',
+  'a Design candidate must reject the legacy 测试设计 section',
+);
+
+const detailedTestCaseTable = `${strongTrace}\n## 附录\n\n| TCID | 前置条件 | 测试数据 | 动作 | 预期结果 |\n|---|---|---|---|---|\n| TC1 | 已认证 | 合法退款请求 | 提交退款 | 返回退款标识 |`;
+assert.equal(
+  assertArtifactShape(detailedTestCaseTable, 'design.md', impact).verdict,
+  'block',
+  'a Design candidate must reject detailed TC tables',
+);
+
 const missingAlternatives = strongTrace.replace(/### Alternatives[\s\S]*?(?=### Decisions)/u, '');
 assert.equal(
   assertArtifactShape(missingAlternatives, 'design.md', impact).verdict,

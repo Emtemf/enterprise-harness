@@ -23,6 +23,16 @@ function hasHeading(designText, heading) {
   return new RegExp(`^##\\s+${escaped}\\s*$`, 'mu').test(designText);
 }
 
+function hasDetailedTestCaseTable(designText) {
+  return designText.split(/\r?\n/u).some((line) => (
+    /^\s*\|.*\|\s*$/u.test(line)
+    && /(?:\bTC(?:ID)?\b|测试用例)/iu.test(line)
+    && /前置条件/u.test(line)
+    && /测试数据/u.test(line)
+    && /动作/u.test(line)
+  ));
+}
+
 function subsection(parentText, heading) {
   const escaped = heading.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   return parentText.match(new RegExp(`^###\\s+${escaped}\\s*$([\\s\\S]*?)(?=^###\\s+|(?![\\s\\S]))`, 'mu'))?.[1]?.trim() ?? '';
@@ -64,6 +74,12 @@ function substantiveContent(text) {
 export function assertArtifactShape(designText, designPath = 'design.md', impact = {}) {
   const missing = REQUIRED_HEADINGS.filter((heading) => !hasHeading(designText, heading));
   const problems = missing.map((heading) => `missing design section: ${heading}`);
+  if (hasHeading(designText, '测试设计')) {
+    problems.push('legacy 测试设计 section is forbidden; use 可验证性义务 and delegate TC* to test-design');
+  }
+  if (hasDetailedTestCaseTable(designText)) {
+    problems.push('detailed TC table is forbidden; Design must delegate test cases to test-design');
+  }
   for (const heading of ['目标与验收', '架构边界', '交互与失败路径', '安全、并发与可观测性', '可验证性义务']) {
     if (hasHeading(designText, heading) && !substantiveContent(section(designText, heading))) {
       problems.push(`${heading} has no substantive content`);

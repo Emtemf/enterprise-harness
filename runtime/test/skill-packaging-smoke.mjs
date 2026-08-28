@@ -6,6 +6,11 @@ import { validateSkillPackaging } from '../validators/skill-packaging-validator.
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
 const result = validateSkillPackaging(path.resolve(root));
+assert.deepEqual(
+  result.problems.filter((problem) => /test-design|test-design-worker/u.test(problem)),
+  [],
+  'public test-design skill and worker must be in the packaging validator expected sets',
+);
 assert.ok(result.ok, `skill packaging violations:\n${result.problems.map((p) => `  - ${p}`).join('\n')}`);
 
 console.log('PASS skill-packaging verify');

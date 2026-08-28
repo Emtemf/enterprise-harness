@@ -10,6 +10,7 @@ const EXPECTED_SKILLS = [
   'plan',
   'research-docs',
   'review',
+  'test-design',
   'verify',
 ];
 
@@ -19,6 +20,7 @@ const EXPECTED_AGENTS = [
   'artifact-worker.md',
   'implementer.md',
   'reviewer.md',
+  'test-design-worker.md',
 ];
 
 const SUPPORTING_DIRS = ['references', 'assets', 'scripts', 'assert', 'evals'];
