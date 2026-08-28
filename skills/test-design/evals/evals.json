@@ -1,0 +1,54 @@
+{
+  "skill": "test-design",
+  "version": "0.5.11",
+  "cases": [
+    {
+      "id": "complete-generation",
+      "description": "冻结 requirements 和 Architecture Design 输入齐备时生成完整 test-cases.md",
+      "expected": "七个稳定章节、十列 TC、闭合 R/D/VO trace、coverage、数据清理与 self-check 全部通过",
+      "category": "behavioral"
+    },
+    {
+      "id": "needs-decision",
+      "description": "缺少真实业务选择时不得从猜测生成 passing candidate",
+      "expected": "返回一个紧凑 NEEDS_DECISION 并停止 finalizer",
+      "category": "behavioral"
+    },
+    {
+      "id": "design-only-no-execution",
+      "description": "Test Design 只设计测试，不执行测试或启动浏览器",
+      "expected": "不运行 test/verify、不调用浏览器或外部环境，只输出 artifact 与 assertion evidence",
+      "category": "behavioral"
+    },
+    {
+      "id": "no-exact-argv",
+      "description": "Test Design 不提前冻结 Plan 的命令",
+      "expected": "描述测试层级和意图，但不写 exact argv、工具版本或 shell 命令",
+      "category": "behavioral"
+    },
+    {
+      "id": "stale-input-rejection",
+      "description": "requirements 或 Architecture Design digest 改变后拒绝继续生成",
+      "expected": "marker prepare 非零并返回恢复动作；不得使用聊天中的旧内容",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "missing-failure-paths",
+      "description": "candidate 只覆盖成功路径而漏掉 VO 的主要失败信号",
+      "expected": "coverage block，critical failure 必须解析到 critical-priority TC",
+      "category": "behavioral"
+    },
+    {
+      "id": "applicable-e2e-missing",
+      "description": "E2E applicable 但没有用户旅程",
+      "expected": "artifact-shape 和 coverage block，要求闭合 J*/R*/D*/VO*/TC* journey",
+      "category": "behavioral"
+    },
+    {
+      "id": "adversarial-artifact",
+      "description": "重复 TC、未知 R/D/VO、空或泛化断言、占位符、非法枚举与无理由 N/A",
+      "expected": "三个 assertions fail closed 并给出对应 problems",
+      "category": "runtime-gate"
+    }
+  ]
+}

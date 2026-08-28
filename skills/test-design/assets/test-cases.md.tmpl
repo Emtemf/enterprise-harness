@@ -1,0 +1,46 @@
+# Test Cases
+
+> 本制品只定义测试意图、数据边界和可观察断言，不执行测试、不选择浏览器工具，也不冻结 exact argv。所有 ID 在本 change 内稳定。
+
+## 输入与测试范围
+
+| Dimension | Applicability | Reason |
+|---|---|---|
+| E2E | applicable / N/A | <适用或不适用的事实理由> |
+
+## Coverage Matrix
+
+| Source | Concern | Criticality | Applicability | Covered By | N/A Reason |
+|---|---|---|---|---|---|
+| R1 | <成功、失败或边界关注点> | critical / high / normal | applicable / N/A | TC1 / - | <N/A 时的具体理由；适用时填 -> |
+| VO1 | <必须暴露的主要失败信号> | critical / high / normal | applicable / N/A | TC1 / - | <N/A 时的具体理由；适用时填 -> |
+
+## 测试用例
+
+| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| TC1 | R1 / D1 / VO1 | unit / integration / contract / migration / security / E2E | critical / high / normal | <可建立的前置状态> | <具体且可隔离的数据> | <确定动作> | <可观察的值、状态或副作用及判断条件> | <清理或失败恢复动作> | accepted |
+
+## E2E 用户旅程
+
+| Journey ID | Traces | Preconditions | Steps | Observable outcome | Status |
+|---|---|---|---|---|---|
+| J1 | R1 / D1 / VO1 / TC1 | <用户可感知的起点> | <跨边界的最短关键步骤> | <用户可观察的结果与失败信号> | accepted |
+
+## 测试数据、隔离与清理
+
+- 数据唯一性与构造方式：<说明>
+- 并行隔离与清理：<说明>
+- 失败后的恢复与残留检查：<说明>
+
+## 风险优先级与最小充分集合
+
+- critical/high 风险与对应 TC：<说明>
+- 最小充分集合及不可删除理由：<说明>
+
+## Test Design Self-Check
+
+- verdict：pass / block
+- unresolved decisions：none / `NEEDS_DECISION`
+- placeholders：none / <remaining placeholders>
+- 独立 Review：待 Main 创建不同 run
