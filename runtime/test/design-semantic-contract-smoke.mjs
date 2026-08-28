@@ -135,6 +135,26 @@ assert.equal(
   'a Design candidate must reject detailed TC tables',
 );
 
+const alternateDetailedTestCaseTable = `${strongTrace}\n## 附录\n\n| 用例ID | 前置条件 | 测试数据 | 步骤 | 预期结果 |\n|---|---|---|---|---|\n| refund-create | 已认证 | 合法退款请求 | 提交退款 | 返回退款标识 |`;
+assert.equal(
+  assertArtifactShape(alternateDetailedTestCaseTable, 'design.md', impact).verdict,
+  'block',
+  'a Design candidate must reject detailed case tables with 用例ID and 步骤',
+);
+
+const concreteTestCaseId = strongTrace.replaceAll('由 test-design 映射 TC*', '由 test-design 映射 TC1');
+assert.equal(
+  assertArtifactShape(concreteTestCaseId, 'design.md', impact).verdict,
+  'block',
+  'a Design candidate must reject concrete TC<number> declarations',
+);
+
+assert.equal(
+  assertArtifactShape(strongTrace, 'design.md', impact).verdict,
+  'pass',
+  'VO obligations may retain the test-design mapping entry TC*',
+);
+
 const missingAlternatives = strongTrace.replace(/### Alternatives[\s\S]*?(?=### Decisions)/u, '');
 assert.equal(
   assertArtifactShape(missingAlternatives, 'design.md', impact).verdict,

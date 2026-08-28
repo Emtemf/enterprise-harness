@@ -23,14 +23,34 @@ function hasHeading(designText, heading) {
   return new RegExp(`^##\\s+${escaped}\\s*$`, 'mu').test(designText);
 }
 
-function hasDetailedTestCaseTable(designText) {
+function hasDetailedTestCaseSection(designText) {
   return designText.split(/\r?\n/u).some((line) => (
-    /^\s*\|.*\|\s*$/u.test(line)
-    && /(?:\bTC(?:ID)?\b|测试用例)/iu.test(line)
-    && /前置条件/u.test(line)
-    && /测试数据/u.test(line)
-    && /动作/u.test(line)
+    /^##\s+(?:测试设计|测试用例(?:设计)?|详细测试(?:用例)?|test\s+(?:design|cases?))\s*$/iu.test(line)
   ));
+}
+
+function tableCells(line) {
+  if (!/^\s*\|.*\|\s*$/u.test(line)) return [];
+  return line.trim().slice(1, -1).split('|').map((cell) => cell.trim());
+}
+
+function isTestCaseIdentifierColumn(cell) {
+  return /^(?:TC(?:ID)?|用例(?:ID|编号)?|测试用例(?:ID|编号)?|(?:test\s+)?case(?:\s*(?:id|identifier|no\.?))?)$/iu.test(cell);
+}
+
+function isTestExecutionDetailColumn(cell) {
+  return /^(?:前置条件|测试数据|动作|步骤|预期(?:结果)?|preconditions?|test\s+data|actions?|steps?|expected(?:\s+result)?)$/iu.test(cell);
+}
+
+function hasDetailedTestCaseTable(designText) {
+  return designText.split(/\r?\n/u).some((line) => {
+    const cells = tableCells(line);
+    return cells.some(isTestCaseIdentifierColumn) && cells.some(isTestExecutionDetailColumn);
+  });
+}
+
+function hasConcreteTestCaseId(designText) {
+  return /\bTC[0-9]+\b/u.test(designText);
 }
 
 function subsection(parentText, heading) {
@@ -74,11 +94,14 @@ function substantiveContent(text) {
 export function assertArtifactShape(designText, designPath = 'design.md', impact = {}) {
   const missing = REQUIRED_HEADINGS.filter((heading) => !hasHeading(designText, heading));
   const problems = missing.map((heading) => `missing design section: ${heading}`);
-  if (hasHeading(designText, '测试设计')) {
-    problems.push('legacy 测试设计 section is forbidden; use 可验证性义务 and delegate TC* to test-design');
+  if (hasDetailedTestCaseSection(designText)) {
+    problems.push('detailed test-case section is forbidden; use 可验证性义务 and delegate TC* to test-design');
   }
   if (hasDetailedTestCaseTable(designText)) {
     problems.push('detailed TC table is forbidden; Design must delegate test cases to test-design');
+  }
+  if (hasConcreteTestCaseId(designText)) {
+    problems.push('concrete TC<number> declaration is forbidden; Design must delegate test cases to test-design');
   }
   for (const heading of ['目标与验收', '架构边界', '交互与失败路径', '安全、并发与可观测性', '可验证性义务']) {
     if (hasHeading(designText, heading) && !substantiveContent(section(designText, heading))) {
