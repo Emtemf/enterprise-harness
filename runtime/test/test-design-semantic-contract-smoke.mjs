@@ -78,6 +78,109 @@ assert.equal(assertArtifactShape(complete, impact).verdict, 'pass');
 assert.equal(assertCoverage(requirements, design, complete).verdict, 'pass');
 assert.equal(assertTraceability(requirements, design, complete).verdict, 'pass');
 
+const withNarrative = (value) => complete.replace(
+  '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
+  value,
+);
+const withDataSection = (lines) => complete.replace(
+  '- refund-001 与 refund-timeout 每次运行唯一；用例后删除退款记录并恢复网关故障注入。',
+  lines.join('\n'),
+);
+const withObservable = (value) => complete.replace(
+  '响应包含非空退款标识且持久化记录与 refund-001 一致',
+  value,
+);
+const round5Probes = [
+  {
+    label: 'Actions rejects an ASCII command token after 执行 without option-like arguments',
+    candidate: complete.replace('提交一次退款请求', '用户执行 run-all-tests critical'),
+    expected: 'block',
+  },
+  {
+    label: 'Actions rejects an ASCII command token after 运行 without option-like arguments',
+    candidate: complete.replace('提交一次退款请求', '用户运行 run-all-tests critical'),
+    expected: 'block',
+  },
+  {
+    label: 'E2E Steps rejects an ASCII command token after 执行 without option-like arguments',
+    candidate: complete.replace('输入 refund-001 并提交退款', '用户执行 run-all-tests critical'),
+    expected: 'block',
+  },
+  {
+    label: 'E2E Steps rejects an ASCII command token after 运行 without option-like arguments',
+    candidate: complete.replace('输入 refund-001 并提交退款', '用户运行 run-all-tests critical'),
+    expected: 'block',
+  },
+  {
+    label: 'global execution guard rejects starting Playwright to run tests',
+    candidate: withNarrative('- 启动 Playwright 进行测试。'),
+    expected: 'block',
+  },
+  {
+    label: 'global execution guard permits a bare technical description',
+    candidate: withNarrative('- 技术背景记录 Playwright 是浏览器测试框架；本制品不选择执行工具。'),
+    expected: 'pass',
+  },
+  {
+    label: 'observable rejects a generic outcome followed by an unbound quantity',
+    candidate: withObservable('验证成功，数量 1'),
+    expected: 'block',
+  },
+  {
+    label: 'observable rejects a generic outcome decorated only by 仅',
+    candidate: withObservable('仅验证成功'),
+    expected: 'block',
+  },
+  {
+    label: 'observable rejects a quantity with no domain object or relation',
+    candidate: withObservable('数量1'),
+    expected: 'block',
+  },
+  {
+    label: 'observable permits a domain-bound quantity',
+    candidate: withObservable('退款数量为1'),
+    expected: 'pass',
+  },
+  {
+    label: 'observable permits a response-bound scalar',
+    candidate: withObservable('响应为200'),
+    expected: 'pass',
+  },
+  {
+    label: 'global assignment guard permits ordinary YAML data',
+    candidate: withDataSection([
+      '- 退款请求数据：',
+      '```yaml',
+      'command: refund',
+      '```',
+      '- 用例后删除退款记录并恢复网关故障注入。',
+    ]),
+    expected: 'pass',
+  },
+  ...[
+    ['command: npm test', 'runner-shaped command assignment'],
+    ['shell: ./run-tests.sh', 'relative executable shell assignment'],
+    ['command: --critical', 'option-shaped command assignment'],
+    ['shell: https://service.test', 'URL-shaped shell assignment'],
+    ['command: refund && cleanup', 'operator-shaped command assignment'],
+  ].map(([assignment, label]) => ({
+    label: `global assignment guard rejects a ${label}`,
+    candidate: withDataSection([
+      '- 退款请求数据：',
+      '```yaml',
+      assignment,
+      '```',
+      '- 用例后删除退款记录并恢复网关故障注入。',
+    ]),
+    expected: 'block',
+  })),
+];
+const round5Mismatches = round5Probes.flatMap(({ label, candidate, expected }) => {
+  const actual = assertArtifactShape(candidate, impact).verdict;
+  return actual === expected ? [] : [`${label}: expected ${expected}, got ${actual}`];
+});
+assert.deepEqual(round5Mismatches, [], `round 5 semantic probes failed:\n${round5Mismatches.join('\n')}`);
+
 const legalBusinessAction = complete.replace('提交一次退款请求', '用户提交退款');
 assert.equal(assertArtifactShape(legalBusinessAction, impact).verdict, 'pass', 'business actions must remain legal');
 const legalNodeServiceAction = complete.replace('提交一次退款请求', '重启 Node 服务');

@@ -23,8 +23,8 @@
 - `CASE-1`、`TC0` 或重复 `TC1`：ID 不稳定。
 - `Level=system`、`Priority=urgent`、`Status=draft`：枚举不在合同内。
 - `Observable assertions=验证成功`：没有可判定的值、状态、错误或副作用。
-- `Observable assertions=验证成功 1` 或 `接口可用 \"ok\"`：数字/literal 没有与响应、返回、状态码、字段值或数量建立关系；`响应为200且成功` 则可判定。
-- `Actions=make test`、`用户执行 run-all-tests --critical` 或 `用户执行 curl https://service.test`：Actions 不是中文业务动作或 HTTP method+path，而是在选择执行命令。
-- candidate 任意位置的 `exact argv: [\"npm\",\"test\"]`、shell-language fence 或 `使用 Playwright 执行测试` 都是显式越界；`重启 Node 服务`、前置条件 `Node 服务已启动` 与数据章节的 JSON code fence 合法，裸技术名不作为执行证据。
+- `Observable assertions=验证成功，数量 1`、`仅验证成功`、`数量1` 或 `接口可用 \"ok\"`：scalar/数量没有与具体主体、领域对象和关系绑定；`退款数量为1`、`响应为200` 与“仅创建一条退款记录并返回相同退款标识”则可判定。
+- `Actions=make test`、`用户执行 run-all-tests critical`、`用户执行 run-all-tests --critical` 或 `用户执行 curl https://service.test`：Actions 不是中文业务动作或 HTTP method+path，而是在选择执行命令；`执行退款` 合法。
+- candidate 任意位置的 `exact argv: [\"npm\",\"test\"]`、shell-language fence、`启动 Playwright 进行测试` 或 `使用 Playwright 执行测试` 都是显式越界。`command: npm test` 等 command-shaped assignment 会 block，普通 YAML data `command: refund` 合法；`重启 Node 服务`、前置条件 `Node 服务已启动`、裸技术名叙述与数据章节的 JSON/YAML fence 也合法。
 - `N/A` 且理由为空：无法审计不适用结论。
 - E2E 标记 applicable 但没有 journey：用户路径覆盖缺失。

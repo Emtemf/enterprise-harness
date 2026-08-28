@@ -18,9 +18,9 @@ Test Design 把冻结的 requirement、Architecture Design 决定和可验证性
 
 每个用例使用唯一 `TC<number>`，并同时 trace 已声明的 `R* / D* / VO*`。根据隔离边界选择 `unit|integration|contract|migration|security|E2E`，不把工具名当测试层级。
 
-十个字段必须完整：前置条件可建立，数据具体且可隔离，Actions 是中文业务动作或明确 HTTP method+path，断言指向值、状态、错误或副作用，清理/恢复能消除残留。candidate 任意位置都不写 exact argv assignment、shell-language fence、明确测试执行或具体浏览器驱动执行；Actions 和 E2E Steps 还不能写 shell prompt 或“执行/运行 + ASCII command + option/URL/path/test 参数”的命令语法。判断不按裸技术名拦截，因此 `重启 Node 服务`、`Node 服务已启动` 等业务/环境事实合法，数据可用 JSON fence 表达。
+十个字段必须完整：前置条件可建立，数据具体且可隔离，Actions 是中文业务动作或明确 HTTP method+path，断言指向值、状态、错误或副作用，清理/恢复能消除残留。candidate 任意位置都不写 exact argv/argv assignment、shell-language fence、明确测试执行，也不在同一语义片段中把具体 browser/driver/tool、主动使用动词和测试/浏览器/页面语义组合成执行说明；`command`/`shell` assignment 只有值呈 runner、`./` 路径、option、URL 或 shell operator 等 command shape 时才越界，普通 YAML data `command: refund` 合法。Actions 和 E2E Steps 还不能写 shell prompt，也不能在“执行/运行”后紧跟 ASCII command token，无论后面是否还有特殊参数。判断不按裸技术名拦截，因此 `执行退款`、`重启 Node 服务`、`Node 服务已启动` 等业务/环境事实合法，数据可用 JSON/YAML fence 表达。
 
-断言按可观察证据正向判断：数字/literal 必须与响应、返回值、状态码、错误码、字段值或数量/计数等主体形成关系；也可给出唯一性、相同差异、创建/更新/删除/拒绝、存在性、可见性、日志/指标/事件等具体状态变化。禁止用“验证成功 1”“接口可用 \"ok\"”等无关系尾随 scalar 伪装证据。
+断言按可观察证据正向判断：数字/literal 必须与响应、返回值、状态码、错误码或字段值等主体形成关系；数量/计数必须再绑定领域对象和显式关系，例如“退款数量为1”。也可给出唯一性、相同差异、创建/更新/删除/拒绝、存在性、可见性、日志/指标/事件等具体状态变化。禁止用“验证成功，数量 1”“仅验证成功”“数量1”或“接口可用 \"ok\"”等无关系内容伪装证据；“响应为200”和“仅创建一条退款记录并返回相同退款标识”可判定。
 
 ## 4. 处理 E2E 与数据生命周期
 

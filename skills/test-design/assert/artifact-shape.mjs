@@ -71,9 +71,11 @@ export function isPlaceholder(value, { allowDash = false } = {}) {
 
 function hasObservableEvidence(value) {
   const text = value.trim();
-  const relatedScalar = /(?:响应(?:状态码|码|体|值)?|返回(?:值|结果|字段值?|标识)?|HTTP\s*状态(?:码)?|状态码|错误码|字段(?:\s*[A-Za-z0-9_.-]+)?\s*值|数量|条数|计数|次数)\s*(?:为|是|=|等于|达到|包含|返回)?\s*(?:[+-]?[0-9]+(?:\.[0-9]+)?%?|["'][^"'\r\n]+["']|`[^`\r\n]+`)/iu;
+  const relatedScalar = /(?:响应(?:状态码|码|体|值)?|返回(?:值|结果|字段值?|标识)?|HTTP\s*状态(?:码)?|状态码|错误码|字段(?:\s*[A-Za-z0-9_.-]+)?\s*值)\s*(?:为|是|=|等于|达到|包含|返回)?\s*(?:[+-]?[0-9]+(?:\.[0-9]+)?%?|["'][^"'\r\n]+["']|`[^`\r\n]+`)/iu;
+  const domainQuantityScalar = /(?:^|[^\p{L}\p{N}_.-])[\p{L}][\p{L}\p{N}_.-]{0,31}\s*(?:数量|条数|计数|次数)\s*(?:为|是|=|等于|达到)\s*(?:[+-]?[0-9]+(?:\.[0-9]+)?%?|["'][^"'\r\n]+["']|`[^`\r\n]+`)/iu;
   return relatedScalar.test(text)
-    || /(?:数量|条数|计数|次数|至少|至多|恰好|仅|只|唯一|一条|相同|不同|一致|差异)/u.test(text)
+    || domainQuantityScalar.test(text)
+    || /(?:唯一|相同|不同|一致|差异)/u.test(text)
     || /(?:包含|不包含|存在|不存在|为空|非空)/u.test(text)
     || /(?:状态码|HTTP\s*状态|错误码|状态\s*(?:为|=|变为|保持|仍为)|错误\s*(?:为|=)|异常\s*(?:为|=))/iu.test(text)
     || /(?:创建|新增|更新|修改|删除|移除|拒绝|阻止|未创建|未更新|未删除)/u.test(text)
@@ -84,23 +86,50 @@ function hasObservableEvidence(value) {
 function hasGlobalExecutionBoundary(value) {
   const text = value.trim();
   const shellFence = /(?:```|~~~)\s*(?:sh|shell|bash|zsh|fish|powershell|pwsh|cmd|bat)\b/iu;
-  const argvOrShellAssignment = /(?:^|[\s：:])(?:(?:exact\s+)?argv|shell|command)\s*[:=：]\s*(?:\[|\{|["'`]|[^\s，。；]+)/imu;
+  const argvAssignment = /(?:^|[\s：:])(?:exact\s+)?argv\s*[:=：]/imu;
+  const commandOrShellAssignment = text
+    .split(/\r?\n/u)
+    .flatMap((line) => {
+      const cells = tableCells(line);
+      return cells.length > 0 ? cells : [line];
+    })
+    .some((segment) => {
+      const assignmentValue = segment.match(/(?:^|[\s：:])(?:command|shell)\s*[:=：]\s*(.+)$/iu)?.[1]?.trim();
+      if (!assignmentValue) return false;
+      const normalizedValue = assignmentValue.replace(/^[\[{(]\s*/u, '').replace(/^["'`]/u, '');
+      const runner = /^(?:make|bazel|node|npm|npx|pnpm|yarn|bun|deno|pytest|python|mvn|mvnw|gradle|gradlew|go|cargo|dotnet|jest|vitest|mocha|sh|bash|zsh|fish|powershell|pwsh|cmd)(?:\.exe)?(?:\s|$)/iu;
+      return runner.test(normalizedValue)
+        || /^(?:\.{1,2}\/|\/)/u.test(normalizedValue)
+        || /(?:^|\s)--?[A-Za-z0-9]/u.test(assignmentValue)
+        || /https?:\/\//iu.test(assignmentValue)
+        || /(?:&&|\|\||[|;<>]|\$\(|`)/u.test(assignmentValue);
+    });
   const testExecutionInstruction = /(?<!不)(?<!未)(?<!禁止)(?<!不得)(?<!无需)(?<!不会)(?:运行|执行)\s*(?:(?:[A-Za-z0-9_./-]+\s+){0,2})?(?:测试|tests?\b|verify\b|构建|build\b)/iu;
   const namedDriverExecution = /(?:(?:使用|通过|调用)\s*(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|CDP|MCP)(?:\s*(?:browser|浏览器|MCP))?[^，。；\r\n|]{0,24}(?:执行|运行|操作|打开|点击|检查|测试)|在\s*(?:Chrome|Chromium|Firefox|Safari|Edge)\s*(?:中|上)?\s*(?:执行|运行|操作|打开|点击|检查|测试))/iu;
+  const namedDriver = /\b(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|CDP|MCP)\b/iu;
+  const namedDriverSemanticExecution = text
+    .split(/[|，。；\r\n]+/u)
+    .some((clause) => namedDriver.test(clause)
+      && /(?:启动|使用|通过|调用|操作|执行|运行|进行)/u.test(clause)
+      && /(?:测试|浏览器|页面)/u.test(clause));
   return shellFence.test(text)
-    || argvOrShellAssignment.test(text)
+    || argvAssignment.test(text)
+    || commandOrShellAssignment
     || testExecutionInstruction.test(text)
-    || namedDriverExecution.test(text);
+    || namedDriverExecution.test(text)
+    || namedDriverSemanticExecution;
 }
 
 function hasStageCommandSyntax(value) {
   const text = value.trim();
   const shellPrompt = /(?:^|[\s：:])[$>]\s+\S/iu;
   const executablePathInstruction = /(?:执行|运行|调用)\s+(?:\.{1,2}\/|\/)[^\s"'`|]+/iu;
+  const asciiCommandAfterExecution = /(?:执行|运行)\s+[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.exe)?(?=$|[\s，。；|])/iu;
   const asciiCommandWithArgument = /(?:^|(?:执行|运行|调用)\s+)(?:\.{1,2}\/)?[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.exe)?\s+(?:--?[A-Za-z0-9][^\s，。；|]*|https?:\/\/[^\s，。；|]+|(?:\.{0,2}\/|\/\/)[^\s，。；|]+|tests?\b|verify\b|build\b)/iu;
   return hasGlobalExecutionBoundary(text)
     || shellPrompt.test(text)
     || executablePathInstruction.test(text)
+    || asciiCommandAfterExecution.test(text)
     || asciiCommandWithArgument.test(text);
 }
 
