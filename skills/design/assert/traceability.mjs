@@ -20,10 +20,10 @@ function isPlaceholder(value) {
 }
 
 function declarationMap(designText, {
-  heading, prefix, columns, label, statusColumn = null,
+  heading, prefix, columns, label, statusColumn = null, idPattern = null,
 }, problems) {
-  const idPattern = new RegExp(`^${prefix}[0-9][\\w.-]*$`, 'u');
-  const rows = tableRows(section(designText, heading)).filter((cells) => idPattern.test(cells[0] ?? ''));
+  const identifierPattern = idPattern ?? new RegExp(`^${prefix}[0-9][\\w.-]*$`, 'u');
+  const rows = tableRows(section(designText, heading)).filter((cells) => identifierPattern.test(cells[0] ?? ''));
   const counts = rows.reduce((result, cells) => result.set(cells[0], (result.get(cells[0]) ?? 0) + 1), new Map());
   const declarations = new Map();
   for (const cells of rows) {
@@ -66,7 +66,11 @@ export function assertTraceability(
     heading: '事实与约束', prefix: 'E', columns: 3, label: 'evidence',
   }, problems);
   const verifications = declarationMap(designText, {
-    heading: '测试设计', prefix: 'V', columns: 5, label: 'verification',
+    heading: '可验证性义务',
+    prefix: 'VO',
+    idPattern: /^VO[1-9][0-9]*$/u,
+    columns: 5,
+    label: 'verification obligation',
   }, problems);
   const rollbacks = declarationMap(designText, {
     heading: '风险、兼容与回滚', prefix: 'RB', columns: 4, label: 'rollback',

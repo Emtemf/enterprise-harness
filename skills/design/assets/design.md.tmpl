@@ -31,9 +31,9 @@
 
 ## Requirement Trace
 
-| Requirement | Decision | Evidence | Verification | Rollback |
+| Requirement | Decision | Evidence | Verification Obligation | Rollback |
 |---|---|---|---|---|
-| R1 | D1 | E1 | V1 | RB1 |
+| R1 | D1 | E1 | VO1 | RB1 |
 
 ## 架构边界
 
@@ -63,11 +63,11 @@
 - 日志、指标、trace 与告警：
 - 不适用项及理由：
 
-## 测试设计
+## 可验证性义务
 
-| VID | 层级 | 场景/前置条件 | 可观察断言 | 后续冻结入口 |
+| VOID | Requirement / Decision | 必须可观察的行为 | 主要失败信号 | 后续 Test Design 入口 |
 |---|---|---|---|---|
-| V1 | unit / integration / contract / migration / E2E | | | Plan exact argv |
+| VO1 | R1 / D1 | | | 由 test-design 映射 TC* |
 
 ## 风险、兼容与回滚
 

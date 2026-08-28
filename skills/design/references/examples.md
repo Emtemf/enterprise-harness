@@ -14,14 +14,14 @@
 | D1 | E1 | 取消用例进入既有 application service | 保持事务所有权，controller 不承载规则 | accepted |
 
 ## Requirement Trace
-| Requirement | Decision | Evidence | Verification | Rollback |
+| Requirement | Decision | Evidence | Verification Obligation | Rollback |
 |---|---|---|---|---|
-| R1 | D1 | E1 | V1 | RB1 |
+| R1 | D1 | E1 | VO1 | RB1 |
 
-## 测试设计
-| VID | 层级 | 场景/前置条件 | 可观察断言 | 后续冻结入口 |
+## 可验证性义务
+| VOID | Requirement / Decision | 必须可观察的行为 | 主要失败信号 | 后续 Test Design 入口 |
 |---|---|---|---|---|
-| V1 | integration | 待支付订单发起取消 | 状态变为 cancelled 且原因已保存 | Plan exact argv |
+| VO1 | R1 / D1 | 取消后订单状态变为 cancelled 且原因已保存 | 状态未变更或原因丢失 | 由 test-design 映射 TC* |
 
 ## 风险、兼容与回滚
 | RID | 触发条件 | 回滚/恢复动作 | 回滚后验证 |

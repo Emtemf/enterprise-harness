@@ -13,10 +13,10 @@ Design 把已批准需求转换成足够指导 Plan 的架构合同。它不重�
 为每个 `R*` 建立稳定映射：
 
 ```text
-Requirement → Decision → Evidence → Verification → Rollback
+Requirement → Decision → Evidence → Verification Obligation → Rollback
 ```
 
-每个引用使用模板中的 `D* / E* / V* / RB*` ID。一个通用“已覆盖”声明不能覆盖多条 requirement。
+每个引用使用模板中的 `D* / E* / VO* / RB*` ID。一个通用“已覆盖”声明不能覆盖多条 requirement。
 
 ## 3. 比较方案再冻结决定
 
@@ -32,13 +32,13 @@ Requirement → Decision → Evidence → Verification → Rollback
 - 主要成功路径、失败/超时/重试路径和外部可观察结果；
 - 适用的 API、错误模型、认证授权、幂等与兼容；
 - 适用的数据、SQL、迁移、回填和恢复点；
-- 安全、并发、一致性、observability 与测试场景。
+- 安全、并发、一致性、observability 与可验证性义务。
 
 除非现有代码事实要求固定扩展点，不在 Design 提前冻结类名、方法名和完整文件清单；这些属于 Plan 的详细设计。
 
-## 5. 设计测试与纠正路径
+## 5. 定义可验证性义务与纠正路径
 
-每条 requirement 至少绑定一个可观察验证场景。Design 定义场景、层级、前置条件和断言；Plan 再冻结 exact argv。浏览器工具由 Verify 根据场景和环境选择，Design 不预先绑定 Playwright/MCP/DevTools。
+每条 requirement 至少绑定一个 `VO*`，说明必须可观察的行为和主要失败信号，并且能由独立 `test-design` 映射为 `TC*`。Design 不选择测试层级，不写测试数据、执行步骤、完整测试用例或 E2E journey；这些由 `test-design` 产生，Plan 再冻结 exact argv。浏览器工具由 Verify 根据已冻结测试设计和环境选择，Design 不预先绑定 Playwright/MCP/DevTools。
 
 每个高风险决定给出可执行的失败检测、恢复/回滚动作及回滚后验证。不可逆迁移必须明确恢复点，不能伪装成“可回滚”。
 

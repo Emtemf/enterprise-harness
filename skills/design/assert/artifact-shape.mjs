@@ -8,7 +8,7 @@ const REQUIRED_HEADINGS = [
   'API 设计',
   '数据与 SQL 设计',
   '安全、并发与可观测性',
-  '测试设计',
+  '可验证性义务',
   '风险、兼容与回滚',
   'Design Self-Check',
 ];
@@ -52,7 +52,7 @@ function substantiveContent(text) {
     .filter((line) => {
       if (line.length === 0 || line.startsWith('>') || line.startsWith('###') || /^<!--.*-->$/u.test(line)) return false;
       if (/^\|(?:\s*:?-{3,}:?\s*\|)+$/u.test(line)) return false;
-      if (/^\|\s*(?:场景|Requirement|EID|DID|VID|RID)\s*\|/iu.test(line)) return false;
+      if (/^\|\s*(?:场景|Requirement|EID|DID|VOID|RID)\s*\|/iu.test(line)) return false;
       if (/^[-*]\s+[^：:]+[：:]\s*$/u.test(line)) return false;
       if (/^\|(?:\s*\|)+$/u.test(line)) return false;
       if (/<[^>]+>|accepted\s*\/\s*needs-decision|无\s*\/\s*`?NEEDS_DECISION`?/iu.test(line)) return false;
@@ -64,7 +64,7 @@ function substantiveContent(text) {
 export function assertArtifactShape(designText, designPath = 'design.md', impact = {}) {
   const missing = REQUIRED_HEADINGS.filter((heading) => !hasHeading(designText, heading));
   const problems = missing.map((heading) => `missing design section: ${heading}`);
-  for (const heading of ['目标与验收', '架构边界', '交互与失败路径', '安全、并发与可观测性']) {
+  for (const heading of ['目标与验收', '架构边界', '交互与失败路径', '安全、并发与可观测性', '可验证性义务']) {
     if (hasHeading(designText, heading) && !substantiveContent(section(designText, heading))) {
       problems.push(`${heading} has no substantive content`);
     }

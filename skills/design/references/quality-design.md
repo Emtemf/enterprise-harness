@@ -4,7 +4,7 @@
 
 ## 安全
 
-确认身份、授权边界、敏感数据、输入信任、审计事件和滥用路径。`impact.security=yes` 时必须给出对应 verification；不能只写“沿用现有安全机制”。
+确认身份、授权边界、敏感数据、输入信任、审计事件和滥用路径。`impact.security=yes` 时必须给出对应 `VO*`；不能只写“沿用现有安全机制”。
 
 ## 并发与一致性
 
@@ -14,6 +14,6 @@
 
 定义能判定成功、降级和回滚触发条件的日志、指标、trace 或审计事件；避免记录 secrets 和完整敏感 payload。
 
-## 测试设计
+## 可验证性义务
 
-从 requirement 和失败路径反推 unit、integration、contract、migration、security 与适用 E2E 场景。每个场景写前置条件、动作和可观察断言；exact argv 和具体浏览器驱动留给 Plan/Verify 冻结。
+从 requirement、关键决定和失败路径反推 `VO*`：每项义务写必须可观察的行为和主要失败信号，并能连接到 `R* / D* / E* / RB*`。不要在 Design 选择 unit、integration、contract、migration、security 或 E2E 层级，也不要写前置条件、测试数据、动作、步骤或完整用例；这些由独立 `test-design` 映射为 `TC*`。exact argv 和具体浏览器驱动留给 Plan/Verify 冻结。

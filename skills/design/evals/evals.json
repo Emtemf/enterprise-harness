@@ -41,7 +41,7 @@
     {
       "id": "independent-semantic-review",
       "description": "Design self-check 后必须由独立 run 审查交互失败路径、impact 分支和横切质量",
-      "expected": "worker 不自批；review rubric 覆盖 alternatives、安全、observability、技术债和测试设计",
+      "expected": "worker 不自批；review rubric 覆盖 alternatives、安全、observability、技术债和 VO 可验证性义务",
       "category": "behavioral"
     }
   ]

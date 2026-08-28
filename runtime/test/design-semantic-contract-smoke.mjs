@@ -11,6 +11,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const template = fs.readFileSync(path.join(root, 'skills/design/assets/design.md.tmpl'), 'utf-8');
+const skill = fs.readFileSync(path.join(root, 'skills/design/SKILL.md'), 'utf-8');
 const requirements = fs.readFileSync(path.join(root, 'skills/harness/assets/requirements.md.tmpl'), 'utf-8')
   .replace('可验证的验收要求。', '可以创建退款。')
   .replace('可验证的验收要求。', '重复请求保持幂等。');
@@ -74,10 +75,10 @@ const strongTrace = [
   '| D1 | E1 | 新增退款应用服务 | 增加一个应用边界 | accepted |',
   '| D2 | E2 | 复用幂等键存储 | 保持调用兼容 | accepted |',
   '## Requirement Trace',
-  '| Requirement | Decision | Evidence | Verification | Rollback |',
+  '| Requirement | Decision | Evidence | Verification Obligation | Rollback |',
   '|---|---|---|---|---|',
-  '| R1 | D1 | E1 | V1 | RB1 |',
-  '| R2 | D2 | E2 | V2 | RB1 |',
+  '| R1 | D1 | E1 | VO1 | RB1 |',
+  '| R2 | D2 | E2 | VO2 | RB1 |',
   '## 架构边界',
   '- controller 仅适配协议，application service 拥有用例。',
   '## 交互与失败路径',
@@ -89,12 +90,12 @@ const strongTrace = [
   '## 数据与 SQL 设计',
   '- N/A：当前变更复用既有存储且没有 schema、SQL、迁移或回填。',
   '## 安全、并发与可观测性',
-  '- 授权检查、并发幂等、指标和告警均绑定 V2。',
-  '## 测试设计',
-  '| VID | 层级 | 场景 | 可观察断言 | 后续冻结入口 |',
+  '- 授权检查、并发幂等、指标和告警均绑定 VO2。',
+  '## 可验证性义务',
+  '| VOID | Requirement / Decision | 必须可观察的行为 | 主要失败信号 | 后续 Test Design 入口 |',
   '|---|---|---|---|---|',
-  '| V1 | integration | 创建退款 | 返回退款标识 | Plan exact argv |',
-  '| V2 | integration | 重复请求 | 仅创建一次 | Plan exact argv |',
+  '| VO1 | R1 / D1 | 创建退款后返回退款标识 | 创建失败或缺少退款标识 | 由 test-design 映射 TC* |',
+  '| VO2 | R2 / D2 | 重复请求只创建一次 | 重复创建或幂等键冲突 | 由 test-design 映射 TC* |',
   '## 风险、兼容与回滚',
   '| RID | 触发条件 | 回滚/恢复动作 | 回滚后验证 |',
   '|---|---|---|---|',
@@ -107,6 +108,12 @@ const strongTrace = [
 
 const templateShape = assertArtifactShape(template, 'skills/design/assets/design.md.tmpl', impact);
 assert.equal(templateShape.verdict, 'block', 'an unfilled template must not pass as a design artifact');
+assert.equal(traceResult(template).verdict, 'block', 'an unfilled VO template must block finalization');
+assert.match(template, /^## 可验证性义务$/mu);
+assert.doesNotMatch(template, /^## 测试设计$/mu);
+assert.doesNotMatch(template, /前置条件\s*\|\s*测试数据\s*\|\s*动作/u);
+assert.match(skill, /R\* → D\* → E\* → VO\* → RB\*/u);
+assert.match(skill, /完整测试用例由独立 `test-design`/u);
 
 const weakResult = traceResult(weakTrace);
 assert.equal(weakResult.verdict, 'block', 'requirement names outside a structured trace must not pass');
@@ -122,13 +129,13 @@ assert.equal(
 );
 
 const duplicateTrace = strongTrace.replace(
-  '| R2 | D2 | E2 | V2 | RB1 |',
-  '| R1 | D2 | E2 | V2 | RB1 |\n| R2 | D2 | E2 | V2 | RB1 |',
+  '| R2 | D2 | E2 | VO2 | RB1 |',
+  '| R1 | D2 | E2 | VO2 | RB1 |\n| R2 | D2 | E2 | VO2 | RB1 |',
 );
 const duplicateResult = traceResult(duplicateTrace);
 assert.equal(duplicateResult.verdict, 'block', 'duplicate requirement trace rows must not pass');
 
-const headerReference = strongTrace.replace('| R1 | D1 | E1 | V1 | RB1 |', '| R1 | DID | E1 | V1 | RB1 |');
+const headerReference = strongTrace.replace('| R1 | D1 | E1 | VO1 | RB1 |', '| R1 | DID | E1 | VO1 | RB1 |');
 const headerResult = traceResult(headerReference);
 assert.equal(headerResult.verdict, 'block', 'table header labels must not count as declared trace IDs');
 
@@ -141,7 +148,7 @@ assert.equal(traceResult(fakeDecision).verdict, 'block', 'a one-cell ID table mu
 const duplicateDecision = strongTrace.replace('| D2 | E2 | 复用幂等键存储 | 保持调用兼容 | accepted |', '| D1 | E2 | 复用幂等键存储 | 保持调用兼容 | accepted |');
 assert.equal(traceResult(duplicateDecision).verdict, 'block', 'duplicate declaration IDs must not pass');
 
-const extraRequirement = strongTrace.replace('| R2 | D2 | E2 | V2 | RB1 |', '| R2 | D2 | E2 | V2 | RB1 |\n| R3 | D2 | E2 | V2 | RB1 |');
+const extraRequirement = strongTrace.replace('| R2 | D2 | E2 | VO2 | RB1 |', '| R2 | D2 | E2 | VO2 | RB1 |\n| R3 | D2 | E2 | VO2 | RB1 |');
 assert.equal(traceResult(extraRequirement).verdict, 'block', 'unknown requirement traces must not pass');
 
 const fakeEvidence = strongTrace.replace(codeInput, 'fake.md');
@@ -156,5 +163,11 @@ assert.equal(impactResult.verdict, 'block', 'impact.api=yes must require an API 
 
 const emptyApi = strongTrace.replace('- POST /refunds；认证、幂等、错误和兼容策略见 D1/D2。', '');
 assert.equal(assertArtifactShape(emptyApi, 'design.md', impact).verdict, 'block', 'impact.api=yes must require substantive API content');
+
+const legacyVerification = strongTrace.replace('| R1 | D1 | E1 | VO1 | RB1 |', '| R1 | D1 | E1 | V1 | RB1 |');
+assert.equal(traceResult(legacyVerification).verdict, 'block', 'V1 must not satisfy a VO verification obligation');
+
+const zeroBasedVerification = strongTrace.replaceAll('VO1', 'VO0');
+assert.equal(traceResult(zeroBasedVerification).verdict, 'block', 'VO IDs must start at VO1');
 
 console.log(`PASS design-semantic-contract ${mode}`);

@@ -33,10 +33,10 @@ $ARGUMENTS
 3. 使用 `assets/design.md.tmpl` 生成 `harness/changes/<change-id>/design.md`。每个 requirement 必须形成：
 
    ```text
-   R* → D* → E* → V* → RB*
+   R* → D* → E* → VO* → RB*
    ```
 
-   同时覆盖组件边界、交互与失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、测试设计和真实 alternatives。
+   同时覆盖组件边界、交互与失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、可验证性义务和真实 alternatives。完整测试用例由独立 `test-design` 基于 `VO*` 映射 `TC*`；不得在 Design 写测试层级、测试数据、步骤或 E2E journey。
 
 4. 依 `references/self-check.md` 自检，并读取 `../harness/references/downstream-pitfalls.md` 的 Design 行。技术事实缺口返回 Main 重新 research；真实业务选择返回一个紧凑 `NEEDS_DECISION`。存在未决项时不得运行 finalizer。
 
@@ -61,7 +61,7 @@ Design 冻结 User Story 级架构和契约，不提前冻结 Task 级类名、�
 - `assets/design.md.tmpl` — 唯一 Design 输出骨架。
 - `references/method.md` — 设计顺序、事实边界与粒度。
 - `references/artifact-contract.md` — 产物语义和完成证据。
-- `references/quality-design.md` — 安全、并发、observability 与测试设计。
+- `references/quality-design.md` — 安全、并发、observability 与可验证性义务。
 - `references/api-design.md` / `references/data-design.md` — impact 条件分支。
 - `references/self-check.md` — worker 自检。
 - `references/examples.md` — trace 形状示例。

@@ -8,6 +8,6 @@
 - backfill 批次、失败恢复、校验和可重入性；
 - 新旧版本并存时的兼容读写；
 - dry-run、apply、rollback/restore-point 与迁移后验证；
-- 数据量、锁表时间、可用性和隐私风险对应的 `V* / RB*`。
+- 数据量、锁表时间、可用性和隐私风险对应的 `VO* / RB*`。
 
 不可逆迁移必须标明恢复点和数据恢复流程，不能写成“执行反向 SQL 即可”。SQL 属于 durable design/plan artifact，不留在聊天中。

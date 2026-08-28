@@ -23,6 +23,8 @@ assert.match(skill, /^context: fork$/mu);
 assert.match(skill, /^argument-hint: HANDOFF_INPUT=<canonical-input\.json-path>$/mu);
 assert.match(skill, /\$ARGUMENTS/u);
 assert.match(skill.replaceAll('$ARGUMENTS', 'HANDOFF_INPUT=.git/enterprise-harness/runs/c/run/input.json'), /HANDOFF_INPUT=/u);
+assert.match(skill, /R\* → D\* → E\* → VO\* → RB\*/u);
+assert.match(skill, /完整测试用例由独立 `test-design`/u);
 assert.doesNotMatch(designRuntimeScripts, /runtime\/(?:lib|core)\//u, 'Skill scripts must import runtime only through runtime/api');
 for (const file of [
   'references/method.md',
@@ -42,7 +44,7 @@ for (const file of [
   assert.match(skill, new RegExp('`' + file.replaceAll('.', '\\.') + '`', 'u'), `SKILL.md must wire ${file}`);
 }
 
-for (const concern of ['交互与失败路径', '安全', 'observability', '技术债', 'alternatives']) {
+for (const concern of ['交互与失败路径', '安全', 'observability', '技术债', 'alternatives', 'VO']) {
   assert.match(reviewRubric, new RegExp(concern, 'iu'), `design review rubric must cover ${concern}`);
 }
 
