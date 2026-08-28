@@ -120,6 +120,34 @@ try {
   assert.deepEqual(designProof.stageProofs.map(({ kind }) => kind), ['architecture', 'test-design']);
   assert.deepEqual(designProof.artifacts, [architectureResult.artifacts[0], testDesignResult.artifacts[0]]);
   assert.deepEqual(validateCompletionProof(root, designProof), []);
+  const bindingProjection = ({ target, evidence, context, path: proofPath }) => ({
+    target, evidence, context, path: proofPath,
+  });
+  const changedArchitectureProof = buildCompoundDesignProof(
+    root,
+    {
+      ...architectureProof,
+      tecpc: { ...architectureProof.tecpc, target: 'changed architecture target' },
+    },
+    testDesignResult,
+    testDesignReview,
+  );
+  const changedTestDesignResult = {
+    ...testDesignResult,
+    tecpc: { ...testDesignResult.tecpc, target: 'changed test-design target' },
+  };
+  const changedTestDesignProof = buildCompoundDesignProof(
+    root,
+    architectureProof,
+    changedTestDesignResult,
+    { ...testDesignReview, tecpc: { ...changedTestDesignResult.tecpc } },
+  );
+  assert.deepEqual(
+    [changedArchitectureProof, changedTestDesignProof]
+      .map((candidate) => JSON.stringify(bindingProjection(candidate)) !== JSON.stringify(bindingProjection(designProof))),
+    [true, true],
+    'compound proof binding must change with either canonical Design chain TECPC',
+  );
   assert.match(
     validateCompletionProof(root, { ...designProof, executionRunId: architectureResult.runId }).join('; '),
     /executionRunId/u,

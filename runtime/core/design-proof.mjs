@@ -44,6 +44,33 @@ function sameDigestMap(left, right) {
   return JSON.stringify(entries(left)) === JSON.stringify(entries(right));
 }
 
+function sameTecpc(left, right) {
+  return left?.target === right?.target
+    && JSON.stringify(left?.evidence || []) === JSON.stringify(right?.evidence || [])
+    && JSON.stringify(left?.context || []) === JSON.stringify(right?.context || [])
+    && left?.path === right?.path
+    && left?.correction === right?.correction;
+}
+
+function cloneTecpc(tecpc) {
+  return {
+    ...tecpc,
+    evidence: [...tecpc.evidence],
+    context: [...tecpc.context],
+  };
+}
+
+function canonicalChainTecpc(executionTecpc, reviewTecpc) {
+  if (sameTecpc(executionTecpc, reviewTecpc)) return cloneTecpc(executionTecpc);
+  return {
+    target: `execute(${executionTecpc.target}) -> review(${reviewTecpc.target})`,
+    evidence: [...new Set([...executionTecpc.evidence, ...reviewTecpc.evidence])],
+    context: [...new Set([...executionTecpc.context, ...reviewTecpc.context])],
+    path: `${executionTecpc.path} -> review(${reviewTecpc.path})`,
+    correction: null,
+  };
+}
+
 function architectureError(problems) {
   return new Error(`EH-DESIGN-PROOF-001: ${problems.join('; ')}`);
 }
@@ -152,11 +179,7 @@ export function buildDesignArchitectureProof(root, stageResult, reviewResult) {
     reviewRunId: reviewResult.runId,
     artifacts: stageResult.artifacts.map((artifact) => ({ ...artifact })),
     inputDigests: { ...stageResult.inputDigests },
-    tecpc: {
-      ...stageResult.tecpc,
-      evidence: [...stageResult.tecpc.evidence],
-      context: [...stageResult.tecpc.context],
-    },
+    tecpc: canonicalChainTecpc(stageResult.tecpc, reviewResult.tecpc),
     createdAt: new Date().toISOString(),
   };
   const proofProblems = validateDesignArchitectureProof(root, proof);
@@ -255,7 +278,8 @@ export function buildCompoundDesignProof(root, architectureProof, testDesignResu
   }
   if (problems.length > 0) throw architectureError(problems);
 
-  const context = [...new Set([
+  const testDesignTecpc = canonicalChainTecpc(testDesignResult.tecpc, testDesignReview.tecpc);
+  const inputContext = [...new Set([
     ...Object.keys(architectureProof.inputDigests || {}),
     ...Object.keys(testDesignResult.inputDigests || {}),
   ])];
@@ -280,10 +304,19 @@ export function buildCompoundDesignProof(root, architectureProof, testDesignResu
     ],
     artifacts: [{ ...designArtifact }, { ...testCasesArtifact }],
     waivers: [],
-    target: 'complete architecture and test design',
-    evidence: [designArtifact.path, testCasesArtifact.path],
-    context: context.length > 0 ? context : [designArtifact.path],
-    path: `${designArtifact.path} -> ${architectureRef} -> ${testCasesArtifact.path}`,
+    target: `architecture(${architectureProof.tecpc.target}) -> test-design(${testDesignTecpc.target})`,
+    evidence: [...new Set([
+      ...architectureProof.tecpc.evidence,
+      ...testDesignTecpc.evidence,
+      designArtifact.path,
+      testCasesArtifact.path,
+    ])],
+    context: [...new Set([
+      ...architectureProof.tecpc.context,
+      ...testDesignTecpc.context,
+      ...inputContext,
+    ])],
+    path: `${architectureProof.tecpc.path} -> ${architectureRef} -> ${testDesignTecpc.path}`,
     createdAt: new Date().toISOString(),
   };
   const proofProblems = validateCompletionProof(root, proof);

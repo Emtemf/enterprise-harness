@@ -168,6 +168,40 @@ try {
   writeJson(path.join(root, designProofRef), compoundProof);
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
 
+  const tecpcMutations = [
+    [
+      v2ResultPath(root, changeId, architectureExecute.runId),
+      architectureResult,
+      { ...architectureResult, tecpc: { ...architectureResult.tecpc, target: 'tampered architecture result' } },
+    ],
+    [
+      v2ResultPath(root, changeId, architectureCheck.runId, 'check'),
+      architectureReview,
+      { ...architectureReview, tecpc: { ...architectureReview.tecpc, target: 'tampered architecture review' } },
+    ],
+    [
+      v2ResultPath(root, changeId, testDesignExecute.runId),
+      testDesignResult,
+      { ...testDesignResult, tecpc: { ...testDesignResult.tecpc, target: 'tampered test-design result' } },
+    ],
+    [
+      v2ResultPath(root, changeId, testDesignCheck.runId, 'check'),
+      testDesignReview,
+      { ...testDesignReview, tecpc: { ...testDesignReview.tecpc, target: 'tampered test-design review' } },
+    ],
+  ];
+  const tecpcGateProblems = [];
+  for (const [resultPath, original, mutation] of tecpcMutations) {
+    writeJson(resultPath, mutation);
+    tecpcGateProblems.push(validateDesignStageGate(root, changeId));
+    writeJson(resultPath, original);
+  }
+  assert.deepEqual(
+    tecpcGateProblems.map((problems) => problems.some((problem) => /TECPC does not match (?:execute|check) handoff/u.test(problem))),
+    [true, true, true, true],
+    'every architecture/test-design result TECPC must exactly match its frozen handoff TECPC',
+  );
+
   const architectureProofPath = path.join(root, architectureProofRef);
   writeJson(architectureProofPath, {
     ...architectureProof,

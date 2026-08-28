@@ -17,6 +17,7 @@ import { sha256Artifact, validateStageResult } from '../../../runtime/api/result
 import {
   designArchitectureProofRef,
   readDesignArchitectureProof,
+  validateCanonicalDesignArchitectureBinding,
 } from '../../../runtime/api/design.mjs';
 
 function requiredFile(changeDir, name) {
@@ -74,6 +75,10 @@ try {
   assertBound(input, architectureRef, 'EH-TEST-DESIGN-PREPARE-007: architecture proof must be digest-bound');
 
   const architectureProof = readDesignArchitectureProof(root, input.changeId);
+  const bindingProblems = validateCanonicalDesignArchitectureBinding(root, input.changeId, architectureProof);
+  if (bindingProblems.length > 0) {
+    throw new Error(`EH-TEST-DESIGN-PREPARE-013: canonical architecture binding is invalid: ${bindingProblems.join('; ')}`);
+  }
   const architectureResultPath = v2ResultPath(root, input.changeId, architectureProof.executionRunId);
   const architectureResultRef = path.relative(root, architectureResultPath).split(path.sep).join('/');
   assertBound(input, architectureResultRef, 'EH-TEST-DESIGN-PREPARE-008: architecture StageResult must be digest-bound');

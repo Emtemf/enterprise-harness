@@ -9,6 +9,7 @@ import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { approvedRequirements } from './clarify-readiness-fixture.mjs';
+import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -186,7 +187,7 @@ try {
     verdict: 'pass', correction: null, reviewedAt: '2026-08-28T00:00:01.000Z',
   };
   writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), architectureReview);
-  writeJson(path.join(root, architectureProofRef), {
+  const architectureProof = {
     proofVersion: 1,
     type: 'design-architecture-proof',
     changeId,
@@ -196,8 +197,40 @@ try {
     inputDigests: { ...architectureResult.inputDigests },
     tecpc: { ...architectureTecpc },
     createdAt: '2026-08-28T00:00:02.000Z',
-  });
+  };
+  writeJson(path.join(root, architectureProofRef), architectureProof);
   const architectureResultRef = path.relative(root, architectureResultPath).split(path.sep).join('/');
+  appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'architecture-script-executor' });
+  appendCompletedHandoffBinding(root, changeId, architectureCheck.input, { agentId: 'architecture-script-reviewer' });
+
+  const forgedProof = {
+    ...architectureProof,
+    reviewRunId: 'run_ffffffff-ffff-4fff-8fff-ffffffffffff',
+  };
+  writeJson(path.join(root, architectureProofRef), forgedProof);
+  const forgedHandoff = createHandoffV2(root, {
+    changeId,
+    stage: 'design',
+    behavior: 'design.test-cases',
+    agent: { type: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+    inputRefs: [requirementsRef, classification.path, designRef, architectureResultRef, architectureProofRef],
+    tecpc: {
+      target: 'reject handwritten architecture proof', evidence: [testCasesRef],
+      context: [designRef, architectureProofRef], path: architectureProofRef, correction: null,
+    },
+  });
+  const forgedPrepare = run(prepare, [markerFor(forgedHandoff)]);
+  const forgedFinalize = run(finalize, [changeId, forgedHandoff.runId]);
+  assert.deepEqual(
+    { prepare: forgedPrepare.status, finalize: forgedFinalize.status },
+    { prepare: 2, finalize: 2 },
+    'prepare and finalize must reject a handwritten proof without its claimed review run or trusted architecture bindings',
+  );
+  assert.match(
+    `${forgedPrepare.stderr}\n${forgedFinalize.stderr}`,
+    /canonical architecture binding|architecture.*ReviewResult|trusted.*binding/iu,
+  );
+  writeJson(path.join(root, architectureProofRef), architectureProof);
 
   const noMarker = run(prepare, []);
   assert.notEqual(noMarker.status, 0);
@@ -223,7 +256,7 @@ try {
   const wrongBehavior = createHandoffV2(root, {
     changeId,
     stage: 'design',
-    behavior: 'design.produce',
+    behavior: 'design.other',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
     inputRefs: [requirementsRef, classification.path, designRef, architectureResultRef, architectureProofRef],
     tecpc: handoffTecpc,

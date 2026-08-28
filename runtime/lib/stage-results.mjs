@@ -171,6 +171,14 @@ function sameDigestMap(left, right) {
   return JSON.stringify(leftEntries) === JSON.stringify(rightEntries);
 }
 
+function sameTecpc(left, right) {
+  return left?.target === right?.target
+    && JSON.stringify(left?.evidence || []) === JSON.stringify(right?.evidence || [])
+    && JSON.stringify(left?.context || []) === JSON.stringify(right?.context || [])
+    && left?.path === right?.path
+    && left?.correction === right?.correction;
+}
+
 function sameArtifacts(left, right) {
   const normalize = (artifacts) => (artifacts || [])
     .map(({ path: artifactPath, digest }) => [artifactPath, digest])
@@ -271,6 +279,9 @@ export function completionChainForBehavior(root, changeId, behavior, requiredArt
     if (!sameDigestMap(execution.result.inputDigests, execution.input.inputDigests)) {
       executionProblems.push(`${executionCandidate.runId}: StageResult input digests do not match the execute handoff`);
     }
+    if (!sameTecpc(execution.result.tecpc, execution.input.tecpc)) {
+      executionProblems.push(`${executionCandidate.runId}: StageResult TECPC does not match execute handoff`);
+    }
     const artifacts = Array.isArray(execution.result.artifacts) ? execution.result.artifacts : [];
     const missing = requiredArtifacts.filter((artifactPath) => !artifacts.some((artifact) => artifact.path === artifactPath));
     if (missing.length > 0) executionProblems.push(`${executionCandidate.runId}: StageResult does not bind ${missing.join(', ')}`);
@@ -315,6 +326,9 @@ export function completionChainForBehavior(root, changeId, behavior, requiredArt
     }
     if (JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)) {
       reviewProblems.push(`${checkCandidate.runId}: ReviewResult rubrics do not match the check handoff`);
+    }
+    if (!sameTecpc(check.result.tecpc, check.input.tecpc)) {
+      reviewProblems.push(`${checkCandidate.runId}: ReviewResult TECPC does not match check handoff`);
     }
     if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)) {
       reviewProblems.push(`${checkCandidate.runId}: ReviewResult artifacts do not match the StageResult`);
