@@ -17,6 +17,22 @@ const downstreamPitfalls = fs.readFileSync(
   'utf-8',
 );
 
+assert.match(
+  behaviorMap,
+  /workflow status <change-id> --json[\s\S]*designReadiness\.route[\s\S]*(?:唯一|单一).*next action/iu,
+  'Main must consume the runtime-derived Design route instead of reconstructing evidence predicates',
+);
+assert.match(
+  behaviorMap,
+  /不得[^\n]*(?:重算|重新检查)[^\n]*(?:文件|prose|证据状态)/iu,
+  'Main must not recompute the Design route from prose or file state',
+);
+assert.doesNotMatch(
+  behaviorMap,
+  /Main[^\n]*按下列顺序检查并选择第一项/iu,
+  'the ordered evidence predicate belongs to runtime, not Main',
+);
+
 const commandBlocks = [...behaviorMap.matchAll(/```bash\n([\s\S]*?)```/gu)]
   .map((match) => match[1].replace(/\\\s*\n\s*/gu, ' ').replace(/\s+/gu, ' ').trim());
 const architectureExecute = commandBlocks.find((command) => command.includes(
@@ -70,8 +86,8 @@ for (const expected of orderedRecovery) {
 }
 assert.match(
   behaviorMap,
-  /只(?:选择|执行)[^\n]*(?:第一|最早)[^\n]*(?:一个动作|单一动作)[^\n]*(?:重新读取|重读)[^\n]*(?:status|snapshot)/iu,
-  'Design controller must execute only the first recovery action and then re-read runtime status',
+  /只 exact-match[^\n]*designReadiness\.route[^\n]*执行一个动作[^\n]*重新读取[^\n]*(?:status|snapshot)/iu,
+  'Design controller must execute only the runtime-selected action and then re-read status',
 );
 
 const designPitfallRow = downstreamPitfalls.split('\n').find((line) => /^\| Design \|/u.test(line));

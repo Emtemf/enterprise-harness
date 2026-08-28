@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { createHandoffV2, loadHandoffV2, loadHandoffV2FromMarker, v2InputPath } from '../core/handoff-v2.mjs';
+import {
+  createHandoffV2,
+  loadHandoffV2,
+  loadHandoffV2FromMarker,
+  parseHandoffV2Marker,
+  v2InputPath,
+} from '../core/handoff-v2.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-handoff-v2-'));
 try {
@@ -31,6 +37,24 @@ try {
   assert.equal(loaded.handoffVersion, 2);
   assert.equal(loaded.inputRefs[0], 'harness/changes/handoff-v2/requirements.md');
   assert.ok(loaded.inputDigests[loaded.inputRefs[0]]);
+
+  const marker = path.relative(root, created.path);
+  const exactPrompt = `HANDOFF_INPUT=${marker}`;
+  assert.equal(parseHandoffV2Marker(exactPrompt), marker);
+  for (const pollutedPrompt of [
+    `Dispatch this worker:\n${exactPrompt}`,
+    `${exactPrompt}\nProduce the artifact.`,
+    `${exactPrompt}\n${exactPrompt}`,
+    ` ${exactPrompt}`,
+    `${exactPrompt}\n`,
+    `HANDOFF_INPUT = ${marker}`,
+  ]) {
+    assert.equal(
+      parseHandoffV2Marker(pollutedPrompt),
+      null,
+      `v2 marker parser must reject non-exact input: ${JSON.stringify(pollutedPrompt)}`,
+    );
+  }
 
   const forgedDir = path.join(path.dirname(path.dirname(created.path)), 'run_forged');
   fs.mkdirSync(forgedDir, { recursive: true });

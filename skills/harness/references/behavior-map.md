@@ -20,18 +20,19 @@ v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 fr
 
 ## Design：有序的单动作投影
 
-当 snapshot 明确 `stage=design` 时，Main 只消费 runtime status 投影、canonical artifact refs 和
-ArchitectureProof 路径，按下列顺序检查并选择第一项：
+当 snapshot 明确 `stage=design` 时，Main 先运行 `workflow status <change-id> --json`，只把
+`designReadiness.route` 当作唯一 Design next action。Main 不得重算或重新检查文件、prose 或证据状态来
+覆盖这个 runtime 派生值。runtime 按下列固定顺序选择第一项并投影 exact route：
 
 1. `missing/stale architecture result → design.produce`
-2. `missing/stale architecture review → review(design)`
-3. `missing/stale ArchitectureProof → design seal-architecture`
+2. `missing/stale architecture review → design.review（review(design)）`
+3. `missing/stale ArchitectureProof → design.seal-architecture（design seal-architecture）`
 4. `missing/stale test-design result → design.test-cases`
-5. `missing/stale test-design review → review(test-design)`
-6. `both chains fresh → design transition`
+5. `missing/stale test-design review → design.test-cases.review（review(test-design)）`
+6. `both chains fresh → design.transition（design transition）`
 
-Main 只选择按顺序命中的第一项并执行一个动作，然后重新读取 runtime status/snapshot；不得在同一轮从
-execute 级联到 review、seal、第二个 worker 或 transition。第 6 项返回 controller 选择
+Main 只 exact-match 当前 `designReadiness.route` 并执行一个动作，然后重新读取 runtime status/snapshot；
+不得在同一轮从 execute 级联到 review、seal、第二个 worker 或 transition。第 6 项返回 controller 选择
 `stage-decisions.md` 的单一 transition，不能在本 reference 内自行合成 transition argv。
 
 ### 1. Architecture execute

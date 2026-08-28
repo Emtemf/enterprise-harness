@@ -112,6 +112,7 @@ try {
     parentRunId: testDesignResult.runId,
     reviewedRunId: testDesignResult.runId,
     reviewedArtifacts: testDesignResult.artifacts,
+    rubricIds: ['test-design'],
     tecpc: { ...testDesignResult.tecpc },
   };
   const designProof = buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview);

@@ -4,7 +4,11 @@ import { createHash, randomUUID } from 'node:crypto';
 import { assertSafeId, assertSafeRunId, pathIsWithin, resolveChild, resolveWithin } from '../lib/safe-paths.mjs';
 import { gitCommonDir, normalizeAgentType } from '../lib/agent-evidence.mjs';
 import { atomicWriteJson, withChangeTransaction } from '../lib/state-store.mjs';
-import { selectReviewRubrics } from '../lib/review-rubrics.mjs';
+import {
+  canonicalReviewRubricProblems,
+  designReviewBehaviorFor,
+  selectReviewRubrics,
+} from '../lib/review-rubrics.mjs';
 import {
   validateHandoffV2Contract,
   validateResearchPacket,
@@ -63,6 +67,22 @@ export function createHandoffV2(root, {
   if (!agent?.type || !agent?.skill) throw new Error('EH-HANDOFF-V2-024: agent type and skill are required');
   if (!tecpc || !String(tecpc.target || '').trim()) throw new Error('EH-HANDOFF-V2-025: TECPC target is required');
   if (role === 'check' && !parentRunId) throw new Error('EH-HANDOFF-V2-026: checker requires parentRunId');
+  if (role === 'check' && stage === 'design') {
+    const parent = loadHandoffV2(root, changeId, parentRunId);
+    let expectedBehavior;
+    try {
+      expectedBehavior = designReviewBehaviorFor(parent.behavior);
+    } catch (error) {
+      throw new Error(`EH-HANDOFF-V2-032: ${error.message}`);
+    }
+    if (parent.role !== 'execute' || parent.stage !== 'design' || behavior !== expectedBehavior) {
+      throw new Error(`EH-HANDOFF-V2-032: Design parent ${parent.behavior} requires ${expectedBehavior} check behavior`);
+    }
+    const rubricProblems = canonicalReviewRubricProblems({ stage, behavior, rubricIds });
+    if (rubricProblems.length > 0) {
+      throw new Error(`EH-HANDOFF-V2-033: ${rubricProblems.join('; ')}`);
+    }
+  }
   const runId = `run_${randomUUID()}`;
   const input = {
     handoffVersion: 2,
@@ -193,7 +213,7 @@ function persistHandoffV2ResultUnlocked(root, changeId, runId, result) {
 }
 
 export function parseHandoffV2Marker(prompt) {
-  const match = String(prompt || '').match(/(?:^|\n)HANDOFF_INPUT\s*=\s*([^\s]+)\s*(?:\n|$)/);
+  const match = String(prompt ?? '').match(/^HANDOFF_INPUT=([^\s]+)$/u);
   return match?.[1] || null;
 }
 

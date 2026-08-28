@@ -17,6 +17,10 @@ import {
 import { stageContractArtifactPaths } from './stage-contract.mjs';
 import { buildClarifyArtifactReadiness } from './clarify-readiness.mjs';
 import {
+  canonicalReviewRubricProblems,
+  designReviewBehaviorFor,
+} from './review-rubrics.mjs';
+import {
   sha256Artifact,
   validateCompletionProof,
   validateHandoffV2Contract,
@@ -238,6 +242,7 @@ export function clarifyStageResultProjection(root, changeId) {
 
 export function completionChainForBehavior(root, changeId, behavior, requiredArtifacts) {
   const label = behavior === 'design.produce' ? 'architecture' : 'test-design';
+  const expectedReviewBehavior = designReviewBehaviorFor(behavior);
   const chain = {
     stageResult: null,
     reviewResult: null,
@@ -316,6 +321,14 @@ export function completionChainForBehavior(root, changeId, behavior, requiredArt
     chain.problems.push(...reviewProblems, `${checkCandidate.runId}: ${label} ReviewResult is missing`);
     return chain;
   }
+  if (check.input.behavior !== expectedReviewBehavior) {
+    reviewProblems.push(`${checkCandidate.runId}: ${label} check behavior must be ${expectedReviewBehavior}`);
+  }
+  reviewProblems.push(...canonicalReviewRubricProblems({
+    stage: 'design',
+    behavior: expectedReviewBehavior,
+    rubricIds: check.input.rubricIds,
+  }).map((problem) => `${checkCandidate.runId}: ${problem}`));
   reviewProblems.push(...freshInputDigests(root, check.input).map((problem) => `${checkCandidate.runId}: ${problem}`));
   if (!check.result) reviewProblems.push(`${checkCandidate.runId}: ${label} ReviewResult is missing`);
   if (check.result) {
@@ -368,7 +381,7 @@ export function completionChainForBehavior(root, changeId, behavior, requiredArt
 function designCompletionCandidateFor(root, changeId) {
   const state = {
     selfCheck: layer(), review: layer(), tecpc: layer(), proof: layer(),
-    candidateProof: null, problems: [], chains: {},
+    candidateProof: null, architectureProof: null, problems: [], chains: {},
   };
   const fail = (key, refs, problems) => {
     state[key] = layer(layerStatus(problems), refs, problems);
@@ -389,6 +402,19 @@ function designCompletionCandidateFor(root, changeId) {
       architecture.problems,
     );
   }
+
+  let architectureProof;
+  try {
+    architectureProof = readDesignArchitectureProof(root, changeId);
+    const canonical = buildDesignArchitectureProof(root, architecture.stageResult, architecture.reviewResult);
+    if (!sameDesignArchitectureProofBinding(architectureProof, canonical)) {
+      throw new Error('EH-DESIGN-PROOF-001: architecture proof does not exactly bind the canonical architecture chain');
+    }
+    state.architectureProof = architectureProof;
+  } catch (error) {
+    return fail('proof', [architecture.executionRef, architecture.reviewRef].filter(Boolean), [error.message]);
+  }
+
   const testDesign = completionChainForBehavior(
     root,
     changeId,
@@ -402,17 +428,6 @@ function designCompletionCandidateFor(root, changeId) {
       [testDesign.executionRef, testDesign.reviewRef].filter(Boolean),
       testDesign.problems,
     );
-  }
-
-  let architectureProof;
-  try {
-    architectureProof = readDesignArchitectureProof(root, changeId);
-    const canonical = buildDesignArchitectureProof(root, architecture.stageResult, architecture.reviewResult);
-    if (!sameDesignArchitectureProofBinding(architectureProof, canonical)) {
-      throw new Error('EH-DESIGN-PROOF-001: architecture proof does not exactly bind the canonical architecture chain');
-    }
-  } catch (error) {
-    return fail('proof', [architecture.executionRef, architecture.reviewRef].filter(Boolean), [error.message]);
   }
 
   try {
@@ -439,6 +454,31 @@ function designCompletionCandidateFor(root, changeId) {
     testDesign.reviewRef,
   ].filter(Boolean));
   return state;
+}
+
+export function buildDesignReadiness(root, changeId) {
+  const completion = designCompletionCandidateFor(root, changeId);
+  const architecture = completion.chains.architecture;
+  const testDesign = completion.chains.testDesign;
+  let nextAction;
+  if (!architecture?.stageResult) nextAction = 'design.produce';
+  else if (!architecture.reviewResult) nextAction = 'design.review';
+  else if (!completion.architectureProof) nextAction = 'design.seal-architecture';
+  else if (!testDesign?.stageResult) nextAction = 'design.test-cases';
+  else if (!testDesign.reviewResult) nextAction = 'design.test-cases.review';
+  else if (!completion.candidateProof) nextAction = 'design.test-cases';
+  else nextAction = 'design.transition';
+
+  const transitionReady = nextAction === 'design.transition';
+  const problems = Object.freeze([...(completion.problems || [])]);
+  return Object.freeze({
+    status: transitionReady ? 'ready' : 'blocked',
+    route: nextAction,
+    nextAction,
+    transitionReady,
+    problems,
+    recovery: transitionReady ? null : Object.freeze({ action: nextAction, problems }),
+  });
 }
 
 function sameProofBinding(proof, candidate) {

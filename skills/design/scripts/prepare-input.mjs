@@ -34,7 +34,7 @@ function assertCanonicalInputs(handoff, requirementsRef, classificationRef) {
   }
 }
 
-const [markerInput] = process.argv.slice(2);
+const markerInput = process.argv.slice(2).join(' ');
 if (!markerInput) {
   console.error('Usage: node skills/design/scripts/prepare-input.mjs HANDOFF_INPUT=<canonical-input.json-path>');
   process.exit(2);

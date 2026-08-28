@@ -218,6 +218,8 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-HANDOFF-V2-029` | Handoff v2 合同字段、角色关联或引用摘要不合法 | 重新创建符合 `harness/schemas/handoff-v2.schema.json` 的 handoff；check run 必须绑定不同的 executor runId，并刷新已变更的 input digest |
 | `EH-HANDOFF-V2-030` | 待持久化的 StageResult 或 ReviewResult 与 Handoff v2 不匹配 | 修正 result 的 runId、stage、agent/skill、parentRunId、artifact digest 与 schema；review 前先持久化对应 executor result |
 | `EH-HANDOFF-V2-031` | 尝试覆盖已持久化的 result evidence | 结果 evidence 不可覆盖；创建新的 execute/check run 并持久化新的 result |
+| `EH-HANDOFF-V2-032` | Design check behavior 与其 parent execute behavior 不匹配 | architecture parent 只能创建 `design.review`；test-design parent 只能创建 `design.test-cases.review` |
+| `EH-HANDOFF-V2-033` | Design check 没有使用对应 behavior 的 canonical rubric family | architecture review 使用 `design`，test-design review 使用 `test-design`，并按 canonical 顺序追加适用 risk rubrics |
 | `EH-HANDOFF-AUTH-032` | subagent 尝试自行创建 reviewer check handoff | check run 只能由 Main/controller 创建；worker 返回 StageResult 后由 controller 派独立 reviewer |
 | `EH-HANDOFF-AUTH-033` | 持久化 result 的 caller 未绑定到 exact run/role/session | 使用 handoff 派发的同一 agent 与 session 持久化结果；不要复用其他 run 的身份或在 worker 结束后补写 |
 | `EH-V5-COMPAT-001` | v5 behavior-checks.json 不存在 | v0.5 使用 harness/policy.json；v5 handoff 需通过 runtime/compat/v5/ 适配 |

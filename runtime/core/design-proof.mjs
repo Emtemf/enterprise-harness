@@ -14,6 +14,7 @@ import {
   validateStageResult,
   validateTecpc,
 } from '../lib/result-contract.mjs';
+import { canonicalReviewRubricProblems } from '../lib/review-rubrics.mjs';
 
 const RUN_ID = /^run_[0-9a-f-]{36}$/u;
 const DIGEST = /^[a-f0-9]{64}$/u;
@@ -150,6 +151,11 @@ export function buildDesignArchitectureProof(root, stageResult, reviewResult) {
   const problems = [
     ...validateStageResult(root, stageResult),
     ...validateReviewResult(root, reviewResult, { stageResult }),
+    ...canonicalReviewRubricProblems({
+      stage: 'design',
+      behavior: 'design.review',
+      rubricIds: reviewResult?.rubricIds,
+    }),
   ];
   if (stageResult?.stage !== 'design') problems.push('architecture StageResult stage must be design');
   if (stageResult?.producer?.agentType !== 'enterprise-harness:artifact-worker'
@@ -232,6 +238,11 @@ export function buildCompoundDesignProof(root, architectureProof, testDesignResu
     ...validateDesignArchitectureProof(root, architectureProof),
     ...validateStageResult(root, testDesignResult),
     ...validateReviewResult(root, testDesignReview, { stageResult: testDesignResult }),
+    ...canonicalReviewRubricProblems({
+      stage: 'design',
+      behavior: 'design.test-cases.review',
+      rubricIds: testDesignReview?.rubricIds,
+    }),
   ];
   const changeId = architectureProof?.changeId;
   const designRef = isSafeId(changeId) ? `harness/changes/${changeId}/design.md` : null;

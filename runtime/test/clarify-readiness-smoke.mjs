@@ -81,6 +81,7 @@ try {
   assert.equal(jsonStatus.status, 0, jsonStatus.stderr);
   const projection = JSON.parse(jsonStatus.stdout);
   assert.equal(projection.clarifyReadiness.items.length, 14);
+  assert.equal(Object.hasOwn(projection, 'designReadiness'), false, 'non-Design status shape must remain compatible');
   assert.equal(projection.clarifyReadiness.route, 'research');
   assert.deepEqual(projection.clarifyReadiness.recovery, readiness.recovery);
   assert.deepEqual(projection.clarifyReadiness.ambiguitySummary, readiness.ambiguitySummary);

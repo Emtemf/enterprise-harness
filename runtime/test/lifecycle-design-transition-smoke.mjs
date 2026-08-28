@@ -16,6 +16,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
+const workflow = path.join(sourceRoot, 'runtime', 'workflow.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-lifecycle-design-gate-'));
 const changeId = 'design-transition';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
@@ -52,6 +53,31 @@ function advance() {
   });
 }
 
+function workflowStatus() {
+  return spawnSync(process.execPath, [workflow, 'status', changeId, '--json'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: unboundEnv,
+  });
+}
+
+function assertDesignNextAction(label, expected) {
+  const first = workflowStatus();
+  const second = workflowStatus();
+  assert.equal(first.status, 0, first.stderr || first.stdout);
+  assert.equal(second.status, 0, second.stderr || second.stdout);
+  const projection = JSON.parse(first.stdout);
+  const reread = JSON.parse(second.stdout);
+  assert.ok(projection.designReadiness, `${label}: workflow status must expose Design readiness`);
+  assert.deepEqual(reread.designReadiness, projection.designReadiness, `${label}: re-read must be deterministic`);
+  assert.equal(projection.designReadiness.route, expected, label);
+  assert.equal(projection.designReadiness.nextAction, expected, label);
+  assert.equal(projection.designReadiness.transitionReady, expected === 'design.transition', label);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'design', label);
+  assert.equal(fs.existsSync(path.join(root, designProofRef)), false, `${label}: status must not publish DesignProof`);
+}
+
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
@@ -63,6 +89,8 @@ try {
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
   fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state(), null, 2)}\n`);
+
+  assertDesignNextAction('initial Design state', 'design.produce');
 
   const directArchive = spawnSync(process.execPath, [lifecycle, 'state', changeId, 'archive'], {
     cwd: root,
@@ -110,6 +138,9 @@ try {
     completedAt: '2026-08-14T00:00:00.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, architectureExecute.runId), JSON.stringify(architectureResult));
+  appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'agent-design' });
+
+  assertDesignNextAction('fresh architecture execution', 'design.review');
 
   const architectureCheck = createHandoffV2(root, {
     changeId,
@@ -138,12 +169,15 @@ try {
     reviewedAt: '2026-08-14T00:00:01.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), JSON.stringify(architectureReview));
-  appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'agent-design' });
   appendCompletedHandoffBinding(root, changeId, architectureCheck.input, { agentId: 'agent-design-review' });
+
+  assertDesignNextAction('fresh architecture review', 'design.seal-architecture');
 
   const architectureProof = buildDesignArchitectureProof(root, architectureResult, architectureReview);
   fs.mkdirSync(path.dirname(path.join(root, architectureProofRef)), { recursive: true });
   fs.writeFileSync(path.join(root, architectureProofRef), `${JSON.stringify(architectureProof, null, 2)}\n`);
+
+  assertDesignNextAction('fresh ArchitectureProof', 'design.test-cases');
 
   const architectureOnly = advance();
   assert.equal(architectureOnly.status, 2, architectureOnly.stderr || architectureOnly.stdout);
@@ -182,6 +216,10 @@ try {
     completedAt: '2026-08-14T00:00:02.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, testDesignExecute.runId), JSON.stringify(testDesignResult));
+  appendCompletedHandoffBinding(root, changeId, testDesignExecute.input, { agentId: 'agent-test-design' });
+
+  assertDesignNextAction('fresh test-design execution', 'design.test-cases.review');
+
   const testDesignCheck = createHandoffV2(root, {
     changeId,
     stage: 'design',
@@ -209,8 +247,18 @@ try {
     reviewedAt: '2026-08-14T00:00:03.000Z',
   };
   fs.writeFileSync(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), JSON.stringify(testDesignReview));
-  appendCompletedHandoffBinding(root, changeId, testDesignExecute.input, { agentId: 'agent-test-design' });
   appendCompletedHandoffBinding(root, changeId, testDesignCheck.input, { agentId: 'agent-test-design-review' });
+
+  assertDesignNextAction('fresh architecture and test-design chains', 'design.transition');
+
+  const help = spawnSync(process.execPath, [workflow, '--help'], {
+    cwd: root,
+    encoding: 'utf-8',
+    shell: false,
+    env: unboundEnv,
+  });
+  assert.equal(help.status, 0, help.stderr || help.stdout);
+  assert.match(help.stdout, /designReadiness.*six-step Design next action/iu);
 
   const advanced = advance();
   assert.equal(advanced.status, 0, advanced.stderr || advanced.stdout);

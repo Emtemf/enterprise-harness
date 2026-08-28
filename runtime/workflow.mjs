@@ -364,6 +364,7 @@ if (!action || action === '--help' || action === '-h') {
   console.log('  classify <change-id>');
   console.log('  resume [change-id]');
   console.log('  status [change-id] [--json]');
+  console.log('    --json includes designReadiness.route as the deterministic six-step Design next action');
   console.log('  audit [change-id] [--json]');
   console.log('  decide <change-id> <decision> [reason]');
   console.log('  note <change-id> <clarify-qa|route-decided> <text>');
@@ -438,6 +439,9 @@ switch (action) {
         if (result.clarifyReadiness.recovery) {
           console.log(`recovery: ${result.clarifyReadiness.recovery.code} ${result.clarifyReadiness.recovery.action}`);
         }
+      }
+      if (result.designReadiness) {
+        console.log(`designReadiness: ${result.designReadiness.route}`);
       }
     }
     process.exit(0);

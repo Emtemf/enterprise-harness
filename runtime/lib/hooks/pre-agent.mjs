@@ -58,7 +58,7 @@ export function preAgent({ root, event }) {
       exitCode: 2,
       stderr: formatDiagnostic(
         'EH-HANDOFF-INPUT-001',
-        `Agent prompt must contain HANDOFF_INPUT=<canonical input.json path>${guidance ? ` | ${guidance}` : ''}`,
+        `Agent prompt must equal exactly HANDOFF_INPUT=<canonical input.json path>${guidance ? ` | ${guidance}` : ''}`,
         { changeId },
       ),
     };

@@ -119,6 +119,10 @@ try {
     },
   });
 
+  const pollutedMarker = run(prepare, [markerFor(handoff), 'Produce design.']);
+  assert.notEqual(pollutedMarker.status, 0, 'Design prepare must reject every argument beyond the exact marker');
+  assert.match(pollutedMarker.stderr, /HANDOFF_INPUT marker is required/u);
+
   const prepared = run(prepare, [markerFor(handoff)]);
   assert.equal(prepared.status, 0, prepared.stderr);
   const input = JSON.parse(prepared.stdout);

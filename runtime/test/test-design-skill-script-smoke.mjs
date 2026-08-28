@@ -264,6 +264,10 @@ try {
     inputRefs: [requirementsRef, classification.path, designRef, architectureResultRef, architectureProofRef],
     tecpc: handoffTecpc,
   });
+  const pollutedMarker = run(prepare, [markerFor(handoff), 'Produce test cases.']);
+  assert.notEqual(pollutedMarker.status, 0, 'test-design prepare must accept only the emitted marker argument');
+  assert.match(pollutedMarker.stderr, /HANDOFF_INPUT marker is required/u);
+
   const originalDesign = fs.readFileSync(path.join(root, designRef), 'utf-8');
   fs.appendFileSync(path.join(root, designRef), '\nstale\n');
   const staleDesign = run(prepare, [markerFor(handoff)]);

@@ -67,13 +67,32 @@ try {
     tecpc,
   });
   const marker = path.relative(root, execute.path);
+  const exactPrompt = `HANDOFF_INPUT=${marker}`;
+  for (const [index, pollutedPrompt] of [
+    `Dispatch this worker:\n${exactPrompt}`,
+    `${exactPrompt}\nProduce design.`,
+    `${exactPrompt}\n${exactPrompt}`,
+  ].entries()) {
+    const polluted = hook('pre-agent.mjs', {
+      tool_name: 'Agent',
+      tool_use_id: `tool-v6-polluted-${index}`,
+      session_id: sessionId,
+      tool_input: {
+        subagent_type: 'enterprise-harness:artifact-worker',
+        prompt: pollutedPrompt,
+      },
+    });
+    assert.equal(polluted.status, 2, polluted.stderr || polluted.stdout);
+    assert.match(`${polluted.stdout}\n${polluted.stderr}`, /EH-HANDOFF-INPUT-001/u);
+  }
+
   assert.equal(hook('pre-agent.mjs', {
     tool_name: 'Agent',
     tool_use_id: 'tool-v6-execute',
     session_id: sessionId,
     tool_input: {
       subagent_type: 'enterprise-harness:artifact-worker',
-      prompt: `HANDOFF_INPUT=${marker}\nProduce design.`,
+      prompt: exactPrompt,
     },
   }).status, 0);
   assert.equal(hook('subagent-start.mjs', {

@@ -118,15 +118,26 @@ try {
   appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'architecture-executor' });
   appendCompletedHandoffBinding(root, changeId, architectureCheck.input, { agentId: 'architecture-reviewer' });
 
+  const unsealedArchitectureProblems = validateDesignStageGate(root, changeId).join('\n');
   assert.match(
-    validateDesignStageGate(root, changeId).join('\n'),
+    unsealedArchitectureProblems,
+    /architecture proof is missing/u,
+    'the approved recovery order must seal a valid architecture chain before test design starts',
+  );
+  assert.doesNotMatch(
+    unsealedArchitectureProblems,
     /test-design StageResult is missing/u,
-    'one architecture chain must never complete Design',
+    'the Design gate must not skip ahead to test design before ArchitectureProof exists',
   );
 
   const { buildDesignArchitectureProof, buildCompoundDesignProof } = await import('../core/design-proof.mjs');
   const architectureProof = buildDesignArchitectureProof(root, architectureResult, architectureReview);
   writeJson(path.join(root, architectureProofRef), architectureProof);
+  assert.match(
+    validateDesignStageGate(root, changeId).join('\n'),
+    /test-design StageResult is missing/u,
+    'after ArchitectureProof is sealed, the next gate must be test-design execution',
+  );
 
   const testDesignTecpc = {
     target: 'produce detailed test cases',
@@ -179,6 +190,119 @@ try {
   const compoundProof = buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview);
   writeJson(path.join(root, designProofRef), compoundProof);
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
+
+  function rejectsInvalidCheck(create) {
+    try {
+      const invalid = create();
+      fs.rmSync(path.dirname(invalid.path), { recursive: true, force: true });
+      return false;
+    } catch (error) {
+      assert.match(
+        error.message,
+        /design\.review|design\.test-cases\.review|canonical.*rubric/iu,
+        'invalid Design checks must explain the exact behavior or rubric recovery',
+      );
+      return true;
+    }
+  }
+
+  assert.deepEqual(
+    [
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.test-cases.review',
+        role: 'check',
+        parentRunId: architectureExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [designRef],
+        tecpc: architectureCheck.input.tecpc,
+        rubricIds: ['test-design'],
+      })),
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.review',
+        role: 'check',
+        parentRunId: architectureExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [designRef],
+        tecpc: architectureCheck.input.tecpc,
+        rubricIds: ['test-design'],
+      })),
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.review',
+        role: 'check',
+        parentRunId: testDesignExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [testCasesRef],
+        tecpc: testDesignCheck.input.tecpc,
+        rubricIds: ['design'],
+      })),
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.test-cases.review',
+        role: 'check',
+        parentRunId: testDesignExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [testCasesRef],
+        tecpc: testDesignCheck.input.tecpc,
+        rubricIds: ['design'],
+      })),
+    ],
+    [true, true, true, true],
+    'Design check creation must bind the parent behavior and its canonical rubric family',
+  );
+
+  const swappedArchitectureReview = {
+    ...architectureReview,
+    rubricIds: ['test-design'],
+  };
+  writeJson(architectureCheck.path, {
+    ...architectureCheck.input,
+    behavior: 'design.test-cases.review',
+    rubricIds: ['test-design'],
+  });
+  writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), swappedArchitectureReview);
+  assert.match(
+    validateDesignStageGate(root, changeId).join('\n'),
+    /architecture.*design\.review|design\.review.*architecture|canonical.*rubric/iu,
+    'completion must reject a test-design review masquerading as the architecture check',
+  );
+  writeJson(architectureCheck.path, architectureCheck.input);
+  writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), architectureReview);
+
+  const swappedTestDesignReview = {
+    ...testDesignReview,
+    rubricIds: ['design'],
+  };
+  writeJson(testDesignCheck.path, {
+    ...testDesignCheck.input,
+    behavior: 'design.review',
+    rubricIds: ['design'],
+  });
+  writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), swappedTestDesignReview);
+  assert.match(
+    validateDesignStageGate(root, changeId).join('\n'),
+    /test-design.*design\.test-cases\.review|design\.test-cases\.review.*test-design|canonical.*rubric/iu,
+    'completion must reject an architecture review masquerading as the test-design check',
+  );
+  writeJson(testDesignCheck.path, testDesignCheck.input);
+  writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), testDesignReview);
+
+  assert.throws(
+    () => buildDesignArchitectureProof(root, architectureResult, swappedArchitectureReview),
+    /canonical.*design.*rubric|rubric.*design/iu,
+    'ArchitectureProof construction must independently enforce the design rubric family',
+  );
+  assert.throws(
+    () => buildCompoundDesignProof(root, architectureProof, testDesignResult, swappedTestDesignReview),
+    /canonical.*test-design.*rubric|rubric.*test-design/iu,
+    'compound DesignProof construction must independently enforce the test-design rubric family',
+  );
 
   const expandedArchitectureTecpc = {
     ...architectureExecute.input.tecpc,

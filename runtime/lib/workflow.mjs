@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { auditWorkflow } from './workflow-audit.mjs';
-import { resolveStageCompletionCandidate, validateStageGate } from './stage-results.mjs';
+import {
+  buildDesignReadiness,
+  resolveStageCompletionCandidate,
+  validateStageGate,
+} from './stage-results.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 import { buildClarifyReadiness } from './clarify-readiness.mjs';
 
@@ -365,6 +369,9 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const clarifyReadiness = data?.schemaVersion === 6 && stage === 'clarify'
     ? buildClarifyReadiness(root, changeId)
     : null;
+  const designReadiness = data?.schemaVersion === 6 && stage === 'design'
+    ? buildDesignReadiness(root, changeId)
+    : null;
   return {
     changeId,
     classification,
@@ -387,6 +394,7 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
     validation: data.validation ?? null,
     nextEntry: auditBlocked ? '/harness' : nextEntry,
     ...(clarifyReadiness ? { clarifyReadiness } : {}),
+    ...(designReadiness ? { designReadiness } : {}),
   };
 }
 
