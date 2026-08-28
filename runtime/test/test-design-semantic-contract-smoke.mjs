@@ -80,6 +80,20 @@ assert.equal(assertTraceability(requirements, design, complete).verdict, 'pass')
 
 const legalBusinessAction = complete.replace('提交一次退款请求', '用户提交退款');
 assert.equal(assertArtifactShape(legalBusinessAction, impact).verdict, 'pass', 'business actions must remain legal');
+const legalHttpAction = complete.replace('提交一次退款请求', 'POST /refunds');
+assert.equal(assertArtifactShape(legalHttpAction, impact).verdict, 'pass', 'an explicit HTTP method and path must remain legal');
+const legalNodePrecondition = complete.replace('用户已认证且退款服务可用', 'Node 服务已启动且用户已认证');
+assert.equal(assertArtifactShape(legalNodePrecondition, impact).verdict, 'pass', 'tool-like words outside Actions must remain legal');
+const legalJsonDataFence = complete.replace(
+  '- refund-001 与 refund-timeout 每次运行唯一；用例后删除退款记录并恢复网关故障注入。',
+  ['- 测试数据示例：', '```json', '{"refundId":"refund-001"}', '```', '- 用例后删除退款记录并恢复网关故障注入。'].join('\n'),
+);
+assert.equal(assertArtifactShape(legalJsonDataFence, impact).verdict, 'pass', 'a JSON data code fence must remain legal');
+const concreteStatusObservable = complete.replace(
+  '响应包含非空退款标识且持久化记录与 refund-001 一致',
+  '响应为200且成功',
+);
+assert.equal(assertArtifactShape(concreteStatusObservable, impact).verdict, 'pass', 'a numeric response signal must remain legal');
 const concreteObservable = complete.replace(
   '响应包含非空退款标识且持久化记录与 refund-001 一致',
   '仅创建一条退款记录并返回相同退款标识',
@@ -125,7 +139,7 @@ expectBlock(
   complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', '系统验证成功'),
   'decorated generic observable assertion must block',
 );
-for (const generic of ['接口正常', '页面正确', '流程成功']) {
+for (const generic of ['接口正常', '页面正确', '流程成功', '接口可用']) {
   expectBlock(
     (candidate) => assertArtifactShape(candidate, impact),
     complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', generic),
@@ -167,26 +181,38 @@ expectBlock(
   `${complete}\n## 执行计划\n\n- 由后续阶段执行。`,
   'an eighth top-level heading must block',
 );
-for (const [line, label] of [
-  ['- exact argv：["./mvnw", "test"]', 'exact argv'],
-  ['- 运行 npm test', 'test execution command'],
-  ['- 使用 Playwright 打开浏览器并点击提交按钮', 'browser execution instruction'],
-  ['- node --test', 'node test runner'],
-  ['- ./gradlew test', 'Gradle test runner'],
-  ['- 在 Chrome 中打开页面并点击提交按钮', 'named browser instruction'],
-  ['```text\nrun-all-tests --critical\n```', 'code fence'],
-  ['- $ run-all-tests --critical', 'shell prompt shape'],
-  ['- argv = ["run-all-tests", "--critical"]', 'argv assignment shape'],
-  ['- 调用 WebDriver 执行关键旅程', 'browser driver instruction'],
-  ['- 通过 DevTools MCP 执行页面检查', 'DevTools MCP instruction'],
+for (const [action, label] of [
+  ['make test', 'Make test runner'],
+  ['bazel test //refund:all', 'Bazel test runner'],
+  ['node --test', 'Node test runner'],
+  ['./gradlew test', 'Gradle test runner'],
+  ['运行 npm test', 'test execution command'],
+  ['运行测试', 'Chinese test execution instruction'],
+  ['用户执行 ./run-tests.sh', 'executable script instruction'],
+  ['```bash make test ```', 'shell code fence'],
+  ['```powershell Invoke-Pester ```', 'PowerShell code fence'],
+  ['$ run-all-tests --critical', 'shell prompt shape'],
+  ['argv = ["run-all-tests", "--critical"]', 'argv assignment shape'],
 ]) {
   expectBlock(
     (candidate) => assertArtifactShape(candidate, impact),
-    complete.replace(
-      '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
-      `- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。\n${line}`,
-    ),
-    `${label} must not appear in a test-design candidate`,
+    complete.replace('提交一次退款请求', action),
+    `${label} must not appear in Actions`,
+  );
+}
+
+for (const [steps, label] of [
+  ['使用 Playwright 打开页面并点击提交按钮', 'browser execution instruction'],
+  ['在 Chrome 中打开页面并点击提交按钮', 'named browser instruction'],
+  ['调用 WebDriver 执行关键旅程', 'browser driver instruction'],
+  ['通过 DevTools MCP 执行页面检查', 'DevTools MCP instruction'],
+  ['使用 MCP 执行页面检查', 'MCP tool instruction'],
+  ['make test', 'runner instruction in E2E steps'],
+]) {
+  expectBlock(
+    (candidate) => assertArtifactShape(candidate, impact),
+    complete.replace('输入 refund-001 并提交退款', steps),
+    `${label} must not appear in E2E Steps`,
   );
 }
 

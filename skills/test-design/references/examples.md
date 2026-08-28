@@ -23,5 +23,8 @@
 - `CASE-1`、`TC0` 或重复 `TC1`：ID 不稳定。
 - `Level=system`、`Priority=urgent`、`Status=draft`：枚举不在合同内。
 - `Observable assertions=验证成功`：没有可判定的值、状态、错误或副作用。
+- `Observable assertions=接口可用`：没有数字、literal、状态码、字段值或副作用信号；`响应为200且成功` 则可判定。
+- `Actions=make test` 或 `bazel test //...`：Actions 不是中文业务动作或 HTTP method+path，而是在选择执行命令。
+- 前置条件 `Node 服务已启动` 与数据章节的 JSON code fence 合法；只有 Actions/E2E Steps 中的执行工具选择受执行边界约束。
 - `N/A` 且理由为空：无法审计不适用结论。
 - E2E 标记 applicable 但没有 journey：用户路径覆盖缺失。

@@ -69,12 +69,39 @@ export function isPlaceholder(value, { allowDash = false } = {}) {
     || /\{\{[^}]+\}\}|\[\[[^\]]+\]\]/u.test(text);
 }
 
-function genericAssertion(value) {
-  const normalized = value.trim().replace(/[。.!！\s]+$/gu, '');
-  const genericOutcome = /(?:正常|正确|成功|通过|无误|符合预期)$/u.test(normalized);
-  const concreteObservable = /(?:[0-9]|一条|一次|相同|唯一|仅|只|等于|包含|不存在|未创建|状态[为=]|错误码|记录数|响应[为是])/u.test(normalized);
-  return (genericOutcome && (normalized.length <= 12 || !concreteObservable))
-    || /^(?:works?|success|pass(?:es|ed)?)$/iu.test(normalized);
+function hasObservableEvidence(value) {
+  const text = value.trim();
+  return /[0-9]/u.test(text)
+    || /["'`][^"'`\r\n]+["'`]/u.test(text)
+    || /(?:数量|条数|计数|次数|至少|至多|恰好|仅|只|唯一|一条|相同|不同|一致|差异)/u.test(text)
+    || /(?:包含|不包含|存在|不存在|为空|非空)/u.test(text)
+    || /(?:状态码|HTTP\s*状态|错误码|状态\s*(?:为|=|变为|保持|仍为)|错误\s*(?:为|=)|异常\s*(?:为|=))/iu.test(text)
+    || /(?:创建|新增|更新|修改|删除|移除|拒绝|阻止|未创建|未更新|未删除)/u.test(text)
+    || /(?:显示|可见|不可见|隐藏|消失)/u.test(text)
+    || /(?:(?:日志|事件|告警|埋点).*(?:出现|写入|记录|包含|发出|触发)|(?:指标).*(?:增加|减少|上升|下降|等于|为|达到))/u.test(text);
+}
+
+function hasToolExecution(value) {
+  const text = value.trim();
+  const shellFence = /(?:```|~~~)\s*(?:sh|shell|bash|zsh|fish|powershell|pwsh|cmd|bat)\b/iu;
+  const shellOrArgvShape = /(?:^|[\s：:])(?:[$>]\s+\S|(?:exact\s+)?argv\s*[:=：]|(?:shell|command)\s*[:=：])/iu;
+  const runnerCommand = /(?:^|[\s"'`[(=：])(?:\.\/)?(?:make|bazel|node|npm|npx|pnpm|yarn|bun|deno|pytest|python|mvn|mvnw|gradle|gradlew|go|cargo|dotnet|jest|vitest|mocha)(?:\.exe)?(?=$|[\s"'`)\],;])/iu;
+  const executablePath = /(?:^|[\s"'`[(=：])(?:\.{1,2}\/[^\s"'`|]+|[^\s"'`|]+\.(?:sh|bash|zsh|fish|exe|bat|cmd|ps1))(?=$|[\s"'`)\],;])/iu;
+  const testExecutionInstruction = /(?:运行|执行|启动|调用)\s*(?:测试|test|verify|构建|build|runner|脚本|命令)/iu;
+  const namedDriver = /(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|\bCDP\b|\bMCP\b|(?:browser|浏览器)\s*MCP|MCP\s*(?:browser|浏览器))/iu;
+  return shellFence.test(text)
+    || shellOrArgvShape.test(text)
+    || runnerCommand.test(text)
+    || executablePath.test(text)
+    || testExecutionInstruction.test(text)
+    || namedDriver.test(text);
+}
+
+function isBusinessAction(value) {
+  const text = value.trim();
+  const explicitHttpRequest = /^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[^\s|]+$/u;
+  return explicitHttpRequest.test(text)
+    || (/\p{Script=Han}/u.test(text) && !hasToolExecution(text));
 }
 
 function duplicateIds(rows, idIndex, pattern, label, problems) {
@@ -148,7 +175,12 @@ function checkCases(testCasesText, problems) {
     }
     if (!LEVELS.has(level)) problems.push(`test case ${id || '<empty>'} level is invalid: ${level}`);
     if (!PRIORITIES.has(priority)) problems.push(`test case ${id || '<empty>'} priority is invalid: ${priority}`);
-    if (genericAssertion(observable)) problems.push(`test case ${id || '<empty>'} observable assertion is generic`);
+    if (!isPlaceholder(actions) && !isBusinessAction(actions)) {
+      problems.push(`test case ${id || '<empty>'} Actions must be a Chinese business action or an explicit HTTP method and path, without execution tooling`);
+    }
+    if (!isPlaceholder(observable) && !hasObservableEvidence(observable)) {
+      problems.push(`test case ${id || '<empty>'} observable assertion lacks decidable evidence`);
+    }
     if (status !== 'accepted') problems.push(`test case ${id || '<empty>'} status must be accepted`);
   }
 }
@@ -163,7 +195,12 @@ function checkJourneys(testCasesText, e2eApplicability, problems) {
       continue;
     }
     if (cells.slice(1, 5).some(isPlaceholder)) problems.push(`E2E journey ${cells[0]} contains an empty or placeholder field`);
-    if (genericAssertion(cells[4])) problems.push(`E2E journey ${cells[0]} observable outcome is generic`);
+    if (!isPlaceholder(cells[3]) && hasToolExecution(cells[3])) {
+      problems.push(`E2E journey ${cells[0]} Steps must not select or direct execution tooling`);
+    }
+    if (!isPlaceholder(cells[4]) && !hasObservableEvidence(cells[4])) {
+      problems.push(`E2E journey ${cells[0]} observable outcome lacks decidable evidence`);
+    }
     if (cells[5] !== 'accepted') problems.push(`E2E journey ${cells[0]} status must be accepted`);
   }
 }
@@ -176,30 +213,6 @@ function substantiveSection(testCasesText, heading, problems) {
   }
   if (lines.some((line) => /(?:<[^>]+>|\b(?:TBD|TODO)\b|待定|按需|\{\{[^}]+\}\})/iu.test(line))) {
     problems.push(`${heading} contains a placeholder`);
-  }
-}
-
-function checkBehaviorBoundary(testCasesText, problems) {
-  const lines = testCasesText.split(/\r?\n/u);
-  const executableToken = /(?:^|[\s"'`[(=：])(?:\.\/)?(?:node|npm|npx|pnpm|yarn|bun|deno|pytest|python|mvn|mvnw|gradle|gradlew|go|cargo|dotnet|jest|vitest|mocha)(?:\.exe)?(?=$|[\s"'`)\],;])/iu;
-  const executableFile = /(?:^|[\s"'`[(=：])(?:\.{1,2}\/[^\s"'`|]+|[^\s"'`|]+\.(?:sh|bash|zsh|fish|exe|bat|cmd|ps1))(?=$|[\s"'`)\],;])/iu;
-  const namedBrowserTool = /(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|\bCDP\b|(?:browser|浏览器)\s*MCP|MCP\s*(?:browser|浏览器))/iu;
-
-  if (lines.some((line) => /^\s*(?:```|~~~)/u.test(line))) {
-    problems.push('test-design candidate must not contain a code fence');
-  }
-  if (lines.some((line) => {
-    const content = line.replace(/^\s*[-*]\s*/u, '').trim();
-    return /^(?:[$>]\s+\S|(?:exact\s+)?argv\s*[:=]|(?:shell|command)\s*[:=])/iu.test(content);
-  })) {
-    problems.push('test-design candidate must not contain shell or argv shapes');
-  }
-  if (executableToken.test(testCasesText) || executableFile.test(testCasesText)) {
-    problems.push('test-design candidate must not name executable test tooling');
-  }
-  if (namedBrowserTool.test(testCasesText)
-      || /(?:使用|调用|启动|通过)\s*(?:浏览器|browser)[^\n]*(?:打开|点击|输入|导航|执行|测试)/iu.test(testCasesText)) {
-    problems.push('test-design candidate must not select or direct browser tooling');
   }
 }
 
@@ -220,8 +233,6 @@ export function assertArtifactShape(testCasesText, impact = {}, testCasesPath = 
     if (matches[0] && matches[0].index < lastIndex) problems.push(`${heading} is out of order`);
     if (matches[0]) lastIndex = matches[0].index;
   }
-  checkBehaviorBoundary(testCasesText, problems);
-
   const e2eApplicability = checkScope(testCasesText, impact, problems);
   checkCoverageMatrix(testCasesText, problems);
   checkCases(testCasesText, problems);
