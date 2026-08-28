@@ -37,6 +37,7 @@ const commands = {
   sessions: ['sessions.mjs'],
   'migrate-evidence-policy': ['migrate-evidence-policy.mjs'],
   clarify: ['clarify.mjs'],
+  design: ['design.mjs'],
 };
 
 if (!subcommand || subcommand === '--help' || subcommand === '-h') {
@@ -58,6 +59,7 @@ const targetScript = path.join(runtimeDir, commands[subcommand][0]);
 const child = spawnSync(process.execPath, [targetScript, ...rest], {
   cwd: targetCwd,
   encoding: 'utf-8',
+  shell: false,
 });
 process.stdout.write(child.stdout || '');
 process.stderr.write(child.stderr || '');

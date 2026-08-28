@@ -276,6 +276,26 @@ try {
           && sameState(clarifyStateBefore, fileState(clarifyStatePath));
       },
     },
+    {
+      name: 'design --help',
+      result: runNode(scripts.cli, ['design', '--help'], {}, clarifyFixtureDir),
+      assert() {
+        return this.result.status === 0
+          && firstLine(this.result.stdout).includes('Enterprise Harness Design')
+          && this.result.stdout.includes('design seal-architecture <change-id>')
+          && sameState(clarifyStateBefore, fileState(clarifyStatePath));
+      },
+    },
+    {
+      name: 'design -h',
+      result: runNode(scripts.cli, ['design', '-h'], {}, clarifyFixtureDir),
+      assert() {
+        return this.result.status === 0
+          && firstLine(this.result.stdout).includes('Enterprise Harness Design')
+          && this.result.stdout.includes('design seal-architecture <change-id>')
+          && sameState(clarifyStateBefore, fileState(clarifyStatePath));
+      },
+    },
   ];
 
   const failures = checks.filter((check) => !check.assert()).map((check) => {

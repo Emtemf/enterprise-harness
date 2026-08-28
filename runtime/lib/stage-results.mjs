@@ -8,6 +8,12 @@ import {
 import { validateTaskExecutionReceipt } from './task-execution-receipt.mjs';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
+import {
+  buildCompoundDesignProof,
+  buildDesignArchitectureProof,
+  readDesignArchitectureProof,
+  sameDesignArchitectureProofBinding,
+} from '../core/design-proof.mjs';
 import { stageContractArtifactPaths } from './stage-contract.mjs';
 import { buildClarifyArtifactReadiness } from './clarify-readiness.mjs';
 import {
@@ -21,7 +27,10 @@ import {
 
 const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
   clarify: (changeId) => stageContractArtifactPaths(changeId, 'clarify'),
-  design: (changeId) => [`harness/changes/${changeId}/design.md`],
+  design: (changeId) => [
+    `harness/changes/${changeId}/design.md`,
+    `harness/changes/${changeId}/test-cases.md`,
+  ],
   plan: (changeId) => [`harness/changes/${changeId}/tasks.md`],
   implement: () => [],
   verify: (changeId) => [`harness/changes/${changeId}/validation.md`],
@@ -85,6 +94,25 @@ function freshestStageExecution(root, changeId, stage) {
     const agentType = normalizeAgentType(input.agent?.type);
     if (input.stage !== stage || input.role !== 'execute'
       || ['enterprise-harness:code-explore', 'enterprise-harness:doc-research'].includes(agentType)) continue;
+    const createdAt = Date.parse(input.createdAt);
+    if (!Number.isFinite(createdAt)) continue;
+    if (!freshest || createdAt > freshest.createdAt || (createdAt === freshest.createdAt && runId > freshest.runId)) {
+      freshest = { runId, input, createdAt };
+    }
+  }
+  return freshest;
+}
+
+function freshestExecutionForBehavior(root, changeId, stage, behavior) {
+  let freshest = null;
+  for (const runId of runIds(root, changeId)) {
+    let input;
+    try {
+      input = loadHandoffV2(root, changeId, runId);
+    } catch {
+      continue;
+    }
+    if (input.stage !== stage || input.role !== 'execute' || input.behavior !== behavior) continue;
     const createdAt = Date.parse(input.createdAt);
     if (!Number.isFinite(createdAt)) continue;
     if (!freshest || createdAt > freshest.createdAt || (createdAt === freshest.createdAt && runId > freshest.runId)) {
@@ -200,11 +228,211 @@ export function clarifyStageResultProjection(root, changeId) {
   });
 }
 
+export function completionChainForBehavior(root, changeId, behavior, requiredArtifacts) {
+  const label = behavior === 'design.produce' ? 'architecture' : 'test-design';
+  const chain = {
+    stageResult: null,
+    reviewResult: null,
+    producerBindings: [],
+    reviewerBindings: [],
+    problems: [],
+    executionRef: null,
+    reviewRef: null,
+    executeInput: null,
+    reviewInput: null,
+  };
+  const executionCandidate = freshestExecutionForBehavior(root, changeId, 'design', behavior);
+  if (!executionCandidate) {
+    chain.problems.push(`${label} StageResult is missing`);
+    return chain;
+  }
+  const executionProblems = [];
+  const execution = loadRun(root, changeId, executionCandidate.runId, 'execute', executionProblems);
+  chain.executeInput = execution?.input || null;
+  chain.executionRef = execution?.resultPath
+    ? path.relative(root, execution.resultPath).split(path.sep).join('/')
+    : null;
+  if (!execution?.input || execution.input.stage !== 'design' || execution.input.behavior !== behavior) {
+    chain.problems.push(...executionProblems, `${label} StageResult is missing`);
+    return chain;
+  }
+  executionProblems.push(...freshInputDigests(root, execution.input).map((problem) => `${executionCandidate.runId}: ${problem}`));
+  if (!execution.result) executionProblems.push(`${executionCandidate.runId}: ${label} StageResult is missing`);
+  if (execution.result) {
+    executionProblems.push(...validateStageResult(root, execution.result).map((problem) => `${executionCandidate.runId}: ${problem}`));
+    if (!matchingProducer(execution.result, execution.input)) {
+      executionProblems.push(`${executionCandidate.runId}: StageResult producer does not match handoff agent`);
+    }
+    if (execution.result.runId !== execution.input.runId
+        || execution.result.changeId !== changeId
+        || execution.result.stage !== 'design') {
+      executionProblems.push(`${executionCandidate.runId}: StageResult does not bind the design handoff`);
+    }
+    if (!sameDigestMap(execution.result.inputDigests, execution.input.inputDigests)) {
+      executionProblems.push(`${executionCandidate.runId}: StageResult input digests do not match the execute handoff`);
+    }
+    const artifacts = Array.isArray(execution.result.artifacts) ? execution.result.artifacts : [];
+    const missing = requiredArtifacts.filter((artifactPath) => !artifacts.some((artifact) => artifact.path === artifactPath));
+    if (missing.length > 0) executionProblems.push(`${executionCandidate.runId}: StageResult does not bind ${missing.join(', ')}`);
+    if (execution.result.status !== 'pass' || execution.result.selfCheck?.verdict !== 'pass') {
+      executionProblems.push(`${executionCandidate.runId}: StageResult self-check did not pass`);
+    }
+  }
+  chain.producerBindings = trustedHandoffAgentBindings(root, changeId, execution.input);
+  if (chain.producerBindings.length === 0) {
+    executionProblems.push(`${executionCandidate.runId}: execute handoff has no trusted completed agent binding`);
+  }
+  if (executionProblems.length > 0) {
+    chain.problems.push(...executionProblems);
+    return chain;
+  }
+  chain.stageResult = execution.result;
+
+  const checkCandidate = freshestRunForStage(root, changeId, 'design', 'check', {
+    parentRunId: execution.input.runId,
+  });
+  if (!checkCandidate) {
+    chain.problems.push(`${executionCandidate.runId}: ${label} ReviewResult is missing`);
+    return chain;
+  }
+  const reviewProblems = [];
+  const check = loadRun(root, changeId, checkCandidate.runId, 'check', reviewProblems);
+  chain.reviewInput = check?.input || null;
+  chain.reviewRef = check?.resultPath
+    ? path.relative(root, check.resultPath).split(path.sep).join('/')
+    : null;
+  if (!check?.input || check.input.stage !== 'design' || check.input.parentRunId !== execution.input.runId) {
+    chain.problems.push(...reviewProblems, `${checkCandidate.runId}: ${label} ReviewResult is missing`);
+    return chain;
+  }
+  reviewProblems.push(...freshInputDigests(root, check.input).map((problem) => `${checkCandidate.runId}: ${problem}`));
+  if (!check.result) reviewProblems.push(`${checkCandidate.runId}: ${label} ReviewResult is missing`);
+  if (check.result) {
+    reviewProblems.push(...validateReviewResult(root, check.result, { stageResult: execution.result })
+      .map((problem) => `${checkCandidate.runId}: ${problem}`));
+    if (check.result.runId !== check.input.runId) {
+      reviewProblems.push(`${checkCandidate.runId}: ReviewResult does not bind the check handoff run ID`);
+    }
+    if (JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)) {
+      reviewProblems.push(`${checkCandidate.runId}: ReviewResult rubrics do not match the check handoff`);
+    }
+    if (!sameArtifacts(check.result.reviewedArtifacts, execution.result.artifacts)) {
+      reviewProblems.push(`${checkCandidate.runId}: ReviewResult artifacts do not match the StageResult`);
+    }
+    if (!matchingReviewer(check.result, check.input)) {
+      reviewProblems.push(`${checkCandidate.runId}: ReviewResult reviewer does not match handoff agent`);
+    }
+    if (check.result.verdict !== 'pass') reviewProblems.push(`${checkCandidate.runId}: ReviewResult did not pass`);
+  }
+  chain.reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
+  if (chain.reviewerBindings.length === 0) {
+    reviewProblems.push(`${checkCandidate.runId}: check handoff has no trusted completed reviewer agent binding`);
+  }
+  const producerAgentIds = new Set(chain.producerBindings.map(({ agentId }) => agentId));
+  if (chain.reviewerBindings.length > 0
+      && !chain.reviewerBindings.some(({ agentId }) => !producerAgentIds.has(agentId))) {
+    reviewProblems.push(`${checkCandidate.runId}: execute and check handoffs must use distinct agent identities`);
+  }
+  const tecpcProblems = [
+    ...validateTecpc(execution.result?.tecpc),
+    ...validateTecpc(check.result?.tecpc),
+  ];
+  if (execution.result?.tecpc?.correction !== null
+      || check.result?.tecpc?.correction !== null
+      || check.result?.correction !== null) {
+    tecpcProblems.push('TECPC correction remains pending');
+  }
+  reviewProblems.push(...tecpcProblems);
+  if (reviewProblems.length > 0) {
+    chain.problems.push(...reviewProblems);
+    return chain;
+  }
+  chain.reviewResult = check.result;
+  return chain;
+}
+
+function designCompletionCandidateFor(root, changeId) {
+  const state = {
+    selfCheck: layer(), review: layer(), tecpc: layer(), proof: layer(),
+    candidateProof: null, problems: [], chains: {},
+  };
+  const fail = (key, refs, problems) => {
+    state[key] = layer(layerStatus(problems), refs, problems);
+    state.problems = [...problems];
+    return state;
+  };
+  const architecture = completionChainForBehavior(
+    root,
+    changeId,
+    'design.produce',
+    [`harness/changes/${changeId}/design.md`],
+  );
+  state.chains.architecture = architecture;
+  if (architecture.problems.length > 0) {
+    return fail(
+      architecture.stageResult ? 'review' : 'selfCheck',
+      [architecture.executionRef, architecture.reviewRef].filter(Boolean),
+      architecture.problems,
+    );
+  }
+  const testDesign = completionChainForBehavior(
+    root,
+    changeId,
+    'design.test-cases',
+    [`harness/changes/${changeId}/test-cases.md`],
+  );
+  state.chains.testDesign = testDesign;
+  if (testDesign.problems.length > 0) {
+    return fail(
+      testDesign.stageResult ? 'review' : 'selfCheck',
+      [testDesign.executionRef, testDesign.reviewRef].filter(Boolean),
+      testDesign.problems,
+    );
+  }
+
+  let architectureProof;
+  try {
+    architectureProof = readDesignArchitectureProof(root, changeId);
+    const canonical = buildDesignArchitectureProof(root, architecture.stageResult, architecture.reviewResult);
+    if (!sameDesignArchitectureProofBinding(architectureProof, canonical)) {
+      throw new Error('EH-DESIGN-PROOF-001: architecture proof does not exactly bind the canonical architecture chain');
+    }
+  } catch (error) {
+    return fail('proof', [architecture.executionRef, architecture.reviewRef].filter(Boolean), [error.message]);
+  }
+
+  try {
+    state.candidateProof = buildCompoundDesignProof(
+      root,
+      architectureProof,
+      testDesign.stageResult,
+      testDesign.reviewResult,
+    );
+  } catch (error) {
+    return fail('proof', [
+      architecture.executionRef,
+      architecture.reviewRef,
+      testDesign.executionRef,
+      testDesign.reviewRef,
+    ].filter(Boolean), [error.message]);
+  }
+  state.selfCheck = layer('pass', [architecture.executionRef, testDesign.executionRef].filter(Boolean));
+  state.review = layer('pass', [architecture.reviewRef, testDesign.reviewRef].filter(Boolean));
+  state.tecpc = layer('pass', [
+    architecture.executionRef,
+    architecture.reviewRef,
+    testDesign.executionRef,
+    testDesign.reviewRef,
+  ].filter(Boolean));
+  return state;
+}
+
 function sameProofBinding(proof, candidate) {
   return proof?.changeId === candidate?.changeId
     && proof?.stage === candidate?.stage
     && proof?.executionRunId === candidate?.executionRunId
     && proof?.reviewRunId === candidate?.reviewRunId
+    && JSON.stringify(proof?.stageProofs || []) === JSON.stringify(candidate?.stageProofs || [])
     && sameArtifacts(proof?.artifacts, candidate?.artifacts)
     && sameArtifacts(proof?.reviewedArtifacts, candidate?.reviewedArtifacts)
     && JSON.stringify(proof?.decisionSnapshotRef || null) === JSON.stringify(candidate?.decisionSnapshotRef || null)
@@ -224,6 +452,7 @@ function stageCompletionCandidateFor(root, changeId, stage, {
   if (stage === 'implement') {
     throw new Error('stageCompletionFor only supports singular non-implement stage completion');
   }
+  if (stage === 'design') return designCompletionCandidateFor(root, changeId);
   const requiredArtifacts = [...new Set([
     ...requiredStageResultArtifacts(changeId, stage),
     ...(requiredArtifactPath ? [requiredArtifactPath] : []),

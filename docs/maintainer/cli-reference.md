@@ -34,6 +34,7 @@ Commands:
 - sessions
 - migrate-evidence-policy
 - clarify
+- design
 ```
 
 Run `enterprise-harness <command> --help` for command-specific arguments.

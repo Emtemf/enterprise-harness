@@ -15,7 +15,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-reviewer-authorization-'));
 const changeId = 'reviewer-authorization';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
-const designRef = `harness/changes/${changeId}/design.md`;
+const tasksRef = `harness/changes/${changeId}/tasks.md`;
 
 function appendCompletedBinding(input, agentId, observedAgentType, sessionId = 'session-review') {
   const toolUseId = `tool-${input.runId}-${agentId}`;
@@ -68,35 +68,35 @@ try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(path.dirname(path.join(root, requirementsRef)), { recursive: true });
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Independent review\n');
-  fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
+  fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n');
 
   const tecpc = {
-    target: 'authorize independent design review',
-    evidence: [designRef],
+    target: 'authorize independent plan review',
+    evidence: [tasksRef],
     context: [requirementsRef],
-    path: designRef,
+    path: tasksRef,
     correction: null,
   };
   const execute = createHandoffV2(root, {
     changeId,
-    stage: 'design',
-    behavior: 'design',
-    agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
+    stage: 'plan',
+    behavior: 'plan.produce',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'plan' },
     inputRefs: [requirementsRef],
     tecpc,
   });
-  const artifacts = [{ path: designRef, digest: sha256Artifact(root, designRef) }];
+  const artifacts = [{ path: tasksRef, digest: sha256Artifact(root, tasksRef) }];
   const stageResult = {
     resultVersion: 1,
     type: 'stage-result',
     changeId,
-    stage: 'design',
+    stage: 'plan',
     runId: execute.runId,
-    producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
+    producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'plan' },
     inputDigests: { ...execute.input.inputDigests },
     artifacts,
-    assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
+    assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [tasksRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [tasksRef] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -106,19 +106,19 @@ try {
 
   const check = createHandoffV2(root, {
     changeId,
-    stage: 'design',
-    behavior: 'review',
+    stage: 'plan',
+    behavior: 'plan.review',
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [designRef],
+    inputRefs: [tasksRef],
     tecpc,
   });
   const review = {
     resultVersion: 1,
     type: 'review-result',
     changeId,
-    stage: 'design',
+    stage: 'plan',
     runId: check.runId,
     parentRunId: execute.runId,
     reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
@@ -132,17 +132,17 @@ try {
   };
   fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
 
-  const forged = validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef });
+  const forged = validateStageGate(root, changeId, 'plan', { requiredArtifactPath: tasksRef });
   assert.match(forged.join('; '), /trusted.*agent binding|authorized.*reviewer/u);
 
   appendCompletedBinding(execute.input, 'agent-shared', 'enterprise-harness:artifact-worker');
   appendCompletedBinding(check.input, 'agent-shared', 'enterprise-harness:reviewer');
-  const selfApproved = validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef });
+  const selfApproved = validateStageGate(root, changeId, 'plan', { requiredArtifactPath: tasksRef });
   assert.match(selfApproved.join('; '), /distinct.*agent|same agent/u);
 
   appendCompletedBinding(check.input, 'agent-reviewer', 'enterprise-harness:reviewer');
   assert.match(
-    validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef }).join('; '),
+    validateStageGate(root, changeId, 'plan', { requiredArtifactPath: tasksRef }).join('; '),
     /CompletionProof is missing/u,
     'independent review alone must not satisfy a read-only stage gate',
   );
@@ -151,11 +151,11 @@ try {
     reviewResult: review,
     createdAt: '2026-08-16T00:00:02.000Z',
   });
-  const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'design.json');
+  const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'plan.json');
   fs.mkdirSync(path.dirname(proofPath), { recursive: true });
   fs.writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
   assert.deepEqual(
-    validateStageGate(root, changeId, 'design', { requiredArtifactPath: designRef }),
+    validateStageGate(root, changeId, 'plan', { requiredArtifactPath: tasksRef }),
     [],
   );
 

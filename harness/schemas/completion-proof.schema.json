@@ -11,6 +11,21 @@
     "stage": { "enum": ["clarify", "design", "plan", "implement", "verify", "archive"] },
     "executionRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
     "reviewRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+    "stageProofs": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/architectureStageProof" },
+          { "$ref": "#/$defs/testDesignStageProof" }
+        ]
+      },
+      "allOf": [
+        { "contains": { "$ref": "#/$defs/architectureStageProof" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/testDesignStageProof" }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
     "taskProofs": {
       "type": "array",
       "minItems": 1,
@@ -55,8 +70,39 @@
   "allOf": [
     {
       "if": { "properties": { "stage": { "const": "implement" } } },
-      "then": { "required": ["taskProofs"] },
-      "else": { "required": ["executionRunId", "reviewRunId"] }
+      "then": {
+        "required": ["taskProofs"],
+        "not": {
+          "anyOf": [
+            { "required": ["executionRunId"] },
+            { "required": ["reviewRunId"] },
+            { "required": ["stageProofs"] }
+          ]
+        }
+      },
+      "else": {
+        "if": { "properties": { "stage": { "const": "design" } }, "required": ["stage"] },
+        "then": {
+          "required": ["stageProofs"],
+          "properties": { "artifacts": { "$ref": "#/$defs/designArtifactSet" } },
+          "not": {
+            "anyOf": [
+              { "required": ["executionRunId"] },
+              { "required": ["reviewRunId"] },
+              { "required": ["taskProofs"] }
+            ]
+          }
+        },
+        "else": {
+          "required": ["executionRunId", "reviewRunId"],
+          "not": {
+            "anyOf": [
+              { "required": ["stageProofs"] },
+              { "required": ["taskProofs"] }
+            ]
+          }
+        }
+      }
     },
     {
       "if": { "properties": { "stage": { "const": "clarify" } }, "required": ["stage"] },
@@ -97,6 +143,58 @@
         "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       },
       "additionalProperties": false
+    },
+    "architectureStageProof": {
+      "type": "object",
+      "required": ["kind", "executionRunId", "reviewRunId", "artifacts"],
+      "properties": {
+        "kind": { "const": "architecture" },
+        "executionRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+        "reviewRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/artifact" },
+              { "properties": { "path": { "pattern": "^harness/changes/[^/]+/design\\.md$" } } }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "testDesignStageProof": {
+      "type": "object",
+      "required": ["kind", "executionRunId", "reviewRunId", "artifacts"],
+      "properties": {
+        "kind": { "const": "test-design" },
+        "executionRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+        "reviewRunId": { "type": "string", "pattern": "^run_[0-9a-f-]{36}$" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/artifact" },
+              { "properties": { "path": { "pattern": "^harness/changes/[^/]+/test-cases\\.md$" } } }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "designArtifactSet": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/artifact" },
+      "allOf": [
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/design\\.md$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "path": { "pattern": "^harness/changes/[^/]+/test-cases\\.md$" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 }
+      ]
     },
     "assertion": {
       "type": "object",

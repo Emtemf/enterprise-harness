@@ -6,6 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { auditWorkflow } from '../lib/workflow-audit.mjs';
+import { buildCompoundDesignProof, buildDesignArchitectureProof } from '../core/design-proof.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
@@ -21,6 +22,8 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-workflow-
 const changeId = 'audit-design';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const designRef = `harness/changes/${changeId}/design.md`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 
 let state = {
@@ -57,6 +60,7 @@ try {
   };
   fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state, null, 2)}\n`);
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
 
   const classificationRef = state.artifacts.classification.path;
   const requiredClarifyArtifacts = [
@@ -196,79 +200,153 @@ try {
   assert.equal(missingDesign.status, 'block');
   assert.ok(missingDesign.results.some((result) => result.status === 'block'));
 
-  const tecpc = {
-    target: 'audit design result',
+  const architectureTecpc = {
+    target: 'audit architecture design result',
     evidence: [designRef],
     context: [requirementsRef],
     path: designRef,
     correction: null,
   };
-  const execute = createHandoffV2(root, {
+  const architectureExecute = createHandoffV2(root, {
     changeId,
     stage: 'design',
-    behavior: 'design',
+    behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
     inputRefs: [requirementsRef],
-    tecpc,
+    tecpc: architectureTecpc,
   });
-  const stageResult = {
+  const architectureResult = {
     resultVersion: 1,
     type: 'stage-result',
     changeId,
     stage: 'design',
-    runId: execute.runId,
+    runId: architectureExecute.runId,
     producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
-    inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
+    inputDigests: { ...architectureExecute.input.inputDigests },
     artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
     assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
     selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
-    tecpc,
+    tecpc: architectureTecpc,
     status: 'pass',
     needsDecision: null,
     completedAt: '2026-08-14T00:00:00.000Z',
   };
-  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));
-  const check = createHandoffV2(root, {
+  fs.writeFileSync(v2ResultPath(root, changeId, architectureExecute.runId), JSON.stringify(architectureResult));
+  const architectureCheck = createHandoffV2(root, {
     changeId,
     stage: 'design',
-    behavior: 'review',
+    behavior: 'design.review',
     role: 'check',
-    parentRunId: execute.runId,
+    parentRunId: architectureExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [designRef],
-    tecpc,
+    tecpc: architectureTecpc,
   });
-  const review = {
+  const architectureReview = {
     resultVersion: 1,
     type: 'review-result',
     changeId,
     stage: 'design',
-    runId: check.runId,
-    parentRunId: execute.runId,
+    runId: architectureCheck.runId,
+    parentRunId: architectureExecute.runId,
     reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
-    reviewedRunId: execute.runId,
+    reviewedRunId: architectureExecute.runId,
     reviewedArtifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
-    rubricIds: ['design'],
-    tecpc,
+    rubricIds: [...architectureCheck.input.rubricIds],
+    tecpc: architectureTecpc,
     verdict: 'pass',
     correction: null,
     reviewedAt: '2026-08-14T00:00:01.000Z',
   };
-  fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
-  appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
-  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-design-review' });
+  fs.writeFileSync(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), JSON.stringify(architectureReview));
+  appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'agent-design' });
+  appendCompletedHandoffBinding(root, changeId, architectureCheck.input, { agentId: 'agent-design-review' });
+
+  const architectureProof = buildDesignArchitectureProof(root, architectureResult, architectureReview);
+  fs.mkdirSync(path.dirname(path.join(root, architectureProofRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, architectureProofRef), `${JSON.stringify(architectureProof, null, 2)}\n`);
 
   const designProofPath = path.join(changeDir, 'evidence', 'completion', 'design.json');
-  const missingDesignProof = auditWorkflow(root, changeId, state);
-  const missingDesignProofStage = missingDesignProof.stages.find((stage) => stage.stage === 'design');
-  assert.equal(missingDesignProofStage.status, 'block', 'read-only audit must block without a persisted Design proof');
+  const architectureOnly = auditWorkflow(root, changeId, state);
+  const architectureOnlyStage = architectureOnly.stages.find((stage) => stage.stage === 'design');
+  assert.equal(architectureOnlyStage.status, 'block', 'architecture-only audit must block Design');
+  assert.deepEqual(
+    architectureOnlyStage.handoffs.map(({ behavior, status }) => [behavior, status]),
+    [['design.produce', 'pass'], ['design.test-cases', 'block']],
+    'audit must expose both required Design behavior chains',
+  );
   assert.equal(fs.existsSync(designProofPath), false, 'read-only audit must not publish a Design candidate proof');
 
-  const designProof = buildCompletionProof(root, {
-    stageResult,
-    reviewResult: review,
-    createdAt: '2026-08-14T00:00:02.000Z',
+  const testDesignTecpc = {
+    target: 'audit detailed test design result',
+    evidence: [testCasesRef],
+    context: [requirementsRef, designRef, architectureProofRef],
+    path: `${architectureProofRef} -> ${testCasesRef}`,
+    correction: null,
+  };
+  const testDesignExecute = createHandoffV2(root, {
+    changeId,
+    stage: 'design',
+    behavior: 'design.test-cases',
+    agent: { type: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+    inputRefs: [requirementsRef, designRef, architectureProofRef],
+    tecpc: testDesignTecpc,
   });
+  const testDesignResult = {
+    resultVersion: 1,
+    type: 'stage-result',
+    changeId,
+    stage: 'design',
+    runId: testDesignExecute.runId,
+    producer: { agentType: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+    inputDigests: { ...testDesignExecute.input.inputDigests },
+    artifacts: [{ path: testCasesRef, digest: sha256Artifact(root, testCasesRef) }],
+    assertions: [{ id: 'test-design-contract', verdict: 'pass', evidence: [testCasesRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [testCasesRef] },
+    tecpc: testDesignTecpc,
+    status: 'pass',
+    needsDecision: null,
+    completedAt: '2026-08-14T00:00:02.000Z',
+  };
+  fs.writeFileSync(v2ResultPath(root, changeId, testDesignExecute.runId), JSON.stringify(testDesignResult));
+  const testDesignCheck = createHandoffV2(root, {
+    changeId,
+    stage: 'design',
+    behavior: 'design.test-cases.review',
+    role: 'check',
+    parentRunId: testDesignExecute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+    inputRefs: [testCasesRef],
+    tecpc: testDesignTecpc,
+  });
+  const testDesignReview = {
+    resultVersion: 1,
+    type: 'review-result',
+    changeId,
+    stage: 'design',
+    runId: testDesignCheck.runId,
+    parentRunId: testDesignExecute.runId,
+    reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
+    reviewedRunId: testDesignExecute.runId,
+    reviewedArtifacts: [{ path: testCasesRef, digest: sha256Artifact(root, testCasesRef) }],
+    rubricIds: [...testDesignCheck.input.rubricIds],
+    tecpc: testDesignTecpc,
+    verdict: 'pass',
+    correction: null,
+    reviewedAt: '2026-08-14T00:00:03.000Z',
+  };
+  fs.writeFileSync(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), JSON.stringify(testDesignReview));
+  appendCompletedHandoffBinding(root, changeId, testDesignExecute.input, { agentId: 'agent-test-design' });
+  appendCompletedHandoffBinding(root, changeId, testDesignCheck.input, { agentId: 'agent-test-design-review' });
+
+  const missingDesignProof = auditWorkflow(root, changeId, state);
+  const missingDesignProofStage = missingDesignProof.stages.find((stage) => stage.stage === 'design');
+  assert.equal(missingDesignProofStage.status, 'block', 'read-only audit must block without a persisted compound Design proof');
+  assert.deepEqual(missingDesignProofStage.handoffs.map(({ status }) => status), ['pass', 'pass']);
+  assert.match(missingDesignProofStage.blockers.map(({ message }) => message).join('\n'), /design CompletionProof is missing/u);
+  assert.equal(fs.existsSync(designProofPath), false, 'read-only audit must remain non-publishing');
+
+  const designProof = buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview);
   fs.mkdirSync(path.dirname(designProofPath), { recursive: true });
   fs.writeFileSync(designProofPath, `${JSON.stringify({
     ...designProof,
@@ -299,6 +377,10 @@ try {
   assert.equal(complete.verdict, 'pass');
   assert.equal(completeDesign.status, 'pass');
   assert.deepEqual(completeDesign.results.map((result) => result.status), ['pass']);
+  assert.deepEqual(
+    completeDesign.handoffs.map(({ behavior, status }) => [behavior, status]),
+    [['design.produce', 'pass'], ['design.test-cases', 'pass']],
+  );
   assert.equal(runAuditCommand().status, 0, 'workflow audit command must accept exact persisted proofs');
 
   fs.writeFileSync(path.join(changeDir, 'tasks.md'), '# Tasks\n\n## Task 1: task-one\n');

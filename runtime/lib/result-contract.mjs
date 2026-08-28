@@ -24,10 +24,12 @@ const REVIEW_RESULT_FIELDS = new Set([
   'reviewedRunId', 'reviewedArtifacts', 'rubricIds', 'tecpc', 'verdict', 'correction', 'reviewedAt',
 ]);
 const COMPLETION_PROOF_FIELDS = new Set([
-  'proofVersion', 'type', 'changeId', 'stage', 'executionRunId', 'reviewRunId', 'taskProofs', 'waivers',
+  'proofVersion', 'type', 'changeId', 'stage', 'executionRunId', 'reviewRunId', 'stageProofs', 'taskProofs', 'waivers',
   'artifacts', 'reviewedArtifacts', 'decisionSnapshotRef', 'assertions', 'tecpc',
   'target', 'evidence', 'context', 'path', 'createdAt',
 ]);
+const STAGE_PROOF_FIELDS = new Set(['kind', 'executionRunId', 'reviewRunId', 'artifacts']);
+const DESIGN_STAGE_PROOF_KINDS = new Set(['architecture', 'test-design']);
 const HANDOFF_V2_FIELDS = new Set([
   'handoffVersion', 'runId', 'changeId', 'stage', 'behavior', 'role', 'parentRunId',
   'agent', 'tecpc', 'inputRefs', 'inputDigests', 'rubricIds', 'createdAt',
@@ -638,10 +640,72 @@ export function validateCompletionProof(root, proof) {
       validateArtifacts(root, taskProof.artifacts, `taskProofs[${index}].artifacts`, problems);
       }
     }
+  } else if (proof.stage === 'design') {
+    if (!Array.isArray(proof.stageProofs) || proof.stageProofs.length !== 2) {
+      problems.push('design completion proof requires exactly two stageProofs');
+    } else {
+      const kinds = new Set();
+      for (const [index, stageProof] of proof.stageProofs.entries()) {
+        if (!isObject(stageProof)) {
+          problems.push(`stageProofs[${index}] must be an object`);
+          continue;
+        }
+        rejectUnknownProperties(stageProof, `stageProofs[${index}]`, STAGE_PROOF_FIELDS, problems);
+        for (const field of STAGE_PROOF_FIELDS) {
+          if (!(field in stageProof)) problems.push(`stageProofs[${index}] is missing ${field}`);
+        }
+        if (!DESIGN_STAGE_PROOF_KINDS.has(stageProof.kind)) {
+          problems.push(`stageProofs[${index}].kind must be architecture or test-design`);
+        } else if (kinds.has(stageProof.kind)) {
+          problems.push(`design completion proof has duplicate ${stageProof.kind} stageProof`);
+        } else {
+          kinds.add(stageProof.kind);
+        }
+        if (!RUN_ID.test(String(stageProof.executionRunId || ''))) {
+          problems.push(`stageProofs[${index}].executionRunId is invalid`);
+        }
+        if (!RUN_ID.test(String(stageProof.reviewRunId || ''))) {
+          problems.push(`stageProofs[${index}].reviewRunId is invalid`);
+        }
+        if (stageProof.executionRunId === stageProof.reviewRunId) {
+          problems.push(`stageProofs[${index}] requires independent runs`);
+        }
+        validateArtifacts(root, stageProof.artifacts, `stageProofs[${index}].artifacts`, problems);
+      }
+      for (const kind of DESIGN_STAGE_PROOF_KINDS) {
+        if (!kinds.has(kind)) problems.push(`design completion proof requires exactly one ${kind} stageProof`);
+      }
+      const expectedArtifactPath = {
+        architecture: `harness/changes/${proof.changeId}/design.md`,
+        'test-design': `harness/changes/${proof.changeId}/test-cases.md`,
+      };
+      for (const stageProof of proof.stageProofs) {
+        if (!DESIGN_STAGE_PROOF_KINDS.has(stageProof?.kind)) continue;
+        if (!Array.isArray(stageProof.artifacts)
+            || stageProof.artifacts.length !== 1
+            || stageProof.artifacts[0]?.path !== expectedArtifactPath[stageProof.kind]) {
+          problems.push(`${stageProof.kind} stageProof must bind exactly ${expectedArtifactPath[stageProof.kind]}`);
+        }
+      }
+      const flattened = proof.stageProofs.flatMap((stageProof) => stageProof?.artifacts || []);
+      if (!sameArtifactBindings(flattened, proof.artifacts)) {
+        problems.push('design completion proof artifacts must exactly flatten stageProofs artifacts');
+      }
+    }
+    for (const field of ['executionRunId', 'reviewRunId', 'taskProofs']) {
+      if (Object.hasOwn(proof, field)) problems.push(`design completion proof must not contain top-level ${field}`);
+    }
   } else {
     if (!RUN_ID.test(String(proof.executionRunId || ''))) problems.push('executionRunId must be a v2 run id');
     if (!RUN_ID.test(String(proof.reviewRunId || ''))) problems.push('reviewRunId must be a v2 run id');
     if (proof.executionRunId === proof.reviewRunId) problems.push('completion proof requires independent execution and review runs');
+    if (Object.hasOwn(proof, 'stageProofs')) problems.push('stageProofs is only valid for a Design completion proof');
+    if (Object.hasOwn(proof, 'taskProofs')) problems.push('taskProofs is only valid for an Implement completion proof');
+  }
+  if (proof.stage === 'implement') {
+    for (const field of ['executionRunId', 'reviewRunId', 'stageProofs']) {
+      if (Object.hasOwn(proof, field)) problems.push(`implement completion proof must not contain ${field}`);
+    }
   }
   validateArtifacts(root, proof.artifacts, 'artifacts', problems);
   validateWaivers(proof.waivers, proof.artifacts, 'waivers', problems);

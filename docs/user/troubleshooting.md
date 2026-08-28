@@ -190,6 +190,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CLASSIFICATION-AUTHORITY-005` | v6 workflow/status 缺少 canonical classification artifact reference | 重新执行 classification action 并让 state.artifacts.classification 指向当前 digest；不要从旧 impact projection 推断 |
 | `EH-CLASSIFICATION-COMMIT-005` | classification artifact 更新与 state CAS 提交未能作为一个事务完成 | 保留 winning state，重新读取当前 revision 后重试 classification action；不要直接覆盖 classification.json |
 | `EH-COMPLETION-PROOF-001` | executor/self-check/review/artifact digest 未形成有效 CompletionProof | 修复最早的 StageResult 或 ReviewResult 问题后重新运行独立 review |
+| `EH-DESIGN-PROOF-001` | ArchitectureProof 缺失、无效、已过期、与现有文件冲突，或未精确绑定 fresh `design.produce` execute/review 链 | 修复 Design StageResult 与独立 passing ReviewResult 后运行 `enterprise-harness design seal-architecture <change-id>`；不要手工覆盖 proof |
 | `EH-TRANSITION-001` | 请求了跳跃、回退或无效生命周期迁移 | 只沿 `clarify → design → plan → implement → verify → archive` 前进 |
 | `EH-HANDOFF-STAGE-001` | v2 handoff 使用了非六阶段的 stage | 使用六阶段名称；`route` 和 `tdd` 仅供兼容 reader 读取 |
 | `EH-PLAN-FINALIZE-001` | plan finalizer 的 handoff agent/role/stage 不匹配 | 创建 artifact-worker/plan 的 execute handoff |

@@ -110,4 +110,108 @@ assertClarifyProofSchemaRejects('missing canonical assertion ID', (proof) => {
   proof.assertions[0].id = 'generic-clarify';
 });
 
+const designArtifact = {
+  path: `harness/changes/${schemaChangeId}/design.md`,
+  digest: '8'.repeat(64),
+};
+const testCasesArtifact = {
+  path: `harness/changes/${schemaChangeId}/test-cases.md`,
+  digest: '9'.repeat(64),
+};
+const validDesignProof = {
+  proofVersion: 1,
+  type: 'completion-proof',
+  changeId: schemaChangeId,
+  stage: 'design',
+  stageProofs: [
+    {
+      kind: 'architecture',
+      executionRunId: 'run_33333333-3333-4333-8333-333333333333',
+      reviewRunId: 'run_44444444-4444-4444-8444-444444444444',
+      artifacts: [designArtifact],
+    },
+    {
+      kind: 'test-design',
+      executionRunId: 'run_55555555-5555-4555-8555-555555555555',
+      reviewRunId: 'run_66666666-6666-4666-8666-666666666666',
+      artifacts: [testCasesArtifact],
+    },
+  ],
+  artifacts: [designArtifact, testCasesArtifact],
+  waivers: [],
+  target: 'complete Design',
+  evidence: [designArtifact.path, testCasesArtifact.path],
+  context: [validClarifyProof.artifacts[0].path],
+  path: `${designArtifact.path} -> ${testCasesArtifact.path}`,
+  createdAt: '2026-08-28T00:00:00.000Z',
+};
+assert.equal(validateCompletionProofSchema(validDesignProof), true, JSON.stringify(validateCompletionProofSchema.errors));
+for (const field of ['executionRunId', 'reviewRunId', 'taskProofs']) {
+  const candidate = structuredClone(validDesignProof);
+  candidate[field] = field === 'taskProofs' ? [] : 'run_77777777-7777-4777-8777-777777777777';
+  assert.equal(validateCompletionProofSchema(candidate), false, `Design proof must reject top-level ${field}`);
+}
+const missingTestDesign = structuredClone(validDesignProof);
+missingTestDesign.stageProofs = [missingTestDesign.stageProofs[0]];
+assert.equal(validateCompletionProofSchema(missingTestDesign), false, 'Design proof must require both stage proof kinds');
+const duplicateArchitecture = structuredClone(validDesignProof);
+duplicateArchitecture.stageProofs[1].kind = 'architecture';
+assert.equal(validateCompletionProofSchema(duplicateArchitecture), false, 'Design proof must require exactly one stage proof of each kind');
+
+const planArtifact = {
+  path: `harness/changes/${schemaChangeId}/tasks.md`,
+  digest: 'a'.repeat(64),
+};
+const validPlanProof = {
+  proofVersion: 1,
+  type: 'completion-proof',
+  changeId: schemaChangeId,
+  stage: 'plan',
+  executionRunId: 'run_77777777-7777-4777-8777-777777777777',
+  reviewRunId: 'run_88888888-8888-4888-8888-888888888888',
+  artifacts: [planArtifact],
+  target: 'complete Plan',
+  evidence: [planArtifact.path],
+  context: [designArtifact.path, testCasesArtifact.path],
+  path: `${designArtifact.path} -> ${planArtifact.path}`,
+  createdAt: '2026-08-28T00:00:01.000Z',
+};
+assert.equal(validateCompletionProofSchema(validPlanProof), true, JSON.stringify(validateCompletionProofSchema.errors));
+for (const field of ['stageProofs', 'taskProofs']) {
+  const candidate = structuredClone(validPlanProof);
+  candidate[field] = field === 'stageProofs' ? validDesignProof.stageProofs : [];
+  assert.equal(validateCompletionProofSchema(candidate), false, `non-Design proof must reject ${field}`);
+}
+
+const receiptArtifact = {
+  path: `harness/changes/${schemaChangeId}/evidence/tasks/task-one.json`,
+  digest: 'b'.repeat(64),
+};
+const validImplementProof = {
+  proofVersion: 1,
+  type: 'completion-proof',
+  changeId: schemaChangeId,
+  stage: 'implement',
+  taskProofs: [{
+    taskId: 'task-one',
+    executionRunId: 'run_99999999-9999-4999-8999-999999999999',
+    reviewRunId: 'run_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    artifacts: [receiptArtifact],
+  }],
+  artifacts: [receiptArtifact],
+  target: 'complete Implement',
+  evidence: [receiptArtifact.path],
+  context: [planArtifact.path],
+  path: `${planArtifact.path} -> task-one`,
+  createdAt: '2026-08-28T00:00:02.000Z',
+};
+assert.equal(validateCompletionProofSchema(validImplementProof), true, JSON.stringify(validateCompletionProofSchema.errors));
+for (const field of ['executionRunId', 'reviewRunId', 'stageProofs']) {
+  const candidate = structuredClone(validImplementProof);
+  candidate[field] = field === 'stageProofs'
+    ? validDesignProof.stageProofs
+    : 'run_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  assert.equal(validateCompletionProofSchema(candidate), false, `Implement proof must reject ${field}`);
+}
+
 console.log(`PASS result-schema ${mode}`);

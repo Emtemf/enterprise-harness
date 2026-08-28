@@ -25,7 +25,7 @@ export const STAGE_CONTRACTS = Object.freeze({
     resultGate: 'clarify',
   },
   design: {
-    artifacts: ['design.md'],
+    artifacts: ['design.md', 'test-cases.md'],
     state: () => [],
     resultGate: 'design',
   },

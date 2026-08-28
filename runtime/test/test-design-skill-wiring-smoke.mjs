@@ -22,6 +22,10 @@ const task3Files = [
   'skills/test-design/evals/evals.json',
   'skills/review/references/test-design.md',
 ];
+const task4Scripts = [
+  'skills/test-design/scripts/prepare-input.mjs',
+  'skills/test-design/scripts/finalize-result.mjs',
+];
 
 try {
   assert.match(skill, /^user-invocable: false$/mu);
@@ -32,13 +36,24 @@ try {
   for (const relativePath of task3Files) {
     assert.equal(fs.existsSync(path.join(root, relativePath)), true, `missing Task 3 support file: ${relativePath}`);
   }
-  assert.equal(fs.existsSync(path.join(root, 'skills/test-design/scripts/prepare-input.mjs')), false, 'prepare-input belongs to Task 4');
-  assert.equal(fs.existsSync(path.join(root, 'skills/test-design/scripts/finalize-result.mjs')), false, 'finalizer belongs to Task 4');
+  for (const relativePath of task4Scripts) {
+    const scriptPath = path.join(root, relativePath);
+    assert.equal(fs.existsSync(scriptPath), true, `missing Task 4 runtime script: ${relativePath}`);
+    const script = fs.readFileSync(scriptPath, 'utf-8');
+    const runtimeImports = [...script.matchAll(/from\s+['"]([^'"]*runtime\/[^'"]+)['"]/gu)]
+      .map((match) => match[1]);
+    assert.ok(runtimeImports.length > 0, `${relativePath} must consume the public runtime API`);
+    assert.ok(
+      runtimeImports.every((specifier) => specifier.startsWith('../../../runtime/api/')),
+      `${relativePath} must not import runtime internals: ${runtimeImports.join(', ')}`,
+    );
+  }
   assert.match(skill, /marker prepare/u);
   assert.match(skill, /冻结输入/u);
   assert.match(skill, /assets\/test-cases\.md\.tmpl/u);
   assert.match(skill, /Test Design Self-Check/u);
-  assert.match(skill, /Task 4/u);
+  assert.match(skill, /scripts\/prepare-input\.mjs/u);
+  assert.match(skill, /scripts\/finalize-result\.mjs/u);
   assert.match(skill, /Main.*独立.*review/iu);
   assert.match(skill, /不执行测试/u);
   assert.match(skill, /不.*浏览器/u);

@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readAgentEvents } from './agent-evidence.mjs';
 import { loadHandoffInput, validateHandoffResult } from './handoff.mjs';
-import { requiredStageResultArtifacts, validateStageGate } from './stage-results.mjs';
+import {
+  completionChainForBehavior,
+  requiredStageResultArtifacts,
+  validateStageGate,
+} from './stage-results.mjs';
 import { completedStages as completedStagesV6, STAGE_CONTRACTS as STAGE_CONTRACTS_V6, STAGE_ORDER as STAGE_ORDER_V6 } from './stage-contract.mjs';
 
 function readJson(file) {
@@ -110,6 +114,30 @@ function inspectResultGate(root, changeId, resultGate) {
   }];
 }
 
+function inspectDesignChain(root, changeId, behavior, artifact) {
+  const chain = completionChainForBehavior(root, changeId, behavior, [
+    `harness/changes/${changeId}/${artifact}`,
+  ]);
+  return {
+    behavior,
+    required: true,
+    executor: chain.executeInput?.agent?.type ?? null,
+    checker: chain.reviewInput?.agent?.type ?? null,
+    executions: chain.executeInput ? [chain.executeInput.runId] : [],
+    checks: chain.reviewInput ? [{
+      runId: chain.reviewInput.runId,
+      verdict: chain.reviewResult?.verdict ?? null,
+      parentRunId: chain.reviewInput.parentRunId,
+    }] : [],
+    status: chain.problems.length === 0 ? 'pass' : 'block',
+    issues: chain.problems.map((detail) => problem(
+      'EH-AUDIT-HANDOFF-002',
+      `${behavior} chain failed: ${detail}`,
+      `produce a fresh ${behavior} execute result and independent passing review`,
+    )),
+  };
+}
+
 export function auditWorkflow(root, changeId, data, options = {}) {
   const stageOrder = STAGE_ORDER_V6;
   const stageContracts = STAGE_CONTRACTS_V6;
@@ -141,7 +169,10 @@ export function auditWorkflow(root, changeId, data, options = {}) {
       issue: ok ? null : problem('EH-AUDIT-STATE-004', `${field} does not meet the stage completion predicate`, `repair durable evidence and update through the supported runtime command`),
     }));
     const results = inspectResultGate(root, changeId, spec.resultGate);
-    const handoffs = [];
+    const handoffs = stage === 'design' ? [
+      inspectDesignChain(root, changeId, 'design.produce', 'design.md'),
+      inspectDesignChain(root, changeId, 'design.test-cases', 'test-cases.md'),
+    ] : [];
     const stageEvents = events.filter((event) => {
       return event.stage === stage;
     }).map((event) => ({ kind: event.kind, behavior: event.behavior ?? null, runId: event.runId ?? null, agentId: event.agentId ?? null }));

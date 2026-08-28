@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
-import { buildCompletionProof } from '../core/completion-proof.mjs';
+import { buildCompoundDesignProof, buildDesignArchitectureProof } from '../core/design-proof.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateDesignStageGate } from '../lib/stage-results.mjs';
@@ -15,93 +15,117 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-design-gate-'));
 const changeId = 'design-gate';
-const designRef = `harness/changes/${changeId}/design.md`;
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+const designRef = `harness/changes/${changeId}/design.md`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
+const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
+
+function writeJson(target, value) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function resultFor(input, artifactRef, producer, completedAt) {
+  return {
+    resultVersion: 1, type: 'stage-result', changeId, stage: 'design', runId: input.runId,
+    producer, inputDigests: { ...input.inputDigests },
+    artifacts: [{ path: artifactRef, digest: sha256Artifact(root, artifactRef) }],
+    assertions: [{ id: `${producer.skill}-shape`, verdict: 'pass', evidence: [artifactRef] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [artifactRef] },
+    tecpc: { ...input.tecpc }, status: 'pass', needsDecision: null, completedAt,
+  };
+}
+
+function reviewFor(input, parent, artifactRef, reviewedAt) {
+  return {
+    resultVersion: 1, type: 'review-result', changeId, stage: 'design', runId: input.runId,
+    parentRunId: parent.runId, reviewer: { agentType: input.agent.type, skill: input.agent.skill },
+    reviewedRunId: parent.runId,
+    reviewedArtifacts: [{ path: artifactRef, digest: sha256Artifact(root, artifactRef) }],
+    rubricIds: [...input.rubricIds], tecpc: { ...input.tecpc }, verdict: 'pass', correction: null, reviewedAt,
+  };
+}
 
 try {
-  assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
+  assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, shell: false }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Create resource\n');
-  fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
+  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n');
+  fs.writeFileSync(path.join(root, designRef), '# Design\n');
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n');
 
-  const tecpc = { target: 'design', evidence: [designRef], context: [requirementsRef], path: designRef, correction: null };
-  const execute = createHandoffV2(root, {
-    changeId,
-    stage: 'design',
-    behavior: 'design',
+  const architectureTecpc = {
+    target: 'design', evidence: [designRef], context: [requirementsRef],
+    path: `${requirementsRef} -> ${designRef}`, correction: null,
+  };
+  const architectureExecute = createHandoffV2(root, {
+    changeId, stage: 'design', behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
-    inputRefs: [requirementsRef],
-    tecpc,
+    inputRefs: [requirementsRef], tecpc: architectureTecpc,
   });
-  const stageResult = {
-    resultVersion: 1,
-    type: 'stage-result',
-    changeId,
-    stage: 'design',
-    runId: execute.runId,
-    producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
-    inputDigests: { [requirementsRef]: sha256Artifact(root, requirementsRef) },
-    artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
-    assertions: [{ id: 'artifact-shape', verdict: 'pass', evidence: [designRef] }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: [designRef] },
-    tecpc,
-    status: 'pass',
-    needsDecision: null,
-    completedAt: '2026-08-14T00:00:00.000Z',
-  };
-  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));
-
-  const check = createHandoffV2(root, {
-    changeId,
-    stage: 'design',
-    behavior: 'review',
-    role: 'check',
-    parentRunId: execute.runId,
+  const architectureResult = resultFor(
+    architectureExecute.input, designRef,
+    { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
+    '2026-08-28T00:00:00.000Z',
+  );
+  writeJson(v2ResultPath(root, changeId, architectureExecute.runId), architectureResult);
+  const architectureCheck = createHandoffV2(root, {
+    changeId, stage: 'design', behavior: 'design.review', role: 'check',
+    parentRunId: architectureExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [designRef],
-    tecpc,
+    inputRefs: [designRef], tecpc: architectureTecpc,
   });
-  const review = {
-    resultVersion: 1,
-    type: 'review-result',
-    changeId,
-    stage: 'design',
-    runId: check.runId,
-    parentRunId: execute.runId,
-    reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
-    reviewedRunId: execute.runId,
-    reviewedArtifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
-    rubricIds: ['design'],
-    tecpc,
-    verdict: 'pass',
-    correction: null,
-    reviewedAt: '2026-08-14T00:00:01.000Z',
-  };
-  fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
-  appendCompletedHandoffBinding(root, changeId, execute.input, { agentId: 'agent-design' });
-  appendCompletedHandoffBinding(root, changeId, check.input, { agentId: 'agent-review' });
-  const proofPath = path.join(root, 'harness', 'changes', changeId, 'evidence', 'completion', 'design.json');
-  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
-  fs.writeFileSync(proofPath, `${JSON.stringify(buildCompletionProof(root, {
-    stageResult,
-    reviewResult: review,
-    createdAt: '2026-08-14T00:00:02.000Z',
-  }), null, 2)}\n`);
+  const architectureReview = reviewFor(
+    architectureCheck.input, architectureExecute.input, designRef, '2026-08-28T00:00:01.000Z',
+  );
+  writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), architectureReview);
+  appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'design-executor' });
+  appendCompletedHandoffBinding(root, changeId, architectureCheck.input, { agentId: 'design-reviewer' });
+  const architectureProof = buildDesignArchitectureProof(root, architectureResult, architectureReview);
+  writeJson(path.join(root, architectureProofRef), architectureProof);
 
+  const testTecpc = {
+    target: 'test design', evidence: [testCasesRef], context: [designRef, architectureProofRef],
+    path: `${architectureProofRef} -> ${testCasesRef}`, correction: null,
+  };
+  const testExecute = createHandoffV2(root, {
+    changeId, stage: 'design', behavior: 'design.test-cases',
+    agent: { type: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+    inputRefs: [designRef, architectureProofRef], tecpc: testTecpc,
+  });
+  const testResult = resultFor(
+    testExecute.input, testCasesRef,
+    { agentType: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+    '2026-08-28T00:00:02.000Z',
+  );
+  writeJson(v2ResultPath(root, changeId, testExecute.runId), testResult);
+  const testCheck = createHandoffV2(root, {
+    changeId, stage: 'design', behavior: 'design.test-cases.review', role: 'check',
+    parentRunId: testExecute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+    inputRefs: [testCasesRef], tecpc: testTecpc,
+  });
+  const testReview = reviewFor(testCheck.input, testExecute.input, testCasesRef, '2026-08-28T00:00:03.000Z');
+  writeJson(v2ResultPath(root, changeId, testCheck.runId, 'check'), testReview);
+  appendCompletedHandoffBinding(root, changeId, testExecute.input, { agentId: 'test-design-executor' });
+  appendCompletedHandoffBinding(root, changeId, testCheck.input, { agentId: 'test-design-reviewer' });
+
+  writeJson(path.join(root, designProofRef), buildCompoundDesignProof(root, architectureProof, testResult, testReview));
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
 
-  const mismatchedInputs = { ...stageResult, inputDigests: { [requirementsRef]: 'b'.repeat(64) } };
-  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(mismatchedInputs));
+  writeJson(v2ResultPath(root, changeId, architectureExecute.runId), {
+    ...architectureResult,
+    inputDigests: { [requirementsRef]: 'b'.repeat(64) },
+  });
   assert.match(validateDesignStageGate(root, changeId).join('\n'), /input digests do not match/u);
-  fs.writeFileSync(v2ResultPath(root, changeId, execute.runId), JSON.stringify(stageResult));
+  writeJson(v2ResultPath(root, changeId, architectureExecute.runId), architectureResult);
 
-  const mismatchedRubrics = { ...review, rubricIds: ['security'] };
-  fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(mismatchedRubrics));
+  writeJson(v2ResultPath(root, changeId, testCheck.runId, 'check'), { ...testReview, rubricIds: ['security'] });
   assert.match(validateDesignStageGate(root, changeId).join('\n'), /rubrics do not match/u);
-  fs.writeFileSync(v2ResultPath(root, changeId, check.runId, 'check'), JSON.stringify(review));
+  writeJson(v2ResultPath(root, changeId, testCheck.runId, 'check'), testReview);
 
-  fs.writeFileSync(path.join(root, designRef), '# Modified\n');
-  assert.match(validateDesignStageGate(root, changeId).join('\n'), /stale/);
+  fs.appendFileSync(path.join(root, testCasesRef), '\nstale\n');
+  assert.match(validateDesignStageGate(root, changeId).join('\n'), /stale|digest/u);
 
   console.log(`PASS design-stage-gate ${mode}`);
 } finally {

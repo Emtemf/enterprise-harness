@@ -15,9 +15,9 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-waiver-result-'));
-const artifactPath = 'harness/changes/demo/design.md';
+const artifactPath = 'harness/changes/demo/tasks.md';
 fs.mkdirSync(path.dirname(path.join(root, artifactPath)), { recursive: true });
-fs.writeFileSync(path.join(root, artifactPath), '# Design\n', 'utf-8');
+fs.writeFileSync(path.join(root, artifactPath), '# Tasks\n', 'utf-8');
 const digest = sha256Artifact(root, artifactPath);
 const executionRunId = 'run_00000000-0000-4000-8000-000000000041';
 const reviewRunId = 'run_00000000-0000-4000-8000-000000000042';
@@ -36,16 +36,16 @@ const stageResult = {
   resultVersion: 1,
   type: 'stage-result',
   changeId: 'demo',
-  stage: 'design',
+  stage: 'plan',
   runId: executionRunId,
-  producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'design' },
+  producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'plan' },
   inputDigests: {},
   artifacts: [{ path: artifactPath, digest }],
   waivers: [waiver],
-  assertions: [{ id: 'design-shape', verdict: 'pass', evidence: [artifactPath] }],
+  assertions: [{ id: 'plan-shape', verdict: 'pass', evidence: [artifactPath] }],
   selfCheck: { verdict: 'pass', findings: [], evidence: [artifactPath] },
   tecpc: {
-    target: 'design artifact',
+    target: 'plan artifact',
     evidence: [artifactPath],
     context: [artifactPath],
     path: artifactPath,
@@ -60,15 +60,15 @@ const reviewResult = {
   resultVersion: 1,
   type: 'review-result',
   changeId: 'demo',
-  stage: 'design',
+  stage: 'plan',
   runId: reviewRunId,
   parentRunId: executionRunId,
   reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
   reviewedRunId: executionRunId,
   reviewedArtifacts: [{ path: artifactPath, digest }],
-  rubricIds: ['design'],
+  rubricIds: ['plan'],
   tecpc: {
-    target: 'independent design review',
+    target: 'independent plan review',
     evidence: [artifactPath],
     context: [artifactPath],
     path: artifactPath,

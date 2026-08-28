@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
+import { buildCompoundDesignProof, buildDesignArchitectureProof } from '../core/design-proof.mjs';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { createEvidencePolicy } from '../lib/evidence-policy.mjs';
 import {
@@ -30,6 +31,8 @@ const changeDir = path.join(root, 'harness', 'changes', changeId);
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const stateRef = `harness/changes/${changeId}/state.json`;
 const designRef = `harness/changes/${changeId}/design.md`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
 
 function git(args) {
@@ -43,7 +46,13 @@ function writeResult(runId, role, value) {
   fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function addReviewedStage(stage, skill, inputRefs, artifactRef) {
+function addReviewedStage(stage, skill, inputRefs, artifactRef, {
+  behavior = `${stage}.produce`,
+  reviewBehavior = `${stage}.review`,
+  agentType = 'enterprise-harness:artifact-worker',
+  bindingLabel = stage,
+  publishProof = true,
+} = {}) {
   const tecpc = {
     target: `complete ${stage}`,
     evidence: [artifactRef],
@@ -54,8 +63,8 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
   const execute = createHandoffV2(root, {
     changeId,
     stage,
-    behavior: `${stage}.produce`,
-    agent: { type: 'enterprise-harness:artifact-worker', skill },
+    behavior,
+    agent: { type: agentType, skill },
     inputRefs,
     tecpc,
   });
@@ -66,7 +75,7 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
     changeId,
     stage,
     runId: execute.runId,
-    producer: { agentType: 'enterprise-harness:artifact-worker', skill },
+    producer: { agentType, skill },
     inputDigests: { ...execute.input.inputDigests },
     artifacts,
     assertions: [{ id: `${stage}-contract`, verdict: 'pass', evidence: [artifactRef] }],
@@ -81,7 +90,7 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
   const check = createHandoffV2(root, {
     changeId,
     stage,
-    behavior: `${stage}.review`,
+    behavior: reviewBehavior,
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
@@ -107,19 +116,21 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef) {
   };
   writeResult(check.runId, 'check', reviewResult);
   appendCompletedHandoffBinding(root, changeId, execute.input, {
-    agentId: `${stage}-executor`,
+    agentId: `${bindingLabel}-executor`,
   });
   appendCompletedHandoffBinding(root, changeId, check.input, {
-    agentId: `${stage}-reviewer`,
+    agentId: `${bindingLabel}-reviewer`,
   });
   const proofPath = path.join(changeDir, 'evidence', 'completion', `${stage}.json`);
-  fs.mkdirSync(path.dirname(proofPath), { recursive: true });
-  fs.writeFileSync(proofPath, `${JSON.stringify(buildCompletionProof(root, {
-    stageResult,
-    reviewResult,
-    createdAt: '2026-08-16T00:00:03.000Z',
-  }), null, 2)}\n`);
-  return { execute, check, checkResultPath };
+  if (publishProof) {
+    fs.mkdirSync(path.dirname(proofPath), { recursive: true });
+    fs.writeFileSync(proofPath, `${JSON.stringify(buildCompletionProof(root, {
+      stageResult,
+      reviewResult,
+      createdAt: '2026-08-16T00:00:03.000Z',
+    }), null, 2)}\n`);
+  }
+  return { execute, check, checkResultPath, stageResult, reviewResult, proofPath };
 }
 
 try {
@@ -134,6 +145,7 @@ try {
 
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
   fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n');
   const classification = writeClassificationArtifact(root, changeId, {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
@@ -155,7 +167,37 @@ try {
     observedAgentType: 'enterprise-harness:code-explore',
     cwd: root,
   });
-  addReviewedStage('design', 'design', [requirementsRef], designRef);
+  const architecture = addReviewedStage('design', 'design', [requirementsRef], designRef, {
+    behavior: 'design.produce',
+    bindingLabel: 'design-architecture',
+    publishProof: false,
+  });
+  const architectureProof = buildDesignArchitectureProof(
+    root,
+    architecture.stageResult,
+    architecture.reviewResult,
+  );
+  fs.mkdirSync(path.dirname(path.join(root, architectureProofRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, architectureProofRef), `${JSON.stringify(architectureProof, null, 2)}\n`);
+  const testDesign = addReviewedStage(
+    'design',
+    'test-design',
+    [requirementsRef, designRef, architectureProofRef],
+    testCasesRef,
+    {
+      behavior: 'design.test-cases',
+      reviewBehavior: 'design.test-cases.review',
+      agentType: 'enterprise-harness:test-design-worker',
+      bindingLabel: 'test-design',
+      publishProof: false,
+    },
+  );
+  fs.writeFileSync(architecture.proofPath, `${JSON.stringify(buildCompoundDesignProof(
+    root,
+    architectureProof,
+    testDesign.stageResult,
+    testDesign.reviewResult,
+  ), null, 2)}\n`);
   const plan = addReviewedStage('plan', 'plan', [designRef], tasksRef);
 
   const valid = validateStageChain(root, changeId, state);

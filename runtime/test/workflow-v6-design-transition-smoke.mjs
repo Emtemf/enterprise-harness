@@ -132,7 +132,7 @@ try {
     runId,
     changeId,
     stage: 'design',
-    behavior: 'produce',
+    behavior: 'design.produce',
     role: 'execute',
     parentRunId: null,
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
