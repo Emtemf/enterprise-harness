@@ -18,9 +18,9 @@ Test Design 把冻结的 requirement、Architecture Design 决定和可验证性
 
 每个用例使用唯一 `TC<number>`，并同时 trace 已声明的 `R* / D* / VO*`。根据隔离边界选择 `unit|integration|contract|migration|security|E2E`，不把工具名当测试层级。
 
-十个字段必须完整：前置条件可建立，数据具体且可隔离，Actions 是中文业务动作或明确 HTTP method+path，断言指向值、状态、错误或副作用，清理/恢复能消除残留。Actions 和 E2E Steps 只描述业务交互，不写 runner 命令、shell/argv 或具体浏览器驱动。前置条件可以陈述 `Node 服务已启动` 等环境事实，数据可用 JSON fence 表达。
+十个字段必须完整：前置条件可建立，数据具体且可隔离，Actions 是中文业务动作或明确 HTTP method+path，断言指向值、状态、错误或副作用，清理/恢复能消除残留。candidate 任意位置都不写 exact argv assignment、shell-language fence、明确测试执行或具体浏览器驱动执行；Actions 和 E2E Steps 还不能写 shell prompt 或“执行/运行 + ASCII command + option/URL/path/test 参数”的命令语法。判断不按裸技术名拦截，因此 `重启 Node 服务`、`Node 服务已启动` 等业务/环境事实合法，数据可用 JSON fence 表达。
 
-断言按可观察证据正向判断：至少包含数字/literal、数量或唯一性、相同差异、状态码/错误码、记录字段值、创建/更新/删除/拒绝、可见性、日志/指标/事件之一。禁止只有“验证成功”“符合预期”“接口可用”等无法判定的结论。
+断言按可观察证据正向判断：数字/literal 必须与响应、返回值、状态码、错误码、字段值或数量/计数等主体形成关系；也可给出唯一性、相同差异、创建/更新/删除/拒绝、存在性、可见性、日志/指标/事件等具体状态变化。禁止用“验证成功 1”“接口可用 \"ok\"”等无关系尾随 scalar 伪装证据。
 
 ## 4. 处理 E2E 与数据生命周期
 

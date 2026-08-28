@@ -26,7 +26,7 @@
 - `Level` 只接受 `unit|integration|contract|migration|security|E2E`。
 - `Priority` 只接受 `critical|high|normal`；`Status` 只接受 `accepted`。
 - 十列都是语义字段；空值、`-`、TBD/TODO/待定/按需、模板标记和不可判定断言均 fail closed。
-- `Actions` 只接受中文业务动作（例如“用户提交退款”），或单个明确的 HTTP method + path（例如 `POST /refunds`）。纯 ASCII runner/command、shell/bash/powershell/cmd fence、shell prompt、argv 形状和具体执行工具都 block。
+- `Actions` 只接受中文业务动作（例如“用户提交退款”），或单个明确的 HTTP method + path（例如 `POST /refunds`）。纯 ASCII runner/command、shell/bash/powershell/cmd fence、shell prompt、argv 形状，以及“执行/运行 + ASCII command + option/URL/path/test 参数”的命令语法都 block；单独出现技术名不构成命令。
 
 ## Coverage 与 journey
 
@@ -36,9 +36,9 @@ Coverage Matrix 的列固定为 `Source / Concern / Criticality / Applicability 
 
 ## 语义边界
 
-Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。执行边界只检查 TC 的 `Actions` 与 journey 的 `Steps`：其中 shell/bash/powershell/cmd fence、shell prompt、shell/argv 形状、runner 命令，以及 Chrome/Playwright/WebDriver/DevTools/MCP 等具体驱动选择直接 block。前置、数据和说明文字不按 runner 名扫描；`Node 服务已启动` 是合法前置，测试数据章节的 JSON code fence 也是合法数据表达。
+Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。candidate 任意位置出现 exact argv/argv/shell assignment、shell/bash/powershell/cmd fence、明确执行/运行测试，或使用具体 browser/driver/DevTools/MCP 执行或操作的 stage-boundary 声明都 block；TC `Actions` 与 journey `Steps` 还拒绝 shell prompt 和“执行/运行 + ASCII command + option/URL/path/test 参数”等命令语法。判断不扫描裸 runner/工具 token；`重启 Node 服务`、`Node 服务已启动` 与叙述中的技术名合法，测试数据章节的 JSON code fence 也是合法数据表达。
 
-数据、清理和恢复必须足以暴露主要失败信号。observable assertion 采用正合同：至少包含数字或明确 literal，或者数量/唯一性/相同差异、状态码/错误码、记录字段值、创建/更新/删除/拒绝、可见性、日志/指标/事件等具体可判定信号。“接口正常”“页面正确”“流程成功”“验证成功”“接口可用”均不满足；“响应为200且成功”和“仅创建一条退款记录并返回相同退款标识”满足。
+数据、清理和恢复必须足以暴露主要失败信号。observable assertion 采用正合同：数字或明确 literal 必须与响应、返回值、状态码、错误码、字段值、数量/计数等主体形成可判定关系；没有 scalar 时也可用唯一性/相同差异、创建/更新/删除/拒绝、存在性、可见性、日志/指标/事件等具体状态变化。“接口正常”“页面正确”“流程成功”“验证成功 1”“接口可用 \"ok\"”均不满足；“响应为200且成功”和“仅创建一条退款记录并返回相同退款标识”满足。
 
 未决业务选择在 candidate 之外输出 `NEEDS_DECISION`，不能生成 `pass` candidate。candidate 任意语义位置出现 `NEEDS_DECISION`、未决、待补充、TBD/TODO 或模板标记都 block。self-check 的 passing 形状必须明确 `verdict: pass`、`unresolved decisions: none`、`placeholders: none`；self-check 不是 approval。
 

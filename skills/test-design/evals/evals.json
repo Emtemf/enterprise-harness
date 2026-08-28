@@ -47,7 +47,7 @@
     {
       "id": "adversarial-artifact",
       "description": "重复或缺 TC1、非法 R/VO namespace 或 dimension、未知 D/TC、重复 coverage source、空或主体加泛化终态的断言、未决占位符、非法枚举、第八节与执行越界",
-      "expected": "三个 assertions 对 needs-decision D、非纯 Covered By、无理由 N/A、Actions/E2E Steps 中的 shell/argv、make/bazel/node/gradle 命令和具体浏览器工具 fail closed；接口可用等无证据断言 block，同时保留 Node 前置、JSON 数据 fence、中文或 HTTP 业务动作与含 200/数量/字段值的可观察断言",
+      "expected": "三个 assertions 对 needs-decision D、非纯 Covered By、无理由 N/A、任意章节的 exact argv/shell fence/明确测试或浏览器驱动执行，以及 Actions/E2E Steps 中带 option/URL/path/test 参数的 ASCII 命令 fail closed；验证成功 1、接口可用 literal 等无关系证据 block，同时保留重启 Node 服务、Node 前置、JSON 数据 fence、中文或 HTTP 业务动作与关联 200/数量/字段值的可观察断言",
       "category": "runtime-gate"
     }
   ]

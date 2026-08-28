@@ -71,8 +71,8 @@ export function isPlaceholder(value, { allowDash = false } = {}) {
 
 function hasObservableEvidence(value) {
   const text = value.trim();
-  return /[0-9]/u.test(text)
-    || /["'`][^"'`\r\n]+["'`]/u.test(text)
+  const relatedScalar = /(?:响应(?:状态码|码|体|值)?|返回(?:值|结果|字段值?|标识)?|HTTP\s*状态(?:码)?|状态码|错误码|字段(?:\s*[A-Za-z0-9_.-]+)?\s*值|数量|条数|计数|次数)\s*(?:为|是|=|等于|达到|包含|返回)?\s*(?:[+-]?[0-9]+(?:\.[0-9]+)?%?|["'][^"'\r\n]+["']|`[^`\r\n]+`)/iu;
+  return relatedScalar.test(text)
     || /(?:数量|条数|计数|次数|至少|至多|恰好|仅|只|唯一|一条|相同|不同|一致|差异)/u.test(text)
     || /(?:包含|不包含|存在|不存在|为空|非空)/u.test(text)
     || /(?:状态码|HTTP\s*状态|错误码|状态\s*(?:为|=|变为|保持|仍为)|错误\s*(?:为|=)|异常\s*(?:为|=))/iu.test(text)
@@ -81,27 +81,34 @@ function hasObservableEvidence(value) {
     || /(?:(?:日志|事件|告警|埋点).*(?:出现|写入|记录|包含|发出|触发)|(?:指标).*(?:增加|减少|上升|下降|等于|为|达到))/u.test(text);
 }
 
-function hasToolExecution(value) {
+function hasGlobalExecutionBoundary(value) {
   const text = value.trim();
   const shellFence = /(?:```|~~~)\s*(?:sh|shell|bash|zsh|fish|powershell|pwsh|cmd|bat)\b/iu;
-  const shellOrArgvShape = /(?:^|[\s：:])(?:[$>]\s+\S|(?:exact\s+)?argv\s*[:=：]|(?:shell|command)\s*[:=：])/iu;
-  const runnerCommand = /(?:^|[\s"'`[(=：])(?:\.\/)?(?:make|bazel|node|npm|npx|pnpm|yarn|bun|deno|pytest|python|mvn|mvnw|gradle|gradlew|go|cargo|dotnet|jest|vitest|mocha)(?:\.exe)?(?=$|[\s"'`)\],;])/iu;
-  const executablePath = /(?:^|[\s"'`[(=：])(?:\.{1,2}\/[^\s"'`|]+|[^\s"'`|]+\.(?:sh|bash|zsh|fish|exe|bat|cmd|ps1))(?=$|[\s"'`)\],;])/iu;
-  const testExecutionInstruction = /(?:运行|执行|启动|调用)\s*(?:测试|test|verify|构建|build|runner|脚本|命令)/iu;
-  const namedDriver = /(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|\bCDP\b|\bMCP\b|(?:browser|浏览器)\s*MCP|MCP\s*(?:browser|浏览器))/iu;
+  const argvOrShellAssignment = /(?:^|[\s：:])(?:(?:exact\s+)?argv|shell|command)\s*[:=：]\s*(?:\[|\{|["'`]|[^\s，。；]+)/imu;
+  const testExecutionInstruction = /(?<!不)(?<!未)(?<!禁止)(?<!不得)(?<!无需)(?<!不会)(?:运行|执行)\s*(?:(?:[A-Za-z0-9_./-]+\s+){0,2})?(?:测试|tests?\b|verify\b|构建|build\b)/iu;
+  const namedDriverExecution = /(?:(?:使用|通过|调用)\s*(?:Chrome|Chromium|Firefox|Safari|Edge|Playwright|Selenium|Cypress|Puppeteer|WebDriver|DevTools|CDP|MCP)(?:\s*(?:browser|浏览器|MCP))?[^，。；\r\n|]{0,24}(?:执行|运行|操作|打开|点击|检查|测试)|在\s*(?:Chrome|Chromium|Firefox|Safari|Edge)\s*(?:中|上)?\s*(?:执行|运行|操作|打开|点击|检查|测试))/iu;
   return shellFence.test(text)
-    || shellOrArgvShape.test(text)
-    || runnerCommand.test(text)
-    || executablePath.test(text)
+    || argvOrShellAssignment.test(text)
     || testExecutionInstruction.test(text)
-    || namedDriver.test(text);
+    || namedDriverExecution.test(text);
+}
+
+function hasStageCommandSyntax(value) {
+  const text = value.trim();
+  const shellPrompt = /(?:^|[\s：:])[$>]\s+\S/iu;
+  const executablePathInstruction = /(?:执行|运行|调用)\s+(?:\.{1,2}\/|\/)[^\s"'`|]+/iu;
+  const asciiCommandWithArgument = /(?:^|(?:执行|运行|调用)\s+)(?:\.{1,2}\/)?[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.exe)?\s+(?:--?[A-Za-z0-9][^\s，。；|]*|https?:\/\/[^\s，。；|]+|(?:\.{0,2}\/|\/\/)[^\s，。；|]+|tests?\b|verify\b|build\b)/iu;
+  return hasGlobalExecutionBoundary(text)
+    || shellPrompt.test(text)
+    || executablePathInstruction.test(text)
+    || asciiCommandWithArgument.test(text);
 }
 
 function isBusinessAction(value) {
   const text = value.trim();
   const explicitHttpRequest = /^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[^\s|]+$/u;
   return explicitHttpRequest.test(text)
-    || (/\p{Script=Han}/u.test(text) && !hasToolExecution(text));
+    || (/\p{Script=Han}/u.test(text) && !hasStageCommandSyntax(text));
 }
 
 function duplicateIds(rows, idIndex, pattern, label, problems) {
@@ -195,7 +202,7 @@ function checkJourneys(testCasesText, e2eApplicability, problems) {
       continue;
     }
     if (cells.slice(1, 5).some(isPlaceholder)) problems.push(`E2E journey ${cells[0]} contains an empty or placeholder field`);
-    if (!isPlaceholder(cells[3]) && hasToolExecution(cells[3])) {
+    if (!isPlaceholder(cells[3]) && hasStageCommandSyntax(cells[3])) {
       problems.push(`E2E journey ${cells[0]} Steps must not select or direct execution tooling`);
     }
     if (!isPlaceholder(cells[4]) && !hasObservableEvidence(cells[4])) {
@@ -225,6 +232,9 @@ export function assertArtifactShape(testCasesText, impact = {}, testCasesPath = 
   }
   if (isPlaceholder(testCasesText)) {
     problems.push('test-design candidate contains an unresolved decision or placeholder');
+  }
+  if (hasGlobalExecutionBoundary(testCasesText)) {
+    problems.push('test-design candidate contains an explicit execution boundary violation');
   }
   let lastIndex = -1;
   for (const heading of REQUIRED_HEADINGS) {

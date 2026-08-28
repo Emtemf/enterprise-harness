@@ -80,6 +80,8 @@ assert.equal(assertTraceability(requirements, design, complete).verdict, 'pass')
 
 const legalBusinessAction = complete.replace('提交一次退款请求', '用户提交退款');
 assert.equal(assertArtifactShape(legalBusinessAction, impact).verdict, 'pass', 'business actions must remain legal');
+const legalNodeServiceAction = complete.replace('提交一次退款请求', '重启 Node 服务');
+assert.equal(assertArtifactShape(legalNodeServiceAction, impact).verdict, 'pass', 'a named runtime in a business action must remain legal');
 const legalHttpAction = complete.replace('提交一次退款请求', 'POST /refunds');
 assert.equal(assertArtifactShape(legalHttpAction, impact).verdict, 'pass', 'an explicit HTTP method and path must remain legal');
 const legalNodePrecondition = complete.replace('用户已认证且退款服务可用', 'Node 服务已启动且用户已认证');
@@ -146,6 +148,13 @@ for (const generic of ['接口正常', '页面正确', '流程成功', '接口�
     `short generic observable assertion ${generic} must block`,
   );
 }
+for (const genericWithUnrelatedLiteral of ['验证成功 1', '接口可用 "ok"']) {
+  expectBlock(
+    (candidate) => assertArtifactShape(candidate, impact),
+    complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', genericWithUnrelatedLiteral),
+    `generic observable assertion with an unrelated literal ${genericWithUnrelatedLiteral} must block`,
+  );
+}
 expectBlock(
   (candidate) => assertArtifactShape(candidate, impact),
   complete.replace('合法退款请求 refund-001', '<测试数据>'),
@@ -181,6 +190,35 @@ expectBlock(
   `${complete}\n## 执行计划\n\n- 由后续阶段执行。`,
   'an eighth top-level heading must block',
 );
+for (const [candidate, label] of [
+  [
+    complete.replace(
+      '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
+      '- TC2 覆盖 critical 失败信号；exact argv: ["npm","test"]。',
+    ),
+    'exact argv in a narrative section',
+  ],
+  [
+    complete.replace(
+      '- refund-001 与 refund-timeout 每次运行唯一；用例后删除退款记录并恢复网关故障注入。',
+      '- 使用 Playwright 执行测试并在用例后清理退款记录。',
+    ),
+    'explicit browser-driven test execution outside Actions or Steps',
+  ],
+  [
+    complete.replace(
+      '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
+      ['- 风险验证命令：', '```bash', 'npm test', '```'].join('\n'),
+    ),
+    'a shell code fence in a narrative section',
+  ],
+]) {
+  expectBlock(
+    (value) => assertArtifactShape(value, impact),
+    candidate,
+    `${label} must not appear anywhere in a test-design candidate`,
+  );
+}
 for (const [action, label] of [
   ['make test', 'Make test runner'],
   ['bazel test //refund:all', 'Bazel test runner'],
@@ -193,6 +231,8 @@ for (const [action, label] of [
   ['```powershell Invoke-Pester ```', 'PowerShell code fence'],
   ['$ run-all-tests --critical', 'shell prompt shape'],
   ['argv = ["run-all-tests", "--critical"]', 'argv assignment shape'],
+  ['用户执行 run-all-tests --critical', 'user-directed ASCII command with an option'],
+  ['用户执行 curl https://service.test', 'user-directed ASCII command with a URL'],
 ]) {
   expectBlock(
     (candidate) => assertArtifactShape(candidate, impact),
@@ -208,6 +248,8 @@ for (const [steps, label] of [
   ['通过 DevTools MCP 执行页面检查', 'DevTools MCP instruction'],
   ['使用 MCP 执行页面检查', 'MCP tool instruction'],
   ['make test', 'runner instruction in E2E steps'],
+  ['用户执行 run-all-tests --critical', 'user-directed ASCII command with an option in E2E steps'],
+  ['用户执行 curl https://service.test', 'user-directed ASCII command with a URL in E2E steps'],
 ]) {
   expectBlock(
     (candidate) => assertArtifactShape(candidate, impact),
