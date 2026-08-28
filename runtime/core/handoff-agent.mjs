@@ -12,6 +12,9 @@ export function agentForV2Handoff(stage, behavior, role) {
   if (/(^|\.)research-docs$/u.test(behavior)) {
     return { type: 'enterprise-harness:doc-research', skill: 'research-docs' };
   }
+  if (stage === 'design' && behavior === 'design.test-cases') {
+    return { type: 'enterprise-harness:test-design-worker', skill: 'test-design' };
+  }
   if (stage === 'implement') return { type: 'enterprise-harness:implementer', skill: 'implement' };
   return { type: 'enterprise-harness:artifact-worker', skill: stage };
 }

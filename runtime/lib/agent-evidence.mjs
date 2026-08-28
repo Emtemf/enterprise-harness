@@ -10,6 +10,7 @@ export const V6_CAPABILITY_AGENT_TYPES = new Set([
   'code-explore',
   'doc-research',
   'artifact-worker',
+  'test-design-worker',
   'implementer',
   'reviewer',
 ]);

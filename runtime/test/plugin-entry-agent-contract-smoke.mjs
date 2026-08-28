@@ -13,8 +13,8 @@ const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf-8');
 const plugin = JSON.parse(read('.claude-plugin/plugin.json'));
-const skills = ['harness', 'explore-code', 'research-docs', 'design', 'plan', 'implement', 'review', 'verify', 'archive'];
-const agents = ['code-explore', 'doc-research', 'artifact-worker', 'implementer', 'reviewer'];
+const skills = ['harness', 'explore-code', 'research-docs', 'design', 'test-design', 'plan', 'implement', 'review', 'verify', 'archive'];
+const agents = ['code-explore', 'doc-research', 'artifact-worker', 'test-design-worker', 'implementer', 'reviewer'];
 
 const check = () => {
   assert.equal(Object.hasOwn(plugin, 'commands'), false);

@@ -10,7 +10,7 @@ const references = fs.readdirSync(referenceRoot, { recursive: true })
   .filter((entry) => entry.endsWith('.md'))
   .map((entry) => `skills/harness/references/${entry.replaceAll(path.sep, '/')}`)
   .sort();
-const canonicalSkills = ['harness', 'explore-code', 'research-docs', 'design', 'plan', 'implement', 'review', 'verify', 'archive'];
+const canonicalSkills = ['harness', 'explore-code', 'research-docs', 'design', 'test-design', 'plan', 'implement', 'review', 'verify', 'archive'];
 const corpus = canonicalSkills.map((skill) => read(`skills/${skill}/SKILL.md`)).join('\n');
 
 assert.ok(references.length > 0, 'reference directory must contain markdown contracts');

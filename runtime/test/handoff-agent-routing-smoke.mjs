@@ -14,6 +14,10 @@ assert.deepEqual(
   { type: 'enterprise-harness:artifact-worker', skill: 'design' },
 );
 assert.deepEqual(
+  agentForV2Handoff('design', 'design.test-cases', 'execute'),
+  { type: 'enterprise-harness:test-design-worker', skill: 'test-design' },
+);
+assert.deepEqual(
   agentForV2Handoff('implement', 'implement.task', 'execute'),
   { type: 'enterprise-harness:implementer', skill: 'implement' },
 );

@@ -38,6 +38,7 @@ const requiredAgents = [
   './agents/code-explore.md',
   './agents/doc-research.md',
   './agents/artifact-worker.md',
+  './agents/test-design-worker.md',
   './agents/implementer.md',
   './agents/reviewer.md',
 ];
@@ -80,6 +81,7 @@ try {
     'code-explore.md',
     'doc-research.md',
     'artifact-worker.md',
+    'test-design-worker.md',
     'implementer.md',
     'reviewer.md',
   ]) {

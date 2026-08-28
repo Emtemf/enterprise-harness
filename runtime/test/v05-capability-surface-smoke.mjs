@@ -5,18 +5,18 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8'));
-const expectedSkills = ['harness', 'explore-code', 'research-docs', 'design', 'plan', 'implement', 'review', 'verify', 'archive'];
-const expectedAgents = ['code-explore', 'doc-research', 'artifact-worker', 'implementer', 'reviewer'];
+const expectedSkills = ['harness', 'explore-code', 'research-docs', 'design', 'test-design', 'plan', 'implement', 'review', 'verify', 'archive'];
+const expectedAgents = ['code-explore', 'doc-research', 'artifact-worker', 'test-design-worker', 'implementer', 'reviewer'];
 
 assert.deepEqual(
   plugin.skills.map((entry) => path.basename(entry.replace(/\/+$/u, ''))),
   expectedSkills,
-  'v0.5 plugin manifest must expose the canonical nine methodology skills',
+  'v0.5 plugin manifest must expose the canonical methodology skills',
 );
 assert.deepEqual(
   plugin.agents.map((entry) => path.basename(entry, '.md')),
   expectedAgents,
-  'v0.5 plugin manifest must expose the five capability agents',
+  'v0.5 plugin manifest must expose the capability agents',
 );
 for (const skill of expectedSkills) {
   assert.ok(fs.existsSync(path.join(root, 'skills', skill, 'SKILL.md')), `missing canonical skill ${skill}`);

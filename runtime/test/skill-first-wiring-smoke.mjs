@@ -11,6 +11,7 @@ const skills = {
   'explore-code': 'enterprise-harness:code-explore',
   'research-docs': 'enterprise-harness:doc-research',
   design: 'enterprise-harness:artifact-worker',
+  'test-design': 'enterprise-harness:test-design-worker',
   plan: 'enterprise-harness:artifact-worker',
   implement: 'enterprise-harness:implementer',
   review: 'enterprise-harness:reviewer',

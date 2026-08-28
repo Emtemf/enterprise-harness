@@ -19,6 +19,7 @@
     "./skills/explore-code/",
     "./skills/research-docs/",
     "./skills/design/",
+    "./skills/test-design/",
     "./skills/plan/",
     "./skills/implement/",
     "./skills/review/",
@@ -29,6 +30,7 @@
     "./agents/code-explore.md",
     "./agents/doc-research.md",
     "./agents/artifact-worker.md",
+    "./agents/test-design-worker.md",
     "./agents/implementer.md",
     "./agents/reviewer.md"
   ],
