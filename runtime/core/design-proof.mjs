@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import {
   isSafeId,
   resolveChild,
@@ -44,29 +45,32 @@ function sameDigestMap(left, right) {
   return JSON.stringify(entries(left)) === JSON.stringify(entries(right));
 }
 
-function sameTecpc(left, right) {
-  return left?.target === right?.target
-    && JSON.stringify(left?.evidence || []) === JSON.stringify(right?.evidence || [])
-    && JSON.stringify(left?.context || []) === JSON.stringify(right?.context || [])
-    && left?.path === right?.path
-    && left?.correction === right?.correction;
-}
-
-function cloneTecpc(tecpc) {
+function canonicalRoleTecpc(role, tecpc) {
   return {
-    ...tecpc,
+    role,
+    target: tecpc.target,
     evidence: [...tecpc.evidence],
     context: [...tecpc.context],
+    path: tecpc.path,
+    correction: tecpc.correction,
   };
 }
 
 function canonicalChainTecpc(executionTecpc, reviewTecpc) {
-  if (sameTecpc(executionTecpc, reviewTecpc)) return cloneTecpc(executionTecpc);
+  const canonical = JSON.stringify({
+    version: 1,
+    execute: canonicalRoleTecpc('execute', executionTecpc),
+    review: canonicalRoleTecpc('review', reviewTecpc),
+  });
+  const digest = createHash('sha256')
+    .update('enterprise-harness:design-chain-tecpc:v1\n')
+    .update(canonical)
+    .digest('hex');
   return {
     target: `execute(${executionTecpc.target}) -> review(${reviewTecpc.target})`,
-    evidence: [...new Set([...executionTecpc.evidence, ...reviewTecpc.evidence])],
-    context: [...new Set([...executionTecpc.context, ...reviewTecpc.context])],
-    path: `${executionTecpc.path} -> review(${reviewTecpc.path})`,
+    evidence: [...executionTecpc.evidence, ...reviewTecpc.evidence],
+    context: [...executionTecpc.context, ...reviewTecpc.context],
+    path: `execute(${executionTecpc.path}) -> review(${reviewTecpc.path}) -> tecpc-chain-sha256:${digest}`,
     correction: null,
   };
 }

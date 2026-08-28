@@ -100,7 +100,13 @@ try {
     parentRunId: architectureExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [designRef],
-    tecpc: architectureTecpc,
+    tecpc: {
+      ...architectureTecpc,
+      target: 'review architecture design',
+      evidence: [requirementsRef],
+      context: [designRef],
+      path: `${designRef} -> review architecture`,
+    },
   });
   const architectureReview = reviewResult(
     architectureCheck.input,
@@ -152,7 +158,13 @@ try {
     parentRunId: testDesignExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [testCasesRef],
-    tecpc: testDesignTecpc,
+    tecpc: {
+      ...testDesignTecpc,
+      target: 'review detailed test cases',
+      evidence: [designRef],
+      context: [requirementsRef],
+      path: `${testCasesRef} -> review test design`,
+    },
   });
   const testDesignReview = reviewResult(
     testDesignCheck.input,
@@ -167,6 +179,42 @@ try {
   const compoundProof = buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview);
   writeJson(path.join(root, designProofRef), compoundProof);
   assert.deepEqual(validateDesignStageGate(root, changeId), []);
+
+  const expandedArchitectureTecpc = {
+    ...architectureExecute.input.tecpc,
+    evidence: [...architectureExecute.input.tecpc.evidence, ...architectureCheck.input.tecpc.evidence],
+    context: [...architectureExecute.input.tecpc.context, ...architectureCheck.input.tecpc.context],
+  };
+  writeJson(architectureExecute.path, { ...architectureExecute.input, tecpc: expandedArchitectureTecpc });
+  writeJson(v2ResultPath(root, changeId, architectureExecute.runId), {
+    ...architectureResult,
+    tecpc: expandedArchitectureTecpc,
+  });
+  const architectureCollisionProblems = validateDesignStageGate(root, changeId);
+  writeJson(architectureExecute.path, architectureExecute.input);
+  writeJson(v2ResultPath(root, changeId, architectureExecute.runId), architectureResult);
+
+  const expandedTestDesignTecpc = {
+    ...testDesignExecute.input.tecpc,
+    evidence: [...testDesignExecute.input.tecpc.evidence, ...testDesignCheck.input.tecpc.evidence],
+    context: [...testDesignExecute.input.tecpc.context, ...testDesignCheck.input.tecpc.context],
+  };
+  writeJson(testDesignExecute.path, { ...testDesignExecute.input, tecpc: expandedTestDesignTecpc });
+  writeJson(v2ResultPath(root, changeId, testDesignExecute.runId), {
+    ...testDesignResult,
+    tecpc: expandedTestDesignTecpc,
+  });
+  const testDesignCollisionProblems = validateDesignStageGate(root, changeId);
+  writeJson(testDesignExecute.path, testDesignExecute.input);
+  writeJson(v2ResultPath(root, changeId, testDesignExecute.runId), testDesignResult);
+  assert.deepEqual(
+    [
+      architectureCollisionProblems.some((problem) => /architecture proof does not exactly bind the canonical architecture chain/iu.test(problem)),
+      testDesignCollisionProblems.some((problem) => /design CompletionProof does not exactly bind canonical result, TECPC, artifacts, and run IDs/u.test(problem)),
+    ],
+    [true, true],
+    'existing proofs must not survive architecture or test-design TECPC provenance collisions',
+  );
 
   const tecpcMutations = [
     [

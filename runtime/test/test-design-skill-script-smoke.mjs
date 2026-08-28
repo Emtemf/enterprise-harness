@@ -6,6 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { buildDesignArchitectureProof } from '../core/design-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { approvedRequirements } from './clarify-readiness-fixture.mjs';
@@ -187,17 +188,7 @@ try {
     verdict: 'pass', correction: null, reviewedAt: '2026-08-28T00:00:01.000Z',
   };
   writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), architectureReview);
-  const architectureProof = {
-    proofVersion: 1,
-    type: 'design-architecture-proof',
-    changeId,
-    executionRunId: architectureExecute.runId,
-    reviewRunId: architectureCheck.runId,
-    artifacts: [{ path: designRef, digest: sha256Artifact(root, designRef) }],
-    inputDigests: { ...architectureResult.inputDigests },
-    tecpc: { ...architectureTecpc },
-    createdAt: '2026-08-28T00:00:02.000Z',
-  };
+  const architectureProof = buildDesignArchitectureProof(root, architectureResult, architectureReview);
   writeJson(path.join(root, architectureProofRef), architectureProof);
   const architectureResultRef = path.relative(root, architectureResultPath).split(path.sep).join('/');
   appendCompletedHandoffBinding(root, changeId, architectureExecute.input, { agentId: 'architecture-script-executor' });
