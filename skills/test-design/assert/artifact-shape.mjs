@@ -64,14 +64,15 @@ export function isPlaceholder(value, { allowDash = false } = {}) {
   if (allowDash && text === '-') return false;
   return text.length === 0
     || text === '-'
-    || /(?:\b(?:TBD|TODO|unknown|placeholder)\b|待定|按需|<[^>]+>)/iu.test(text)
+    || /(?:\b(?:TBD|TODO|NEEDS_DECISION|unknown|placeholder)\b|待定|未决|待补充|按需|<[^>]+>)/iu.test(text)
     || /^(?:null|none)$/iu.test(text)
     || /\{\{[^}]+\}\}|\[\[[^\]]+\]\]/u.test(text);
 }
 
 function genericAssertion(value) {
   const normalized = value.trim().replace(/[。.!！\s]+$/gu, '');
-  return /^(?:验证成功|测试通过|通过|成功|正常|符合预期|works?|success|pass(?:es|ed)?)$/iu.test(normalized);
+  return /(?:验证成功|测试通过|符合预期|运行正常|工作正常)$/iu.test(normalized)
+    || /^(?:通过|成功|正常|works?|success|pass(?:es|ed)?)$/iu.test(normalized);
 }
 
 function duplicateIds(rows, idIndex, pattern, label, problems) {
@@ -133,6 +134,7 @@ function checkCases(testCasesText, problems) {
   const rows = tableRows(section(testCasesText, '测试用例'), CASE_HEADER, 'test case', problems);
   if (rows.length === 0) problems.push('test case table must contain at least one case');
   duplicateIds(rows, 0, /^TC[1-9][0-9]*$/u, 'TCID', problems);
+  if (!rows.some((cells) => cells[0] === 'TC1')) problems.push('test case identifiers must start with TC1');
   for (const cells of rows) {
     if (cells.length !== CASE_HEADER.length) {
       problems.push(`test case ${cells[0] || '<empty>'} must have exactly ${CASE_HEADER.length} columns`);
@@ -175,8 +177,28 @@ function substantiveSection(testCasesText, heading, problems) {
   }
 }
 
+function checkBehaviorBoundary(testCasesText, problems) {
+  if (/\bexact\s+argv\s*[：:]/iu.test(testCasesText)) {
+    problems.push('test-design candidate must not freeze exact argv');
+  }
+  if (/^\s*(?:[-*]\s*)?(?:运行|执行)?\s*(?:npm\s+(?:test|run\b)|pnpm\s+(?:test|run\b)|yarn\s+(?:test|run\b)|\.\/mvnw\b.*\b(?:test|verify)\b|mvn\b.*\b(?:test|verify)\b|pytest\b|go\s+test\b)/imu.test(testCasesText)) {
+    problems.push('test-design candidate must not contain a test execution command');
+  }
+  if (/(?:使用|调用|启动|通过)\s*(?:Playwright|浏览器|browser|DevTools)[^\n]*(?:打开|点击|输入|导航|执行|测试)/iu.test(testCasesText)) {
+    problems.push('test-design candidate must not contain browser execution instructions');
+  }
+}
+
 export function assertArtifactShape(testCasesText, impact = {}, testCasesPath = 'test-cases.md') {
   const problems = [];
+  const actualHeadings = [...testCasesText.matchAll(/^##\s+(.+?)\s*$/gmu)].map((match) => match[1]);
+  if (actualHeadings.length !== REQUIRED_HEADINGS.length
+      || actualHeadings.some((heading, index) => heading !== REQUIRED_HEADINGS[index])) {
+    problems.push(`top-level headings must be exactly: ${REQUIRED_HEADINGS.join(' -> ')}`);
+  }
+  if (isPlaceholder(testCasesText)) {
+    problems.push('test-design candidate contains an unresolved decision or placeholder');
+  }
   let lastIndex = -1;
   for (const heading of REQUIRED_HEADINGS) {
     const matches = [...testCasesText.matchAll(new RegExp(`^##\\s+${escapePattern(heading)}\\s*$`, 'gmu'))];
@@ -184,6 +206,7 @@ export function assertArtifactShape(testCasesText, impact = {}, testCasesPath = 
     if (matches[0] && matches[0].index < lastIndex) problems.push(`${heading} is out of order`);
     if (matches[0]) lastIndex = matches[0].index;
   }
+  checkBehaviorBoundary(testCasesText, problems);
 
   const e2eApplicability = checkScope(testCasesText, impact, problems);
   checkCoverageMatrix(testCasesText, problems);

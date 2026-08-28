@@ -4,7 +4,7 @@
 
 ## 稳定形状
 
-顶层章节按顺序且各出现一次：
+顶层 `##` 章节全集必须恰好为以下七节，按顺序且各出现一次；任何第八节都 fail closed：
 
 1. `输入与测试范围`
 2. `Coverage Matrix`
@@ -22,21 +22,22 @@
 
 - `TCID` 只接受唯一 `TC<number>`，从 `TC1` 开始；不能使用别名、零号、后缀或重复 ID。
 - `Traces` 只接受以 `/` 分隔、真实存在的 `R<number> / D<number> / VO<number>`，每个 case 三类引用都必须存在。
+- `D<number>` 只从 Architecture Design 的 `### Decisions` 精确表读取；声明必须恰好五列、字段完整且 `Status=accepted`，Alternatives 或 needs-decision 不能成为可引用决定。
 - `Level` 只接受 `unit|integration|contract|migration|security|E2E`。
 - `Priority` 只接受 `critical|high|normal`；`Status` 只接受 `accepted`。
 - 十列都是语义字段；空值、`-`、TBD/TODO/待定/按需、模板标记和泛化断言均 fail closed。
 
 ## Coverage 与 journey
 
-Coverage Matrix 的列固定为 `Source / Concern / Criticality / Applicability / Covered By / N/A Reason`。每个 `R*` 和 `VO*` 必须有 applicable 行且指向存在的 `TC*`；critical 行必须解析到 critical-priority case。`N/A` 行的 `Covered By` 必须为 `-`，并提供具体理由。
+Coverage Matrix 的列固定为 `Source / Concern / Criticality / Applicability / Covered By / N/A Reason`。每个上游 `R*` 和 `VO*` 必须恰好有一行 applicable coverage，未知 R/VO 或重复 Source 均 block。`Covered By` 只能是以 `/` 分隔的纯 `TC<number>` 列表，且每个 ID 都必须真实声明；critical 行必须解析到 critical-priority case。`N/A` 行的 `Covered By` 必须为 `-`，并提供具体理由。
 
 输入范围必须唯一声明 E2E 为 `applicable` 或 `N/A` 并解释原因。适用时至少有一个 `J<number>` journey；journey 必须 trace 已声明的 `R/D/VO` 和存在的 `TC`，并给出前置、步骤、可观察结果和 `accepted` 状态。
 
 ## 语义边界
 
-Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。数据、清理和恢复必须足以暴露主要失败信号；“验证成功”不构成 observable assertion。
+Test Design 设计测试，不执行测试、不调用浏览器、不探测外部环境、不冻结 exact argv。candidate 中的 exact argv、测试执行命令或浏览器执行说明直接 block。数据、清理和恢复必须足以暴露主要失败信号；“验证成功”“系统验证成功”等修饰后的泛化语句都不构成 observable assertion。
 
-未决业务选择输出 `NEEDS_DECISION`，不能生成 `pass` candidate。self-check 的 passing 形状必须明确 `verdict: pass`、`unresolved decisions: none`、`placeholders: none`；self-check 不是 approval。
+未决业务选择在 candidate 之外输出 `NEEDS_DECISION`，不能生成 `pass` candidate。candidate 任意语义位置出现 `NEEDS_DECISION`、未决、待补充、TBD/TODO 或模板标记都 block。self-check 的 passing 形状必须明确 `verdict: pass`、`unresolved decisions: none`、`placeholders: none`；self-check 不是 approval。
 
 ## 完成证据
 

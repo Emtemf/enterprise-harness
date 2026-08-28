@@ -1,4 +1,4 @@
-import { section, tableRows } from './artifact-shape.mjs';
+import { isPlaceholder, section, tableRows } from './artifact-shape.mjs';
 
 const CASE_HEADER = ['TCID', 'Traces', 'Level', 'Priority', 'Preconditions', 'Data', 'Actions', 'Observable assertions', 'Cleanup/Recovery', 'Status'];
 const JOURNEY_HEADER = ['Journey ID', 'Traces', 'Preconditions', 'Steps', 'Observable outcome', 'Status'];
@@ -11,13 +11,30 @@ function requirementIds(requirementsText) {
   return new Set([...acceptanceSection(requirementsText).matchAll(/^\s*-\s+(R[1-9][0-9]*)\s*[：:]/gmu)].map((match) => match[1]));
 }
 
-function declarationIds(designText, heading, header, pattern, label, problems) {
-  const rows = tableRows(section(designText, heading), header, label, problems);
+function subsection(text, heading) {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return text.match(new RegExp(`^###\\s+${escaped}\\s*$([\\s\\S]*?)(?=^###\\s+|(?![\\s\\S]))`, 'mu'))?.[1]?.trim() ?? '';
+}
+
+function declarationIds(sectionText, header, pattern, label, problems, { statusIndex = null } = {}) {
+  const rows = tableRows(sectionText, header, label, problems);
   const ids = new Set();
   for (const cells of rows) {
     const id = cells[0] ?? '';
     if (!pattern.test(id)) continue;
     if (ids.has(id)) problems.push(`duplicate ${label}: ${id}`);
+    if (cells.length !== header.length) {
+      problems.push(`${label} ${id} must have exactly ${header.length} columns`);
+      continue;
+    }
+    if (cells.slice(1).some(isPlaceholder)) {
+      problems.push(`${label} ${id} contains an empty, unresolved, or placeholder field`);
+      continue;
+    }
+    if (statusIndex !== null && cells[statusIndex] !== 'accepted') {
+      problems.push(`${label} ${id} status must be accepted`);
+      continue;
+    }
     ids.add(id);
   }
   return ids;
@@ -50,16 +67,15 @@ export function assertTraceability(
   const known = {
     R: requirementIds(requirementsText),
     D: declarationIds(
-      designText,
-      '方案与权衡',
+      subsection(section(designText, '方案与权衡'), 'Decisions'),
       ['DID', 'Context（EID）', 'Decision', 'Consequences', 'Status'],
       /^D[1-9][0-9]*$/u,
       'decision',
       problems,
+      { statusIndex: 4 },
     ),
     VO: declarationIds(
-      designText,
-      '可验证性义务',
+      section(designText, '可验证性义务'),
       ['VOID', 'Requirement / Decision', '必须可观察的行为', '主要失败信号', '后续 Test Design 入口'],
       /^VO[1-9][0-9]*$/u,
       'verification obligation',

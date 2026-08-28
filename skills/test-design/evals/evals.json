@@ -46,8 +46,8 @@
     },
     {
       "id": "adversarial-artifact",
-      "description": "重复 TC、未知 R/D/VO、空或泛化断言、占位符、非法枚举与无理由 N/A",
-      "expected": "三个 assertions fail closed 并给出对应 problems",
+      "description": "重复或缺 TC1、未知 R/D/VO/TC、重复 coverage source、空或修饰后的泛化断言、未决占位符、非法枚举、第八节与执行越界",
+      "expected": "三个 assertions 对 needs-decision D、非纯 Covered By、无理由 N/A、exact argv、测试命令和浏览器说明 fail closed，并给出对应 problems",
       "category": "runtime-gate"
     }
   ]

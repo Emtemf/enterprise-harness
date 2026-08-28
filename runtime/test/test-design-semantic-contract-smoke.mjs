@@ -29,26 +29,17 @@ const requirements = [
   '- R1：已认证用户提交合法退款后返回退款标识。',
 ].join('\n');
 
-const design = [
-  '# Design',
-  '## 事实与约束',
-  '| EID | 来源 | 已确认事实 |',
-  '|---|---|---|',
-  '| E1 | requirements.md | 退款入口面向已认证用户 |',
-  '## 方案与权衡',
-  '### Decisions',
-  '| DID | Context（EID） | Decision | Consequences | Status |',
-  '|---|---|---|---|---|',
-  '| D1 | E1 | 复用退款应用服务 | 保持事务边界 | accepted |',
-  '## Requirement Trace',
-  '| Requirement | Decision | Evidence | Verification Obligation | Rollback |',
-  '|---|---|---|---|---|',
-  '| R1 | D1 | E1 | VO1 | RB1 |',
-  '## 可验证性义务',
-  '| VOID | Requirement / Decision | 必须可观察的行为 | 主要失败信号 | 后续 Test Design 入口 |',
-  '|---|---|---|---|---|',
-  '| VO1 | R1 / D1 | 返回唯一退款标识 | 未返回退款标识或网关超时 | 由 test-design 映射 TC* |',
-].join('\n');
+const designTemplate = fs.readFileSync(path.join(root, 'skills/design/assets/design.md.tmpl'), 'utf-8');
+const decisionRow = '| D1 | E1 | 复用退款应用服务 | 保持事务边界 | accepted |';
+const design = designTemplate
+  .replace('| E1 | | |', '| E1 | requirements.md | 退款入口面向已认证用户 |')
+  .replace('| A | | | |', '| A | 复用现有服务 | 需要补充失败契约 | 采用 |')
+  .replace('| B | | | |', '| B | 新建退款服务 | 增加部署与一致性成本 | 拒绝 |')
+  .replace('| D1 | E1 | | | accepted / needs-decision |', decisionRow)
+  .replace(
+    '| VO1 | R1 / D1 | | | 由 test-design 映射 TC* |',
+    '| VO1 | R1 / D1 | 返回唯一退款标识 | 未返回退款标识或网关超时 | 由 test-design 映射 TC* |',
+  );
 
 const complete = [
   '# Test Cases',
@@ -118,6 +109,11 @@ expectBlock(
 );
 expectBlock(
   (candidate) => assertArtifactShape(candidate, impact),
+  complete.replace('响应包含非空退款标识且持久化记录与 refund-001 一致', '系统验证成功'),
+  'decorated generic observable assertion must block',
+);
+expectBlock(
+  (candidate) => assertArtifactShape(candidate, impact),
   complete.replace('合法退款请求 refund-001', '<测试数据>'),
   'template placeholders must block',
 );
@@ -125,6 +121,85 @@ expectBlock(
   (candidate) => assertArtifactShape(candidate, impact),
   complete.replace('合法退款请求 refund-001', '合法退款请求 <refund-id>'),
   'embedded template placeholders must block',
+);
+for (const [value, label] of [
+  ['合法退款请求 NEEDS_DECISION', 'NEEDS_DECISION'],
+  ['合法退款请求仍未决', 'unresolved text'],
+  ['合法退款请求待补充', 'pending-completion text'],
+]) {
+  expectBlock(
+    (candidate) => assertArtifactShape(candidate, impact),
+    complete.replace('合法退款请求 refund-001', value),
+    `${label} must block`,
+  );
+}
+expectBlock(
+  (candidate) => assertArtifactShape(candidate, impact),
+  complete.replace(
+    '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
+    '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。\n- 补充风险仍为 NEEDS_DECISION。',
+  ),
+  'placeholders in narrative sections must block',
+);
+
+expectBlock(
+  (candidate) => assertArtifactShape(candidate, impact),
+  `${complete}\n## 执行计划\n\n- 由后续阶段执行。`,
+  'an eighth top-level heading must block',
+);
+for (const [line, label] of [
+  ['- exact argv：["./mvnw", "test"]', 'exact argv'],
+  ['- 运行 npm test', 'test execution command'],
+  ['- 使用 Playwright 打开浏览器并点击提交按钮', 'browser execution instruction'],
+]) {
+  expectBlock(
+    (candidate) => assertArtifactShape(candidate, impact),
+    complete.replace(
+      '- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。',
+      `- TC2 覆盖 critical 失败信号；TC1 与 J1 覆盖最短成功路径，二者均不可删除。\n${line}`,
+    ),
+    `${label} must not appear in a test-design candidate`,
+  );
+}
+
+expectBlock(
+  (candidateDesign) => assertTraceability(requirements, candidateDesign, complete),
+  design.replace(decisionRow, '| D1 | E1 | 复用退款应用服务 | 保持事务边界 | needs-decision |'),
+  'a referenced needs-decision decision must block',
+);
+expectBlock(
+  (candidateDesign) => assertTraceability(requirements, candidateDesign, complete),
+  design.replace(decisionRow, '| D1 | E1 | | 保持事务边界 | accepted |'),
+  'an incomplete accepted decision must block',
+);
+
+for (const unknownSource of ['R9', 'VO9']) {
+  expectBlock(
+    (candidate) => assertCoverage(requirements, design, candidate),
+    complete.replace(
+      '| migration | 数据迁移 | normal | N/A | - | 本变更不修改数据结构 |',
+      `| ${unknownSource} | 伪造上游来源 | normal | N/A | - | 伪造来源不适用 |\n| migration | 数据迁移 | normal | N/A | - | 本变更不修改数据结构 |`,
+    ),
+    `unknown coverage source ${unknownSource} must block`,
+  );
+}
+expectBlock(
+  (candidate) => assertCoverage(requirements, design, candidate),
+  complete.replace(
+    '| R1 | 合法退款成功 | normal | applicable | TC1 | - |',
+    '| R1 | 合法退款成功 | normal | applicable | TC1 | - |\n| R1 | 退款重复覆盖 | normal | N/A | - | 已由另一行覆盖 |',
+  ),
+  'duplicate coverage source rows must block',
+);
+expectBlock(
+  (candidate) => assertCoverage(requirements, design, candidate),
+  complete.replace('| R1 | 合法退款成功 | normal | applicable | TC1 | - |', '| R1 | 合法退款成功 | normal | applicable | TC1 / TC99 | - |'),
+  'Covered By with one unknown TC must block',
+);
+expectBlock(
+  (candidate) => assertCoverage(requirements, design, candidate),
+  complete.replace('| R1 | 合法退款成功 | normal | applicable | TC1 | - |', '| R1 | 合法退款成功 | normal | applicable | TC1 and TC2 | - |'),
+  'Covered By must be a pure slash-separated TC list',
 );
 expectBlock(
   (candidate) => assertCoverage(requirements, design, candidate),
@@ -151,6 +226,11 @@ expectBlock(
   (candidate) => assertArtifactShape(candidate, impact),
   complete.replace('| TC1 | R1 / D1 / VO1 |', '| CASE1 | R1 / D1 / VO1 |'),
   'non-stable TC identifiers must block',
+);
+expectBlock(
+  (candidate) => assertArtifactShape(candidate, impact),
+  complete.replaceAll('TC1', 'TC3'),
+  'the stable TC sequence must start with TC1',
 );
 
 for (const [valid, invalid, label] of [

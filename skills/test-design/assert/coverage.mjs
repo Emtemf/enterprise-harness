@@ -13,8 +13,7 @@ function requirementIds(requirementsText) {
   return [...acceptanceSection(requirementsText).matchAll(/^\s*-\s+(R[1-9][0-9]*)\s*[：:]/gmu)].map((match) => match[1]);
 }
 
-function verificationIds(designText) {
-  const problems = [];
+function verificationIds(designText, problems) {
   return tableRows(
     section(designText, '可验证性义务'),
     ['VOID', 'Requirement / Decision', '必须可观察的行为', '主要失败信号', '后续 Test Design 入口'],
@@ -23,8 +22,14 @@ function verificationIds(designText) {
   ).map((cells) => cells[0]).filter((id) => /^VO[1-9][0-9]*$/u.test(id));
 }
 
-function referencedCases(value) {
-  return value.match(/\bTC[1-9][0-9]*\b/gu) ?? [];
+function referencedCases(value, owner, problems) {
+  if (!/^(?:TC[1-9][0-9]*)(?:\s*\/\s*TC[1-9][0-9]*)*$/u.test(value)) {
+    problems.push(`${owner} Covered By must be a pure slash-separated TC list`);
+    return [];
+  }
+  const ids = value.split(/\s*\/\s*/u);
+  if (new Set(ids).size !== ids.length) problems.push(`${owner} Covered By contains duplicate TC IDs`);
+  return ids;
 }
 
 export function assertCoverage(
@@ -35,29 +40,45 @@ export function assertCoverage(
 ) {
   const problems = [];
   const requirements = requirementIds(requirementsText);
-  const obligations = verificationIds(designText);
+  const obligations = verificationIds(designText, problems);
   const caseRows = tableRows(section(testCasesText, '测试用例'), CASE_HEADER, 'test case', problems);
   const cases = new Map(caseRows.filter((cells) => cells.length === CASE_HEADER.length).map((cells) => [cells[0], cells]));
   const coverageRows = tableRows(section(testCasesText, 'Coverage Matrix'), COVERAGE_HEADER, 'coverage matrix', problems)
     .filter((cells) => cells.length === COVERAGE_HEADER.length);
+  const knownSources = new Set([...requirements, ...obligations]);
+  const sourceCounts = coverageRows.reduce(
+    (counts, cells) => counts.set(cells[0], (counts.get(cells[0]) ?? 0) + 1),
+    new Map(),
+  );
 
   if (requirements.length === 0) problems.push('requirements contain no stable R<number> identifiers');
   if (obligations.length === 0) problems.push('design contains no stable VO<number> declarations');
 
-  for (const source of [...requirements, ...obligations]) {
+  for (const [source, count] of sourceCounts) {
+    if (count > 1) problems.push(`duplicate coverage source: ${source}`);
+    if (/^(?:R|VO)[1-9][0-9]*$/u.test(source) && !knownSources.has(source)) {
+      problems.push(`coverage references unknown upstream source: ${source}`);
+    }
+  }
+
+  for (const source of knownSources) {
     const rows = coverageRows.filter((cells) => cells[0] === source && cells[3] === 'applicable');
-    if (rows.length === 0) {
-      problems.push(`missing applicable coverage for ${source}`);
+    if (rows.length !== 1) {
+      problems.push(`${source} must have exactly one applicable coverage row`);
       continue;
     }
-    if (!rows.some((cells) => referencedCases(cells[4]).some((id) => cases.has(id)))) {
+    const coveredCases = referencedCases(rows[0][4], source, problems);
+    if (!coveredCases.some((id) => cases.has(id))) {
       problems.push(`${source} coverage does not resolve to an existing test case`);
     }
   }
 
   for (const cells of coverageRows) {
     if (cells[3] !== 'applicable') continue;
-    const resolved = referencedCases(cells[4]).filter((id) => cases.has(id));
+    const declared = referencedCases(cells[4], cells[0], problems);
+    const unknown = declared.filter((id) => !cases.has(id));
+    for (const id of unknown) problems.push(`coverage ${cells[0]} references unknown test case: ${id}`);
+    const resolved = declared.filter((id) => cases.has(id));
     if (resolved.length === 0) problems.push(`applicable coverage ${cells[0]} has no existing case`);
     if (cells[2] === 'critical' && !resolved.some((id) => cases.get(id)?.[3] === 'critical')) {
       problems.push(`critical coverage ${cells[0]} requires a critical-priority case`);
@@ -71,7 +92,8 @@ export function assertCoverage(
       .filter((cells) => cells.length === JOURNEY_HEADER.length && /^J[1-9][0-9]*$/u.test(cells[0]));
     if (journeys.length === 0) problems.push('applicable E2E scope has no journey');
     for (const cells of journeys) {
-      if (!referencedCases(cells[1]).some((id) => cases.has(id))) {
+      const journeyCases = cells[1].match(/\bTC[1-9][0-9]*\b/gu) ?? [];
+      if (!journeyCases.some((id) => cases.has(id))) {
         problems.push(`E2E journey ${cells[0]} does not reference an existing test case`);
       }
     }
