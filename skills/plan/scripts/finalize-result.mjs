@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
-import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
+import { sha256Artifact, validateCanonicalDesignProof, validatePlanTestCaseBindings, validateStageResult } from '../../../runtime/api/result.mjs';
 import { assertNoSymlinkComponents, assertSafeId, assertSafeRunId, resolveChild } from '../../../runtime/api/task.mjs';
 import { assertTaskShape } from '../assert/task-shape.mjs';
 
@@ -51,6 +51,10 @@ try {
   if (designProof.type !== 'completion-proof' || designProof.stage !== 'design') {
     throw new Error('EH-PLAN-FINALIZE-009: compound DesignProof is invalid');
   }
+  const canonicalDesignProblems = validateCanonicalDesignProof(root, changeId);
+  if (canonicalDesignProblems.length > 0) {
+    throw new Error(`EH-PLAN-FINALIZE-009: canonical compound DesignProof is invalid: ${canonicalDesignProblems.join('; ')}`);
+  }
   const artifactPath = `harness/changes/${changeId}/tasks.md`;
   const absolutePath = path.join(root, artifactPath);
   assertNoSymlinkComponents(changeDir, absolutePath, 'tasks.md');
@@ -58,6 +62,13 @@ try {
   const assertResult = assertTaskShape(fs.readFileSync(absolutePath, 'utf-8'));
   if (assertResult.verdict === 'block') {
     throw new Error(`EH-PLAN-FINALIZE-003: ${assertResult.findings.join('; ')}`);
+  }
+  const testCaseBindings = validatePlanTestCaseBindings(
+    fs.readFileSync(path.join(root, testCasesRef), 'utf-8'),
+    fs.readFileSync(absolutePath, 'utf-8'),
+  );
+  if (testCaseBindings.problems.length > 0) {
+    throw new Error(`EH-PLAN-FINALIZE-010: ${testCaseBindings.problems.join('; ')}`);
   }
   const assertions = [
     { id: assertResult.id, verdict: assertResult.verdict, evidence: assertResult.evidence },

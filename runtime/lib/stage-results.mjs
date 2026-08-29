@@ -28,6 +28,9 @@ import {
   validateStageResult,
   validateTecpc,
 } from './result-contract.mjs';
+import { validatePlanTestCaseBindings } from './plan-test-case-binding.mjs';
+import { validateVerificationReceiptsForStageResult } from './verification-receipts.mjs';
+import { validateArchiveManifest } from './archive-manifest.mjs';
 
 const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
   clarify: (changeId) => stageContractArtifactPaths(changeId, 'clarify'),
@@ -543,6 +546,24 @@ function stageCompletionCandidateFor(root, changeId, stage, {
     if (!execution.input.inputRefs.includes(designProofRef)) {
       executionProblems.push(`${executionCandidate.runId}: plan input must digest-bind compound DesignProof`);
     }
+    const designProblems = validateStageGate(root, changeId, 'design', {
+      requiredArtifactPath: `harness/changes/${changeId}/design.md`,
+    });
+    executionProblems.push(...designProblems.map((problem) => `${executionCandidate.runId}: canonical DesignProof: ${problem}`));
+  }
+  if (stage === 'verify') {
+    const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+    const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
+    if (!execution.input.inputRefs.includes(testCasesRef)) {
+      executionProblems.push(`${executionCandidate.runId}: verify input must digest-bind test-cases.md`);
+    }
+    if (!execution.input.inputRefs.includes(designProofRef)) {
+      executionProblems.push(`${executionCandidate.runId}: verify input must digest-bind compound DesignProof`);
+    }
+    const designProblems = validateStageGate(root, changeId, 'design', {
+      requiredArtifactPath: `harness/changes/${changeId}/design.md`,
+    });
+    executionProblems.push(...designProblems.map((problem) => `${executionCandidate.runId}: canonical DesignProof: ${problem}`));
   }
   executionProblems.push(...freshInputDigests(root, execution.input).map((problem) => `${executionCandidate.runId}: ${problem}`));
   if (!execution.result) executionProblems.push(`${executionCandidate.runId}: StageResult is missing`);
@@ -565,6 +586,33 @@ function stageCompletionCandidateFor(root, changeId, stage, {
     const missing = requiredArtifacts.filter((artifactPath) => !artifacts.some((artifact) => artifact.path === artifactPath));
     if (missing.length > 0) executionProblems.push(`${executionCandidate.runId}: StageResult does not bind ${missing.join(', ')}`);
     if (execution.result.status !== 'pass' || execution.result.selfCheck?.verdict !== 'pass') executionProblems.push(`${executionCandidate.runId}: StageResult self-check did not pass`);
+    if (stage === 'plan') {
+      const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+      const tasksRef = `harness/changes/${changeId}/tasks.md`;
+      try {
+        const bindings = validatePlanTestCaseBindings(
+          fs.readFileSync(path.join(root, testCasesRef), 'utf-8'),
+          fs.readFileSync(path.join(root, tasksRef), 'utf-8'),
+        );
+        executionProblems.push(...bindings.problems.map((problem) => `${executionCandidate.runId}: ${problem}`));
+      } catch (error) {
+        executionProblems.push(`${executionCandidate.runId}: Plan test-case bindings are unreadable: ${error.message}`);
+      }
+    }
+    if (stage === 'verify') {
+      executionProblems.push(...validateVerificationReceiptsForStageResult(root, {
+        changeId,
+        verifyRunId: execution.input.runId,
+        inputDigests: execution.input.inputDigests,
+        artifacts,
+      }).map((problem) => `${executionCandidate.runId}: ${problem}`));
+    }
+    if (stage === 'archive') {
+      executionProblems.push(...validateArchiveManifest(root, changeId, {
+        expectedArchiveRunId: execution.input.runId,
+        expectedInputDigests: execution.input.inputDigests,
+      }).map((problem) => `${executionCandidate.runId}: ${problem}`));
+    }
   }
   const isMainOwnedClarify = stage === 'clarify' && normalizeAgentType(execution.input.agent?.type) === 'enterprise-harness:main';
   const producerBindings = isMainOwnedClarify ? [{ agentId: 'enterprise-harness:main' }] : trustedHandoffAgentBindings(root, changeId, execution.input);
@@ -857,6 +905,12 @@ export function validateStageGate(root, changeId, stage, options) {
 }
 
 export function validateDesignStageGate(root, changeId) {
+  return validateStageGate(root, changeId, 'design', {
+    requiredArtifactPath: `harness/changes/${changeId}/design.md`,
+  });
+}
+
+export function validateCanonicalDesignProof(root, changeId) {
   return validateStageGate(root, changeId, 'design', {
     requiredArtifactPath: `harness/changes/${changeId}/design.md`,
   });

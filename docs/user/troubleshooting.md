@@ -209,6 +209,11 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-ARCHIVE-FINALIZE-002` | 缺少 validation 或 verify CompletionProof | 修复 verify evidence 后重新运行 archive self-check |
 | `EH-ARCHIVE-FINALIZE-003` | verify CompletionProof 不是有效的 verify proof | 重新获得 fresh verify completion proof |
 | `EH-ARCHIVE-FINALIZE-004` | archive StageResult 不符合运行时合同 | 修复 archive evidence 后重新 finalise |
+| `EH-ARCHIVE-MANIFEST-001` | archive 输入、Verify CompletionProof、compound DesignProof 或 test-design 独立链不是当前 canonical closure | 回到 Verify/Design 修复最早报告的 stale/missing result、review、receipt 或 digest；由 archive finalizer 重建 manifest，不要手写或复用旧 manifest |
+| `EH-ARCHIVE-MANIFEST-002` | archive manifest 已存在，immutable writer 拒绝覆盖 | 保留既有 manifest；若其输入已 stale，创建新的 archive execute run 并按受支持恢复流程处理，而不是覆盖证据 |
+| `EH-VERIFY-RECEIPT-001` | Verify 的 TC coverage 缺失、unsupported、无理由 skipped，或不对应 accepted TC | 为每个 accepted TC 记录 executed/skipped 状态和明确理由；unsupported 不能通过，critical E2E 必须实际 executed |
+| `EH-VERIFY-RECEIPT-002` | verification receipt 的 provenance、run、digest、路径或输入闭包无效/过期 | 使用当前 verify run 的 canonical task receipt 或 `evidence/verify/<runId>/` 实际证据；刷新 digest 后重跑 Verify |
+| `EH-VERIFY-RECEIPT-003` | verification receipt 已存在，runtime 拒绝重复写入 | receipt 是 immutable；保留原 run evidence，需重试时创建新的 verify run |
 | `EH-HANDOFF-V2-023` | handoff v2 role 非法 | 仅使用 `execute` 或 `check` |
 | `EH-HANDOFF-V2-024` | handoff v2 缺 agent type 或 skill | 提供已声明的 agent type 与 skill |
 | `EH-HANDOFF-V2-025` | handoff v2 缺 TECPC target | 明确写出本次执行的目标 |

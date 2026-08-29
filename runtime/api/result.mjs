@@ -12,4 +12,10 @@ export { selectReviewRubrics } from '../lib/review-rubrics.mjs';
 export {
   clarifyStageResultProjection,
   requiredStageResultArtifacts,
+  validateCanonicalDesignProof,
 } from '../lib/stage-results.mjs';
+export {
+  acceptedTestCasesFromMarkdown,
+  taskTestCaseBindingsFromMarkdown,
+  validatePlanTestCaseBindings,
+} from '../lib/plan-test-case-binding.mjs';

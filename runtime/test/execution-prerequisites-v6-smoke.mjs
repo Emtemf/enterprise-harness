@@ -146,8 +146,31 @@ try {
 
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
-  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
-  fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n');
+  const testCases = [
+    '## 测试用例',
+    '| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable | cleanup | accepted |',
+  ].join('\n');
+  fs.writeFileSync(path.join(root, testCasesRef), testCases);
+  fs.writeFileSync(path.join(root, tasksRef), [
+    '# Tasks',
+    '',
+    '## Task 1: task-one',
+    '### Target and scope',
+    '- Goal: execute fixture task',
+    '### Frozen inputs',
+    '- Consumes: design.md',
+    '- Test cases: TC1',
+    '### Execution strategy',
+    '- Strategy: `direct`',
+    '### Commands and verification',
+    '- Frozen primary argv: `node --test fixture.mjs`',
+    '- Acceptance checks: fixture passes',
+    '- Recovery/rollback: revert fixture',
+    '### Independent review',
+    '- Applicable rubrics: task',
+  ].join('\n'));
   const classification = writeClassificationArtifact(root, changeId, {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
   });
@@ -221,7 +244,7 @@ try {
     staleTestCases.some((problem) => /test-cases\.md|digest is stale/u.test(problem)),
     `test-cases mutation must stale the Plan gate: ${staleTestCases.join('; ')}`,
   );
-  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
+  fs.writeFileSync(path.join(root, testCasesRef), testCases);
 
   const staleClarify = createHandoffV2(root, {
     changeId,

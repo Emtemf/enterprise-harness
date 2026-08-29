@@ -5,24 +5,22 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
-import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { createHandoffV2, persistHandoffV2Result } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
+import { writeCanonicalVerifyCompletionFixture } from './verify-completion-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const lifecycle = path.join(sourceRoot, 'runtime', 'lifecycle.mjs');
+const archiveFinalize = path.join(sourceRoot, 'skills', 'archive', 'scripts', 'finalize-result.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-lifecycle-archive-'));
-const changeId = ['archive', 'transition'].join('-');
-const changeDir = path.join(root, 'harness', 'changes', changeId);
-const validationRef = `harness/changes/${changeId}/validation.md`;
-const verifyProofRef = `harness/changes/${changeId}/evidence/completion/verify.json`;
-const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
-const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
-const archiveManifestRef = `harness/changes/${changeId}/evidence/archive-manifest.json`;
+const changeId = 'archive-transition';
+const base = `harness/changes/${changeId}`;
+const changeDir = path.join(root, base);
 const {
   ENTERPRISE_HARNESS_SESSION_ID: _enterpriseHarnessSessionId,
   CLAUDE_SESSION_ID: _claudeSessionId,
@@ -30,26 +28,21 @@ const {
 } = process.env;
 
 function runLifecycle(...args) {
-  return spawnSync(process.execPath, [lifecycle, ...args], {
-    cwd: root,
-    encoding: 'utf-8',
-    shell: false,
-    env: unboundEnv,
-  });
+  return spawnSync(process.execPath, [lifecycle, ...args], { cwd: root, encoding: 'utf-8', shell: false, env: unboundEnv });
 }
 
-function stageResult(input, stage, artifacts, completedAt) {
+function archiveStageResult(input, artifacts, completedAt) {
   return {
     resultVersion: 1,
     type: 'stage-result',
     changeId,
-    stage,
+    stage: 'archive',
     runId: input.runId,
-    producer: { agentType: 'enterprise-harness:artifact-worker', skill: stage },
+    producer: { agentType: 'enterprise-harness:artifact-worker', skill: 'archive' },
     inputDigests: { ...input.inputDigests },
     artifacts,
-    assertions: [{ id: `${stage}-complete`, verdict: 'pass', evidence: artifacts.map((artifact) => artifact.path) }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: artifacts.map((artifact) => artifact.path) },
+    assertions: [{ id: 'archive-complete', verdict: 'pass', evidence: artifacts.map((entry) => entry.path) }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: artifacts.map((entry) => entry.path) },
     tecpc: { ...input.tecpc },
     status: 'pass',
     needsDecision: null,
@@ -57,17 +50,17 @@ function stageResult(input, stage, artifacts, completedAt) {
   };
 }
 
-function reviewResult(input, parentResult, reviewedAt) {
+function reviewResult(input, parent, reviewedAt) {
   return {
     resultVersion: 1,
     type: 'review-result',
     changeId,
-    stage: input.stage,
+    stage: 'archive',
     runId: input.runId,
     parentRunId: input.parentRunId,
     reviewer: { agentType: 'enterprise-harness:reviewer', skill: 'review' },
     reviewedRunId: input.parentRunId,
-    reviewedArtifacts: parentResult.artifacts.map((artifact) => ({ ...artifact })),
+    reviewedArtifacts: parent.artifacts.map((entry) => ({ ...entry })),
     rubricIds: [...input.rubricIds],
     tecpc: { ...input.tecpc },
     verdict: 'pass',
@@ -77,135 +70,83 @@ function reviewResult(input, parentResult, reviewedAt) {
 }
 
 try {
-  assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
+  assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, shell: false }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
-  const classification = writeClassificationArtifact(root, changeId, {
-    impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
-    decision: { tier: 'L1' },
-  });
-  fs.writeFileSync(path.join(root, validationRef), '# Validation\n\n## Commands\n- smoke\n\n## Results\n- pass\n\n## Freshness\n- fresh\n\n## Coverage and exceptions\n- none\n');
-  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
-    schemaVersion: 6,
-    revision: 1,
-    changeId,
-    lifecycle: 'active',
+  fs.writeFileSync(path.join(root, `${base}/test-cases.md`), [
+    '## 测试用例',
+    '| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable | cleanup | accepted |',
+  ].join('\n'));
+  writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'verify' });
+  const verify = writeCanonicalVerifyCompletionFixture(root, changeId);
+  const statePath = path.join(changeDir, 'state.json');
+  const initialState = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  fs.writeFileSync(statePath, `${JSON.stringify({
+    ...initialState,
     stage: 'verify',
-    artifacts: { classification },
-    validation: { status: 'fresh', digest: 'a'.repeat(64), validatedAt: '2026-08-17T00:00:00.000Z' },
+    validation: { status: 'fresh', digest: sha256Artifact(root, verify.validationRef), validatedAt: '2026-08-29T00:00:06.000Z' },
   }, null, 2)}\n`);
-
-  const verifyTecpc = {
-    target: 'verify completion',
-    evidence: [validationRef],
-    context: [validationRef],
-    path: validationRef,
-    correction: null,
-  };
-  const verifyExecute = createHandoffV2(root, {
-    changeId,
-    stage: 'verify',
-    behavior: 'verify',
-    agent: { type: 'enterprise-harness:artifact-worker', skill: 'verify' },
-    inputRefs: [validationRef],
-    tecpc: verifyTecpc,
-  });
-  const verifyArtifacts = [{ path: validationRef, digest: sha256Artifact(root, validationRef) }];
-  const verifyResult = stageResult(verifyExecute.input, 'verify', verifyArtifacts, '2026-08-17T00:00:01.000Z');
-  fs.writeFileSync(v2ResultPath(root, changeId, verifyExecute.runId), JSON.stringify(verifyResult));
-  const verifyCheck = createHandoffV2(root, {
-    changeId,
-    stage: 'verify',
-    behavior: 'review',
-    role: 'check',
-    parentRunId: verifyExecute.runId,
-    agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [validationRef],
-    tecpc: verifyTecpc,
-  });
-  fs.writeFileSync(
-    v2ResultPath(root, changeId, verifyCheck.runId, 'check'),
-    JSON.stringify(reviewResult(verifyCheck.input, verifyResult, '2026-08-17T00:00:02.000Z')),
-  );
-  appendCompletedHandoffBinding(root, changeId, verifyExecute.input, { agentId: 'agent-verify' });
-  appendCompletedHandoffBinding(root, changeId, verifyCheck.input, { agentId: 'agent-verify-review' });
 
   const enteredArchive = runLifecycle('archive', changeId);
   assert.equal(enteredArchive.status, 0, enteredArchive.stderr || enteredArchive.stdout);
-  const archiveState = JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8'));
-  assert.equal(archiveState.stage, 'archive');
-  assert.equal(archiveState.lifecycle, 'active');
-  assert.equal(fs.existsSync(path.join(root, verifyProofRef)), true);
-  assert.equal(fs.existsSync(path.join(root, 'harness', 'archive', changeId)), false);
+  assert.equal(JSON.parse(fs.readFileSync(statePath, 'utf-8')).stage, 'archive');
 
-  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n');
-  fs.writeFileSync(path.join(root, designProofRef), JSON.stringify({
-    type: 'completion-proof',
-    stage: 'design',
-    stageProofs: [{ kind: 'test-design', executionRunId: 'run_test-design-execute', reviewRunId: 'run_test-design-review' }],
-  }));
-  fs.writeFileSync(path.join(root, archiveManifestRef), JSON.stringify({
-    manifestVersion: 1,
-    changeId,
-    testCases: { path: testCasesRef, digest: sha256Artifact(root, testCasesRef) },
-    designProof: { path: designProofRef, digest: sha256Artifact(root, designProofRef) },
-    testDesign: { executionRunId: 'run_test-design-execute', reviewRunId: 'run_test-design-review' },
-  }));
-
+  const archiveRefs = [verify.validationRef, verify.verifyProofRef, verify.testCasesRef, verify.designProofRef];
   const archiveTecpc = {
-    target: 'archive verified change',
-    evidence: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
-    context: [verifyProofRef, designProofRef],
-    path: `${validationRef} -> ${verifyProofRef} -> ${archiveManifestRef}`,
-    correction: null,
+    target: 'archive verified change', evidence: [verify.validationRef, verify.verifyProofRef],
+    context: [verify.testCasesRef, verify.designProofRef], path: `${verify.validationRef} -> archive`, correction: null,
   };
+  // Bypass-Skill RED: durable handoff/result/review identities alone must not
+  // permit finalization without the runtime-owned manifest closure.
+  const forgedExecute = createHandoffV2(root, {
+    changeId, stage: 'archive', behavior: 'archive',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' }, inputRefs: archiveRefs, tecpc: archiveTecpc,
+  });
+  const forgedArtifacts = archiveRefs.map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
+  const forgedResult = archiveStageResult(forgedExecute.input, forgedArtifacts, '2026-08-29T00:00:07.000Z');
+  persistHandoffV2Result(root, changeId, forgedExecute.runId, forgedResult);
+  appendCompletedHandoffBinding(root, changeId, forgedExecute.input, { agentId: 'forged-archive-executor' });
+  const forgedCheck = createHandoffV2(root, {
+    changeId, stage: 'archive', behavior: 'review', role: 'check', parentRunId: forgedExecute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: archiveRefs, tecpc: archiveTecpc,
+  });
+  persistHandoffV2Result(root, changeId, forgedCheck.runId, reviewResult(forgedCheck.input, forgedResult, '2026-08-29T00:00:08.000Z'));
+  appendCompletedHandoffBinding(root, changeId, forgedCheck.input, { agentId: 'forged-archive-reviewer' });
+  const bypassRejected = runLifecycle('archive-finalize', changeId);
+  assert.notEqual(bypassRejected.status, 0, 'Archive stage gate must reject a forged StageResult path that bypasses the Skill');
+  assert.match(`${bypassRejected.stderr}\n${bypassRejected.stdout}`, /manifest|archive StageResult/u);
+
   const archiveExecute = createHandoffV2(root, {
-    changeId,
-    stage: 'archive',
-    behavior: 'archive',
-    agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
-    inputRefs: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
-    tecpc: archiveTecpc,
+    changeId, stage: 'archive', behavior: 'archive',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' }, inputRefs: archiveRefs, tecpc: archiveTecpc,
   });
-  const archiveArtifacts = [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef]
-    .map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
-  const archiveResult = stageResult(archiveExecute.input, 'archive', archiveArtifacts, '2026-08-17T00:00:03.000Z');
-  fs.writeFileSync(v2ResultPath(root, changeId, archiveExecute.runId), JSON.stringify(archiveResult));
+  const finalizedWorker = spawnSync(process.execPath, [archiveFinalize, changeId, archiveExecute.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.equal(finalizedWorker.status, 0, finalizedWorker.stderr || finalizedWorker.stdout);
+  const archiveResult = JSON.parse(finalizedWorker.stdout);
+  persistHandoffV2Result(root, changeId, archiveExecute.runId, archiveResult);
+  appendCompletedHandoffBinding(root, changeId, archiveExecute.input, { agentId: 'archive-executor' });
   const archiveCheck = createHandoffV2(root, {
-    changeId,
-    stage: 'archive',
-    behavior: 'review',
-    role: 'check',
-    parentRunId: archiveExecute.runId,
+    changeId, stage: 'archive', behavior: 'review', role: 'check', parentRunId: archiveExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
-    tecpc: archiveTecpc,
+    inputRefs: archiveResult.artifacts.map((entry) => entry.path), tecpc: archiveTecpc,
   });
-  fs.writeFileSync(
-    v2ResultPath(root, changeId, archiveCheck.runId, 'check'),
-    JSON.stringify(reviewResult(archiveCheck.input, archiveResult, '2026-08-17T00:00:04.000Z')),
-  );
-  appendCompletedHandoffBinding(root, changeId, archiveExecute.input, { agentId: 'agent-archive' });
-  appendCompletedHandoffBinding(root, changeId, archiveCheck.input, { agentId: 'agent-archive-review' });
+  persistHandoffV2Result(root, changeId, archiveCheck.runId, reviewResult(archiveCheck.input, archiveResult, '2026-08-29T00:00:10.000Z'));
+  appendCompletedHandoffBinding(root, changeId, archiveCheck.input, { agentId: 'archive-reviewer' });
 
   const archiveRoot = path.join(root, 'harness', 'archive');
   fs.writeFileSync(archiveRoot, 'not-a-directory\n');
   const failedMove = runLifecycle('archive-finalize', changeId);
   assert.notEqual(failedMove.status, 0, 'archive-finalize must fail when archive root is not a directory');
-  assert.equal(fs.existsSync(changeDir), true);
-  const rolledBackState = JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8'));
-  assert.equal(rolledBackState.lifecycle, 'active', 'failed archive move must roll lifecycle back');
+  assert.equal(JSON.parse(fs.readFileSync(statePath, 'utf-8')).lifecycle, 'active', 'failed archive move must roll lifecycle back');
   fs.rmSync(archiveRoot);
 
   const finalized = runLifecycle('archive-finalize', changeId);
   assert.equal(finalized.status, 0, finalized.stderr || finalized.stdout);
   assert.equal(fs.existsSync(changeDir), false);
   const archivedDir = path.join(root, 'harness', 'archive', changeId);
-  assert.equal(fs.existsSync(archivedDir), true);
-  const finalState = JSON.parse(fs.readFileSync(path.join(archivedDir, 'state.json'), 'utf-8'));
-  assert.equal(finalState.stage, 'archive');
-  assert.equal(finalState.lifecycle, 'archived');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(archivedDir, 'state.json'), 'utf-8')).lifecycle, 'archived');
   assert.equal(fs.existsSync(path.join(archivedDir, 'evidence', 'completion', 'archive.json')), true);
-
   console.log(`PASS lifecycle-archive-transition ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

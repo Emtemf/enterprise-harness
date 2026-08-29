@@ -8,6 +8,7 @@ import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateStageGate } from '../lib/stage-results.mjs';
+import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -70,10 +71,21 @@ try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(path.dirname(path.join(root, requirementsRef)), { recursive: true });
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Independent review\n');
-  fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n');
-  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n');
+  fs.writeFileSync(path.join(root, tasksRef), [
+    '# Tasks', '', '## Task 1: task-one', '### Target and scope', '- Goal: authorize review',
+    '### Frozen inputs', '- Consumes: design.md', '- Test cases: TC1', '### Execution strategy', '- Strategy: `direct`',
+    '### Commands and verification', '- Frozen primary argv: `node --test fixture.mjs`', '- Acceptance checks: fixture passes', '- Recovery/rollback: revert fixture',
+    '### Independent review', '- Applicable rubrics: task',
+  ].join('\n'));
+  fs.writeFileSync(path.join(root, testCasesRef), [
+    '## 测试用例',
+    '| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable | cleanup | accepted |',
+  ].join('\n'));
   fs.mkdirSync(path.dirname(path.join(root, designProofRef)), { recursive: true });
   fs.writeFileSync(path.join(root, designProofRef), JSON.stringify({ type: 'completion-proof', stage: 'design' }));
+  writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'plan' });
 
   const tecpc = {
     target: 'authorize independent plan review',
