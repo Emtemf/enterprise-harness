@@ -379,7 +379,9 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
     state: data.state ?? null,
     stage,
     status: auditBlocked ? 'blocked' : inferRunnerStatus(stage, pendingDecision),
-    nextAction: auditBlocked ? `workflow audit ${changeId} --json` : nextAction,
+    nextAction: auditBlocked
+      ? `workflow audit ${changeId} --json`
+      : (designReadiness?.nextAction ?? nextAction),
     pendingDecision: auditBlocked ? null : pendingDecision,
     recommendedLane: auditBlocked ? null : recommendedLane,
     currentGap: auditBlocked ? auditGap : currentGap,

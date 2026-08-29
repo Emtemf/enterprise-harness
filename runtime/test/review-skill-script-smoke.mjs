@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -21,7 +23,17 @@ const designRef = `harness/changes/${changeId}/design.md`;
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Review design\n');
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
+  const classification = writeClassificationV2Fixture(root, changeId);
+  fs.writeFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    revision: 1,
+    changeId,
+    lifecycle: 'active',
+    stage: 'design',
+    artifacts: { classification },
+    validation: { status: 'missing', digest: null, validatedAt: null },
+  }, null, 2)}\n`);
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   const tecpc = { target: 'review design', evidence: [designRef], context: [requirementsRef], path: designRef, correction: null };
   const execute = createHandoffV2(root, {

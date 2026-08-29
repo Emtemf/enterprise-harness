@@ -152,12 +152,13 @@ try {
   });
   const state = {
     schemaVersion: 6,
+    revision: 1,
     changeId,
+    lifecycle: 'active',
     stage: 'implement',
     currentTask: 'task-one',
     artifacts: { classification },
-    gates: { designApproved: false },
-    workflow: { planReady: false },
+    validation: { status: 'missing', digest: null, validatedAt: null },
   };
   fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state, null, 2)}\n`);
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`);

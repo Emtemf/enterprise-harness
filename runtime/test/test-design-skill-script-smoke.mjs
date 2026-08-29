@@ -177,6 +177,7 @@ try {
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [designRef],
     tecpc: architectureTecpc,
+    rubricIds: ['design', 'architecture', 'rule', 'security'],
   });
   const architectureReview = {
     resultVersion: 1, type: 'review-result', changeId, stage: 'design', runId: architectureCheck.runId,

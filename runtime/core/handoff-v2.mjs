@@ -78,7 +78,7 @@ export function createHandoffV2(root, {
     if (parent.role !== 'execute' || parent.stage !== 'design' || behavior !== expectedBehavior) {
       throw new Error(`EH-HANDOFF-V2-032: Design parent ${parent.behavior} requires ${expectedBehavior} check behavior`);
     }
-    const rubricProblems = canonicalReviewRubricProblems({ stage, behavior, rubricIds });
+    const rubricProblems = canonicalReviewRubricProblems({ root, changeId, stage, behavior, rubricIds });
     if (rubricProblems.length > 0) {
       throw new Error(`EH-HANDOFF-V2-033: ${rubricProblems.join('; ')}`);
     }
@@ -156,6 +156,15 @@ function persistHandoffV2ResultUnlocked(root, changeId, runId, result) {
       }
     }
   } else {
+    if (input.stage === 'design') {
+      problems.push(...canonicalReviewRubricProblems({
+        root,
+        changeId,
+        stage: input.stage,
+        behavior: input.behavior,
+        rubricIds: input.rubricIds,
+      }));
+    }
     let parent;
     try {
       parent = loadHandoffV2(root, changeId, input.parentRunId);
@@ -232,6 +241,15 @@ export function loadHandoffV2FromMarker(root, markerPath, expected = {}) {
     return { ok: false, path: absolute, problems: [`invalid input JSON: ${error.message}`] };
   }
   problems.push(...validateHandoffV2Contract(input));
+  if (input?.stage === 'design' && input?.role === 'check') {
+    problems.push(...canonicalReviewRubricProblems({
+      root,
+      changeId: input.changeId,
+      stage: input.stage,
+      behavior: input.behavior,
+      rubricIds: input.rubricIds,
+    }));
+  }
   try {
     const canonicalInputPath = path.resolve(v2InputPath(root, input.changeId, input.runId));
     if (absolute !== canonicalInputPath) problems.push('marker path is not the envelope canonical v2 input path');

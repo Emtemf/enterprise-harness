@@ -4,10 +4,16 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
-import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import {
+  createHandoffV2,
+  loadHandoffV2FromMarker,
+  v2ResultPath,
+} from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { validateDesignStageGate } from '../lib/stage-results.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -19,6 +25,7 @@ const designRef = `harness/changes/${changeId}/design.md`;
 const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
 const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
+const riskRubricIds = ['api', 'data', 'architecture', 'rule', 'security'];
 
 function writeJson(target, value) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -66,7 +73,19 @@ function reviewResult(input, parent, artifactRef, reviewedAt) {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, shell: false }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n### 验收\n- R1：返回资源。\n');
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
+  const classificationReference = writeClassificationV2Fixture(root, changeId, {
+    impact: { api: 'yes', data: 'yes', architecture: 'yes', rule: 'yes', security: 'yes' },
+  });
+  writeJson(path.join(root, 'harness', 'changes', changeId, 'state.json'), {
+    schemaVersion: 6,
+    revision: 1,
+    changeId,
+    lifecycle: 'active',
+    stage: 'design',
+    artifacts: { classification: classificationReference },
+    validation: { status: 'missing', digest: null, validatedAt: null },
+  });
   fs.writeFileSync(path.join(root, designRef), '# Design\n\nArchitecture contract.\n');
   fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\nDetailed cases.\n');
 
@@ -100,6 +119,7 @@ try {
     parentRunId: architectureExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [designRef],
+    rubricIds: ['design', ...riskRubricIds],
     tecpc: {
       ...architectureTecpc,
       target: 'review architecture design',
@@ -169,6 +189,7 @@ try {
     parentRunId: testDesignExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
     inputRefs: [testCasesRef],
+    rubricIds: ['test-design', ...riskRubricIds],
     tecpc: {
       ...testDesignTecpc,
       target: 'review detailed test cases',
@@ -252,9 +273,31 @@ try {
         tecpc: testDesignCheck.input.tecpc,
         rubricIds: ['design'],
       })),
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.review',
+        role: 'check',
+        parentRunId: architectureExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [designRef],
+        tecpc: architectureCheck.input.tecpc,
+        rubricIds: ['design'],
+      })),
+      rejectsInvalidCheck(() => createHandoffV2(root, {
+        changeId,
+        stage: 'design',
+        behavior: 'design.test-cases.review',
+        role: 'check',
+        parentRunId: testDesignExecute.runId,
+        agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+        inputRefs: [testCasesRef],
+        tecpc: testDesignCheck.input.tecpc,
+        rubricIds: ['test-design'],
+      })),
     ],
-    [true, true, true, true],
-    'Design check creation must bind the parent behavior and its canonical rubric family',
+    [true, true, true, true, true, true],
+    'Design check creation must bind parent behavior and the complete authority-derived rubric list',
   );
 
   const swappedArchitectureReview = {
@@ -293,6 +336,28 @@ try {
   writeJson(testDesignCheck.path, testDesignCheck.input);
   writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), testDesignReview);
 
+  const omittedArchitectureRisks = { ...architectureReview, rubricIds: ['design'] };
+  writeJson(architectureCheck.path, { ...architectureCheck.input, rubricIds: ['design'] });
+  writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), omittedArchitectureRisks);
+  assert.match(
+    validateDesignStageGate(root, changeId).join('\n'),
+    /canonical rubrics.*authority-derived/iu,
+    'completion must reject an architecture review that omits classification-required risk rubrics',
+  );
+  writeJson(architectureCheck.path, architectureCheck.input);
+  writeJson(v2ResultPath(root, changeId, architectureCheck.runId, 'check'), architectureReview);
+
+  const omittedTestDesignRisks = { ...testDesignReview, rubricIds: ['test-design'] };
+  writeJson(testDesignCheck.path, { ...testDesignCheck.input, rubricIds: ['test-design'] });
+  writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), omittedTestDesignRisks);
+  assert.match(
+    validateDesignStageGate(root, changeId).join('\n'),
+    /canonical rubrics.*authority-derived/iu,
+    'completion must reject a test-design review that omits classification-required risk rubrics',
+  );
+  writeJson(testDesignCheck.path, testDesignCheck.input);
+  writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), testDesignReview);
+
   assert.throws(
     () => buildDesignArchitectureProof(root, architectureResult, swappedArchitectureReview),
     /canonical.*design.*rubric|rubric.*design/iu,
@@ -302,6 +367,16 @@ try {
     () => buildCompoundDesignProof(root, architectureProof, testDesignResult, swappedTestDesignReview),
     /canonical.*test-design.*rubric|rubric.*test-design/iu,
     'compound DesignProof construction must independently enforce the test-design rubric family',
+  );
+  assert.throws(
+    () => buildDesignArchitectureProof(root, architectureResult, omittedArchitectureRisks),
+    /canonical rubrics.*authority-derived/iu,
+    'ArchitectureProof must reject omitted classification-required risk rubrics',
+  );
+  assert.throws(
+    () => buildCompoundDesignProof(root, architectureProof, testDesignResult, omittedTestDesignRisks),
+    /canonical rubrics.*authority-derived/iu,
+    'compound DesignProof must reject omitted classification-required risk rubrics',
   );
 
   const expandedArchitectureTecpc = {
@@ -414,6 +489,77 @@ try {
   });
   assert.match(validateDesignStageGate(root, changeId).join('\n'), /producer does not match handoff agent/u);
   writeJson(v2ResultPath(root, changeId, testDesignExecute.runId), testDesignResult);
+
+  const statePath = path.join(root, 'harness', 'changes', changeId, 'state.json');
+  const classificationPath = path.join(root, classificationReference.path);
+  const debtPath = path.join(root, 'harness', 'changes', changeId, 'debt-assessment.json');
+  const authorityBaseline = {
+    state: fs.readFileSync(statePath, 'utf-8'),
+    classification: fs.readFileSync(classificationPath, 'utf-8'),
+    debt: fs.readFileSync(debtPath, 'utf-8'),
+  };
+  const restoreAuthority = () => {
+    fs.writeFileSync(statePath, authorityBaseline.state);
+    fs.writeFileSync(classificationPath, authorityBaseline.classification);
+    fs.writeFileSync(debtPath, authorityBaseline.debt);
+  };
+  const throwsAuthorityProblem = (operation) => {
+    try {
+      operation();
+      return false;
+    } catch (error) {
+      assert.match(error.message, /classification authority|classification artifact|classification input/iu);
+      return true;
+    }
+  };
+  const authoritySurface = (label) => {
+    const consumed = loadHandoffV2FromMarker(root, path.relative(root, architectureCheck.path));
+    const gateProblems = validateDesignStageGate(root, changeId);
+    const result = {
+      handoffConsumption: !consumed.ok,
+      completionGate: gateProblems.some((problem) => /classification authority|classification artifact|classification input/iu.test(problem)),
+      architectureProof: throwsAuthorityProblem(() => (
+        buildDesignArchitectureProof(root, architectureResult, architectureReview)
+      )),
+      compoundDesignProof: throwsAuthorityProblem(() => (
+        buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview)
+      )),
+    };
+    if (!consumed.ok) assert.match(consumed.problems.join('; '), /classification authority|classification artifact|classification input/iu, label);
+    assert.deepEqual(result, {
+      handoffConsumption: true,
+      completionGate: true,
+      architectureProof: true,
+      compoundDesignProof: true,
+    }, label);
+  };
+  const authorityMutations = [
+    ['missing state', () => fs.rmSync(statePath)],
+    ['malformed state', () => fs.writeFileSync(statePath, '{\n')],
+    ['missing classification', () => fs.rmSync(classificationPath)],
+    ['malformed classification', () => {
+      fs.writeFileSync(classificationPath, '{\n');
+      const state = JSON.parse(authorityBaseline.state);
+      writeJson(statePath, {
+        ...state,
+        artifacts: {
+          ...state.artifacts,
+          classification: {
+            ...state.artifacts.classification,
+            digest: sha256Artifact(root, classificationReference.path),
+          },
+        },
+      });
+    }],
+    ['classification digest mismatch', () => fs.appendFileSync(classificationPath, '\n')],
+    ['stale classification input', () => fs.appendFileSync(debtPath, '\n')],
+  ];
+  for (const [label, mutate] of authorityMutations) {
+    restoreAuthority();
+    mutate();
+    authoritySurface(label);
+  }
+  restoreAuthority();
 
   writeJson(v2ResultPath(root, changeId, testDesignCheck.runId, 'check'), {
     ...testDesignReview,

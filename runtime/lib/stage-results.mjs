@@ -325,6 +325,8 @@ export function completionChainForBehavior(root, changeId, behavior, requiredArt
     reviewProblems.push(`${checkCandidate.runId}: ${label} check behavior must be ${expectedReviewBehavior}`);
   }
   reviewProblems.push(...canonicalReviewRubricProblems({
+    root,
+    changeId,
     stage: 'design',
     behavior: expectedReviewBehavior,
     rubricIds: check.input.rubricIds,

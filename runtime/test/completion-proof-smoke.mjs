@@ -13,6 +13,18 @@ const artifact = 'harness/changes/demo/tasks.md';
 const artifactPath = path.join(root, artifact);
 fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
 fs.writeFileSync(artifactPath, '# Tasks\n');
+const requirementsRef = 'harness/changes/demo/requirements.md';
+fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
+const designClassification = writeClassificationV2Fixture(root, 'demo');
+fs.writeFileSync(path.join(root, 'harness/changes/demo/state.json'), `${JSON.stringify({
+  schemaVersion: 6,
+  revision: 1,
+  changeId: 'demo',
+  lifecycle: 'active',
+  stage: 'design',
+  artifacts: { classification: designClassification },
+  validation: { status: 'missing', digest: null, validatedAt: null },
+}, null, 2)}\n`);
 const digest = sha256Artifact(root, artifact);
 const stageResult = {
   resultVersion: 1,

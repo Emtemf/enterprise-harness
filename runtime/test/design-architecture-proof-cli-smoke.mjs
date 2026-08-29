@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -35,7 +37,17 @@ function writeJson(target, value) {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root, shell: false }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n');
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
+  const classification = writeClassificationV2Fixture(root, changeId);
+  writeJson(path.join(root, 'harness', 'changes', changeId, 'state.json'), {
+    schemaVersion: 6,
+    revision: 1,
+    changeId,
+    lifecycle: 'active',
+    stage: 'design',
+    artifacts: { classification },
+    validation: { status: 'missing', digest: null, validatedAt: null },
+  });
   fs.writeFileSync(path.join(root, designRef), '# Design\n');
   const tecpc = {
     target: 'seal architecture', evidence: [designRef], context: [requirementsRef],

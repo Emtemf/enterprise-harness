@@ -152,6 +152,8 @@ export function buildDesignArchitectureProof(root, stageResult, reviewResult) {
     ...validateStageResult(root, stageResult),
     ...validateReviewResult(root, reviewResult, { stageResult }),
     ...canonicalReviewRubricProblems({
+      root,
+      changeId: stageResult?.changeId,
       stage: 'design',
       behavior: 'design.review',
       rubricIds: reviewResult?.rubricIds,
@@ -234,17 +236,19 @@ export function readDesignArchitectureProof(root, changeId) {
 }
 
 export function buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview) {
+  const changeId = architectureProof?.changeId;
   const problems = [
     ...validateDesignArchitectureProof(root, architectureProof),
     ...validateStageResult(root, testDesignResult),
     ...validateReviewResult(root, testDesignReview, { stageResult: testDesignResult }),
     ...canonicalReviewRubricProblems({
+      root,
+      changeId,
       stage: 'design',
       behavior: 'design.test-cases.review',
       rubricIds: testDesignReview?.rubricIds,
     }),
   ];
-  const changeId = architectureProof?.changeId;
   const designRef = isSafeId(changeId) ? `harness/changes/${changeId}/design.md` : null;
   const testCasesRef = isSafeId(changeId) ? `harness/changes/${changeId}/test-cases.md` : null;
   const architectureRef = isSafeId(changeId) ? designArchitectureProofRef(changeId) : null;

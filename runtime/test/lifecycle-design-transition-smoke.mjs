@@ -10,6 +10,7 @@ import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeClassificationV2Fixture as writeClassificationArtifact } from './classification-v2-fixture.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
+import { addClarifyCompletion, approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -71,8 +72,12 @@ function assertDesignNextAction(label, expected) {
   const reread = JSON.parse(second.stdout);
   assert.ok(projection.designReadiness, `${label}: workflow status must expose Design readiness`);
   assert.deepEqual(reread.designReadiness, projection.designReadiness, `${label}: re-read must be deterministic`);
+  assert.equal(projection.status, 'ready', `${label}: completed Clarify audit must leave Design status consumable`);
+  assert.equal(projection.audit?.verdict, 'pass', `${label}: completed Clarify evidence must pass audit`);
+  assert.equal(projection.audit?.blockerCount, 0, `${label}: audit must have no blocker`);
   assert.equal(projection.designReadiness.route, expected, label);
   assert.equal(projection.designReadiness.nextAction, expected, label);
+  assert.equal(projection.nextAction, expected, `${label}: top-level nextAction must equal the Design projection`);
   assert.equal(projection.designReadiness.transitionReady, expected === 'design.transition', label);
   assert.equal(JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8')).stage, 'design', label);
   assert.equal(fs.existsSync(path.join(root, designProofRef)), false, `${label}: status must not publish DesignProof`);
@@ -81,14 +86,15 @@ function assertDesignNextAction(label, expected) {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(changeDir, { recursive: true });
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
   classificationReference = writeClassificationArtifact(root, changeId, {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
     decision: { tier: 'L1' },
   });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Design transition\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
   fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify(state(), null, 2)}\n`);
+  addClarifyCompletion(root, changeId, { proof: 'valid' });
 
   assertDesignNextAction('initial Design state', 'design.produce');
 

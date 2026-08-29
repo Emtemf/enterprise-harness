@@ -9,6 +9,8 @@ import { createHandoffV2, loadHandoffV2, v2ResultPath } from '../core/handoff-v2
 import { appendAgentEvent, gitCommonDir } from '../lib/agent-evidence.mjs';
 import { bindSession } from '../lib/sessions.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { writeClassificationV2Fixture } from './classification-v2-fixture.mjs';
+import { approvedRequirements } from './clarify-readiness-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -60,13 +62,15 @@ function persist(runId, source, agentId) {
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
   fs.mkdirSync(path.join(root, 'harness', 'changes', changeId), { recursive: true });
+  fs.writeFileSync(path.join(root, requirementsRef), approvedRequirements());
+  const classification = writeClassificationV2Fixture(root, changeId);
   fs.writeFileSync(path.join(root, 'harness', 'changes', changeId, 'state.json'), `${JSON.stringify({
     schemaVersion: 6,
     revision: 1,
     changeId,
     lifecycle: 'active',
     stage: 'design',
-    artifacts: { classification: null },
+    artifacts: { classification },
     validation: { status: 'stale', digest: null, validatedAt: null },
   }, null, 2)}\n`);
   bindSession(root, {
@@ -75,7 +79,6 @@ try {
     worktreePath: root,
     controllerRevision: 'test-controller',
   }, { commonDir: path.join(root, '.git') });
-  fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Persist result\n');
   fs.writeFileSync(path.join(root, designRef), '# Design\n\n## R1\n');
   const tecpc = { target: 'persist design result', evidence: [designRef], context: [requirementsRef], path: designRef, correction: null };
   const execute = createHandoffV2(root, {
