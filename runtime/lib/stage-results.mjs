@@ -47,6 +47,7 @@ const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
     `harness/changes/${changeId}/test-cases.md`,
     `harness/changes/${changeId}/evidence/completion/design.json`,
     `harness/changes/${changeId}/evidence/archive-manifest.json`,
+    `harness/changes/${changeId}/evidence/archive-manifest-attestation.json`,
   ],
 });
 

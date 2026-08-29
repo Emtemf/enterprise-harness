@@ -6,7 +6,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHandoffV2 } from '../core/handoff-v2.mjs';
 import { artifactDependencies } from '../lib/artifacts.mjs';
-import { validateArchiveManifest } from '../api/archive.mjs';
+import { sha256Artifact } from '../lib/result-contract.mjs';
+import { archiveManifestAttestationRef, validateArchiveManifest } from '../api/archive.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 import { writeCanonicalVerifyCompletionFixture } from './verify-completion-fixture.mjs';
 
@@ -72,18 +73,71 @@ try {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(fs.existsSync(path.join(root, manifestRef)), true, 'archive must persist one immutable canonical manifest');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, manifestRef), 'utf-8'));
+  const archiveStageResult = JSON.parse(result.stdout);
   assert.equal(manifest.testCases.path, testCasesRef);
   assert.equal(manifest.designProof.path, designProofRef);
   assert.equal(manifest.verifyCompletionProof.path, verifyProofRef);
   assert.equal(manifest.archiveRunId, handoff.runId);
+  const attestationRef = archiveManifestAttestationRef(changeId);
+  assert.equal(fs.existsSync(path.join(root, attestationRef)), true,
+    'the canonical archive writer must persist an immutable manifest attestation');
+  const originalAttestation = fs.readFileSync(path.join(root, attestationRef), 'utf-8');
+  fs.rmSync(path.join(root, attestationRef));
+  assert.match(validateArchiveManifest(root, changeId, {
+    expectedArchiveRunId: handoff.runId,
+    expectedInputDigests: handoff.input.inputDigests,
+  }).join('\n'), /archive manifest attestation/u,
+  'a semantically valid, byte-valid manifest without the canonical runtime writer attestation must fail closed');
+  fs.writeFileSync(path.join(root, attestationRef), originalAttestation);
   assert.equal(validateArchiveManifest(root, changeId, {
     expectedArchiveRunId: handoff.runId,
     expectedInputDigests: handoff.input.inputDigests,
-  }).length, 0, 'manifest must bind the current canonical closure');
+  }).length, 0, 'manifest plus canonical attestation must bind the current closure');
+  const attestationArtifact = archiveStageResult.artifacts.find((artifact) => artifact.path === attestationRef);
+  assert.deepEqual(attestationArtifact, {
+    path: attestationRef,
+    digest: sha256Artifact(root, attestationRef),
+  }, 'Archive StageResult must bind the exact canonical attestation ref and digest');
+
+  const originalAttestationObject = JSON.parse(originalAttestation);
+  for (const [label, forgedAttestation] of [
+    ['wrong archive run', { ...originalAttestationObject, archiveRunId: 'run_11111111-1111-4111-8111-111111111111' }],
+    ['wrong manifest digest', { ...originalAttestationObject, manifest: { ...originalAttestationObject.manifest, digest: '0'.repeat(64) } }],
+    ['rogue manifest ref', { ...originalAttestationObject, manifest: { ...originalAttestationObject.manifest, path: `${base}/evidence/rogue-manifest.json` } }],
+  ]) {
+    fs.writeFileSync(path.join(root, attestationRef), JSON.stringify(forgedAttestation));
+    assert.match(validateArchiveManifest(root, changeId, {
+      expectedArchiveRunId: handoff.runId,
+      expectedInputDigests: handoff.input.inputDigests,
+    }).join('\n'), /archive manifest attestation/u, `${label} attestation must fail closed`);
+  }
+  fs.writeFileSync(path.join(root, attestationRef), originalAttestation);
+  const externalAttestation = path.join(root, 'external-archive-manifest-attestation.json');
+  fs.copyFileSync(path.join(root, attestationRef), externalAttestation);
+  fs.rmSync(path.join(root, attestationRef));
+  fs.symlinkSync(externalAttestation, path.join(root, attestationRef));
+  assert.match(validateArchiveManifest(root, changeId, {
+    expectedArchiveRunId: handoff.runId,
+    expectedInputDigests: handoff.input.inputDigests,
+  }).join('\n'), /symbolic-link/u, 'attestation validation must reject a symlink even with a valid target');
+  fs.rmSync(path.join(root, attestationRef));
+  fs.copyFileSync(externalAttestation, path.join(root, attestationRef));
 
   const duplicate = spawnSync(process.execPath, [archiveFinalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
-  assert.notEqual(duplicate.status, 0, 'archive manifest must be immutable and reject duplicate writes');
-  assert.match(duplicate.stderr, /already exists/u);
+  assert.equal(duplicate.status, 0, duplicate.stderr || 'identical archive writer retry must be idempotent');
+  assert.deepEqual(JSON.parse(duplicate.stdout).artifacts.find((artifact) => artifact.path === attestationRef), attestationArtifact,
+    'idempotent writer retry must preserve the attestation artifact identity');
+  const conflictingHandoff = createHandoffV2(root, {
+    changeId,
+    stage: 'archive',
+    behavior: 'archive',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
+    inputRefs: [verify.validationRef, verify.verifyProofRef, verify.testCasesRef, verify.designProofRef],
+    tecpc: { target: 'conflicting archive writer', evidence: [verify.validationRef, verify.verifyProofRef], context: [verify.testCasesRef, verify.designProofRef], path: manifestRef, correction: null },
+  });
+  const conflictingWriter = spawnSync(process.execPath, [archiveFinalize, changeId, conflictingHandoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(conflictingWriter.status, 0, 'a second archive run must fail closed against an existing immutable manifest/attestation pair');
+  assert.match(conflictingWriter.stderr, /immutable archive manifest\/attestation conflict/u);
 
   const externalManifest = path.join(root, 'external-archive-manifest.json');
   fs.copyFileSync(path.join(root, manifestRef), externalManifest);

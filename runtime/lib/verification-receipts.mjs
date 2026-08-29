@@ -378,8 +378,11 @@ export function validateVerificationReceiptsForStageResult(root, {
   const validationRef = `harness/changes/${changeId}/validation.md`;
   let validationDigest = null;
   try { validationDigest = sha256Artifact(root, validationRef); } catch (error) { problems.push(`validation.md is unreadable: ${error.message}`); }
-  const prefix = `harness/changes/${changeId}/evidence/verification/${verifyRunId}/`;
-  const receiptArtifacts = (artifacts || []).filter((artifact) => artifact?.path?.startsWith(prefix));
+  const receiptRoot = `harness/changes/${changeId}/evidence/verification/`;
+  // Receipt artifacts are identities, not a directory convention.  A copied
+  // valid receipt in a subdirectory or a sibling run must never substitute for
+  // the canonical (change, verify run, TC) identity.
+  const receiptArtifacts = (artifacts || []).filter((artifact) => artifact?.path?.startsWith(receiptRoot));
   const byTc = new Map();
   let changeDir = null;
   try {
@@ -393,7 +396,19 @@ export function validateVerificationReceiptsForStageResult(root, {
       problems.push(`verification receipt artifact path is invalid: ${artifact.path}`);
       continue;
     }
-    if (byTc.has(match[1])) problems.push(`duplicate verification receipt artifact for ${match[1]}`);
+    const tcId = match[1];
+    let canonicalRef = null;
+    try {
+      canonicalRef = verificationReceiptRef(changeId, verifyRunId, tcId);
+    } catch (error) {
+      problems.push(`verification receipt artifact path is invalid: ${artifact.path} (${error.message})`);
+      continue;
+    }
+    if (artifact.path !== canonicalRef) {
+      problems.push(`canonical verification receipt artifact path for ${tcId} must be ${canonicalRef}; got ${artifact.path}`);
+      continue;
+    }
+    if (byTc.has(tcId)) problems.push(`duplicate verification receipt artifact for ${tcId}`);
     let receipt = null;
     try {
       const target = resolveWithin(root, artifact.path, 'verification receipt');
@@ -407,12 +422,12 @@ export function validateVerificationReceiptsForStageResult(root, {
     const receiptProblems = validateVerificationReceipt(root, receipt, {
       expectedChangeId: changeId,
       expectedVerifyRunId: verifyRunId,
-      expectedTcId: match[1],
+      expectedTcId: tcId,
       expectedInputDigests: inputDigests,
       expectedValidation: { path: validationRef, digest: validationDigest },
     });
-    problems.push(...receiptProblems.map((problem) => `${match[1]} receipt: ${problem}`));
-    byTc.set(match[1], receipt);
+    problems.push(...receiptProblems.map((problem) => `${tcId} receipt: ${problem}`));
+    byTc.set(tcId, receipt);
   }
   const accepted = new Map(rows.map((row) => [row.tcId, row]));
   for (const [tcId, row] of accepted) {

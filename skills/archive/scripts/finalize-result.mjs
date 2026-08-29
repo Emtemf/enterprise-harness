@@ -30,10 +30,11 @@ try {
   const testCasesPath = `harness/changes/${changeId}/test-cases.md`;
   const designProofPath = `harness/changes/${changeId}/evidence/completion/design.json`;
   const manifestPath = manifest.path;
+  const attestationPath = manifest.attestation.path;
   const assertions = [
     { id: 'canonical-verify-completion-proof', verdict: 'pass', evidence: [proofPath, validationPath] },
     { id: 'canonical-design-and-test-cases', verdict: 'pass', evidence: [testCasesPath, designProofPath, manifestPath] },
-    { id: 'immutable-archive-manifest', verdict: 'pass', evidence: [manifestPath] },
+    { id: 'immutable-archive-manifest', verdict: 'pass', evidence: [manifestPath, attestationPath] },
   ];
   const result = {
     resultVersion: 1,
@@ -43,7 +44,7 @@ try {
     runId,
     producer: { agentType: input.agent.type, skill: input.agent.skill },
     inputDigests: { ...input.inputDigests },
-    artifacts: [validationPath, proofPath, testCasesPath, designProofPath, manifestPath]
+    artifacts: [validationPath, proofPath, testCasesPath, designProofPath, manifestPath, attestationPath]
       .map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) })),
     assertions,
     selfCheck: { verdict: 'pass', findings: [], evidence: assertions.flatMap((assertion) => assertion.evidence) },

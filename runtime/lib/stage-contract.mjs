@@ -48,7 +48,7 @@ export const STAGE_CONTRACTS = Object.freeze({
     resultGate: 'verify',
   },
   archive: {
-    artifacts: ['test-cases.md', 'evidence/completion/design.json', 'evidence/archive-manifest.json'],
+    artifacts: ['test-cases.md', 'evidence/completion/design.json', 'evidence/archive-manifest.json', 'evidence/archive-manifest-attestation.json'],
     state: () => [],
     resultGate: 'archive',
   },

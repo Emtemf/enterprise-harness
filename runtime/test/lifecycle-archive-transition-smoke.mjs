@@ -124,6 +124,8 @@ try {
   const finalizedWorker = spawnSync(process.execPath, [archiveFinalize, changeId, archiveExecute.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(finalizedWorker.status, 0, finalizedWorker.stderr || finalizedWorker.stdout);
   const archiveResult = JSON.parse(finalizedWorker.stdout);
+  assert.ok(archiveResult.artifacts.some((artifact) => artifact.path === `${base}/evidence/archive-manifest-attestation.json`),
+    'Archive StageResult must bind the canonical runtime writer attestation');
   persistHandoffV2Result(root, changeId, archiveExecute.runId, archiveResult);
   appendCompletedHandoffBinding(root, changeId, archiveExecute.input, { agentId: 'archive-executor' });
   const archiveCheck = createHandoffV2(root, {

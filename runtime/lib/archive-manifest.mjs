@@ -20,6 +20,10 @@ const MANIFEST_FIELDS = new Set([
   'manifestVersion', 'type', 'changeId', 'archiveRunId', 'inputDigests',
   'verifyCompletionProof', 'validation', 'testCases', 'designProof', 'testDesign', 'createdAt',
 ]);
+const ATTESTATION_FIELDS = new Set([
+  'receiptVersion', 'type', 'provenance', 'changeId', 'archiveRunId',
+  'manifest', 'inputDigests', 'createdAt',
+]);
 const ARTIFACT_FIELDS = new Set(['path', 'digest']);
 const TEST_DESIGN_FIELDS = new Set(['executionRunId', 'reviewRunId', 'executionResult', 'reviewResult']);
 
@@ -77,6 +81,14 @@ function verifyArtifactBinding(root, changeDir, actual, expected, label, problem
 export function archiveManifestRef(changeId) {
   assertSafeId(changeId, 'changeId');
   return `harness/changes/${changeId}/evidence/archive-manifest.json`;
+}
+
+// This is an unsigned runtime receipt, analogous to the repository's other
+// trusted evidence records. It proves durable runtime-path provenance within
+// this repository model, not authorship against a hostile filesystem owner.
+export function archiveManifestAttestationRef(changeId) {
+  assertSafeId(changeId, 'changeId');
+  return `harness/changes/${changeId}/evidence/archive-manifest-attestation.json`;
 }
 
 export function archiveManifestInputRefs(changeId) {
@@ -174,6 +186,65 @@ function expectedManifest(root, changeId, archiveRunId, inputDigests) {
   };
 }
 
+function expectedAttestation({ changeId, archiveRunId, manifest, inputDigests }) {
+  return {
+    receiptVersion: 1,
+    type: 'archive-manifest-attestation',
+    provenance: 'runtime-archive-facade',
+    changeId,
+    archiveRunId,
+    manifest: { ...manifest },
+    inputDigests: { ...inputDigests },
+  };
+}
+
+function validateArchiveManifestAttestation(root, changeId, {
+  expectedArchiveRunId,
+  expectedManifest,
+  expectedInputDigests,
+} = {}) {
+  const problems = [];
+  let changeDir;
+  let ref;
+  let target;
+  try {
+    changeDir = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
+    ref = archiveManifestAttestationRef(changeId);
+    target = resolveWithin(root, ref, 'archive manifest attestation');
+    assertNoSymlinkComponents(changeDir, target, 'archive manifest attestation');
+    if (!fs.existsSync(target)) throw new Error('file is missing');
+  } catch (error) {
+    return [`archive manifest attestation is unreadable: ${error.message}`];
+  }
+  let attestation;
+  try {
+    attestation = JSON.parse(fs.readFileSync(target, 'utf-8'));
+  } catch (error) {
+    return [`archive manifest attestation is invalid JSON: ${error.message}`];
+  }
+  if (!isObject(attestation)) return ['archive manifest attestation must be an object'];
+  rejectUnknown(attestation, 'archive manifest attestation', ATTESTATION_FIELDS, problems);
+  if (attestation.receiptVersion !== 1) problems.push('archive manifest attestation receiptVersion must be 1');
+  if (attestation.type !== 'archive-manifest-attestation') problems.push('archive manifest attestation type is invalid');
+  if (attestation.provenance !== 'runtime-archive-facade') problems.push('archive manifest attestation provenance must be runtime-archive-facade');
+  if (attestation.changeId !== changeId) problems.push(`archive manifest attestation changeId must be ${changeId}`);
+  try { assertSafeRunId(attestation.archiveRunId, 'archive manifest attestation archiveRunId'); } catch (error) { problems.push(error.message); }
+  if (expectedArchiveRunId && attestation.archiveRunId !== expectedArchiveRunId) {
+    problems.push(`archive manifest attestation archiveRunId must be ${expectedArchiveRunId}`);
+  }
+  rejectUnknown(attestation.manifest, 'archive manifest attestation manifest', ARTIFACT_FIELDS, problems);
+  if (!isObject(attestation.manifest)
+    || attestation.manifest.path !== expectedManifest?.path
+    || attestation.manifest.digest !== expectedManifest?.digest) {
+    problems.push(`archive manifest attestation must exactly bind ${expectedManifest?.path || 'the canonical archive manifest'} and its digest`);
+  }
+  if (!exactDigestMap(attestation.inputDigests, expectedInputDigests)) {
+    problems.push('archive manifest attestation inputDigests do not exactly match the current archive closure');
+  }
+  if (!Number.isFinite(Date.parse(attestation.createdAt))) problems.push('archive manifest attestation createdAt must be an ISO timestamp');
+  return [...new Set(problems)];
+}
+
 export function createArchiveManifest(root, { changeId, archiveRunId, inputDigests }) {
   assertSafeId(changeId, 'changeId');
   assertSafeRunId(archiveRunId, 'archiveRunId');
@@ -182,12 +253,55 @@ export function createArchiveManifest(root, { changeId, archiveRunId, inputDiges
   const changeDir = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
   const ref = archiveManifestRef(changeId);
   const target = resolveWithin(root, ref, 'archive manifest');
+  const attestationRef = archiveManifestAttestationRef(changeId);
+  const attestationTarget = resolveWithin(root, attestationRef, 'archive manifest attestation');
   assertNoSymlinkComponents(changeDir, target, 'archive manifest');
-  if (fs.existsSync(target)) throw new Error(`EH-ARCHIVE-MANIFEST-002: archive manifest already exists: ${ref}`);
+  assertNoSymlinkComponents(changeDir, attestationTarget, 'archive manifest attestation');
+  const manifestExists = fs.existsSync(target);
+  const attestationExists = fs.existsSync(attestationTarget);
+  if (manifestExists || attestationExists) {
+    if (manifestExists && attestationExists) {
+      const existingProblems = validateArchiveManifest(root, changeId, {
+        expectedArchiveRunId: archiveRunId,
+        expectedInputDigests: inputDigests,
+      });
+      if (existingProblems.length === 0) {
+        const manifest = JSON.parse(fs.readFileSync(target, 'utf-8'));
+        return {
+          path: ref,
+          digest: sha256Artifact(root, ref),
+          manifest,
+          attestation: { path: attestationRef, digest: sha256Artifact(root, attestationRef) },
+          idempotent: true,
+        };
+      }
+      throw new Error(`EH-ARCHIVE-MANIFEST-002: immutable archive manifest/attestation conflict: ${existingProblems.join('; ')}`);
+    }
+    throw new Error(`EH-ARCHIVE-MANIFEST-002: archive manifest and attestation must be created together: ${ref}`);
+  }
   const manifest = { ...built.manifest, createdAt: new Date().toISOString() };
   fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(target, `${JSON.stringify(manifest, null, 2)}\n`, { encoding: 'utf-8', flag: 'wx', mode: 0o600 });
-  return { path: ref, digest: sha256Artifact(root, ref), manifest };
+  try {
+    fs.writeFileSync(target, `${JSON.stringify(manifest, null, 2)}\n`, { encoding: 'utf-8', flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    throw new Error(`EH-ARCHIVE-MANIFEST-002: archive manifest already exists or could not be written: ${error.message}`);
+  }
+  const manifestArtifact = { path: ref, digest: sha256Artifact(root, ref) };
+  const attestation = {
+    ...expectedAttestation({ changeId, archiveRunId, manifest: manifestArtifact, inputDigests }),
+    createdAt: new Date().toISOString(),
+  };
+  try {
+    fs.writeFileSync(attestationTarget, `${JSON.stringify(attestation, null, 2)}\n`, { encoding: 'utf-8', flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    throw new Error(`EH-ARCHIVE-MANIFEST-003: archive manifest attestation could not be written: ${error.message}`);
+  }
+  return {
+    ...manifestArtifact,
+    manifest,
+    attestation: { path: attestationRef, digest: sha256Artifact(root, attestationRef) },
+    idempotent: false,
+  };
 }
 
 export function validateArchiveManifest(root, changeId, {
@@ -206,6 +320,7 @@ export function validateArchiveManifest(root, changeId, {
   } catch (error) {
     return [`archive manifest is unreadable: ${error.message}`];
   }
+  const manifestArtifact = { path: ref, digest: sha256Artifact(root, ref) };
   let manifest;
   try { manifest = JSON.parse(fs.readFileSync(target, 'utf-8')); } catch (error) { return [`archive manifest is invalid JSON: ${error.message}`]; }
   if (!isObject(manifest)) return ['archive manifest must be an object'];
@@ -234,5 +349,10 @@ export function validateArchiveManifest(root, changeId, {
       problems.push('manifest inputDigests are not the current archive digest closure');
     }
   }
+  problems.push(...validateArchiveManifestAttestation(root, changeId, {
+    expectedArchiveRunId: expectedArchiveRunId || manifest.archiveRunId,
+    expectedManifest: manifestArtifact,
+    expectedInputDigests: expectedInputDigests || manifest.inputDigests,
+  }));
   return [...new Set(problems)];
 }

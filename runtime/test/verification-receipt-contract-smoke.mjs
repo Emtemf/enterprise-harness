@@ -86,6 +86,19 @@ try {
     expectedChangeId: changeId, expectedVerifyRunId: handoff.runId, expectedTcId: 'TC1',
     expectedInputDigests: handoff.input.inputDigests, expectedValidation: receipt.validation,
   }), []);
+  const rogueReceiptRef = `${base}/evidence/verification/${handoff.runId}/rogue/TC1.json`;
+  fs.mkdirSync(path.dirname(path.join(root, rogueReceiptRef)), { recursive: true });
+  fs.copyFileSync(path.join(root, receiptPath), path.join(root, rogueReceiptRef));
+  assert.match(validateVerificationReceiptsForStageResult(root, {
+    changeId,
+    verifyRunId: handoff.runId,
+    inputDigests: handoff.input.inputDigests,
+    artifacts: [
+      { path: validationRef, digest: sha256Artifact(root, validationRef) },
+      { path: rogueReceiptRef, digest: sha256Artifact(root, rogueReceiptRef) },
+    ],
+  }).join('\n'), /canonical verification receipt artifact path/u,
+  'a byte-identical receipt under a rogue subdirectory must not stand in for its canonical receipt ref');
   expectThrow(() => persistVerificationReceipts(root, {
     changeId, verifyRunId: handoff.runId, inputDigests: handoff.input.inputDigests, validationRef,
     coverage: [{ tcId: 'TC1', status: 'executed', evidenceRef, reason: null }],
