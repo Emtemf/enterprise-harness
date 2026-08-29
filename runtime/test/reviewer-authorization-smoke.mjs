@@ -16,6 +16,8 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-reviewer-
 const changeId = 'reviewer-authorization';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
 
 function appendCompletedBinding(input, agentId, observedAgentType, sessionId = 'session-review') {
   const toolUseId = `tool-${input.runId}-${agentId}`;
@@ -69,11 +71,14 @@ try {
   fs.mkdirSync(path.dirname(path.join(root, requirementsRef)), { recursive: true });
   fs.writeFileSync(path.join(root, requirementsRef), '# Requirements\n\n## R1\n- Independent review\n');
   fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n');
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n');
+  fs.mkdirSync(path.dirname(path.join(root, designProofRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, designProofRef), JSON.stringify({ type: 'completion-proof', stage: 'design' }));
 
   const tecpc = {
     target: 'authorize independent plan review',
     evidence: [tasksRef],
-    context: [requirementsRef],
+    context: [requirementsRef, testCasesRef, designProofRef],
     path: tasksRef,
     correction: null,
   };
@@ -82,7 +87,7 @@ try {
     stage: 'plan',
     behavior: 'plan.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'plan' },
-    inputRefs: [requirementsRef],
+    inputRefs: [requirementsRef, testCasesRef, designProofRef],
     tecpc,
   });
   const artifacts = [{ path: tasksRef, digest: sha256Artifact(root, tasksRef) }];

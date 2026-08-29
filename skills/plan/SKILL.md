@@ -19,6 +19,7 @@ agent: enterprise-harness:artifact-worker
 - [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
 - [prepare-input.mjs](scripts/prepare-input.mjs) — 只接受摘要绑定的 Plan marker
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
+- [Plan 方法](references/method.md)、[制品合同](references/artifact-contract.md)、[自检](references/self-check.md) — 生成、冻结和交接前必须依序阅读。
 
 ## 输入与边界
 
@@ -51,8 +52,8 @@ Testable），可单独执行、审查、回滚和验证，且写明：
 
 ## 质量闭环
 
-1. 生成 `harness/changes/<changeId>/tasks.md`，没有未替换占位符。
-2. 自检每个 task 的 design trace、路径、strategy、argv、验收、recovery 与 reviewer 输入；
+1. 先阅读 `references/method.md` 和 `references/artifact-contract.md`，再生成 `harness/changes/<changeId>/tasks.md`，没有未替换占位符。
+2. 按 `references/self-check.md` 自检每个 task 的 design trace、路径、strategy、argv、验收、recovery 与 reviewer 输入；
    任何缺项都是 block，不以聊天补足。
 3. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，由该脚本对
    `tasks.md` 形状、strategy、冻结 argv、input digest 形成 assertions 和 `selfCheck`；再用

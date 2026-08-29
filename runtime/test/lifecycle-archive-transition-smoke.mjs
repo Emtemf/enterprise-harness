@@ -20,6 +20,9 @@ const changeId = ['archive', 'transition'].join('-');
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 const validationRef = `harness/changes/${changeId}/validation.md`;
 const verifyProofRef = `harness/changes/${changeId}/evidence/completion/verify.json`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
+const archiveManifestRef = `harness/changes/${changeId}/evidence/archive-manifest.json`;
 const {
   ENTERPRISE_HARNESS_SESSION_ID: _enterpriseHarnessSessionId,
   CLAUDE_SESSION_ID: _claudeSessionId,
@@ -134,11 +137,25 @@ try {
   assert.equal(fs.existsSync(path.join(root, verifyProofRef)), true);
   assert.equal(fs.existsSync(path.join(root, 'harness', 'archive', changeId)), false);
 
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n');
+  fs.writeFileSync(path.join(root, designProofRef), JSON.stringify({
+    type: 'completion-proof',
+    stage: 'design',
+    stageProofs: [{ kind: 'test-design', executionRunId: 'run_test-design-execute', reviewRunId: 'run_test-design-review' }],
+  }));
+  fs.writeFileSync(path.join(root, archiveManifestRef), JSON.stringify({
+    manifestVersion: 1,
+    changeId,
+    testCases: { path: testCasesRef, digest: sha256Artifact(root, testCasesRef) },
+    designProof: { path: designProofRef, digest: sha256Artifact(root, designProofRef) },
+    testDesign: { executionRunId: 'run_test-design-execute', reviewRunId: 'run_test-design-review' },
+  }));
+
   const archiveTecpc = {
     target: 'archive verified change',
-    evidence: [validationRef, verifyProofRef],
-    context: [verifyProofRef],
-    path: `${validationRef} -> ${verifyProofRef}`,
+    evidence: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
+    context: [verifyProofRef, designProofRef],
+    path: `${validationRef} -> ${verifyProofRef} -> ${archiveManifestRef}`,
     correction: null,
   };
   const archiveExecute = createHandoffV2(root, {
@@ -146,10 +163,10 @@ try {
     stage: 'archive',
     behavior: 'archive',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
-    inputRefs: [validationRef, verifyProofRef],
+    inputRefs: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
     tecpc: archiveTecpc,
   });
-  const archiveArtifacts = [validationRef, verifyProofRef]
+  const archiveArtifacts = [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef]
     .map((artifactPath) => ({ path: artifactPath, digest: sha256Artifact(root, artifactPath) }));
   const archiveResult = stageResult(archiveExecute.input, 'archive', archiveArtifacts, '2026-08-17T00:00:03.000Z');
   fs.writeFileSync(v2ResultPath(root, changeId, archiveExecute.runId), JSON.stringify(archiveResult));
@@ -160,7 +177,7 @@ try {
     role: 'check',
     parentRunId: archiveExecute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [validationRef, verifyProofRef],
+    inputRefs: [validationRef, verifyProofRef, testCasesRef, designProofRef, archiveManifestRef],
     tecpc: archiveTecpc,
   });
   fs.writeFileSync(
