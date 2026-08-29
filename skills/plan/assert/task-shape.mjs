@@ -35,6 +35,12 @@ export function assertTaskShape(content) {
     if (!task.includes('- Frozen primary argv:')) problems.push('task is missing frozen primary argv');
     if (!task.includes('- Acceptance checks:')) problems.push('task is missing acceptance checks');
     if (!task.includes('- Recovery/rollback:')) problems.push('task is missing recovery/rollback');
+    const testCases = task.match(/- Test cases:\s*([^\n]+)/u)?.[1] || '';
+    const tcIds = [...testCases.matchAll(/\bTC[1-9][0-9]*\b/gu)].map((match) => match[0]);
+    if (tcIds.length === 0) problems.push('task must map to one or more TC* test cases');
+    if (strategy === 'tdd' && !/- Minimal RED case:\s*TC[1-9][0-9]*/u.test(task)) {
+      problems.push('tdd task must identify a minimal RED case');
+    }
   }
   return {
     id: 'task-shape',

@@ -3,6 +3,7 @@ import { artifactNameForPath, invalidateStateArtifacts } from '../lib/artifacts.
 
 assert.equal(artifactNameForPath('requirements.md'), 'requirements');
 assert.equal(artifactNameForPath('design.md'), 'design');
+assert.equal(artifactNameForPath('test-cases.md'), 'testCases');
 assert.equal(artifactNameForPath('tasks.md'), 'plan');
 assert.equal(artifactNameForPath('evidence/tooling.md'), 'evidence');
 assert.equal(artifactNameForPath('evidence\\tooling.md'), 'evidence');
@@ -13,7 +14,8 @@ const state = {
   dependencies: {
     requirements: [],
     design: ['requirements'],
-    plan: ['design'],
+    testCases: ['requirements', 'design'],
+    plan: ['design', 'testCases'],
     evidence: ['plan'],
     validation: ['requirements', 'design', 'plan', 'evidence'],
   },
@@ -23,6 +25,7 @@ const state = {
 const next = invalidateStateArtifacts(state, ['requirements']);
 assert.deepEqual(next.artifacts.requirements.invalidatedBy, ['requirements']);
 assert.equal(next.artifacts.design.status, 'stale');
+assert.equal(next.artifacts.testCases.status, 'stale');
 assert.equal(next.artifacts.plan.status, 'stale');
 assert.equal(next.artifacts.evidence.status, 'stale');
 assert.equal(next.artifacts.validation.status, 'stale');

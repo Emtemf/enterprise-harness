@@ -18,12 +18,13 @@ independent reviews、classification 与冻结验证 argv，产出 `validation.m
 
 - [validation 模板](assets/validation.md.tmpl) — 生成 validation.md 时的输出骨架
 - [assert/validation-shape.mjs](assert/validation-shape.mjs) — 验证 validation.md heading、placeholder、required sections
+- [prepare-input.mjs](scripts/prepare-input.mjs) — 验证摘要绑定的 verify marker
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
 - [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
 
 ## 冻结输入
 
-1. 读取 v2 handoff；只消费其中真实存在且 digest 匹配的 task、review、receipt 和 design/plan 输入。
+1. 先运行 `prepare-input.mjs HANDOFF_INPUT=<canonical-input.json-path>`；只消费其中真实存在且 digest 匹配的 task、review、receipt、design/plan 和 `test-cases.md` 输入。
 2. 先核验 classification artifact digest，再根据 `api`、`data`、`architecture`、`rule`、`security`
    选择适用 rubric/evidence；不适用维度记录 `N/A` 与理由。
 3. 输入、tree、task receipt 或 review 任何一项变化均使验证 stale，必须重新执行。
@@ -36,6 +37,7 @@ evidence；fail、skip、unsupported 必须显式保留，`unsupported` 绝不�
 必须以缺少可信授权证据阻断，而不是相信 worker 提供的 `approvedBy` 字符串。
 - 写入 `harness/changes/<changeId>/validation.md`，包括 target、当前 input digest、执行结果、未覆盖项、
   correction/recovery 和下一步；必须含 Commands、Results、Freshness、Coverage and exceptions 四节。
+- 对每个 accepted `TC*` 写一行 `- TCn | executed|skipped|unsupported | <receipt-ref>`；critical E2E 必须是 `executed`，`unsupported` 不构成通过。
 - 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，将 result 用
   `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
   持久化为 immutable execute result。该 StageResult 必须含 assertions 与 `selfCheck`，证明本 Skill 的

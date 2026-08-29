@@ -3,10 +3,11 @@ import { artifactDependencies, deriveStaleArtifacts, controlledRewind } from '..
 
 const graph = artifactDependencies();
 assert.deepEqual(graph.design, ['requirements']);
-assert.deepEqual(graph.plan, ['design']);
-assert.deepEqual(graph.validation, ['requirements', 'design', 'plan', 'evidence']);
+assert.deepEqual(graph.testCases, ['requirements', 'design']);
+assert.deepEqual(graph.plan, ['design', 'testCases']);
+assert.deepEqual(graph.validation, ['requirements', 'design', 'testCases', 'plan', 'evidence']);
 const stale = deriveStaleArtifacts(graph, new Set(['requirements']));
-assert.deepEqual(stale, ['design', 'evidence', 'plan', 'validation']);
+assert.deepEqual(stale, ['design', 'evidence', 'plan', 'testCases', 'validation']);
 const rewind = controlledRewind({
   currentStage: 'verify',
   staleArtifacts: stale,

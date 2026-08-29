@@ -26,10 +26,12 @@ Status: draft-plan
 - Consumes:
 - Input digests:
 - Design decisions/requirements:
+- Test cases: TC1
 
 ### Execution strategy
 
 - Strategy: `tdd` | `regression` | `characterization` | `direct` | `migration` | `generation`
+- Minimal RED case: TC1 (仅 tdd；其他策略写 N/A 与理由)
 - Why this strategy fits:
 - Strategy-specific precondition and receipt:
   - `tdd`: a focused test is written and observed RED before GREEN → REFACTOR.

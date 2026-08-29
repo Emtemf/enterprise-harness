@@ -8,9 +8,10 @@ export function artifactDependencies() {
   return Object.freeze({
     requirements: [],
     design: ['requirements'],
-    plan: ['design'],
+    testCases: ['requirements', 'design'],
+    plan: ['design', 'testCases'],
     evidence: ['plan'],
-    validation: ['requirements', 'design', 'plan', 'evidence'],
+    validation: ['requirements', 'design', 'testCases', 'plan', 'evidence'],
   });
 }
 
@@ -52,6 +53,7 @@ export function artifactNameForPath(relativePath) {
   const normalized = String(relativePath).replaceAll('\\', '/').replace(/^\/+|\/+$/gu, '');
   if (normalized === 'requirements.md') return 'requirements';
   if (normalized === 'design.md') return 'design';
+  if (normalized === 'test-cases.md') return 'testCases';
   if (normalized === 'tasks.md') return 'plan';
   if (normalized === 'validation.md') return 'validation';
   if (normalized === 'evidence' || normalized.startsWith('evidence/')) return 'evidence';

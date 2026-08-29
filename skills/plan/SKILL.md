@@ -10,19 +10,20 @@ agent: enterprise-harness:artifact-worker
 # Plan
 
 本 Skill 是 Plan 阶段的执行合同。它只消费通过独立 review 的 `design.md`、
-`classification.json`、研究包和它们的冻结 digest，产出 `tasks.md` 与 schema-valid
+`classification.json`、`test-cases.md`、compound DesignProof、研究包和它们的冻结 digest，产出 `tasks.md` 与 schema-valid
 `StageResult`。它不修改产品代码、不替 Main 向用户提问、也不批准自己的计划。
 
 ## Supporting files
 
 - [tasks 模板](assets/tasks.md.tmpl) — 生成 tasks.md 时的输出骨架
 - [assert/task-shape.mjs](assert/task-shape.mjs) — 验证 tasks.md heading、ID、required sections、strategy、argv、acceptance、recovery
+- [prepare-input.mjs](scripts/prepare-input.mjs) — 只接受摘要绑定的 Plan marker
 - [finalize-result.mjs](scripts/finalize-result.mjs) — 聚合 assert 结果、校验 input digest、生成 StageResult
 
 ## 输入与边界
 
-1. 读取 handoff 的 `input.json`；`changeId`、`inputRefs`、`inputDigests` 是权威输入。
-2. 拒绝缺失或 digest 已变化的设计；不从聊天摘要推断设计决定。
+1. 先运行 `prepare-input.mjs HANDOFF_INPUT=<canonical-input.json-path>`；`design.md`、`test-cases.md` 和 compound DesignProof 必须全部存在且 digest-bound。
+2. 拒绝缺失或 digest 已变化的设计/测试用例；不从聊天摘要推断设计决定。
 3. 只计划本 change 的实现面。范围不完整或需要业务取舍时返回 `NEEDS_DECISION`，包含一个
    可由 Main 直接提问的明确问题。
 
@@ -35,6 +36,7 @@ Testable），可单独执行、审查、回滚和验证，且写明：
 - 要修改/新增/验证的路径和消费的设计决定；
 - 一个 `executionStrategy`、其选择理由、策略特有的前置条件及 machine-generated receipt；
 - 冻结的 exact argv（不得使用模糊的“run tests”）；
+- 每个 task 必须映射一个或多个 `TC*`；`tdd` task 还必须指明其最小 RED case。
 - 可观察的验收条件、失败恢复/回滚、适用 review rubric；
 - 需要 Main 决策的依赖，而不是臆测的默认实现。
 

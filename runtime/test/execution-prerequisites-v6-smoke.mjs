@@ -33,6 +33,7 @@ const stateRef = `harness/changes/${changeId}/state.json`;
 const designRef = `harness/changes/${changeId}/design.md`;
 const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
+const compoundDesignProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
 
 function git(args) {
@@ -199,7 +200,7 @@ try {
     testDesign.stageResult,
     testDesign.reviewResult,
   ), null, 2)}\n`);
-  const plan = addReviewedStage('plan', 'plan', [designRef], tasksRef);
+  const plan = addReviewedStage('plan', 'plan', [designRef, testCasesRef, compoundDesignProofRef], tasksRef);
 
   const valid = validateStageChain(root, changeId, state);
   assert.deepEqual(valid, [], `structured v6 stage proofs must pass without review projections: ${valid.join('; ')}`);
@@ -213,6 +214,14 @@ try {
   assert.equal(validation.status, 0, validation.stderr || validation.stdout);
   assert.equal(loadStageGateMarker(root, changeId)?.stage, 'implement');
   assert.equal(stageGateIsFresh(root, changeId, state).fresh, true);
+
+  fs.appendFileSync(path.join(root, testCasesRef), '\nmutated after plan binding\n');
+  const staleTestCases = validateStageGate(root, changeId, 'plan', { requiredArtifactPath: tasksRef });
+  assert.ok(
+    staleTestCases.some((problem) => /test-cases\.md|digest is stale/u.test(problem)),
+    `test-cases mutation must stale the Plan gate: ${staleTestCases.join('; ')}`,
+  );
+  fs.writeFileSync(path.join(root, testCasesRef), '# Test Cases\n\n## TC1\n');
 
   const staleClarify = createHandoffV2(root, {
     changeId,

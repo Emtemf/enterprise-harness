@@ -3,6 +3,7 @@
 
 export {
   sha256Artifact,
+  validateCompletionProof,
   validateResearchPacket,
   validateReviewResult,
   validateStageResult,

@@ -41,6 +41,9 @@ const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
   archive: (changeId) => [
     `harness/changes/${changeId}/validation.md`,
     `harness/changes/${changeId}/evidence/completion/verify.json`,
+    `harness/changes/${changeId}/test-cases.md`,
+    `harness/changes/${changeId}/evidence/completion/design.json`,
+    `harness/changes/${changeId}/evidence/archive-manifest.json`,
   ],
 });
 
@@ -530,6 +533,16 @@ function stageCompletionCandidateFor(root, changeId, stage, {
   const executionRef = execution?.resultPath ? path.relative(root, execution.resultPath).split(path.sep).join('/') : [];
   if (!execution?.input || execution.input.stage !== stage) {
     return fail('selfCheck', executionRef ? [executionRef] : [], [...executionProblems, `${stage} has no fresh, valid passing StageResult`]);
+  }
+  if (stage === 'plan') {
+    const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
+    const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
+    if (!execution.input.inputRefs.includes(testCasesRef)) {
+      executionProblems.push(`${executionCandidate.runId}: plan input must digest-bind test-cases.md`);
+    }
+    if (!execution.input.inputRefs.includes(designProofRef)) {
+      executionProblems.push(`${executionCandidate.runId}: plan input must digest-bind compound DesignProof`);
+    }
   }
   executionProblems.push(...freshInputDigests(root, execution.input).map((problem) => `${executionCandidate.runId}: ${problem}`));
   if (!execution.result) executionProblems.push(`${executionCandidate.runId}: StageResult is missing`);

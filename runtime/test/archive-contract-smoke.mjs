@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { STAGE_CONTRACTS } from '../lib/stage-contract.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const lifecyclePath = path.join(repoRoot, 'runtime', 'lifecycle.mjs');
@@ -26,6 +27,11 @@ function pass(message) {
 if (!['red', 'green', 'verify'].includes(mode)) {
   console.error('Usage: node runtime/test/archive-contract-smoke.mjs <red|green|verify>');
   process.exit(1);
+}
+
+if (!STAGE_CONTRACTS.archive.artifacts.includes('test-cases.md')
+  || !STAGE_CONTRACTS.archive.artifacts.includes('evidence/archive-manifest.json')) {
+  fail('v6 archive contract must require test-cases.md and archive manifest');
 }
 
 function seedChange(root, changeId, state) {

@@ -23,7 +23,7 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 1. 验证当前 state 已由 runtime 推进到 `archive`；`archive` 命令必须先在 `verify` 阶段验证并持久化 fresh Verify CompletionProof，然后只推进 stage，不做物理移动。
 2. 读取并重新校验 Verify CompletionProof：execution run、review run、artifact/input digest、TECPC 与
    `validation.status=fresh` 必须全部匹配当前 durable 文件。
-3. 确认所有适用 rubrics、receipt、scope decisions 和 required artifacts 已闭合；stale、missing、
+3. 确认所有适用 rubrics、receipt、scope decisions、`test-cases.md`、compound DesignProof 和 required artifacts 已闭合；stale、missing、
    `block`、任何非空 waiver 或 `unsupported` 一律阻断。
 4. 自检源/目标路径安全、归档目标不存在、历史目录不会覆盖；归档 evidence 不得从 `harness/archive/**`
    修改或补造。
@@ -31,7 +31,7 @@ change 必须保持 active 或显式 abandon，绝不能伪装归档。
 ## 质量闭环
 
 - 产出 archive StageResult：先运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，
-  它检查 verify CompletionProof 与 archive inputs；再用
+  它检查 verify CompletionProof 与 archive inputs，并一次性写入唯一 `evidence/archive-manifest.json`（test-cases、test-design result/review run refs、DesignProof refs）；再用
   `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
   持久化 assertions、`selfCheck` 与 TECPC。
 - Main 创建独立 `review` check run；archive worker 的自检不是完成 verdict。

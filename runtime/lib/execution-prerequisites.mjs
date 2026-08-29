@@ -187,6 +187,7 @@ const STAGE_GATE_FILES = [
   'change.md',
   'classification.json',
   'design.md',
+  'test-cases.md',
   'tasks.md',
 ];
 const STRUCTURED_GATE_STAGES = new Set(['design', 'plan']);

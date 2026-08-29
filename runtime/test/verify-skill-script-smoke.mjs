@@ -15,9 +15,16 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-verify-skill-'));
 const changeId = 'verify-slice';
 const changeDir = path.join(root, 'harness', 'changes', changeId);
 const validationRef = `harness/changes/${changeId}/validation.md`;
+const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 
 try {
   fs.mkdirSync(changeDir, { recursive: true });
+  fs.writeFileSync(path.join(root, testCasesRef), [
+    '## 测试用例',
+    '| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable result | cleanup | accepted |',
+  ].join('\n'));
   fs.writeFileSync(path.join(root, validationRef), [
     '# Validation',
     '## Commands',
@@ -27,15 +34,15 @@ try {
     '## Freshness',
     '- current input digest',
     '## Coverage and exceptions',
-    '- N/A: no API change',
+    '- TC1 | executed | evidence/tasks/task-1.json',
   ].join('\n'));
   const handoff = createHandoffV2(root, {
     changeId,
     stage: 'verify',
     behavior: 'verify.collect',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'verify' },
-    inputRefs: [validationRef],
-    tecpc: { target: 'verify slice', evidence: [validationRef], context: [validationRef], path: validationRef, correction: null },
+    inputRefs: [validationRef, testCasesRef],
+    tecpc: { target: 'verify slice', evidence: [validationRef], context: [validationRef, testCasesRef], path: validationRef, correction: null },
   });
   const passed = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(passed.status, 0, passed.stderr);
