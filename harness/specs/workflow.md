@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-28
+lastVerified: 2026-08-31
 implementationRefs:
   - skills/harness/SKILL.md
   - runtime/core/change-state.mjs
@@ -128,9 +128,8 @@ Verification uses many fast unit tests, fewer integration tests, and minimal end
 Each verification command produces a receipt with argv, exit code, timestamps, and output digests. For every accepted
 `TC*`, Verify persists a canonical receipt with `executed`, reasoned `skipped`, or `unsupported` status; `unsupported`
 cannot be elevated to `pass`, and applicable critical E2E cases must be `executed`.
-`unsupported` cannot be elevated to `pass`. Waivers fail closed until they are bound to trusted
-authorization evidence. A fresh validation verdict is necessary but not sufficient without the
-independent completion review.
+Waivers fail closed until they are bound to trusted authorization evidence. A fresh validation verdict is necessary but not
+sufficient without the independent completion review.
 
 ## Archive
 
