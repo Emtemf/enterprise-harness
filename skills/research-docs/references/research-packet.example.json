@@ -1,0 +1,30 @@
+{
+  "packetVersion": 1,
+  "type": "research-packet",
+  "changeId": "example-change",
+  "source": "doc-research",
+  "question": "目标 SDK 版本是否支持所需能力？",
+  "scope": [
+    "example-sdk 2.x 的目标 API"
+  ],
+  "facts": [
+    {
+      "claim": "目标 API 从 example-sdk 2.1 起可用。",
+      "sources": [
+        "Context7: /vendor/example-sdk/2.1#target-api"
+      ]
+    }
+  ],
+  "uncertainties": [],
+  "authority": "context7-first",
+  "fallback": null,
+  "degraded": false,
+  "recommendedDecision": null,
+  "inputRefs": [
+    "harness/changes/example-change/research/docs-brief.md"
+  ],
+  "inputDigests": {
+    "harness/changes/example-change/research/docs-brief.md": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "collectedAt": "2026-08-31T00:00:00.000Z"
+}

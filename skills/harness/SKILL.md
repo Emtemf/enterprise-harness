@@ -28,6 +28,10 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 任何新阶段工作前只允许运行下面记录的 exact argv；不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper：
 
+`Bash.command` 必须在最后一个参数处结束；禁止追加 `2>&1`、`| head`、`| tail`、任何管道/重定向、命令连接符
+或用于“查看输出”的包装。Claude Code 会直接返回 stdout/stderr，不需要 shell 后处理；被 hook 拒绝时按原 argv
+重试一次，不要猜测替代命令或绕过 Skill。
+
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json
 ```

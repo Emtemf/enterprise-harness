@@ -5,21 +5,26 @@ import {
   readAgentEvents,
 } from '../agent-evidence.mjs';
 import { formatDiagnostic } from '../diagnostics.mjs';
-import { hookChangeId } from '../hook-change.mjs';
+import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
+import { isHarnessForkSkill } from '../harness-skill-invocation.mjs';
 
 export function agentFailure({ root, event }) {
-  if (event.tool_name !== 'Agent') return { exitCode: 0 };
-  const requested = normalizeAgentType(event.tool_input?.subagent_type);
-  if (!isHarnessAgentType(requested)) return { exitCode: 0 };
+  if (!['Agent', 'Skill'].includes(event.tool_name)) return { exitCode: 0 };
+  let requested = normalizeAgentType(event.tool_input?.subagent_type);
+  const invokedSkill = String(event.tool_input?.skill || '').trim();
+  if (event.tool_name === 'Agent' && !isHarnessAgentType(requested)) return { exitCode: 0 };
+  if (event.tool_name === 'Skill' && !isHarnessForkSkill(invokedSkill)) return { exitCode: 0 };
 
-  const changeId = hookChangeId(root, event);
+  const repoRoot = hookRepoRoot(root, event);
+  const changeId = hookChangeId(repoRoot, event);
   if (!changeId) return { exitCode: 0 };
-  const dispatch = [...readAgentEvents(root, changeId)].reverse().find((item) => (
+  const dispatch = [...readAgentEvents(repoRoot, changeId)].reverse().find((item) => (
     item.kind === 'dispatch'
     && item.toolUseId === event.tool_use_id
-    && item.requestedAgentType === requested
+    && (event.tool_name === 'Skill' || item.requestedAgentType === requested)
   ));
-  appendAgentEvent(root, changeId, {
+  if (event.tool_name === 'Skill' && dispatch) requested = dispatch.requestedAgentType;
+  appendAgentEvent(repoRoot, changeId, {
     kind: 'failure',
     errorCode: 'EH-AGENT-FAILURE-009',
     sessionId: event.session_id,
@@ -27,14 +32,15 @@ export function agentFailure({ root, event }) {
     requestedAgentType: requested,
     runId: dispatch?.runId || null,
     behavior: dispatch?.behavior || null,
-    failure: event.error || event.tool_error || 'Agent tool failed',
+    invocationTool: event.tool_name,
+    failure: event.error || event.tool_error || `${event.tool_name} tool failed`,
     cwd: event.cwd || root,
   });
   return {
     exitCode: 0,
     stderr: formatDiagnostic(
       'EH-AGENT-FAILURE-009',
-      String(event.error || event.tool_error || 'Agent tool failed'),
+      String(event.error || event.tool_error || `${event.tool_name} tool failed`),
       { changeId, runId: dispatch?.runId },
     ),
   };

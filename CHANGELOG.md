@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.5.16] - 2026-08-31
+
+### Fixed
+
+- 标准 `context: fork` Skill 现在与 legacy `Agent` 一样记录 v2 dispatch、失败、stop 与 dispatch-binding；Harness 主控制器 Skill 保持透明，研究 worker 的 canonical `ResearchPacket` 可由 SubagentStop 原子持久化。
+- `handoff validate` 现在自动识别 v2 ResearchPacket、StageResult 与 ReviewResult，不再用 v1 envelope 合同误报合法结果。
+- CodeGraph/Context7 研究 Skill 新增 schema-valid few-shot，并将冲突的旧 ResearchPacket 合同移入 v5 compat；主 Skill 明确禁止给 canonical runtime argv 追加管道或重定向。
+
 ## [0.5.15] - 2026-08-31
 
 ### Fixed

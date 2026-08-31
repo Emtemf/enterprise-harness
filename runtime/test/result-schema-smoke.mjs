@@ -47,6 +47,20 @@ const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false
 ajv.addSchema(JSON.parse(fs.readFileSync(path.join(schemaDir, 'tecpc.schema.json'), 'utf-8')));
 ajv.addSchema(JSON.parse(fs.readFileSync(path.join(schemaDir, 'waiver.schema.json'), 'utf-8')));
 const validateCompletionProofSchema = ajv.compile(completionProofSchema);
+const validateResearchPacketSchema = ajv.compile(
+  JSON.parse(fs.readFileSync(path.join(schemaDir, 'research-packet.schema.json'), 'utf-8')),
+);
+for (const examplePath of [
+  'skills/explore-code/references/research-packet.example.json',
+  'skills/research-docs/references/research-packet.example.json',
+]) {
+  const example = JSON.parse(fs.readFileSync(path.join(root, examplePath), 'utf-8'));
+  assert.equal(
+    validateResearchPacketSchema(example),
+    true,
+    `${examplePath} must satisfy research-packet.schema.json: ${JSON.stringify(validateResearchPacketSchema.errors)}`,
+  );
+}
 const schemaChangeId = 'schema-clarify';
 const canonicalArtifacts = [
   `harness/changes/${schemaChangeId}/requirements.md`,

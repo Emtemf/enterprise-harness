@@ -1,3 +1,5 @@
+// Frozen v5 compatibility contract. Current v6 research workers must use
+// harness/schemas/research-packet.schema.json through runtime/lib/result-contract.mjs.
 const SOURCE_LANES = new Set(['codegraph', 'context7', 'mixed']);
 const STATUSES = new Set(['ok', 'fallback', 'degraded', 'block']);
 const CONFIDENCE = new Set(['high', 'medium', 'low']);

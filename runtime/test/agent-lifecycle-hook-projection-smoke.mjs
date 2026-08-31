@@ -28,8 +28,9 @@ function projectedEntry(event, script, matcher = null) {
 }
 
 for (const expected of [
-  ['PreToolUse', 'pre-agent.mjs', 'Agent'],
-  ['PostToolUse', 'post-agent.mjs', 'Agent'],
+  ['PreToolUse', 'pre-agent.mjs', 'Agent|Skill'],
+  ['PostToolUse', 'post-agent.mjs', 'Agent|Skill'],
+  ['PostToolUseFailure', 'agent-failure.mjs', 'Agent|Skill'],
   ['SubagentStart', 'subagent-start.mjs', null],
   ['SubagentStop', 'subagent-stop.mjs', null],
 ]) {

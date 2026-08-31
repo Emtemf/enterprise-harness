@@ -7,6 +7,9 @@ Return to controller: after exactly one durable entry, research, or recovery act
 
 Controller 已经应用 SKILL.md 的 status-first 优先级；本 reference 只提供被选中动作的准确 CLI 与 phase 方法：
 
+下列命令交给 Bash tool 时必须逐字结束于最后一个展示参数；不得追加 `2>&1`、pipe、`head`、`tail`、分号
+或其它 shell 包装。stdout/stderr 由 tool 原样返回。
+
 1. status 调用使用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json`
    （changeId 未知时可省略）。没有 active change 时，从 raw request 生成安全 kebab-case ID，运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" start-change <change-id>`，然后返回 controller。

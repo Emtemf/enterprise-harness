@@ -23,11 +23,18 @@ brief 派给 `code-explore`；Main 只接收压缩、schema-valid `ResearchPacke
 
 ## 输出与自检
 
+生成最终结果前，必须读取 `${CLAUDE_SKILL_DIR}/references/research-packet.example.json`（Skill 内相对路径
+`references/research-packet.example.json`）作为 few-shot，
+保持它的 key 集合与 JSON 类型，并把每个示例值替换为本次 handoff 的真实值。当前
+`harness/schemas/research-packet.schema.json` 是唯一 schema 权威；示例不是可直接复制的结果。
+
 最终消息必须且只能是一个无 Markdown fence、无前后说明的 `ResearchPacket` JSON object：精确
 `question`、非空 `scope`、可核验 `facts` 及每个事实的 source、
 `uncertainties`、`authority: codegraph-first`、`fallback`/`degraded`、真实消费的 `inputRefs`/digests、
 以及仅在确有业务缺口时才给出的 `recommendedDecision`。
 
 返回前检查：事实和猜测分离、source 可复查、fallback 被明确标识、范围没有泛化为“整个仓库”。
+`scope` 和 `uncertainties` 必须是字符串数组，`facts[].sources` 必须是字符串数组，`fallback` 只能是
+字符串或 `null`；不得增加 `confidence`、旧 `sourcePolicy` 或 `HANDOFF_RESULT` envelope。
 若 handoff/brief 无效，不得伪造 ResearchPacket；返回单个 JSON error object 让 SubagentStop fail closed，
 由 Main 修复后重派。若事实揭示业务选择，把它写入 `recommendedDecision`，不直接用户交互。

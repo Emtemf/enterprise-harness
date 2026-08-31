@@ -21,12 +21,12 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent",
+        "matcher": "Agent|Skill",
         "script": "pre-agent.mjs",
         "timeout": 10,
         "performanceBudgetMs": 100,
         "failMode": "fail-closed",
-        "statusMessage": "校验 scoped Agent 派发"
+        "statusMessage": "校验 harness Skill/Agent 派发"
       },
       {
         "matcher": "Write|Edit|NotebookEdit|Bash",
@@ -55,12 +55,12 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Agent",
+        "matcher": "Agent|Skill",
         "script": "post-agent.mjs",
         "timeout": 10,
         "performanceBudgetMs": 100,
         "failMode": "fail-closed",
-        "statusMessage": "记录 scoped Agent 派发绑定"
+        "statusMessage": "记录 harness Skill/Agent 派发绑定"
       },
       {
         "matcher": "mcp__codegraph__.*|mcp__context7__.*|mcp__plugin_enterprise-harness_codegraph__.*|mcp__plugin_enterprise-harness_context7__.*",
@@ -106,6 +106,14 @@
       }
     ],
     "PostToolUseFailure": [
+      {
+        "matcher": "Agent|Skill",
+        "script": "agent-failure.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-open",
+        "statusMessage": "记录 harness Skill/Agent 失败凭据"
+      },
       {
         "matcher": "Write|Edit|NotebookEdit|Bash",
         "script": "post-write-release.mjs",

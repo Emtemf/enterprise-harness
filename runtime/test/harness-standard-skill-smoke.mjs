@@ -37,6 +37,10 @@ function assertHarnessInstructions() {
     'controller must record the exact plugin-root workflow status argv',
   );
   assert.ok(skill.includes('不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper'), 'controller must forbid guessed CLI wrappers');
+  for (const forbiddenSuffix of ['`2>&1`', '`| head`', '`| tail`']) {
+    assert.ok(skill.includes(forbiddenSuffix), `controller must forbid shell suffix ${forbiddenSuffix}`);
+  }
+  assert.ok(research.includes('不得追加 `2>&1`、pipe、`head`、`tail`'), 'research commands must terminate at their documented argv');
   assert.ok(skill.includes('node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify status <change-id> --json'));
   assert.ok(skill.includes('node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>'));
   assert.equal(/^## Phase [0-5]/gmu.test(skill), false, 'auto-loaded controller must not retain phase procedure detail');

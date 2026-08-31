@@ -11,6 +11,7 @@ import {
   loadHandoffV2FromMarker,
   parseHandoffV2Marker,
   persistHandoffV2Result,
+  validateHandoffV2Result,
   v2RunDir,
 } from './core/handoff-v2.mjs';
 import { resolveWithin } from './lib/safe-paths.mjs';
@@ -183,7 +184,9 @@ if (action === 'validate') {
   if (loaded.ok && resultPath) {
     try {
       const result = JSON.parse(fs.readFileSync(path.resolve(root, resultPath), 'utf-8'));
-      problems.push(...validateHandoffResult(result, loaded.envelope));
+      problems.push(...(isV2
+        ? validateHandoffV2Result(root, loaded.envelope, result)
+        : validateHandoffResult(result, loaded.envelope)));
     } catch (error) {
       problems.push(`invalid result JSON: ${error.message}`);
     }

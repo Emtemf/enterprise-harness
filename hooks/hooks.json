@@ -31,10 +31,10 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-agent.mjs\"",
             "timeout": 10,
-            "statusMessage": "校验 scoped Agent 派发"
+            "statusMessage": "校验 harness Skill/Agent 派发"
           }
         ],
-        "matcher": "Agent"
+        "matcher": "Agent|Skill"
       },
       {
         "hooks": [
@@ -77,10 +77,10 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-agent.mjs\"",
             "timeout": 10,
-            "statusMessage": "记录 scoped Agent 派发绑定"
+            "statusMessage": "记录 harness Skill/Agent 派发绑定"
           }
         ],
-        "matcher": "Agent"
+        "matcher": "Agent|Skill"
       },
       {
         "hooks": [
@@ -141,6 +141,17 @@
       }
     ],
     "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/agent-failure.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录 harness Skill/Agent 失败凭据"
+          }
+        ],
+        "matcher": "Agent|Skill"
+      },
       {
         "hooks": [
           {

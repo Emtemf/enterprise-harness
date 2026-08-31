@@ -54,6 +54,9 @@ model: sonnet
 
 只返回符合 `harness/schemas/research-packet.schema.json` 的 JSON `ResearchPacket`：
 
+先按已加载 `explore-code` Skill 的 `references/research-packet.example.json` few-shot 固定 key 与 JSON
+类型，再替换为本次真实值；不得混用 v5 packet 或 legacy handoff envelope。
+
 - `packetVersion: 1`、`type: "research-packet"`、`changeId`、`source: "code-explore"`。
 - `question`、`scope` 与 `authority: "codegraph-first"`：精确描述本次事实任务与 authority lane。
 - `facts`：每条为可核验 claim 和非空 `sources`；`uncertainties` 单列尚未确认的结论。

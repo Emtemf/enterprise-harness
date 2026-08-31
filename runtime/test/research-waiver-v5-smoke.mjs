@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createResearchPacket, validateResearchPacket } from '../lib/research-packet.mjs';
+import { createResearchPacket, validateResearchPacket } from '../compat/v5/research-packet.mjs';
 import { createWaiver, isWaiverFresh, validateWaiver } from '../lib/waiver.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-research-'));

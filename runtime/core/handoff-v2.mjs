@@ -128,8 +128,28 @@ export function persistHandoffV2Result(root, changeId, runId, result) {
 
 function persistHandoffV2ResultUnlocked(root, changeId, runId, result) {
   const input = loadHandoffV2(root, changeId, runId);
-  const problems = [];
+  const problems = validateHandoffV2Result(root, input, result);
   const target = v2ResultPath(root, changeId, runId, input.role);
+
+  if (problems.length > 0) throw new Error(`EH-HANDOFF-V2-030: ${problems.join('; ')}`);
+  if (fs.existsSync(target)) throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(result, null, 2)}\n`, { encoding: 'utf-8', mode: 0o600, flag: 'wx' });
+    fs.linkSync(temporary, target);
+  } catch (error) {
+    if (error.code === 'EEXIST') throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
+    throw error;
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+  return { input, path: target };
+}
+
+export function validateHandoffV2Result(root, input, result) {
+  const problems = [];
+  const changeId = input?.changeId;
 
   if (input.role === 'execute') {
     const researchSource = researchSourceForAgent(input.agent?.type);
@@ -205,20 +225,7 @@ function persistHandoffV2ResultUnlocked(root, changeId, runId, result) {
     }
   }
 
-  if (problems.length > 0) throw new Error(`EH-HANDOFF-V2-030: ${problems.join('; ')}`);
-  if (fs.existsSync(target)) throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
-  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  try {
-    fs.writeFileSync(temporary, `${JSON.stringify(result, null, 2)}\n`, { encoding: 'utf-8', mode: 0o600, flag: 'wx' });
-    fs.linkSync(temporary, target);
-  } catch (error) {
-    if (error.code === 'EEXIST') throw new Error(`EH-HANDOFF-V2-031: durable result already exists: ${target}`);
-    throw error;
-  } finally {
-    fs.rmSync(temporary, { force: true });
-  }
-  return { input, path: target };
+  return problems;
 }
 
 export function parseHandoffV2Marker(prompt) {

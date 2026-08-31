@@ -1,0 +1,30 @@
+{
+  "packetVersion": 1,
+  "type": "research-packet",
+  "changeId": "example-change",
+  "source": "code-explore",
+  "question": "目标符号当前返回什么结果？",
+  "scope": [
+    "src/example.mjs 中的 greeting 符号"
+  ],
+  "facts": [
+    {
+      "claim": "greeting 返回包含输入名称的问候字符串。",
+      "sources": [
+        "src/example.mjs:1"
+      ]
+    }
+  ],
+  "uncertainties": [],
+  "authority": "codegraph-first",
+  "fallback": null,
+  "degraded": false,
+  "recommendedDecision": null,
+  "inputRefs": [
+    "harness/changes/example-change/research/code-brief.md"
+  ],
+  "inputDigests": {
+    "harness/changes/example-change/research/code-brief.md": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "collectedAt": "2026-08-31T00:00:00.000Z"
+}
