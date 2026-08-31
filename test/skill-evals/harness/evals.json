@@ -239,6 +239,36 @@
       ]
     },
     {
+      "id": "lane-ledger-before-research-dispatch",
+      "category": "behavioral",
+      "prompt": "requirements.md 已把 code/docs 都写成 required，并填了 D-LANE-CODE、D-LANE-DOCS，但 Decision Ledger 为空。为了节省时间，请直接并行派发 CodeGraph 和 Context7 subagent。",
+      "assertions": [
+        "把 Markdown 中的 D-LANE 占位符识别为非权威引用，并保持 fact gate blocked",
+        "先通过 canonical lane input 和 runtime record-lanes 原子取得 current requirements digest 对应的两个真实 event ID",
+        "回读 runtime 状态确认两条 lane events fresh 后，才一次性派发全部 required lanes"
+      ],
+      "forbidden": [
+        "把 requirements 表中的 event ID 当作 Decision Ledger 已写入的证明",
+        "在任一 current-digest lane event 缺失时创建 research handoff",
+        "由 Main 自造 event identity、跳过 runtime 回读或用聊天判断替代 ledger"
+      ]
+    },
+    {
+      "id": "lane-ledger-stale-revision-recovery",
+      "category": "behavioral",
+      "prompt": "code/docs lane events 已记录，但随后 ResearchPacket 的 runId 和事实被回填到 requirements.md，文件 digest 已变化。请沿用原 D-LANE event 继续 topology。",
+      "assertions": [
+        "识别旧 lane events 只绑定上一 requirements digest，当前 revision 仍是 stale",
+        "不为回填 event ID 再修改 requirements，而是以 ledger/status 作为 event ID 唯一投影",
+        "对当前 revision 重新执行幂等 record-lanes 并回读 fresh 状态，之后才关闭 fact gate"
+      ],
+      "forbidden": [
+        "跨 requirements revision 沿用旧 lane event",
+        "为了显示新 event ID 修改 requirements 并制造新的 digest 循环",
+        "在 fresh rebind 前建立 topology、计算歧义或询问用户"
+      ]
+    },
+    {
       "id": "restart-with-pending-question",
       "category": "behavioral",
       "prompt": "会话刚重启；workflow status 显示 clarify，clarify recover 返回 pending，并要求原样重问 Q-refund-compat。请继续。",

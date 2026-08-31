@@ -76,6 +76,8 @@ function assertBehavioralEvals() {
     'fast-path',
     'approval-gate',
     'fact-lanes-before-interview',
+    'lane-ledger-before-research-dispatch',
+    'lane-ledger-stale-revision-recovery',
   ]) assert.ok(ids.has(id), `harness evals must cover ${id}`);
   for (const entry of evals.cases) {
     assert.ok(entry.prompt, `${entry.id} must include a pressure prompt`);
