@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 3,
+  "tasks": {
+    "<task-id>": {
+      "executionStrategy": "direct",
+      "strategyRationale": "<why this strategy matches the task>",
+      "testCases": ["TC1"],
+      "minimalRedCase": null,
+      "writeScope": {
+        "allowed": ["src/example.js"],
+        "forbidden": ["harness/archive/**"]
+      },
+      "commands": [
+        {
+          "phase": "VERIFY",
+          "argv": ["node", "--test", "test/example.test.js"]
+        }
+      ]
+    }
+  }
+}

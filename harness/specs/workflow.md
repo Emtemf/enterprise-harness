@@ -107,7 +107,9 @@ Each task identifies its target, execution strategy (`tdd`, `direct`, `migration
 declared strategy), exact command argv, intended implementation surface, review rubric,
 verification condition, rollback/recovery note, and one or more accepted `TC*` mappings. A task using `tdd` also identifies its
 minimal RED case from its own mappings and required RED→GREEN evidence. Plan digest-binds both the compound
-`DesignProof` and `test-cases.md`; its task evidence becomes stale when either input changes.
+`DesignProof` and `test-cases.md`; its task evidence becomes stale when either input changes. Plan completion requires
+both the human-reviewable `tasks.md` and machine-readable `task-commands.json`; one StageResult and independent review
+bind both artifacts, whose task ids, strategies, TC mappings, phase chains, literal argv, and write scopes must agree.
 
 ## Implement
 

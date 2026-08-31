@@ -20,6 +20,7 @@ const designRef = `harness/changes/${changeId}/design.md`;
 const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
+const taskCommandsRef = `harness/changes/${changeId}/task-commands.json`;
 
 try {
   fs.mkdirSync(changeDir, { recursive: true });
@@ -36,20 +37,35 @@ try {
   fs.writeFileSync(path.join(root, tasksRef), [
     '# Tasks',
     '',
+    'Status: finalized-plan',
+    '',
     '## Task 1: task-1',
     '### Target and scope',
     '- Goal: change one file',
+    '- Modify: src/example.js',
+    '- Create: N/A — no new file',
+    '- Test: test.mjs',
+    '- Out of scope: unrelated files',
     '### Frozen inputs',
     '- Consumes: design.md',
+    '- Input digests: frozen by handoff',
+    '- Design decisions/requirements: R1 / D1',
     '- Test cases: TC1',
     '### Execution strategy',
     '- Strategy: `direct`',
+    '- Minimal RED case: N/A — direct strategy',
+    '- Why this strategy fits: deterministic verification is sufficient',
+    '- Strategy-specific precondition and receipt:',
+    '  - `direct`: record VERIFY receipt',
     '### Commands and verification',
     '- Frozen primary argv: `node --test test.mjs`',
+    '- Expected result: exit 0',
     '- Acceptance checks: tests pass',
     '- Recovery/rollback: revert the change',
     '### Independent review',
     '- Applicable rubrics: task',
+    '- Reviewer input artifacts: tasks.md and task-commands.json',
+    '- Review completion condition: independent pass',
   ].join('\n'));
   const missingTestCases = createHandoffV2(root, {
     changeId,
@@ -75,9 +91,50 @@ try {
   });
   const prepared = spawnSync(process.execPath, [prepare, `HANDOFF_INPUT=${handoff.path}`], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(prepared.status, 0, prepared.stderr);
+  const missingTaskCommands = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(missingTaskCommands.status, 0, 'Plan must not finalize without canonical task-commands.json');
+  assert.match(missingTaskCommands.stderr, /task-commands\.json/u);
+
+  fs.writeFileSync(path.join(root, taskCommandsRef), `${JSON.stringify({
+    schemaVersion: 3,
+    tasks: {
+      'task-1': {
+        executionStrategy: 'direct',
+        strategyRationale: 'This fixture needs only deterministic verification.',
+        testCases: ['TC1'],
+        minimalRedCase: null,
+        writeScope: { allowed: ['src/example.js'], forbidden: [] },
+        commands: [{ phase: 'VERIFY', argv: ['node', '--test', 'test.mjs'] }],
+      },
+    },
+  }, null, 2)}\n`);
   const passed = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(passed.status, 0, passed.stderr);
-  assert.equal(JSON.parse(passed.stdout).status, 'pass');
+  const passedResult = JSON.parse(passed.stdout);
+  assert.equal(passedResult.status, 'pass');
+  assert.deepEqual(
+    passedResult.artifacts.map(({ path: artifactPath }) => artifactPath),
+    [tasksRef, taskCommandsRef],
+    'one Plan StageResult must bind both human and machine plan artifacts',
+  );
+
+  const validTaskCommands = fs.readFileSync(path.join(root, taskCommandsRef), 'utf-8');
+  const unsafeTaskCommands = JSON.parse(validTaskCommands);
+  unsafeTaskCommands.tasks['task-1'].writeScope.allowed = ['../outside.js'];
+  unsafeTaskCommands.tasks['task-1'].commands[0].argv = [];
+  fs.writeFileSync(path.join(root, taskCommandsRef), `${JSON.stringify(unsafeTaskCommands, null, 2)}\n`);
+  const unsafeCommands = createHandoffV2(root, {
+    changeId,
+    stage: 'plan',
+    behavior: 'plan.produce',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'plan' },
+    inputRefs: [designRef, testCasesRef, designProofRef],
+    tecpc: { target: 'plan unsafe task commands', evidence: [designRef], context: [designRef, testCasesRef, designProofRef], path: taskCommandsRef, correction: null },
+  });
+  const unsafeRejected = spawnSync(process.execPath, [finalize, changeId, unsafeCommands.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(unsafeRejected.status, 0, 'Plan must reject unsafe write scope and empty argv');
+  assert.match(unsafeRejected.stderr, /writeScope\.allowed|argv/u);
+  fs.writeFileSync(path.join(root, taskCommandsRef), validTaskCommands);
 
   // Adversarial RED: a valid-looking task may not invent a TC ID or put its
   // TDD RED case outside the task's own mapping.  The runtime, not the Skill
@@ -85,21 +142,35 @@ try {
   fs.writeFileSync(path.join(root, tasksRef), [
     '# Tasks',
     '',
+    'Status: finalized-plan',
+    '',
     '## Task 1: task-1',
     '### Target and scope',
     '- Goal: change one file',
+    '- Modify: src/example.js',
+    '- Create: N/A — no new file',
+    '- Test: test.mjs',
+    '- Out of scope: unrelated files',
     '### Frozen inputs',
     '- Consumes: design.md',
+    '- Input digests: frozen by handoff',
+    '- Design decisions/requirements: R1 / D1',
     '- Test cases: TC999',
     '### Execution strategy',
     '- Strategy: `tdd`',
+    '- Minimal RED case: TC998',
+    '- Why this strategy fits: focused behavior requires RED',
+    '- Strategy-specific precondition and receipt:',
+    '  - `tdd`: observe RED before GREEN',
     '### Commands and verification',
     '- Frozen primary argv: `node --test test.mjs`',
+    '- Expected result: exit 0 after GREEN',
     '- Acceptance checks: tests pass',
     '- Recovery/rollback: revert the change',
-    '- Minimal RED case: TC998',
     '### Independent review',
     '- Applicable rubrics: task',
+    '- Reviewer input artifacts: tasks.md and task-commands.json',
+    '- Review completion condition: independent pass',
   ].join('\n'));
   const unknownCases = createHandoffV2(root, {
     changeId,

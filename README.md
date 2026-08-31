@@ -102,7 +102,7 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
    逐项澄清剩余 Decisions。
 4. 生成含接口、错误模型和必要 SQL 的 architecture design，并完成独立 review 和 seal。
 5. 独立生成可追踪的 `test-cases.md`，完成独立 review 后形成 compound `DesignProof`。
-6. 冻结逐项映射 `TC*` 的任务级 exact argv。
+6. 同时冻结人类可审查的 `tasks.md` 与 runtime 可执行的 `task-commands.json`，逐 task 绑定 `TC*`、strategy、phase、literal argv 和 write scope。
 7. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
 8. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
 9. 汇总每个 `TC*` 的 fresh validation、completion evidence 后才允许归档。

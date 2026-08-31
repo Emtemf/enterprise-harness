@@ -30,7 +30,7 @@ export const STAGE_CONTRACTS = Object.freeze({
     resultGate: 'design',
   },
   plan: {
-    artifacts: ['tasks.md'],
+    artifacts: ['tasks.md', 'task-commands.json'],
     state: () => [],
     resultGate: 'plan',
   },

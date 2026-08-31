@@ -17,6 +17,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-reviewer-
 const changeId = 'reviewer-authorization';
 const requirementsRef = `harness/changes/${changeId}/requirements.md`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
+const taskCommandsRef = `harness/changes/${changeId}/task-commands.json`;
 const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
 
@@ -77,6 +78,19 @@ try {
     '### Commands and verification', '- Frozen primary argv: `node --test fixture.mjs`', '- Acceptance checks: fixture passes', '- Recovery/rollback: revert fixture',
     '### Independent review', '- Applicable rubrics: task',
   ].join('\n'));
+  fs.writeFileSync(path.join(root, taskCommandsRef), `${JSON.stringify({
+    schemaVersion: 3,
+    tasks: {
+      'task-one': {
+        executionStrategy: 'direct',
+        strategyRationale: 'Fixture verification is sufficient.',
+        testCases: ['TC1'],
+        minimalRedCase: null,
+        writeScope: { allowed: ['fixture.mjs'], forbidden: [] },
+        commands: [{ phase: 'VERIFY', argv: ['node', '--test', 'fixture.mjs'] }],
+      },
+    },
+  }, null, 2)}\n`);
   fs.writeFileSync(path.join(root, testCasesRef), [
     '## 测试用例',
     '| TCID | Traces | Level | Priority | Preconditions | Data | Actions | Observable assertions | Cleanup/Recovery | Status |',
@@ -102,7 +116,10 @@ try {
     inputRefs: [requirementsRef, testCasesRef, designProofRef],
     tecpc,
   });
-  const artifacts = [{ path: tasksRef, digest: sha256Artifact(root, tasksRef) }];
+  const artifacts = [tasksRef, taskCommandsRef].map((reference) => ({
+    path: reference,
+    digest: sha256Artifact(root, reference),
+  }));
   const stageResult = {
     resultVersion: 1,
     type: 'stage-result',
@@ -128,7 +145,7 @@ try {
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [tasksRef],
+    inputRefs: [tasksRef, taskCommandsRef],
     tecpc,
   });
   const review = {

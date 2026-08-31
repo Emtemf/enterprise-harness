@@ -5,6 +5,7 @@ import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateCanonicalDesignProof, validatePlanTestCaseBindings, validateStageResult } from '../../../runtime/api/result.mjs';
 import { assertNoSymlinkComponents, assertSafeId, assertSafeRunId, resolveChild } from '../../../runtime/api/task.mjs';
 import { assertTaskShape } from '../assert/task-shape.mjs';
+import { assertTaskCommandShape } from '../assert/task-command-shape.mjs';
 
 const [changeId, runId] = process.argv.slice(2);
 if (!changeId || !runId) {
@@ -56,22 +57,38 @@ try {
     throw new Error(`EH-PLAN-FINALIZE-009: canonical compound DesignProof is invalid: ${canonicalDesignProblems.join('; ')}`);
   }
   const artifactPath = `harness/changes/${changeId}/tasks.md`;
+  const taskCommandsPath = `harness/changes/${changeId}/task-commands.json`;
   const absolutePath = path.join(root, artifactPath);
+  const absoluteTaskCommandsPath = path.join(root, taskCommandsPath);
   assertNoSymlinkComponents(changeDir, absolutePath, 'tasks.md');
+  assertNoSymlinkComponents(changeDir, absoluteTaskCommandsPath, 'task-commands.json');
   if (!fs.existsSync(absolutePath)) throw new Error(`EH-PLAN-FINALIZE-002: missing ${artifactPath}`);
-  const assertResult = assertTaskShape(fs.readFileSync(absolutePath, 'utf-8'));
+  if (!fs.existsSync(absoluteTaskCommandsPath)) throw new Error(`EH-PLAN-FINALIZE-002: missing ${taskCommandsPath}`);
+  const tasksContent = fs.readFileSync(absolutePath, 'utf-8');
+  const assertResult = assertTaskShape(tasksContent);
   if (assertResult.verdict === 'block') {
     throw new Error(`EH-PLAN-FINALIZE-003: ${assertResult.findings.join('; ')}`);
   }
+  let taskCommands;
+  try {
+    taskCommands = JSON.parse(fs.readFileSync(absoluteTaskCommandsPath, 'utf-8'));
+  } catch (error) {
+    throw new Error(`EH-PLAN-FINALIZE-011: task-commands.json is invalid JSON: ${error.message}`);
+  }
+  const taskCommandResult = assertTaskCommandShape(taskCommands, tasksContent);
+  if (taskCommandResult.verdict === 'block') {
+    throw new Error(`EH-PLAN-FINALIZE-011: ${taskCommandResult.findings.join('; ')}`);
+  }
   const testCaseBindings = validatePlanTestCaseBindings(
     fs.readFileSync(path.join(root, testCasesRef), 'utf-8'),
-    fs.readFileSync(absolutePath, 'utf-8'),
+    tasksContent,
   );
   if (testCaseBindings.problems.length > 0) {
     throw new Error(`EH-PLAN-FINALIZE-010: ${testCaseBindings.problems.join('; ')}`);
   }
   const assertions = [
     { id: assertResult.id, verdict: assertResult.verdict, evidence: assertResult.evidence },
+    { id: taskCommandResult.id, verdict: taskCommandResult.verdict, evidence: taskCommandResult.evidence },
   ];
   const result = {
     resultVersion: 1,
@@ -81,7 +98,10 @@ try {
     runId,
     producer: { agentType: input.agent.type, skill: input.agent.skill },
     inputDigests: { ...input.inputDigests },
-    artifacts: [{ path: artifactPath, digest: sha256Artifact(root, artifactPath) }],
+    artifacts: [
+      { path: artifactPath, digest: sha256Artifact(root, artifactPath) },
+      { path: taskCommandsPath, digest: sha256Artifact(root, taskCommandsPath) },
+    ],
     assertions,
     selfCheck: { verdict: 'pass', findings: [], evidence: assertions.flatMap((assertion) => assertion.evidence) },
     tecpc: { ...input.tecpc },

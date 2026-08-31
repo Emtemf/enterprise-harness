@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-08-31
+
+### Changed
+
+- Plan 现在由同一个 StageResult 与独立 review 同时绑定人类可审查的 `tasks.md` 和 runtime 可执行的
+  `task-commands.json`，不再允许缺少 machine command freeze 的计划进入 Implement。
+- 新增 task/strategy/TC/Minimal RED/phase/literal argv/write scope 的双产物一致性校验，并补充 SQL migration
+  历史、模式选择理由和独立任务切片指导。
+
 ## [0.5.12] - 2026-08-28
 
 ### Added

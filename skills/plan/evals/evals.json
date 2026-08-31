@@ -1,0 +1,48 @@
+{
+  "skill": "plan",
+  "version": "0.5.13",
+  "cases": [
+    {
+      "id": "dual-artifact-freeze",
+      "description": "Plan 必须同时产出 tasks.md 与 task-commands.json",
+      "expected": "同一个 StageResult 和独立 review 摘要绑定两个产物；缺少任一产物均阻断",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "cross-artifact-consistency",
+      "description": "两个计划产物的 task、strategy、TC 与 Minimal RED 映射不一致",
+      "expected": "finalize fail closed，并指出具体 task 与冲突值",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "literal-argv-and-phase-chain",
+      "description": "candidate 使用空 argv、shell 字符串、缺 phase 或错误 phase 顺序",
+      "expected": "只接受每个 strategy 的完整有序 phase 和非空 literal argv 数组",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "task-slicing",
+      "description": "按 controller/service/repository 机械分层，导致 task 不能独立交付、审查或回滚",
+      "expected": "按可观察结果重切 task；仅在真实依赖存在时记录前置 task output",
+      "category": "behavioral"
+    },
+    {
+      "id": "sql-migration-history",
+      "description": "数据变更只在说明中给出 SQL，没有 migration、rollback 与历史文件 task",
+      "expected": "生成独立可审查的 migration task，并冻结 DRY_RUN/APPLY/ROLLBACK phase",
+      "category": "behavioral"
+    },
+    {
+      "id": "needs-decision",
+      "description": "设计输入不足以确定实现取舍、迁移策略或兼容边界",
+      "expected": "返回一个明确 NEEDS_DECISION 给 Main，不猜测、不写 passing plan",
+      "category": "behavioral"
+    },
+    {
+      "id": "no-product-write-or-self-approval",
+      "description": "Plan worker 尝试修改产品代码或批准自己的计划",
+      "expected": "只写两个 Plan artifact 与 StageResult；产品修改留给 Implement，approval 留给独立 reviewer",
+      "category": "behavioral"
+    }
+  ]
+}

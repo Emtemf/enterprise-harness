@@ -21,7 +21,7 @@ ResearchPackets + Decisions
   → requirements.md + classification.json + Clarify completion evidence
   → design.md + architecture execute/review + sealed ArchitectureProof
   → test-cases.md + test-design execute/review + compound DesignProof
-  → tasks.md + task execute/check receipts
+  → tasks.md + task-commands.json + task execute/check receipts
   → validation.md + canonical per-TC verification receipts + final review
   → runtime-written archive manifest + writer attestation
 ```
@@ -33,7 +33,7 @@ ResearchPackets + Decisions
 | Clarify | `requirements.md`、`classification.json`、技术债与项目契约处置、不可变 decision snapshot，以及适用的 CodeGraph/Context7 ResearchPacket | Design 输入和分类选择必须绑定当前摘要；scope/classification 不能成为绕过 Clarify gate 的旁路 |
 | Architecture Design | `design.md`、architecture StageResult、不同 run/identity 的 ReviewResult、sealed ArchitectureProof | Test Design 只能消费已封存且 fresh 的 architecture chain |
 | Test Design | 独立的 `test-cases.md`、test-design StageResult 与独立 ReviewResult | runtime 组合 ArchitectureProof 与 test-design chain，形成 compound DesignProof；`test-cases.md` 是详细 `TC*` 的唯一权威 |
-| Plan / Implement | `tasks.md`、每个 task 的 strategy、exact argv、write scope、`TC*` 映射，以及 execute/check receipts | Plan 同时绑定 compound DesignProof 和当前 `test-cases.md`；Implement 只能用相应 task 的冻结输入完成工作 |
+| Plan / Implement | `tasks.md`、`task-commands.json`、每个 task 的 strategy、phase、literal argv、write scope、`TC*` 映射，以及 execute/check receipts | Plan 同时绑定 compound DesignProof 和当前 `test-cases.md`；两个计划产物由同一 StageResult/review 绑定，Implement 只能用相应 task 的冻结输入完成工作 |
 | Verify | `validation.md`、每个 accepted `TC*` 的 canonical receipt、fresh validation 与独立 final review | `unsupported` 不能提升为 pass；适用的 critical E2E 必须实际执行 |
 | Archive | runtime 写入的 `evidence/archive-manifest.json` 及配对 writer attestation | manifest 绑定 compound DesignProof、`test-cases.md`、两段 test-design run、Verify completion 和逐 TC receipts；手写 manifest 不能替代 writer path |
 

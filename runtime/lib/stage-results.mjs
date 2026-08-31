@@ -38,7 +38,10 @@ const REQUIRED_STAGE_RESULT_ARTIFACTS = Object.freeze({
     `harness/changes/${changeId}/design.md`,
     `harness/changes/${changeId}/test-cases.md`,
   ],
-  plan: (changeId) => [`harness/changes/${changeId}/tasks.md`],
+  plan: (changeId) => [
+    `harness/changes/${changeId}/tasks.md`,
+    `harness/changes/${changeId}/task-commands.json`,
+  ],
   implement: () => [],
   verify: (changeId) => [`harness/changes/${changeId}/validation.md`],
   archive: (changeId) => [

@@ -5,7 +5,7 @@
 ## 九个主合同
 
 1. [architecture.md](architecture.md) — Claude Code-only surface and the compound-but-six-stage Design boundary
-2. [workflow.md](workflow.md) — six lifecycle stages, Design internal proof sequence, and downstream test-case authority
+2. [workflow.md](workflow.md) — six lifecycle stages, Design internal proof sequence, downstream test-case authority, and Plan dual-artifact freeze
 3. [state-schema.md](state-schema.md)
 4. [agents-and-handoff.md](agents-and-handoff.md)
 5. [hooks.md](hooks.md) — session-scoped opt-in 写入治理、UserPromptSubmit 摘要凭据、共享写 lease/独占 transaction 与自动异常恢复

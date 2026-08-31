@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-16
+lastVerified: 2026-08-31
 implementationRefs:
   - runtime/task-run.mjs
   - runtime/lib/task-execution.mjs

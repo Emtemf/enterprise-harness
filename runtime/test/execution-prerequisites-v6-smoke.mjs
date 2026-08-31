@@ -35,6 +35,7 @@ const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
 const architectureProofRef = `harness/changes/${changeId}/evidence/completion/design-architecture.json`;
 const compoundDesignProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
 const tasksRef = `harness/changes/${changeId}/tasks.md`;
+const taskCommandsRef = `harness/changes/${changeId}/task-commands.json`;
 
 function git(args) {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf-8', shell: false });
@@ -54,11 +55,12 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef, {
   bindingLabel = stage,
   publishProof = true,
 } = {}) {
+  const artifactRefs = Array.isArray(artifactRef) ? artifactRef : [artifactRef];
   const tecpc = {
     target: `complete ${stage}`,
-    evidence: [artifactRef],
+    evidence: [...artifactRefs],
     context: [...inputRefs],
-    path: `${inputRefs.join(' -> ')} -> ${artifactRef}`,
+    path: `${inputRefs.join(' -> ')} -> ${artifactRefs.join(' + ')}`,
     correction: null,
   };
   const execute = createHandoffV2(root, {
@@ -69,7 +71,7 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef, {
     inputRefs,
     tecpc,
   });
-  const artifacts = [{ path: artifactRef, digest: sha256Artifact(root, artifactRef) }];
+  const artifacts = artifactRefs.map((reference) => ({ path: reference, digest: sha256Artifact(root, reference) }));
   const stageResult = {
     resultVersion: 1,
     type: 'stage-result',
@@ -79,8 +81,8 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef, {
     producer: { agentType, skill },
     inputDigests: { ...execute.input.inputDigests },
     artifacts,
-    assertions: [{ id: `${stage}-contract`, verdict: 'pass', evidence: [artifactRef] }],
-    selfCheck: { verdict: 'pass', findings: [], evidence: [artifactRef] },
+    assertions: [{ id: `${stage}-contract`, verdict: 'pass', evidence: [...artifactRefs] }],
+    selfCheck: { verdict: 'pass', findings: [], evidence: [...artifactRefs] },
     tecpc,
     status: 'pass',
     needsDecision: null,
@@ -95,7 +97,7 @@ function addReviewedStage(stage, skill, inputRefs, artifactRef, {
     role: 'check',
     parentRunId: execute.runId,
     agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
-    inputRefs: [artifactRef],
+    inputRefs: [...artifactRefs],
     tecpc,
   });
   const checkResultPath = v2ResultPath(root, changeId, check.runId, 'check');
@@ -171,6 +173,19 @@ try {
     '### Independent review',
     '- Applicable rubrics: task',
   ].join('\n'));
+  fs.writeFileSync(path.join(root, taskCommandsRef), `${JSON.stringify({
+    schemaVersion: 3,
+    tasks: {
+      'task-one': {
+        executionStrategy: 'direct',
+        strategyRationale: 'Fixture verification is sufficient.',
+        testCases: ['TC1'],
+        minimalRedCase: null,
+        writeScope: { allowed: ['fixture.mjs'], forbidden: [] },
+        commands: [{ phase: 'VERIFY', argv: ['node', '--test', 'fixture.mjs'] }],
+      },
+    },
+  }, null, 2)}\n`);
   const classification = writeClassificationArtifact(root, changeId, {
     impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
   });
@@ -223,7 +238,7 @@ try {
     testDesign.stageResult,
     testDesign.reviewResult,
   ), null, 2)}\n`);
-  const plan = addReviewedStage('plan', 'plan', [designRef, testCasesRef, compoundDesignProofRef], tasksRef);
+  const plan = addReviewedStage('plan', 'plan', [designRef, testCasesRef, compoundDesignProofRef], [tasksRef, taskCommandsRef]);
 
   const valid = validateStageChain(root, changeId, state);
   assert.deepEqual(valid, [], `structured v6 stage proofs must pass without review projections: ${valid.join('; ')}`);

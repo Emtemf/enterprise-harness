@@ -87,10 +87,12 @@ Design 只消费已确认 requirements、classification 和 digest-bound researc
 
 ## plan
 
-目的：把 design 拆成可独立执行、审查、回滚和验证的 task。
+目的：把 design 拆成可独立执行、审查、回滚和验证的 task。Plan 同时产出人类可审查的
+`tasks.md` 与 runtime 可执行的 `task-commands.json`。
 
-每个 task 冻结稳定 ID、in/out scope、write paths、一个 execution strategy、exact argv、验收、
-recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相关测试”之类不可机械执行的描述。
+每个 task 冻结稳定 ID、in/out scope、write paths、一个 execution strategy、逐 phase literal argv 数组、
+验收、recovery 和 reviewer 输入。两个产物的 task id、strategy、TC/Minimal RED 映射必须一致，
+不得使用“按需要修改”或“运行相关测试”之类不可机械执行的描述。
 每个 task 映射一个或多个已接受的 `TC*`；TDD task 还把 minimal RED case 限定为自身映射中的用例。改动
 `test-cases.md` 会使 Plan 的摘要绑定证据失效。
 

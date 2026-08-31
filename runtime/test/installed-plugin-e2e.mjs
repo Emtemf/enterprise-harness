@@ -38,7 +38,13 @@ function packPlugin(sourceRoot) {
     const manifest = JSON.parse(fs.readFileSync(path.join(packedRoot, '.claude-plugin', 'plugin.json'), 'utf-8'));
     assert.ok(manifest.skills.includes('./skills/test-design/'));
     assert.ok(manifest.agents.includes('./agents/test-design-worker.md'));
-    for (const relative of ['skills/test-design/SKILL.md', 'agents/test-design-worker.md']) {
+    for (const relative of [
+      'skills/test-design/SKILL.md',
+      'agents/test-design-worker.md',
+      'skills/plan/assert/task-command-shape.mjs',
+      'skills/plan/assets/task-commands.json.tmpl',
+      'skills/plan/evals/evals.json',
+    ]) {
       assert.ok(fs.existsSync(path.join(packedRoot, relative)), `packed plugin missing ${relative}`);
     }
     const packedSkill = fs.readFileSync(path.join(packedRoot, 'skills', 'test-design', 'SKILL.md'), 'utf-8');
@@ -46,6 +52,9 @@ function packPlugin(sourceRoot) {
     assert.match(packedSkill, /^name: test-design$/mu);
     assert.match(packedSkill, /^agent: enterprise-harness:test-design-worker$/mu);
     assert.match(packedWorker, /^name: test-design-worker$/mu);
+    const planEvals = JSON.parse(fs.readFileSync(path.join(packedRoot, 'skills', 'plan', 'evals', 'evals.json'), 'utf-8'));
+    assert.equal(planEvals.skill, 'plan');
+    assert.equal(planEvals.version, manifest.version);
     const validation = spawnSync('claude', ['plugin', 'validate', packedRoot], {
       cwd: sourceRoot,
       encoding: 'utf-8',
