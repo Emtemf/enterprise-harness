@@ -89,6 +89,47 @@ function run(args, fakeMode = 'success', extraEnv = {}) {
   });
 }
 
+function evalRunnerFixture(name, mutate) {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), `eh-clarify-eval-red-${name}-`));
+  const harnessDir = path.join(fixture, 'test', 'skill-evals', 'harness');
+  const runtimeLibDir = path.join(fixture, 'runtime', 'lib');
+  fs.mkdirSync(harnessDir, { recursive: true });
+  fs.mkdirSync(runtimeLibDir, { recursive: true });
+  fs.copyFileSync(runner, path.join(harnessDir, 'run.mjs'));
+  fs.copyFileSync(path.join(repoRoot, 'test', 'skill-evals', 'harness', 'terminal-shape.mjs'), path.join(harnessDir, 'terminal-shape.mjs'));
+  fs.copyFileSync(path.join(repoRoot, 'runtime', 'lib', 'terminal-fact-gate.mjs'), path.join(runtimeLibDir, 'terminal-fact-gate.mjs'));
+  const definition = JSON.parse(fs.readFileSync(path.join(repoRoot, 'test', 'skill-evals', 'harness', 'evals.json'), 'utf-8'));
+  mutate(definition);
+  fs.writeFileSync(path.join(harnessDir, 'evals.json'), `${JSON.stringify(definition, null, 2)}\n`);
+  fs.writeFileSync(path.join(fixture, 'package.json'), JSON.stringify({ version: '0.5.12' }));
+  return { fixture, runner: path.join(harnessDir, 'run.mjs') };
+}
+
+if (mode === 'red') {
+  for (const [name, mutate, pattern] of [
+    ['old-corpus', (definition) => { definition.version = '0.5.11'; }, /eval suite version/u],
+    ['missing-forbidden', (definition) => {
+      definition.cases.find(({ id }) => id === 'compound-design-proof-before-plan').forbidden = [];
+    }, /forbidden|closed assertion/u],
+  ]) {
+    const { fixture, runner: fixtureRunner } = evalRunnerFixture(name, mutate);
+    try {
+      const result = spawnSync(process.execPath, [fixtureRunner,
+        '--case', 'compound-design-proof-before-plan', '--model', 'sonnet', '--variant', 'with-skill', '--dry-run'], {
+        cwd: fixture,
+        encoding: 'utf-8',
+        shell: false,
+      });
+      assert.notEqual(result.status, 0, `${name} eval mutation must fail the runner`);
+      assert.match(`${result.stdout}\n${result.stderr}`, pattern);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  }
+  console.log('PASS clarify-eval-runner red negative-mutations (old corpus and missing forbidden assertions rejected)');
+  process.exit(0);
+}
+
 function onlyManifest(directory) {
   return JSON.parse(fs.readFileSync(onlyManifestPath(directory), 'utf-8'));
 }
@@ -147,6 +188,59 @@ try {
   assert.match(help.stdout, /--variant <name>/u);
   assert.match(help.stdout, /--record-review <manifest>/u);
   assert.match(help.stdout, /control.*with-skill/isu);
+
+  const compoundResultsDir = path.join(sandbox, 'compound-results');
+  const compoundDry = run([
+    '--case', 'compound-design-proof-before-plan', '--model', 'sonnet',
+    '--variant', 'with-skill', '--reps', '5', '--results-dir', compoundResultsDir, '--dry-run',
+  ]);
+  assert.equal(compoundDry.status, 0, compoundDry.stderr);
+  const compoundPlan = JSON.parse(compoundDry.stdout);
+  assert.equal(compoundPlan.caseId, 'compound-design-proof-before-plan');
+  assert.deepEqual(compoundPlan.variants, ['with-skill']);
+  assert.equal(compoundPlan.runs.length, 5);
+  assert.equal(compoundPlan.resultsRoot, compoundResultsDir);
+  assert.equal(fs.existsSync(compoundResultsDir), false, 'compound dry-run must not persist results');
+  assert.ok(compoundPlan.runs.every(({ argv, shell }) => (
+    shell === false && argv[0] === '-p'
+      && argv.includes('--plugin-dir')
+      && argv[argv.indexOf('--plugin-dir') + 1] === checkoutRoot
+      && argv.includes('--permission-mode') && argv[argv.indexOf('--permission-mode') + 1] === 'plan'
+      && argv.includes('--tools') && argv[argv.indexOf('--tools') + 1] === ''
+      && !argv.includes('--safe-mode')
+      && argv.at(-1).startsWith('/enterprise-harness:harness\n\n')
+  )), 'compound Design eval must use the installed Skill plugin entrypoint');
+  assert.ok(compoundPlan.runs.every(({ argv }) => argv.at(-1).includes(compoundDesignEval.prompt)));
+  assert.ok(compoundDesignEval.assertions.some((entry) => /六阶段.*第七阶段/u.test(entry)));
+  assert.ok(compoundDesignEval.assertions.some((entry) => /architecture.*execute.*review.*seal.*test-design.*execute.*review.*DesignProof/iu.test(entry)));
+  assert.ok(compoundDesignEval.assertions.some((entry) => /test-cases\.md.*独立权威.*Plan.*test-cases\.md.*DesignProof/u.test(entry)));
+  assert.ok(compoundDesignEval.forbidden.some((entry) => /seal.*test-design.*Plan/u.test(entry)));
+  assert.ok(compoundDesignEval.forbidden.some((entry) => /architecture Design.*详细测试数据.*步骤.*E2E journey/u.test(entry)));
+  assert.ok(compoundDesignEval.forbidden.some((entry) => /chat.*单一 Design result.*DesignProof/u.test(entry)));
+
+  for (const [name, mutate, pattern] of [
+    ['old-corpus', (definition) => { definition.version = '0.5.11'; }, /eval suite version/u],
+    ['missing-forbidden', (definition) => {
+      definition.cases.find(({ id }) => id === 'compound-design-proof-before-plan').forbidden = [];
+    }, /forbidden|closed assertion/u],
+    ['contradictory-compound', (definition) => {
+      definition.cases.find(({ id }) => id === 'compound-design-proof-before-plan').prompt = 'Unrelated prompt';
+    }, /compound-design-proof-before-plan/u],
+  ]) {
+    const fixturePlan = evalRunnerFixture(name, mutate);
+    try {
+      const invalid = spawnSync(process.execPath, [fixturePlan.runner,
+        '--case', 'compound-design-proof-before-plan', '--model', 'sonnet', '--variant', 'with-skill', '--dry-run'], {
+        cwd: fixturePlan.fixture,
+        encoding: 'utf-8',
+        shell: false,
+      });
+      assert.notEqual(invalid.status, 0, `${name} eval mutation must fail runner validation`);
+      assert.match(`${invalid.stdout}\n${invalid.stderr}`, pattern);
+    } finally {
+      fs.rmSync(fixturePlan.fixture, { recursive: true, force: true });
+    }
+  }
 
   const dry = run(['--case', 'question-must-be-pre-authorized', '--model', 'sonnet', '--dry-run']);
   assert.equal(dry.status, 0, dry.stderr);

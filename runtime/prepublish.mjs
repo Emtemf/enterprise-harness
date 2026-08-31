@@ -13,6 +13,7 @@ const childEnv = {
 delete childEnv.ENTERPRISE_HARNESS_SESSION_ID;
 delete childEnv.CLAUDE_SESSION_ID;
 const commands = [
+  ['bin/sync-version.mjs', '--check'],
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
   ['runtime/cli.mjs', 'doctor', '--json'],

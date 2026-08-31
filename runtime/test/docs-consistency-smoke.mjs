@@ -1,13 +1,40 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
+const root = path.resolve(process.env.EH_DOCS_CONSISTENCY_ROOT || sourceRoot);
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
+
+if (mode === 'red') {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-docs-consistency-red-'));
+  try {
+    fs.cpSync(sourceRoot, fixture, {
+      recursive: true,
+      filter: (entry) => !['.git', '.codegraph', '.superpowers', 'node_modules', 'dist'].includes(path.basename(entry)),
+    });
+    const workflowPath = path.join(fixture, 'harness/specs/workflow.md');
+    const workflow = fs.readFileSync(workflowPath, 'utf-8').replaceAll('DesignProof', 'BROKEN');
+    fs.writeFileSync(workflowPath, workflow);
+    const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), 'verify'], {
+      cwd: sourceRoot,
+      encoding: 'utf-8',
+      env: { ...process.env, EH_DOCS_CONSISTENCY_ROOT: fixture },
+      shell: false,
+    });
+    assert.notEqual(result.status, 0, 'missing compound Design documentation must fail docs validation');
+    assert.match(`${result.stdout}\n${result.stderr}`, /compound Design internal sequence|DesignProof/u);
+    console.log('PASS docs-consistency red negative-mutation (compound Design documentation rejected)');
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
+  process.exit(0);
+}
 const normalizedRoot = path.resolve(root);
 const walkMarkdown = (relative) => {
   const absolute = path.join(root, relative);

@@ -41,6 +41,7 @@ assert.doesNotMatch(release, /main', '--tags'/u);
 
 const prepublish = fs.readFileSync(path.join(root, 'runtime/prepublish.mjs'), 'utf-8');
 for (const token of [
+  "['bin/sync-version.mjs', '--check']",
   'bin/run-smoke-suite.mjs',
   "['runtime/cli.mjs', 'bootstrap']",
   "['runtime/cli.mjs', 'verify', '--release-surface']",

@@ -16,6 +16,40 @@ const packageDefinition = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packag
 const variants = Object.freeze(['control', 'with-skill']);
 const rawArgs = process.argv.slice(2);
 
+function validateEvalDefinition(value) {
+  if (!value || !Array.isArray(value.cases) || value.cases.length === 0) {
+    throw new Error('eval corpus must contain at least one case');
+  }
+  const ids = new Set();
+  for (const entry of value.cases) {
+    if (!entry || typeof entry.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(entry.id)
+        || ids.has(entry.id)) {
+      throw new Error('eval case IDs must be unique safe identifiers');
+    }
+    ids.add(entry.id);
+    for (const field of ['assertions', 'forbidden']) {
+      if (!Array.isArray(entry[field]) || entry[field].length === 0
+          || entry[field].some((item) => typeof item !== 'string' || item.trim().length === 0)) {
+        throw new Error(`${entry.id} must contain non-empty ${field} strings`);
+      }
+    }
+  }
+  const compound = value.cases.find(({ id }) => id === 'compound-design-proof-before-plan');
+  if (compound) {
+    if (!/test-design|测试设计/u.test(compound.prompt || '')
+        || !compound.assertions.some((item) => /六阶段.*第七阶段/u.test(item))
+        || !compound.assertions.some((item) => /architecture.*execute.*review.*seal.*test-design.*execute.*review.*DesignProof/iu.test(item))
+        || !compound.assertions.some((item) => /test-cases\.md.*独立权威.*Plan.*test-cases\.md.*DesignProof/u.test(item))
+        || !compound.forbidden.some((item) => /seal.*test-design.*Plan/u.test(item))
+        || !compound.forbidden.some((item) => /architecture Design.*详细测试数据.*步骤.*E2E journey/u.test(item))
+        || !compound.forbidden.some((item) => /chat.*单一 Design result.*DesignProof/u.test(item))) {
+      throw new Error('compound-design-proof-before-plan has an incomplete closed assertion/forbidden contract');
+    }
+  }
+}
+
+validateEvalDefinition(definition);
+
 function help() {
   console.log('Harness skill behavioral eval collector');
   console.log('Usage: node test/skill-evals/harness/run.mjs --case <id> [options]');

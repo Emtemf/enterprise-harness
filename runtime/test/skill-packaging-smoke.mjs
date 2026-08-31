@@ -1,13 +1,41 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateSkillPackaging } from '../validators/skill-packaging-validator.mjs';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
+const root = path.resolve(process.env.EH_SKILL_PACKAGING_ROOT || sourceRoot);
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
+
+if (mode === 'red') {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-skill-packaging-red-'));
+  try {
+    for (const entry of ['skills', 'agents', '.claude-plugin', 'package.json']) {
+      fs.cpSync(path.join(sourceRoot, entry), path.join(fixture, entry), { recursive: true });
+    }
+    const manifestPath = path.join(fixture, '.claude-plugin', 'plugin.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    manifest.skills = manifest.skills.filter((entry) => entry !== './skills/test-design/');
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), 'verify'], {
+      cwd: sourceRoot,
+      encoding: 'utf-8',
+      env: { ...process.env, EH_SKILL_PACKAGING_ROOT: fixture },
+      shell: false,
+    });
+    assert.notEqual(result.status, 0, 'missing test-design surface must fail packaging validation');
+    assert.match(`${result.stdout}\n${result.stderr}`, /test-design/u);
+    console.log('PASS skill-packaging red negative-mutation (missing test-design surface rejected)');
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
+  process.exit(0);
+}
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8'));
