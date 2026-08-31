@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+const mode = process.argv[2] || 'verify';
+if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const normalizedRoot = path.resolve(root);
 const walkMarkdown = (relative) => {
   const absolute = path.join(root, relative);
@@ -62,14 +65,26 @@ const troubleshooting = fs.readFileSync(path.join(root, 'docs/user/troubleshooti
 for (const code of runtimeCodes) assert.ok(troubleshooting.includes(code), `troubleshooting missing ${code}`);
 
 const architecture = fs.readFileSync(path.join(root, 'harness/specs/architecture.md'), 'utf-8');
+const workflowSpec = fs.readFileSync(path.join(root, 'harness/specs/workflow.md'), 'utf-8');
 const workflowDocs = fs.readFileSync(path.join(root, 'docs/user/workflow.md'), 'utf-8');
 const observability = fs.readFileSync(path.join(root, 'harness/specs/stage-observability.md'), 'utf-8');
+const runtimeSequence = fs.readFileSync(path.join(root, 'docs/maintainer/runtime-sequence.md'), 'utf-8');
 assert.match(architecture, /Claude Code-only[\s\S]*不设计或承诺[\s\S]*其他 harness/u, 'architecture must define the Claude Code-only host boundary');
 for (const [name, text] of [['user workflow', workflowDocs], ['stage observability', observability]]) {
   assert.match(text, /status=blocked/u, `${name} must document audit-first blocked status`);
   assert.match(text, /nextAction/u, `${name} must document nextAction as the blocked recovery authority`);
   assert.match(text, /pendingDecision/u, `${name} must distinguish pending decisions from blocked recovery`);
 }
+assert.match(workflowSpec, /architecture.*execute[\s\S]*architecture.*review[\s\S]*seal[\s\S]*test-design.*execute[\s\S]*test-design.*review[\s\S]*DesignProof/iu,
+  'workflow contract must define the compound Design internal sequence');
+assert.match(workflowSpec, /test-cases\.md[\s\S]*independent authoritative/iu,
+  'workflow contract must make independent test-cases authoritative for detailed cases');
+assert.match(workflowDocs, /test-design[\s\S]*test-cases\.md/iu,
+  'user workflow must explain the independent test-design artifact');
+assert.doesNotMatch(workflowDocs, /Design[\s\S]{0,100}完整测试用例/u,
+  'user workflow must not claim Design owns detailed test cases');
+assert.match(runtimeSequence, /architecture[\s\S]*seal[\s\S]*test-design[\s\S]*DesignProof/iu,
+  'maintainer sequence must show the exact Design internal ordering');
 
 const capabilities = JSON.parse(fs.readFileSync(path.join(root, 'harness/capabilities.json'), 'utf-8'));
 for (const capability of capabilities.capabilities) {
@@ -94,4 +109,4 @@ const cliReference = spawnSync(process.execPath, ['bin/generate-cli-reference.mj
   shell: false,
 });
 assert.equal(cliReference.status, 0, cliReference.stderr || cliReference.stdout);
-console.log('PASS docs-consistency verify');
+console.log(`PASS docs-consistency ${mode}`);

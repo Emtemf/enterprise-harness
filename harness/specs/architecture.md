@@ -1,14 +1,17 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-09
+lastVerified: 2026-08-28
 implementationRefs:
   - .claude-plugin/plugin.json
   - runtime/cli.mjs
   - runtime/lib/claude-version.mjs
+  - runtime/lib/stage-contract.mjs
 testRefs:
   - runtime/test/plugin-entry-agent-contract-smoke.mjs
   - runtime/test/claude-version-contract-smoke.mjs
+  - runtime/test/design-compound-gate-smoke.mjs
+  - runtime/test/skill-packaging-smoke.mjs
 ---
 
 # Architecture Contract
@@ -39,6 +42,8 @@ Codex、OpenCode、Gemini CLI 等其他 harness 的兼容层。Linux、macOS、W
 - plugin command：`/enterprise-harness:harness`
 - 本仓库开发 command：`/harness`
 - plugin agent type：`enterprise-harness:<agent>`
+- independently invocable internal Design capabilities: `enterprise-harness:test-design` Skill and
+  `enterprise-harness:test-design-worker` agent
 
 分发只有 plugin 一条通道。`/harness` 与 `.claude/settings.json` 是本仓库自用的开发通道，让维护者能对工作目录代码直接验证 hook 改动；它不进发布包，也不是用户安装方式。
 
@@ -84,5 +89,10 @@ Claude Code 原生 worktree 配置由生成的 `.claude/settings.json` 提供 `w
 在 clarify 后作为 durable internal artifact/action，不是 stage。`route` / `tdd` 仅存在于
 v4/v5 compatibility readers 和 historical records。tier 只影响 interview 深度、review 数量和
 validation 强度，不改变 workflow topology。
+
+`design` is deliberately compound without becoming two lifecycle stages. Its architecture worker/reviewer chain
+must be sealed before the isolated `test-design` worker/reviewer chain can run. Runtime is the single owner that
+validates both chains and publishes compound `DesignProof`; `test-cases.md` is the separate authoritative artifact
+for detailed `TC*` cases and is subsequently consumed by Plan, Verify, and Archive.
 
 三条防复发规则：新增 Hook 必须保护无法可靠放在 Skill 边界的不变量；新增 durable field 必须只有一个 authoritative owner；新增 Agent 必须拥有不同的 context/tool/isolation boundary，纯领域知识应放入 Skill 或 reference。

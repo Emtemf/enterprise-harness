@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-12
+lastVerified: 2026-08-28
 implementationRefs:
   - runtime/lib/evidence-policy.mjs
   - runtime/lib/tdd-receipts.mjs
@@ -10,24 +10,30 @@ implementationRefs:
   - runtime/lib/task-execution-receipt.mjs
   - runtime/lib/waiver.mjs
   - runtime/core/completion-proof.mjs
+  - runtime/lib/verification-receipts.mjs
+  - runtime/lib/archive-manifest.mjs
 testRefs:
   - runtime/test/evidence-policy-contract-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
   - runtime/test/v6-change-state-smoke.mjs
   - runtime/test/task-execution-receipt-smoke.mjs
   - runtime/test/waiver-result-contract-smoke.mjs
+  - runtime/test/verification-receipt-contract-smoke.mjs
+  - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
 
 # Evidence Contract
 
 ## Evidence classes
 
-- **Artifact** — requirements, design, task plan, self-check, review, validation, waiver, and
+- **Artifact** — requirements, architecture design, independent `test-cases.md`, task plan, self-check, review, validation, waiver, and
   archive record. Each material conclusion binds to its input digest.
 - **Receipt** — machine-generated command provenance: actor/capability, worktree, exact argv,
   exit code, timestamps, HEAD/tree digests, and changed paths. Narrative self-report is not a
   receipt.
 - **Review** — an independent verdict that consumes a result artifact and its input digest.
+- **Compound proof** — runtime-owned evidence that both Design behavior chains (architecture and test-design) were
+  independently completed in their required order; it is not a worker-authored substitute for either result.
 - **Ledger** — append-only operational telemetry (dispatch, binding, attempt, lifecycle, and
   violation). It assists diagnosis but is not lifecycle correctness proof.
 
@@ -50,7 +56,9 @@ an advisory outcome.
 ## Completion
 
 Completion evaluates fresh artifacts, task receipts, self-checks, independent review, applicable
-API/data/security rubrics, validation, and archive evidence. The result has a stable
+API/data/security rubrics, validation, and archive evidence. The compound `DesignProof` binds the sealed architecture
+chain and independent test-design chain; `test-cases.md` is then digest-bound by Plan, per-case Verify receipts, and
+the archive manifest/attestation. The result has a stable
 `{code,status,path,message,recovery}` shape. A hook, worker chat message, or stale review alone
 cannot establish completion.
 

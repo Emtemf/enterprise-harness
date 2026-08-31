@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-21
+lastVerified: 2026-08-28
 implementationRefs:
   - skills/harness/SKILL.md
   - runtime/core/change-state.mjs
@@ -9,12 +9,16 @@ implementationRefs:
   - runtime/api/agent-evidence.mjs
   - runtime/lib/hooks/subagent-stop.mjs
   - runtime/lib/workflow.mjs
+  - runtime/lib/stage-contract.mjs
+  - runtime/lib/stage-results.mjs
 testRefs:
   - runtime/test/harness-fact-gate-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/main-owned-decisions-smoke.mjs
   - runtime/test/v6-change-state-smoke.mjs
   - runtime/test/handoff-v2-common-dir-smoke.mjs
+  - runtime/test/design-compound-gate-smoke.mjs
+  - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
 
 # Workflow Contract
@@ -74,11 +78,24 @@ Once artifacts are sufficient, Main records scope confirmation and the durable c
 Design starts only after Clarify completes. It freezes component boundaries, interfaces, error model,
 authentication, idempotency, data/SQL, migration/rollback, compatibility, concurrency, and testing
 strategy; key user decisions are confirmed before Plan. Each inapplicable dimension is recorded as
-`N/A` with a reason.
+`N/A` with a reason. Architecture Design records requirement-to-verifiability traceability (`R* → D* → E* → VO* → RB*`),
+not detailed test levels, test data, test steps, or E2E journeys.
 
 Each design decision records Context → Decision → Consequences → Status. Alternatives considered must be documented.
 Trade-offs between scalability, security, compatibility, and complexity are made explicit.
 The reviewer sees the design artifact plus its evidence digests, not the executor conversation.
+
+`design` remains one lifecycle stage, with this mandatory internal sequence:
+
+```text
+architecture execute → architecture independent review → seal
+→ test-design execute → test-design independent review → compound DesignProof
+```
+
+The runtime creates the compound `DesignProof` only after both trusted, digest-bound chains are current.
+The `test-design` worker consumes sealed architecture and produces `test-cases.md`. That artifact is the
+independent authoritative source for detailed `TC*` cases; no other Design artifact owns their detailed shape.
+Plan cannot start until it has both the compound proof and the current `test-cases.md` digest.
 
 ## Plan
 
@@ -88,9 +105,9 @@ through its frozen verification command. Tasks use observable preconditions, act
 
 Each task identifies its target, execution strategy (`tdd`, `direct`, `migration`, or another
 declared strategy), exact command argv, intended implementation surface, review rubric,
-verification condition, and rollback/recovery note. A task using `tdd` also identifies its
-minimal RED test and required RED→GREEN evidence. The plan's task evidence becomes stale when
-the design digest changes.
+verification condition, rollback/recovery note, and one or more accepted `TC*` mappings. A task using `tdd` also identifies its
+minimal RED case from its own mappings and required RED→GREEN evidence. Plan digest-binds both the compound
+`DesignProof` and `test-cases.md`; its task evidence becomes stale when either input changes.
 
 ## Implement
 
@@ -108,7 +125,9 @@ frozen validation commands and aggregates task receipts, current artifact digest
 independent reviews, and applicable API/data/security rubrics.
 
 Verification uses many fast unit tests, fewer integration tests, and minimal end-to-end tests for critical paths.
-Each verification command produces a receipt with argv, exit code, timestamps, and output digests.
+Each verification command produces a receipt with argv, exit code, timestamps, and output digests. For every accepted
+`TC*`, Verify persists a canonical receipt with `executed`, reasoned `skipped`, or `unsupported` status; `unsupported`
+cannot be elevated to `pass`, and applicable critical E2E cases must be `executed`.
 `unsupported` cannot be elevated to `pass`. Waivers fail closed until they are bound to trusted
 authorization evidence. A fresh validation verdict is necessary but not sufficient without the
 independent completion review.
@@ -116,7 +135,9 @@ independent completion review.
 ## Archive
 
 Archive is allowed only when the completion predicate consumes fresh verification and all
-required durable evidence. It moves completed work into immutable history and clears only
+required durable evidence. Its runtime-written manifest binds current `test-cases.md`, compound `DesignProof`, both
+test-design runs, Verify completion, and per-case receipts; the paired runtime attestation prevents a handwritten
+manifest from substituting for the writer path. It moves completed work into immutable history and clears only
 compatibility pointers. An unfinished change is abandoned explicitly, never disguised as archived.
 
 ## Compatibility and recovery

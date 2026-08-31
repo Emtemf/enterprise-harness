@@ -21,6 +21,8 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - Context7 MCP-first 外部库和框架资料查询；未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
 - State v6、session binding、change lock、artifact stale propagation。
 - 六阶段 happy path：`clarify → design → plan → implement → verify → archive`。
+- `design` 仍是一个生命周期阶段，但内部固定执行 architecture 产出与独立 review、seal、独立 `test-design` 产出与 review，随后由 runtime 形成 compound `DesignProof`。
+- 详细测试用例的唯一权威是独立的 `test-cases.md`；Plan、Verify 和 Archive 都消费其当前摘要绑定版本。
 - executor/checker 独立 subagent、结构化 handoff 和 agent ledger。
 - Claude Code 原生 `worktree.baseRef=head`，worktree 只做代码隔离，不承载 change 真相。
 - 本地 `quality:local` 发布门禁，以及按需手动触发的 Linux、macOS、Windows 兼容性 matrix。
@@ -49,8 +51,7 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 
 ### 私有 GitHub marketplace
 
-本仓库为 private 时，Claude Code 更新 marketplace 会在后台运行非交互式 Git；它不能弹出
-GitHub 登录窗口。因此每位使用者都必须先拥有仓库访问权限，并让本机 Git 能无提示读取 GitHub。
+本仓库为 private 时，Claude Code 更新 marketplace 会在后台运行非交互式 Git；它不能弹出 GitHub 登录窗口。因此每位使用者都必须先拥有仓库访问权限，并让本机 Git 能无提示读取 GitHub。
 
 Windows PowerShell、macOS 或 Linux 终端中执行：
 
@@ -99,11 +100,12 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
    required ResearchPacket 校验、持久化完成。
 3. Main 综合事实后，按 component × 5 核心维度（Goal / Scope / Constraints / Acceptance / Context）
    逐项澄清剩余 Decisions。
-4. 生成含接口、错误模型和必要 SQL 的 design。
-5. 冻结任务级 exact argv。
-6. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
-7. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
-8. 汇总 fresh validation 和 completion evidence 后才允许归档。
+4. 生成含接口、错误模型和必要 SQL 的 architecture design，并完成独立 review 和 seal。
+5. 独立生成可追踪的 `test-cases.md`，完成独立 review 后形成 compound `DesignProof`。
+6. 冻结逐项映射 `TC*` 的任务级 exact argv。
+7. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
+8. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
+9. 汇总每个 `TC*` 的 fresh validation、completion evidence 后才允许归档。
 
 ## 用户会看到什么
 

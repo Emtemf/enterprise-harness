@@ -1,21 +1,25 @@
 ---
 status: target
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-25
+lastVerified: 2026-08-28
 implementationRefs:
   - CLAUDE.md
   - skills/harness/SKILL.md
   - skills/design/SKILL.md
+  - skills/test-design/SKILL.md
   - skills/plan/SKILL.md
   - skills/implement/SKILL.md
   - skills/verify/SKILL.md
   - skills/archive/SKILL.md
   - runtime/core/
   - runtime/lib/stage-contract.mjs
+  - runtime/lib/archive-manifest.mjs
 testRefs:
   - test/skill-evals/harness/
   - runtime/test/harness-fact-gate-smoke.mjs
   - runtime/test/workflow-audit-v6-result-smoke.mjs
+  - runtime/test/design-compound-gate-smoke.mjs
+  - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
 
 # Enterprise Harness Development Target
@@ -121,11 +125,11 @@ Required research complete/fresh；冲突和 degraded 已处置；相关技术�
 
 ### Design
 
-Requirement traceability、组件边界、交互/失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、测试设计、alternatives、self-check、review、TECPC 和 DesignProof 完整。
+Architecture Design 先完成 Requirement traceability、组件边界、交互/失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、测试策略、alternatives、self-check 和独立 review；然后 seal，独立 Test Design 以 `VO*` 生成唯一权威 `test-cases.md` 并完成独立 review；最后 runtime 形成 compound DesignProof。该内部顺序不增加 lifecycle stage。
 
 ### Plan
 
-Task coverage/dependencies、write/forbidden scope、strategy、exact argv、`tasks.md` 与 `task-commands.json` 绑定、acceptance、rollback、review inputs、self-check、review、TECPC 和 PlanProof 完整。
+Task coverage/dependencies、write/forbidden scope、strategy、exact argv、`tasks.md` 与 `task-commands.json` 绑定、accepted `TC*` mappings、acceptance、rollback、review inputs、self-check、review、TECPC 和 PlanProof 完整。
 
 ### Implement
 
@@ -133,11 +137,11 @@ currentTask/handoff/worktree/input digests 匹配；冻结 strategy 真实执行
 
 ### Verify
 
-所有 TaskProof fresh；冻结 unit/integration/contract/migration/applicable E2E 命令真实执行；exit code、report、trace、flaky 状态、final review、TECPC 和 CompletionProof 完整。
+所有 TaskProof fresh；冻结 unit/integration/contract/migration/applicable E2E 命令真实执行；每个 accepted `TC*` 有 canonical status/receipt，critical E2E 已执行；exit code、report、trace、flaky 状态、final review、TECPC 和 CompletionProof 完整。
 
 ### Archive
 
-CompletionProof fresh；requirements→design→tasks→receipts→reviews 可追踪；Decision Ledger、技术债和 project-contract 处置有引用；ArchiveManifest、独立 review、TECPC、ArchiveProof 和原子移动完整。
+CompletionProof fresh；requirements→architecture→test-cases→tasks→receipts→reviews 可追踪；Decision Ledger、技术债和 project-contract 处置有引用；ArchiveManifest/attestation 绑定 compound DesignProof 与 Test Design chains、独立 review、TECPC、ArchiveProof 和原子移动完整。
 
 ## 实施顺序
 

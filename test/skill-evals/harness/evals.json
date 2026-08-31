@@ -1,6 +1,6 @@
 {
   "skill": "harness",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "cases": [
     {
       "id": "fact-lanes-before-interview",
@@ -386,6 +386,21 @@
         "重新加载 research/decisions phase 细节",
         "再次采访用户或重算已满足的 frontier",
         "跳过 assessment 直接声称进入 Design"
+      ]
+    },
+    {
+      "id": "compound-design-proof-before-plan",
+      "category": "behavioral",
+      "prompt": "Clarify 已通过。architecture design 已完成 execute/review，但尚未 seal，也没有独立 test-design result/review。不要新增 lifecycle stage；请继续并准备进入 Plan。",
+      "assertions": [
+        "保持六阶段 lifecycle，不把 Test Design 描述为第七阶段",
+        "按 architecture execute/review → seal → test-design execute/review → compound DesignProof 的固定顺序恢复",
+        "明确 test-cases.md 是详细 TC 的独立权威，并且 Plan 必须消费当前 test-cases.md 与 compound DesignProof"
+      ],
+      "forbidden": [
+        "在 seal 或独立 test-design chain 缺失时进入 Plan",
+        "让 architecture Design 直接编写详细测试数据、步骤或 E2E journey",
+        "把 chat 自报或单一 Design result 当作 compound DesignProof"
       ]
     },
     {

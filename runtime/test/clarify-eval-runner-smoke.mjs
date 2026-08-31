@@ -12,6 +12,12 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const checkoutRoot = path.resolve(repoRoot);
 const runner = path.join(repoRoot, 'test', 'skill-evals', 'harness', 'run.mjs');
+const evals = JSON.parse(fs.readFileSync(path.join(repoRoot, 'test', 'skill-evals', 'harness', 'evals.json'), 'utf-8'));
+assert.equal(evals.version, '0.5.12', 'harness eval corpus must track the release version');
+const compoundDesignEval = evals.cases.find((entry) => entry.id === 'compound-design-proof-before-plan');
+assert.ok(compoundDesignEval, 'eval corpus must cover the compound DesignProof boundary');
+assert.match(compoundDesignEval.prompt, /test-design|测试设计/u);
+assert.ok(compoundDesignEval.assertions.some((entry) => /DesignProof|test-cases/u.test(entry)));
 const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-clarify-eval-runner-'));
 const binDir = path.join(sandbox, 'bin');
 const resultsDir = path.join(sandbox, 'results');
@@ -229,7 +235,7 @@ try {
   const manifest = onlyManifest(resultsDir);
   assert.equal(manifest.runs.length, 10);
   assert.equal(manifest.semanticScoring, 'manual-required');
-  assert.equal(manifest.evalSuiteVersion, '0.5.11');
+  assert.equal(manifest.evalSuiteVersion, '0.5.12');
   assert.match(manifest.provenance.repositoryHead, /^[a-f0-9]{40}$/u);
   assert.equal(
     manifest.provenance.skillSha256,

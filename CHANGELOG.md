@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-08-28
+
+### Added
+
+- 新增独立 `test-design` Skill 与 `test-design-worker`，从 sealed architecture Design 的 `VO*` 生成唯一权威的 `test-cases.md`。
+
+### Changed
+
+- Design 仍保持六阶段生命周期中的单一阶段，内部固定为 architecture execute/review、seal、test-design execute/review，并由 runtime 发布 compound `DesignProof`。
+- Plan、Verify 与 Archive 现在摘要绑定详细测试用例；任务映射 `TC*`，Verify 持久化每例 canonical receipt，Archive manifest/attestation 绑定完整下游链。
+
 ## [0.5.11] - 2026-08-28
 
 ### Changed

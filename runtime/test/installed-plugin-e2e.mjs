@@ -9,12 +9,23 @@ import { fileURLToPath } from 'node:url';
 const mode = process.argv[2];
 if (!['verify', 'e2e'].includes(mode)) process.exit(2);
 
+const pluginRoot = fileURLToPath(new URL('../../', import.meta.url));
+const discoveryManifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf-8'));
+assert.ok(discoveryManifest.skills.includes('./skills/test-design/'),
+  'plugin-dir discovery surface must expose enterprise-harness:test-design');
+assert.ok(discoveryManifest.agents.includes('./agents/test-design-worker.md'),
+  'plugin-dir discovery surface must expose enterprise-harness:test-design-worker');
+const discoveredTestDesignSkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'test-design', 'SKILL.md'), 'utf-8');
+const discoveredTestDesignWorker = fs.readFileSync(path.join(pluginRoot, 'agents', 'test-design-worker.md'), 'utf-8');
+assert.match(discoveredTestDesignSkill, /^name: test-design$/mu);
+assert.match(discoveredTestDesignSkill, /^agent: enterprise-harness:test-design-worker$/mu);
+assert.match(discoveredTestDesignWorker, /^name: test-design-worker$/mu);
+
 if (mode !== 'e2e' || process.env.EH_RUN_CLAUDE_E2E !== 'true') {
   console.log('SKIP installed-plugin Claude E2E (run with: EH_RUN_CLAUDE_E2E=true node runtime/test/installed-plugin-e2e.mjs e2e)');
   process.exit(0);
 }
 
-const pluginRoot = fileURLToPath(new URL('../../', import.meta.url));
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-installed-plugin-e2e-'));
 const keepFixture = process.env.EH_KEEP_CLAUDE_E2E === 'true';
 let commandOutput = '';

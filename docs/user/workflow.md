@@ -72,11 +72,16 @@ Harness 先区分 Facts 与 Decisions：代码路径、调用链和 schema 由�
 
 ## design
 
-目的：冻结实现前技术合同。
+目的：冻结实现前技术合同，并完成独立的可执行测试设计。
 
 Design 只消费已确认 requirements、classification 和 digest-bound research facts。API/Data
-仅在 impact 适用时加载对应设计分支。产物必须覆盖适用的接口、错误模型、数据与 SQL、迁移、
-兼容性和测试策略，并通过 self-check 与独立 review。
+仅在 impact 适用时加载对应设计分支。architecture design 产物必须覆盖适用的接口、错误模型、数据与 SQL、迁移、
+兼容性和测试策略，并通过 self-check 与独立 review。它只冻结 `R* → D* → E* → VO* → RB*` 的架构与可验证性义务，
+不编写详细测试层级、数据、步骤或 E2E journey。
+
+在不新增 lifecycle stage 的前提下，Design 内部严格按以下顺序完成：architecture execute/review、seal、
+独立 `test-design` execute/review，最后形成 compound `DesignProof`。`test-design` 从 sealed architecture 的
+`VO*` 生成 `test-cases.md`；这是详细 `TC*` 的唯一权威。任何一段缺失、非独立、或摘要过期时，不能进入 Plan。
 
 缺少业务决定时 worker 返回一个 `NEEDS_DECISION`，由主 Harness 转成用户问题；worker 不猜测。
 
@@ -86,6 +91,8 @@ Design 只消费已确认 requirements、classification 和 digest-bound researc
 
 每个 task 冻结稳定 ID、in/out scope、write paths、一个 execution strategy、exact argv、验收、
 recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相关测试”之类不可机械执行的描述。
+每个 task 映射一个或多个已接受的 `TC*`；TDD task 还把 minimal RED case 限定为自身映射中的用例。改动
+`test-cases.md` 会使 Plan 的摘要绑定证据失效。
 
 ## implement
 
@@ -104,7 +111,8 @@ recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相�
 ## verify
 
 目的：执行冻结 validation argv，消费 task receipts、reviews、ledger 与 fresh artifacts，形成
-最终 validation 和独立 final review。
+最终 validation 和独立 final review。Verify 为每个已接受 `TC*` 记录 `executed`、有理由的 `skipped` 或
+`unsupported` 与 canonical receipt；`unsupported` 不是 pass，critical E2E 必须实际执行。
 
 用户只处理真正需要接受或拒绝的 advisory。缺失、unsupported 或 stale evidence 不能被聊天中的
 “已经验证”替代。
@@ -113,7 +121,8 @@ recovery 和 reviewer 输入。不得使用“按需要修改”或“运行相�
 
 目的：在 completion predicate 全部通过时冻结变更历史并清理 active change。
 
-Archive 与最终完成声明使用同一套 fresh evidence。不能通过直接编辑 `state.json`、复制聊天输出
+Archive 与最终完成声明使用同一套 fresh evidence：包括 compound `DesignProof`、`test-cases.md`、每个 TC
+validation receipt 和 runtime 写入的 archive manifest/attestation。不能通过直接编辑 `state.json`、复制聊天输出
 或强制移动目录伪造成功。
 
 ## 下游交接坑点

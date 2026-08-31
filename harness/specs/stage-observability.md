@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-26
+lastVerified: 2026-08-28
 implementationRefs:
   - runtime/core/completion-proof.mjs
   - runtime/lib/stage-contract.mjs
@@ -11,10 +11,13 @@ implementationRefs:
   - runtime/lifecycle.mjs
   - runtime/workflow.mjs
   - runtime/trace.mjs
+  - runtime/lib/archive-manifest.mjs
 testRefs:
   - runtime/test/workflow-audit-v6-result-smoke.mjs
   - runtime/test/trace-mermaid-smoke.mjs
   - runtime/test/lifecycle-clarify-transition-smoke.mjs
+  - runtime/test/design-controller-sequence-smoke.mjs
+  - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
 
 # 阶段时序、事件与产物合同
@@ -52,7 +55,18 @@ sequenceDiagram
   R->>D: atomically persist generic CompletionProof
   R->>R: freshly reread and revalidate stage gate
 
-  loop design → plan → implement → verify → archive
+  rect rgb(232, 241, 255)
+    Note over M,K: Design internal order: architecture execute/review → seal → test-design execute/review → compound DesignProof
+    M->>R: validate architecture chain and seal
+    M->>S: invoke test-design Skill
+    S->>E: test-design execute handoff
+    E->>D: test-cases.md + StageResult
+    M->>K: independent test-design check handoff
+    K->>D: ReviewResult
+    R->>D: publish compound DesignProof
+  end
+
+  loop plan → implement → verify → archive
     M->>S: invoke stage Skill
     S->>E: execute Handoff v2
     E->>D: artifact or receipt + StageResult
@@ -94,11 +108,11 @@ Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale
 | Stage | 必要 durable artifact/state | Executor | 独立检查 | 合法推进条件 |
 |---|---|---|---|---|
 | clarify | `requirements.md`、`classification.json`、`debt-assessment.json`、`project-contract-assessment.json`、immutable `clarify-decision-snapshot.json`；适用 ResearchPacket | Main（用户循环）+ fact agents | 不同 trusted identity/run 的 reviewer，绑定五项 canonical artifact | 五项 artifact、StageResult、独立 passing ReviewResult 与完整 TECPC 均 fresh；transition command 随后持久化并重验 generic CompletionProof |
-| design | `design.md` | artifact-worker + design Skill | reviewer selected rubrics | StageResult、全部 assertions、ReviewResult、TECPC 与 digest fresh |
-| plan | `tasks.md` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope frozen，result/review fresh |
+| design | `design.md`、sealed ArchitectureProof、`test-cases.md`、compound `DesignProof` | artifact-worker architecture Skill + isolated test-design worker | distinct architecture and test-design reviews | architecture execute/review → seal → test-design execute/review ordered, all assertions/TECPC/digests fresh, runtime publishes compound proof |
+| plan | `tasks.md`、current `test-cases.md` and compound `DesignProof` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope and `TC*` mappings frozen，result/review fresh |
 | implement | `currentTask`；task receipts；产品变更 | implementer + implement Skill | reviewer task rubrics | 每 task receipt/self-check/review fresh，write scope 合规 |
-| verify | `validation.md`；`validation.status=fresh`；digest | artifact-worker + verify Skill | reviewer final rubrics | frozen argv 全执行；validation、final review 和 completion fresh |
-| archive | immutable archive artifact/state | artifact-worker + archive Skill | reviewer archive rubric | verify evidence 未 stale，归档前检查和 CompletionProof 通过 |
+| verify | `validation.md`；`validation.status=fresh`；current test cases and canonical TC receipts | artifact-worker + verify Skill | reviewer final rubrics | frozen argv 全执行；every accepted `TC*` has allowed status/receipt, critical E2E executed, validation、final review 和 completion fresh |
+| archive | immutable archive manifest/attestation + current test cases/proofs | artifact-worker + archive Skill | reviewer archive rubric | manifest binds DesignProof/test cases/test-design chain/Verify receipts, writer attestation and CompletionProof are fresh |
 
 Classification 是 clarify artifact；execution strategy 是 implement task 属性。没有 `route` 或 `tdd`
 lifecycle stage。Clarify 只能通过 lifecycle state command 推进；该命令写入并重新读取 CompletionProof 后才 CAS 更新 stage。
