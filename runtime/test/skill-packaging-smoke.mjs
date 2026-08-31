@@ -39,7 +39,7 @@ if (mode === 'red') {
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8'));
-assert.equal(packageJson.version, '0.5.14', 'release package must declare 0.5.14');
+assert.equal(packageJson.version, '0.5.15', 'release package must declare 0.5.15');
 assert.equal(plugin.version, packageJson.version, 'plugin projection must match package version');
 assert.ok(plugin.skills.includes('./skills/test-design/'), 'installable plugin must expose the test-design Skill');
 assert.ok(plugin.agents.includes('./agents/test-design-worker.md'), 'installable plugin must expose the test-design worker');

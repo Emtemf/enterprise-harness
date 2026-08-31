@@ -32,6 +32,13 @@ function assertHarnessInstructions() {
     'Fast Path',
     '不得进入 Design',
   ]) assert.ok(corpus.includes(behavior), `harness controller/reference set must make ${behavior} executable`);
+  assert.ok(
+    skill.includes('node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json'),
+    'controller must record the exact plugin-root workflow status argv',
+  );
+  assert.ok(skill.includes('不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper'), 'controller must forbid guessed CLI wrappers');
+  assert.ok(skill.includes('node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify status <change-id> --json'));
+  assert.ok(skill.includes('node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>'));
   assert.equal(/^## Phase [0-5]/gmu.test(skill), false, 'auto-loaded controller must not retain phase procedure detail');
 }
 

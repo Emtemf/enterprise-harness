@@ -26,7 +26,25 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## Status-first controller
 
-任何新阶段工作前先运行 runtime `workflow status <change-id> --json`。仅 top-level `status=blocked` 且 `nextAction!=nextEntry` 时执行一个 pre-entry recovery、记为 entry/recovery selected 并结束；若该 exact nextAction 因 tools/permission 不可执行，只报告此 blocker 并结束，不加载 phase reference。`nextAction=/harness` 是当前入口，不是 recovery。nested `clarifyReadiness.recovery` 进入 snapshot 的 earliest invalid gate。只有 active v6 Clarify 才运行 `clarify status <change-id> --json`；仅 `repair-required` 才运行 `clarify recover <change-id>`。复用 fresh refs/digests。
+任何新阶段工作前只允许运行下面记录的 exact argv；不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper：
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json
+```
+
+仅 top-level `status=blocked` 且 `nextAction!=nextEntry` 时执行一个 pre-entry recovery、记为 entry/recovery selected 并结束；若该 exact nextAction 因 tools/permission 不可执行，只报告此 blocker 并结束，不加载 phase reference。`nextAction=/harness` 是当前入口，不是 recovery。nested `clarifyReadiness.recovery` 进入 snapshot 的 earliest invalid gate。只有 active v6 Clarify 才运行：
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify status <change-id> --json
+```
+
+仅 `repair-required` 才运行：
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>
+```
+
+复用 fresh refs/digests；如果 `${CLAUDE_PLUGIN_ROOT}` 入口不可执行，保留原始错误并报告 blocker，不能通过 wrapper、`npx` 或全局安装绕过。
 
 ## State router
 

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-08-31
+
+### Fixed
+
+- Clarify Controller 现在固定使用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs"` 的 exact argv 读取 workflow/clarify 状态，禁止把插件运行时误改写为 `npx`、全局命令或临时 wrapper；新增对应 Skill contract smoke，避免真实 Claude Code 会话在入口处走偏。
+
 ## [0.5.14] - 2026-08-31
 
 ### Security
