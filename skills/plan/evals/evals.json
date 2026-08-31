@@ -1,11 +1,17 @@
 {
   "skill": "plan",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "cases": [
     {
       "id": "dual-artifact-freeze",
       "description": "Plan 必须同时产出 tasks.md 与 task-commands.json",
       "expected": "同一个 StageResult 和独立 review 摘要绑定两个产物；缺少任一产物均阻断",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "write-scope-enforcement",
+      "description": "task command 在运行时修改 writeScope 之外的路径",
+      "expected": "task-run fail closed，不发布 canonical receipt，并返回具体越界路径",
       "category": "runtime-gate"
     },
     {

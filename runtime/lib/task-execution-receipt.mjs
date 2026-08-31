@@ -8,6 +8,7 @@ import {
 import { gitCommonDir } from './agent-evidence.mjs';
 import { sha256Artifact } from './result-contract.mjs';
 import { assertSafeId, assertSafeRunId, resolveChild } from './safe-paths.mjs';
+import { taskWriteScopeViolations } from './task-write-scope.mjs';
 
 const RECEIPT_FIELDS = new Set([
   'receiptVersion',
@@ -223,6 +224,10 @@ function validateFrozenTask(root, receipt, problems, { allowIncomplete = false }
     if (receipt.executionStrategy !== plan.strategy) {
       problems.push(`executionStrategy does not match frozen task strategy ${plan.strategy}`);
       return;
+    }
+    if (plan.schemaVersion >= 4) {
+      problems.push(...taskWriteScopeViolations(receipt.changedPaths, plan.task.writeScope)
+        .map((problem) => `frozen task write scope: ${problem}`));
     }
     if (plan.strategy === 'direct'
       && receipt.strategyRationale !== plan.task.strategyRationale) {

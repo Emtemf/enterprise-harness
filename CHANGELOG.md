@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-08-31
+
+### Security
+
+- schema v4 `task-commands.json` 现在由 `task-run` 将实际 changed paths 与 task write scope 做 fail-closed 比对；越界执行不会发布 canonical receipt。
+- schema v3 仅保留历史读取兼容，新 Plan 必须生成带 write scope 的 schema v4 command freeze。
+
 ## [0.5.13] - 2026-08-31
 
 ### Changed

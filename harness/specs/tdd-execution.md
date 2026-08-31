@@ -6,12 +6,14 @@ implementationRefs:
   - runtime/task-run.mjs
   - runtime/lib/task-execution.mjs
   - runtime/lib/task-execution-receipt.mjs
+  - runtime/lib/task-write-scope.mjs
   - runtime/tdd-run.mjs
   - runtime/lib/tdd-receipts.mjs
 testRefs:
   - runtime/test/task-runner-v6-smoke.mjs
   - runtime/test/governed-task-run-write-gate-smoke.mjs
   - runtime/test/task-execution-authority-smoke.mjs
+  - runtime/test/task-write-scope-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
 ---
 
@@ -25,8 +27,9 @@ capability agent。v6 的所有 strategy 都由 `enterprise-harness:implementer`
 
 ## v6 权威入口
 
-Plan 必须在 `task-commands.json` 中为每个 task 冻结唯一 `executionStrategy`、phase chain、literal
-argv、输入引用和允许修改的路径。Implement Handoff v2 必须绑定当前 task 的 `state.json` 与
+Plan 必须在 schema v4 `task-commands.json` 中为每个 task 冻结唯一 `executionStrategy`、phase chain、literal
+argv、输入引用和允许修改的路径；runtime 会将 child 产生的 changed paths 与 write scope 做 fail-closed 比对。
+schema v3 仅作为历史读取兼容。Implement Handoff v2 必须绑定当前 task 的 `state.json` 与
 `task-commands.json` digest。
 
 每个 phase 调用：

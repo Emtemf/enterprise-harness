@@ -60,7 +60,7 @@ export function assertTaskCommandShape(value, tasksContent) {
     for (const field of Object.keys(value)) {
       if (!TOP_LEVEL_FIELDS.has(field)) problems.push(`task-commands.json has unknown property ${field}`);
     }
-    if (value.schemaVersion !== 3) problems.push('task-commands.json schemaVersion must be 3');
+    if (value.schemaVersion !== 4) problems.push('task-commands.json schemaVersion must be 4');
     if (!isObject(value.tasks)) problems.push('task-commands.json tasks must be an object');
   }
 

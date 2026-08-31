@@ -24,6 +24,7 @@ import {
   canonicalPath as canonicalizePath,
 } from './lib/safe-paths.mjs';
 import { resolveTaskExecutionCommand } from './lib/task-execution.mjs';
+import { taskWriteScopeViolations } from './lib/task-write-scope.mjs';
 import { withRecoverableTaskLock, processIdentityForPid } from './lib/task-lock.mjs';
 import {
   publishTaskReceiptArtifacts,
@@ -438,6 +439,13 @@ try {
     childStatus = childOutcome.exitCode;
     revalidateHandoff(root, changeId, taskId, runId, input);
 
+    const changedPaths = changedPathsSinceBaseline(root, baseline);
+    if (resolution.schemaVersion >= 4) {
+      const scopeProblems = taskWriteScopeViolations(changedPaths, resolution.task.writeScope);
+      if (scopeProblems.length > 0) {
+        throw new Error(`task write scope violation: ${scopeProblems.join('; ')}`);
+      }
+    }
     const headAfter = String(runGit(['rev-parse', 'HEAD'], root)).trim();
     const execution = {
       phase: resolution.phase,
@@ -472,7 +480,7 @@ try {
         treeDigestBefore,
         treeDigestAfter: worktreeSnapshotDigest(root),
       },
-      changedPaths: changedPathsSinceBaseline(root, baseline),
+      changedPaths,
       inputDigests: { ...input.inputDigests },
       executions: [
         ...(previous?.executions || []),

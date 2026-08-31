@@ -96,7 +96,7 @@ try {
   assert.match(missingTaskCommands.stderr, /task-commands\.json/u);
 
   fs.writeFileSync(path.join(root, taskCommandsRef), `${JSON.stringify({
-    schemaVersion: 3,
+    schemaVersion: 4,
     tasks: {
       'task-1': {
         executionStrategy: 'direct',

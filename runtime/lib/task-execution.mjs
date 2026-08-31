@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { assertSafeId, resolveChild } from './safe-paths.mjs';
+import { validateTaskWriteScope } from './task-write-scope.mjs';
 
 export const TASK_EXECUTION_PHASES = Object.freeze({
   tdd: ['RED', 'GREEN', 'REFACTOR'],
@@ -66,11 +67,13 @@ export function loadTaskExecutionStrategy(root, changeId, taskId, fallback = nul
     if (!task) {
       return { ok: false, strategy: null, problems: [`task is not frozen: ${taskId}`] };
     }
-    const strategy = task.executionStrategy ?? fallback ?? 'tdd';
+  const strategy = task.executionStrategy ?? fallback ?? 'tdd';
     if (!TASK_EXECUTION_STRATEGIES.has(strategy)) {
       return { ok: false, strategy: null, problems: [`executionStrategy is invalid: ${strategy}`] };
     }
-    return { ok: true, strategy, task, schemaVersion: frozen.schemaVersion, problems: [] };
+    const schemaVersion = frozen.schemaVersion;
+    const scopeProblems = schemaVersion >= 4 ? validateTaskWriteScope(task.writeScope) : [];
+    return { ok: scopeProblems.length === 0, strategy, task, schemaVersion, problems: scopeProblems };
   } catch (error) {
     return {
       ok: false,
