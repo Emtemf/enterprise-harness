@@ -25,9 +25,10 @@ Return to controller: after exactly one assessment, scope, seal, classification,
    或应用其内容。运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify validate-project-contract <change-id> harness/changes/<change-id>/project-contract-assessment.json`。
 3. 用相同的 one-candidate authorization 协议取得最终 scope confirmation。读取
-   [decision event 模板](../assets/decision-event.json.tmpl)生成 Main/runtime 的 lane 与
-   classification route 事件必须写入 canonical `evidence/clarify/decision-events/<event-id>.json`，再用
-   `clarify record-decision <change-id> <event-ref>` 追加；用户 scope/debt/project-contract 决策只能走 authorized
+   lane 使用 [lane input 模板](../assets/lane-applicability-input.json.tmpl) 和
+   `clarify record-lanes <change-id> <input-ref>` 原子追加；classification route 事件才使用
+   [decision event 模板](../assets/decision-event.json.tmpl)写入 canonical `evidence/clarify/decision-events/<event-id>.json`，
+   再用 `clarify record-decision <change-id> <event-ref>` 追加；用户 scope/debt/project-contract 决策只能走 authorized
    question hook。用 `clarify seal-decisions <change-id> <event-id>...` 密封 ordered prefix；从 requirements、
    assessments、snapshot 与 fresh packets 按 [classification input 模板](../assets/classification-input.json.tmpl)
    生成 canonical `evidence/clarify/classification-input.json`，追加匹配的

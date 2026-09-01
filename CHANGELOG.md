@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.5.17] - 2026-08-31
+
+### Fixed
+
+- Clarify lane applicability 现在通过 canonical `lane-applicability-input.json` 和 runtime `clarify record-lanes` 原子写入 code/docs DecisionEvent；requirements 中的伪造 `D-LANE-*` 不再能授权 research handoff。
+- research handoff 在创建时校验当前 requirements digest 对应的 fresh lane event；requirements 修订后必须重新绑定，旧事件仅保留为历史。
+
 ## [0.5.16] - 2026-08-31
 
 ### Fixed

@@ -32,10 +32,16 @@ const eventTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/decision-event.json.tmpl'),
   'utf-8',
 ));
+const laneTemplate = JSON.parse(fs.readFileSync(
+  path.join(root, 'skills/harness/assets/lane-applicability-input.json.tmpl'),
+  'utf-8',
+));
+assert.equal(laneTemplate.type, 'lane-applicability-input');
+assert.deepEqual(Object.keys(laneTemplate.lanes).sort(), ['code', 'docs']);
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 for (const [body, tokens] of [
-  [research, ['../assets/research-brief.md.tmpl', 'handoff create', 'handoff validate', 'expired lease']],
+  [research, ['../assets/research-brief.md.tmpl', 'lane-applicability-input.json', 'clarify record-lanes', 'handoff create', 'handoff validate', 'expired lease']],
   [decisions, ['../assets/question-candidate.json.tmpl', 'clarify prepare-question']],
   [completion, [
     '../assets/decision-event.json.tmpl',

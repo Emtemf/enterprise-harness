@@ -90,11 +90,13 @@ user-decision 行可以用逗号列出多个 `.confirmed`；不要从包含“�
 
 ## Decision refs
 
-只记录 append-only Decision Ledger 中的公开事件引用；不得粘贴聊天记录、prompt、隐藏推理或 secrets。
+只记录 append-only Decision Ledger 中已经存在的公开事件引用；lane applicability 不要求回填 event ID，
+其唯一权威投影是 `clarify status --json` / `workflow status --json` 返回的 ledger projection。不得粘贴聊天记录、prompt、隐藏推理或 secrets。
 
 | Decision type | Event ID / ref | Target | Selected option | Bound evidence / input digest | Status |
 |---|---|---|---|---|---|
-| lane-applicability / clarify-answer / scope-confirmation / classification-route | D-* | component / artifact ref | option-id | E-* / artifact digest | resolved / stale |
+| lane-applicability | runtime projection（不要手工填写） | requirements.md#fact-lane-* | required / not-required | `clarify status --json` | runtime / stale |
+| clarify-answer / scope-confirmation / classification-route | D-* | component / artifact ref | option-id | E-* / artifact digest | resolved / stale |
 
 ## 事实、约束与条件分支
 

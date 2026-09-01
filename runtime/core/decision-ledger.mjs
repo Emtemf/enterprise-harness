@@ -8,7 +8,7 @@ import {
   pathIsWithin,
   resolveWithin,
 } from '../lib/safe-paths.mjs';
-import { appendJsonLineOnce, atomicWriteJson, withChangeTransaction, withFileLock } from '../lib/state-store.mjs';
+import { atomicWriteJson, withChangeTransaction, withFileLock } from '../lib/state-store.mjs';
 import {
   sha256Artifact,
   validateClarifyDecisionSnapshot,
@@ -117,31 +117,68 @@ export function readDecisionEvents(root, changeId) {
 }
 
 export function appendDecisionEvent(root, changeId, event) {
+  return appendDecisionEvents(root, changeId, [event])[0];
+}
+
+function atomicReplaceLedger(root, changeId, relativePath, absolutePath, bytes) {
+  const temporary = `${absolutePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporary, bytes, { mode: 0o600, flag: 'wx' });
+    resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
+    fs.renameSync(temporary, absolutePath);
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+}
+
+export function appendDecisionEvents(root, changeId, events) {
   const relativePath = decisionLedgerPath(changeId);
-  const problems = validateDecisionEvent(changeId, event);
-  if (problems.length > 0) throw new Error(`EH-DECISION-SCHEMA-101: ${problems.join('; ')}`);
+  if (!Array.isArray(events) || events.length === 0) {
+    throw new Error('EH-DECISION-SCHEMA-101: decision event batch must be a non-empty array');
+  }
+  for (const event of events) {
+    const problems = validateDecisionEvent(changeId, event);
+    if (problems.length > 0) throw new Error(`EH-DECISION-SCHEMA-101: ${problems.join('; ')}`);
+  }
+  if (new Set(events.map(({ eventId }) => eventId)).size !== events.length) {
+    throw new Error('EH-DECISION-SCHEMA-101: decision event batch repeats eventId');
+  }
   const absolutePath = resolveDecisionTarget(root, changeId, relativePath, 'decision ledger', { createParent: true });
   return withChangeTransaction(root, changeId, () => withFileLock(absolutePath, () => {
     resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
     const existing = readDecisionEvents(root, changeId);
-    const prior = existing.find((item) => item.eventId === event.eventId);
-    if (prior && JSON.stringify(prior) !== JSON.stringify(event)) {
-      throw new Error(`EH-DECISION-CONFLICT-102: eventId ${event.eventId} already has different content`);
+    const accepted = [...existing];
+    const pending = [];
+    const results = [];
+    for (const event of events) {
+      const prior = accepted.find((item) => item.eventId === event.eventId);
+      if (prior && JSON.stringify(prior) !== JSON.stringify(event)) {
+        throw new Error(`EH-DECISION-CONFLICT-102: eventId ${event.eventId} already has different content`);
+      }
+      if (prior) {
+        results.push(Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: true }));
+        continue;
+      }
+      const resolvedTarget = event.decisionType === 'classification-route'
+        ? null
+        : accepted.find((item) => (
+          item.decisionType === event.decisionType && item.targetRef === event.targetRef
+        ));
+      if (resolvedTarget) {
+        throw new Error(
+          `EH-DECISION-TARGET-106: ${event.decisionType}:${event.targetRef} is already resolved by ${resolvedTarget.eventId}`,
+        );
+      }
+      accepted.push(event);
+      pending.push(event);
+      results.push(Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: false }));
     }
-    if (prior) return Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: true });
-    const resolvedTarget = event.decisionType === 'classification-route'
-      ? null
-      : existing.find((item) => (
-        item.decisionType === event.decisionType && item.targetRef === event.targetRef
-      ));
-    if (resolvedTarget) {
-      throw new Error(
-        `EH-DECISION-TARGET-106: ${event.decisionType}:${event.targetRef} is already resolved by ${resolvedTarget.eventId}`,
-      );
+    if (pending.length > 0) {
+      const document = readLedgerDocument(root, changeId);
+      const suffix = Buffer.from(pending.map((event) => `${JSON.stringify(clone(event))}\n`).join(''), 'utf-8');
+      atomicReplaceLedger(root, changeId, relativePath, absolutePath, Buffer.concat([document.bytes, suffix]));
     }
-    resolveDecisionTarget(root, changeId, relativePath, 'decision ledger');
-    appendJsonLineOnce(absolutePath, clone(event));
-    return Object.freeze({ path: relativePath, eventId: event.eventId, duplicate: false });
+    return Object.freeze(results);
   }));
 }
 

@@ -7,6 +7,24 @@ These are compact artifact projections, not
 chat transcripts or hidden reasoning. Example digests use the valid all-zero placeholder and must be replaced with the
 fresh artifact digest before preparation.
 
+## 0. Lane applicability is runtime-owned
+
+**Wrong turn**: requirements contains `D-LANE-CODE` and `D-LANE-DOCS`, but the Decision Ledger is empty. Do not create
+either research handoff. Those IDs are only Markdown text and are not evidence.
+
+**Correct Main sequence**:
+
+1. Finish the current requirements revision and write the canonical
+   `harness/changes/<change-id>/evidence/clarify/lane-applicability-input.json` from its template.
+2. Run exactly `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify record-lanes <change-id> <input-ref>`.
+3. Use the JSON stdout and `clarify status <change-id> --json` to confirm both current-digest events are fresh.
+4. Only then create all required research handoffs in one Agent call. Never hand-write event IDs or append a lane event
+   with `clarify record-decision`.
+
+If ResearchPacket metadata changes requirements and the digest becomes stale, keep the old ledger events as history,
+update only the canonical lane input digest, rerun `record-lanes`, and stop before topology or questions until the fresh
+events are visible. Do not edit requirements merely to display the new event IDs.
+
 ## 1. Brownfield cancellation: facts before refund compatibility
 
 **Input briefs**

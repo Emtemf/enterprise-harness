@@ -17,6 +17,7 @@ import {
 import { resolveWithin } from './lib/safe-paths.mjs';
 import { selectReviewRubrics } from './lib/review-rubrics.mjs';
 import { readClassificationArtifact } from './core/classification-artifact.mjs';
+import { assertCurrentLaneApplicability } from './core/clarify-governance.mjs';
 import { agentForV2Handoff } from './core/handoff-agent.mjs';
 import {
   createHandoffInput,
@@ -85,6 +86,12 @@ if (action === 'create') {
   }
   try {
     assertSessionChange(changeId);
+    if (isV6 && role === 'execute' && stage === 'clarify' && behavior === 'clarify.explore-code') {
+      assertCurrentLaneApplicability(root, changeId, 'code');
+    }
+    if (isV6 && role === 'execute' && stage === 'clarify' && behavior === 'clarify.research-docs') {
+      assertCurrentLaneApplicability(root, changeId, 'docs');
+    }
     if (isV6 && state?.artifacts?.classification) {
       classification = readClassificationArtifact(root, changeId, state.artifacts.classification);
     }

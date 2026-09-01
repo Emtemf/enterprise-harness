@@ -107,6 +107,22 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify decision event input 缺失、无效或不是 canonical public event。',
     recovery: '使用 canonical decision-events 路径；用户决策必须经 AskUserQuestion，CLI 仅记录 main/runtime 决策。',
   },
+  'EH-LANE-INPUT-156': {
+    summary: 'Clarify lane applicability input 缺失、无效或路径不 canonical。',
+    recovery: '按模板重建 canonical lane-applicability-input.json，并绑定当前 requirements digest 后重试。',
+  },
+  'EH-LANE-STALE-157': {
+    summary: 'Clarify lane applicability input 未绑定当前 requirements revision。',
+    recovery: '保留当前 requirements，更新 input 中的 requirementsDigest 后重新运行 clarify record-lanes。',
+  },
+  'EH-LANE-CONTINUITY-158': {
+    summary: 'Clarify requirements 原始需求与 UserPromptSubmit continuity receipt 不一致。',
+    recovery: '从绑定的原始用户请求恢复 requirements 原始需求段，再重新运行 clarify record-lanes。',
+  },
+  'EH-LANE-DISPATCH-159': {
+    summary: 'Clarify research handoff 缺少当前 requirements revision 对应的 fresh lane DecisionEvent。',
+    recovery: '先运行 clarify record-lanes，再回读 workflow/clarify status；只有 lane fresh 且 required 才重试 handoff。',
+  },
   'EH-CLASSIFICATION-INPUT-148': {
     summary: 'Clarify classification input 缺失、无效或路径不 canonical。',
     recovery: '重新生成 canonical classification-input.json 并按当前 authoritative refs/digests 重试。',

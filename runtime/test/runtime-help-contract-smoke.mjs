@@ -258,6 +258,7 @@ try {
       assert() {
         return this.result.status === 0
           && firstLine(this.result.stdout).includes('Enterprise Harness Clarify')
+          && this.result.stdout.includes('clarify record-lanes <change-id> <input-ref>')
           && this.result.stdout.includes('clarify record-decision <change-id> <event-ref>')
           && this.result.stdout.includes('clarify seal-decisions <change-id> <event-id> [event-id...]')
           && this.result.stdout.includes('clarify classify <change-id> <input-ref>')
@@ -270,6 +271,7 @@ try {
       assert() {
         return this.result.status === 0
           && firstLine(this.result.stdout).includes('Enterprise Harness Clarify')
+          && this.result.stdout.includes('clarify record-lanes <change-id> <input-ref>')
           && this.result.stdout.includes('clarify record-decision <change-id> <event-ref>')
           && this.result.stdout.includes('clarify seal-decisions <change-id> <event-id> [event-id...]')
           && this.result.stdout.includes('clarify classify <change-id> <input-ref>')

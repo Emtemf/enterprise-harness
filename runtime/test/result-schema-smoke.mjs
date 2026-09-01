@@ -22,6 +22,7 @@ const schemas = [
 ];
 
 const clarifySchemas = [
+  'lane-applicability-input.schema.json',
   'question-candidate.schema.json',
   'decision-event.schema.json',
   'clarify-decision-snapshot.schema.json',
@@ -43,10 +44,12 @@ for (const [name, type] of schemas) {
 
 const schemaDir = path.join(root, 'harness', 'schemas');
 const completionProofSchema = JSON.parse(fs.readFileSync(path.join(schemaDir, 'completion-proof.schema.json'), 'utf-8'));
+const laneApplicabilityInputSchema = JSON.parse(fs.readFileSync(path.join(schemaDir, 'lane-applicability-input.schema.json'), 'utf-8'));
 const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false });
 ajv.addSchema(JSON.parse(fs.readFileSync(path.join(schemaDir, 'tecpc.schema.json'), 'utf-8')));
 ajv.addSchema(JSON.parse(fs.readFileSync(path.join(schemaDir, 'waiver.schema.json'), 'utf-8')));
 const validateCompletionProofSchema = ajv.compile(completionProofSchema);
+const validateLaneApplicabilityInputSchema = ajv.compile(laneApplicabilityInputSchema);
 const validateResearchPacketSchema = ajv.compile(
   JSON.parse(fs.readFileSync(path.join(schemaDir, 'research-packet.schema.json'), 'utf-8')),
 );
@@ -60,6 +63,27 @@ for (const examplePath of [
     true,
     `${examplePath} must satisfy research-packet.schema.json: ${JSON.stringify(validateResearchPacketSchema.errors)}`,
   );
+}
+const validLaneApplicabilityInput = {
+  inputVersion: 1,
+  type: 'lane-applicability-input',
+  changeId: 'schema-clarify',
+  requirementsRef: 'harness/changes/schema-clarify/requirements.md',
+  requirementsDigest: '0'.repeat(64),
+  lanes: {
+    code: { selectedOption: 'required', publicRationale: '仓库行为在范围内。', evidenceRefs: ['harness/changes/schema-clarify/requirements.md'] },
+    docs: { selectedOption: 'not-required', publicRationale: '不涉及外部版本化契约。', evidenceRefs: ['harness/changes/schema-clarify/requirements.md'] },
+  },
+};
+assert.equal(validateLaneApplicabilityInputSchema(validLaneApplicabilityInput), true, JSON.stringify(validateLaneApplicabilityInputSchema.errors));
+for (const [label, mutate] of [
+  ['unknown lane input property', (candidate) => { candidate.unexpected = true; }],
+  ['code lane not-required', (candidate) => { candidate.lanes.code.selectedOption = 'not-required'; }],
+  ['unsafe requirements reference', (candidate) => { candidate.requirementsRef = '../requirements.md'; }],
+]) {
+  const candidate = structuredClone(validLaneApplicabilityInput);
+  mutate(candidate);
+  assert.equal(validateLaneApplicabilityInputSchema(candidate), false, `${label} must be rejected`);
 }
 const schemaChangeId = 'schema-clarify';
 const canonicalArtifacts = [

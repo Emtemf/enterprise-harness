@@ -1,6 +1,6 @@
 # Clarify 入口与 Lane Ledger 加固计划
 
-> 状态：approved-for-implementation-candidate（尚未实现）
+> 状态：implemented（P0–P2 已验证，P3 真实 Claude E2E 待额度恢复）
 >
 > 目标版本：0.5.17 candidate
 >
@@ -149,7 +149,7 @@ sequenceDiagram
 
 ## 实施任务
 
-### Task 1：先冻结 RED 与输入合同
+### Task 1：先冻结 RED 与输入合同（已完成）
 
 **修改：**
 
@@ -161,7 +161,7 @@ sequenceDiagram
 **RED：** schema 拒绝 unknown field、缺 lane、错误 option、空 rationale、changeId/ref 不匹配；当前 CLI 不认识
 `record-lanes`；伪造 Markdown ID 时 fact gate 和派发前检查都失败。
 
-### Task 2：实现原子 batch ledger API
+### Task 2：实现原子 batch ledger API（已完成）
 
 **修改：**
 
@@ -171,7 +171,7 @@ sequenceDiagram
 **约束：** 单一 change transaction + ledger lock；先验证全部事件和全部冲突，再写一次完整 append；任何一条失败
 不得留下半条 batch。
 
-### Task 3：实现 `clarify record-lanes`
+### Task 3：实现 `clarify record-lanes`（已完成）
 
 **修改：**
 
@@ -183,7 +183,7 @@ sequenceDiagram
 **必须证明：** runtime 不信任 eventId/target/digest/time；fresh digest 派生稳定 ID；重复调用幂等；旧 digest、错误
 change、path escape、symlink、无 prompt receipt、冲突 revision、非 active Clarify 均 fail closed。
 
-### Task 4：把 Skill 入口改为强制闭环
+### Task 4：把 Skill 入口改为强制闭环（已完成）
 
 **修改：**
 
@@ -196,7 +196,7 @@ change、path escape、symlink、无 prompt receipt、冲突 revision、非 acti
 **Main 固定动作：** 完成 requirements revision → 写 canonical input → exact `record-lanes` → 回读 status → 只有
 fresh 才一次性 dispatch all required lanes → 返回 controller。不得把多步压成 shell wrapper。
 
-### Task 5：增加派发前 runtime gate
+### Task 5：增加派发前 runtime gate（已完成）
 
 **修改候选：** handoff create 的 Clarify research behavior 校验当前 digest 对应的 code/docs events；若缺失、stale 或
 选择与 behavior 不匹配，返回稳定错误码。优先放在 runtime handoff core，不新增 hook。
@@ -204,7 +204,7 @@ fresh 才一次性 dispatch all required lanes → 返回 controller。不得把
 **RED/GREEN：** 即使 Skill 偏离并直接调用 handoff create，runtime 也必须拒绝；两条事件 fresh 后允许；docs
 not-required 时拒绝 docs handoff，code required 时允许 code handoff。
 
-### Task 6：文档、版本与发布候选
+### Task 6：文档、版本与发布候选（P0–P2 已完成）
 
 - 更新 `docs/maintainer/testing.md` 的 case 与门禁说明、CHANGELOG 和版本投影。
 - 运行 `node bin/sync-version.mjs`，不手改生成文件。
@@ -246,15 +246,15 @@ ResearchPacket、requirements 改版后的 stale 检测与 fresh rebind。仅终
 
 ## 完成门禁
 
-- [ ] Main 无法在 current-digest lane events 缺失时创建 Clarify research handoff。
-- [ ] runtime 原子写入 code/docs，Main 不再构造 DecisionEvent identity 字段。
-- [ ] requirements 不回填 lane event ID，不产生自我失效循环。
-- [ ] requirements 改版后旧事件不再通过，fresh rebind 可幂等恢复。
-- [ ] hook 仍只做机械授权/记录，没有 lane 语义。
-- [ ] 新错误都有稳定 code、单一 recovery、help 与行为测试。
-- [ ] 伪造、重放、并发、path escape、symlink、坏 JSON 全部有 RED/GREEN。
-- [ ] `npm run prepublish-check` 与 `npm run quality:local` 本地通过。
-- [ ] 真实 Claude P3 未完成前，发布说明明确标为“确定性验证通过，模型行为终验待执行”。
+- [x] Main 无法在 current-digest lane events 缺失时创建 Clarify research handoff。
+- [x] runtime 原子写入 code/docs，Main 不再构造 DecisionEvent identity 字段。
+- [x] requirements 不回填 lane event ID，不产生自我失效循环。
+- [x] requirements 改版后旧事件不再通过，fresh rebind 可幂等恢复。
+- [x] hook 仍只做机械授权/记录，没有 lane 语义。
+- [x] 新错误都有稳定 code、单一 recovery、help 与行为测试。
+- [x] 伪造、重放、并发、path escape、symlink、坏 JSON 全部有 RED/GREEN。
+- [x] `npm run prepublish-check` 与 `npm run quality:local` 本地通过。
+- [ ] 真实 Claude P3 未完成；发布说明明确标为“确定性验证通过，模型行为终验待执行”。
 
 ## Change budget
 

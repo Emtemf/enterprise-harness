@@ -36,6 +36,17 @@ tool-enabled routing cases 分开评分，不能把 Plan mode 无法持久化 pa
 - contract：plugin manifest、生成投影、稳定错误码
 - external-project：干净 Maven/Spring fixture 完整生命周期
 
+Clarify lane ledger 的确定性验证：
+
+```bash
+node runtime/test/clarify-lane-cli-smoke.mjs verify
+node runtime/test/clarify-lane-handoff-gate-smoke.mjs verify
+```
+
+这两项覆盖 canonical `lane-applicability-input.json`、原子双事件、幂等重放、requirements digest 变化、伪造
+`D-LANE-*`、path/symlink/continuity 失败，以及 research handoff 的 current-digest 派发前门禁。真实 Claude 行为
+仍需在额度恢复后按 `lane-ledger-before-research-dispatch` 和 `lane-ledger-stale-revision-recovery` 执行并人工核读。
+
 P0：
 
 ```bash

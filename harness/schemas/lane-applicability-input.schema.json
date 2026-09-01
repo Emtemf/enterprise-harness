@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/lane-applicability-input.schema.json",
+  "title": "Enterprise Harness Clarify Lane Applicability Input",
+  "type": "object",
+  "required": ["inputVersion", "type", "changeId", "requirementsRef", "requirementsDigest", "lanes"],
+  "properties": {
+    "inputVersion": { "const": 1 },
+    "type": { "const": "lane-applicability-input" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "requirementsRef": { "$ref": "#/$defs/safeRef" },
+    "requirementsDigest": { "$ref": "#/$defs/digest" },
+    "lanes": {
+      "type": "object",
+      "required": ["code", "docs"],
+      "properties": {
+        "code": { "$ref": "#/$defs/codeLane" },
+        "docs": { "$ref": "#/$defs/lane" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "safeRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/safeRef" }
+    },
+    "lane": {
+      "type": "object",
+      "required": ["selectedOption", "publicRationale", "evidenceRefs"],
+      "properties": {
+        "selectedOption": { "enum": ["required", "not-required"] },
+        "publicRationale": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      },
+      "additionalProperties": false
+    },
+    "codeLane": {
+      "allOf": [
+        { "$ref": "#/$defs/lane" },
+        { "properties": { "selectedOption": { "const": "required" } } }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

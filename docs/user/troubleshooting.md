@@ -258,6 +258,10 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-QUESTION-INPUT-115` | `clarify` CLI 子命令或参数形状无效 | 运行 `enterprise-harness clarify --help`，按显示的 exact argv 重试；不要附加 rationale 或 chat 文本 |
 | `EH-DECISION-STALE-146` | public decision event 的 evidence binding 缺失或已过期 | 从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试 |
 | `EH-DECISION-INPUT-147` | public decision event input 缺失、无效或不是 canonical main/runtime event | 使用 `evidence/clarify/decision-events/<eventId>.json`；用户决策必须经 AskUserQuestion |
+| `EH-LANE-INPUT-156` | lane applicability input 缺失、无效或路径不 canonical | 按模板重建 `evidence/clarify/lane-applicability-input.json`，绑定当前 requirements digest 后重试 |
+| `EH-LANE-STALE-157` | lane applicability input 未绑定当前 requirements revision | 更新 canonical input 的 `requirementsDigest` 后重新运行 `clarify record-lanes` |
+| `EH-LANE-CONTINUITY-158` | requirements 原始需求与 UserPromptSubmit continuity receipt 不一致 | 从绑定的原始用户请求恢复 requirements 原始需求段后重试 |
+| `EH-LANE-DISPATCH-159` | research handoff 缺少当前 requirements revision 对应的 fresh lane DecisionEvent | 先运行 `clarify record-lanes`，回读 status 后再重试 handoff |
 | `EH-CLASSIFICATION-INPUT-148` | classification input 缺失、无效或路径不 canonical | 重新生成 `evidence/clarify/classification-input.json` 并按当前 authoritative refs/digests 重试 |
 | `EH-CLASSIFICATION-COMMIT-149` | classification 无法原子提交到 active v6 Clarify state | 恢复 active Clarify，解决 revision 冲突后重新运行 `clarify classify` |
 | `EH-DEBT-SCHEMA-120` | Clarify technical-debt assessment 的结构、引用或 change 绑定无效 | 修正 canonical `debt-assessment.json` 中首个无效字段或引用后重新运行 `clarify validate-debt` |

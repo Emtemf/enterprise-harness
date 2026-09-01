@@ -12,7 +12,7 @@
 6. [evidence.md](evidence.md) — digest-bound artifacts, compound DesignProof, canonical TC receipts and archive attestation
 7. [testing.md](testing.md)
 8. [distribution-and-release.md](distribution-and-release.md)
-9. [clarify-governance.md](clarify-governance.md) — Clarify 权威来源、只读歧义指数、不可变决策/评估合同、proof-free transition readiness、transition-owned proof 发布、单问题授权与重启恢复
+9. [clarify-governance.md](clarify-governance.md) — Clarify 权威来源、只读歧义指数、不可变决策/评估合同、原子 lane applicability 记录、proof-free transition readiness、transition-owned proof 发布、单问题授权与重启恢复
 
 ## 附录
 

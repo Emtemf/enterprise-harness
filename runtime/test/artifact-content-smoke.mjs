@@ -31,6 +31,7 @@ try {
   const packageFiles = new Set(manifest.files.map((entry) => entry.path));
   const listed = packageFiles;
   const clarifySchemas = [
+    'lane-applicability-input.schema.json',
     'question-candidate.schema.json',
     'decision-event.schema.json',
     'clarify-decision-snapshot.schema.json',
@@ -49,6 +50,7 @@ try {
     'skills/harness/references/clarify-completion.md',
     'skills/harness/references/output-contract.md',
     'skills/harness/references/clarify-few-shots.md',
+    'skills/harness/assets/lane-applicability-input.json.tmpl',
     'hooks/hooks.json',
     'runtime/cli.mjs',
     'harness/templates/state.json',

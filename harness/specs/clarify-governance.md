@@ -1,10 +1,11 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-27
+lastVerified: 2026-08-31
 implementationRefs:
   - skills/harness/SKILL.md
   - harness/schemas/question-candidate.schema.json
+  - harness/schemas/lane-applicability-input.schema.json
   - harness/schemas/decision-event.schema.json
   - harness/schemas/clarify-decision-snapshot.schema.json
   - harness/schemas/debt-assessment.schema.json
@@ -33,6 +34,7 @@ implementationRefs:
   - skills/harness/assets/research-brief.md.tmpl
   - skills/harness/assets/question-candidate.json.tmpl
   - skills/harness/assets/decision-event.json.tmpl
+  - skills/harness/assets/lane-applicability-input.json.tmpl
   - skills/harness/assets/classification-input.json.tmpl
   - skills/harness/assets/requirements.md.tmpl
   - skills/harness/references/downstream-pitfalls.md
@@ -49,6 +51,8 @@ testRefs:
   - runtime/test/clarify-question-smoke.mjs
   - runtime/test/clarify-question-hook-smoke.mjs
   - runtime/test/clarify-decision-cli-smoke.mjs
+  - runtime/test/clarify-lane-cli-smoke.mjs
+  - runtime/test/clarify-lane-handoff-gate-smoke.mjs
   - runtime/test/clarify-skill-contract-smoke.mjs
   - runtime/test/clarify-assessments-smoke.mjs
   - runtime/test/classification-v2-smoke.mjs
@@ -80,9 +84,9 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 
 ## Artifact and Gate Rules
 
-The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, a candidate binds its typed decision target and every evidence artifact digest; a non-classification typed target can be resolved only once; the host-visible recommended option is unique; a free-form Other response is durably redacted and cannot satisfy a typed disposition; every debt observation has exactly one disposition; a snapshot event list is the ordered ledger prefix; and classification totals/tier/route decision agree with their inputs. Public CLI commands are the supported surface for main/runtime event append, idempotent snapshot seal, and atomic classification persistence; skills do not import core modules.
+The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, a candidate binds its typed decision target and every evidence artifact digest; a non-classification typed target can be resolved only once; the host-visible recommended option is unique; a free-form Other response is durably redacted and cannot satisfy a typed disposition; every debt observation has exactly one disposition; a snapshot event list is the ordered ledger prefix; and classification totals/tier/route decision agree with their inputs. Public CLI commands are the supported surface for main/runtime event append, atomic lane applicability recording, idempotent snapshot seal, and atomic classification persistence; skills do not import core modules.
 
-Each code/docs lane has exactly one digest-bound `lane-applicability` event for the current revision, targeting `requirements.md#fact-lane-<lane>#sha256=<digest>` and directly binding that requirements digest. Code research is mandatory for every governed software change; main and a forgeable local receipt cannot select code=`not-required`. The preserved original-request clause set must also exactly equal the UserPromptSubmit continuity binding, so accidental truncation is detected. `not-required` still needs a non-empty table rationale. Scope approval targets the exact requirements revision as `requirements.md#sha256=<digest>`; readiness accepts it only when the current requirements digest, selected `confirm` option, and sealed event agree. Component readiness scores are not trusted as numbers alone: every required dimension predicate must be backed by a unique Evidence-ledger claim that resolves to a preserved raw-request clause, a resolved user-decision round, or a validated ResearchPacket fact. Low-information self-referential tables do not pass.
+Each code/docs lane has exactly one digest-bound `lane-applicability` event for the current revision, targeting `requirements.md#fact-lane-<lane>#sha256=<digest>` and directly binding that requirements digest. Main submits only canonical `lane-applicability-input.json`; runtime derives event identity fields and atomically records both lanes, so Markdown `D-*` placeholders cannot authorize a handoff. Code research is mandatory for every governed software change; main and a forgeable local receipt cannot select code=`not-required`. The preserved original-request clause set must also exactly equal the UserPromptSubmit continuity binding, so accidental truncation is detected. `not-required` still needs a non-empty table rationale. A research handoff is rejected unless its current lane event is fresh and selected `required`. When requirements changes, old lane events remain historical and a new `record-lanes` call must bind the new digest; requirements does not backfill event IDs. Scope approval targets the exact requirements revision as `requirements.md#sha256=<digest>`; readiness accepts it only when the current requirements digest, selected `confirm` option, and sealed event agree. Component readiness scores are not trusted as numbers alone: every required dimension predicate must be backed by a unique Evidence-ledger claim that resolves to a preserved raw-request clause, a resolved user-decision round, or a validated ResearchPacket fact. Low-information self-referential tables do not pass.
 
 A passing Clarify `StageResult` binds the current requirements, classification, debt assessment, project-contract assessment, and immutable decision snapshot together with the seven canonical Clarify assertions. Its independent review must cover that exact artifact set, and the generic completion proof specialized to `stage: clarify` binds the reviewed artifacts, sealed decision snapshot, assertion evidence, and complete TECPC. Design transition recomputes this boundary from current artifacts; neither scope confirmation nor classification alone is a completion shortcut. Classification route events may append as derived revisions; another event for an already resolved user/lane/disposition target is rejected instead of becoming an ignored suffix.
 
