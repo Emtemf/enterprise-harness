@@ -41,7 +41,7 @@ assert.deepEqual(Object.keys(laneTemplate.lanes).sort(), ['code', 'docs']);
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 for (const [body, tokens] of [
-  [research, ['../assets/research-brief.md.tmpl', 'lane-applicability-input.json', 'clarify record-lanes', 'handoff create', 'handoff validate', 'expired lease']],
+  [research, ['../assets/research-brief.md.tmpl', 'lane-applicability-input.json', 'clarify requirements-digest', 'clarify record-lanes', 'handoff create', 'handoff validate', 'expired lease']],
   [decisions, ['../assets/question-candidate.json.tmpl', 'clarify prepare-question']],
   [completion, [
     '../assets/decision-event.json.tmpl',
@@ -57,6 +57,14 @@ for (const [body, tokens] of [
   ]],
 ]) for (const token of tokens) assert.match(body, new RegExp(escapeRegExp(token), 'u'),
   `Phase authority must reference ${token}`);
+for (const token of ['逐句完整引用当前 UserPromptSubmit', 'EH-LANE-CONTINUITY-158', '不得查找 prompt receipt 原文', '不得追加 `#E-*`']) {
+  assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research contract must preserve ${token}`);
+}
+for (const token of ['uncertainties.length > 0', '无权把 packet 的非空 `uncertainties` 判成“低风险”', 'fact gate complete: false']) {
+  assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research uncertainty gate must preserve ${token}`);
+}
+assert.match(research, /每个 lane 永远恰好一行.*更窄的新 run.*替换.*绝不追加第二条 code\/docs 行.*record-lanes/isu,
+  'narrow research must replace the current lane projection instead of duplicating table rows');
 for (const token of [
   'references/clarify-research.md',
   'references/clarify-decisions.md',
@@ -103,8 +111,10 @@ assert.equal(
 assert.deepEqual(validateQuestionCandidate(questionTemplate), [], 'question template must pass runtime shape validation');
 assert.deepEqual(validateDecisionEvent('change-id', eventTemplate), [], 'decision template must pass runtime shape validation');
 
-assert.match(research, /dispatch all required lanes[\s\S]*before any `AskUserQuestion`/iu,
-  'Research authority must dispatch all required lanes before AskUserQuestion');
+assert.match(research, /全部 required lane[\s\S]*`Skill` tool calls before any `AskUserQuestion`/iu,
+  'Research authority must dispatch all required forked Skills before AskUserQuestion');
+assert.match(research, /不得直接调用 `Agent`\/`Task` 或手写 `subagent_type`/u,
+  'Research authority must prohibit bypassing context-fork Skills');
 assert.ok(skill.indexOf('references/clarify-research.md') < skill.indexOf('references/clarify-decisions.md'),
   'Controller must route research before decisions');
 assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,

@@ -1,6 +1,6 @@
 {
   "skill": "harness",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "cases": [
     {
       "id": "fact-lanes-before-interview",
@@ -310,8 +310,13 @@
           "stage": "clarify",
           "lifecycle": "active",
           "currentTask": null,
-          "clarifyReadiness": { "route": "research" },
-          "requiredLanes": { "code": "stale", "docs": "not-required" },
+          "clarifyReadiness": {
+            "route": "research"
+          },
+          "requiredLanes": {
+            "code": "stale",
+            "docs": "not-required"
+          },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -322,7 +327,10 @@
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "required-research-fresh:code=stale",
           "pendingDecision": null,
-          "artifactFreshness": { "requirements": "fresh", "codeResearch": "stale" },
+          "artifactFreshness": {
+            "requirements": "fresh",
+            "codeResearch": "stale"
+          },
           "runtimeNextAction": null,
           "nextAction": null
         }
@@ -350,8 +358,13 @@
           "stage": "clarify",
           "lifecycle": "active",
           "currentTask": null,
-          "clarifyReadiness": { "route": "decisions" },
-          "requiredLanes": { "code": "fresh", "docs": "not-required" },
+          "clarifyReadiness": {
+            "route": "decisions"
+          },
+          "requiredLanes": {
+            "code": "fresh",
+            "docs": "not-required"
+          },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -362,7 +375,10 @@
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "topology-confirmed",
           "pendingDecision": null,
-          "artifactFreshness": { "requirements": "fresh", "research": "fresh" },
+          "artifactFreshness": {
+            "requirements": "fresh",
+            "research": "fresh"
+          },
           "runtimeNextAction": null,
           "nextAction": null
         }
@@ -390,8 +406,13 @@
           "stage": "clarify",
           "lifecycle": "active",
           "currentTask": null,
-          "clarifyReadiness": { "route": "completion" },
-          "requiredLanes": { "code": "fresh", "docs": "not-required" },
+          "clarifyReadiness": {
+            "route": "completion"
+          },
+          "requiredLanes": {
+            "code": "fresh",
+            "docs": "not-required"
+          },
           "noActiveChange": false,
           "entryRecoverySelected": false,
           "laneApplicabilityDecided": true,
@@ -402,7 +423,11 @@
           "clarifyTransitionReady": false,
           "earliestInvalidGate": "technical-debt-disposed",
           "pendingDecision": null,
-          "artifactFreshness": { "requirements": "fresh", "research": "fresh", "debtAssessment": "missing" },
+          "artifactFreshness": {
+            "requirements": "fresh",
+            "research": "fresh",
+            "debtAssessment": "missing"
+          },
           "runtimeNextAction": null,
           "nextAction": null
         }
@@ -445,8 +470,13 @@
           "stage": "clarify",
           "lifecycle": "recovery-required",
           "currentTask": null,
-          "clarifyReadiness": { "route": "research" },
-          "requiredLanes": { "code": "unknown", "docs": "unknown" },
+          "clarifyReadiness": {
+            "route": "research"
+          },
+          "requiredLanes": {
+            "code": "unknown",
+            "docs": "unknown"
+          },
           "noActiveChange": false,
           "entryRecoverySelected": true,
           "factGateOpen": false,
@@ -454,7 +484,9 @@
           "pendingQuestion": "Q-refund-compat",
           "pendingDecision": "Q-refund-compat",
           "earliestInvalidGate": "workflow-session-lease",
-          "artifactFreshness": { "workflowBinding": "stale" },
+          "artifactFreshness": {
+            "workflowBinding": "stale"
+          },
           "workflowRecovery": {
             "code": "EH-SESSION-LEASE-023",
             "nextAction": "start-change simple-login"

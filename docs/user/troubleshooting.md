@@ -259,6 +259,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-DECISION-STALE-146` | public decision event 的 evidence binding 缺失或已过期 | 从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试 |
 | `EH-DECISION-INPUT-147` | public decision event input 缺失、无效或不是 canonical main/runtime event | 使用 `evidence/clarify/decision-events/<eventId>.json`；用户决策必须经 AskUserQuestion |
 | `EH-LANE-INPUT-156` | lane applicability input 缺失、无效或路径不 canonical | 按模板重建 `evidence/clarify/lane-applicability-input.json`，绑定当前 requirements digest 后重试 |
+| `EH-LANE-DIGEST-160` | runtime 无法读取当前 Clarify requirements revision | 确认 active v6 Clarify 和 canonical `requirements.md` 存在，再运行 `clarify requirements-digest <change-id>` |
 | `EH-LANE-STALE-157` | lane applicability input 未绑定当前 requirements revision | 更新 canonical input 的 `requirementsDigest` 后重新运行 `clarify record-lanes` |
 | `EH-LANE-CONTINUITY-158` | requirements 原始需求与 UserPromptSubmit continuity receipt 不一致 | 从绑定的原始用户请求恢复 requirements 原始需求段后重试 |
 | `EH-LANE-DISPATCH-159` | research handoff 缺少当前 requirements revision 对应的 fresh lane DecisionEvent | 先运行 `clarify record-lanes`，回读 status 后再重试 handoff |

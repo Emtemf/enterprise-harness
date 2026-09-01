@@ -115,6 +115,8 @@ assert.doesNotMatch(clarifyEvidenceRow, /CompletionProof 已持久化|generic Co
 assert.match(transitionBody, /(?:原子|atomically).*CompletionProof.*(?:重新读取|re-read).*canonical gate.*CAS/isu,
   'Clarify transition must create the proof, re-read the gate, then CAS the stage');
 assert.match(skill, /路由是 runtime 派生值.*不在模型中重算布尔表达式/isu);
+assert.match(skill, /无active change即R.*缺少changeId是预期输入而非blocker.*禁止索要ID.*raw request.*start-change后结束/isu,
+  'no-active entry must mechanically start a change without asking for an identifier');
 assert.match(skill, /clarifyReadiness\.route.*research\|decisions\|completion\|transition/isu);
 assert.match(skill, /链接相对当前 SKILL\/reference 文件解析.*绝不相对项目 cwd/isu);
 assert.match(skill, /report-only\/read-only.*snapshot 就绪后必须且只能追加加载所选的一个 phase reference.*pre-entry recovery 的追加加载数为 0.*不得执行 action.*input refs、assets、supporting\/其它 references/isu);

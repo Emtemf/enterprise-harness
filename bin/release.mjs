@@ -213,6 +213,8 @@ try {
     'harness/plugin/manifest.json',
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
+    'test/skill-evals/harness/evals.json',
+    'skills/plan/evals/evals.json',
     'CHANGELOG.md',
   ];
   assertExactTrackedChanges(worktree, versionFiles, 'before release commit');

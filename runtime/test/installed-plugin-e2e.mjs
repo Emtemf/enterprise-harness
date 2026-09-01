@@ -107,7 +107,10 @@ try {
     '--plugin-dir', packedRoot,
     ...modelArgs,
     '--max-budget-usd', process.env.EH_CLAUDE_E2E_BUDGET || '1',
-    '--permission-mode', 'acceptEdits',
+    // The fixture is an isolated temporary repository. The E2E must exercise the
+    // installed runtime command instead of allowing a headless approval denial to
+    // turn into a plausible model-only status report.
+    '--permission-mode', 'bypassPermissions',
     '--output-format', 'json',
     '--print',
     `/enterprise-harness:harness Resume the active ${changeId} change. Read its durable state, report the change ID and current lifecycle stage, then stop. Do not dispatch a subagent, create a new change, or modify files outside this temporary project.`,

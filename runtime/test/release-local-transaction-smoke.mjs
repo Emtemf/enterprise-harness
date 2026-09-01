@@ -42,6 +42,8 @@ function makeFixture(name, { rejectTags = false, rejectMain = false, advanceMain
   fs.mkdirSync(path.join(source, 'bin'), { recursive: true });
   fs.mkdirSync(path.join(source, 'harness', 'plugin'), { recursive: true });
   fs.mkdirSync(path.join(source, '.claude-plugin'), { recursive: true });
+  fs.mkdirSync(path.join(source, 'test', 'skill-evals', 'harness'), { recursive: true });
+  fs.mkdirSync(path.join(source, 'skills', 'plan', 'evals'), { recursive: true });
   fs.mkdirSync(fakeBin, { recursive: true });
   fs.copyFileSync(path.join(root, 'bin', 'release.mjs'), path.join(source, 'bin', 'release.mjs'));
   fs.copyFileSync(path.join(root, 'bin', 'sync-version.mjs'), path.join(source, 'bin', 'sync-version.mjs'));
@@ -54,6 +56,8 @@ function makeFixture(name, { rejectTags = false, rejectMain = false, advanceMain
     path.join(source, '.claude-plugin', 'marketplace.json'),
     '{"version":"1.0.0","plugins":[{"name":"fixture","version":"1.0.0"}]}\n',
   );
+  fs.writeFileSync(path.join(source, 'test', 'skill-evals', 'harness', 'evals.json'), '{"version":"1.0.0","cases":[]}\n');
+  fs.writeFileSync(path.join(source, 'skills', 'plan', 'evals', 'evals.json'), '{"version":"1.0.0","cases":[]}\n');
   fs.writeFileSync(path.join(source, 'bin', 'local-quality.mjs'), `
 import crypto from 'node:crypto';
 import fs from 'node:fs';

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
 const root = path.resolve(process.env.EH_NATIVE_PLUGIN_ROOT || sourceRoot);
+const sourcePackageVersion = JSON.parse(fs.readFileSync(path.join(sourceRoot, 'package.json'), 'utf-8')).version;
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
@@ -45,7 +46,7 @@ assert.ok(fs.existsSync(path.join(root, 'hooks', 'hooks.json')), 'native hooks/h
 assert.ok(fs.existsSync(path.join(root, 'hooks', 'scripts')), 'native hooks/scripts directory must exist');
 assert.ok((plugin.skills || []).every((entry) => entry.startsWith('./skills/')), 'plugin skills must use root-native paths');
 assert.ok((plugin.agents || []).every((entry) => entry.startsWith('./agents/')), 'plugin agents must use root-native paths');
-assert.equal(packageJson.version, '0.5.17', 'native package must be release version 0.5.17');
+assert.equal(packageJson.version, sourcePackageVersion, 'native package must declare the source release version');
 assert.equal(plugin.version, packageJson.version, 'native plugin projection must match package version');
 assert.ok(plugin.skills.includes('./skills/test-design/'), 'native plugin must expose test-design for installation discovery');
 assert.ok(plugin.agents.includes('./agents/test-design-worker.md'), 'native plugin must expose test-design-worker for installation discovery');

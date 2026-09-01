@@ -1,6 +1,6 @@
 {
   "skill": "plan",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "cases": [
     {
       "id": "dual-artifact-freeze",

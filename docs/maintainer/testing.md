@@ -44,8 +44,14 @@ node runtime/test/clarify-lane-handoff-gate-smoke.mjs verify
 ```
 
 这两项覆盖 canonical `lane-applicability-input.json`、原子双事件、幂等重放、requirements digest 变化、伪造
-`D-LANE-*`、path/symlink/continuity 失败，以及 research handoff 的 current-digest 派发前门禁。真实 Claude 行为
-仍需在额度恢复后按 `lane-ledger-before-research-dispatch` 和 `lane-ledger-stale-revision-recovery` 执行并人工核读。
+`D-LANE-*`、path/symlink/continuity 失败，以及 research handoff 的 current-digest 派发前门禁。
+
+2026-09-01 的真实 Claude Code 2.1.247 / Sonnet 4.6 对抗性核读已证明：无 active change 可以从 raw request
+创建安全 changeId；code/docs 通过 `context: fork` Skills 实际调用 CodeGraph/Context7，canonical packets 均通过
+`handoff validate`；伪造 `D-LANE-*` 与 Bash pipe 未被执行。模型曾把非空 packet uncertainties 错写成 fact gate
+complete，也曾在窄化 research 时追加重复 lane 行；runtime 分别以 `research-conflicts-disposed` 和
+`record-lanes` exactly-one-row 校验 fail closed，未进入 topology、提问或实现。维护者核读必须同时检查
+requirements current projection 与 runtime route，不能把 packet canonical、模型自述或进程 exit 0 单独当作通过。
 
 P0：
 

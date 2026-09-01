@@ -10,6 +10,8 @@ const projections = [
   'harness/plugin/manifest.json',
   '.claude-plugin/plugin.json',
   '.claude-plugin/marketplace.json',
+  'test/skill-evals/harness/evals.json',
+  'skills/plan/evals/evals.json',
 ];
 const problems = [];
 const pluginName = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8')).name;

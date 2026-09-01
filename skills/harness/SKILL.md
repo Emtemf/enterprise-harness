@@ -26,11 +26,11 @@ factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以�
 
 ## Status-first controller
 
-任何新阶段工作前只允许运行下面记录的 exact argv；不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper：
+Skill 的第一个 tool call 必须是下面的 exact argv，早于 `ls`、Glob、Grep、Read、CodeGraph、Context7
+或 ToolSearch；changeId未知时省略，返回no active是成功snapshot，绝不索要ID。Main不直接探索事实。不要把它改写成 `npx`、全局 `enterprise-harness` 命令或自造 wrapper：
 
-`Bash.command` 必须在最后一个参数处结束；禁止追加 `2>&1`、`| head`、`| tail`、任何管道/重定向、命令连接符
-或用于“查看输出”的包装。Claude Code 会直接返回 stdout/stderr，不需要 shell 后处理；被 hook 拒绝时按原 argv
-重试一次，不要猜测替代命令或绕过 Skill。
+`Bash.command` 必须在最后一个参数处结束；禁止追加 `2>&1`、`| head`、`| tail`、管道、重定向或连接符。
+被 hook 拒绝时按原 argv 重试一次，不猜测替代命令或绕过 Skill。
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" workflow status <change-id> --json
@@ -52,7 +52,7 @@ node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>
 
 ## State router
 
-路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无 active change 时为 R；status 选中的 pre-entry recovery 已在上一节终止，不参与此 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 仅按 fresh stage gate 在 W/T 二选一。
+路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID或再调用带ID status，必须读research reference、从raw request生成安全ID、运行其start-change后结束。status 选中的 pre-entry recovery 已在上一节终止，不参与此 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 仅按 fresh stage gate 在 W/T 二选一。
 
 R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。所有链接相对当前 SKILL/reference 文件解析，绝不相对项目 cwd 探测；每轮只选择一个 phase authority reference，只有该 reference 明确导航时才加载其一个 supporting reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 

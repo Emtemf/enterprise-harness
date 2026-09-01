@@ -13,6 +13,7 @@ import { formatDiagnostic } from './lib/diagnostics.mjs';
 import { buildClarifyArtifactReadiness } from './lib/clarify-readiness.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
 import {
+  inspectClarifyRequirements,
   persistClarifyClassification,
   recordClarifyDecision,
   recordClarifyLanes,
@@ -31,6 +32,7 @@ function help(exitCode = 0) {
   console.log('  node runtime/cli.mjs clarify validate-debt <change-id> <artifact-ref>');
   console.log('  node runtime/cli.mjs clarify validate-project-contract <change-id> <artifact-ref>');
   console.log('  node runtime/cli.mjs clarify record-decision <change-id> <event-ref>');
+  console.log('  node runtime/cli.mjs clarify requirements-digest <change-id>');
   console.log('  node runtime/cli.mjs clarify record-lanes <change-id> <input-ref>');
   console.log('  node runtime/cli.mjs clarify seal-decisions <change-id> <event-id> [event-id...]');
   console.log('  node runtime/cli.mjs clarify classify <change-id> <input-ref>');
@@ -105,6 +107,9 @@ try {
   } else if (subcommand === 'record-decision') {
     requireArgs(2, 'clarify record-decision <change-id> <event-ref>', 'EH-DECISION-INPUT-147');
     console.log(JSON.stringify(recordClarifyDecision(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'requirements-digest') {
+    requireArgs(1, 'clarify requirements-digest <change-id>', 'EH-LANE-DIGEST-160');
+    console.log(JSON.stringify(inspectClarifyRequirements(root, args[0]), null, 2));
   } else if (subcommand === 'record-lanes') {
     requireArgs(2, 'clarify record-lanes <change-id> <input-ref>', 'EH-LANE-INPUT-156');
     console.log(JSON.stringify(recordClarifyLanes(root, args[0], args[1]), null, 2));

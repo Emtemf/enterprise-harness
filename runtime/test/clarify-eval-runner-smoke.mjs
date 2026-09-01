@@ -11,9 +11,10 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const checkoutRoot = path.resolve(repoRoot);
+const releaseVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8')).version;
 const runner = path.join(repoRoot, 'test', 'skill-evals', 'harness', 'run.mjs');
 const evals = JSON.parse(fs.readFileSync(path.join(repoRoot, 'test', 'skill-evals', 'harness', 'evals.json'), 'utf-8'));
-assert.equal(evals.version, '0.5.17', 'harness eval corpus must track the release version');
+assert.equal(evals.version, releaseVersion, 'harness eval corpus must track the release version');
 const compoundDesignEval = evals.cases.find((entry) => entry.id === 'compound-design-proof-before-plan');
 assert.ok(compoundDesignEval, 'eval corpus must cover the compound DesignProof boundary');
 assert.match(compoundDesignEval.prompt, /test-design|测试设计/u);
@@ -101,7 +102,7 @@ function evalRunnerFixture(name, mutate) {
   const definition = JSON.parse(fs.readFileSync(path.join(repoRoot, 'test', 'skill-evals', 'harness', 'evals.json'), 'utf-8'));
   mutate(definition);
   fs.writeFileSync(path.join(harnessDir, 'evals.json'), `${JSON.stringify(definition, null, 2)}\n`);
-  fs.writeFileSync(path.join(fixture, 'package.json'), JSON.stringify({ version: '0.5.17' }));
+  fs.writeFileSync(path.join(fixture, 'package.json'), JSON.stringify({ version: releaseVersion }));
   return { fixture, runner: path.join(harnessDir, 'run.mjs') };
 }
 
@@ -329,7 +330,7 @@ try {
   const manifest = onlyManifest(resultsDir);
   assert.equal(manifest.runs.length, 10);
   assert.equal(manifest.semanticScoring, 'manual-required');
-  assert.equal(manifest.evalSuiteVersion, '0.5.17');
+  assert.equal(manifest.evalSuiteVersion, releaseVersion);
   assert.match(manifest.provenance.repositoryHead, /^[a-f0-9]{40}$/u);
   assert.equal(
     manifest.provenance.skillSha256,

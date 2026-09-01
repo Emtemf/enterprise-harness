@@ -18,7 +18,7 @@ try {
     hook_event_name: 'UserPromptSubmit',
     session_id: 'prompt-session',
     cwd: root,
-    prompt: 'Build order cancellation. Do not change payment.',
+    prompt: '/enterprise-harness:harness\n\nBuild order cancellation. Do not change payment.',
   };
   const result = spawnSync(process.execPath, [hook], {
     cwd: root,
@@ -30,7 +30,12 @@ try {
   bindLatestPromptReceipt(root, 'prompt-change', event.session_id);
   const binding = readPromptBinding(root, 'prompt-change');
   assert.equal(binding.source, 'UserPromptSubmit');
+  assert.equal(binding.clauseDigests.length, 2, 'the slash-command routing literal is not a requirement clause');
   assert.equal(promptBindingCovers(root, 'prompt-change', event.prompt), true);
+  assert.equal(promptBindingCovers(root, 'prompt-change', 'Build order cancellation. Do not change payment.'), true,
+    'requirements omit the control-plane slash-command while preserving every semantic user clause');
+  assert.equal(promptBindingCovers(root, 'prompt-change', '> Build order cancellation.\n> Do not change payment.'), true,
+    'Markdown blockquote storage does not change the semantic user clauses');
   assert.equal(promptBindingCovers(root, 'prompt-change', 'Invent an admin console.'), false);
   assert.equal(promptBindingCovers(root, 'prompt-change', 'Do not change payment.'), false,
     'requirements must preserve the complete prompt clause set, not a convenient subset');

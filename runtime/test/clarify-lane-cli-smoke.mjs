@@ -62,7 +62,7 @@ try {
     validation: { status: 'missing', digest: null, validatedAt: null },
   });
   const requirementsPath = path.join(root, requirementsRef);
-  fs.writeFileSync(requirementsPath, [
+  const requirementsContent = [
     '# Requirements', '', '## 目标与验收', '### 原始需求',
     '给现有订单服务增加取消能力', '### 澄清后的目标', '待探索。', '',
     '## 事实探索门禁',
@@ -70,9 +70,24 @@ try {
     '|---|---|---|---|---|---|---|',
     '| code | yes | | | | pending | codegraph-first |',
     '| docs | no | | | | not-required | 不涉及外部版本化契约。 |',
-  ].join('\n'));
+  ].join('\n');
+  fs.writeFileSync(requirementsPath, requirementsContent);
   recordPromptReceipt(root, { session_id: 'lane-cli-session', prompt: '给现有订单服务增加取消能力' });
   bindLatestPromptReceipt(root, changeId, 'lane-cli-session');
+
+  const inspected = run('requirements-digest', changeId);
+  assert.equal(inspected.status, 0, inspected.stderr);
+  assert.deepEqual(JSON.parse(inspected.stdout), {
+    requirementsRef,
+    requirementsDigest: sha256Artifact(root, requirementsRef),
+  });
+
+  fs.writeFileSync(requirementsPath, requirementsContent.replace('| code | yes |', '| code | yes / no |'));
+  writeJson(inputRef, input());
+  const placeholder = run('record-lanes', changeId, inputRef);
+  assert.equal(placeholder.status, 2);
+  assert.match(placeholder.stderr, /EH-LANE-INPUT-156/u);
+  fs.writeFileSync(requirementsPath, requirementsContent);
   writeJson(inputRef, input());
 
   const recorded = run('record-lanes', changeId, inputRef);
@@ -101,6 +116,10 @@ try {
   const unsafe = run('record-lanes', changeId, '../escape.json');
   assert.equal(unsafe.status, 2);
   assert.match(unsafe.stderr, /EH-PATH-001/u);
+
+  const unsafeDigest = run('requirements-digest', '../escape');
+  assert.equal(unsafeDigest.status, 2);
+  assert.match(unsafeDigest.stderr, /EH-PATH-001/u);
 
   const invalid = input({ unexpected: true });
   writeJson(inputRef, invalid);

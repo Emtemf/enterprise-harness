@@ -9,6 +9,7 @@ import { validateSkillPackaging } from '../validators/skill-packaging-validator.
 
 const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
 const root = path.resolve(process.env.EH_SKILL_PACKAGING_ROOT || sourceRoot);
+const sourcePackageVersion = JSON.parse(fs.readFileSync(path.join(sourceRoot, 'package.json'), 'utf-8')).version;
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
@@ -39,7 +40,7 @@ if (mode === 'red') {
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf-8'));
-assert.equal(packageJson.version, '0.5.17', 'release package must declare 0.5.17');
+assert.equal(packageJson.version, sourcePackageVersion, 'release package must declare the source release version');
 assert.equal(plugin.version, packageJson.version, 'plugin projection must match package version');
 assert.ok(plugin.skills.includes('./skills/test-design/'), 'installable plugin must expose the test-design Skill');
 assert.ok(plugin.agents.includes('./agents/test-design-worker.md'), 'installable plugin must expose the test-design worker');

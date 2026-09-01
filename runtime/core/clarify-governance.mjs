@@ -65,6 +65,25 @@ export function laneApplicabilityInputPath(changeId) {
   return `harness/changes/${changeId}/evidence/clarify/lane-applicability-input.json`;
 }
 
+export function inspectClarifyRequirements(root, changeId) {
+  safeId(changeId, 'changeId');
+  activeClarifyState(root, changeId, 'EH-LANE-DIGEST-160');
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  try {
+    const target = resolveWithin(root, requirementsRef, 'requirements');
+    assertNoSymlinkComponents(root, target, 'requirements');
+    if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
+      throw new Error(`missing ${requirementsRef}`);
+    }
+    return Object.freeze({
+      requirementsRef,
+      requirementsDigest: sha256Artifact(root, requirementsRef),
+    });
+  } catch (error) {
+    throw new Error(`EH-LANE-DIGEST-160: cannot inspect current requirements: ${error.message}`);
+  }
+}
+
 function exactKeys(value, expected, label, problems) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     problems.push(`${label} must be an object`);
@@ -107,6 +126,21 @@ function originalRequest(content) {
   return content.slice(rawStart + '### 原始需求'.length, rawEnd).trim();
 }
 
+function requirementsLaneSelections(content) {
+  const start = content.indexOf('## 事实探索门禁');
+  const end = content.indexOf('\n## ', start + '## 事实探索门禁'.length);
+  const body = start < 0 ? '' : content.slice(start, end < 0 ? content.length : end);
+  const rows = body.split('\n').map((line) => line.trim())
+    .filter((line) => /^\|\s*(?:code|docs)\s*\|/u.test(line))
+    .map((line) => line.slice(1, -1).split('|').map((cell) => cell.trim()));
+  const result = new Map();
+  for (const cells of rows) {
+    if (cells.length !== 7 || result.has(cells[0])) return null;
+    result.set(cells[0], { required: cells[1].toLowerCase(), status: cells[5].toLowerCase() });
+  }
+  return result.size === 2 && result.has('code') && result.has('docs') ? result : null;
+}
+
 function existingLaneEvent(events, targetRef) {
   return events.find((event) => event.decisionType === 'lane-applicability' && event.targetRef === targetRef) || null;
 }
@@ -129,6 +163,23 @@ export function recordClarifyLanes(root, changeId, inputRef) {
       requirementsContent = fs.readFileSync(resolveWithin(root, requirementsRef, 'requirements'), 'utf-8');
     } catch (error) {
       throw new Error(`EH-LANE-INPUT-156: cannot read ${requirementsRef}: ${error.message}`);
+    }
+    const requirementLanes = requirementsLaneSelections(requirementsContent);
+    if (!requirementLanes) {
+      throw new Error('EH-LANE-INPUT-156: requirements fact-lane table must contain exactly one seven-column code row and docs row');
+    }
+    for (const lane of ['code', 'docs']) {
+      const expectedRequired = input.lanes[lane].selectedOption === 'required' ? 'yes' : 'no';
+      const projection = requirementLanes.get(lane);
+      if (projection.required !== expectedRequired) {
+        throw new Error(`EH-LANE-INPUT-156: requirements ${lane} Required must be ${expectedRequired} to match lane input`);
+      }
+      const allowedStatuses = expectedRequired === 'yes'
+        ? new Set(['pending', 'complete', 'blocked'])
+        : new Set(['not-required']);
+      if (!allowedStatuses.has(projection.status)) {
+        throw new Error(`EH-LANE-INPUT-156: requirements ${lane} Status ${projection.status || '<empty>'} is inconsistent with Required=${expectedRequired}`);
+      }
     }
     const requirementsDigest = sha256Artifact(root, requirementsRef);
     if (input.requirementsDigest !== requirementsDigest) {

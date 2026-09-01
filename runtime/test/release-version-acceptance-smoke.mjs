@@ -10,8 +10,18 @@ const pkg = readJson('package.json');
 const plugin = readJson('.claude-plugin/plugin.json');
 const runtime = readJson('harness/plugin/manifest.json');
 const marketplace = readJson('.claude-plugin/marketplace.json');
+const harnessEvals = readJson('test/skill-evals/harness/evals.json');
+const planEvals = readJson('skills/plan/evals/evals.json');
 assert.deepEqual(
-  new Set([pkg.version, plugin.version, runtime.version, marketplace.version, marketplace.plugins?.[0]?.version]),
+  new Set([
+    pkg.version,
+    plugin.version,
+    runtime.version,
+    marketplace.version,
+    marketplace.plugins?.[0]?.version,
+    harnessEvals.version,
+    planEvals.version,
+  ]),
   new Set([pkg.version]),
   'generated release projections must match package.json',
 );

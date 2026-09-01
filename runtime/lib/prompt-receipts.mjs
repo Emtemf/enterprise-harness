@@ -9,13 +9,21 @@ function sha256(value) {
   return createHash('sha256').update(String(value)).digest('hex');
 }
 
+const HARNESS_ROUTING_CLAUSES = new Set(['/enterprise-harness:harness']);
+
 export function normalizePromptClause(value) {
-  return String(value || '').normalize('NFKC').replace(/[。；;.!?！？]+$/gu, '')
+  return String(value || '').normalize('NFKC').replace(/^(?:>\s*)+/u, '').replace(/[。；;.!?！？]+$/gu, '')
     .replace(/\s+/gu, ' ').trim().toLocaleLowerCase('en-US');
 }
 
 export function promptClauses(value) {
   return String(value || '').split(/[。；;.!?！？\n]+/u).map(normalizePromptClause).filter(Boolean);
+}
+
+function semanticPromptClauseDigests(value) {
+  return [...new Set(promptClauses(value)
+    .filter((clause) => !HARNESS_ROUTING_CLAUSES.has(clause))
+    .map(sha256))];
 }
 
 function receiptRoot(root) {
@@ -34,7 +42,7 @@ export function recordPromptReceipt(root, event) {
   const sessionId = assertSafeId(event?.session_id, 'sessionId');
   const prompt = typeof event?.prompt === 'string' ? event.prompt : '';
   if (!prompt.trim()) throw new Error('EH-PROMPT-RECEIPT-154: UserPromptSubmit prompt is required');
-  const clauses = [...new Set(promptClauses(prompt).map(sha256))];
+  const clauses = semanticPromptClauseDigests(prompt);
   const receipt = {
     version: 1,
     type: 'host-user-prompt-receipt',
@@ -100,9 +108,11 @@ export function readPromptBinding(root, changeId) {
 
 export function promptBindingCovers(root, changeId, rawRequest) {
   const binding = readPromptBinding(root, changeId);
-  const clauses = promptClauses(rawRequest);
+  const clauses = semanticPromptClauseDigests(rawRequest);
   if (!binding || clauses.length === 0) return false;
-  const required = new Set(clauses.map(sha256));
+  const required = new Set(clauses);
+  // Compatibility for receipts written before the routing literal was excluded.
   const captured = new Set(binding.clauseDigests);
+  for (const clause of HARNESS_ROUTING_CLAUSES) captured.delete(sha256(clause));
   return required.size === captured.size && [...required].every((digest) => captured.has(digest));
 }

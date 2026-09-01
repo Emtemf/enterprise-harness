@@ -111,6 +111,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify lane applicability input 缺失、无效或路径不 canonical。',
     recovery: '按模板重建 canonical lane-applicability-input.json，并绑定当前 requirements digest 后重试。',
   },
+  'EH-LANE-DIGEST-160': {
+    summary: '无法通过 runtime 读取当前 Clarify requirements revision。',
+    recovery: '确认 active v6 Clarify 和 canonical requirements.md 存在，再原样重试 clarify requirements-digest <change-id>。',
+  },
   'EH-LANE-STALE-157': {
     summary: 'Clarify lane applicability input 未绑定当前 requirements revision。',
     recovery: '保留当前 requirements，更新 input 中的 requirementsDigest 后重新运行 clarify record-lanes。',

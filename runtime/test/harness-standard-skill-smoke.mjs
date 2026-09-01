@@ -15,6 +15,9 @@ function assertHarnessInstructions() {
   const research = read('skills/harness/references/clarify-research.md');
   const decisions = read('skills/harness/references/clarify-decisions.md');
   const completion = read('skills/harness/references/clarify-completion.md');
+  assert.match(skill, /第一个 tool call[\s\S]{0,220}exact argv/u);
+  assert.match(skill, /早于 `ls`、Glob、Grep、[\s\S]{0,80}CodeGraph、Context7/u);
+  assert.match(skill, /Main不直接探索事实/u);
   for (const [body, headings] of [
     [research, ['## Phase 0：进入 Clarify', '## Phase 1：完成事实探索']],
     [decisions, ['## Phase 2：综合事实并建立 topology', '## Phase 3：只澄清 Decisions']],

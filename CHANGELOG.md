@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.5.18] - 2026-09-01
+
+### Fixed
+
+- Clarify 新增只读 `requirements-digest` runtime 入口，lane input 不再依赖被治理 Bash 中不可执行的 shell hash 或占位摘要。
+- UserPromptSubmit continuity 现在排除 `/enterprise-harness:harness` 控制面 literal 和 Markdown 引用标记，同时仍要求全部语义用户条款（含被拒绝的对抗性条款）逐句完整。
+- `record-lanes` 原子提交前校验 requirements code/docs 表与 canonical lane input 一致，拒绝 `yes / no` 等模板占位和冲突状态。
+- Clarify Main 通过 `context: fork` Skill 并列派发 code/docs workers，禁止直接 Agent 绕过 supporting Skill 与 few-shot；任何非空 ResearchPacket uncertainty 都继续阻断 fact gate。
+- 无 active change 的入口明确把缺失 changeId 视为预期状态并从 raw request 创建安全 ID；窄化 research 必须替换每个 lane 的唯一 current projection，重复行由 runtime fail closed。
+- 版本同步与 release staging 现在同时覆盖 Harness/Plan eval corpus；安装态真实 Claude E2E 在隔离临时仓库执行 runtime status，不再被 headless Bash 审批降级为模型自述。
+
 ## [0.5.17] - 2026-08-31
 
 ### Fixed

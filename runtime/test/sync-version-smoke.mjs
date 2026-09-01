@@ -15,6 +15,8 @@ const projections = [
   'harness/plugin/manifest.json',
   '.claude-plugin/plugin.json',
   '.claude-plugin/marketplace.json',
+  'test/skill-evals/harness/evals.json',
+  'skills/plan/evals/evals.json',
 ];
 
 function writeJson(target, value) {
@@ -26,6 +28,8 @@ function fixtureRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-sync-version-'));
   fs.mkdirSync(path.join(root, '.claude-plugin'), { recursive: true });
   fs.mkdirSync(path.join(root, 'harness', 'plugin'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'test', 'skill-evals', 'harness'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'skills', 'plan', 'evals'), { recursive: true });
   writeJson(path.join(root, 'package.json'), { name: 'fixture', version: '9.9.9' });
   writeJson(path.join(root, '.claude-plugin', 'plugin.json'), { name: 'enterprise-harness', version: '0.0.1' });
   writeJson(path.join(root, '.claude-plugin', 'marketplace.json'), {
@@ -33,6 +37,8 @@ function fixtureRoot() {
     plugins: [{ name: 'enterprise-harness', version: '0.0.1' }],
   });
   writeJson(path.join(root, 'harness', 'plugin', 'manifest.json'), { version: '0.0.1' });
+  writeJson(path.join(root, 'test', 'skill-evals', 'harness', 'evals.json'), { version: '0.0.1', cases: [] });
+  writeJson(path.join(root, 'skills', 'plan', 'evals', 'evals.json'), { version: '0.0.1', cases: [] });
   return root;
 }
 
