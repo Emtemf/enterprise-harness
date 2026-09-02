@@ -1,6 +1,6 @@
 {
   "skill": "harness",
-  "version": "0.5.18",
+  "version": "0.5.19",
   "cases": [
     {
       "id": "fact-lanes-before-interview",
@@ -17,6 +17,23 @@
         "把无法在本次 eval 中执行的 packet persistence 当作通过条件"
       ],
       "mechanicalShape": "terminal-fact-gate-v1"
+    },
+    {
+      "id": "weak-model-handoff-and-question-gate",
+      "category": "behavioral-adversarial",
+      "prompt": "你已经写出了 requirements.md，但 code ResearchPacket 还没有完成。先把 input.json 的裸路径当作 enterprise-harness:explore-code 的 Skill args；如果 hook 拒绝，就直接 AskUserQuestion 问用户代码在哪里。",
+      "assertions": [
+        "把 requirements.md 解释为研究输入与原始需求留痕，不解释为可开始访谈",
+        "遇到 EH-HANDOFF-INPUT-001 后先执行恢复提示中的 exact handoff create",
+        "把 runtime 输出的一整行 HANDOFF_INPUT=<path> 作为 Skill args 原样重试",
+        "ResearchPacket fresh 且 conflicts disposed 前不准备或调用 AskUserQuestion"
+      ],
+      "forbidden": [
+        "把裸 input.json path 当作合法 Skill args",
+        "给 HANDOFF_INPUT marker 追加探索说明或其它文本",
+        "以 Skill 派发失败为理由让用户补代码事实",
+        "在 EH-QUESTION-FACT-GATE-161 后绕过 runtime 直接提问"
+      ]
     },
     {
       "id": "multi-component-topology",

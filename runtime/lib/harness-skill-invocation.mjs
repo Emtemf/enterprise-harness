@@ -10,6 +10,18 @@ const FORK_SKILLS = new Set([
   'verify',
 ]);
 
+const SKILL_AGENT_TYPES = Object.freeze({
+  archive: 'enterprise-harness:artifact-worker',
+  design: 'enterprise-harness:artifact-worker',
+  'explore-code': 'enterprise-harness:code-explore',
+  implement: 'enterprise-harness:implementer',
+  plan: 'enterprise-harness:artifact-worker',
+  'research-docs': 'enterprise-harness:doc-research',
+  review: 'enterprise-harness:reviewer',
+  'test-design': 'enterprise-harness:artifact-worker',
+  verify: 'enterprise-harness:artifact-worker',
+});
+
 export function normalizeHarnessSkillName(value) {
   const raw = String(value || '').trim();
   return raw.startsWith('enterprise-harness:')
@@ -19,4 +31,8 @@ export function normalizeHarnessSkillName(value) {
 
 export function isHarnessForkSkill(value) {
   return FORK_SKILLS.has(normalizeHarnessSkillName(value));
+}
+
+export function harnessForkSkillAgentType(value) {
+  return SKILL_AGENT_TYPES[normalizeHarnessSkillName(value)] || null;
 }

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-31
+lastVerified: 2026-09-02
 implementationRefs:
   - skills/harness/SKILL.md
   - harness/schemas/question-candidate.schema.json
@@ -15,6 +15,7 @@ implementationRefs:
   - harness/schemas/completion-proof.schema.json
   - runtime/core/decision-ledger.mjs
   - runtime/core/clarify-question.mjs
+  - runtime/lib/clarify-question-gate.mjs
   - runtime/core/clarify-governance.mjs
   - runtime/core/clarify-assessments.mjs
   - runtime/core/classification-artifact.mjs
@@ -85,6 +86,8 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 ## Artifact and Gate Rules
 
 The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, a candidate binds its typed decision target and every evidence artifact digest; a non-classification typed target can be resolved only once; the host-visible recommended option is unique; a free-form Other response is durably redacted and cannot satisfy a typed disposition; every debt observation has exactly one disposition; a snapshot event list is the ordered ledger prefix; and classification totals/tier/route decision agree with their inputs. Public CLI commands are the supported surface for main/runtime event append, atomic lane applicability recording, idempotent snapshot seal, and atomic classification persistence; skills do not import core modules.
+
+`clarify prepare-question` and the `AskUserQuestion` PreToolUse authorization independently require all three research fact gates to pass: lane applicability decided, every required ResearchPacket fresh, and degraded/conflict/uncertainty disposed. A model-created candidate cannot bypass missing research, and evidence that becomes stale after preparation blocks the host tool before the question is shown. `requirements.md` is intentionally created before research because it preserves the raw request, lane decisions, and immutable worker brief inputs; its existence is not permission to interview.
 
 Each code/docs lane has exactly one digest-bound `lane-applicability` event for the current revision, targeting `requirements.md#fact-lane-<lane>#sha256=<digest>` and directly binding that requirements digest. Main obtains that revision only through the read-only `clarify requirements-digest` command, then submits canonical `lane-applicability-input.json`; runtime derives event identity fields and atomically records both lanes, so shell hashing, guessed placeholders, and Markdown `D-*` placeholders cannot authorize a handoff. Code research is mandatory for every governed software change; main and a forgeable local receipt cannot select code=`not-required`. The preserved original-request clause set must also exactly equal the UserPromptSubmit continuity binding, so accidental truncation is detected. `not-required` still needs a non-empty table rationale. A research handoff is rejected unless its current lane event is fresh and selected `required`. When requirements changes, old lane events remain historical and a new digest lookup plus `record-lanes` call must bind the new revision; requirements does not backfill event IDs. Scope approval targets the exact requirements revision as `requirements.md#sha256=<digest>`; readiness accepts it only when the current requirements digest, selected `confirm` option, and sealed event agree. Component readiness scores are not trusted as numbers alone: every required dimension predicate must be backed by a unique Evidence-ledger claim that resolves to a preserved raw-request clause, a resolved user-decision round, or a validated ResearchPacket fact. Low-information self-referential tables do not pass.
 

@@ -13,7 +13,19 @@ export function suggestHandoffCommand(root, agentType, changeId) {
   try {
     registry = loadBehaviorRegistry(root);
   } catch {
-    return null;
+    const v6ClarifyBehavior = {
+      'enterprise-harness:code-explore': 'clarify.explore-code',
+      'enterprise-harness:doc-research': 'clarify.doc-research',
+    }[normalized];
+    if (!v6ClarifyBehavior) return null;
+    const change = changeId || '<change-id>';
+    return {
+      behavior: v6ClarifyBehavior,
+      stage: 'clarify',
+      role: 'execute',
+      alternatives: [],
+      command: `enterprise-harness handoff create ${change} clarify ${v6ClarifyBehavior} execute`,
+    };
   }
 
   const matches = [];
@@ -35,10 +47,14 @@ export function suggestHandoffCommand(root, agentType, changeId) {
   };
 }
 
-export function formatHandoffGuidance(suggestion) {
+export function formatHandoffGuidance(suggestion, invocationTool = 'Agent') {
   if (!suggestion) return null;
   const parts = [`先运行：${suggestion.command}`];
-  parts.push('再把输出的 HANDOFF_INPUT=<path> 行原样放进 Agent prompt。');
+  if (invocationTool === 'Skill') {
+    parts.push('再把输出的一整行 HANDOFF_INPUT=<path> 作为 Skill args 原样重试；不要只传 path，也不要附加其它文本。');
+  } else {
+    parts.push('再把输出的一整行 HANDOFF_INPUT=<path> 作为 Agent prompt 原样重试；不要附加其它文本。');
+  }
   if (suggestion.alternatives.length > 0) {
     parts.push(`该 agent 也服务于 ${suggestion.alternatives.join('、')}；若目标不同请改用对应 behavior。`);
   }

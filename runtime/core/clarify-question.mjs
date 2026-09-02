@@ -4,6 +4,7 @@ import path from 'node:path';
 import { appendDecisionEvent, readDecisionEvents } from './decision-ledger.mjs';
 import { statePathFor, validateV6State } from './change-state.mjs';
 import { activeChangeId, gitCommonDir } from '../lib/agent-evidence.mjs';
+import { assertClarifyQuestionFactGate } from '../lib/clarify-question-gate.mjs';
 import {
   assertNoSymlinkComponents,
   assertSafeId,
@@ -428,6 +429,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
   assertQuestionSafeId(changeId, 'changeId');
   assertActiveClarifyChange(root, changeId);
   const loaded = loadCandidate(root, changeId, candidateRef);
+  assertClarifyQuestionFactGate(root, changeId);
   const target = ensurePendingParent(root, changeId);
   return withFileLock(target, () => {
     const current = readPending(root, changeId, { required: false });
@@ -436,6 +438,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
     }
     assertActiveClarifyChange(root, changeId);
     const fresh = loadCandidate(root, changeId, candidateRef);
+    assertClarifyQuestionFactGate(root, changeId);
     if (fresh.candidateDigest !== loaded.candidateDigest) {
       throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${candidateRef}`);
     }
@@ -472,6 +475,7 @@ export function authorizeClarifyQuestion(root, toolInput) {
     throw questionError('EH-QUESTION-PENDING-111', `question ${pending.questionId} is not pending`);
   }
   const candidate = loadPendingCandidate(root, changeId, pending);
+  assertClarifyQuestionFactGate(root, changeId);
   assertExactToolInput(candidate, toolInput);
   return Object.freeze({ changeId, questionId: candidate.questionId });
 }

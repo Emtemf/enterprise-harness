@@ -15,6 +15,11 @@ import {
   resolveClarifyQuestion,
 } from '../core/clarify-question.mjs';
 import { appendDecisionEvent, readDecisionEvents } from '../core/decision-ledger.mjs';
+import {
+  appendLaneApplicabilityFixture,
+  ensureRequiredCodeResearchFixture,
+} from './classification-v2-fixture.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -22,6 +27,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 const runtimeClarify = fileURLToPath(new URL('../clarify.mjs', import.meta.url));
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-clarify-question-'));
 const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-clarify-question-outside-'));
+const factGateFixtures = new Set();
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -56,12 +62,38 @@ function activate(changeId, { stage = 'clarify', schemaVersion = 6, lifecycle = 
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`, 'utf-8');
 }
 
-function candidateFor(changeId, questionId = 'Q-003', overrides = {}) {
+function ensureFactGate(changeId) {
+  if (factGateFixtures.has(changeId)) return;
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  const requirementsPath = path.join(root, requirementsRef);
+  const rawRequest = `Clarify the governed request for ${changeId}.`;
+  fs.mkdirSync(path.dirname(requirementsPath), { recursive: true });
+  fs.writeFileSync(requirementsPath, [
+    '# Requirements', '', '## 目标与验收', '### 原始需求', rawRequest,
+    '### 澄清后的目标', `Exercise ${changeId}.`, '', '## 事实探索门禁',
+    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
+    '|---|---|---|---|---|---|---|',
+    '| code | no | none | none | none | not-required | pending classification |',
+    '| docs | no | none | none | none | not-required | no external facts required |',
+    '- remaining fact uncertainty: none', '',
+  ].join('\n'), 'utf-8');
+  const sessionId = `fixture-${changeId}`;
+  recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
+  bindLatestPromptReceipt(root, changeId, sessionId);
+  ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
+  appendLaneApplicabilityFixture(root, changeId, requirementsRef);
+  factGateFixtures.add(changeId);
+}
+
+function candidateFor(changeId, questionId = 'Q-003', overrides = {}, { factGate = true } = {}) {
   const inputRef = `harness/changes/${changeId}/requirements.md`;
-  const input = `requirements for ${changeId}\n`;
   const inputPath = path.join(root, inputRef);
-  fs.mkdirSync(path.dirname(inputPath), { recursive: true });
-  fs.writeFileSync(inputPath, input, 'utf-8');
+  if (factGate) ensureFactGate(changeId);
+  if (!fs.existsSync(inputPath)) {
+    fs.mkdirSync(path.dirname(inputPath), { recursive: true });
+    fs.writeFileSync(inputPath, `requirements for ${changeId}\n`, 'utf-8');
+  }
+  const input = fs.readFileSync(inputPath);
   return {
     questionVersion: 1,
     type: 'clarify-question-candidate',
@@ -340,6 +372,39 @@ try {
     /EH-QUESTION-STALE-/u,
   );
 
+  const blockedFactGateChange = 'blocked-fact-gate';
+  activate(blockedFactGateChange);
+  const blockedFactGateCandidate = candidateFor(blockedFactGateChange, 'Q-002', {}, { factGate: false });
+  const blockedFactGateRef = writeCandidate(blockedFactGateCandidate);
+  assert.throws(
+    () => prepareClarifyQuestion(root, blockedFactGateChange, blockedFactGateRef),
+    /EH-QUESTION-FACT-GATE-161/u,
+    'question preparation must fail closed before required research evidence exists',
+  );
+  assert.equal(fs.existsSync(pendingQuestionPath(root, blockedFactGateChange)), false);
+
+  const staleFactGateChange = 'stale-fact-gate';
+  activate(staleFactGateChange);
+  const staleFactGateCandidate = candidateFor(staleFactGateChange, 'Q-002');
+  const staleFactGateRef = writeCandidate(staleFactGateCandidate);
+  prepareClarifyQuestion(root, staleFactGateChange, staleFactGateRef);
+  const codeLane = fs.readFileSync(
+    path.join(root, `harness/changes/${staleFactGateChange}/requirements.md`),
+    'utf-8',
+  ).split('\n').find((line) => /^\|\s*code\s*\|/u.test(line));
+  const researchPacketRef = codeLane.split('|').map((cell) => cell.trim())[5];
+  const researchPacketPath = path.join(root, researchPacketRef);
+  const researchPacket = JSON.parse(fs.readFileSync(researchPacketPath, 'utf-8'));
+  fs.writeFileSync(
+    researchPacketPath,
+    `${JSON.stringify({ ...researchPacket, uncertainties: ['new unresolved fact'] }, null, 2)}\n`,
+  );
+  assert.throws(
+    () => authorizeClarifyQuestion(root, askInput(staleFactGateCandidate)),
+    /EH-QUESTION-FACT-GATE-161/u,
+    'AskUserQuestion authorization must recheck research freshness after prepare',
+  );
+
   const changeId = 'cancel-order';
   activate(changeId);
   const candidate = candidateFor(changeId);
@@ -423,7 +488,8 @@ try {
     resolveClarifyQuestion(root, askInput(otherCandidate), answer(otherCandidate, 'Need a custom secret value')),
     { eventId: 'D-020', duplicate: false },
   );
-  const [otherEvent] = readDecisionEvents(root, otherChange);
+  const [otherEvent] = readDecisionEvents(root, otherChange)
+    .filter(({ decisionType }) => decisionType !== 'lane-applicability');
   assert.equal(otherEvent.decisionType, 'clarify-answer');
   assert.equal(otherEvent.targetRef, otherRef);
   assert.equal(otherEvent.selectedOption, 'other');
@@ -441,7 +507,8 @@ try {
     () => resolveClarifyQuestion(root, askInput(candidate), answer(candidate, 'Async migration')),
     /EH-QUESTION-ANSWER-/u,
   );
-  const [event] = readDecisionEvents(root, changeId);
+  const [event] = readDecisionEvents(root, changeId)
+    .filter(({ decisionType }) => decisionType !== 'lane-applicability');
   assert.equal(event.selectedOption, 'strict');
   assert.equal(event.decisionType, 'scope-confirmation');
   assert.equal(event.targetRef, `harness/changes/${changeId}/requirements.md`);

@@ -88,7 +88,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 
 | 错误码 | 含义 | 恢复 |
 |---|---|---|
-| `EH-HANDOFF-INPUT-001` | 缺少 handoff input | 重新创建 handoff |
+| `EH-HANDOFF-INPUT-001` | 受治理的 Skill/Agent 缺少 exact `HANDOFF_INPUT` marker | 运行提示中的 exact `handoff create`，把输出的一整行 `HANDOFF_INPUT=<path>` 作为 Skill args 或 Agent prompt 原样重试；不能只传 path |
 | `EH-HANDOFF-SCHEMA-002` | envelope 不合法 | 运行 handoff validate |
 | `EH-AUDIT-HANDOFF-001` | v5 compatibility 阶段缺少有效 executor `result.json` | 仅对 `runtime/compat/v5/` 历史 handoff 生效；按对应 behavior 重新创建 execute handoff 并持久化 result |
 | `EH-AUDIT-HANDOFF-002` | v5 compatibility executor 缺少绑定 runId 的独立 checker | 仅对 `runtime/compat/v5/` 历史 handoff 生效；用 executor runId 创建 check handoff 并保留 `check.json` |
@@ -101,6 +101,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-SUBAGENT-RESULT-004` | result 无法解析 | 按 skill schema 返回 |
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |
 | `EH-CLARIFY-AMBIGUITY-006` | 歧义评分不足 | 补 weakest dimension |
+| `EH-QUESTION-FACT-GATE-161` | 研究事实门未关闭却准备或调用 AskUserQuestion | 完成 required ResearchPacket 并处置 degraded、冲突和 uncertainty，再从当前证据生成 candidate |
 | `EH-CLASSIFICATION-ROUTE-128` | classification tier 与 route event 不一致 | 按当前 evidence-derived tier 追加匹配 route event 后重算 |
 | `EH-CLASSIFICATION-STALE-129` | classification input digest 过期 | 从当前 authoritative inputs 重算 classification |
 | `EH-CLARIFY-RESEARCH-LANES-144` | code/docs research applicability 未决定 | 分别决定两个 lane 是否适用 |

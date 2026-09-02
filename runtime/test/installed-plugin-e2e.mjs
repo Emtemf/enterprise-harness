@@ -86,20 +86,6 @@ let commandOutput = '';
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: fixture }).status, 0);
   const changeId = 'installed-plugin-e2e';
-  const startChange = spawnSync(process.execPath, [
-    path.join(packedRoot, 'runtime', 'cli.mjs'),
-    'start-change',
-    changeId,
-  ], {
-    cwd: fixture,
-    encoding: 'utf-8',
-    shell: false,
-  });
-  assert.equal(
-    startChange.status,
-    0,
-    `${startChange.stdout || ''}\n${startChange.stderr || ''}`.trim(),
-  );
   const modelArgs = process.env.EH_CLAUDE_E2E_MODEL
     ? ['--model', process.env.EH_CLAUDE_E2E_MODEL]
     : [];
@@ -113,7 +99,7 @@ try {
     '--permission-mode', 'bypassPermissions',
     '--output-format', 'json',
     '--print',
-    `/enterprise-harness:harness Resume the active ${changeId} change. Read its durable state, report the change ID and current lifecycle stage, then stop. Do not dispatch a subagent, create a new change, or modify files outside this temporary project.`,
+    `/enterprise-harness:harness Start a new governed change with the exact ID ${changeId} for this test request: verify installed plugin session binding. Then read its durable state, report the change ID and current lifecycle stage, and stop. Do not dispatch a subagent or modify files outside this temporary project.`,
   ], {
     cwd: fixture,
     encoding: 'utf-8',

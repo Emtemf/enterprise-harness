@@ -8,6 +8,11 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { prepareClarifyQuestion } from '../core/clarify-question.mjs';
 import { readDecisionEvents } from '../core/decision-ledger.mjs';
+import {
+  appendLaneApplicabilityFixture,
+  ensureRequiredCodeResearchFixture,
+} from './classification-v2-fixture.mjs';
+import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -16,6 +21,7 @@ const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preHook = path.join(sourceRoot, 'hooks', 'scripts', 'pre-question.mjs');
 const postHook = path.join(sourceRoot, 'hooks', 'scripts', 'post-question.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-clarify-question-hook-'));
+const factGateFixtures = new Set();
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -41,11 +47,33 @@ function activate(changeId, stage = 'clarify') {
   fs.writeFileSync(path.join(root, 'harness', 'ACTIVE_CHANGE'), `${changeId}\n`, 'utf-8');
 }
 
+function ensureFactGate(changeId) {
+  if (factGateFixtures.has(changeId)) return;
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  const requirementsPath = path.join(root, requirementsRef);
+  const rawRequest = `Clarify the governed request for ${changeId}.`;
+  fs.mkdirSync(path.dirname(requirementsPath), { recursive: true });
+  fs.writeFileSync(requirementsPath, [
+    '# Requirements', '', '## 目标与验收', '### 原始需求', rawRequest,
+    '### 澄清后的目标', `Exercise ${changeId}.`, '', '## 事实探索门禁',
+    '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
+    '|---|---|---|---|---|---|---|',
+    '| code | no | none | none | none | not-required | pending classification |',
+    '| docs | no | none | none | none | not-required | no external facts required |',
+    '- remaining fact uncertainty: none', '',
+  ].join('\n'), 'utf-8');
+  const sessionId = `fixture-${changeId}`;
+  recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
+  bindLatestPromptReceipt(root, changeId, sessionId);
+  ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
+  appendLaneApplicabilityFixture(root, changeId, requirementsRef);
+  factGateFixtures.add(changeId);
+}
+
 function candidateFor(changeId, questionId = 'Q-001') {
   const inputRef = `harness/changes/${changeId}/requirements.md`;
-  const input = `requirements for ${changeId}\n`;
-  fs.mkdirSync(path.join(root, path.dirname(inputRef)), { recursive: true });
-  fs.writeFileSync(path.join(root, inputRef), input, 'utf-8');
+  ensureFactGate(changeId);
+  const input = fs.readFileSync(path.join(root, inputRef));
   return {
     questionVersion: 1,
     type: 'clarify-question-candidate',
@@ -189,11 +217,11 @@ try {
   const answered = run(postHook, answeredPayload);
   assert.equal(answered.status, 0, answered.stderr);
   assert.equal(answered.stdout, '');
-  assert.equal(readDecisionEvents(root, changeId).length, 1);
+  assert.equal(readDecisionEvents(root, changeId).filter(({ decisionType }) => decisionType !== 'lane-applicability').length, 1);
   const duplicate = run(postHook, answeredPayload);
   assert.equal(duplicate.status, 0, duplicate.stderr);
   assert.equal(duplicate.stdout, '');
-  assert.equal(readDecisionEvents(root, changeId).length, 1, 'duplicate PostToolUse must not append a ledger event');
+  assert.equal(readDecisionEvents(root, changeId).filter(({ decisionType }) => decisionType !== 'lane-applicability').length, 1, 'duplicate PostToolUse must not append a ledger event');
 
   const retryChange = 'retry-answer';
   activate(retryChange);
@@ -206,7 +234,8 @@ try {
   };
   const failedAnswer = run(postHook, failedAnswerPayload);
   assert.equal(failedAnswer.status, 0, failedAnswer.stderr);
-  const [otherEvent] = readDecisionEvents(root, retryChange);
+  const [otherEvent] = readDecisionEvents(root, retryChange)
+    .filter(({ decisionType }) => decisionType !== 'lane-applicability');
   assert.equal(otherEvent.selectedOption, 'other');
   assert.equal(JSON.stringify(otherEvent).includes('Not an option'), false, 'free-form Other text must not be persisted');
 

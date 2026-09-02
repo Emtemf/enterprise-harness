@@ -116,6 +116,18 @@ try {
   });
   assert.equal(polluted.status, 2, polluted.stderr || polluted.stdout);
   assert.match(`${polluted.stdout}\n${polluted.stderr}`, /EH-HANDOFF-INPUT-001/u);
+  assert.match(polluted.stderr, /作为 Skill args 原样重试/u);
+  assert.doesNotMatch(polluted.stderr, /放进 Agent prompt|作为 Agent prompt/u);
+
+  const barePath = hook('pre-agent.mjs', {
+    tool_name: 'Skill',
+    tool_use_id: 'tool-skill-bare-path',
+    session_id: sessionId,
+    tool_input: { ...skillInput, args: marker },
+  });
+  assert.equal(barePath.status, 2, barePath.stderr || barePath.stdout);
+  assert.match(barePath.stderr, /EH-HANDOFF-INPUT-001/u);
+  assert.match(barePath.stderr, /HANDOFF_INPUT=<path> 作为 Skill args/u);
 
   const wrongSkill = hook('pre-agent.mjs', {
     tool_name: 'Skill',

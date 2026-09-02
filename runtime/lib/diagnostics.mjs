@@ -4,8 +4,8 @@ export const DIAGNOSTICS = Object.freeze({
     recovery: '使用 repository-relative 非 symlink 路径和 safe identifier，修正后原样重试命令。',
   },
   'EH-HANDOFF-INPUT-001': {
-    summary: 'Agent 派发缺少或无法读取 HANDOFF_INPUT。',
-    recovery: '先运行 enterprise-harness handoff create，再把输出的 HANDOFF_INPUT 行原样放入 Agent prompt。',
+    summary: '受治理的 Skill/Agent 派发缺少或无法读取 HANDOFF_INPUT。',
+    recovery: '先运行 enterprise-harness handoff create，再把输出的一整行 HANDOFF_INPUT=<path> 作为 Skill args 或 Agent prompt 原样重试。',
   },
   'EH-HANDOFF-SCHEMA-002': {
     summary: 'Handoff envelope 缺少必填字段或字段互相矛盾。',
@@ -98,6 +98,10 @@ export const DIAGNOSTICS = Object.freeze({
   'EH-QUESTION-INPUT-115': {
     summary: 'Clarify question hook payload 无效。',
     recovery: '按 Claude Code AskUserQuestion payload 发送所需字段；不要附加 rationale 或 chat 文本。',
+  },
+  'EH-QUESTION-FACT-GATE-161': {
+    summary: 'Clarify 研究事实门尚未关闭，不能准备或调用 AskUserQuestion。',
+    recovery: '完成 required code/docs ResearchPacket，处置 degraded、conflict 与 uncertainty，再从当前证据重新生成 candidate。',
   },
   'EH-DECISION-STALE-146': {
     summary: 'Clarify decision event 的 evidence binding 缺失或已过期。',

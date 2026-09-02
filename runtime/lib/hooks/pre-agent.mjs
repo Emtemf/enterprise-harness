@@ -16,7 +16,11 @@ import {
 import { formatDiagnostic } from '../diagnostics.mjs';
 import { formatHandoffGuidance, suggestHandoffCommand } from '../handoff-guidance.mjs';
 import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
-import { isHarnessForkSkill, normalizeHarnessSkillName } from '../harness-skill-invocation.mjs';
+import {
+  harnessForkSkillAgentType,
+  isHarnessForkSkill,
+  normalizeHarnessSkillName,
+} from '../harness-skill-invocation.mjs';
 
 export function preAgent({ root, event }) {
   if (!['Agent', 'Skill'].includes(event.tool_name)) return { exitCode: 0 };
@@ -41,7 +45,7 @@ export function preAgent({ root, event }) {
       exitCode: 2,
       stderr: formatDiagnostic(
         'EH-HANDOFF-INPUT-001',
-        'harness Agent dispatch requires an active change',
+        `harness ${event.tool_name} dispatch requires an active change`,
       ),
     };
   }
@@ -59,7 +63,14 @@ export function preAgent({ root, event }) {
   if (!marker) {
     // The caller is being told to satisfy a rule it was never taught, so name the
     // exact command rather than leaving it to guess the behavior string.
-    const guidance = formatHandoffGuidance(suggestHandoffCommand(repoRoot, requestedRaw, changeId));
+    const guidance = formatHandoffGuidance(
+      suggestHandoffCommand(
+        repoRoot,
+        requestedRaw || harnessForkSkillAgentType(invokedSkill),
+        changeId,
+      ),
+      event.tool_name,
+    );
     return {
       exitCode: 2,
       stderr: formatDiagnostic(

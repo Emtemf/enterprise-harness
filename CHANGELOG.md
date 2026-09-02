@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.5.19] - 2026-09-02
+
+### Fixed
+
+- `clarify prepare-question` 与 `AskUserQuestion` PreToolUse 现在分别重验 lane applicability、fresh ResearchPacket 和 conflict/uncertainty disposition；弱模型不能在研究前通过自建 candidate 绕过事实门。
+- 缺少 exact marker 的 forked Skill 现在收到 Skill args 专用恢复提示与可执行的 Clarify handoff 命令；只传裸 `input.json` path 会稳定返回 `EH-HANDOFF-INPUT-001`。
+- 安装态真实 Claude E2E 在同一 Claude session 内创建并读取 change，不再用 session 外的过期 active-change 夹具制造假失败。
+
 ## [0.5.18] - 2026-09-01
 
 ### Fixed
