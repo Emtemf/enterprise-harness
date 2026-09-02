@@ -163,6 +163,22 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Project-contract assessment 试图引用不安全路径或携带 instruction write/apply payload。',
     recovery: '删除 write/apply 字段并仅保留 repository-relative instruction evidence 后重试。',
   },
+  'EH-PROJECT-CONTRACT-PROPOSAL-162': {
+    summary: 'Project-contract 提案无效、过期或不是 canonical immutable artifact。',
+    recovery: '从当前 assessment、决策账本和目标文件重新生成 draft，再运行 clarify propose-project-contract。',
+  },
+  'EH-PROJECT-CONTRACT-APPROVAL-163': {
+    summary: 'Project-contract 提案缺少与精确 digest 绑定的用户批准。',
+    recovery: '通过获准的 AskUserQuestion 记录 project-contract-proposal-approval 后原样重试。',
+  },
+  'EH-PROJECT-CONTRACT-APPLY-164': {
+    summary: 'Project-contract 安全应用因 CAS、receipt 或 assessment 冲突失败。',
+    recovery: '运行 clarify project-contract-status，解决目标漂移或冲突后重新生成提案。',
+  },
+  'EH-INSTRUCTION-OBSERVE-165': {
+    summary: 'InstructionsLoaded 观测未能写入本地 ledger。',
+    recovery: '检查 git common dir 权限；该观测 fail open，不得据此阻断 Claude Code。',
+  },
   'EH-CLASSIFICATION-ROUTE-128': {
     summary: 'Clarify classification 与 append-only classification-route event 不一致。',
     recovery: '按当前 evidence-derived tier 追加匹配 route event，再原子写入 classification v2。',
@@ -179,7 +195,7 @@ export const DIAGNOSTICS = Object.freeze({
   'EH-CLARIFY-QUESTION-134': { summary: '仍有一个 authorized Clarify question 未关闭。', recovery: '原样解决当前 authorized pending question。' },
   'EH-CLARIFY-DECISIONS-135': { summary: 'Clarify decision prefix 未密封或已过期。', recovery: '密封当前 ordered decision-ledger prefix。' },
   'EH-CLARIFY-DEBT-136': { summary: 'Clarify technical-debt disposition 未完成。', recovery: '记录并验证全部 applicable debt dispositions。' },
-  'EH-CLARIFY-CONTRACT-137': { summary: 'Clarify project-contract disposition 未完成。', recovery: '记录并验证 project-contract assessment。' },
+  'EH-CLARIFY-CONTRACT-137': { summary: 'Clarify project-contract disposition 未完成。', recovery: '验证 assessment；proposal-required 时生成提案、取得用户批准并安全应用。' },
   'EH-CLARIFY-REQUIREMENTS-138': { summary: '当前 Clarify requirements 未批准。', recovery: '批准并持久化当前 evidence-derived requirements。' },
   'EH-CLARIFY-CLASSIFICATION-139': { summary: 'Strict classification v2 缺失或不新鲜。', recovery: '从当前 authoritative inputs 重新计算并持久化 classification。' },
   'EH-CLARIFY-SELF-CHECK-140': { summary: 'Clarify StageResult self-check 缺失或未通过。', recovery: '发布 fresh passing Clarify StageResult self-check。' },

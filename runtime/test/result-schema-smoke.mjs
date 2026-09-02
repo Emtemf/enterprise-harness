@@ -28,6 +28,8 @@ const clarifySchemas = [
   'clarify-decision-snapshot.schema.json',
   'debt-assessment.schema.json',
   'project-contract-assessment.schema.json',
+  'project-contract-proposal.schema.json',
+  'project-contract-application.schema.json',
   'classification.schema.json',
 ];
 

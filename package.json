@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness",
-  "version": "0.5.19",
+  "version": "0.5.20",
   "private": true,
   "description": "Enterprise Harness Claude Code 插件的可移植运行时与仓库契约。",
   "license": "Apache-2.0",

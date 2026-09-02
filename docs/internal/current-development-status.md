@@ -1,13 +1,22 @@
 # 当前研发快照
 
-更新时间：2026-08-20（skill packaging contract 落地）
+更新时间：2026-09-02（project-contract 安全 proposal/apply 落地）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.4（未发布的 skill packaging 重构在其上）
-- 当前阶段：Skill Packaging Contract + Runtime API boundary（P0 全部完成）
+- 当前版本：0.5.20
+- 当前阶段：Clarify 与 project-contract 安全写入闭环完成；下一垂直切片为 Design 输出合同和条件审查
 - active change：无
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
+
+## 2026-09-02 Project-contract 安全写入闭环
+
+- `proposal-required` 现在真实阻断 Clarify readiness，不再把“已评估”误当成“已处置”。
+- 长期规则通过 immutable proposal、AskUserQuestion 精确 digest 批准、目标 CAS 与 application receipt 应用；主 Agent 不直接写 instruction file。
+- 工具无关稳定规则路由到 `AGENTS.md`，Claude Code 专属规则路由到 Claude instruction path；一次性选择只留在当前 change。
+- `InstructionsLoaded` 轻量 Hook 仅记录 path/digest/load reason，不保存内容、不参与 gate。
+
+以下章节保留为历史研发记录，不代表当前版本状态。
 
 ## 2026-08-20 Skill Packaging Contract（P0 七项）
 

@@ -44,6 +44,11 @@ function packPlugin(sourceRoot) {
       'skills/plan/assert/task-command-shape.mjs',
       'skills/plan/assets/task-commands.json.tmpl',
       'skills/plan/evals/evals.json',
+      'skills/harness/assets/project-contract-proposal.json.tmpl',
+      'harness/schemas/project-contract-proposal.schema.json',
+      'harness/schemas/project-contract-application.schema.json',
+      'hooks/scripts/instructions-loaded.mjs',
+      'runtime/lib/instruction-load-observations.mjs',
     ]) {
       assert.ok(fs.existsSync(path.join(packedRoot, relative)), `packed plugin missing ${relative}`);
     }
@@ -85,6 +90,8 @@ let commandOutput = '';
 
 try {
   assert.equal(spawnSync('git', ['init', '-q'], { cwd: fixture }).status, 0);
+  fs.writeFileSync(path.join(fixture, 'AGENTS.md'), '# Fixture contract\n\n- Keep this fixture isolated.\n', 'utf-8');
+  fs.writeFileSync(path.join(fixture, 'CLAUDE.md'), '# Claude fixture instructions\n\n@AGENTS.md\n', 'utf-8');
   const changeId = 'installed-plugin-e2e';
   const modelArgs = process.env.EH_CLAUDE_E2E_MODEL
     ? ['--model', process.env.EH_CLAUDE_E2E_MODEL]
@@ -120,6 +127,13 @@ try {
   assert.equal(state.stage, 'clarify');
   assert.match(commandOutput, new RegExp(changeId, 'u'));
   assert.match(commandOutput, /clarify/u);
+  const instructionLedger = path.join(fixture, '.git', 'enterprise-harness', 'instructions-loaded', 'events.jsonl');
+  assert.ok(fs.existsSync(instructionLedger), 'real Claude startup must trigger the packed InstructionsLoaded hook');
+  const instructionEvents = fs.readFileSync(instructionLedger, 'utf-8').trim().split(/\r?\n/u).map(JSON.parse);
+  assert.ok(instructionEvents.some((event) => event.filePath === 'CLAUDE.md'
+    && /^[a-f0-9]{64}$/u.test(event.fileDigest)), 'InstructionsLoaded receipt must bind CLAUDE.md digest');
+  assert.equal(instructionEvents.some((event) => Object.hasOwn(event, 'content')), false,
+    'InstructionsLoaded receipts must not retain instruction content');
   console.log('PASS installed-plugin Claude E2E');
 } finally {
   fs.rmSync(packedPlugin.packDir, { recursive: true, force: true });

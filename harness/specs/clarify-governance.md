@@ -10,6 +10,8 @@ implementationRefs:
   - harness/schemas/clarify-decision-snapshot.schema.json
   - harness/schemas/debt-assessment.schema.json
   - harness/schemas/project-contract-assessment.schema.json
+  - harness/schemas/project-contract-proposal.schema.json
+  - harness/schemas/project-contract-application.schema.json
   - harness/schemas/classification.schema.json
   - harness/schemas/stage-result.schema.json
   - harness/schemas/completion-proof.schema.json
@@ -18,6 +20,8 @@ implementationRefs:
   - runtime/lib/clarify-question-gate.mjs
   - runtime/core/clarify-governance.mjs
   - runtime/core/clarify-assessments.mjs
+  - runtime/core/project-contract.mjs
+  - runtime/lib/instruction-load-observations.mjs
   - runtime/core/classification-artifact.mjs
   - runtime/core/completion-proof.mjs
   - runtime/lib/clarify-readiness.mjs
@@ -32,6 +36,7 @@ implementationRefs:
   - skills/harness/scripts/finalize-clarify-result.mjs
   - skills/harness/assets/debt-assessment.json.tmpl
   - skills/harness/assets/project-contract-assessment.json.tmpl
+  - skills/harness/assets/project-contract-proposal.json.tmpl
   - skills/harness/assets/research-brief.md.tmpl
   - skills/harness/assets/question-candidate.json.tmpl
   - skills/harness/assets/decision-event.json.tmpl
@@ -43,6 +48,7 @@ implementationRefs:
   - agents/doc-research.md
   - hooks/scripts/pre-question.mjs
   - hooks/scripts/post-question.mjs
+  - hooks/scripts/instructions-loaded.mjs
   - runtime/lib/result-contract.mjs
 testRefs:
   - runtime/test/result-schema-smoke.mjs
@@ -56,6 +62,8 @@ testRefs:
   - runtime/test/clarify-lane-handoff-gate-smoke.mjs
   - runtime/test/clarify-skill-contract-smoke.mjs
   - runtime/test/clarify-assessments-smoke.mjs
+  - runtime/test/project-contract-proposal-smoke.mjs
+  - runtime/test/instructions-loaded-hook-smoke.mjs
   - runtime/test/classification-v2-smoke.mjs
   - runtime/test/classification-artifact-authority-smoke.mjs
   - runtime/test/clarify-readiness-smoke.mjs
@@ -78,7 +86,7 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 - The git-common-dir UserPromptSubmit binding is a privacy-preserving continuity receipt, not authorization evidence. It retains only semantic user-clause digests and length, never prompt text; the exact `/enterprise-harness:harness` routing literal is excluded as control-plane syntax, while every other clause remains mandatory. Research applicability cannot be waived from that receipt.
 - `requirements.md` is the human-readable scope authority; it records the resolved scope and its evidence.
 - The append-only decision ledger is the public history of choices. It records selections, public rationale, and evidence only; it never records prompts, messages, hidden analysis, chain of thought, or secrets.
-- Debt and project-contract assessments are supporting contracts for the current change. They do not expand scope or authorise a project-instruction write.
+- Debt and project-contract assessments are supporting contracts for the current change. An assessment does not expand scope or authorise a project-instruction write. Only an immutable proposal plus a fresh, exact-digest user approval authorises runtime apply.
 - Classification is the derived routing authority: its digest-bound artifact records the tier and applicable impact. It is recomputed from its inputs, not manually edited.
 - Readiness is a derived projection of the authoritative artifacts. It is never persisted as an editable checklist.
 - The Clarify `StageResult`, independent `ReviewResult`, and `ClarifyProof` (the generic completion proof specialized to `stage: clarify`) are the completion authorities. No prior artifact alone authorizes the Design transition.

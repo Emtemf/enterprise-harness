@@ -24,6 +24,18 @@
         ]
       }
     ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/instructions-loaded.mjs\"",
+            "timeout": 10,
+            "statusMessage": "记录项目指令加载事实"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "hooks": [

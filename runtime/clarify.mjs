@@ -9,6 +9,11 @@ import {
   readDebtAssessment,
   readProjectContractAssessment,
 } from './core/clarify-assessments.mjs';
+import {
+  applyProjectContractProposal,
+  persistProjectContractProposal,
+  projectContractStatus,
+} from './core/project-contract.mjs';
 import { formatDiagnostic } from './lib/diagnostics.mjs';
 import { buildClarifyArtifactReadiness } from './lib/clarify-readiness.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
@@ -31,6 +36,9 @@ function help(exitCode = 0) {
   console.log('  node runtime/cli.mjs clarify recover <change-id>');
   console.log('  node runtime/cli.mjs clarify validate-debt <change-id> <artifact-ref>');
   console.log('  node runtime/cli.mjs clarify validate-project-contract <change-id> <artifact-ref>');
+  console.log('  node runtime/cli.mjs clarify propose-project-contract <change-id> <draft-ref>');
+  console.log('  node runtime/cli.mjs clarify apply-project-contract <change-id> <proposal-ref>');
+  console.log('  node runtime/cli.mjs clarify project-contract-status <change-id>');
   console.log('  node runtime/cli.mjs clarify record-decision <change-id> <event-ref>');
   console.log('  node runtime/cli.mjs clarify requirements-digest <change-id>');
   console.log('  node runtime/cli.mjs clarify record-lanes <change-id> <input-ref>');
@@ -107,6 +115,15 @@ try {
   } else if (subcommand === 'record-decision') {
     requireArgs(2, 'clarify record-decision <change-id> <event-ref>', 'EH-DECISION-INPUT-147');
     console.log(JSON.stringify(recordClarifyDecision(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'propose-project-contract') {
+    requireArgs(2, 'clarify propose-project-contract <change-id> <draft-ref>', 'EH-PROJECT-CONTRACT-PROPOSAL-162');
+    console.log(JSON.stringify(persistProjectContractProposal(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'apply-project-contract') {
+    requireArgs(2, 'clarify apply-project-contract <change-id> <proposal-ref>', 'EH-PROJECT-CONTRACT-APPLY-164');
+    console.log(JSON.stringify(applyProjectContractProposal(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'project-contract-status') {
+    requireArgs(1, 'clarify project-contract-status <change-id>', 'EH-PROJECT-CONTRACT-PROPOSAL-162');
+    console.log(JSON.stringify(projectContractStatus(root, args[0]), null, 2));
   } else if (subcommand === 'requirements-digest') {
     requireArgs(1, 'clarify requirements-digest <change-id>', 'EH-LANE-DIGEST-160');
     console.log(JSON.stringify(inspectClarifyRequirements(root, args[0]), null, 2));

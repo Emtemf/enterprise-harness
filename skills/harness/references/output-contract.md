@@ -9,6 +9,8 @@ validators remain the structural and freshness authorities. Use the canonical sc
 [decision event](../../../harness/schemas/decision-event.schema.json),
 [debt assessment](../../../harness/schemas/debt-assessment.schema.json),
 [project-contract assessment](../../../harness/schemas/project-contract-assessment.schema.json),
+[project-contract proposal](../../../harness/schemas/project-contract-proposal.schema.json),
+[project-contract application](../../../harness/schemas/project-contract-application.schema.json),
 [classification](../../../harness/schemas/classification.schema.json), and
 [completion proof](../../../harness/schemas/completion-proof.schema.json).
 
@@ -23,7 +25,7 @@ validators remain the structural and freshness authorities. Use the canonical sc
 | Five dimensions | Goal, Scope, Constraints, Acceptance, and Context are computed from predicate-level evidence. Score 4 means all predicates are covered; score 5 also has explicit confirmation. |
 | Question value | One current weakest/highest-risk user-only Decision is selected. The candidate explains consequences, has mutually exclusive options, a supported recommendation, evidence refs, and a plausible score delta. Facts are never disguised as questions. |
 | Debt relevance | Only debt directly touched by the approved change, with location or execution evidence and material impact, is assessed. Repository-wide or unrelated cleanup is excluded. Every relevant observation has one disposition. |
-| Project contract | Existing instruction files are inventoried by ref/digest. Complete contracts are reused; gaps produce a proposal ref; conflicts or deferral require a public user Decision. Assessment never writes project instructions. |
+| Project contract | Existing instruction files are inventoried by ref/digest. Complete contracts are reused; gaps require an immutable proposal, digest-bound user approval and runtime CAS apply; conflicts or deferral require a public user Decision. Assessment itself never writes project instructions. |
 | Classification evidence | Classification is recomputed from fresh requirements, assessments, decision snapshot, and required packets; its route event matches the derived tier and impact. |
 | Self-check | The Main-produced StageResult binds the exact five canonical Clarify artifacts, current inputs, required assertions, and a passing self-check. It reports the first recovery when blocked. |
 | Independent review | The reviewer has a distinct identity/run, consumes the immutable artifact set, checks fact gates, omissions, conflicts, scope creep, acceptance, and premature design, and emits a fresh verdict. |

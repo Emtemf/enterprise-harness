@@ -90,9 +90,9 @@ Code research 必须识别与当前 change 直接相关的技术债、缺失测�
 
 ## 项目长期契约
 
-目标项目的长期 Claude 指令应简洁描述：愿景、做什么/不做什么、技术栈、架构边界、编码规约、构建测试命令、验证标准、安全禁止事项和技术债 authority。
+目标项目的长期契约应简洁描述：愿景、做什么/不做什么、技术栈、架构边界、编码规约、构建测试命令、验证标准、安全禁止事项和技术债 authority。工具无关规则以 `AGENTS.md` 为权威；Claude Code 专属导入和路径规则才进入 `CLAUDE.md` 或 `.claude/rules/*.md`。
 
-已有 CLAUDE.md 永不整文件覆盖：
+已有项目指令永不整文件覆盖：
 
 - 缺失时生成 proposal，用户批准后创建。
 - 已完整时记录 `use-existing`，不写文件。
@@ -148,7 +148,7 @@ CompletionProof fresh；requirements→architecture→test-cases→tasks→recei
 一次只攻克一个可验证的垂直闭环：
 
 1. Clarify：research、技术债、project-contract audit、Decision Ledger、Checklist、ClarifyProof。
-2. Project-contract 安全 proposal/apply 与 InstructionsLoaded 诊断。
+2. Project-contract 安全 proposal/apply 与 InstructionsLoaded 诊断（已落地；持续以真实安装态 E2E 守卫）。
 3. Design 输出合同和条件审查。
 4. Plan 到 `task-commands.json` 的机器闭环。
 5. Implement Task runner/receipt/review/proof。

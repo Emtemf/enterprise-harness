@@ -196,3 +196,17 @@ the two options, `multiSelect: false`.
 **DecisionEvent**: `D-identity-source`, selected=`organization-idp`, with packet and requirements digests.
 **Changed frontier**: Constraints 1→4; Acceptance remains 1 and becomes the next frontier. Next action is one observable
 success/failure Decision, because identity authority is settled but acceptance is still user-owned and under-evidenced.
+
+## 4. 长期团队规则与一次性选择必须分流
+
+用户在当前 change 说“这次不要改数据库”时，主 Agent 把它保留在 requirements 和 scope Decision；它只约束本次工作，
+不得生成 `AGENTS.md` 提案。用户明确说“团队所有数据库变更都必须保留版本化迁移脚本”，且代码探索确认仓库已有迁移目录，
+这才是 `durability=project-stable`、`preferenceBasis=explicit-team-rule` 的候选。
+
+主 Agent先生成 project-contract assessment，并记录 `proposal-required` disposition；再从模板生成只追加上述稳定规则的 draft，
+运行 `clarify propose-project-contract`。随后创建 `decisionType=project-contract-proposal-approval` 的唯一候选，目标与 digest
+均绑定 canonical proposal，选项为批准、修订、拒绝。只有 AskUserQuestion 返回批准，才运行
+`clarify apply-project-contract`。如果目标文件在批准前变化，CAS 阻断，主 Agent重新审计并生成新 proposal；不得覆盖新内容。
+
+若规则仅服务 Claude Code（例如 `CLAUDE.md` 用 `@AGENTS.md` 导入工具无关合同），提案路由到 Claude instruction 路径；
+Hook 只记录下一次 `InstructionsLoaded` 的 path/digest，不能把“尚未观察到加载”当作 Clarify 失败。

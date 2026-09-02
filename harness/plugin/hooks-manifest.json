@@ -19,6 +19,15 @@
         "statusMessage": "记录用户请求摘要凭据"
       }
     ],
+    "InstructionsLoaded": [
+      {
+        "script": "instructions-loaded.mjs",
+        "timeout": 10,
+        "performanceBudgetMs": 100,
+        "failMode": "fail-open",
+        "statusMessage": "记录项目指令加载事实"
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Agent|Skill",

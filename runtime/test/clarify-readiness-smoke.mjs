@@ -351,7 +351,7 @@ try {
     question: { code: 'EH-CLARIFY-QUESTION-134', action: '解决当前唯一获准的 Clarify 待回答问题。' },
     decisions: { code: 'EH-CLARIFY-DECISIONS-135', action: '封存按顺序排列的 Clarify 决策账本前缀。' },
     debt: { code: 'EH-CLARIFY-DEBT-136', action: '记录并验证每项适用的技术债处置。' },
-    contract: { code: 'EH-CLARIFY-CONTRACT-137', action: '记录并验证项目长期契约处置。' },
+    contract: { code: 'EH-CLARIFY-CONTRACT-137', action: '记录项目长期契约处置；若为 proposal-required，则生成不可变提案、取得用户批准并安全应用。' },
     requirements: { code: 'EH-CLARIFY-REQUIREMENTS-138', action: '批准并持久化当前由证据推导出的需求。' },
     classification: { code: 'EH-CLARIFY-CLASSIFICATION-139', action: '根据当前权威输入重新计算并持久化复杂度分类。' },
     selfCheck: { code: 'EH-CLARIFY-SELF-CHECK-140', action: '发布新鲜且通过的 Clarify StageResult 自检结果。' },

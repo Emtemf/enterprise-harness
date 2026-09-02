@@ -272,6 +272,10 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-PROJECT-CONTRACT-SCHEMA-123` | Project-contract assessment 的结构、状态规则或 disposition event 无效 | 修正首个 status/event 不一致并重新运行 `clarify validate-project-contract` |
 | `EH-PROJECT-CONTRACT-STALE-124` | Project instruction evidence 或 project-contract assessment 输入已过期 | 重新读取当前 instruction files、更新 digests，再重新验证 assessment |
 | `EH-PROJECT-CONTRACT-SCOPE-125` | Project-contract assessment 试图引用不安全路径或携带 instruction write/apply payload | 删除 write/apply 字段并仅保留 repository-relative instruction evidence 后重试 |
+| `EH-PROJECT-CONTRACT-PROPOSAL-162` | Project-contract 提案无效、过期或不是 canonical immutable artifact | 从当前 assessment、决策账本和目标文件重新生成 draft，再运行 `clarify propose-project-contract` |
+| `EH-PROJECT-CONTRACT-APPROVAL-163` | 提案缺少与精确 digest 绑定的用户批准 | 通过获准的 AskUserQuestion 记录 `project-contract-proposal-approval` 后原样重试 |
+| `EH-PROJECT-CONTRACT-APPLY-164` | 安全应用遇到 CAS、receipt 或 assessment 冲突 | 运行 `clarify project-contract-status`，解决目标漂移后重新生成提案 |
+| `EH-INSTRUCTION-OBSERVE-165` | InstructionsLoaded 观测无法写入本地 ledger | 检查 git common dir 权限；该观测 fail-open，不阻断 Claude Code |
 | `EH-INSTALL-CONFLICT-003` | 安装目标已有非托管内容 | 查看 plan，备份后显式处理冲突 |
 | `EH-INSTALL-GIT-001` | 目标仓库没有可用 Git HEAD | 初始化并提交目标仓库后重试 |
 | `EH-INSTALL-MANIFEST-002` | 安装清单不合法或与目标不一致 | 恢复备份并重新执行安装计划 |

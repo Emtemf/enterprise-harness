@@ -37,6 +37,8 @@ try {
     'clarify-decision-snapshot.schema.json',
     'debt-assessment.schema.json',
     'project-contract-assessment.schema.json',
+    'project-contract-proposal.schema.json',
+    'project-contract-application.schema.json',
     'classification.schema.json',
   ];
   for (const name of clarifySchemas) {
@@ -51,6 +53,7 @@ try {
     'skills/harness/references/output-contract.md',
     'skills/harness/references/clarify-few-shots.md',
     'skills/harness/assets/lane-applicability-input.json.tmpl',
+    'skills/harness/assets/project-contract-proposal.json.tmpl',
     'hooks/hooks.json',
     'runtime/cli.mjs',
     'harness/templates/state.json',

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-27
+lastVerified: 2026-09-02
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -9,6 +9,7 @@ implementationRefs:
   - runtime/lib/hook-health.mjs
   - runtime/lib/sessions.mjs
   - runtime/lib/prompt-receipts.mjs
+  - runtime/lib/instruction-load-observations.mjs
   - runtime/lib/state-store.mjs
   - runtime/lib/change-locks.mjs
 testRefs:
@@ -24,6 +25,7 @@ testRefs:
   - runtime/test/change-transaction-lease-smoke.mjs
   - runtime/test/state-store-acquisition-gate-smoke.mjs
   - runtime/test/user-prompt-receipt-hook-smoke.mjs
+  - runtime/test/instructions-loaded-hook-smoke.mjs
   - runtime/test/post-write-failure-release-smoke.mjs
   - runtime/test/stop-terminal-fallback-smoke.mjs
 ---
@@ -42,6 +44,7 @@ Hooks may only perform host-boundary mechanics:
 
 - SessionStart health/lease initialization and recovery guidance;
 - UserPromptSubmit request-digest capture without retaining prompt text;
+- InstructionsLoaded path/digest observation without retaining instruction content or deciding readiness;
 - one-retry validation of the exact five-line Clarify fact-gate fallback when an explicitly
   invoked Harness turn is unable to execute research in Plan mode;
 - synchronous path/policy guards for governed `Write`/`Edit`/`NotebookEdit` operations;
@@ -86,6 +89,11 @@ exclusive transaction and `EH-CHANGE-WRITE-LEASE-151` identifies an in-flight ho
 They must not interpret requirements, choose architecture, drive lifecycle transitions, or claim
 that an agent lifecycle event proves correctness. Agent events are telemetry; durable artifacts,
 receipts, and independent reviews provide proof.
+
+`InstructionsLoaded` is explicitly fail-open and observability-only. It writes a deduplicated local
+git-common-dir record containing repository-relative path, digest, load reason and host metadata;
+it never stores file content. A matching observation can diagnose whether an applied instruction
+revision was later loaded, but absence of an observation cannot block Clarify or authorize apply.
 
 The plugin-global Stop hook remains recovery guidance only. The Harness Skill frontmatter
 registers a separate session-scoped Stop handler after explicit skill invocation; that handler

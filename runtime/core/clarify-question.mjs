@@ -19,7 +19,8 @@ const DIMENSIONS = new Set([
   'Goal', 'Scope', 'Constraints', 'Acceptance', 'Context', 'TechnicalDebt', 'ProjectContract',
 ]);
 const INTERACTIVE_DECISION_TYPES = new Set([
-  'clarify-answer', 'debt-disposition', 'project-contract-disposition', 'scope-confirmation',
+  'clarify-answer', 'debt-disposition', 'project-contract-disposition',
+  'project-contract-proposal-approval', 'scope-confirmation',
 ]);
 const CANDIDATE_FIELDS = new Set([
   'questionVersion', 'type', 'changeId', 'questionId', 'componentId', 'dimension',

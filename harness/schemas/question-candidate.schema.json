@@ -13,7 +13,7 @@
     "dimension": { "enum": ["Goal", "Scope", "Constraints", "Acceptance", "Context", "TechnicalDebt", "ProjectContract"] },
     "decisionNeeded": { "$ref": "#/$defs/nonEmptyString" },
     "whyUserOnly": { "$ref": "#/$defs/nonEmptyString" },
-    "decisionType": { "enum": ["clarify-answer", "debt-disposition", "project-contract-disposition", "scope-confirmation"] },
+    "decisionType": { "enum": ["clarify-answer", "debt-disposition", "project-contract-disposition", "project-contract-proposal-approval", "scope-confirmation"] },
     "targetRef": { "$ref": "#/$defs/nonEmptyString" },
     "header": { "type": "string", "minLength": 1, "maxLength": 12 },
     "question": { "$ref": "#/$defs/nonEmptyString" },

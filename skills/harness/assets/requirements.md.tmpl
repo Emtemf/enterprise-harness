@@ -157,7 +157,8 @@ CodeGraph/Context7 解决，剩余 Decision 才进入一问一答。
 |---|---|---|---|---|
 | AGENTS.md / existing project instruction | | none / evidence-backed finding | use-existing / proposal-required / conflict / deferred | D-* / proposal ref |
 
-本阶段只审计并处置 project contract；不得创建、修改或写入 `CLAUDE.md`。
+长期规则必须经过 immutable proposal、精确 digest 用户批准与 runtime CAS apply；主 Agent 不得直接写
+`AGENTS.md`、`CLAUDE.md` 或 `.claude/rules/*.md`。一次性选择只留在本 change 的 requirements/decision ledger。
 
 ## Classification
 

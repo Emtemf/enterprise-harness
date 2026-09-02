@@ -48,6 +48,7 @@ for (const [body, tokens] of [
     '../assets/classification-input.json.tmpl',
     '../assets/debt-assessment.json.tmpl',
     '../assets/project-contract-assessment.json.tmpl',
+    '../assets/project-contract-proposal.json.tmpl',
     'clarify validate-debt',
     'clarify validate-project-contract',
     'clarify record-decision',
@@ -119,8 +120,17 @@ assert.ok(skill.indexOf('references/clarify-research.md') < skill.indexOf('refer
   'Controller must route research before decisions');
 assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,
   'Harness must authorize exactly one question at a time');
-assert.match(completion, /(?:不得|禁止|do not)\s*(?:创建、修改或)?(?:写入|修改|write)\s*`?CLAUDE\.md`?/iu,
-  'Harness must forbid writing CLAUDE.md in this slice');
+for (const token of [
+  'project-contract-proposal-approval',
+  'clarify propose-project-contract',
+  'clarify apply-project-contract',
+  'clarify project-contract-status',
+  'InstructionsLoaded',
+  '不得直接写目标 instruction file',
+]) assert.match(completion, new RegExp(escapeRegExp(token), 'u'),
+  `Harness project-contract protocol must preserve ${token}`);
+assert.match(completion, /一次性需求、当前 change 的偏好或临时选择只留在\s*requirements\/decision ledger/iu,
+  'One-off preferences must not be promoted to project instructions');
 const statusFirst = skill.indexOf('workflow status <change-id> --json');
 const questionStatus = skill.indexOf('clarify status <change-id> --json', statusFirst);
 const questionRecover = skill.indexOf('clarify recover <change-id>', questionStatus);

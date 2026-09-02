@@ -49,7 +49,7 @@ const DECISION_ACTOR_FIELDS = new Set(['type', 'id']);
 const DECISION_ACTOR_TYPES = new Set(['user', 'main', 'runtime']);
 const DECISION_TYPES = new Set([
   'clarify-answer', 'lane-applicability', 'debt-disposition', 'project-contract-disposition',
-  'scope-confirmation', 'classification-route',
+  'project-contract-proposal-approval', 'scope-confirmation', 'classification-route',
 ]);
 const CLARIFY_SNAPSHOT_FIELDS = new Set([
   'snapshotVersion', 'type', 'changeId', 'eventIds', 'ledgerRef', 'prefixBytes', 'prefixDigest',

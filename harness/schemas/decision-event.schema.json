@@ -11,7 +11,7 @@
     "changeId": { "$ref": "#/$defs/safeId" },
     "stage": { "const": "clarify" },
     "actor": { "$ref": "#/$defs/actor" },
-    "decisionType": { "enum": ["clarify-answer", "lane-applicability", "debt-disposition", "project-contract-disposition", "scope-confirmation", "classification-route"] },
+    "decisionType": { "enum": ["clarify-answer", "lane-applicability", "debt-disposition", "project-contract-disposition", "project-contract-proposal-approval", "scope-confirmation", "classification-route"] },
     "targetRef": { "$ref": "#/$defs/nonEmptyString" },
     "questionId": { "$ref": "#/$defs/safeId" },
     "options": { "type": "array", "minItems": 2, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "#/$defs/safeId" } },

@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.5.20] - 2026-09-02
+
+### Added
+
+- Project-contract gap 现在通过 immutable proposal、精确 digest 用户批准、目标文件 CAS 和 application receipt 安全闭环；`proposal-required` 会持续阻断 Clarify，直到缺口真正应用或被重新处置。
+- 新增 fail-open `InstructionsLoaded` 观测，只在 git common dir 记录 repository-relative path、digest 和加载原因，不保存指令内容，也不参与 readiness 裁决。
+
+### Changed
+
+- Harness Skill 明确区分跨 change 稳定规则、Claude Code 专属规则与一次性选择，并提供完整提案/批准/apply 协议和 few-shot。
+
 ## [0.5.19] - 2026-09-02
 
 ### Fixed

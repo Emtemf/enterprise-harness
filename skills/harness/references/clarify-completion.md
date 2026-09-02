@@ -20,10 +20,28 @@ Return to controller: after exactly one assessment, scope, seal, classification,
    恰好一个用户授权的 disposition event，然后运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify validate-debt <change-id> harness/changes/<change-id>/debt-assessment.json`。
 2. 读取 [project-contract assessment 模板](../assets/project-contract-assessment.json.tmpl)，审计已有 project
-   instructions。完整且无冲突时记录 `use-existing`；缺口只形成 proposal ref；冲突或 defer 通过一个
-   `project-contract-disposition` Decision 解决。此 Clarify slice **不得写入 `CLAUDE.md`**，也不得创建、修改
-   或应用其内容。运行
+   instructions。完整且无冲突时记录 `use-existing`；冲突或 defer 通过一个
+   `project-contract-disposition` Decision 解决。先运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify validate-project-contract <change-id> harness/changes/<change-id>/project-contract-assessment.json`。
+   若 status 为 `proposal-required`，必须继续完成以下安全协议，不能把“已有 assessment”误当成已处置：
+
+   1. 仅把跨 change 稳定复用的团队规则写入提案。一次性需求、当前 change 的偏好或临时选择只留在
+      requirements/decision ledger；禁止借机提升为长期契约。
+   2. 路由目标：工具无关的稳定项目规则只进 `AGENTS.md`；仅 Claude Code 需要的导入、路径规则或行为约束才进
+      `CLAUDE.md`、`.claude/CLAUDE.md` 或 `.claude/rules/*.md`。已有文件只能 append 或替换唯一
+      Enterprise Harness managed block，必须保留块外字节。
+   3. 读取 [project-contract proposal 模板](../assets/project-contract-proposal.json.tmpl)，在 change 内生成 draft，绑定
+      当前 assessment、来源 Decision 与目标文件 digest；运行
+      `clarify propose-project-contract <change-id> <draft-ref>` 发布 canonical immutable proposal。主 Agent 和
+      subagent 都不得直接写目标 instruction file。
+   4. 为该 canonical proposal 创建唯一 question candidate：`decisionType=project-contract-proposal-approval`，
+      `targetRef` 和 evidenceRefs 含 proposal，inputDigests 绑定 proposal 与 assessment；选项至少为
+      `approve/revise/reject`。按 [Clarify Decision 协议](clarify-decisions.md)完成 one-candidate 授权，再原样调用一次
+      `AskUserQuestion`。只有用户选择 `approve` 才可继续；revise/reject 返回 completion route 重新评估。
+   5. 批准后运行 `clarify apply-project-contract <change-id> <proposal-ref>`。runtime 会再次校验用户批准、CAS、
+      symlink/path 边界并写 immutable application receipt；不得以 Write/Edit/Bash 代替。随后运行
+      `clarify project-contract-status <change-id>`，以 assessment/receipt 为完成事实；
+      `InstructionsLoaded` 仅证明 Claude Code 后续确实加载了对应 digest，是诊断信号而不是阻断 gate。
 3. 用相同的 one-candidate authorization 协议取得最终 scope confirmation。读取
    lane 使用 [lane input 模板](../assets/lane-applicability-input.json.tmpl) 和
    `clarify record-lanes <change-id> <input-ref>` 原子追加；classification route 事件才使用

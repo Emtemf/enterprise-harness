@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enterprise-harness.local/schemas/project-contract-application.schema.json",
+  "title": "Enterprise Harness Project Contract Application Receipt",
+  "type": "object",
+  "required": ["applicationVersion", "type", "changeId", "proposalId", "proposalRef", "proposalDigest", "approvalEventId", "targetPath", "beforeDigest", "afterDigest", "operation", "recovered", "appliedAt"],
+  "properties": {
+    "applicationVersion": { "const": 1 },
+    "type": { "const": "project-contract-application" },
+    "changeId": { "$ref": "#/$defs/safeId" },
+    "proposalId": { "$ref": "#/$defs/safeId" },
+    "proposalRef": { "type": "string", "minLength": 1 },
+    "proposalDigest": { "$ref": "#/$defs/sha256" },
+    "approvalEventId": { "$ref": "#/$defs/safeId" },
+    "targetPath": { "type": "string", "minLength": 1 },
+    "beforeDigest": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "afterDigest": { "$ref": "#/$defs/sha256" },
+    "operation": { "enum": ["create", "append", "replace-managed-block"] },
+    "recovered": { "type": "boolean" },
+    "appliedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}

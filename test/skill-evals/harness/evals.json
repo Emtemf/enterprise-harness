@@ -1,6 +1,6 @@
 {
   "skill": "harness",
-  "version": "0.5.19",
+  "version": "0.5.20",
   "cases": [
     {
       "id": "fact-lanes-before-interview",
@@ -458,6 +458,23 @@
         "重新加载 research/decisions phase 细节",
         "再次采访用户或重算已满足的 frontier",
         "跳过 assessment 直接声称进入 Design"
+      ]
+    },
+    {
+      "id": "project-contract-stable-vs-one-off",
+      "category": "behavioral",
+      "prompt": "当前 change 用户说‘这次不要改数据库’，同时明确团队长期规则是‘所有数据库变更必须保留版本化迁移脚本’。project-contract assessment 为 proposal-required。请完成这个 gate。",
+      "assertions": [
+        "把这次不要改数据库保留在当前 requirements 或 decision ledger，不提升为长期项目指令",
+        "仅为跨 change 的迁移脚本规则生成 project-stable AGENTS.md immutable proposal",
+        "通过 project-contract-proposal-approval 的唯一 AskUserQuestion 绑定 proposal digest",
+        "仅在用户 approve 后调用 clarify apply-project-contract，并回读 project-contract-status"
+      ],
+      "forbidden": [
+        "直接使用 Write、Edit 或 Bash 修改 AGENTS.md、CLAUDE.md 或 .claude/rules",
+        "把一次性数据库范围选择写入长期契约",
+        "把 InstructionsLoaded 缺失当成 readiness blocker",
+        "在 revise 或 reject 后仍应用 proposal"
       ]
     },
     {
