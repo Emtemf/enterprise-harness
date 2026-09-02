@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,12 @@ const TRUSTED_RUNTIME_SCRIPTS = new Map([
   ['${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
   ['${CLAUDE_SKILL_DIR}/../../runtime/cli.mjs', path.join(pluginRoot, 'runtime', 'cli.mjs')],
   ['${CLAUDE_PLUGIN_ROOT}/bin/enterprise-harness.mjs', path.join(pluginRoot, 'bin', 'enterprise-harness.mjs')],
+]);
+const TRUSTED_SKILL_SCRIPT_NAMES = new Set([
+  'finalize-clarify-result.mjs',
+  'finalize-result.mjs',
+  'prepare-input.mjs',
+  'select-rubrics.mjs',
 ]);
 const READ_ONLY_GIT_COMMANDS = new Set(['rev-parse']);
 const FORBIDDEN_READ_FLAGS = /^(?:--output(?:=|$)|--ext-diff$|--textconv$|--exec(?:=|$)|--pre(?:=|$)|--hostname-bin(?:=|$))/u;
@@ -53,6 +60,15 @@ function trustedRuntimeScript(root, cwd, value) {
   return null;
 }
 
+function trustedSkillScript(root, cwd, value) {
+  const resolved = path.resolve(cwd || root, value);
+  const skillsRoot = path.join(pluginRoot, 'skills');
+  const relative = path.relative(skillsRoot, resolved).split(path.sep);
+  if (relative.length !== 3 || relative[1] !== 'scripts' || !TRUSTED_SKILL_SCRIPT_NAMES.has(relative[2])) return null;
+  if (!fs.existsSync(resolved)) return null;
+  return { skill: relative[0], script: relative[2], path: resolved };
+}
+
 function runtimeCommandKind(root, cwd, tokens) {
   if (tokens[0] === 'enterprise-harness' && tokens.length >= 2) {
     return { kind: tokens[1] === 'task-run' ? 'task-run' : 'runtime', action: tokens[1], args: tokens.slice(2) };
@@ -60,6 +76,12 @@ function runtimeCommandKind(root, cwd, tokens) {
   if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 3) return null;
   if (!trustedRuntimeScript(root, cwd, tokens[1])) return null;
   return { kind: tokens[2] === 'task-run' ? 'task-run' : 'runtime', action: tokens[2], args: tokens.slice(3) };
+}
+
+function skillScriptCommandKind(root, cwd, tokens) {
+  if (!['node', process.execPath].includes(tokens[0]) || tokens.length < 2) return null;
+  const trusted = trustedSkillScript(root, cwd, tokens[1]);
+  return trusted ? { kind: 'skill-script', ...trusted, args: tokens.slice(2) } : null;
 }
 
 function isReadOnlyDiagnostic(tokens) {
@@ -79,6 +101,8 @@ export function classifyGovernedBash(root, command, cwd = root) {
   const runtime = runtimeCommandKind(root, cwd, tokens);
   if (runtime?.kind === 'task-run') return { allowed: false, ...runtime };
   if (runtime?.kind === 'runtime') return { allowed: true, ...runtime };
+  const skillScript = skillScriptCommandKind(root, cwd, tokens);
+  if (skillScript) return { allowed: true, ...skillScript };
   if (isReadOnlyDiagnostic(tokens)) return { allowed: true, kind: 'read-only' };
   return { allowed: false, kind: 'denied' };
 }

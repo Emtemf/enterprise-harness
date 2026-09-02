@@ -103,7 +103,7 @@ try {
   const handoff = createHandoffV2(fixture, {
     changeId,
     stage: 'design',
-    behavior: 'produce',
+    behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
     inputRefs: [
       requirementsRef,
@@ -144,7 +144,7 @@ try {
   const unboundClassification = createHandoffV2(fixture, {
     changeId,
     stage: 'design',
-    behavior: 'produce',
+    behavior: 'design.produce',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
     inputRefs: [requirementsRef, researchRef],
     tecpc: {
@@ -161,6 +161,27 @@ try {
   const unboundFinalized = run(finalize, [changeId, unboundClassification.runId]);
   assert.notEqual(unboundFinalized.status, 0);
   assert.match(unboundFinalized.stderr, /classification input must be digest-bound/u);
+
+  const wrongBehavior = createHandoffV2(fixture, {
+    changeId,
+    stage: 'design',
+    behavior: 'produce',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'design' },
+    inputRefs: [requirementsRef, classificationReference.path, researchRef],
+    tecpc: {
+      target: 'wrong behavior route',
+      evidence: [researchRef],
+      context: [requirementsRef, classificationReference.path],
+      path: 'invalid',
+      correction: null,
+    },
+  });
+  const wrongBehaviorPrepared = run(prepare, [markerFor(wrongBehavior)]);
+  assert.notEqual(wrongBehaviorPrepared.status, 0);
+  assert.match(wrongBehaviorPrepared.stderr, /design\.produce/u);
+  const wrongBehaviorFinalized = run(finalize, [changeId, wrongBehavior.runId]);
+  assert.notEqual(wrongBehaviorFinalized.status, 0);
+  assert.match(wrongBehaviorFinalized.stderr, /design\.produce/u);
 
   const outsideMarker = run(prepare, ['HANDOFF_INPUT=../escape/input.json']);
   assert.notEqual(outsideMarker.status, 0);

@@ -208,13 +208,19 @@ try {
   fs.writeFileSync(changelogPath, patched, 'utf-8');
   run(process.execPath, ['bin/sync-version.mjs', '--quiet'], worktree);
 
+  const skillEvalVersionFiles = fs.readdirSync(path.join(worktree, 'skills'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `skills/${entry.name}/evals/evals.json`)
+    .filter((relative) => fs.existsSync(path.join(worktree, relative)))
+    .sort();
   const versionFiles = [
     'package.json',
+    'package-lock.json',
     'harness/plugin/manifest.json',
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
     'test/skill-evals/harness/evals.json',
-    'skills/plan/evals/evals.json',
+    ...skillEvalVersionFiles,
     'CHANGELOG.md',
   ];
   assertExactTrackedChanges(worktree, versionFiles, 'before release commit');

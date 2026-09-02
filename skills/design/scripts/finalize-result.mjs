@@ -38,9 +38,10 @@ try {
   const root = process.cwd();
   const input = loadHandoffV2(root, changeId, runId);
   if (input.role !== 'execute' || input.stage !== 'design'
+    || input.behavior !== 'design.produce'
     || input.agent?.type !== 'enterprise-harness:artifact-worker'
     || input.agent?.skill !== 'design') {
-    throw new Error('EH-DESIGN-FINALIZE-000: handoff must be a design artifact-worker execute run');
+    throw new Error('EH-DESIGN-FINALIZE-000: handoff must be a design.produce artifact-worker execute run');
   }
   for (const ref of input.inputRefs) {
     if (sha256Artifact(root, ref) !== input.inputDigests[ref]) {

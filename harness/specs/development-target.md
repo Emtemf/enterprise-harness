@@ -20,6 +20,8 @@ testRefs:
   - runtime/test/workflow-audit-v6-result-smoke.mjs
   - runtime/test/design-compound-gate-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
+  - runtime/test/installed-design-plugin-e2e.mjs
+  - runtime/test/skill-script-hook-smoke.mjs
 ---
 
 # Enterprise Harness Development Target

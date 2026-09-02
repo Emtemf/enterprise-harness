@@ -154,6 +154,26 @@ export function activeHandoffAgentBinding(root, changeId, input, { agentId, sess
   return dispatch && start && !laterStop ? { agentId, sessionId, dispatch, start } : null;
 }
 
+export function activeHarnessSkillAgent(root, changeId, { agentId, sessionId, skill } = {}) {
+  if (!agentId || !sessionId || !skill) return null;
+  const events = readAgentEvents(root, changeId);
+  const start = [...events].reverse().find((event) => (
+    event.kind === 'start' && event.agentId === agentId && event.sessionId === sessionId
+  ));
+  if (!start) return null;
+  const stop = [...events].reverse().find((event) => (
+    event.kind === 'stop' && event.agentId === agentId && Date.parse(event.issuedAt) >= Date.parse(start.issuedAt)
+  ));
+  const dispatch = [...events].reverse().find((event) => (
+    event.kind === 'dispatch'
+    && event.sessionId === sessionId
+    && event.preloadedSkill === skill
+    && event.requestedAgentType === start.observedAgentType
+    && Date.parse(event.issuedAt) <= Date.parse(start.issuedAt)
+  ));
+  return dispatch && !stop ? { dispatch, start } : null;
+}
+
 export function trustedHandoffAgentBindings(root, changeId, input) {
   const expectedType = normalizeAgentType(input?.agent?.type);
   const expectedParent = input?.parentRunId ?? null;

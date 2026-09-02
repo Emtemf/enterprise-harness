@@ -5,7 +5,7 @@ import { stageGateIsFresh, validateDynamicWriteGates } from '../execution-prereq
 import { classifyGovernedBash, extractHookTargets, isPotentialWriteBash } from '../hook-targets.mjs';
 import { captureGovernedSnapshot, writeHookSnapshot } from '../hook-snapshots.mjs';
 import { validateTaskRunLauncher } from '../task-run-authorization.mjs';
-import { boundHarnessAgent } from '../agent-evidence.mjs';
+import { activeHarnessSkillAgent, boundHarnessAgent } from '../agent-evidence.mjs';
 import { renderTECPCCard } from '../tecp-card.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
 import { acquireChangeWriteLease } from '../state-store.mjs';
@@ -67,6 +67,26 @@ export function preWrite({ root, event }) {
   if (event.tool_name === 'Bash' && activeForRunner.ok
       && activeForRunner.data?.schemaVersion === 6) {
     const governed = classifyGovernedBash(root, event.tool_input?.command, event.cwd || root);
+    if (governed.kind === 'skill-script') {
+      const activeSkill = governed.skill === 'harness'
+        ? activeForRunner.data.stage === 'clarify' && !agentId
+        : activeHarnessSkillAgent(root, activeForRunner.changeId, {
+          agentId,
+          sessionId: event.session_id,
+          skill: governed.skill,
+        });
+      const targetsDispatchedRun = governed.skill === 'harness'
+        || governed.script === 'select-rubrics.mjs'
+        || (governed.script === 'prepare-input.mjs'
+          && governed.args.length === 1
+          && governed.args[0].includes(activeSkill?.dispatch?.runId || '\0'))
+        || (governed.script === 'finalize-result.mjs'
+          && governed.args[1] === activeSkill?.dispatch?.runId);
+      if (!activeSkill || !targetsDispatchedRun) {
+        return block(root, 'EH-HOOK-SKILL-SCRIPT-159 Skill supporting script 必须由当前 handoff 派发的匹配隔离 agent 执行。', activeForRunner);
+      }
+      return { exitCode: 0 };
+    }
     if (!governed.allowed) {
       return block(
         root,

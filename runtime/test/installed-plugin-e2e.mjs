@@ -5,36 +5,16 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { packInstalledPlugin } from './installed-plugin-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['verify', 'e2e'].includes(mode)) process.exit(2);
 
 const pluginRoot = fileURLToPath(new URL('../../', import.meta.url));
-function packPlugin(sourceRoot) {
-  const packDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-installed-plugin-pack-'));
-  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+function verifyPackedPlugin(sourceRoot) {
+  const installed = packInstalledPlugin(sourceRoot);
+  const { packDir, packedRoot } = installed;
   try {
-    const packed = spawnSync(npmCommand, ['pack', '--ignore-scripts', '--pack-destination', packDir, '--json'], {
-      cwd: sourceRoot,
-      encoding: 'utf-8',
-      shell: false,
-    });
-    assert.equal(packed.status, 0, `${packed.stdout || ''}\n${packed.stderr || ''}`.trim());
-    const metadata = JSON.parse(packed.stdout);
-    assert.equal(metadata.length, 1);
-    const archive = path.join(packDir, metadata[0].filename);
-    assert.ok(fs.existsSync(archive), `npm pack must produce ${archive}`);
-    const installDir = path.join(packDir, 'installed');
-    const extracted = spawnSync(npmCommand, [
-      'install', '--ignore-scripts', '--no-save', '--package-lock=false', '--offline',
-      '--prefix', installDir, archive,
-    ], {
-      cwd: sourceRoot,
-      encoding: 'utf-8',
-      shell: false,
-    });
-    assert.equal(extracted.status, 0, `${extracted.stdout || ''}\n${extracted.stderr || ''}`.trim());
-    const packedRoot = path.join(installDir, 'node_modules', metadata[0].name);
     const manifest = JSON.parse(fs.readFileSync(path.join(packedRoot, '.claude-plugin', 'plugin.json'), 'utf-8'));
     assert.ok(manifest.skills.includes('./skills/test-design/'));
     assert.ok(manifest.agents.includes('./agents/test-design-worker.md'));
@@ -57,9 +37,11 @@ function packPlugin(sourceRoot) {
     assert.match(packedSkill, /^name: test-design$/mu);
     assert.match(packedSkill, /^agent: enterprise-harness:test-design-worker$/mu);
     assert.match(packedWorker, /^name: test-design-worker$/mu);
-    const planEvals = JSON.parse(fs.readFileSync(path.join(packedRoot, 'skills', 'plan', 'evals', 'evals.json'), 'utf-8'));
-    assert.equal(planEvals.skill, 'plan');
-    assert.equal(planEvals.version, manifest.version);
+    for (const skill of ['archive', 'design', 'implement', 'plan', 'review', 'test-design', 'verify']) {
+      const evals = JSON.parse(fs.readFileSync(path.join(packedRoot, 'skills', skill, 'evals', 'evals.json'), 'utf-8'));
+      assert.equal(evals.skill, skill);
+      assert.equal(evals.version, manifest.version, `${skill} eval version must match the installed plugin`);
+    }
     const validation = spawnSync('claude', ['plugin', 'validate', packedRoot], {
       cwd: sourceRoot,
       encoding: 'utf-8',
@@ -68,14 +50,14 @@ function packPlugin(sourceRoot) {
     const validationOutput = `${validation.stdout || ''}\n${validation.stderr || ''}`;
     assert.equal(validation.status, 0, validationOutput);
     assert.doesNotMatch(validationOutput, /warning/iu, validationOutput);
-    return { packDir, packedRoot };
+    return installed;
   } catch (error) {
     fs.rmSync(packDir, { recursive: true, force: true });
     throw error;
   }
 }
 
-const packedPlugin = packPlugin(pluginRoot);
+const packedPlugin = verifyPackedPlugin(pluginRoot);
 const packedRoot = packedPlugin.packedRoot;
 
 if (mode !== 'e2e' || process.env.EH_RUN_CLAUDE_E2E !== 'true') {

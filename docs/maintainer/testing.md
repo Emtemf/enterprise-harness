@@ -88,3 +88,11 @@ GitHub-hosted 平台 matrix 包含 Linux、macOS、Windows 与 Node 20/22，但�
 手动 Security workflow 只保留 OSSF Scorecard。PR 自动触发已移除，因此 GitHub dependency-review 也明确停用；当前包没有 npm dependencies。未来引入依赖时，必须先把锁定依赖审计加入 `quality:local`，不能依赖已停用的 PR job。
 
 远程 marketplace 安装/更新由 `plugin-install-flow-smoke.mjs` 单独执行，不进入离线 prepublish；本地 marketplace 安装与插件结构校验仍属于确定性 gate。
+
+Design 标准样例分成两层：`prepublish-check` 会从 `npm pack` 的真实安装内容验证 `context: fork`、worker、supporting scripts 与全部 Skill eval 版本；需要消耗 Claude 额度的真实模型链路按需运行：
+
+```bash
+EH_RUN_CLAUDE_DESIGN_E2E=true node runtime/test/installed-design-plugin-e2e.mjs e2e
+```
+
+该 E2E 在隔离临时仓库提供 full-impact requirements、classification 与 code research，要求已安装插件真实派发 Design worker，并只在通过 Skill finalizer 后接受 digest-bound `design.md`/`StageResult`；它同时断言 Design 没有吞并 Test Design。

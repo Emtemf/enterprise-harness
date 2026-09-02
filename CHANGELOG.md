@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.5.21] - 2026-09-02
+
+### Fixed
+
+- Design prepare/finalize 现在只接受 exact `design.produce` execute handoff，拒绝 stage 与 agent 看似正确但 behavior 错路的输入。
+- 轻量 Bash hook 现在只对当前 handoff 派发且身份匹配的隔离 agent 放行插件内 allowlisted supporting scripts；Design/Plan/Test Design 等 Skill 不再被迫手工复刻 prepare/finalize 逻辑。
+- 版本投影与 release staging 现在覆盖全部 Skill eval 和 `package-lock.json`，不再只同步 Plan。
+
+### Added
+
+- 新增安装态 Design 标准样例：从真实 `npm pack` 插件以 `context: fork` 派发 artifact worker，对 full-impact 冻结输入生成并机械验收 `design.md`/`StageResult`，同时守住 Test Design 边界。
+
 ## [0.5.20] - 2026-09-02
 
 ### Added

@@ -7,20 +7,27 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const readJson = (relative) => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf-8'));
 const pkg = readJson('package.json');
+const packageLock = readJson('package-lock.json');
 const plugin = readJson('.claude-plugin/plugin.json');
 const runtime = readJson('harness/plugin/manifest.json');
 const marketplace = readJson('.claude-plugin/marketplace.json');
 const harnessEvals = readJson('test/skill-evals/harness/evals.json');
-const planEvals = readJson('skills/plan/evals/evals.json');
+const skillEvalVersions = fs.readdirSync(path.join(root, 'skills'), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => path.join('skills', entry.name, 'evals', 'evals.json'))
+  .filter((relative) => fs.existsSync(path.join(root, relative)))
+  .map((relative) => readJson(relative).version);
 assert.deepEqual(
   new Set([
     pkg.version,
+    packageLock.version,
+    packageLock.packages?.['']?.version,
     plugin.version,
     runtime.version,
     marketplace.version,
     marketplace.plugins?.[0]?.version,
     harnessEvals.version,
-    planEvals.version,
+    ...skillEvalVersions,
   ]),
   new Set([pkg.version]),
   'generated release projections must match package.json',
@@ -44,6 +51,7 @@ for (const token of [
   assert.ok(release.includes(token), `release is missing ${token}`);
 }
 assert.ok(release.includes("'CHANGELOG.md'"), 'release must stage the generated CHANGELOG section');
+assert.ok(release.includes("'package-lock.json'"), 'release must stage the generated package lock projection');
 const packager = fs.readFileSync(path.join(root, 'bin/package.mjs'), 'utf-8');
 assert.match(packager, /'harness\/plugin'/u, 'release package must include the runtime version manifest');
 assert.doesNotMatch(release, /git', \['add', '-A'/u);

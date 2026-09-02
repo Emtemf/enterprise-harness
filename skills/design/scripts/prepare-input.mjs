@@ -52,9 +52,10 @@ try {
   assertSafeRunId(runId, 'runId');
   const changeDir = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
   if (handoff.role !== 'execute' || handoff.stage !== 'design'
+    || handoff.behavior !== 'design.produce'
     || handoff.agent?.type !== 'enterprise-harness:artifact-worker'
     || handoff.agent?.skill !== 'design') {
-    throw new Error('EH-DESIGN-PREPARE-003: handoff must be a design artifact-worker execute run');
+    throw new Error('EH-DESIGN-PREPARE-003: handoff must be a design.produce artifact-worker execute run');
   }
   const state = readJson(requiredFile(changeDir, 'state.json'));
   if (state.schemaVersion !== 6 || state.stage !== 'design') {

@@ -38,7 +38,7 @@ $ARGUMENTS
 
    同时覆盖组件边界、交互与失败路径、适用 API/Data/SQL/migration、安全/并发、兼容/回滚、observability、技术债处置、可验证性义务和真实 alternatives。完整测试用例由独立 `test-design` 基于 `VO*` 映射 `TC*`；不得在 Design 写测试层级、测试数据、步骤或 E2E journey。
 
-4. 依 `references/self-check.md` 自检，并读取 `../harness/references/downstream-pitfalls.md` 的 Design 行。技术事实缺口返回 Main 重新 research；真实业务选择返回一个紧凑 `NEEDS_DECISION`。存在未决项时不得运行 finalizer。
+4. 依 [self-check](references/self-check.md) 自检，并从当前 Skill 文件相对定位读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Design 行；不得把相对路径解析到用户项目根。技术事实缺口返回 Main 重新 research；真实业务选择返回一个紧凑 `NEEDS_DECISION`。存在未决项时不得运行 finalizer。
 
 5. 运行：
 
@@ -65,6 +65,7 @@ Design 冻结 User Story 级架构和契约，不提前冻结 Task 级类名、�
 - `references/api-design.md` / `references/data-design.md` — impact 条件分支。
 - `references/self-check.md` — worker 自检。
 - `references/examples.md` — trace 形状示例。
+- `../harness/references/downstream-pitfalls.md` — 跨阶段共享负知识，必须相对本 Skill 定位。
 - `scripts/prepare-input.mjs` / `scripts/finalize-result.mjs` — 冻结输入和生成 StageResult。
 - `assert/artifact-shape.mjs` / `assert/requirement-coverage.mjs` / `assert/traceability.mjs` — 确定性门禁。
 - `evals/evals.json` — 行为回归场景。

@@ -12,11 +12,14 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const projections = [
+  'package-lock.json',
   'harness/plugin/manifest.json',
   '.claude-plugin/plugin.json',
   '.claude-plugin/marketplace.json',
   'test/skill-evals/harness/evals.json',
+  'skills/design/evals/evals.json',
   'skills/plan/evals/evals.json',
+  'skills/test-design/evals/evals.json',
 ];
 
 function writeJson(target, value) {
@@ -30,7 +33,12 @@ function fixtureRoot() {
   fs.mkdirSync(path.join(root, 'harness', 'plugin'), { recursive: true });
   fs.mkdirSync(path.join(root, 'test', 'skill-evals', 'harness'), { recursive: true });
   fs.mkdirSync(path.join(root, 'skills', 'plan', 'evals'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'skills', 'design', 'evals'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'skills', 'test-design', 'evals'), { recursive: true });
   writeJson(path.join(root, 'package.json'), { name: 'fixture', version: '9.9.9' });
+  writeJson(path.join(root, 'package-lock.json'), {
+    name: 'fixture', version: '0.0.1', lockfileVersion: 3, packages: { '': { name: 'fixture', version: '0.0.1' } },
+  });
   writeJson(path.join(root, '.claude-plugin', 'plugin.json'), { name: 'enterprise-harness', version: '0.0.1' });
   writeJson(path.join(root, '.claude-plugin', 'marketplace.json'), {
     version: '0.0.1',
@@ -39,6 +47,8 @@ function fixtureRoot() {
   writeJson(path.join(root, 'harness', 'plugin', 'manifest.json'), { version: '0.0.1' });
   writeJson(path.join(root, 'test', 'skill-evals', 'harness', 'evals.json'), { version: '0.0.1', cases: [] });
   writeJson(path.join(root, 'skills', 'plan', 'evals', 'evals.json'), { version: '0.0.1', cases: [] });
+  writeJson(path.join(root, 'skills', 'design', 'evals', 'evals.json'), { version: '0.0.1', cases: [] });
+  writeJson(path.join(root, 'skills', 'test-design', 'evals', 'evals.json'), { version: '0.0.1', cases: [] });
   return root;
 }
 

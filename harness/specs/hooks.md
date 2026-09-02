@@ -22,6 +22,7 @@ testRefs:
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/pre-write-governed-target-smoke.mjs
   - runtime/test/governed-bash-allowlist-smoke.mjs
+  - runtime/test/skill-script-hook-smoke.mjs
   - runtime/test/change-transaction-lease-smoke.mjs
   - runtime/test/state-store-acquisition-gate-smoke.mjs
   - runtime/test/user-prompt-receipt-hook-smoke.mjs
@@ -67,6 +68,13 @@ or hook programs are not in the allowlist; only non-extensible plumbing queries 
 and `rg` must opt out of environment-supplied configuration with `--no-config`.
 Generic runtime classification never authorizes `task-run`. Direct writes to the git-common-dir
 runtime root are always blocked.
+
+Forked Skills may additionally execute only the allowlisted supporting script entrypoints shipped
+inside their own plugin Skill directory. The hook requires a live session-scoped dispatch/start
+binding for the same Skill and, for prepare/finalize scripts, the exact dispatched runId. This is
+host-boundary authorization only: the script still owns handoff schema, digest, stage, behavior and
+artifact validation. Main cannot impersonate the worker, a Design worker cannot run Plan scripts,
+and arbitrary `.mjs` files under the plugin remain denied.
 
 Governed-write enforcement is session-scoped and opt-in. A hook event with no session binding
 (or a legacy event with no `ACTIVE_CHANGE`) is outside an active Harness workflow and ordinary

@@ -48,6 +48,13 @@ function makeFixture(name, { rejectTags = false, rejectMain = false, advanceMain
   fs.copyFileSync(path.join(root, 'bin', 'release.mjs'), path.join(source, 'bin', 'release.mjs'));
   fs.copyFileSync(path.join(root, 'bin', 'sync-version.mjs'), path.join(source, 'bin', 'sync-version.mjs'));
   fs.writeFileSync(path.join(source, 'package.json'), `${JSON.stringify({ name: 'fixture', version: '1.0.0' }, null, 2)}\n`);
+  fs.writeFileSync(path.join(source, 'package-lock.json'), `${JSON.stringify({
+    name: 'fixture',
+    version: '1.0.0',
+    lockfileVersion: 3,
+    requires: true,
+    packages: { '': { name: 'fixture', version: '1.0.0' } },
+  }, null, 2)}\n`);
   fs.writeFileSync(path.join(source, 'CHANGELOG.md'), '# Changelog\n\n## [Unreleased]\n\n');
   fs.writeFileSync(path.join(source, 'README.md'), '# fixture\n');
   fs.writeFileSync(path.join(source, 'harness', 'plugin', 'manifest.json'), '{"version":"1.0.0"}\n');
