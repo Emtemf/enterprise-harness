@@ -1,11 +1,11 @@
 # 当前研发快照
 
-更新时间：2026-09-02（安装态 Design architecture 标准样例通过）
+更新时间：2026-09-02（安装态 compound Design 标准样例通过）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.21
-- 当前阶段：Clarify、project-contract 与 packaged Design architecture execute 标准样例完成；下一垂直切片为 Design 条件 Review → seal → Test Design → Review 的安装态闭环
+- 当前版本：0.5.22
+- 当前阶段：Clarify、project-contract 与 packaged compound Design 标准样例完成；下一垂直切片为 Plan 的冻结输入、详细任务设计与独立 review 安装态闭环
 - active change：无
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
 
@@ -16,11 +16,12 @@
 - 工具无关稳定规则路由到 `AGENTS.md`，Claude Code 专属规则路由到 Claude instruction path；一次性选择只留在当前 change。
 - `InstructionsLoaded` 轻量 Hook 仅记录 path/digest/load reason，不保存内容、不参与 gate。
 
-## 2026-09-02 Design architecture 安装态标准样例
+## 2026-09-02 Compound Design 安装态标准样例
 
 - `design.produce` prepare/finalize 只接受 exact behavior、agent、stage、role 和 digest-bound frozen inputs。
-- 真实 `npm pack` + `claude -p --plugin-dir` 已证明 `context: fork` 会派发 `artifact-worker`，读取 full-impact 条件参考，并通过 packaged finalizer 持久化 `design.md`/`StageResult`。
-- 修复了 pre-write 误拦截 Skill supporting scripts 的生产缺口；现在仅对当前 session、Skill、agent identity 与 dispatched run 匹配的 allowlisted script 放行。
+- 真实 `npm pack` + `claude -p --plugin-dir` 已证明四个 fresh session 依次派发 Architecture Design、独立 Review、Test Design、独立 Review，并通过 packaged finalizer 持久化两组 digest-bound StageResult/ReviewResult。
+- runtime 只在两条 review chain 都通过后封存包含 `architecture`、`test-design` 两个 stageProof 的复合 DesignProof，并把 state 推进到 `plan`。
+- 修复了 pre-write 误拦截 Skill supporting scripts 的生产缺口；现在仅对当前 session、Skill、agent identity 与 dispatched run 匹配的 allowlisted script 放行，并窄化支持无文件写入能力的末尾 `2>&1`。
 - 全部 Skill eval 和 package lock 纳入版本投影与 release staging；`quality:local` 已通过 240 个 smoke、external-project E2E、打包、SBOM 和解包验收。
 
 以下章节保留为历史研发记录，不代表当前版本状态。

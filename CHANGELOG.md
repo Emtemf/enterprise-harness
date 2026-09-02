@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.5.22] - 2026-09-02
+
+### Added
+
+- 安装态 Design 标准样例扩展为四个真实隔离会话：Architecture Design、独立 Review、Test Design、独立 Review；两条受信链闭合后由 runtime 封存复合 DesignProof 并推进到 Plan。
+
+### Fixed
+
+- Review finalizer 现在重验全部冻结 input digest，并通过公开 runtime API 原子持久化唯一 ReviewResult；worker 不再依赖 Main 重定向 stdout 二次落盘。
+- 可信 Skill supporting script 允许末尾只读诊断合流 `2>&1`，同时继续拒绝管道、文件重定向、错 Skill/错 run 和任意脚本，避免 Claude Code 的常见诊断写法被误判成任意 Bash。
+
 ## [0.5.21] - 2026-09-02
 
 ### Fixed

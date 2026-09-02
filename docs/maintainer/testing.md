@@ -95,4 +95,4 @@ Design 标准样例分成两层：`prepublish-check` 会从 `npm pack` 的真实
 EH_RUN_CLAUDE_DESIGN_E2E=true node runtime/test/installed-design-plugin-e2e.mjs e2e
 ```
 
-该 E2E 在隔离临时仓库提供 full-impact requirements、classification 与 code research，要求已安装插件真实派发 Design worker，并只在通过 Skill finalizer 后接受 digest-bound `design.md`/`StageResult`；它同时断言 Design 没有吞并 Test Design。
+该 E2E 在隔离临时仓库提供 full-impact requirements、classification 与 code research，分别用 fresh `claude -p` session 派发 Architecture Design、独立 Review、Test Design、独立 Review。它要求两个 worker 通过各自 packaged finalizer 持久化 digest-bound StageResult、两个 reviewer 原子持久化 ReviewResult，最后由 runtime 形成含 `architecture`/`test-design` 的复合 DesignProof 并推进到 `plan`；任一子链缺失都不能宣称 Design 完成。

@@ -79,6 +79,19 @@ try {
     assert.equal(result.exitCode, 0, `matching forked Skill must run ${relative}: ${result.stderr || ''}`);
   }
 
+  const diagnosticMerge = invoke(
+    `node "${path.join(sourceRoot, 'skills/design/scripts/prepare-input.mjs')}" HANDOFF_INPUT=.git/enterprise-harness/runs/skill-script-hook/run_11111111-1111-4111-8111-111111111111/input.json 2>&1`,
+    'diagnostic-merge',
+  );
+  assert.equal(diagnosticMerge.exitCode, 0, 'a terminal stderr-to-stdout merge must not turn a trusted supporting script into arbitrary Bash');
+
+  const pipedScript = invoke(
+    `node "${path.join(sourceRoot, 'skills/design/scripts/prepare-input.mjs')}" HANDOFF_INPUT=.git/enterprise-harness/runs/skill-script-hook/run_11111111-1111-4111-8111-111111111111/input.json 2>&1 | head -1`,
+    'piped-script',
+  );
+  assert.equal(pipedScript.exitCode, 2, 'pipelines around a supporting script remain denied');
+  assert.match(pipedScript.stderr, /EH-HOOK-BASH-MUTATION-157/u);
+
   const wrongRun = invoke(
     `node "${path.join(sourceRoot, 'skills/design/scripts/finalize-result.mjs')}" ${changeId} run_22222222-2222-4222-8222-222222222222`,
     'wrong-run',

@@ -27,7 +27,7 @@ $ARGUMENTS
    node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs" "HANDOFF_INPUT=<canonical-input.json-path>"
    ```
 
-   prepare 必须成功校验 exact `design.test-cases` execute handoff、agent/skill、active Design state、ArchitectureProof 与全部 input digests；非零退出立即把稳定错误码和恢复动作返回 Main，不从聊天猜测输入。
+   这是一个独立命令，不追加管道、`head` 或文件重定向；允许仅为读取诊断而在末尾追加 `2>&1`。prepare 必须成功校验 exact `design.test-cases` execute handoff、agent/skill、active Design state、ArchitectureProof 与全部 input digests；非零退出立即把稳定错误码和恢复动作返回 Main，不从聊天猜测输入，更不得绕过 finalizer 手写结果 JSON。
 2. prepare 成功后只读取其返回的冻结输入和摘要：approved requirements、Architecture Design 与 classification/impact。只接受 requirements 中声明的 `R<number>` 和 Design 中已接受的 `D<number>`、`VO<number>`；stale、缺失或摘要不一致立即返回恢复动作。
 3. 始终读取 `references/method.md` 和 `references/artifact-contract.md`，使用 `assets/test-cases.md.tmpl` 生成 `test-cases.md`。每个完整 TC 恰好十列，使用稳定 `TC<number>`、允许的 level/priority/status，并给出具体数据、中文业务动作或 HTTP method+path、含可判定证据的 observable assertion 和清理/恢复。
 4. 依 `references/self-check.md` 完成 Test Design Self-Check。缺少真实业务选择时返回一个紧凑 `NEEDS_DECISION`；不得保留 placeholder 或用“验证成功”伪装 observable assertion。
@@ -37,7 +37,7 @@ $ARGUMENTS
    node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>
    ```
 
-   finalizer 重新读取 state、ArchitectureProof 和冻结 digests，统一执行 `assert/artifact-shape.mjs`、`assert/coverage.mjs`、`assert/traceability.mjs`，并只通过公开 runtime API 把 passing StageResult 持久化一次。任一 block 都先修正制品或重新创建 fresh handoff，不能改 state、proof 或 assertion 绕过。
+   这是一个独立命令，不追加管道、`head` 或文件重定向；允许仅为读取诊断而在末尾追加 `2>&1`。finalizer 重新读取 state、ArchitectureProof 和冻结 digests，统一执行 `assert/artifact-shape.mjs`、`assert/coverage.mjs`、`assert/traceability.mjs`，并只通过公开 runtime API 把 passing StageResult 持久化一次。任一 block 都先修正制品或重新创建 fresh handoff，不能改 state、proof、result JSON 或 assertion 绕过。
 6. finalizer 成功后只能把持久化 StageResult、artifact 路径和一个下一动作返回 Main。Main 必须创建不同 run 的独立 review，并使用 `skills/review/references/test-design.md`；worker 不自批。
 
 ## 行为边界

@@ -1,6 +1,6 @@
 {
   "skill": "design",
-  "version": "0.5.21",
+  "version": "0.5.22",
   "cases": [
     {
       "id": "digest-bound-input",

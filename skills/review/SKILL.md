@@ -22,7 +22,7 @@ agent: enterprise-harness:reviewer
 
 1. 使用 `node "${CLAUDE_SKILL_DIR}/scripts/select-rubrics.mjs" <stage> <behavior> '<classification-impact-json>'` 按 stage、behavior 与 classification artifact 选择评审标准；check handoff 必须将选择后的 rubricIds 冻结为输入证据。Design 只接受 exact `design.produce|design.review` 的 architecture rubric 链，或 exact `design.test-cases|design.test-cases.review` 的 test-design rubric 链；缺 behavior 或未知 behavior 必须阻断，不能回退到通用 Design rubric。
 2. 逐一读取 [selected rubrics](references/) 中的选定标准，并验证每个 artifact digest 仍新鲜。
-3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs"` 生成 schema-valid `ReviewResult`；再用 `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>` 持久化。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
+3. 用独立 check run 调用 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id> <pass|block|unsupported> [correction]`。finalizer 会重验全部冻结输入摘要、生成 schema-valid `ReviewResult` 并通过公开 runtime API 原子持久化一次；不得用 shell 重定向生成临时 result，也不得再调用第二套 persist。runId 必须不同于 executor runId，且 `parentRunId`/`reviewedRunId` 绑定被审 StageResult 与 TECPC。
 4. `pass` 才允许 `correction: null`；`block` 与 `unsupported` 必须写可执行 correction。
 
 ## Rubrics

@@ -61,8 +61,21 @@ try {
   assert.equal(review.verdict, 'pass');
   assert.deepEqual(review.rubricIds, ['design']);
   assert.equal(review.correction, null);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, check.runId, 'check'), 'utf-8')),
+    review,
+    'review finalizer must persist its own immutable ReviewResult',
+  );
 
-  const incomplete = spawnSync(process.execPath, [finalize, changeId, check.runId, 'block'], { cwd: root, encoding: 'utf-8', shell: false });
+  const duplicate = spawnSync(process.execPath, [finalize, changeId, check.runId, 'pass'], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.equal(duplicate.status, 2);
+  assert.match(duplicate.stderr, /durable result already exists/u);
+
+  const incompleteCheck = createHandoffV2(root, {
+    changeId, stage: 'design', behavior: 'design.review', role: 'check', parentRunId: execute.runId,
+    agent: { type: 'enterprise-harness:reviewer', skill: 'review' }, inputRefs: [designRef], tecpc,
+  });
+  const incomplete = spawnSync(process.execPath, [finalize, changeId, incompleteCheck.runId, 'block'], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(incomplete.status, 2);
   assert.match(incomplete.stderr, /requires a correction/u);
 

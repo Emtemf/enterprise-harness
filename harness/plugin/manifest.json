@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness-runtime",
-  "version": "0.5.21",
+  "version": "0.5.22",
   "description": "Enterprise Harness 项目契约的可移植运行时适配器。",
   "supportedOs": [
     "linux",
