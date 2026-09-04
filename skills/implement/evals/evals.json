@@ -1,6 +1,6 @@
 {
   "skill": "implement",
-  "version": "0.5.23",
+  "version": "0.5.24",
   "cases": [
     {
       "id": "write-scope-enforcement",
@@ -24,6 +24,18 @@
       "id": "no-self-approval",
       "description": "implementer 不审批自己，需要独立 reviewer",
       "expected": "StageResult 独立于 approval",
+      "category": "behavioral"
+    },
+    {
+      "id": "atomic-finalization",
+      "description": "finalizer 重验 canonical receipt 后以 exclusive write 持久化 StageResult",
+      "expected": "stdout 与 durable result 相同，重复 finalization 被拒绝且无需第二套 persist",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "false-red-rejection",
+      "description": "TDD RED 必须是目标断言失败，不能把 spawn、环境、依赖或编译故障当作有效 RED",
+      "expected": "非行为失败不会形成可信 TDD 完成链",
       "category": "behavioral"
     }
   ]

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
+import { loadHandoffV2, persistHandoffV2Result } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateStageResult } from '../../../runtime/api/result.mjs';
 import {
   assertNoSymlinkComponents,
@@ -91,6 +91,7 @@ try {
   };
   const problems = validateStageResult(root, result);
   if (problems.length > 0) throw new Error(`EH-IMPLEMENT-FINALIZE-004: ${problems.join('; ')}`);
+  persistHandoffV2Result(root, changeId, runId, result);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 } catch (error) {
   console.error(error.message);

@@ -58,6 +58,15 @@ try {
   assert.equal(invalidated.validation.digest, null);
   assert.equal(invalidated.artifacts.requirements.status, 'stale');
 
+  const alreadyNonFresh = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+  const idempotent = markValidationStaleForWrite(
+    root,
+    statePath,
+    path.join(root, 'src', 'test', 'java', 'FixtureTest.java'),
+  );
+  assert.deepEqual(idempotent, alreadyNonFresh, 'an already non-fresh validation must not churn State v6 revision');
+  assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf-8')), alreadyNonFresh);
+
   console.log(`PASS post-write-cas ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

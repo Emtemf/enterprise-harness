@@ -85,6 +85,7 @@ function restoreSpool(spoolPath, previousSpool) {
 export function publishTaskReceiptArtifacts({
   spoolPath,
   canonicalPath,
+  canonicalProjectionPaths = [],
   spool,
   receipt,
   isFinal,
@@ -99,33 +100,36 @@ export function publishTaskReceiptArtifacts({
     ? JSON.parse(fs.readFileSync(spoolPath, 'utf-8'))
     : null;
   let spoolWriteAttempted = false;
-  let canonicalPublished = false;
+  const publishedCanonicalPaths = [];
+  const canonicalPaths = [...new Set([canonicalPath, ...canonicalProjectionPaths])];
 
   validateFresh();
   validateTarget(spoolPath);
-  if (isFinal) validateTarget(canonicalPath);
+  if (isFinal) canonicalPaths.forEach(validateTarget);
   try {
     spoolWriteAttempted = true;
     atomicWriteReceiptSpool(spoolPath, spool);
     validateFresh();
     validateTarget(spoolPath);
     if (isFinal) {
-      writeExclusiveJson(canonicalPath, receipt, {
-        validateTarget: () => {
-          validateFresh();
-          validateTarget(canonicalPath);
-        },
-      });
-      canonicalPublished = true;
+      for (const target of canonicalPaths) {
+        writeExclusiveJson(target, receipt, {
+          validateTarget: () => {
+            validateFresh();
+            validateTarget(target);
+          },
+        });
+        publishedCanonicalPaths.push(target);
+      }
       validateFresh();
-      validateTarget(canonicalPath);
+      canonicalPaths.forEach(validateTarget);
     }
   } catch (error) {
     const rollbackProblems = [];
-    if (canonicalPublished) {
+    for (const target of publishedCanonicalPaths.reverse()) {
       try {
-        validateTarget(canonicalPath);
-        fs.rmSync(canonicalPath, { force: true });
+        validateTarget(target);
+        fs.rmSync(target, { force: true });
       } catch (rollbackError) {
         rollbackProblems.push(rollbackError.message);
       }

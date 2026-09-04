@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { loadHandoffV2 } from '../core/handoff-v2.mjs';
-import { activeChangeId, boundHarnessAgent, gitCommonDir } from './agent-evidence.mjs';
+import { activeChangeId, activeHandoffAgentBinding, boundHarnessAgent, gitCommonDir } from './agent-evidence.mjs';
 import { sha256Artifact } from './result-contract.mjs';
 import {
   assertSafeId,
@@ -134,13 +134,20 @@ export function validateTaskRunLauncher(root, command, event = {}) {
       throw new Error('handoff must be an implementer/implement execute run');
     }
     const agentId = String(event.agent_id || '').trim();
-    const binding = boundHarnessAgent(
+    const activeBinding = activeHandoffAgentBinding(root, parsed.changeId, input, {
+      agentId,
+      sessionId: event.session_id,
+    });
+    const completedBinding = boundHarnessAgent(
       root,
       parsed.changeId,
       agentId,
       'enterprise-harness:implementer',
     );
-    if (!binding || binding.binding.runId !== parsed.runId || binding.start.runId !== parsed.runId) {
+    const binding = activeBinding || completedBinding;
+    const boundRunId = binding?.binding?.runId || binding?.dispatch?.runId;
+    const startedRunId = binding?.start?.runId || binding?.dispatch?.runId;
+    if (!binding || boundRunId !== parsed.runId || startedRunId !== parsed.runId) {
       throw new Error('implementer binding does not match the execute handoff run');
     }
     if (!binding.start.cwd || canonicalPath(binding.start.cwd) !== canonicalPath(root)) {

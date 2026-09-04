@@ -118,6 +118,31 @@ try {
   assert.equal(arbitrary.exitCode, 2, 'only declared supporting script entrypoints may execute');
   assert.match(arbitrary.stderr, /EH-HOOK-BASH-MUTATION-157/u);
 
+  const implementRunId = 'run_33333333-3333-4333-8333-333333333333';
+  const implementAgentId = 'implementer-1';
+  const state = JSON.parse(fs.readFileSync(path.join(changeDir, 'state.json'), 'utf-8'));
+  fs.writeFileSync(path.join(changeDir, 'state.json'), `${JSON.stringify({
+    ...state,
+    stage: 'implement',
+    currentTask: 'task-one',
+  }, null, 2)}\n`);
+  appendAgentEvent(root, changeId, {
+    kind: 'dispatch', sessionId, toolUseId: 'implement-skill-call',
+    requestedAgentType: 'enterprise-harness:implementer', runId: implementRunId,
+    behavior: 'implement.execute-task', handoffRole: 'execute', preloadedSkill: 'implement',
+    issuedAt: '2026-09-02T00:00:02.000Z',
+  });
+  appendAgentEvent(root, changeId, {
+    kind: 'start', sessionId, agentId: implementAgentId,
+    observedAgentType: 'enterprise-harness:implementer', issuedAt: '2026-09-02T00:00:03.000Z',
+  });
+  const implementFinalize = invoke(
+    `node "${path.join(sourceRoot, 'skills/implement/scripts/finalize-result.mjs')}" ${changeId} task-one ${implementRunId}`,
+    'implement-finalize',
+    { agent_id: implementAgentId },
+  );
+  assert.equal(implementFinalize.exitCode, 0, `Implement finalizer runId is its third argument: ${implementFinalize.stderr || ''}`);
+
   console.log(`PASS skill-script-hook ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

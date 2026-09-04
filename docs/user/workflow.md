@@ -108,7 +108,10 @@ Design 只消费已确认 requirements、classification 和 digest-bound researc
 - `generation`：GENERATE → VERIFY。
 
 所有命令通过 task runner 执行并产生 machine-generated receipt。Implementer 的 self-check 不等于
-批准；每个 task 还需要独立 reviewer。若 stage-gate marker stale，重新验证阶段链后再写。
+批准；每个 task 还需要独立 reviewer。Implementer 是预加载完整 Implement Skill 的 named agent，代码
+变更发生在原生隔离 worktree；测试与产品代码都必须出现在 receipt 的 changed paths。reviewer 只读取
+receipt 指向的真实 changed paths，review pass 后还必须把相同内容精确集成到主工作区，runtime 才会
+生成 TaskProof/ImplementProof 并进入 Verify。若 stage-gate marker stale，重新验证阶段链后再写。
 
 ## verify
 

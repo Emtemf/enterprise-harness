@@ -13,7 +13,6 @@ const skills = {
   design: 'enterprise-harness:artifact-worker',
   'test-design': 'enterprise-harness:test-design-worker',
   plan: 'enterprise-harness:artifact-worker',
-  implement: 'enterprise-harness:implementer',
   review: 'enterprise-harness:reviewer',
   verify: 'enterprise-harness:artifact-worker',
   archive: 'enterprise-harness:artifact-worker',
@@ -26,6 +25,14 @@ for (const [skill, agent] of Object.entries(skills)) {
   if (!source.includes(`agent: ${agent}`)) failures.push(`${skill} must bind ${agent}`);
   if (/^background:/mu.test(source)) failures.push(`${skill} must not use agent-only background frontmatter`);
 }
+
+const implementSkill = fs.readFileSync(path.join(root, 'skills', 'implement', 'SKILL.md'), 'utf8');
+const implementAgent = fs.readFileSync(path.join(root, 'agents', 'implementer.md'), 'utf8');
+if (!implementSkill.includes('user-invocable: false')) failures.push('implement must not expose a direct user entrypoint');
+if (implementSkill.includes('disable-model-invocation: true')) failures.push('implement must remain model-invocable so the named agent can preload it');
+if (implementSkill.includes('context: fork') || /^agent:/mu.test(implementSkill)) failures.push('implement must not expose the non-worktree Skill fork path');
+if (!implementAgent.includes('isolation: worktree')) failures.push('implementer must use native worktree isolation');
+if (!implementAgent.includes('enterprise-harness:implement')) failures.push('implementer must preload the heavy implement Skill');
 
 const explore = fs.readFileSync(path.join(root, 'agents', 'code-explore.md'), 'utf8');
 if (explore.includes('  - Bash')) failures.push('code-explore must not expose Bash');

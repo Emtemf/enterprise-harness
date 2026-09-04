@@ -22,16 +22,25 @@ export function preWrite({ root, event }) {
 
   const activeForRunner = loadHookChange(root, event);
   const agentId = String(event.agent_id || '').trim();
+  const completedImplementerBinding = activeForRunner.ok
+    ? boundHarnessAgent(root, activeForRunner.changeId, agentId, 'enterprise-harness:implementer')
+    : null;
+  const activeImplementerBinding = activeForRunner.ok
+    ? activeHarnessSkillAgent(root, activeForRunner.changeId, {
+      agentId,
+      sessionId: event.session_id,
+      skill: 'implement',
+    })
+    : null;
   const v6Implementer = activeForRunner.ok
     && activeForRunner.data?.schemaVersion === 6
     && activeForRunner.data?.stage === 'implement'
-    && boundHarnessAgent(
-      root,
-      activeForRunner.changeId,
-      agentId,
-      'enterprise-harness:implementer',
-    );
-  if (event.tool_name === 'Bash' && v6Implementer) {
+    && (activeImplementerBinding || completedImplementerBinding);
+  const implementerBashClassification = event.tool_name === 'Bash' && v6Implementer
+    ? classifyGovernedBash(root, event.tool_input?.command, event.cwd || root)
+    : null;
+  if (event.tool_name === 'Bash' && v6Implementer
+      && implementerBashClassification?.kind !== 'skill-script') {
     const launcher = validateTaskRunLauncher(
       root,
       event.tool_input?.command,
@@ -81,7 +90,7 @@ export function preWrite({ root, event }) {
           && governed.args.length === 1
           && governed.args[0].includes(activeSkill?.dispatch?.runId || '\0'))
         || (governed.script === 'finalize-result.mjs'
-          && governed.args[1] === activeSkill?.dispatch?.runId);
+          && governed.args[governed.skill === 'implement' ? 2 : 1] === activeSkill?.dispatch?.runId);
       if (!activeSkill || !targetsDispatchedRun) {
         return block(root, 'EH-HOOK-SKILL-SCRIPT-159 Skill supporting script 必须由当前 handoff 派发的匹配隔离 agent 执行。', activeForRunner);
       }

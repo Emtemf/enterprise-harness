@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createHandoffV2 } from '../core/handoff-v2.mjs';
+import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { taskExecutionReceiptSpoolPath } from '../lib/task-execution-receipt.mjs';
 
@@ -93,7 +93,16 @@ try {
   }));
   const passed = spawnSync(process.execPath, [finalize, changeId, 'task-1', handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(passed.status, 0, passed.stderr);
-  assert.equal(JSON.parse(passed.stdout).status, 'pass');
+  const passedResult = JSON.parse(passed.stdout);
+  assert.equal(passedResult.status, 'pass');
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, handoff.runId), 'utf-8')),
+    passedResult,
+    'Implement finalizer must atomically persist the result it prints',
+  );
+  const duplicate = spawnSync(process.execPath, [finalize, changeId, 'task-1', handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(duplicate.status, 0, 'Implement finalizer must use exclusive result persistence');
+  assert.match(duplicate.stderr, /durable result already exists/u);
   const canonicalReceiptText = fs.readFileSync(path.join(root, receiptRef), 'utf-8');
   const otherRunId = `run_${'0'.repeat(36)}`;
   fs.writeFileSync(spoolPath, JSON.stringify({

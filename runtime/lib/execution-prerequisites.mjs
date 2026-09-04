@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { validateAmbiguityGate } from './ambiguity.mjs';
 import { validateRouterScore } from './router-score.mjs';
-import { boundHarnessAgent, gitCommonDir, readAgentEvents } from './agent-evidence.mjs';
+import { activeHarnessSkillAgent, boundHarnessAgent, gitCommonDir, readAgentEvents } from './agent-evidence.mjs';
 import { evidenceModeForChange } from './evidence-policy.mjs';
 import { isGovernedTarget, requiredGateForTarget } from './gates.mjs';
 import { readAndValidateTddReceipt, tddReceiptSpoolPath } from './tdd-receipts.mjs';
@@ -13,7 +13,10 @@ import {
 } from './task-execution.mjs';
 import {
   readTaskExecutionReceipt,
+  taskExecutionReceiptSpoolPath,
+  validateTaskExecutionReceipt,
 } from './task-execution-receipt.mjs';
+import { taskWriteScopeViolations } from './task-write-scope.mjs';
 import { validateStageGate } from './stage-results.mjs';
 
 function readReview(changeDir, name, problems) {
@@ -65,6 +68,43 @@ export function validateTaskRedReceipt(root, changeId, state, agentId) {
   }
   if (agentId && loaded.receipt.agent?.id !== agentId) return ['RED receipt agent does not match tool event agent_id'];
   return [];
+}
+
+function validateV6TaskRedReceipt(root, changeId, state, agentId, binding) {
+  const taskId = String(state?.currentTask || '').trim();
+  if (!taskId) return ['currentTask is missing'];
+  const runId = binding?.binding?.runId || binding?.dispatch?.runId;
+  if (!runId) return ['implementer binding runId is missing'];
+  const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
+  if (!fs.existsSync(spoolPath)) return ['RED receipt spool is missing'];
+  let spool;
+  try {
+    spool = JSON.parse(fs.readFileSync(spoolPath, 'utf-8'));
+  } catch (error) {
+    return [`RED receipt spool is unreadable: ${error.message}`];
+  }
+  if (spool?.spoolVersion !== 1 || spool?.runId !== runId || !spool?.receipt) {
+    return ['RED receipt spool does not bind the current execute run'];
+  }
+  const problems = validateTaskExecutionReceipt(spool.receipt, {
+    root,
+    expectedChangeId: changeId,
+    expectedTaskId: taskId,
+    expectedAgent: agentId || null,
+    requireTrusted: true,
+    allowIncomplete: true,
+  });
+  if (problems.length > 0) return problems.map((problem) => `RED receipt: ${problem}`);
+  const [red] = spool.receipt.executions || [];
+  if (!red || red.phase !== 'RED' || red.outcome !== 'exit' || red.exitCode === 0) {
+    return ['RED receipt does not contain a real failing RED phase'];
+  }
+  return [];
+}
+
+function isConventionalTestPath(relativePath) {
+  return /(^|\/)(src\/test|test|tests|__tests__)(\/|$)/u.test(relativePath)
+    || /(^|\/)[^/]*(?:test|spec)\.[^/]+$/iu.test(relativePath);
 }
 
 // ── 静态阶段链：由 CLI `validate` 在阶段边界显式调用，验证通过后落 stage-gate marker ──
@@ -150,8 +190,15 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
   const problems = [];
   if (!isGovernedTarget(root, target)) return problems;
   const agentId = String(event.agent_id || '').trim();
+  const implementerBinding = agentId
+    ? (activeHarnessSkillAgent(root, changeId, {
+      agentId,
+      sessionId: event.session_id,
+      skill: 'implement',
+    }) || boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer'))
+    : null;
   const isAuthorized = agentId && (
-    boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:implementer')
+    implementerBinding
     || (state?.schemaVersion !== 6
       && boundHarnessAgent(root, changeId, agentId, 'enterprise-harness:tdd-executor'))
   );
@@ -160,13 +207,26 @@ export function validateDynamicWriteGates(root, changeId, state, target, event =
   }
   const events = readAgentEvents(root, changeId);
   if (state?.schemaVersion === 6) {
-    if (event.tool_name !== 'Bash') {
-      problems.push('v6 受治理路径只能由 canonical task-run 的冻结子进程写入');
-    }
     if (!String(state?.currentTask || '').trim()) problems.push('currentTask is missing');
     else {
       const task = loadTaskExecutionStrategy(root, changeId, state.currentTask, state?.executionStrategy);
       if (!task.ok) problems.push(...task.problems);
+      else {
+        const relative = path.relative(root, target).split(path.sep).join('/');
+        problems.push(...taskWriteScopeViolations([relative], task.task.writeScope));
+        if (!['Write', 'Edit', 'NotebookEdit'].includes(event.tool_name)) {
+          problems.push('v6 产品文件编辑只允许 Write/Edit/NotebookEdit；Bash 仅可启动 canonical task-run');
+        }
+        if (task.strategy === 'tdd' && !isConventionalTestPath(relative)) {
+          problems.push(...validateV6TaskRedReceipt(
+            root,
+            changeId,
+            state,
+            agentId,
+            implementerBinding,
+          ));
+        }
+      }
     }
   } else if (requiredGateForTarget(root, target)?.needsRedVerified) {
     problems.push(...validateTaskRedReceipt(root, changeId, state, agentId));

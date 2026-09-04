@@ -115,7 +115,8 @@ export function changedPathsBetween(cwd, fromRef, toRef = 'HEAD') {
   ], cwd)).sort();
 }
 
-export function worktreeSnapshotDigest(cwd) {
+export function worktreeSnapshotDigest(cwd, { exclude = [] } = {}) {
+  const excluded = new Set(exclude.map((relative) => relative.split(path.sep).join('/')));
   const tracked = nulRecords(runGit(['ls-files', '-z'], cwd));
   const untracked = nulRecords(runGit(
     ['ls-files', '--others', '--exclude-standard', '-z'],
@@ -123,6 +124,7 @@ export function worktreeSnapshotDigest(cwd) {
   ));
   const entries = [];
   for (const relative of [...new Set([...tracked, ...untracked])]) {
+    if (excluded.has(relative.split(path.sep).join('/'))) continue;
     const absolute = path.join(cwd, relative);
     if (!fs.existsSync(absolute) || fs.statSync(absolute).isDirectory()) continue;
     entries.push({ path: relative, content: fs.readFileSync(absolute) });

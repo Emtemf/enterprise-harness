@@ -3,7 +3,11 @@
 Load when: controller W is true for any active stage in design, plan, implement, verify, or archive that needs one current-stage worker.
 Return to controller: after selecting one capability/handoff action for the current stage.
 
-v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 frontmatter 的 native `agent:` binding 决定 capability，runtime 只消费 Handoff v2、StageResult、ReviewResult、TECPC 与 digest freshness。
+v6 不使用 behavior registry 作为 correctness authority。制品 Skill 通常通过 frontmatter 的 native `agent:`
+binding 决定 capability；Implement 是例外：Main 直接派发带 `isolation: worktree` 的命名 implementer，
+implementer 通过 `skills:` 预加载重 Implement Skill。这样同时使用官方命名 subagent 的文件隔离和 Skill
+方法合同，避免 `context: fork` 路径只隔离上下文却没有应用 agent worktree。runtime 只消费 Handoff v2、
+StageResult、ReviewResult、TECPC 与 digest freshness。
 
 | 工作 | Skill | Capability agent | 结果 |
 |---|---|---|---|
@@ -17,6 +21,21 @@ v6 不使用 behavior registry 作为 correctness authority。Skill 通过其 fr
 | 归档 | `archive` | `enterprise-harness:artifact-worker` | StageResult |
 
 `classification` 是 clarify 后的内部制品；`tdd` 是 task execution strategy。它们不是 v6 lifecycle stage。
+
+## Implement：命名 worktree agent + 预加载 Skill
+
+命中 Implement 当前 task 时，Main 创建 `implement.execute-task` Handoff v2，input refs 至少绑定
+`state.json`、`tasks.md`、`task-commands.json`、PlanProof、Design 和 test cases。随后通过 Agent tool 派发
+`enterprise-harness:implementer`，prompt 必须且只能是该命令输出的一整行：
+
+```text
+HANDOFF_INPUT=<canonical-input.json-path>
+```
+
+不得调用 `enterprise-harness:implement` Skill 代替命名 agent；该 Skill 被 implementer 的 `skills:`
+frontmatter 预加载。Main 在 agent 返回后只认 durable StageResult/canonical receipt，派独立 task review，
+再把 receipt 指向的 reviewed worktree changed paths 精确集成到当前 checkout。runtime 在内容未完全一致时
+拒绝 Implement CompletionProof；Main 不得用聊天总结或手写 receipt 绕过。
 
 ## Design：有序的单动作投影
 

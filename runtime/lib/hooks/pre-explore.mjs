@@ -1,6 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { loadHandoffV2 } from '../../core/handoff-v2.mjs';
 import { hasChangeTracking } from '../checks.mjs';
 import {
+  activeHarnessSkillAgent,
   appendAgentEvent,
+  gitCommonDir,
   normalizeAgentType,
   readAgentEvents,
   sha256,
@@ -11,11 +16,99 @@ import {
   isExplorationTargetExempt,
   hasUnboundedExplorationScope,
 } from '../hook-targets.mjs';
-import { loadHookChange, hookSessionId } from '../hook-change.mjs';
+import { loadHookChange, hookRoot, hookSessionId } from '../hook-change.mjs';
 import { dedupGuard } from '../hook-dedup.mjs';
+import { loadTaskExecutionStrategy } from '../task-execution.mjs';
+import { validateTaskExecutionReceipt } from '../task-execution-receipt.mjs';
+import { taskWriteScopeViolations } from '../task-write-scope.mjs';
+
+function relativeWithin(base, target) {
+  const relative = path.relative(base, target).split(path.sep).join('/');
+  if (!relative || relative === '.') return '';
+  if (relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) return null;
+  return relative;
+}
+
+function implementerReadDecision(root, event, active, targets, unbounded) {
+  const agentId = String(event.agent_id || '').trim();
+  const binding = agentId && activeHarnessSkillAgent(root, active.changeId, {
+    agentId,
+    sessionId: hookSessionId(event),
+    skill: 'implement',
+  });
+  if (!binding) return null;
+
+  const commonDir = gitCommonDir(root);
+  const integrationRoot = path.dirname(commonDir);
+  const escapedToIntegrationCheckout = targets.some((target) => (
+    relativeWithin(root, target) === null
+    && relativeWithin(integrationRoot, target) !== null
+    && relativeWithin(commonDir, target) === null
+  ));
+  if (escapedToIntegrationCheckout) {
+    return {
+      exitCode: 2,
+      stderr: 'BLOCK: implementer 只能读取当前隔离 worktree；不得读取原 checkout 的同名源码或 change artifact。',
+    };
+  }
+
+  if (event.tool_name !== 'Read' || unbounded || targets.length === 0) return null;
+  const taskId = String(active.data?.currentTask || '').trim();
+  if (!taskId) return null;
+  const task = loadTaskExecutionStrategy(root, active.changeId, taskId, active.data?.executionStrategy);
+  if (!task.ok) return null;
+  const scopedReads = targets.every((target) => {
+    const relative = relativeWithin(root, target);
+    return relative !== null && relative !== ''
+      && taskWriteScopeViolations([relative], task.task.writeScope).length === 0;
+  });
+  return scopedReads ? { exitCode: 0 } : null;
+}
+
+function reviewerReadDecision(root, event, active, targets, unbounded) {
+  if (event.tool_name !== 'Read' || unbounded || targets.length === 0) return null;
+  const agentId = String(event.agent_id || '').trim();
+  const binding = agentId && activeHarnessSkillAgent(root, active.changeId, {
+    agentId,
+    sessionId: hookSessionId(event),
+    skill: 'review',
+  });
+  if (!binding?.dispatch?.runId) return null;
+  try {
+    const handoff = loadHandoffV2(root, active.changeId, binding.dispatch.runId);
+    if (handoff.role !== 'check' || handoff.stage !== 'implement'
+      || handoff.behavior !== 'implement.review-task') return null;
+    const receiptRef = handoff.inputRefs.find((ref) => (
+      /^harness\/changes\/[^/]+\/evidence\/tasks\/[^/]+\.json$/u.test(ref)
+    ));
+    if (!receiptRef) return null;
+    const receiptPath = path.join(root, receiptRef);
+    const receiptContent = fs.readFileSync(receiptPath);
+    if (handoff.inputDigests?.[receiptRef] !== sha256(receiptContent)) return null;
+    const receipt = JSON.parse(receiptContent.toString('utf-8'));
+    if (!receipt?.worktree?.path || !Array.isArray(receipt.changedPaths)) return null;
+    const expectedTaskId = path.basename(receiptRef, '.json');
+    if (validateTaskExecutionReceipt(receipt, {
+      root,
+      expectedChangeId: active.changeId,
+      expectedTaskId,
+      requireTrusted: true,
+    }).length > 0) return null;
+    if (gitCommonDir(receipt.worktree.path) !== gitCommonDir(root)) return null;
+    const allowedTargets = new Set(receipt.changedPaths.map((relative) => (
+      path.resolve(receipt.worktree.path, relative)
+    )));
+    return targets.every((target) => allowedTargets.has(path.resolve(target)))
+      ? { exitCode: 0 }
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 export function preExplore({ root, event }) {
   if (!hasChangeTracking(root)) return { exitCode: 0 };
+  const eventRoot = hookRoot(root, event);
 
   const toolName = String(event.tool_name || '');
   const input = event.tool_input || {};
@@ -34,16 +127,22 @@ export function preExplore({ root, event }) {
   const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
   if (!codegraphTool && !fallbackTool) return { exitCode: 0 };
   if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) return { exitCode: 0 };
-  const targets = extractExplorationTargets(root, event);
+  const targets = extractExplorationTargets(eventRoot, event);
   // CodeGraph 查询通常带的是符号而非文件路径，不能因其 token 不在受治理目录就豁免；
   // 必须先记录同一 agent 的 attempt，后续 fallback 才有可验证的前置证据。
   // 其他工具没有可解析目标且不属于全仓 Grep/Glob 时，才可按所有目标豁免。
-  const unbounded = hasUnboundedExplorationScope(root, event);
-  if (!codegraphTool && !unbounded && targets.every((target) => isExplorationTargetExempt(root, target))) {
+  const unbounded = hasUnboundedExplorationScope(eventRoot, event);
+  const active = loadHookChange(root, event);
+  if (active.ok) {
+    const implementerDecision = implementerReadDecision(eventRoot, event, active, targets, unbounded);
+    if (implementerDecision) return implementerDecision;
+    const reviewerDecision = reviewerReadDecision(eventRoot, event, active, targets, unbounded);
+    if (reviewerDecision) return reviewerDecision;
+  }
+  if (!codegraphTool && !unbounded && targets.every((target) => isExplorationTargetExempt(eventRoot, target))) {
     return { exitCode: 0 };
   }
 
-  const active = loadHookChange(root, event);
   if (!active.ok) {
     return {
       exitCode: 2,

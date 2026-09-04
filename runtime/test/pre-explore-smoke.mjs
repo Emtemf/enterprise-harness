@@ -5,7 +5,9 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createHandoffV2 } from '../core/handoff-v2.mjs';
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const preExplorePath = path.join(repoRoot, 'hooks', 'scripts', 'pre-explore.mjs');
@@ -50,12 +52,36 @@ function baseState(overrides = {}) {
   };
 }
 
-function runPreExplore(tempRoot, toolName, input, agentId = undefined) {
+function runPreExplore(tempRoot, toolName, input, agentId = undefined, eventOverrides = {}) {
   return spawnSync('node', [preExplorePath], {
     cwd: tempRoot,
     encoding: 'utf-8',
-    input: JSON.stringify({ tool_name: toolName, tool_input: input, agent_id: agentId }),
+    input: JSON.stringify({ tool_name: toolName, tool_input: input, agent_id: agentId, ...eventOverrides }),
   });
+}
+
+function bindActiveImplementer(tempRoot, changeId, agentId = 'active-implementer', sessionId = 'implement-session') {
+  bindSession(tempRoot, {
+    sessionId,
+    changeId,
+    worktreePath: tempRoot,
+    subjectRoot: tempRoot,
+    controllerRevision: 'pre-explore-test',
+  });
+  appendAgentEvent(tempRoot, changeId, {
+    kind: 'dispatch',
+    runId: 'run-implement',
+    sessionId,
+    requestedAgentType: 'enterprise-harness:implementer',
+    preloadedSkill: 'implement',
+  });
+  appendAgentEvent(tempRoot, changeId, {
+    kind: 'start',
+    sessionId,
+    agentId,
+    observedAgentType: 'enterprise-harness:implementer',
+  });
+  return { agentId, sessionId };
 }
 
 function withTempRoot(run) {
@@ -318,6 +344,164 @@ check('R: a Bash command mentioning codegraph but touching no governed path must
       command: 'git commit -m "fix: record the codegraph attempt before fallback"',
     });
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('S: an active implementer may Read a frozen writeScope path without a second CodeGraph exploration', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      schemaVersion: 6,
+      stage: 'implement',
+      lifecycle: 'active',
+      currentTask: 'fixture-task',
+    }));
+    writeJson(path.join(tempRoot, 'harness/changes/fixture-change/task-commands.json'), {
+      schemaVersion: 4,
+      tasks: {
+        'fixture-task': {
+          executionStrategy: 'tdd',
+          writeScope: {
+            allowed: ['src/main/java/com/example/TemplateService.java'],
+            forbidden: [],
+          },
+          commands: [
+            { phase: 'RED', argv: ['true'] },
+            { phase: 'GREEN', argv: ['true'] },
+            { phase: 'REFACTOR', argv: ['true'] },
+          ],
+        },
+      },
+    });
+    const binding = bindActiveImplementer(tempRoot, 'fixture-change');
+    const result = runPreExplore(tempRoot, 'Read', {
+      file_path: 'src/main/java/com/example/TemplateService.java',
+    }, binding.agentId, { session_id: binding.sessionId, cwd: tempRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr=${result.stderr}`);
+  });
+});
+
+check('T: an active implementer still cannot explore business code outside frozen writeScope', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      schemaVersion: 6,
+      stage: 'implement',
+      lifecycle: 'active',
+      currentTask: 'fixture-task',
+    }));
+    writeJson(path.join(tempRoot, 'harness/changes/fixture-change/task-commands.json'), {
+      schemaVersion: 4,
+      tasks: {
+        'fixture-task': {
+          executionStrategy: 'direct',
+          strategyRationale: 'fixture',
+          writeScope: { allowed: ['src/main/java/com/example/Allowed.java'], forbidden: [] },
+          commands: [{ phase: 'VERIFY', argv: ['true'] }],
+        },
+      },
+    });
+    const binding = bindActiveImplementer(tempRoot, 'fixture-change');
+    const result = runPreExplore(tempRoot, 'Read', {
+      file_path: 'src/main/java/com/example/Outside.java',
+    }, binding.agentId, { session_id: binding.sessionId, cwd: tempRoot });
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /code-explore subagent/u);
+  });
+});
+
+check('U: an active task reviewer may Read only receipt-declared changed paths in the implementer worktree', () => {
+  withTempRoot((tempRoot) => {
+    createChangeFixture(tempRoot, 'fixture-change', baseState({
+      schemaVersion: 6,
+      stage: 'implement',
+      lifecycle: 'active',
+      currentTask: 'fixture-task',
+    }));
+    const worker = path.join(tempRoot, '.worker');
+    const reviewedRef = 'src/main/java/com/example/Reviewed.java';
+    const outsideRef = 'src/main/java/com/example/Outside.java';
+    writeText(path.join(worker, reviewedRef), 'final class Reviewed {}\n');
+    writeText(path.join(worker, outsideRef), 'final class Outside {}\n');
+    writeJson(path.join(tempRoot, 'harness/changes/fixture-change/task-commands.json'), {
+      schemaVersion: 4,
+      tasks: {
+        'fixture-task': {
+          executionStrategy: 'direct',
+          strategyRationale: 'review fixture',
+          writeScope: { allowed: [reviewedRef], forbidden: [] },
+          commands: [{ phase: 'VERIFY', argv: ['true'] }],
+        },
+      },
+    });
+    const receiptRef = 'harness/changes/fixture-change/evidence/tasks/fixture-task.json';
+    writeJson(path.join(tempRoot, receiptRef), {
+      receiptVersion: 2,
+      provenance: 'runtime-runner',
+      changeId: 'fixture-change',
+      taskId: 'fixture-task',
+      executionStrategy: 'direct',
+      strategyRationale: 'review fixture',
+      agent: { id: 'fixture-implementer', type: 'enterprise-harness:implementer' },
+      worktree: {
+        path: worker,
+        gitCommonDir: path.join(tempRoot, '.git'),
+        headBefore: '1'.repeat(40),
+        headAfter: '1'.repeat(40),
+        treeDigestBefore: 'a'.repeat(64),
+        treeDigestAfter: 'b'.repeat(64),
+      },
+      changedPaths: [reviewedRef],
+      inputDigests: { 'harness/changes/fixture-change/tasks.md': 'c'.repeat(64) },
+      executions: [{
+        phase: 'VERIFY', argv: ['true'], outcome: 'exit', exitCode: 0,
+        signal: null, spawnError: null,
+        startedAt: '2026-09-04T00:00:00.000Z',
+        finishedAt: '2026-09-04T00:00:01.000Z',
+        stdoutDigest: 'd'.repeat(64), stderrDigest: 'e'.repeat(64),
+      }],
+      completedAt: '2026-09-04T00:00:01.000Z',
+    });
+    const review = createHandoffV2(tempRoot, {
+      changeId: 'fixture-change',
+      stage: 'implement',
+      behavior: 'implement.review-task',
+      role: 'check',
+      parentRunId: 'run_11111111-1111-4111-8111-111111111111',
+      agent: { type: 'enterprise-harness:reviewer', skill: 'review' },
+      inputRefs: [receiptRef],
+      rubricIds: ['task'],
+      tecpc: {
+        target: 'review exact changed paths',
+        evidence: [receiptRef],
+        context: [receiptRef],
+        path: `${receiptRef} -> review`,
+        correction: null,
+      },
+    });
+    const sessionId = 'review-session';
+    const agentId = 'active-reviewer';
+    bindSession(tempRoot, {
+      sessionId,
+      changeId: 'fixture-change',
+      worktreePath: tempRoot,
+      subjectRoot: tempRoot,
+      controllerRevision: 'pre-explore-test',
+    });
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'dispatch', runId: review.runId, sessionId,
+      requestedAgentType: 'enterprise-harness:reviewer', preloadedSkill: 'review',
+    });
+    appendAgentEvent(tempRoot, 'fixture-change', {
+      kind: 'start', sessionId, agentId,
+      observedAgentType: 'enterprise-harness:reviewer',
+    });
+    const allowed = runPreExplore(tempRoot, 'Read', {
+      file_path: path.join(worker, reviewedRef),
+    }, agentId, { session_id: sessionId, cwd: tempRoot });
+    assert.equal(allowed.status, 0, `expected reviewed path to pass; stderr=${allowed.stderr}`);
+    const blocked = runPreExplore(tempRoot, 'Read', {
+      file_path: path.join(worker, outsideRef),
+    }, agentId, { session_id: sessionId, cwd: tempRoot });
+    assert.equal(blocked.status, 2, `expected undeclared path to block; stderr=${blocked.stderr}`);
   });
 });
 

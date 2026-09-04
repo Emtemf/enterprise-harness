@@ -8,6 +8,23 @@ import { formatDiagnostic } from '../diagnostics.mjs';
 import { hookChangeId, hookRepoRoot } from '../hook-change.mjs';
 import { isHarnessForkSkill, normalizeHarnessSkillName } from '../harness-skill-invocation.mjs';
 
+function responseAgentId(value, seen = new Set()) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') {
+    const match = value.match(/(?:^|\n)agentId:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\b/u);
+    return match?.[1] || null;
+  }
+  if (typeof value !== 'object' || seen.has(value)) return null;
+  seen.add(value);
+  if (typeof value.agentId === 'string' && value.agentId.trim()) return value.agentId.trim();
+  if (typeof value.agent_id === 'string' && value.agent_id.trim()) return value.agent_id.trim();
+  for (const child of Array.isArray(value) ? value : Object.values(value)) {
+    const found = responseAgentId(child, seen);
+    if (found) return found;
+  }
+  return null;
+}
+
 export function postAgent({ root, event }) {
   if (!['Agent', 'Skill'].includes(event.tool_name)) return { exitCode: 0 };
 
@@ -18,10 +35,7 @@ export function postAgent({ root, event }) {
   const cwd = event.cwd || root;
   const repoRoot = hookRepoRoot(root, event);
   const changeId = hookChangeId(repoRoot, event);
-  const agentId = event.tool_response?.agentId
-    || event.tool_response?.agent_id
-    || event.tool_response?.tool_use_result?.agentId
-    || event.tool_response?.tool_use_result?.agent_id;
+  const agentId = responseAgentId(event.tool_response);
   if (!changeId || !event.tool_use_id || !agentId) {
     return {
       exitCode: 2,
@@ -56,16 +70,9 @@ export function postAgent({ root, event }) {
     && item.runId === dispatch.runId
     && item.observedAgentType === dispatch.requestedAgentType
   ));
-  if (!matchingStop) {
-    return {
-      exitCode: 2,
-      stderr: formatDiagnostic(
-        'EH-AGENT-BINDING-003',
-        'Agent result has no matching structured SubagentStop receipt',
-        { changeId, runId: dispatch.runId },
-      ),
-    };
-  }
+  // Claude Code can return an async Agent launch result before SubagentStop.
+  // Persist identity binding now; trustedHandoffAgentBindings still requires the
+  // matching structured stop receipt before treating the run as completed.
   appendAgentEvent(repoRoot, changeId, {
     kind: 'dispatch-binding',
     sessionId: event.session_id,
@@ -76,7 +83,7 @@ export function postAgent({ root, event }) {
     runId: dispatch.runId,
     behavior: dispatch.behavior,
     handoffRole: dispatch.handoffRole,
-    handoffPath: matchingStop.handoffPath,
+    handoffPath: matchingStop?.handoffPath || dispatch.handoffPath,
     invocationTool: event.tool_name,
     cwd,
   });

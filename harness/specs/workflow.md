@@ -119,6 +119,11 @@ controls the task flow: a `tdd` task requires a real RED receipt before the smal
 implementation and refactor; direct and migration tasks require their own explicit preconditions
 and receipts. The implementation capability is the only capability allowed to write product code.
 Worktree isolation does not establish reviewer independence.
+The named implementer preloads the heavy Implement Skill and receives only its digest-bound Handoff marker.
+SubagentStart freezes the worktree baseline before test/code writes. The implementer may edit only the frozen
+write scope; validation phases run only through canonical task-run. A different reviewer reads exactly the receipt's
+changed paths from the execution worktree. Review success is still insufficient until those exact contents are
+integrated into the subject checkout, after which runtime may seal TaskProof and Implement CompletionProof.
 
 ## Verify
 

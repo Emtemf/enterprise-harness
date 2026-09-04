@@ -52,9 +52,12 @@ Hooks may only perform host-boundary mechanics:
 - research and governed-write receipt capture;
 - SessionEnd cleanup.
 
-Hooks deliberately do **not** interpret ordinary reads or Agent dispatch. Skills and runtime
-contracts own CodeGraph-first delegation, Context7-first research, handoff binding, self-check,
-review, and lifecycle semantics. Shell policy is limited to the active v6 boundary below.
+Hooks do not perform semantic design or review. They do, however, capture Agent dispatch/start/stop identity and
+enforce two narrow read capabilities required by the runtime contract: an active implementer may Read only its
+frozen write scope in the current isolated worktree, and an active Implement task reviewer may Read only the
+canonical receipt's declared changed paths in that receipt's worktree. Main, unbound agents, Grep/Glob and expanded
+business-code exploration remain CodeGraph-first and fail closed. Skills and runtime own synthesis, self-check,
+review verdicts and lifecycle semantics. Shell policy is limited to the active v6 boundary below.
 
 Inside an active v6 workflow, Bash is fail-closed by allowlist rather than classified by a
 mutation denylist. Main may run only canonical Harness runtime commands or bounded read-only

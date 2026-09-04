@@ -6,9 +6,12 @@ import { spawnSync } from 'node:child_process';
 import { loadHandoffV2 } from './core/handoff-v2.mjs';
 import {
   activeChangeId,
+  activeHandoffAgentBinding,
   boundHarnessAgent,
   gitCommonDir,
+  readAgentEvents,
 } from './lib/agent-evidence.mjs';
+import { sessionIdFromEnv } from './lib/sessions.mjs';
 import {
   captureWorktreeBaseline,
   changedPathsSinceBaseline,
@@ -140,25 +143,58 @@ function clearRecoverableAuthorization(target, expected) {
   fs.rmSync(target, { force: true });
 }
 
-function resolveBinding(root, changeId, runId) {
-  const agentId = String(
+function resolveBinding(root, changeId, runId, input) {
+  const requestedAgentId = String(
     process.env.CLAUDE_AGENT_ID || process.env.HARNESS_IMPLEMENTER_ID || '',
   ).trim();
-  if (!agentId) throw new Error('CLAUDE_AGENT_ID or HARNESS_IMPLEMENTER_ID is required');
-  const binding = boundHarnessAgent(
+  const sessionId = sessionIdFromEnv();
+  if (!sessionId && !requestedAgentId) {
+    throw new Error('ENTERPRISE_HARNESS_SESSION_ID is required when no adapter agent id is supplied');
+  }
+
+  // Claude Code supplies agent_id to hook events but does not export it into a
+  // subagent's Bash environment. Infer it only from the unique, still-active
+  // start receipt bound to this session, execute handoff and exact worktree.
+  // HARNESS_IMPLEMENTER_ID remains a deterministic test/adapter override and is
+  // still checked against the same durable binding.
+  const inferredAgentIds = requestedAgentId ? [requestedAgentId] : [
+    ...new Set(readAgentEvents(root, changeId)
+      .filter((event) => event.kind === 'start'
+        && event.sessionId === sessionId
+        && event.observedAgentType === 'enterprise-harness:implementer'
+        && event.agentId
+        && event.cwd
+        && canonicalizePath(event.cwd) === canonicalizePath(root))
+      .map((event) => event.agentId)),
+  ];
+  const activeBindings = sessionId ? inferredAgentIds
+    .map((agentId) => ({
+      agentId,
+      binding: activeHandoffAgentBinding(root, changeId, input, { agentId, sessionId }),
+    }))
+    .filter(({ binding }) => binding) : [];
+  if (activeBindings.length > 1) {
+    throw new Error('task-run found multiple active implementers for the current worktree');
+  }
+  const active = activeBindings[0] || null;
+  const completedBinding = requestedAgentId && boundHarnessAgent(
     root,
     changeId,
-    agentId,
+    requestedAgentId,
     'enterprise-harness:implementer',
   );
+  const agentId = active?.agentId || requestedAgentId;
+  const binding = active?.binding || completedBinding;
   if (!binding) throw new Error('task-run requires an active bound enterprise-harness:implementer');
-  if (binding.binding.runId !== runId || binding.start.runId !== runId) {
+  const boundRunId = binding.binding?.runId || binding.dispatch?.runId;
+  const startedRunId = binding.start.runId || binding.dispatch?.runId;
+  if (boundRunId !== runId || startedRunId !== runId) {
     throw new Error('implementer binding does not match the execute handoff run');
   }
   if (!binding.start.cwd || canonicalizePath(binding.start.cwd) !== canonicalizePath(root)) {
     throw new Error('implementer start cwd does not match this worktree');
   }
-  return agentId;
+  return { agentId, binding };
 }
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -189,18 +225,29 @@ if (activeChangeId(root) !== changeId) fail(`active change is not ${changeId}`);
 
 let input;
 let agentId;
+let executionBinding;
 try {
   input = validateHandoff(root, changeId, taskId, runId);
-  agentId = resolveBinding(root, changeId, runId);
+  ({ agentId, binding: executionBinding } = resolveBinding(root, changeId, runId, input));
 } catch (error) {
   fail(error.message);
 }
 
 const canonicalPath = taskExecutionReceiptPath(root, changeId, taskId);
+const integrationRoot = path.resolve(commonDir, '..');
+const canonicalProjectionPath = canonicalizePath(integrationRoot) === canonicalizePath(root)
+  ? null
+  : taskExecutionReceiptPath(integrationRoot, changeId, taskId);
 const spoolPath = taskExecutionReceiptSpoolPath(root, changeId, taskId, runId);
 const taskLockPath = path.join(path.dirname(spoolPath), 'task-execution');
 const intentPath = `${spoolPath}.intent`;
 assertNoSymlinkComponents(root, canonicalPath, 'canonical task receipt path');
+if (canonicalProjectionPath) {
+  if (canonicalizePath(gitCommonDir(integrationRoot)) !== canonicalizePath(commonDir)) {
+    fail('integration checkout does not share the execution worktree git common dir');
+  }
+  assertNoSymlinkComponents(integrationRoot, canonicalProjectionPath, 'canonical task receipt projection path');
+}
 assertNoSymlinkComponents(commonDir, spoolPath, 'task receipt spool path');
 assertNoSymlinkComponents(commonDir, taskLockPath, 'task execution lock path');
 assertNoSymlinkComponents(commonDir, intentPath, 'task execution intent path');
@@ -287,6 +334,7 @@ try {
       publishTaskReceiptArtifacts({
         spoolPath,
         canonicalPath,
+        canonicalProjectionPaths: canonicalProjectionPath ? [canonicalProjectionPath] : [],
         spool: spoolToPublish,
         receipt: receiptToPublish,
         isFinal,
@@ -296,6 +344,10 @@ try {
         validateTarget: (target) => {
           if (target === canonicalPath) {
             assertNoSymlinkComponents(root, target, 'canonical task receipt path');
+            return;
+          }
+          if (canonicalProjectionPath && target === canonicalProjectionPath) {
+            assertNoSymlinkComponents(integrationRoot, target, 'canonical task receipt projection path');
             return;
           }
           if (target === spoolPath) {
@@ -343,7 +395,9 @@ try {
     if (!resolution.ok) throw new Error(resolution.problems.join('; '));
     const childArgv = [...resolution.command.argv];
 
-    const baseline = spool?.statusBaseline || captureWorktreeBaseline(root);
+    const baseline = spool?.statusBaseline
+      || executionBinding?.start?.statusBaseline
+      || captureWorktreeBaseline(root);
     const headBefore = previous?.worktree?.headBefore
       || String(runGit(['rev-parse', 'HEAD'], root)).trim();
     const treeDigestBefore = previous?.worktree?.treeDigestBefore
@@ -478,7 +532,9 @@ try {
         headBefore,
         headAfter,
         treeDigestBefore,
-        treeDigestAfter: worktreeSnapshotDigest(root),
+        treeDigestAfter: worktreeSnapshotDigest(root, {
+          exclude: [path.relative(root, canonicalPath)],
+        }),
       },
       changedPaths,
       inputDigests: { ...input.inputDigests },

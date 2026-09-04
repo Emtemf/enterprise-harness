@@ -102,6 +102,25 @@ try {
     agent_type: 'enterprise-harness:artifact-worker',
   }).status, 0);
 
+  const posted = hook('post-agent.mjs', {
+    tool_name: 'Agent',
+    tool_use_id: 'tool-v6-execute',
+    session_id: sessionId,
+    tool_input: {
+      subagent_type: 'enterprise-harness:artifact-worker',
+      prompt: `HANDOFF_INPUT=${marker}`,
+    },
+    tool_response: {
+      content: [{
+        type: 'text',
+        text: 'Async agent launched successfully.\nagentId: agent-v6-execute (internal ID)',
+      }],
+    },
+  });
+  assert.equal(posted.status, 0, posted.stderr);
+  assert.equal(trustedHandoffAgentBindings(root, changeId, execute.input).length, 0,
+    'an async launch binding must not count as completion before SubagentStop');
+
   const artifacts = [{ path: designRef, digest: sha256Artifact(root, designRef) }];
   persistHandoffV2Result(root, changeId, execute.runId, {
     resultVersion: 1,
@@ -131,17 +150,6 @@ try {
   assert.equal(stopped.status, 0, stopped.stderr);
   assert.equal(stopped.stdout.trim(), '');
 
-  const posted = hook('post-agent.mjs', {
-    tool_name: 'Agent',
-    tool_use_id: 'tool-v6-execute',
-    session_id: sessionId,
-    tool_input: {
-      subagent_type: 'enterprise-harness:artifact-worker',
-      prompt: `HANDOFF_INPUT=${marker}`,
-    },
-    tool_response: { agentId: 'agent-v6-execute' },
-  });
-  assert.equal(posted.status, 0, posted.stderr);
   assert.equal(trustedHandoffAgentBindings(root, changeId, execute.input).length, 1);
 
   const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-v6-legacy-binding-'));

@@ -6,6 +6,7 @@ import {
   trustedHandoffAgentBindings,
 } from './agent-evidence.mjs';
 import { validateTaskExecutionReceipt } from './task-execution-receipt.mjs';
+import { worktreeSnapshotDigest } from './git-evidence.mjs';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { buildCompletionProof } from '../core/completion-proof.mjs';
 import {
@@ -747,6 +748,33 @@ function implementCompletionProof(root, changeId, executions, problems) {
         requireTrusted: true,
         expectedInputDigests: execution.input.inputDigests,
       });
+      const sourceRoot = path.resolve(receipt?.worktree?.path || root);
+      if (sourceRoot !== path.resolve(root)) {
+        if (!fs.existsSync(sourceRoot)) {
+          receiptProblems.push(`task ${taskId} reviewed execution worktree is unavailable`);
+        } else if (path.resolve(gitCommonDir(sourceRoot)) !== path.resolve(gitCommonDir(root))) {
+          receiptProblems.push(`task ${taskId} reviewed execution worktree does not share the integration git common dir`);
+        } else {
+          try {
+            const receiptRelative = `harness/changes/${changeId}/evidence/tasks/${taskId}.json`;
+            if (worktreeSnapshotDigest(sourceRoot, { exclude: [receiptRelative] }) !== receipt.worktree.treeDigestAfter) {
+              receiptProblems.push(`task ${taskId} reviewed execution worktree changed after receipt publication`);
+            }
+            for (const relative of receipt.changedPaths || []) {
+              const source = path.join(sourceRoot, relative);
+              const integrated = path.join(root, relative);
+              const sourceExists = fs.existsSync(source);
+              const integratedExists = fs.existsSync(integrated);
+              if (sourceExists !== integratedExists
+                  || (sourceExists && !fs.readFileSync(source).equals(fs.readFileSync(integrated)))) {
+                receiptProblems.push(`task ${taskId} is not integrated: ${relative} differs from the reviewed worktree`);
+              }
+            }
+          } catch (error) {
+            receiptProblems.push(`task ${taskId} integration check failed: ${error.message}`);
+          }
+        }
+      }
       if (receipt.changeId !== changeId || receipt.taskId !== taskId) receiptProblems.push(`receipt does not bind task ${taskId}`);
       if (receiptArtifact.digest !== sha256Artifact(root, receiptArtifact.path)) receiptProblems.push(`task ${taskId} receipt digest is stale`);
       for (const [ref, digest] of Object.entries(receipt.inputDigests || {})) {

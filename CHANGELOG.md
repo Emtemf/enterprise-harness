@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [0.5.24] - 2026-09-04
+
+### Added
+
+- 新增安装态 Implement 标准样例：真实 `npm pack` 插件通过 named implementer、原生隔离 worktree、预加载重 Skill、真实 RED→GREEN→REFACTOR、独立 task Review、精确集成和 ImplementProof 推进到 Verify。
+- Implement Skill 新增执行方法、产物合同、自检清单与行为 eval；finalizer 原子持久化唯一 StageResult，runtime 同时投影 canonical task receipt 到执行 worktree 与集成 checkout。
+
+### Changed
+
+- v6 Implementer 只能以 `Write/Edit/NotebookEdit` 修改冻结 `writeScope`；TDD 测试可在 RED 前创建，产品代码必须等待同 run 的真实 RED，所有验证 Bash 只能启动 canonical `task-run`。
+- named implementer 使用 `isolation: worktree` 并通过 agent `skills:` 预加载完整 Implement Skill；Skill 保留 `user-invocable: false`，但不再设置与官方预加载规则冲突的 `disable-model-invocation`。
+- 独立 task reviewer 只可读取 canonical receipt 声明的 worktree `changedPaths`，不能扩展为 Grep/Glob 或其他业务代码探索。
+
+### Fixed
+
+- task runner 不再假设 Claude 子代理 Bash 环境存在 `CLAUDE_AGENT_ID`，而是从同 session、run、worktree 的 active dispatch/start receipts 唯一解析身份。
+- worktree baseline 在 `SubagentStart`、任何测试或产品代码写入前冻结，避免 RED 前新增的测试从最终 `changedPaths` 丢失。
+- 兼容 Claude Code 异步 Agent tool 的 launch-result-before-Stop 顺序：先记录 identity binding，但仍须结构化 Stop 才能成为可信完成证据。
+- Implement CompletionProof 现在要求 reviewed worktree 的每个 changed path 已与集成 checkout 内容/删除状态完全一致；未集成实现不能推进 Verify。
+
 ## [0.5.23] - 2026-09-04
 
 ### Added

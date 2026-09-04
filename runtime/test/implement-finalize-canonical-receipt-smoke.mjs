@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createHandoffV2 } from '../core/handoff-v2.mjs';
+import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { taskExecutionReceiptPath, taskExecutionReceiptSpoolPath } from '../lib/task-execution-receipt.mjs';
 
@@ -127,6 +127,11 @@ try {
   assert.equal(result.stage, 'implement');
   assert.equal(result.status, 'pass');
   assert.deepEqual(result.inputDigests, handoff.input.inputDigests);
+  const durable = JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, handoff.runId), 'utf-8'));
+  assert.deepEqual(durable, result, 'finalizer stdout must echo the atomically persisted StageResult');
+  const duplicate = runFinalize(handoff.runId);
+  assert.notEqual(duplicate.status, 0);
+  assert.match(duplicate.stderr, /durable result already exists/u);
 
   fs.rmSync(canonicalPath);
   const missingCanonical = runFinalize(handoff.runId);

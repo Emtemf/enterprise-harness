@@ -1,17 +1,23 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-31
+lastVerified: 2026-09-04
 implementationRefs:
+  - agents/implementer.md
+  - skills/implement/SKILL.md
   - runtime/task-run.mjs
   - runtime/lib/task-execution.mjs
   - runtime/lib/task-execution-receipt.mjs
   - runtime/lib/task-write-scope.mjs
+  - runtime/lib/hooks/subagent-start.mjs
+  - runtime/lib/hooks/pre-explore.mjs
   - runtime/tdd-run.mjs
   - runtime/lib/tdd-receipts.mjs
 testRefs:
   - runtime/test/task-runner-v6-smoke.mjs
   - runtime/test/governed-task-run-write-gate-smoke.mjs
+  - runtime/test/task-worktree-integration-smoke.mjs
+  - runtime/test/installed-implement-plugin-e2e.mjs
   - runtime/test/task-execution-authority-smoke.mjs
   - runtime/test/task-write-scope-smoke.mjs
   - runtime/test/tdd-receipt-contract-smoke.mjs
@@ -54,10 +60,18 @@ node runtime/cli.mjs task-run \
 - agent dispatch/start 与同一个 run、同一个 worktree 绑定；
 - phase 顺序正确，并从冻结计划内部解析 child argv；launcher 拒绝外部 argv、管道、重定向和命令串联。
 
-pre-write 对 v6 implementer fail closed：受治理路径不能通过 `Write` / `Edit` / `NotebookEdit`
-或任意 Bash 直接修改，只允许使用受信 runtime 的 canonical `task-run` launcher。runner 为子进程建立
-短期 common-dir authorization，成功、失败或 spawn 异常后都清理；遗留 marker 不能重放，也不能被
-后续 runner 静默覆盖。
+pre-write 对 v6 implementer fail closed：只有 active、同 session/run/worktree 绑定的 named implementer
+可以用 `Write` / `Edit` / `NotebookEdit` 修改当前 task 的 `writeScope.allowed`。TDD 测试路径可在 RED 前
+创建，非测试产品路径必须先存在同 run 的真实失败 RED spool。Bash 不能直接修改文件或执行构建命令，
+只允许启动受信 runtime 的 canonical `task-run` launcher；runner 为冻结子进程建立短期 common-dir
+authorization，成功、失败或 spawn 异常后都清理，遗留 marker 不能重放或被静默覆盖。
+
+`enterprise-harness:implementer` 由 named Agent 启动并使用 `isolation: worktree`；其 `skills:` 在启动时
+预加载完整 Implement Skill。Skill 不是直接用户入口，但必须保持 model-invocable，因为 Claude Code
+不会预加载设置了 `disable-model-invocation: true` 的 Skill。SubagentStart 在任何 agent 写入前冻结
+worktree status baseline；RED 前新增测试与 RED 后产品实现因此都进入同一 receipt。Claude Code 不保证
+在子代理 Bash 环境导出 agent id，runner 从同 session、handoff run、worktree 的唯一 active
+dispatch/start receipts 解析身份。
 
 子命令固定使用 `spawnSync(command, args, { shell: false })`，不经过 shell 拼接。Java/Maven task
 必须冻结并真实执行 `mvn test`、`mvn verify` 或项目 wrapper，不存在文字声明降级路径。
@@ -103,6 +117,10 @@ canonical receipt 只接受：
 
 canonical receipt 已存在时不得覆盖；修复失败执行必须创建新的 execute run，而不是重写历史证据。
 Implement finalizer、CompletionProof 与独立 reviewer 都消费这一 canonical artifact。
+finalizer 原子持久化 StageResult 后，Main 派发不同 agent/run 的 task review。reviewer 只能读取 receipt
+声明的 worktree `changedPaths`，不能任意探索业务代码。review pass 后仍不能直接完成：集成 checkout
+中每个 changed path 的存在状态与内容必须精确等于 reviewed worktree，runtime 才生成 TaskProof 并汇入
+Implement CompletionProof。
 
 ## v5 compatibility boundary
 

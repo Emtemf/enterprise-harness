@@ -102,12 +102,30 @@ try {
     '',
   ].join('\n'));
   fs.writeFileSync(path.join(changeDir, 'task-commands.json'), `${JSON.stringify({
-    schemaVersion: 3,
+    schemaVersion: 4,
     tasks: {
       [taskId]: {
         executionStrategy: 'direct',
         strategyRationale: 'The frozen child verifies runner-only governed write authorization.',
-        verifyCommand: ['node', childScript, targetRef],
+        testCases: ['TC1'],
+        minimalRedCase: null,
+        writeScope: { allowed: [targetRef], forbidden: ['src/test/**'] },
+        commands: [{ phase: 'VERIFY', argv: ['node', childScript, targetRef] }],
+      },
+      'task-tdd': {
+        executionStrategy: 'tdd',
+        strategyRationale: 'The fixture proves test-first Write/Edit authorization around a real RED receipt.',
+        testCases: ['TC2'],
+        minimalRedCase: 'TC2',
+        writeScope: {
+          allowed: ['src/main/java/demo/TddApp.java', 'src/test/java/demo/TddAppTest.java'],
+          forbidden: ['harness/archive/**'],
+        },
+        commands: [
+          { phase: 'RED', argv: ['node', '-e', 'process.exit(7)'] },
+          { phase: 'GREEN', argv: ['node', '-e', 'process.exit(0)'] },
+          { phase: 'REFACTOR', argv: ['node', '-e', 'process.exit(0)'] },
+        ],
       },
     },
   }, null, 2)}\n`);
@@ -176,8 +194,20 @@ try {
       tool_input: { file_path: path.join(root, targetRef) },
     },
   });
-  assert.equal(directWrite.exitCode, 2, 'v6 governed writes must not accept direct Write/Edit authorization');
-  assert.match(directWrite.stderr, /task-run|runner|受治理/u);
+  assert.equal(directWrite.exitCode, 0, directWrite.stderr);
+
+  const outsideWrite = cleanPreWrite({
+    root,
+    event: {
+      tool_name: 'Write',
+      tool_use_id: 'outside-write',
+      agent_id: agentId,
+      cwd: root,
+      tool_input: { file_path: path.join(root, 'src/main/java/demo/Other.java') },
+    },
+  });
+  assert.equal(outsideWrite.exitCode, 2, 'v6 direct Write/Edit must remain inside frozen write scope');
+  assert.match(outsideWrite.stderr, /outside the allowed write scope/u);
 
   const arbitraryBash = cleanPreWrite({
     root,
@@ -258,6 +288,61 @@ try {
   assert.equal(fs.readFileSync(path.join(root, targetRef), 'utf-8'), 'class App { int value = 1; }\n');
   assert.equal(fs.existsSync(taskExecutionReceiptPath(root, changeId, taskId)), true);
   assert.equal(fs.existsSync(authorizationPath), false, 'active runner authorization must be removed after child exit');
+
+  const tddTaskId = 'task-tdd';
+  const tddTestRef = 'src/test/java/demo/TddAppTest.java';
+  const tddProductRef = 'src/main/java/demo/TddApp.java';
+  fs.mkdirSync(path.dirname(path.join(root, tddTestRef)), { recursive: true });
+  const currentState = JSON.parse(fs.readFileSync(path.join(root, stateRef), 'utf-8'));
+  fs.writeFileSync(path.join(root, stateRef), `${JSON.stringify({ ...currentState, currentTask: tddTaskId }, null, 2)}\n`);
+  const tddExecute = createHandoffV2(root, {
+    changeId,
+    stage: 'implement',
+    behavior: 'implement.execute-task',
+    role: 'execute',
+    agent: { type: 'enterprise-harness:implementer', skill: 'implement' },
+    inputRefs: [stateRef, tasksRef, commandsRef],
+    tecpc: { target: 'prove test-first governed edits', evidence: [], context: [tasksRef], path: tasksRef, correction: null },
+  });
+  for (const event of [
+    { kind: 'dispatch-binding', requestedAgentType: 'enterprise-harness:implementer' },
+    { kind: 'start', observedAgentType: 'enterprise-harness:implementer' },
+  ]) appendAgentEvent(root, changeId, {
+    ...event,
+    agentId,
+    runId: tddExecute.runId,
+    handoffRole: 'execute',
+    handoffPath: tddExecute.path,
+    cwd: bindingCwd,
+  });
+
+  const testBeforeRed = cleanPreWrite({
+    root,
+    event: {
+      tool_name: 'Write', tool_use_id: 'tdd-test-before-red', agent_id: agentId, cwd: root,
+      tool_input: { file_path: path.join(root, tddTestRef) },
+    },
+  });
+  assert.equal(testBeforeRed.exitCode, 0, `a scoped test must be writable before RED: ${testBeforeRed.stderr || ''}`);
+  const productBeforeRed = cleanPreWrite({
+    root,
+    event: {
+      tool_name: 'Write', tool_use_id: 'tdd-product-before-red', agent_id: agentId, cwd: root,
+      tool_input: { file_path: path.join(root, tddProductRef) },
+    },
+  });
+  assert.equal(productBeforeRed.exitCode, 2, 'production code must remain blocked before a real RED');
+  assert.match(productBeforeRed.stderr, /RED receipt spool is missing/u);
+  const redRun = run(process.execPath, [runner, changeId, tddTaskId, tddExecute.runId, 'red']);
+  assert.equal(redRun.status, 7, `${redRun.stdout}\n${redRun.stderr}`);
+  const productAfterRed = cleanPreWrite({
+    root,
+    event: {
+      tool_name: 'Edit', tool_use_id: 'tdd-product-after-red', agent_id: agentId, cwd: root,
+      tool_input: { file_path: path.join(root, tddProductRef) },
+    },
+  });
+  assert.equal(productAfterRed.exitCode, 0, `a scoped production edit must be allowed after real RED: ${productAfterRed.stderr || ''}`);
 
   console.log(`PASS governed-task-run-write-gate ${mode}`);
 } finally {

@@ -28,6 +28,12 @@ export function markValidationStaleForWrite(root, statePath, target) {
   const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
   const changeDir = path.dirname(statePath);
   const artifact = artifactNameForPath(path.relative(changeDir, target));
+  if (!artifact
+      && (!state.validation || ['missing', 'stale'].includes(state.validation.status))
+      && (state.validation?.digest ?? null) === null
+      && (state.validation?.validatedAt ?? null) === null) {
+    return state;
+  }
   const next = artifact
     ? invalidateStateArtifacts(state, [artifact])
     : { ...state, validation: state.validation

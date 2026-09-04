@@ -1,11 +1,11 @@
 # 当前研发快照
 
-更新时间：2026-09-04（安装态 Plan 标准样例通过）
+更新时间：2026-09-04（安装态 Implement 标准样例通过）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.23
-- 当前阶段：Clarify、project-contract、compound Design 与 packaged Plan 标准样例完成；下一垂直切片为单 Task Implement runner/receipt/独立 review/TaskProof 安装态闭环
+- 当前版本：0.5.24
+- 当前阶段：Clarify、project-contract、compound Design、packaged Plan 与单 Task Implement 标准样例完成；下一垂直切片为 Verify/E2E canonical case receipt 闭环
 - active change：无
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
 
@@ -30,6 +30,14 @@
 - canonical Plan/Test Design 绑定反向覆盖全部 accepted `TC*`，并强制 migration level 由 migration strategy 的 `DRY_RUN/APPLY/ROLLBACK` 承接。
 - 真实 `npm pack` + 两个 fresh `claude -p --plugin-dir` session 已完成 Plan worker 与独立 reviewer；Main 显式选择首个冻结 task 后，runtime 发布 PlanProof 并推进到 `implement`。
 - Plan reviewer rubric 覆盖行为切片、R/D/VO/TC、模式理由、SQL 历史、literal argv、write scope、验收和恢复；下一切片是单 Task Implement 闭环。
+
+## 2026-09-04 Implement 安装态标准样例
+
+- named implementer 通过 `isolation: worktree` 获得文件隔离，并由 agent `skills:` 预加载完整 Implement Skill；三个 supporting references 在真实会话中被实际读取。
+- SubagentStart 在首次写测试前冻结 baseline；TDD 测试在 RED 前写入、产品代码只在真实 RED 后写入，RED/GREEN/REFACTOR 全部通过 canonical runner，最终 receipt 同时包含测试与产品 changed paths。
+- finalizer 原子持久化 StageResult；不同 agent/run 的 reviewer 只读取 receipt 指向的 worktree changed paths，不能扩展探索。
+- runtime 在 review 后仍要求主 checkout 与 reviewed worktree 每个 changed path 完全一致；真实 `npm pack` + fresh `claude -p --plugin-dir` 已证明未集成时拒绝、精确集成后发布 ImplementProof 并进入 Verify。
+- 同步兼容 Claude Code 当前异步 Agent tool 顺序，以及子代理 Bash 不导出 `CLAUDE_AGENT_ID` 的运行时事实；身份仍由 durable dispatch/start/stop receipts 约束。
 
 以下章节保留为历史研发记录，不代表当前版本状态。
 

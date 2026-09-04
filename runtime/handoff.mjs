@@ -136,7 +136,10 @@ if (action === 'create') {
         attempt,
       });
     const envelope = created.envelope ?? created.input;
-    console.log(`HANDOFF_INPUT=${path.relative(root, created.path)}`);
+    const markerPath = isV6 && role === 'execute' && stage === 'implement'
+      ? created.path
+      : path.relative(root, created.path);
+    console.log(`HANDOFF_INPUT=${markerPath}`);
     console.log(`runId=${envelope.runId}`);
     console.log(`agent=${envelope.agent.type}`);
     console.log(`skill=${envelope.agent.skill}`);
