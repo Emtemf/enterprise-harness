@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
+import { loadHandoffV2, persistHandoffV2Result } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateCanonicalDesignProof, validatePlanTestCaseBindings, validateStageResult } from '../../../runtime/api/result.mjs';
 import { assertNoSymlinkComponents, assertSafeId, assertSafeRunId, resolveChild } from '../../../runtime/api/task.mjs';
 import { assertTaskShape } from '../assert/task-shape.mjs';
@@ -111,6 +111,7 @@ try {
   };
   const validationProblems = validateStageResult(root, result);
   if (validationProblems.length > 0) throw new Error(`EH-PLAN-FINALIZE-004: ${validationProblems.join('; ')}`);
+  persistHandoffV2Result(root, changeId, runId, result);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 } catch (error) {
   console.error(error.message);

@@ -15,6 +15,7 @@ delete childEnv.CLAUDE_SESSION_ID;
 const commands = [
   ['bin/sync-version.mjs', '--check'],
   ['runtime/test/installed-design-plugin-e2e.mjs', 'verify'],
+  ['runtime/test/installed-plan-plugin-e2e.mjs', 'verify'],
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
   ['runtime/cli.mjs', 'doctor', '--json'],

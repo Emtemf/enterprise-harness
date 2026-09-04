@@ -1,11 +1,11 @@
 # 当前研发快照
 
-更新时间：2026-09-02（安装态 compound Design 标准样例通过）
+更新时间：2026-09-04（安装态 Plan 标准样例通过）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.22
-- 当前阶段：Clarify、project-contract 与 packaged compound Design 标准样例完成；下一垂直切片为 Plan 的冻结输入、详细任务设计与独立 review 安装态闭环
+- 当前版本：0.5.23
+- 当前阶段：Clarify、project-contract、compound Design 与 packaged Plan 标准样例完成；下一垂直切片为单 Task Implement runner/receipt/独立 review/TaskProof 安装态闭环
 - active change：无
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
 
@@ -23,6 +23,13 @@
 - runtime 只在两条 review chain 都通过后封存包含 `architecture`、`test-design` 两个 stageProof 的复合 DesignProof，并把 state 推进到 `plan`。
 - 修复了 pre-write 误拦截 Skill supporting scripts 的生产缺口；现在仅对当前 session、Skill、agent identity 与 dispatched run 匹配的 allowlisted script 放行，并窄化支持无文件写入能力的末尾 `2>&1`。
 - 全部 Skill eval 和 package lock 纳入版本投影与 release staging；`quality:local` 已通过 240 个 smoke、external-project E2E、打包、SBOM 和解包验收。
+
+## 2026-09-04 Plan 安装态标准样例
+
+- Plan finalizer 通过公开 runtime API 原子持久化同时绑定 `tasks.md` 与 `task-commands.json` 的 StageResult；重复写、stale input、占位和双产物不一致均 fail closed。
+- canonical Plan/Test Design 绑定反向覆盖全部 accepted `TC*`，并强制 migration level 由 migration strategy 的 `DRY_RUN/APPLY/ROLLBACK` 承接。
+- 真实 `npm pack` + 两个 fresh `claude -p --plugin-dir` session 已完成 Plan worker 与独立 reviewer；Main 显式选择首个冻结 task 后，runtime 发布 PlanProof 并推进到 `implement`。
+- Plan reviewer rubric 覆盖行为切片、R/D/VO/TC、模式理由、SQL 历史、literal argv、write scope、验收和恢复；下一切片是单 Task Implement 闭环。
 
 以下章节保留为历史研发记录，不代表当前版本状态。
 

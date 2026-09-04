@@ -27,7 +27,7 @@ agent: enterprise-harness:artifact-worker
 
 ## 输入与边界
 
-1. 先运行 `prepare-input.mjs HANDOFF_INPUT=<canonical-input.json-path>`；`design.md`、`test-cases.md` 和 compound DesignProof 必须全部存在且 digest-bound。
+1. 先运行 `node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs" "HANDOFF_INPUT=<canonical-input.json-path>"`；命令必须独立执行，不追加管道或文件重定向，末尾只允许诊断合流 `2>&1`。`design.md`、`test-cases.md` 和 compound DesignProof 必须全部存在且 digest-bound。
 2. 拒绝缺失或 digest 已变化的设计/测试用例；不从聊天摘要推断设计决定。
 3. 只计划本 change 的实现面。范围不完整或需要业务取舍时返回 `NEEDS_DECISION`，包含一个
    可由 Main 直接提问的明确问题。
@@ -60,10 +60,7 @@ Testable），可单独执行、审查、回滚和验证，且写明：
    `harness/changes/<changeId>/tasks.md` 与同目录 `task-commands.json`；两者都没有未替换占位符。
 2. 按 `references/self-check.md` 自检每个 task 的 design trace、路径、strategy、argv、验收、recovery 与 reviewer 输入；
    任何缺项都是 block，不以聊天补足。
-3. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，由该脚本对
-   双产物形状、task/strategy/TC/RED 映射、phase、literal argv、write scope 与 input digest 形成 assertions 和 `selfCheck`；再用
-   `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
-   将结果持久化为 execute run 的 immutable `result.json`。
+3. 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，命令必须独立执行，不追加管道或文件重定向，末尾只允许诊断合流 `2>&1`。该脚本重验冻结输入，对双产物形状、task/strategy/TC/RED 映射、phase、literal argv 与 write scope 形成 assertions/selfCheck，并通过公开 runtime API 原子持久化唯一 execute `result.json`；不得手写 result、用 stdout 重定向落盘或再调用第二套 persist。
 4. 由 Main 创建独立 `review` check run。Plan worker 的成功不等于 plan approved；只有
    digest-bound `ReviewResult` 与 runtime CompletionProof 通过后才可进入 implement。
 

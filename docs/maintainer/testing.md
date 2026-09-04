@@ -96,3 +96,11 @@ EH_RUN_CLAUDE_DESIGN_E2E=true node runtime/test/installed-design-plugin-e2e.mjs 
 ```
 
 该 E2E 在隔离临时仓库提供 full-impact requirements、classification 与 code research，分别用 fresh `claude -p` session 派发 Architecture Design、独立 Review、Test Design、独立 Review。它要求两个 worker 通过各自 packaged finalizer 持久化 digest-bound StageResult、两个 reviewer 原子持久化 ReviewResult，最后由 runtime 形成含 `architecture`/`test-design` 的复合 DesignProof 并推进到 `plan`；任一子链缺失都不能宣称 Design 完成。
+
+Plan 标准样例同样先做不耗额度的安装包结构检查；真实双会话链按需运行：
+
+```bash
+EH_RUN_CLAUDE_PLAN_E2E=true node runtime/test/installed-plan-plugin-e2e.mjs e2e
+```
+
+它从 canonical compound Design fixture 出发，要求已安装 Plan Skill 生成并原子持久化摘要绑定的 `tasks.md`/`task-commands.json`，覆盖全部 accepted `TC*`，并让 migration case 使用 migration strategy。第二个 fresh session 执行独立 Plan Review；随后 Main 显式选择首个冻结 task，runtime 才能发布 PlanProof 并推进到 `implement`。测试同时断言 Plan 不修改产品代码。

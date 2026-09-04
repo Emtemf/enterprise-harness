@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createHandoffV2 } from '../core/handoff-v2.mjs';
+import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 
 const mode = process.argv[2];
@@ -113,10 +113,18 @@ try {
   const passedResult = JSON.parse(passed.stdout);
   assert.equal(passedResult.status, 'pass');
   assert.deepEqual(
+    JSON.parse(fs.readFileSync(v2ResultPath(root, changeId, handoff.runId), 'utf-8')),
+    passedResult,
+    'Plan finalizer must atomically persist the same StageResult it prints',
+  );
+  assert.deepEqual(
     passedResult.artifacts.map(({ path: artifactPath }) => artifactPath),
     [tasksRef, taskCommandsRef],
     'one Plan StageResult must bind both human and machine plan artifacts',
   );
+  const duplicate = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.notEqual(duplicate.status, 0, 'Plan result persistence must be immutable');
+  assert.match(duplicate.stderr, /durable result already exists/u);
 
   const validTaskCommands = fs.readFileSync(path.join(root, taskCommandsRef), 'utf-8');
   const unsafeTaskCommands = JSON.parse(validTaskCommands);
@@ -185,8 +193,17 @@ try {
   assert.match(unknownRejected.stderr, /TC999|TC998/u);
 
   fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task <task-id>\n');
-  const rejected = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
+  const placeholderHandoff = createHandoffV2(root, {
+    changeId,
+    stage: 'plan',
+    behavior: 'plan.produce',
+    agent: { type: 'enterprise-harness:artifact-worker', skill: 'plan' },
+    inputRefs: [designRef, testCasesRef, designProofRef],
+    tecpc: { target: 'reject placeholder plan', evidence: [designRef], context: [designRef, testCasesRef, designProofRef], path: tasksRef, correction: null },
+  });
+  const rejected = spawnSync(process.execPath, [finalize, changeId, placeholderHandoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.notEqual(rejected.status, 0, 'placeholder plan must not finalize');
+  assert.match(rejected.stderr, /placeholder|Status/u);
 
   console.log(`PASS plan-skill-script ${mode}`);
 } finally {

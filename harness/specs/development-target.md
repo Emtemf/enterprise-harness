@@ -21,6 +21,7 @@ testRefs:
   - runtime/test/design-compound-gate-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
   - runtime/test/installed-design-plugin-e2e.mjs
+  - runtime/test/installed-plan-plugin-e2e.mjs
   - runtime/test/skill-script-hook-smoke.mjs
 ---
 
@@ -152,7 +153,7 @@ CompletionProof fresh；requirements→architecture→test-cases→tasks→recei
 1. Clarify：research、技术债、project-contract audit、Decision Ledger、Checklist、ClarifyProof。
 2. Project-contract 安全 proposal/apply 与 InstructionsLoaded 诊断（已落地；持续以真实安装态 E2E 守卫）。
 3. Design 输出合同和条件审查。
-4. Plan 到 `task-commands.json` 的机器闭环。
+4. Plan 到 `task-commands.json` 的机器闭环（已落地；由真实安装态标准样例持续守卫）。
 5. Implement Task runner/receipt/review/proof。
 6. Verify frozen validation runner 和 E2E receipt。
 7. Archive/analysis traceability。

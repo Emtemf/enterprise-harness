@@ -8,18 +8,22 @@ const TC_ID = /\bTC[1-9][0-9]*\b/gu;
 export function acceptedTestCasesFromMarkdown(content) {
   const lines = String(content || '').split(/\r?\n/u);
   const header = lines.findIndex((line) => /^\|\s*TCID\s*\|/u.test(line));
-  if (header < 0) return { ids: [], problems: ['test-cases.md has no TCID table'] };
+  if (header < 0) return { ids: [], cases: [], problems: ['test-cases.md has no TCID table'] };
   const ids = [];
+  const cases = [];
   const problems = [];
   for (const line of lines.slice(header + 2)) {
     if (!line.startsWith('|')) break;
     const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
     if (cells.length !== 10 || !/^TC[1-9][0-9]*$/u.test(cells[0])) continue;
-    if (cells[9] === 'accepted') ids.push(cells[0]);
+    if (cells[9] === 'accepted') {
+      ids.push(cells[0]);
+      cases.push({ id: cells[0], level: cells[2] });
+    }
   }
   if (ids.length === 0) problems.push('test-cases.md has no accepted TC IDs');
   if (new Set(ids).size !== ids.length) problems.push('test-cases.md contains duplicate accepted TC IDs');
-  return { ids, problems };
+  return { ids, cases, problems };
 }
 
 export function taskTestCaseBindingsFromMarkdown(content) {
@@ -61,6 +65,15 @@ export function validatePlanTestCaseBindings(testCasesContent, tasksContent) {
       } else if (!acceptedIds.has(task.minimalRed)) {
         problems.push(`tdd task ${task.taskId} Minimal RED case ${task.minimalRed} is not accepted`);
       }
+    }
+  }
+  for (const testCase of accepted.cases) {
+    const mapped = bindings.tasks.filter((task) => task.testCases.includes(testCase.id));
+    if (mapped.length === 0) {
+      problems.push(`accepted test case ${testCase.id} is not mapped by any plan task`);
+    }
+    if (testCase.level === 'migration' && !mapped.some((task) => task.strategy === 'migration')) {
+      problems.push(`accepted migration test case ${testCase.id} must be mapped by a migration task`);
     }
   }
   return {

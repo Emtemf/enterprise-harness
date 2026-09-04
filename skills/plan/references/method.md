@@ -10,3 +10,6 @@ Plan 先消费摘要绑定的 `design.md`、`test-cases.md` 和 compound DesignP
 
 涉及数据库时，migration、rollback 和历史 SQL 文件必须进入独立可审查 task，不能把 SQL 只写在说明或
 聊天中。涉及生成代码时，生成命令与生成后验证分别冻结为 `GENERATE` / `VERIFY`。
+
+每个 accepted `TC*` 至少由一个 task 覆盖；Test Design 中 level 为 `migration` 的 accepted case 必须由
+`migration` strategy task 消费，不能用 `direct` 的单次 VERIFY 冒充迁移的 DRY_RUN/APPLY/ROLLBACK 证据。

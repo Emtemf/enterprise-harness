@@ -1,6 +1,6 @@
 {
   "skill": "plan",
-  "version": "0.5.22",
+  "version": "0.5.23",
   "cases": [
     {
       "id": "dual-artifact-freeze",
@@ -18,6 +18,18 @@
       "id": "cross-artifact-consistency",
       "description": "两个计划产物的 task、strategy、TC 与 Minimal RED 映射不一致",
       "expected": "finalize fail closed，并指出具体 task 与冲突值",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "accepted-test-case-completeness",
+      "description": "某个 accepted TC 没有被任何计划任务消费",
+      "expected": "finalize fail closed，并指出缺失映射的具体 TC ID",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "migration-level-strategy-binding",
+      "description": "migration level 的 accepted TC 被 direct task 以单次 VERIFY 承接",
+      "expected": "finalize fail closed；必须改为拥有 DRY_RUN/APPLY/ROLLBACK 的 migration strategy task",
       "category": "runtime-gate"
     },
     {

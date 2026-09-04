@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.5.23] - 2026-09-04
+
+### Added
+
+- 新增安装态 Plan 标准样例：真实 `npm pack` 插件以两个 fresh `claude -p` session 完成 Plan 双产物生成、独立 Review、显式首任务选择、PlanProof 发布和 `plan → implement` 推进。
+
+### Changed
+
+- Plan reviewer rubric 现在逐 task 审查行为切片、R/D/VO/TC 追踪、模式理由、SQL 历史、strategy phase、literal argv、最小 write scope、验收与恢复。
+
+### Fixed
+
+- Plan finalizer 现在重验冻结输入后通过公开 runtime API 原子持久化唯一 StageResult，不再依赖 worker 将 stdout 二次持久化。
+- Plan/Test Design 绑定现在要求覆盖每个 accepted `TC*`；accepted migration case 必须由 `migration` strategy task 消费，不能用 `direct/VERIFY` 冒充 DRY_RUN/APPLY/ROLLBACK。
+
 ## [0.5.22] - 2026-09-02
 
 ### Added
