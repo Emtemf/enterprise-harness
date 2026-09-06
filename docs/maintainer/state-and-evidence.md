@@ -22,7 +22,7 @@ ResearchPackets + Decisions
   → design.md + architecture execute/review + sealed ArchitectureProof
   → test-cases.md + test-design execute/review + compound DesignProof
   → tasks.md + task-commands.json + task execute/check receipts
-  → validation.md + canonical per-TC verification receipts + final review
+  → per-TC machine command evidence + validation.md + canonical verification receipts + final review
   → runtime-written archive manifest + writer attestation
 ```
 
@@ -34,7 +34,7 @@ ResearchPackets + Decisions
 | Architecture Design | `design.md`、architecture StageResult、不同 run/identity 的 ReviewResult、sealed ArchitectureProof | Test Design 只能消费已封存且 fresh 的 architecture chain |
 | Test Design | 独立的 `test-cases.md`、test-design StageResult 与独立 ReviewResult | runtime 组合 ArchitectureProof 与 test-design chain，形成 compound DesignProof；`test-cases.md` 是详细 `TC*` 的唯一权威 |
 | Plan / Implement | `tasks.md`、`task-commands.json`、每个 task 的 strategy、phase、literal argv、write scope、`TC*` 映射，以及 execute/check receipts | Plan 同时绑定 compound DesignProof 和当前 `test-cases.md`；两个计划产物由同一 StageResult/review 绑定，Implement 只能用相应 task 的冻结输入完成工作 |
-| Verify | `validation.md`、每个 accepted `TC*` 的 canonical receipt、fresh validation 与独立 final review | `unsupported` 不能提升为 pass；适用的 critical E2E 必须实际执行 |
+| Verify | `evidence/verify/<run>/<TC>.json` 机器命令证据、`validation.md`、每个 accepted `TC*` 的 canonical receipt、fresh validation 与独立 final review | executed 必须绑定 Plan 冻结 argv 的 fresh runner 结果；手写日志/task receipt 不能代替；`unsupported` 不能提升为 pass；适用的 critical E2E 必须实际执行 |
 | Archive | runtime 写入的 `evidence/archive-manifest.json` 及配对 writer attestation | manifest 绑定 compound DesignProof、`test-cases.md`、两段 test-design run、Verify completion 和逐 TC receipts；手写 manifest 不能替代 writer path |
 
 ## Freshness、stale 传播与恢复

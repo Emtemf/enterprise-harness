@@ -36,6 +36,11 @@ try {
   const designProofRef = `harness/changes/${input.changeId}/evidence/completion/design.json`;
   required(changeDir, 'evidence/completion/design.json');
   if (!input.inputRefs.includes(designProofRef)) throw new Error('EH-VERIFY-PREPARE-004: compound DesignProof input must be digest-bound');
+  for (const name of ['tasks.md', 'task-commands.json', 'evidence/completion/plan.json', 'evidence/completion/implement.json']) {
+    required(changeDir, name);
+    const ref = `harness/changes/${input.changeId}/${name}`;
+    if (!input.inputRefs.includes(ref)) throw new Error(`EH-VERIFY-PREPARE-004: ${name} input must be digest-bound`);
+  }
   for (const ref of input.inputRefs) {
     if (sha256Artifact(root, ref) !== input.inputDigests[ref]) throw new Error(`EH-VERIFY-PREPARE-005: input digest is stale: ${ref}`);
   }

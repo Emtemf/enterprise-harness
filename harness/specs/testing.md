@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-23
+lastVerified: 2026-09-04
 implementationRefs:
   - bin/local-quality.mjs
   - runtime/test
@@ -10,6 +10,8 @@ testRefs:
   - runtime/test/ci-workflow-contract-smoke.mjs
   - runtime/test/release-local-transaction-smoke.mjs
   - runtime/test/release-version-acceptance-smoke.mjs
+  - runtime/test/verify-run-smoke.mjs
+  - runtime/test/installed-verify-plugin-e2e.mjs
 ---
 
 # Testing Contract
@@ -17,6 +19,10 @@ testRefs:
 必须区分 unit、integration、adversarial、contract 和 external-project acceptance。
 
 行为测试验证进程 exit、stdout/stderr、文件系统结果和 evidence，不以源码 token 代替核心行为。
+
+Verify 的标准验收必须证明 installed plugin 能在真实 `claude -p --plugin-dir` 会话中 fork Verify Skill，
+从 Plan 解析冻结命令，通过 runtime runner 执行，产出逐 TC command evidence/canonical receipt，并由
+finalizer 持久化 StageResult。仅校验 Skill 文本或本地手写 fixture 不构成该链路的 E2E 证据。
 
 RED 必须由目标断言在缺少实现时失败；同一测试在实现后通过。
 

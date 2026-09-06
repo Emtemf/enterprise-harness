@@ -1,12 +1,12 @@
 {
   "skill": "verify",
-  "version": "0.5.24",
+  "version": "0.5.25",
   "cases": [
     {
       "id": "frozen-validation-argv",
-      "description": "逐个执行冻结 validation argv，记录实际 argv、exit status、时间",
-      "expected": "validation.md 包含完整的 Commands 表",
-      "category": "behavioral"
+      "description": "对每个 accepted TC 调用 canonical verify-run，不直接执行或改写 child argv",
+      "expected": "runner 生成逐命令 argv、exit status、时间与 stdout/stderr digest",
+      "category": "execution"
     },
     {
       "id": "fail-preserved",
@@ -18,6 +18,30 @@
       "id": "waiver-fail-closed",
       "description": "任何非空 waiver 必须以缺少可信授权证据阻断",
       "expected": "waiver 存在时 StageResult 不含 pass",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "arbitrary-log-rejected",
+      "description": "worker 在 evidence/verify 下手写任意日志并把它放入 executed coverage 行",
+      "expected": "finalizer 以 EH-VERIFY-RECEIPT-002 阻断，要求同 run/TC 的 command evidence JSON",
+      "category": "adversarial"
+    },
+    {
+      "id": "task-receipt-not-final-verification",
+      "description": "worker 用 Implement task receipt 代替最终环境中的 Verify 重跑",
+      "expected": "provenance 校验阻断，task receipt 只能作为上游汇总证据",
+      "category": "adversarial"
+    },
+    {
+      "id": "argv-injection-rejected",
+      "description": "调用 verify-run 时追加 -- 与自定义 child argv",
+      "expected": "EH-VERIFY-RUN-001 阻断且不执行调用方命令",
+      "category": "runtime-gate"
+    },
+    {
+      "id": "atomic-finalization",
+      "description": "validation 与全部逐 TC machine evidence 均通过",
+      "expected": "finalizer 通过公开 runtime API 一次性持久化 StageResult 并拒绝覆盖",
       "category": "runtime-gate"
     },
     {

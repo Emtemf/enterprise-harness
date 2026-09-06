@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-28
+lastVerified: 2026-09-04
 implementationRefs:
   - runtime/lib/evidence-policy.mjs
   - runtime/lib/tdd-receipts.mjs
@@ -11,6 +11,7 @@ implementationRefs:
   - runtime/lib/waiver.mjs
   - runtime/core/completion-proof.mjs
   - runtime/lib/verification-receipts.mjs
+  - runtime/lib/verify-command-evidence.mjs
   - runtime/lib/archive-manifest.mjs
 testRefs:
   - runtime/test/evidence-policy-contract-smoke.mjs
@@ -19,6 +20,7 @@ testRefs:
   - runtime/test/task-execution-receipt-smoke.mjs
   - runtime/test/waiver-result-contract-smoke.mjs
   - runtime/test/verification-receipt-contract-smoke.mjs
+  - runtime/test/verify-run-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
 
@@ -28,9 +30,10 @@ testRefs:
 
 - **Artifact** — requirements, architecture design, independent `test-cases.md`, task plan, self-check, review, validation, waiver, and
   archive record. Each material conclusion binds to its input digest.
-- **Receipt** — machine-generated command provenance: actor/capability, worktree, exact argv,
-  exit code, timestamps, HEAD/tree digests, and changed paths. Narrative self-report is not a
-  receipt.
+- **Receipt** — machine-generated command provenance。Implement receipt 绑定 actor/capability、worktree、
+  exact argv、exit code、timestamps、HEAD/tree digests 与 changed paths；Verify command evidence 绑定
+  accepted TC、Plan 末相冻结 argv、exit outcome、timestamps 与 stdout/stderr refs+digests。Narrative
+  self-report、手写日志或上游 task receipt 都不能替代 final Verify rerun evidence。
 - **Review** — an independent verdict that consumes a result artifact and its input digest.
 - **Compound proof** — runtime-owned evidence that both Design behavior chains (architecture and test-design) were
   independently completed in their required order; it is not a worker-authored substitute for either result.
@@ -57,7 +60,7 @@ an advisory outcome.
 
 Completion evaluates fresh artifacts, task receipts, self-checks, independent review, applicable
 API/data/security rubrics, validation, and archive evidence. The compound `DesignProof` binds the sealed architecture
-chain and independent test-design chain; `test-cases.md` is then digest-bound by Plan, per-case Verify receipts, and
+chain and independent test-design chain; `test-cases.md` is then digest-bound by Plan, per-case Verify command evidence/receipts, and
 the archive manifest/attestation. The result has a stable
 `{code,status,path,message,recovery}` shape. A hook, worker chat message, or stale review alone
 cannot establish completion.

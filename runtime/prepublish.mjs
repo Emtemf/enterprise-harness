@@ -17,6 +17,7 @@ const commands = [
   ['runtime/test/installed-design-plugin-e2e.mjs', 'verify'],
   ['runtime/test/installed-plan-plugin-e2e.mjs', 'verify'],
   ['runtime/test/installed-implement-plugin-e2e.mjs', 'verify'],
+  ['runtime/test/installed-verify-plugin-e2e.mjs', 'verify'],
   ['bin/run-smoke-suite.mjs'],
   ['runtime/cli.mjs', 'bootstrap'],
   ['runtime/cli.mjs', 'doctor', '--json'],

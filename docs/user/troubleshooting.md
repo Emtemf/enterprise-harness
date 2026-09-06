@@ -207,6 +207,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-VERIFY-FINALIZE-002` | 缺少 `validation.md` | 先运行冻结 validation 并写入报告 |
 | `EH-VERIFY-FINALIZE-003` | validation 报告缺少命令、结果、新鲜度或例外记录 | 补全四个必填节并重新验证 |
 | `EH-VERIFY-FINALIZE-004` | verify StageResult 不符合运行时合同 | 修复 evidence/result 后重新 finalise |
+| `EH-VERIFY-RUN-001` | Verify runner 的 handoff/agent 绑定、冻结 argv、输入 freshness、命令执行或不可变证据写入失败 | 保留当前 run 证据，按报错修复最早失效输入或命令；需要重试时创建新的 verify run，不能手写 evidence |
 | `EH-ARCHIVE-FINALIZE-001` | archive finalizer 的 handoff 不匹配 | 创建 artifact-worker/archive 的 execute handoff |
 | `EH-ARCHIVE-FINALIZE-002` | 缺少 validation 或 verify CompletionProof | 修复 verify evidence 后重新运行 archive self-check |
 | `EH-ARCHIVE-FINALIZE-003` | verify CompletionProof 不是有效的 verify proof | 重新获得 fresh verify completion proof |
@@ -215,7 +216,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-ARCHIVE-MANIFEST-002` | archive manifest / runtime writer attestation 已存在但不构成当前 run 的同一 immutable pair | 不要手写、覆盖或移动任一证据；保留原 pair，并按受支持恢复流程创建新的 archive execution |
 | `EH-ARCHIVE-MANIFEST-003` | manifest 已写入但 runtime writer attestation 无法以 immutable record 写入 | 不要手写 attestation；保留失败证据并按 archive recovery 创建新的执行，而不是尝试补造 receipt |
 | `EH-VERIFY-RECEIPT-001` | Verify 的 TC coverage 缺失、unsupported、无理由 skipped，或不对应 accepted TC | 为每个 accepted TC 记录 executed/skipped 状态和明确理由；unsupported 不能通过，critical E2E 必须实际 executed |
-| `EH-VERIFY-RECEIPT-002` | verification receipt 的 provenance、run、digest、路径或输入闭包无效/过期 | 使用当前 verify run 的 canonical task receipt 或 `evidence/verify/<runId>/` 实际证据；刷新 digest 后重跑 Verify |
+| `EH-VERIFY-RECEIPT-002` | verification receipt 的 provenance、run、digest、路径或输入闭包无效/过期 | 使用当前 verify run 的 canonical `evidence/verify/<runId>/<TC>.json` 机器命令证据；刷新 digest 后重跑 Verify，不能用 task receipt 或手写日志替代 |
 | `EH-VERIFY-RECEIPT-003` | verification receipt 已存在，runtime 拒绝重复写入 | receipt 是 immutable；保留原 run evidence，需重试时创建新的 verify run |
 | `EH-HANDOFF-V2-023` | handoff v2 role 非法 | 仅使用 `execute` 或 `check` |
 | `EH-HANDOFF-V2-024` | handoff v2 缺 agent type 或 skill | 提供已声明的 agent type 与 skill |

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadHandoffV2 } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from './result-contract.mjs';
-import { readTaskExecutionReceipt } from './task-execution-receipt.mjs';
+import { readVerifyCommandEvidence, verifyCommandEvidenceRef } from './verify-command-evidence.mjs';
 import {
   assertNoSymlinkComponents,
   assertSafeId,
@@ -15,12 +15,11 @@ import {
   resolveChild,
   resolveWithin,
 } from './safe-paths.mjs';
-import { taskTestCaseBindingsFromMarkdown } from './plan-test-case-binding.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
 const TC_ID = /^TC[1-9][0-9]*$/u;
 const STATUS = new Set(['executed', 'skipped', 'unsupported']);
-const PROVENANCE = new Set(['task-receipt', 'verify-evidence']);
+const PROVENANCE = new Set(['verify-command', 'verify-evidence']);
 const RECEIPT_FIELDS = new Set([
   'receiptVersion', 'type', 'changeId', 'verifyRunId', 'tcId', 'status', 'reason',
   'provenance', 'evidenceRef', 'evidenceDigest', 'inputDigests', 'validation', 'createdAt',
@@ -141,38 +140,27 @@ function canonicalVerifyHandoff(root, changeId, verifyRunId, problems) {
   return handoff;
 }
 
-function taskReceiptProvenance(root, changeId, tcId, evidenceRef, problems) {
-  const match = evidenceRef.match(new RegExp(`^harness/changes/${changeId}/evidence/tasks/([A-Za-z0-9][A-Za-z0-9._-]{0,127})\\.json$`, 'u'));
-  if (!match) return false;
-  const taskId = match[1];
-  const loaded = readTaskExecutionReceipt(root, changeId, taskId, { requireTrusted: true, requireFreshInputs: true });
-  if (!loaded.ok) {
-    problems.push(...loaded.problems.map((problem) => `task receipt ${taskId}: ${problem}`));
-    return true;
-  }
-  let tasksContent = '';
-  try {
-    tasksContent = fs.readFileSync(path.join(root, 'harness', 'changes', changeId, 'tasks.md'), 'utf-8');
-  } catch (error) {
-    problems.push(`tasks.md is unreadable: ${error.message}`);
-    return true;
-  }
-  const task = taskTestCaseBindingsFromMarkdown(tasksContent).tasks.find((entry) => entry.taskId === taskId);
-  if (!task?.testCases.includes(tcId)) {
-    problems.push(`task receipt ${taskId} is not mapped to ${tcId}`);
-  }
-  return true;
-}
-
-function receiptProvenance(root, changeId, verifyRunId, tcId, status, evidenceRef, problems) {
+function receiptProvenance(root, changeId, verifyRunId, tcId, status, evidenceRef, problems, inputDigests = null) {
   if (status !== 'executed') return evidenceRef === `harness/changes/${changeId}/validation.md`
     ? 'verify-evidence'
     : null;
-  if (taskReceiptProvenance(root, changeId, tcId, evidenceRef, problems)) return 'task-receipt';
-  const evidenceDir = verificationEvidenceDirectoryRef(changeId, verifyRunId);
-  if (evidenceRef === evidenceDir || evidenceRef.startsWith(`${evidenceDir}/`)) return 'verify-evidence';
-  problems.push(`executed ${tcId} evidence must be a canonical task receipt or current verify evidence directory`);
-  return null;
+  const canonicalRef = verifyCommandEvidenceRef(changeId, verifyRunId, tcId);
+  if (evidenceRef !== canonicalRef) {
+    problems.push(`executed ${tcId} evidence must be the canonical machine-generated Verify evidence ${canonicalRef}`);
+    return null;
+  }
+  const loaded = readVerifyCommandEvidence(root, changeId, verifyRunId, tcId, {
+    expectedInputDigests: inputDigests,
+  });
+  if (!loaded.ok) {
+    problems.push(...loaded.problems.map((problem) => `${tcId} command evidence: ${problem}`));
+    return null;
+  }
+  if (loaded.evidence.status !== 'pass') {
+    problems.push(`${tcId} command evidence status must be pass`);
+    return null;
+  }
+  return 'verify-command';
 }
 
 function validateInputDigests(root, changeDir, inputDigests, problems) {
@@ -230,7 +218,7 @@ export function validateVerificationReceipt(root, receipt, {
       problems.push('validation artifact does not match the current validation digest');
     }
     freshDigest(root, changeDir, receipt.evidenceRef, receipt.evidenceDigest, 'receipt evidence', problems);
-    const actualProvenance = receiptProvenance(root, changeId, verifyRunId, receipt.tcId, receipt.status, receipt.evidenceRef, problems);
+    const actualProvenance = receiptProvenance(root, changeId, verifyRunId, receipt.tcId, receipt.status, receipt.evidenceRef, problems, receipt.inputDigests);
     if (actualProvenance && receipt.provenance !== actualProvenance) {
       problems.push(`provenance must be ${actualProvenance}`);
     }
@@ -255,7 +243,7 @@ function buildReceipt(root, {
       return null;
     }
   })();
-  const provenance = receiptProvenance(root, changeId, verifyRunId, tcId, status, evidenceRef, problems);
+  const provenance = receiptProvenance(root, changeId, verifyRunId, tcId, status, evidenceRef, problems, inputDigests);
   const receipt = {
     receiptVersion: 1,
     type: 'verification-receipt',

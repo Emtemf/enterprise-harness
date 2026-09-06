@@ -557,13 +557,18 @@ function stageCompletionCandidateFor(root, changeId, stage, {
     executionProblems.push(...designProblems.map((problem) => `${executionCandidate.runId}: canonical DesignProof: ${problem}`));
   }
   if (stage === 'verify') {
-    const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
-    const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
-    if (!execution.input.inputRefs.includes(testCasesRef)) {
-      executionProblems.push(`${executionCandidate.runId}: verify input must digest-bind test-cases.md`);
-    }
-    if (!execution.input.inputRefs.includes(designProofRef)) {
-      executionProblems.push(`${executionCandidate.runId}: verify input must digest-bind compound DesignProof`);
+    const requiredVerifyInputs = [
+      ['test-cases.md', `harness/changes/${changeId}/test-cases.md`],
+      ['tasks.md', `harness/changes/${changeId}/tasks.md`],
+      ['task-commands.json', `harness/changes/${changeId}/task-commands.json`],
+      ['compound DesignProof', `harness/changes/${changeId}/evidence/completion/design.json`],
+      ['PlanProof', `harness/changes/${changeId}/evidence/completion/plan.json`],
+      ['ImplementProof', `harness/changes/${changeId}/evidence/completion/implement.json`],
+    ];
+    for (const [label, ref] of requiredVerifyInputs) {
+      if (!execution.input.inputRefs.includes(ref)) {
+        executionProblems.push(`${executionCandidate.runId}: verify input must digest-bind ${label}`);
+      }
     }
     const designProblems = validateStageGate(root, changeId, 'design', {
       requiredArtifactPath: `harness/changes/${changeId}/design.md`,

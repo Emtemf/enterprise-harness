@@ -98,7 +98,7 @@
 
 ## 0.3.10 阶段 skill 上下文隔离
 
-- route/design/plan/tdd/verify 加 `context: fork` + `background: false`：阶段 SOP 全文不再进主对话。此前跑完整条链会在主上下文堆叠 7 份阶段合同。
+- route/design/plan/tdd/verify 使用 `context: fork`：阶段 SOP 全文不再进主对话。`background` 是 custom subagent 字段，不写入 Skill。此前跑完整条链会在主上下文堆叠 7 份阶段合同。
 - `harness` 与 `harness-clarify` 保持 inline：forked subagent 没有用户对话通道，而 clarify 的核心行为是一次只问一个问题。
 - route 原第 4 步"向用户展示并请其确认路由"移回主 orchestrator；forked route 只返回待确认项，`workflow.routeReady` 不由该 skill 置位。
 - 除入口外全部 stage skill 加 `user-invocable: false`，兑现"唯一入口"。此前 `/harness-design` 等可直接跳进去绕过 gate。

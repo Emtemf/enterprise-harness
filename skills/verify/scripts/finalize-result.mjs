@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { loadHandoffV2 } from '../../../runtime/api/handoff.mjs';
+import { loadHandoffV2, persistHandoffV2Result } from '../../../runtime/api/handoff.mjs';
 import { sha256Artifact, validateCanonicalDesignProof, validateStageResult } from '../../../runtime/api/result.mjs';
 import { assertNoSymlinkComponents, assertSafeId, assertSafeRunId, resolveChild } from '../../../runtime/api/task.mjs';
 import { parseValidationTestCaseCoverage, persistVerificationReceipts } from '../../../runtime/api/verification-receipt.mjs';
@@ -29,10 +29,17 @@ try {
     }
   }
   const changeDir = resolveChild(path.join(root, 'harness', 'changes'), changeId, 'changeId');
+  const tasksRef = `harness/changes/${changeId}/tasks.md`;
+  const taskCommandsRef = `harness/changes/${changeId}/task-commands.json`;
   const testCasesRef = `harness/changes/${changeId}/test-cases.md`;
   if (!input.inputRefs.includes(testCasesRef)) throw new Error('EH-VERIFY-FINALIZE-006: test-cases input must be digest-bound');
   const designProofRef = `harness/changes/${changeId}/evidence/completion/design.json`;
   if (!input.inputRefs.includes(designProofRef)) throw new Error('EH-VERIFY-FINALIZE-006: compound DesignProof input must be digest-bound');
+  const planProofRef = `harness/changes/${changeId}/evidence/completion/plan.json`;
+  const implementProofRef = `harness/changes/${changeId}/evidence/completion/implement.json`;
+  for (const ref of [tasksRef, taskCommandsRef, planProofRef, implementProofRef]) {
+    if (!input.inputRefs.includes(ref)) throw new Error(`EH-VERIFY-FINALIZE-006: ${ref} must be digest-bound`);
+  }
   const testCasesPath = path.join(root, testCasesRef);
   assertNoSymlinkComponents(changeDir, testCasesPath, 'test-cases.md');
   if (!fs.existsSync(testCasesPath)) throw new Error('EH-VERIFY-FINALIZE-006: missing test-cases.md');
@@ -60,6 +67,7 @@ try {
   const assertions = [
     { id: assertResult.id, verdict: assertResult.verdict, evidence: assertResult.evidence },
     { id: 'test-case-consumption', verdict: 'pass', evidence: [testCasesRef, artifactPath, ...persisted.receipts.map((receipt) => receipt.path)] },
+    { id: 'machine-verify-command-evidence', verdict: 'pass', evidence: coverage.coverage.filter(({ status }) => status === 'executed').map(({ evidenceRef }) => evidenceRef) },
     { id: 'freshness-and-exceptions-recorded', verdict: 'pass', evidence: [artifactPath, ...persisted.receipts.map((receipt) => receipt.path)] },
   ];
   const result = {
@@ -80,6 +88,7 @@ try {
   };
   const validationProblems = validateStageResult(root, result);
   if (validationProblems.length > 0) throw new Error(`EH-VERIFY-FINALIZE-004: ${validationProblems.join('; ')}`);
+  persistHandoffV2Result(root, changeId, runId, result);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 } catch (error) {
   console.error(error.message);

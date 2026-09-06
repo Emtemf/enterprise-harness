@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.5.25] - 2026-09-06
+
+### Added
+
+- 新增受信 `verify-run`：按 accepted `TC*` 解析 Plan 映射 task 的末相冻结 argv，以 `shell: false` 真实执行，并生成含 task/phase/argv/outcome/exit/time/stdout/stderr digest 的逐用例 immutable command evidence。
+- 新增安装态 Verify 标准样例，使用真实 `npm pack` 插件与 `claude -p` 验证 `context: fork`、supporting references、artifact-worker 绑定、runner、中文 validation、canonical TC receipt 和 StageResult 原子持久化全链路。
+- Verify Skill 补齐执行方法、制品合同、自检清单、正反 few-shot 和 adversarial eval。
+
+### Changed
+
+- Verify Skill 显式使用官方 `context: fork`、`agent` 与 `model: inherit`，在保持隔离上下文和受限 artifact-worker 工具面的同时尊重主会话模型选择；同时移除仅属于 custom subagent 的 `background` Skill 误用。
+- Verify handoff 必须 digest-bind compound DesignProof、PlanProof、ImplementProof、`test-cases.md`、`tasks.md` 与 `task-commands.json`；Stage gate 对同一输入闭包 fail closed。
+
+### Fixed
+
+- executed TC 不再接受 worker 手写日志、任意 `evidence/verify/` 路径或 Implement task receipt；canonical verification receipt 只接受同 change/run/TC 的 passing runtime command evidence。
+- Verify finalizer 现在在重验全部机器证据后通过公开 runtime API 原子持久化唯一 StageResult，不再依赖 Main 对 stdout 二次落盘。
+
 ## [0.5.24] - 2026-09-04
 
 ### Added

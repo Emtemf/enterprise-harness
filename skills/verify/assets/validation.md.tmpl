@@ -2,44 +2,51 @@
 
 ## Target
 
-- Change:
-- Verification target:
+- Change: <change-id>
+- Verify run: <run-id>
+- Verification target: <business-observable target>
 
 ## Commands
 
-| Frozen argv | Actual argv | Exit status | Evidence digest | Result |
-|---|---|---:|---|---|
+| TC | Task | Frozen argv | Actual argv | Exit status | Started at | Finished at | stdout digest | stderr digest | Evidence |
+|---|---|---|---|---:|---|---|---|---|---|
+| <TC-id> | <task-id> | `<JSON argv>` | `<JSON argv>` | <exit-code> | <ISO timestamp> | <ISO timestamp> | `<sha256>` | `<sha256>` | `<verify command evidence ref>` |
 
 ## Results
 
-- Task receipts:
-- Self-checks:
-- Independent reviews:
-- API/data/security evidence:
+- Task receipts: <refs>
+- Independent task reviews: <refs>
+- DesignProof: <ref + digest>
+- PlanProof: <ref + digest>
+- ImplementProof: <ref + digest>
+- API/data/security evidence: <refs or N/A with reason>
+- Observable outcome: <what a user/system can observe>
 
 ## Freshness
 
-- Design/plan input digests:
-- Current tree digest:
-- Validation digest:
-- Executed at:
+- Frozen input digests: <refs + sha256>
+- Verify command evidence: <refs + sha256>
+- Validation digest: populated by finalizer
+- Executed at: <ISO timestamp range>
 
 ## Coverage and exceptions
 
-- Applicable rubrics:
-- N/A with reason:
-- Skipped checks with reason:
-- Unsupported inputs:
-- Waivers and expiry:
+- Applicable rubrics: <ids>
+- TC receipt lines:
+- <TC-id> | executed | <canonical verify command evidence ref>
+- N/A with reason: <dimension + reason>
+- Skipped checks with reason: <TC + reason or none>
+- Unsupported inputs: <TC + blocker or none>
+- Waivers and expiry: <authorization artifact or none>
 
 ## Correction and recovery
 
-- Failures/retries:
-- Required correction:
-- Next action:
+- Failures/retries: <evidence refs or none>
+- Required correction: <earliest stale/failed gate or none>
+- Next action: independent Verify review
 
 ## Final executor verdict
 
 `pass` | `block` | `needs_decision`
 
-> The final completion verdict belongs to the independent review and runtime CompletionProof, not this executor report.
+> 最终完成结论属于独立 review 与 runtime CompletionProof，不属于本 executor 报告。

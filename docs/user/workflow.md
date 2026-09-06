@@ -115,9 +115,14 @@ receipt 指向的真实 changed paths，review pass 后还必须把相同内容�
 
 ## verify
 
-目的：执行冻结 validation argv，消费 task receipts、reviews、ledger 与 fresh artifacts，形成
-最终 validation 和独立 final review。Verify 为每个已接受 `TC*` 记录 `executed`、有理由的 `skipped` 或
-`unsupported` 与 canonical receipt；`unsupported` 不是 pass，critical E2E 必须实际执行。
+目的：以每个 accepted `TC*` 为队列，通过 canonical `verify-run` 重跑其 Plan 映射 task 的末相冻结 argv，
+消费 task receipts、reviews、Design/Plan/Implement proofs 与 fresh artifacts，形成最终 validation 和独立
+final review。runner 使用 argv 数组与 `shell: false`，为每条命令保存 exit status、时间及 stdout/stderr
+digest；executed TC 只能引用当前 run/TC 的机器证据，不能用手写日志或 Implement receipt 替代。
+
+Verify 为每个已接受 `TC*` 记录 `executed`、有理由的 `skipped` 或 `unsupported` 与 canonical receipt；
+`unsupported` 不是 pass，critical E2E 必须实际执行。Skill finalizer 通过 runtime API 原子持久化
+StageResult，随后仍需不同 run/identity 的独立完成审查。
 
 用户只处理真正需要接受或拒绝的 advisory。缺失、unsupported 或 stale evidence 不能被聊天中的
 “已经验证”替代。

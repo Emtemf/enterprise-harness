@@ -27,6 +27,7 @@ Commands:
 - workflow
 - context7
 - task-run
+- verify-run
 - tdd-run
 - evidence-import
 - handoff

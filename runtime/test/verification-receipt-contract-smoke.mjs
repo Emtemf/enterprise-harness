@@ -8,9 +8,9 @@ import {
   persistVerificationReceipts,
   validateVerificationReceipt,
   validateVerificationReceiptsForStageResult,
-  verificationEvidenceDirectoryRef,
   verificationReceiptRef,
 } from '../api/verification-receipt.mjs';
+import { readVerifyCommandEvidence, verifyCommandEvidenceRef, verifyCommandOutputRef } from '../api/verify-command.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 
@@ -35,18 +35,30 @@ try {
     '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable | cleanup | accepted |',
   ].join('\n'));
   const design = writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'verify' });
+  const tasksRef = `${base}/tasks.md`;
+  const commandsRef = `${base}/task-commands.json`;
+  const planProofRef = `${base}/evidence/completion/plan.json`;
+  const implementProofRef = `${base}/evidence/completion/implement.json`;
+  fs.writeFileSync(path.join(root, tasksRef), '# Tasks\n\n## Task 1: task-one\n\n- Test cases: TC1\n- Strategy: `direct`\n- Minimal RED case: none\n');
+  fs.writeFileSync(path.join(root, commandsRef), `${JSON.stringify({
+    schemaVersion: 4,
+    tasks: { 'task-one': { executionStrategy: 'direct', strategyRationale: 'fixture', testCases: ['TC1'], minimalRedCase: null, writeScope: { allowed: ['fixture.txt'], forbidden: [] }, commands: [{ phase: 'VERIFY', argv: [process.execPath, '-e', 'process.exit(0)'] }] } },
+  }, null, 2)}\n`);
+  fs.mkdirSync(path.dirname(path.join(root, planProofRef)), { recursive: true });
+  fs.writeFileSync(path.join(root, planProofRef), '{"type":"completion-proof","stage":"plan"}\n');
+  fs.writeFileSync(path.join(root, implementProofRef), '{"type":"completion-proof","stage":"implement"}\n');
   fs.writeFileSync(path.join(root, validationRef), '# Validation\n\n## Commands\n- test\n\n## Results\n- pass\n\n## Freshness\n- fresh\n\n## Coverage and exceptions\n');
   const handoff = createHandoffV2(root, {
     changeId, stage: 'verify', behavior: 'verify.collect',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'verify' },
-    inputRefs: [design.testCasesRef, design.designProofRef],
+    inputRefs: [design.testCasesRef, design.designProofRef, tasksRef, commandsRef, planProofRef, implementProofRef],
     tecpc: { target: 'receipt contract', evidence: [validationRef], context: [design.testCasesRef, design.designProofRef], path: validationRef, correction: null },
   });
-  const currentEvidenceDir = verificationEvidenceDirectoryRef(changeId, handoff.runId);
+  const canonicalEvidenceRef = verifyCommandEvidenceRef(changeId, handoff.runId, 'TC1');
 
   expectThrow(() => persistVerificationReceipts(root, {
     changeId, verifyRunId: handoff.runId, inputDigests: handoff.input.inputDigests, validationRef,
-    coverage: [{ tcId: 'TC1', status: 'executed', evidenceRef: `${currentEvidenceDir}/missing.log`, reason: null }],
+    coverage: [{ tcId: 'TC1', status: 'executed', evidenceRef: canonicalEvidenceRef, reason: null }],
   }), /unreadable|missing/u, 'nonexistent evidence must fail closed');
   expectThrow(() => persistVerificationReceipts(root, {
     changeId, verifyRunId: handoff.runId, inputDigests: handoff.input.inputDigests, validationRef,
@@ -63,7 +75,7 @@ try {
 
   const outside = path.join(root, 'outside.log');
   fs.writeFileSync(outside, 'outside\n');
-  const symlinkRef = `${currentEvidenceDir}/symlink.log`;
+  const symlinkRef = canonicalEvidenceRef;
   fs.mkdirSync(path.dirname(path.join(root, symlinkRef)), { recursive: true });
   fs.symlinkSync(outside, path.join(root, symlinkRef));
   expectThrow(() => persistVerificationReceipts(root, {
@@ -72,8 +84,32 @@ try {
   }), /symbolic-link|unreadable/u, 'symlink evidence must fail closed');
   fs.rmSync(path.join(root, symlinkRef));
 
-  const evidenceRef = `${currentEvidenceDir}/TC1.log`;
-  fs.writeFileSync(path.join(root, evidenceRef), 'trusted verify output\n');
+  const evidenceRef = canonicalEvidenceRef;
+  const stdoutRef = verifyCommandOutputRef(changeId, handoff.runId, 'TC1', 1, 'stdout');
+  const stderrRef = verifyCommandOutputRef(changeId, handoff.runId, 'TC1', 1, 'stderr');
+  fs.writeFileSync(path.join(root, stdoutRef), 'trusted verify output\n');
+  fs.writeFileSync(path.join(root, stderrRef), '');
+  fs.rmSync(path.join(root, stdoutRef));
+  fs.symlinkSync(outside, path.join(root, stdoutRef));
+  fs.writeFileSync(path.join(root, evidenceRef), `${JSON.stringify({
+    evidenceVersion: 1, type: 'verification-command-evidence', changeId, verifyRunId: handoff.runId, tcId: 'TC1',
+    agent: { id: 'fixture-verifier', type: 'enterprise-harness:artifact-worker', skill: 'verify' },
+    inputDigests: { ...handoff.input.inputDigests },
+    executions: [{ taskId: 'task-one', phase: 'VERIFY', argv: [process.execPath, '-e', 'process.exit(0)'], outcome: 'exit', exitCode: 0, signal: null, spawnError: null, startedAt: '2026-09-04T00:00:00.000Z', finishedAt: '2026-09-04T00:00:01.000Z', stdoutDigest: sha256Artifact(root, stdoutRef), stderrDigest: sha256Artifact(root, stderrRef), stdoutRef, stderrRef }],
+    status: 'pass', completedAt: '2026-09-04T00:00:01.000Z',
+  }, null, 2)}\n`);
+  assert.match(readVerifyCommandEvidence(root, changeId, handoff.runId, 'TC1').problems.join('\n'), /symbolic-link/u,
+    'command output symlinks must fail closed even when their digest matches');
+  fs.rmSync(path.join(root, evidenceRef));
+  fs.rmSync(path.join(root, stdoutRef));
+  fs.writeFileSync(path.join(root, stdoutRef), 'trusted verify output\n');
+  fs.writeFileSync(path.join(root, evidenceRef), `${JSON.stringify({
+    evidenceVersion: 1, type: 'verification-command-evidence', changeId, verifyRunId: handoff.runId, tcId: 'TC1',
+    agent: { id: 'fixture-verifier', type: 'enterprise-harness:artifact-worker', skill: 'verify' },
+    inputDigests: { ...handoff.input.inputDigests },
+    executions: [{ taskId: 'task-one', phase: 'VERIFY', argv: [process.execPath, '-e', 'process.exit(0)'], outcome: 'exit', exitCode: 0, signal: null, spawnError: null, startedAt: '2026-09-04T00:00:00.000Z', finishedAt: '2026-09-04T00:00:01.000Z', stdoutDigest: sha256Artifact(root, stdoutRef), stderrDigest: sha256Artifact(root, stderrRef), stdoutRef, stderrRef }],
+    status: 'pass', completedAt: '2026-09-04T00:00:01.000Z',
+  }, null, 2)}\n`);
   const persisted = persistVerificationReceipts(root, {
     changeId, verifyRunId: handoff.runId, inputDigests: handoff.input.inputDigests, validationRef,
     coverage: [{ tcId: 'TC1', status: 'executed', evidenceRef, reason: null }],
@@ -81,7 +117,7 @@ try {
   assert.equal(persisted.receipts.length, 1);
   const receiptPath = verificationReceiptRef(changeId, handoff.runId, 'TC1');
   const receipt = JSON.parse(fs.readFileSync(path.join(root, receiptPath), 'utf-8'));
-  assert.equal(receipt.provenance, 'verify-evidence');
+  assert.equal(receipt.provenance, 'verify-command');
   assert.deepEqual(validateVerificationReceipt(root, receipt, {
     expectedChangeId: changeId, expectedVerifyRunId: handoff.runId, expectedTcId: 'TC1',
     expectedInputDigests: handoff.input.inputDigests, expectedValidation: receipt.validation,

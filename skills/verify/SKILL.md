@@ -1,56 +1,91 @@
 ---
 name: verify
 description: >
-  用于所有任务通过独立评审后，执行冻结的验证命令并收集摘要绑定的完成证据。
+  在所有 Implement TaskProof 已封口后执行 Plan 冻结命令，生成逐测试用例机器回执与 validation.md。
+argument-hint: HANDOFF_INPUT=<canonical-input.json-path>
 user-invocable: false
 context: fork
 agent: enterprise-harness:artifact-worker
+model: inherit
 ---
 
 # Verify
 
-执行冻结验证并汇集 digest-bound 完成证据。消费已完成 task 的 receipts、self-check、
-independent reviews、classification 与冻结验证 argv，产出 `validation.md` 和 schema-valid
-`StageResult`。非空 waiver 在可信授权制品落地前一律 fail closed。不将自己或旧验证的结论
-宣布为最终完成。
+本 Skill 在隔离上下文中完成最终验证执行，不修改产品代码，不自行批准完成。它把已接受的 `TC*`、
+Plan 冻结 argv、ImplementProof 与真实命令结果汇聚成逐用例机器证据、`validation.md` 和一次性持久化的
+Verify StageResult。聊天结论、手写日志和 Implement task receipt 都不能替代 Verify runner 的新鲜执行证据。
+
+本次唯一 handoff：
+
+```text
+$ARGUMENTS
+```
+
+## 必须执行的流程
+
+固定顺序是：marker prepare → frozen inputs only → 逐 TC runner → validation 模板 → self-check → finalizer → Main independent review。
+
+1. `$ARGUMENTS` 必须且只能是 Main 传入的原样 canonical marker。运行：
+
+   ```bash
+   node "${CLAUDE_SKILL_DIR}/scripts/prepare-input.mjs" "HANDOFF_INPUT=<canonical-input.json-path>"
+   ```
+
+   这是独立命令，不追加管道、`head` 或文件重定向；仅允许为诊断追加 `2>&1`。prepare 必须校验 exact
+   `verify.collect` handoff、Verify state、DesignProof、PlanProof、ImplementProof、`test-cases.md`、`tasks.md`、
+   `task-commands.json` 及全部 digest。失败时原样返回稳定错误码和恢复动作，不猜测输入。
+2. 始终读取 `references/method.md`、`references/artifact-contract.md` 和 `references/self-check.md`。只从
+   frozen `test-cases.md` 读取 accepted `TC*`；只从 `task-commands.json` 获取由 Plan 冻结且映射到该 TC 的
+   task 末相命令，不自行改写、补充或通过 shell 拼接 argv。
+3. 对每个需要执行的 accepted `TC*`，分别运行一条独立命令：
+
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" verify-run <change-id> <verify-run-id> <TC-id>
+   ```
+
+   不得传入 `--` 或 child argv。runner 会在 `harness/changes/<changeId>/evidence/verify/<runId>/` 写入
+   immutable command evidence 与 stdout/stderr logs。任一命令 block 立即停止 passing finalization，并把
+   evidence ref 返回 Main；不得手写、复制或修改这些 runtime-owned 文件。
+4. 使用 `assets/validation.md.tmpl` 生成 `validation.md`。Commands 表逐条转录机器证据中的 frozen/actual
+   argv、exit status、timestamps 与 output digest；Results 同时汇总 task receipts、独立 reviews、
+   Design/Plan/Implement proofs 和适用 rubric。每个 accepted TC 恰有一行：
+
+   ```text
+   - TCn | executed | harness/changes/<changeId>/evidence/verify/<runId>/TCn.json
+   ```
+
+   只有未执行用例才可写 `skipped`/`unsupported`，并附明确原因；`unsupported` 阻断，critical E2E 必须
+   `executed`。waiver 在可信授权制品落地前一律阻断。
+5. 按 `references/self-check.md` 检查 argv 忠实度、输入 freshness、TC 覆盖、可观察断言、例外和 TECPC。
+   缺少真实业务选择时只返回一个紧凑 `NEEDS_DECISION`；只有主 Harness 可以向用户提问。
+6. 运行：
+
+   ```bash
+   node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <verify-run-id>
+   ```
+
+   finalizer 会重新校验机器证据、逐 TC receipt、fresh inputs 和 validation 形状，并通过公开 runtime API
+   原子持久化 StageResult。成功后立即停止，只把 StageResult 路径、validation 路径与下一动作返回 Main。
+   Main 必须派遣不同 run/agent 的 independent review；只有 runtime CompletionProof 可进入 Archive。
+
+## 行为边界
+
+- 不修改产品代码、测试代码、冻结 Plan、state、proof、runner evidence 或 receipt。
+- 不用 task receipt 代替 Verify 的重跑证据；task receipt 只作为上游实现证据汇总。
+- 不因单测通过而省略 applicable integration/E2E；浏览器工具由已冻结用例与命令决定，而不是临时偏好。
+- 不把 skip、unsupported、stale、waiver 或 worker self-check 提升为最终 pass。
+- 不输出隐藏推理，只输出公开可审计的证据、阻断原因和恢复动作。
 
 ## Supporting files
 
-- [validation 模板](assets/validation.md.tmpl) — 生成 validation.md 时的输出骨架
-- [assert/validation-shape.mjs](assert/validation-shape.mjs) — 验证 validation.md heading、placeholder、required sections
-- [prepare-input.mjs](scripts/prepare-input.mjs) — 验证摘要绑定的 verify marker
-- [finalize-result.mjs](scripts/finalize-result.mjs) — 汇集 validation 结果、生成 StageResult
-- [behavioral evals](evals/evals.json) — 4 个行为回归场景，验证 Skill 是否按意图执行
+- `assets/validation.md.tmpl` — 唯一 `validation.md` 输出骨架。
+- `references/method.md` — 用例执行、证据汇聚和 E2E 方法。
+- `references/artifact-contract.md` — command evidence、TC receipt 与 StageResult 合同。
+- `references/self-check.md` — Verify worker 提交前检查清单。
+- `references/examples.md` — 有效/无效标准样例。
+- `assert/validation-shape.mjs` — validation 结构和机器证据引用校验。
+- `scripts/prepare-input.mjs` / `scripts/finalize-result.mjs` — 冻结输入准备与一次性结果持久化。
+- `evals/evals.json` — invocation、执行、伪证据、失败与 finalization 行为回归。
 
-## 冻结输入
-
-1. 先运行 `prepare-input.mjs HANDOFF_INPUT=<canonical-input.json-path>`；只消费其中真实存在且 digest 匹配的 task、review、receipt、design/plan 和 `test-cases.md` 输入。
-2. 先核验 classification artifact digest，再根据 `api`、`data`、`architecture`、`rule`、`security`
-   选择适用 rubric/evidence；不适用维度记录 `N/A` 与理由。
-3. 输入、tree、task receipt 或 review 任何一项变化均使验证 stale，必须重新执行。
-
-## 执行与报告
-
-- 逐个执行冻结 validation argv，记录实际 argv、exit status、开始/结束时间和输出摘要/digest。
-- 汇集每个 task 的策略 receipt、self-check、独立 reviewer verdict 及适用 API/data/security
-evidence；fail、skip、unsupported 必须显式保留，`unsupported` 绝不升格为 `pass`。任何非空 waiver
-必须以缺少可信授权证据阻断，而不是相信 worker 提供的 `approvedBy` 字符串。
-- 写入 `harness/changes/<changeId>/validation.md`，包括 target、当前 input digest、执行结果、未覆盖项、
-  correction/recovery 和下一步；必须含 Commands、Results、Freshness、Coverage and exceptions 四节。
-- 对每个 accepted `TC*` 写一行 `- TCn | executed|skipped|unsupported | <receipt-ref>`；critical E2E 必须是 `executed`，`unsupported` 不构成通过。
-- 运行 `node "${CLAUDE_SKILL_DIR}/scripts/finalize-result.mjs" <change-id> <run-id>`，将 result 用
-  `node "${CLAUDE_PLUGIN_ROOT}/runtime/handoff.mjs" persist <change-id> <run-id> <result-path>`
-  持久化为 immutable execute result。该 StageResult 必须含 assertions 与 `selfCheck`，证明本 Skill 的
-  执行质量，而不代替最终 approval。
-
-## 独立完成审查与迁移
-
-1. 将 verify StageResult 交给 Main。
-2. Main 创建新的 `review` check run；reviewer 只读取 artifact/result/receipt refs，不读取 executor
-   对话，也不得复用 executor run id。
-3. Runtime 仅在 fresh StageResult、self-check、独立 ReviewResult、TECPC 和 validation digest 全部匹配时
-   生成 CompletionProof。只有该 proof 才允许 `verify → archive`。
-
-范围、waiver 或验证策略存在业务取舍时，返回一个可由 Main 提问的 `NEEDS_DECISION`；只有主 Harness 可以向用户提问，不要在本 Skill 中直接用户交互或通过 state 布尔字段绕过验证。
-
-完成前读取 [共享下游坑点清单](../harness/references/downstream-pitfalls.md) 的 Verify / E2E 行；适用的端到端流程没有可观察证据时不得生成通过的完成结论。
+完成前读取 `${CLAUDE_PLUGIN_ROOT}/skills/harness/references/downstream-pitfalls.md` 的 Verify / E2E 行；
+适用的端到端流程没有可观察机器证据时不得生成 passing StageResult。

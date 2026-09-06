@@ -28,7 +28,7 @@ It must be skill-driven and recoverable without turning hooks into a second work
 ## Success criteria
 
 1. No user-visible or state transition can skip the six-stage topology.
-2. Every forked stage skill has an explicit agent and `background: false` when its output gates the caller.
+2. Every forked stage skill has an explicit agent; gated outputs return through the foreground Skill invocation (`background` is agent-only frontmatter).
 3. Research agents are genuinely read-only and have the tools their contracts name.
 4. A changed artifact automatically makes dependent stage proof/review stale.
 5. Tests cover contract wiring and a real Claude Code plugin execution path separately.
