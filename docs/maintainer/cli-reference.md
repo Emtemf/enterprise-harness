@@ -27,6 +27,7 @@ Commands:
 - workflow
 - context7
 - task-run
+- task-integrate
 - verify-run
 - tdd-run
 - evidence-import

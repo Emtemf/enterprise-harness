@@ -13,7 +13,7 @@ import {
 import { appendAgentEvent } from '../lib/agent-evidence.mjs';
 import { captureWorktreeBaseline } from '../lib/git-evidence.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { resolveStageCompletionProof } from '../lib/stage-results.mjs';
+import { buildStageReadiness, resolveStageCompletionProof } from '../lib/stage-results.mjs';
 import { bindSession } from '../lib/sessions.mjs';
 import { taskExecutionReceiptPath } from '../lib/task-execution-receipt.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
@@ -23,6 +23,7 @@ if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 const sourceRoot = fileURLToPath(new URL('../../', import.meta.url));
 const runner = path.join(sourceRoot, 'runtime', 'task-run.mjs');
+const cli = path.join(sourceRoot, 'runtime', 'cli.mjs');
 const finalizer = path.join(sourceRoot, 'skills', 'implement', 'scripts', 'finalize-result.mjs');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-task-worktree-integration-'));
 const worker = path.join(root, '.worker');
@@ -161,6 +162,7 @@ try {
     observedAgentType: 'enterprise-harness:implementer',
     handoffPath: v2ResultPath(root, changeId, execute.runId), cwd: worker,
   });
+  assert.equal(buildStageReadiness(root, changeId, 'implement', { currentTask: taskId }).route, 'implement.review-task');
   appendAgentEvent(root, changeId, {
     kind: 'dispatch-binding', sessionId, toolUseId, agentId, runId: execute.runId,
     behavior: execute.input.behavior, handoffRole: 'execute',
@@ -206,16 +208,36 @@ try {
   const beforeIntegration = resolveStageCompletionProof(root, changeId, 'implement');
   assert.equal(beforeIntegration.proof, null, 'reviewed worktree changes must not complete Implement before integration');
   assert.match(beforeIntegration.problems.join('; '), /not integrated|differs from the reviewed worktree/u);
-
-  for (const relative of [productRef, testRef]) {
-    const target = path.join(root, relative);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(path.join(worker, relative), target);
-  }
+  const integrationReadiness = buildStageReadiness(root, changeId, 'implement', { currentTask: taskId });
+  assert.equal(integrationReadiness.route, 'implement.integrate-task');
+  assert.equal(integrationReadiness.executionRunId, execute.runId);
+  const staleRun = `run_${'0'.repeat(8)}-${'0'.repeat(4)}-${'0'.repeat(4)}-${'0'.repeat(4)}-${'0'.repeat(12)}`;
+  const rejectedStale = run(process.execPath, [cli, 'task-integrate', changeId, taskId, staleRun]);
+  assert.equal(rejectedStale.status, 2);
+  assert.match(rejectedStale.stderr, /EH-TASK-INTEGRATE-161.*stale/u);
+  const outside = path.join(root, 'outside.txt');
+  fs.writeFileSync(outside, 'must remain unchanged\n');
+  fs.unlinkSync(path.join(root, productRef));
+  fs.symlinkSync(outside, path.join(root, productRef));
+  const rejectedSymlink = run(process.execPath, [cli, 'task-integrate', changeId, taskId, execute.runId]);
+  assert.equal(rejectedSymlink.status, 2);
+  assert.match(rejectedSymlink.stderr, /EH-TASK-INTEGRATE-161.*symbolic-link/u);
+  assert.equal(fs.readFileSync(outside, 'utf-8'), 'must remain unchanged\n');
+  fs.unlinkSync(path.join(root, productRef));
+  fs.writeFileSync(path.join(root, productRef), 'package demo; public final class App { public int value() { return 0; } }\n');
+  const integrated = run(process.execPath, [cli, 'task-integrate', changeId, taskId, execute.runId]);
+  assert.equal(integrated.status, 0, `${integrated.stdout}\n${integrated.stderr}`);
+  assert.equal(JSON.parse(integrated.stdout).status, 'integrated');
+  const duplicate = run(process.execPath, [cli, 'task-integrate', changeId, taskId, execute.runId]);
+  assert.equal(duplicate.status, 0, `${duplicate.stdout}\n${duplicate.stderr}`);
+  assert.equal(JSON.parse(duplicate.stdout).status, 'already-integrated');
   const afterIntegration = resolveStageCompletionProof(root, changeId, 'implement');
   assert.ok(afterIntegration.proof, afterIntegration.problems.join('; '));
   assert.deepEqual(afterIntegration.proof.taskProofs.map(({ taskId: id }) => id), [taskId]);
   assert.equal(afterIntegration.proof.artifacts[0].digest, sha256Artifact(root, receiptRef));
+  const transitionReadiness = buildStageReadiness(root, changeId, 'implement', { currentTask: taskId });
+  assert.equal(transitionReadiness.route, 'implement.transition');
+  assert.equal(transitionReadiness.transitionReady, true);
 
   console.log(`PASS task-worktree-integration ${mode}`);
 } finally {

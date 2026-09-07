@@ -725,6 +725,158 @@ function taskIdsFromPlan(root, changeId, problems) {
   return { planRef, taskIds };
 }
 
+function filesMatch(left, right) {
+  const leftExists = fs.existsSync(left);
+  const rightExists = fs.existsSync(right);
+  if (leftExists !== rightExists) return false;
+  if (!leftExists) return true;
+  const leftStat = fs.lstatSync(left);
+  const rightStat = fs.lstatSync(right);
+  if (!leftStat.isFile() || !rightStat.isFile()) return false;
+  return fs.readFileSync(left).equals(fs.readFileSync(right));
+}
+
+/**
+ * Runtime-owned projection for one frozen Implement task. This deliberately
+ * returns evidence needed by task-integrate as well as the controller route so
+ * the writer and the status reader cannot disagree about what was reviewed.
+ */
+export function inspectImplementTask(root, changeId, taskId) {
+  const problems = [];
+  const { taskIds } = taskIdsFromPlan(root, changeId, problems);
+  if (!taskIds.includes(taskId)) {
+    return { status: 'blocked', route: 'implement.execute-task', taskId, problems: [...problems, `unknown frozen task ${taskId}`] };
+  }
+  const receiptRef = `harness/changes/${changeId}/evidence/tasks/${taskId}.json`;
+  let candidate = null;
+  for (const runId of runIds(root, changeId)) {
+    const localProblems = [];
+    const execution = loadRun(root, changeId, runId, 'execute', localProblems);
+    if (!execution?.input || execution.input.stage !== 'implement'
+      || execution.input.behavior !== 'implement.execute-task' || !execution.result) continue;
+    if (!execution.result.artifacts?.some((artifact) => artifact.path === receiptRef)) continue;
+    const createdAt = Date.parse(execution.input.createdAt);
+    if (!candidate || createdAt > candidate.createdAt) candidate = { ...execution, createdAt };
+  }
+  if (!candidate) return { status: 'blocked', route: 'implement.execute-task', taskId, problems: [`task ${taskId} has no execution StageResult`] };
+
+  const executionProblems = [
+    ...freshInputDigests(root, candidate.input),
+    ...validateStageResult(root, candidate.result),
+  ];
+  if (!matchingProducer(candidate.result, candidate.input)
+    || candidate.result.runId !== candidate.input.runId
+    || candidate.result.changeId !== changeId
+    || candidate.result.stage !== 'implement'
+    || candidate.result.status !== 'pass') executionProblems.push(`task ${taskId} execution StageResult is not a passing canonical binding`);
+  const producerBindings = trustedHandoffAgentBindings(root, changeId, candidate.input);
+  if (producerBindings.length === 0) executionProblems.push(`task ${taskId} execute handoff has no trusted completed agent binding`);
+  let receipt = null;
+  try {
+    receipt = JSON.parse(fs.readFileSync(path.join(root, receiptRef), 'utf-8'));
+    executionProblems.push(...validateTaskExecutionReceipt(receipt, {
+      root,
+      requireTrusted: true,
+      expectedChangeId: changeId,
+      expectedTaskId: taskId,
+      expectedInputDigests: candidate.input.inputDigests,
+    }));
+  } catch (error) {
+    executionProblems.push(`task ${taskId} receipt is unreadable (${error.message})`);
+  }
+  if (executionProblems.length > 0) {
+    return { status: 'blocked', route: 'implement.execute-task', taskId, executionRunId: candidate.input.runId, problems: executionProblems };
+  }
+
+  let reviewed = null;
+  for (const runId of runIds(root, changeId)) {
+    const localProblems = [];
+    const check = loadRun(root, changeId, runId, 'check', localProblems);
+    if (!check?.input || check.input.stage !== 'implement'
+      || check.input.behavior !== 'implement.review-task'
+      || check.input.parentRunId !== candidate.input.runId || !check.result) continue;
+    const reviewProblems = [
+      ...freshInputDigests(root, check.input),
+      ...validateReviewResult(root, check.result, { stageResult: candidate.result }),
+    ];
+    if (!sameArtifacts(check.result.reviewedArtifacts, candidate.result.artifacts)
+      || !matchingReviewer(check.result, check.input) || check.result.verdict !== 'pass'
+      || check.result.runId !== check.input.runId
+      || JSON.stringify(check.result.rubricIds) !== JSON.stringify(check.input.rubricIds)
+      || !sameTecpc(check.result.tecpc, check.input.tecpc)) reviewProblems.push('task review is not a passing canonical binding');
+    const reviewerBindings = trustedHandoffAgentBindings(root, changeId, check.input);
+    const producerIds = new Set(producerBindings.map(({ agentId }) => agentId));
+    if (!reviewerBindings.some(({ agentId }) => !producerIds.has(agentId))) reviewProblems.push('task review has no distinct trusted reviewer');
+    if (reviewProblems.length === 0) {
+      reviewed = { input: check.input, result: check.result };
+      break;
+    }
+  }
+  if (!reviewed) return {
+    status: 'blocked', route: 'implement.review-task', taskId,
+    executionRunId: candidate.input.runId,
+    problems: [`task ${taskId} has no fresh independent passing review`],
+  };
+
+  const sourceRoot = path.resolve(receipt.worktree.path);
+  const integrationProblems = [];
+  if (!fs.existsSync(sourceRoot)) integrationProblems.push(`task ${taskId} reviewed execution worktree is unavailable`);
+  else if (path.resolve(gitCommonDir(sourceRoot)) !== path.resolve(gitCommonDir(root))) {
+    integrationProblems.push(`task ${taskId} reviewed execution worktree does not share the integration git common dir`);
+  } else {
+    try {
+      if (worktreeSnapshotDigest(sourceRoot, { exclude: [receiptRef] }) !== receipt.worktree.treeDigestAfter) {
+        integrationProblems.push(`task ${taskId} reviewed execution worktree changed after receipt publication`);
+      }
+      for (const relative of receipt.changedPaths) {
+        if (!filesMatch(path.join(sourceRoot, relative), path.join(root, relative))) {
+          integrationProblems.push(`task ${taskId} is not integrated: ${relative} differs from the reviewed worktree`);
+        }
+      }
+    } catch (error) {
+      integrationProblems.push(`task ${taskId} integration check failed: ${error.message}`);
+    }
+  }
+  return {
+    status: integrationProblems.length > 0 ? 'blocked' : 'ready',
+    route: integrationProblems.length > 0 ? 'implement.integrate-task' : 'implement.task-complete',
+    taskId,
+    executionRunId: candidate.input.runId,
+    reviewRunId: reviewed.input.runId,
+    sourceRoot,
+    changedPaths: [...receipt.changedPaths],
+    problems: integrationProblems,
+  };
+}
+
+export function buildStageReadiness(root, changeId, stage, data = {}) {
+  if (stage === 'design') return buildDesignReadiness(root, changeId);
+  if (stage === 'implement') {
+    const planProblems = [];
+    const { taskIds } = taskIdsFromPlan(root, changeId, planProblems);
+    const currentTask = data.currentTask || taskIds[0] || null;
+    if (!currentTask) return Object.freeze({ status: 'blocked', route: 'implement.select-task', nextAction: 'implement.select-task', transitionReady: false, problems: Object.freeze(planProblems) });
+    const task = inspectImplementTask(root, changeId, currentTask);
+    if (task.route !== 'implement.task-complete') return Object.freeze({ ...task, nextAction: task.route, transitionReady: false, problems: Object.freeze([...task.problems]) });
+    const nextTaskId = taskIds.find((id) => inspectImplementTask(root, changeId, id).route !== 'implement.task-complete') || null;
+    const route = nextTaskId ? 'implement.select-task' : 'implement.transition';
+    return Object.freeze({ status: route === 'implement.transition' ? 'ready' : 'blocked', route, nextAction: route, transitionReady: route === 'implement.transition', taskId: currentTask, ...(nextTaskId ? { nextTaskId } : {}), problems: Object.freeze([]) });
+  }
+  if (!['plan', 'verify', 'archive'].includes(stage)) return null;
+  const completion = stageCompletionCandidateFor(root, changeId, stage);
+  let route;
+  if (completion.selfCheck.status !== 'pass') route = `${stage}.produce`;
+  else if (completion.review.status !== 'pass') route = `${stage}.review`;
+  else if (!completion.candidateProof) route = `${stage}.produce`;
+  else route = stage === 'archive' ? 'archive.finalize' : `${stage}.transition`;
+  const transitionReady = route.endsWith('.transition') || route === 'archive.finalize';
+  return Object.freeze({
+    status: transitionReady ? 'ready' : 'blocked', route, nextAction: route,
+    transitionReady, problems: Object.freeze([...(completion.problems || [])]),
+    recovery: transitionReady ? null : Object.freeze({ action: route, problems: Object.freeze([...(completion.problems || [])]) }),
+  });
+}
+
 function implementCompletionProof(root, changeId, executions, problems) {
   const { planRef, taskIds } = taskIdsFromPlan(root, changeId, problems);
   if (taskIds.length === 0) return null;

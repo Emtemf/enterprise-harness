@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.5.27] - 2026-09-07
+
+### Added
+
+- Main 新增 Design 后统一 `stageReadiness` 投影，机械区分 Plan、Implement、Verify、Archive 的 produce/review/integrate/select/transition/finalize 单动作，阶段推进不再伪装成用户 decision。
+- 新增受治理 `task-integrate` runtime command：重验 execute、独立 review、receipt、worktree snapshot 和路径边界后精确集成 reviewed changed paths，并支持失败回滚与幂等重试。
+
+### Changed
+
+- Harness controller、行为图和阶段推进合同补齐 Plan→Archive 的 exact routes/argv；Main 每轮只消费一个 runtime route 并重新取 snapshot。
+- 本地标准样例新增 post-Design 路由和真实 git worktree 集成验收，覆盖 stale run、symlink、未评审、未集成与重复集成。
+
 ## [0.5.26] - 2026-09-06
 
 ### Added

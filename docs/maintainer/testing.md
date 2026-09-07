@@ -114,3 +114,9 @@ EH_RUN_CLAUDE_PLAN_E2E=true node runtime/test/installed-plan-plugin-e2e.mjs e2e
 ```
 
 它从 canonical compound Design fixture 出发，要求已安装 Plan Skill 生成并原子持久化摘要绑定的 `tasks.md`/`task-commands.json`，覆盖全部 accepted `TC*`，并让 migration case 使用 migration strategy。第二个 fresh session 执行独立 Plan Review；随后 Main 显式选择首个冻结 task，runtime 才能发布 PlanProof 并推进到 `implement`。测试同时断言 Plan 不修改产品代码。
+
+Main 全生命周期标准样例采用可定位的分层验收：`post-design-stage-readiness-smoke` 验证 Plan、Implement、
+Verify、Archive 的 runtime 唯一路由；`task-worktree-integration-smoke` 在真实 git worktree 验证 execute →
+independent review → 受治理集成 → transition，并覆盖旧 run、symlink 与幂等性；各 `installed-*-plugin-e2e`
+则从真实 `npm pack` 安装内容验证对应 forked Skill。需要模型证据时，按本节命令运行各阶段 `claude -p`
+样例；这些证据合起来验证同一发布内容，但不伪称单个长会话无夹具地自动完成了所有业务澄清。

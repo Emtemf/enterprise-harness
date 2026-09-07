@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-06
+lastVerified: 2026-09-07
 implementationRefs:
   - runtime/core/completion-proof.mjs
   - runtime/lib/stage-contract.mjs
@@ -12,6 +12,8 @@ implementationRefs:
   - runtime/workflow.mjs
   - runtime/trace.mjs
   - runtime/lib/archive-manifest.mjs
+  - skills/harness/references/behavior-map.md
+  - skills/harness/references/stage-decisions.md
 testRefs:
   - runtime/test/workflow-audit-v6-result-smoke.mjs
   - runtime/test/trace-mermaid-smoke.mjs
@@ -19,6 +21,8 @@ testRefs:
   - runtime/test/design-controller-sequence-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
   - runtime/test/installed-archive-plugin-e2e.mjs
+  - runtime/test/post-design-stage-readiness-smoke.mjs
+  - runtime/test/task-worktree-integration-smoke.mjs
 ---
 
 # 阶段时序、事件与产物合同
@@ -119,6 +123,12 @@ Classification 是 clarify artifact；execution strategy 是 implement task 属�
 lifecycle stage。Clarify 只能通过 lifecycle state command 推进；该命令写入并重新读取 CompletionProof 后才 CAS 更新 stage。
 `workflow status`、`workflow audit` 和旧的 `confirm-scope` decision 都不会生成 proof 或绕过此 gate。
 
+Main 不从 artifact 存在性或聊天推导 post-Design 动作。`workflow status --json` 对 Design 到 Archive 投影
+`stageReadiness.route` 与 `stageReadiness.transitionReady`：Plan 为 produce/review/transition；Implement 为
+execute-task/review-task/integrate-task/select-task/transition；Verify 为 produce/review/transition；Archive 为
+produce/review/finalize。每轮只能 exact-match 一项，动作后重新取 snapshot。阶段推进不是用户 Decision，
+因此这些阶段存在 `stageReadiness` 时 `pendingDecision` 必须为空。
+
 ## 诊断入口
 
 ```bash
@@ -144,5 +154,7 @@ enterprise-harness trace --change <change-id> --mermaid
 | `workflow-audit-v6-result-smoke` | result/review/freshness 缺口被 state 投影掩盖 |
 | `lifecycle-clarify-transition-smoke` | 未完成 Clarify gate 就进入 Design |
 | `trace-mermaid-smoke` | 时序输出脱离真实 ledger |
+| `post-design-stage-readiness-smoke` | Main 在 Plan/Implement/Verify/Archive 之间靠模型猜测动作 |
+| `task-worktree-integration-smoke` | 已评审 worktree 被手工复制、路径逃逸或未精确集成就进入 Verify |
 
 发布前至少运行直接行为测试与 `npm run quality:local`；后者统一覆盖 prepublish、plugin validation、external-project E2E 和 artifact 内容检查。

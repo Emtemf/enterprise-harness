@@ -171,3 +171,49 @@ node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create \
 
 只把该命令发出的 marker 传给 `enterprise-harness:review`；selector 必须按 exact
 `design.test-cases.review` 冻结 `test-design` 与适用 risk rubric IDs。
+
+## Plan：双产物与独立评审
+
+`plan.produce` 只创建 execute handoff，至少 digest-bind requirements、classification、design、test-cases 与 compound DesignProof；marker 原样传给 `enterprise-harness:plan`。`plan.review` 只创建绑定 execute run 的 check handoff，输入包含 `tasks.md`、`task-commands.json`、Plan StageResult 和所有 execute frozen refs；marker 原样传给 `enterprise-harness:review`。两者都完成后 runtime 才投影 `plan.transition`。
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> plan plan.produce execute --input-ref harness/changes/<change-id>/requirements.md --input-ref <classification-ref> --input-ref harness/changes/<change-id>/design.md --input-ref harness/changes/<change-id>/test-cases.md --input-ref harness/changes/<change-id>/evidence/completion/design.json --target "把已批准 Design 与 Test Design 冻结为可独立执行的任务和 literal argv"
+```
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> plan plan.review check <plan-run-id> --input-ref harness/changes/<change-id>/tasks.md --input-ref harness/changes/<change-id>/task-commands.json --input-ref <plan-stage-result-ref> --target "独立挑战任务切片、策略、TC 映射、literal argv 与写入范围"
+```
+
+## Implement：执行、评审、受治理集成
+
+`implement.execute-task` 按上文命名 worktree agent 合同执行；`implement.review-task` 创建不同 reviewer 的 check handoff。runtime 投影 `implement.integrate-task` 后，Main 只能运行下列命令；它会重验 execute/review identity、receipt、write scope、git common dir 和 worktree digest，并对 changed paths 逐一原子复制或删除。不得用 `cp`、`git checkout` 或聊天摘要代替。
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> implement implement.execute-task execute --input-ref harness/changes/<change-id>/state.json --input-ref harness/changes/<change-id>/tasks.md --input-ref harness/changes/<change-id>/task-commands.json --input-ref harness/changes/<change-id>/evidence/completion/plan.json --input-ref harness/changes/<change-id>/design.md --input-ref harness/changes/<change-id>/test-cases.md --target "在隔离 worktree 按冻结策略完成当前 task 并生成 canonical receipt"
+```
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> implement implement.review-task check <execute-run-id> --input-ref harness/changes/<change-id>/state.json --input-ref harness/changes/<change-id>/tasks.md --input-ref harness/changes/<change-id>/task-commands.json --input-ref harness/changes/<change-id>/evidence/tasks/<task-id>.json --input-ref <implement-stage-result-ref> --target "独立审查当前 task 的冻结合同、receipt 与 reviewed worktree diff"
+```
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" task-integrate <change-id> <task-id> <execute-run-id>
+```
+
+`implement.select-task` 只运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle current-task <change-id> <next-task-id>`；随后结束本轮。只有全部冻结 task 都已执行、独立评审且精确集成，runtime 才投影 `implement.transition`。
+
+## Verify：新鲜执行证据与最终评审
+
+`verify.produce` 创建 exact `verify.collect` execute handoff，必须 digest-bind `test-cases.md`、DesignProof、`tasks.md`、`task-commands.json`、PlanProof 与 ImplementProof，marker 原样传给 `enterprise-harness:verify`。`verify.review` 创建绑定 Verify StageResult、`validation.md` 及逐 TC receipts 的 check handoff，marker 原样传给 `enterprise-harness:review`。只有独立 final review 通过才投影 `verify.transition`。
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> verify verify.collect execute --input-ref harness/changes/<change-id>/test-cases.md --input-ref harness/changes/<change-id>/evidence/completion/design.json --input-ref harness/changes/<change-id>/tasks.md --input-ref harness/changes/<change-id>/task-commands.json --input-ref harness/changes/<change-id>/evidence/completion/plan.json --input-ref harness/changes/<change-id>/evidence/completion/implement.json --target "按 accepted TC 重跑冻结命令并生成新鲜 validation 与机器证据"
+```
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create <change-id> verify verify.review check <verify-run-id> --input-ref harness/changes/<change-id>/validation.md --input-ref <verify-stage-result-ref> --input-ref <each-canonical-TC-receipt-ref> --target "独立挑战最终验证覆盖、证据新鲜度与可观察验收"
+```
+
+## Archive route
+
+`archive.produce` 使用本文件顶部的完整 lineage handoff；`archive.review` 创建绑定 Archive StageResult、manifest、attestation 和全部 StageResult artifacts 的独立 check handoff；`archive.finalize` 返回 controller，执行 `stage-decisions.md` 的唯一 finalize 命令。

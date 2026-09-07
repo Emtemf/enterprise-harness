@@ -443,6 +443,9 @@ switch (action) {
       if (result.designReadiness) {
         console.log(`designReadiness: ${result.designReadiness.route}`);
       }
+      if (result.stageReadiness) {
+        console.log(`stageReadiness: ${result.stageReadiness.route}`);
+      }
     }
     process.exit(0);
   }

@@ -15,3 +15,16 @@ Return to controller: after validating or attempting that single transition; re-
 | archive | verify evidence 仍 fresh 且归档前检查通过 |
 
 主 Harness 只为真正的业务选择向用户提问。stage transition 不依赖 v5 state boolean projection；它读取结构化结果和 digest freshness。Clarify 只通过 lifecycle state command 推进；该命令原子写入 candidate CompletionProof、重新读取 canonical gate，再 CAS 更新 stage。`workflow status`、`workflow audit` 与旧 `confirm-scope` decision 均保持只读，不生成 proof 或推进 stage。
+
+只允许 exact-match snapshot route 后运行一条命令：
+
+| route | exact argv |
+|---|---|
+| `transition`（Clarify） | `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle state <change-id> design` |
+| `design.transition` | `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle state <change-id> plan` |
+| `plan.transition` | 先前一轮已按 `implement.select-task` 设置 current task；本轮只运行 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle state <change-id> implement` |
+| `implement.transition` | `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle state <change-id> verify` |
+| `verify.transition` | `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle archive <change-id>` |
+| `archive.finalize` | `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle archive-finalize <change-id>` |
+
+命令负责在同一事务内生成当前阶段 CompletionProof 并立即重验。非零退出时原样保留稳定错误码、问题列表与恢复动作；不得手写 proof、直接编辑 state，或把两个 transition 合并在同一轮。

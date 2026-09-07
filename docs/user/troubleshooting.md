@@ -243,6 +243,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CHANGE-LOCK-LEASE-024` | change lock 不存在，无法续约 | 先由绑定 session 获取 lock，再续约 |
 | `EH-CODEGRAPH-INDEX-021` | CodeGraph 索引不可用，探索会退化成全量 grep | 在项目根运行 `codegraph init` |
 | `EH-LOCAL-QUALITY-001` | 本地质量或发布子检查失败 | 查看其前一段带 `[local-quality]` 的失败阶段和原始 stderr，修复后重新运行 `npm run quality:local`；不要绕过 gate 发布 |
+| `EH-TASK-INTEGRATE-161` | reviewed task 尚不可安全集成、run 已过期、路径含 symlink/非普通文件，或复制后的内容校验失败 | 重新运行 `workflow status <change-id> --json`，只使用最新 `implement.integrate-task` 投影的 task/run；修复 worktree freshness 或路径问题后重试，禁止手工复制绕过 |
 | `EH-RELEASE-001` | release 在首次远端写入前失败，或 main push 后无法确认远端状态 | 明确未写入时修复原始错误并重跑；若同时输出 `RECOVERY_WORKTREE`，先人工核对 origin/main，未确认前不得执行 tag/Release 发布命令 |
 | `EH-RELEASE-SOURCE-002` | release tree 的 tracked diff 超出版本 allowlist，或质量 gate 修改了已提交源码 | 检查报告的文件；移除非版本投影变更，或修复会修改源码的 gate，再重新发布 |
 | `EH-RELEASE-REMOTE-003` | `origin` 不是可解析的 GitHub 仓库 URL | 将 `remote.origin.url` 修正为该 marketplace 的 GitHub HTTPS/SSH URL，不要用另一个 `--repo` 绕过 |

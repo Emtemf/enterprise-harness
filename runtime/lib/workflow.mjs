@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { auditWorkflow } from './workflow-audit.mjs';
 import {
   buildDesignReadiness,
+  buildStageReadiness,
   resolveStageCompletionCandidate,
   validateStageGate,
 } from './stage-results.mjs';
@@ -372,17 +373,22 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
   const designReadiness = data?.schemaVersion === 6 && stage === 'design'
     ? buildDesignReadiness(root, changeId)
     : null;
+  const stageReadiness = data?.schemaVersion === 6 && ['design', 'plan', 'implement', 'verify', 'archive'].includes(stage)
+    ? buildStageReadiness(root, changeId, stage, data)
+    : null;
   return {
     changeId,
     classification,
     ...(classificationDiagnostic ? { classificationDiagnostic } : {}),
     state: data.state ?? null,
     stage,
-    status: auditBlocked ? 'blocked' : inferRunnerStatus(stage, pendingDecision),
+    status: auditBlocked
+      ? 'blocked'
+      : (stageReadiness ? (stage === 'implement' ? 'executing' : 'ready') : inferRunnerStatus(stage, pendingDecision)),
     nextAction: auditBlocked
       ? `workflow audit ${changeId} --json`
-      : (designReadiness?.nextAction ?? nextAction),
-    pendingDecision: auditBlocked ? null : pendingDecision,
+      : (stageReadiness?.nextAction ?? nextAction),
+    pendingDecision: auditBlocked || stageReadiness ? null : pendingDecision,
     recommendedLane: auditBlocked ? null : recommendedLane,
     currentGap: auditBlocked ? auditGap : currentGap,
     blockers: auditBlocked ? [...(data.blockers ?? []), firstAuditBlocker].filter(Boolean) : (data.blockers ?? []),
@@ -397,6 +403,7 @@ export function buildWorkflowResult(root, changeId, data, shouldSuppressExecutio
     nextEntry: auditBlocked ? '/harness' : nextEntry,
     ...(clarifyReadiness ? { clarifyReadiness } : {}),
     ...(designReadiness ? { designReadiness } : {}),
+    ...(stageReadiness ? { stageReadiness } : {}),
   };
 }
 

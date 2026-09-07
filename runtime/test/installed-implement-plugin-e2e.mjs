@@ -284,16 +284,10 @@ try {
   const beforeIntegration = run(process.execPath, [path.join(packedRoot, 'runtime', 'cli.mjs'), 'lifecycle', 'state', changeId, 'verify']);
   assert.notEqual(beforeIntegration.status, 0, 'Implement must not complete before reviewed worktree content is integrated');
   assert.match(`${beforeIntegration.stdout}\n${beforeIntegration.stderr}`, /not integrated|differs from the reviewed worktree/u);
-  for (const relative of receipt.changedPaths) {
-    const source = path.join(receipt.worktree.path, relative);
-    const target = path.join(fixture, relative);
-    if (fs.existsSync(source)) {
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.copyFileSync(source, target);
-    } else {
-      fs.rmSync(target, { force: true });
-    }
-  }
+  const integrated = run(process.execPath, [path.join(packedRoot, 'runtime', 'cli.mjs'),
+    'task-integrate', changeId, taskId, implementHandoff.runId]);
+  assert.equal(integrated.status, 0, `${integrated.stdout}\n${integrated.stderr}`);
+  assert.equal(JSON.parse(integrated.stdout).status, 'integrated');
   const advanced = run(process.execPath, [path.join(packedRoot, 'runtime', 'cli.mjs'), 'lifecycle', 'state', changeId, 'verify']);
   assert.equal(advanced.status, 0, `${advanced.stdout}\n${advanced.stderr}`);
   const proof = JSON.parse(fs.readFileSync(path.join(fixture, `${base}/evidence/completion/implement.json`), 'utf-8'));

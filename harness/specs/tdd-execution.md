@@ -1,11 +1,12 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-04
+lastVerified: 2026-09-07
 implementationRefs:
   - agents/implementer.md
   - skills/implement/SKILL.md
   - runtime/task-run.mjs
+  - runtime/task-integrate.mjs
   - runtime/lib/task-execution.mjs
   - runtime/lib/task-execution-receipt.mjs
   - runtime/lib/task-write-scope.mjs
@@ -122,6 +123,16 @@ finalizer 原子持久化 StageResult 后，Main 派发不同 agent/run 的 task
 中每个 changed path 的存在状态与内容必须精确等于 reviewed worktree，runtime 才生成 TaskProof 并汇入
 Implement CompletionProof。
 
+Main 只能通过以下 runtime writer 集成已评审结果：
+
+```bash
+enterprise-harness task-integrate <change-id> <task-id> <execute-run-id>
+```
+
+该命令在 change transaction 内重新验证 frozen task、execute StageResult、canonical receipt、不同 trusted
+reviewer、共同 git dir、worktree snapshot 与 changed paths；逐文件复制/删除失败会回滚本次已处理路径，
+symlink、非普通文件、旧 execute run 和未评审结果均以稳定错误码阻断。已经完全一致时返回幂等成功。
+
 ## v5 compatibility boundary
 
 `runtime/tdd-run.mjs`、`runtime/lib/tdd-receipts.mjs`、`evidence-import` 和
@@ -139,3 +150,4 @@ Implement CompletionProof。
 - 允许不同 run、不同 agent 或不同 worktree 续写同一 spool；
 - 覆盖已发布的 canonical receipt；
 - 缺独立 task review 和 CompletionProof 就进入 verify。
+- 用 `cp`、`git checkout` 或 Main 的 Write/Edit 代替 `task-integrate`。

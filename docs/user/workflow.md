@@ -113,6 +113,11 @@ Design 只消费已确认 requirements、classification 和 digest-bound researc
 receipt 指向的真实 changed paths，review pass 后还必须把相同内容精确集成到主工作区，runtime 才会
 生成 TaskProof/ImplementProof 并进入 Verify。若 stage-gate marker stale，重新验证阶段链后再写。
 
+主 Harness 不手工复制 worktree 内容。`workflow status --json` 投影 `implement.integrate-task` 后，它只调用
+`enterprise-harness task-integrate <change-id> <task-id> <execute-run-id>`；runtime 会重验独立评审与
+worktree digest、拒绝 symlink/旧 run，并在逐路径失败时回滚。多任务变更由 `implement.select-task` 明确切换
+`currentTask`，全部任务集成后才出现 `implement.transition`。
+
 ## verify
 
 目的：以每个 accepted `TC*` 为队列，通过 canonical `verify-run` 重跑其 Plan 映射 task 的末相冻结 argv，

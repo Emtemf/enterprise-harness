@@ -11,10 +11,12 @@ import {
   archiveManifestRef,
   validateArchiveManifest,
 } from '../api/archive.mjs';
-import { createHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
+import { createHandoffV2, v2ResultPath, v2RunDir } from '../core/handoff-v2.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
+import { buildStageReadiness } from '../lib/stage-results.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 import { writeCanonicalVerifyCompletionFixture } from './verify-completion-fixture.mjs';
+import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -41,6 +43,7 @@ try {
     stage: 'archive',
     validation: { status: 'fresh', digest: sha256Artifact(root, verify.validationRef), validatedAt: '2026-09-06T00:00:00.000Z' },
   }, null, 2)}\n`);
+  assert.equal(buildStageReadiness(root, changeId, 'archive').route, 'archive.produce');
   const inputRefs = Object.values(archiveManifestInputRefs(changeId));
   const handoff = createHandoffV2(root, {
     changeId,
@@ -69,6 +72,7 @@ try {
   const incomplete = spawnSync(process.execPath, [prepare, incompleteMarker], { cwd: root, encoding: 'utf-8', shell: false });
   assert.notEqual(incomplete.status, 0);
   assert.match(incomplete.stderr, /must be digest-bound/u);
+  fs.rmSync(v2RunDir(root, changeId, incompleteHandoff.runId), { recursive: true, force: true });
   const prepared = spawnSync(process.execPath, [prepare, marker], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(prepared.status, 0, prepared.stderr);
   assert.deepEqual(JSON.parse(prepared.stdout).inputRefs, inputRefs);
@@ -91,6 +95,7 @@ try {
 
   const finalized = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(finalized.status, 0, finalized.stderr);
+  appendCompletedHandoffBinding(root, changeId, handoff.input, { agentId: 'fixture-archive-executor' });
   const result = JSON.parse(finalized.stdout);
   assert.equal(result.status, 'pass');
   assert.ok(fs.existsSync(v2ResultPath(root, changeId, handoff.runId)), 'finalizer must persist the StageResult itself');
@@ -99,6 +104,8 @@ try {
     expectedArchiveRunId: handoff.runId,
     expectedInputDigests: handoff.input.inputDigests,
   }), []);
+  const archiveReviewReady = buildStageReadiness(root, changeId, 'archive');
+  assert.equal(archiveReviewReady.route, 'archive.review', JSON.stringify(archiveReviewReady.problems));
   const duplicate = spawnSync(process.execPath, [finalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
   assert.notEqual(duplicate.status, 0);
   assert.match(duplicate.stderr, /durable result already exists/u);
