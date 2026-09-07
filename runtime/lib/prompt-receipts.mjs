@@ -9,7 +9,8 @@ function sha256(value) {
   return createHash('sha256').update(String(value)).digest('hex');
 }
 
-const HARNESS_ROUTING_CLAUSES = new Set(['/enterprise-harness:harness']);
+const HARNESS_ROUTING_CLAUSES = new Set(['/enterprise-harness:harness', '/harness']);
+const HARNESS_ROUTING_PREFIX = /^\/(?:enterprise-harness:)?harness(?:\s+|$)/u;
 
 export function normalizePromptClause(value) {
   return String(value || '').normalize('NFKC').replace(/^(?:>\s*)+/u, '').replace(/[。；;.!?！？]+$/gu, '')
@@ -21,7 +22,8 @@ export function promptClauses(value) {
 }
 
 function semanticPromptClauseDigests(value) {
-  return [...new Set(promptClauses(value)
+  const withoutRoutingPrefix = String(value || '').normalize('NFKC').replace(HARNESS_ROUTING_PREFIX, '');
+  return [...new Set(promptClauses(withoutRoutingPrefix)
     .filter((clause) => !HARNESS_ROUTING_CLAUSES.has(clause))
     .map(sha256))];
 }

@@ -1,0 +1,66 @@
+{
+  "status": "diagnostic-only",
+  "publishableConclusion": false,
+  "date": "2026-09-07",
+  "caseId": "brownfield-cancel-with-sdk",
+  "model": "sonnet",
+  "claudeCodeVersion": "2.1.263",
+  "sampleSizePerSystem": 1,
+  "turnBudgetUsd": 1,
+  "records": [
+    {
+      "system": "superpowers",
+      "version": "6.3.0",
+      "inputTokens": 38900,
+      "outputTokens": 2710,
+      "cacheReadInputTokens": 92928,
+      "costUsd": 0.1852284,
+      "durationMs": 126670,
+      "reachedDecisionQuestion": true,
+      "productCodeChanged": false,
+      "notableFinding": "读取仓库后提出一个关键问题，但把 Stripe 24.0.0 行为写成无来源事实，且无 durable change 记录。"
+    },
+    {
+      "system": "openspec",
+      "version": "1.12.0",
+      "inputTokens": 44187,
+      "outputTokens": 7083,
+      "cacheReadInputTokens": 340736,
+      "costUsd": 0.3410268,
+      "durationMs": 120254,
+      "reachedDecisionQuestion": true,
+      "productCodeChanged": false,
+      "notableFinding": "生成 proposal/spec/design/tasks 后才暴露退款失败关键决定，并把 SDK 核验留到实施任务。"
+    },
+    {
+      "system": "enterprise-harness",
+      "version": "0.5.29",
+      "inputTokens": 132839,
+      "outputTokens": 16410,
+      "cacheReadInputTokens": 1284160,
+      "costUsd": 1.029915,
+      "durationMs": 601797,
+      "reachedDecisionQuestion": false,
+      "productCodeChanged": false,
+      "notableFinding": "创建 durable state/evidence/requirements，但 inline command continuity 与错误 dispatch 顺序导致预算耗尽。"
+    },
+    {
+      "system": "enterprise-harness-candidate",
+      "version": "0.5.30-candidate",
+      "inputTokens": 197692,
+      "outputTokens": 13855,
+      "cacheReadInputTokens": 1078144,
+      "costUsd": 1.1243442,
+      "durationMs": 410997,
+      "reachedDecisionQuestion": false,
+      "productCodeChanged": false,
+      "notableFinding": "首轮 32 秒正确停轮；次轮完成 lane 记录、brief 与两个 fork Skill 派发，但 worker 返回前预算耗尽。"
+    }
+  ],
+  "conclusions": [
+    "当前数据不能支持 Enterprise Harness 更省 token。",
+    "当前数据不能支持总体优于 Superpowers 或 OpenSpec。",
+    "pilot 暴露的 inline routing continuity bug 已有 RED-to-GREEN 回归测试。",
+    "正式结论至少需要每系统每 case 5 次、足额统一预算、盲审和中位数/IQR。"
+  ]
+}

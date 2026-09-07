@@ -52,7 +52,7 @@ node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>
 
 ## State router
 
-路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID或再调用带ID status，必须读research reference、从raw request生成安全ID、运行其start-change后结束。status 选中的 pre-entry recovery 已在上一节终止，不参与此 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 必须消费 `stageReadiness.route`，只 exact-match 当前阶段声明的 route；缺失或未知 route 只报告 blocker，Main 不从文件存在性自行推导下一步。
+路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID或再调带ID status；读research reference、从raw request生成安全ID、运行start-change后结束。`start-change` 是 terminal action：成功后同一 assistant turn 禁止 Read、Agent、Skill 等后续调用或 artifact 写入；只报告 changeId、stage、下轮 `/harness` 后结束。status 选中的 pre-entry recovery 已终止，不参与 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 必须消费 `stageReadiness.route`，只 exact-match 当前阶段声明的 route；缺失或未知 route 只报告 blocker。Main 不从文件自行推导下一步。
 
 R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。所有链接相对当前 SKILL/reference 文件解析，绝不相对项目 cwd 探测；每轮只选择一个 phase authority reference，只有该 reference 明确导航时才加载其一个 supporting reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
@@ -62,7 +62,7 @@ R→[research](references/clarify-research.md)；D/`decisions`→[decisions](ref
 
 ### Controller action envelope
 
-Before route selection, materialize one observable snapshot containing stage, lifecycle, current task, change identifier, factGateOpen, each required lane state, earliest invalid gate, pending decision, runtime nextAction, artifact freshness, `clarifyReadiness.route`, `clarifyTransitionReady=clarifyReadiness.transitionReady`, `stageReadiness.route`, and `stageTransitionReady=stageReadiness.transitionReady`.
+路由前生成 observable snapshot，包含 stage、lifecycle、currentTask、changeId、factGateOpen、各 required lane state、earliest invalid gate、pending decision、runtime nextAction、artifact freshness、`clarifyReadiness.route`、`clarifyTransitionReady=clarifyReadiness.transitionReady`、`stageReadiness.route` 和 `stageTransitionReady=stageReadiness.transitionReady`。
 
 A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck；命令必须逐字使用所选 reference 已记录的 exact argv，不得合成 shorthand。If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
 

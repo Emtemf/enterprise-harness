@@ -40,6 +40,23 @@ try {
   assert.equal(promptBindingCovers(root, 'prompt-change', 'Do not change payment.'), false,
     'requirements must preserve the complete prompt clause set, not a convenient subset');
 
+  const inlineEvent = {
+    hook_event_name: 'UserPromptSubmit',
+    session_id: 'inline-prompt-session',
+    cwd: root,
+    prompt: '/enterprise-harness:harness Build order cancellation. Do not change payment.',
+  };
+  const inlineResult = spawnSync(process.execPath, [hook], {
+    cwd: root,
+    input: JSON.stringify(inlineEvent),
+    encoding: 'utf-8',
+    shell: false,
+  });
+  assert.equal(inlineResult.status, 0, inlineResult.stderr);
+  bindLatestPromptReceipt(root, 'inline-prompt-change', inlineEvent.session_id);
+  assert.equal(promptBindingCovers(root, 'inline-prompt-change', 'Build order cancellation. Do not change payment.'), true,
+    'an inline slash-command prefix is control-plane routing, not part of the first requirement clause');
+
   const malformed = spawnSync(process.execPath, [hook], {
     cwd: root,
     input: '{not-json}',

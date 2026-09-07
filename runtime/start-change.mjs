@@ -82,3 +82,4 @@ console.log('Next Steps:');
 console.log('- 在 Claude Code 会话中，从 /harness 继续推进 clarify。');
 console.log('- 当前 change 处于 v6 stage=clarify，完成需求澄清和分类后推进到 design。');
 console.log('- classification 是内部 durable action，不是用户可见 stage。');
+console.log('HARNESS_ACTION_COMPLETE=start-change STOP_CURRENT_TURN=true');

@@ -1,6 +1,6 @@
 {
   "name": "enterprise-harness",
-  "version": "0.5.29",
+  "version": "0.5.30",
   "private": true,
   "description": "Enterprise Harness Claude Code 插件的可移植运行时与仓库契约。",
   "license": "Apache-2.0",
@@ -32,6 +32,7 @@
     "test:everything": "npm run test:ci && npm run test:all && npm run docs:check && npm run test:e2e",
     "quality:local": "node bin/local-quality.mjs",
     "docs:check": "node runtime/test/docs-consistency-smoke.mjs verify",
+    "benchmark:competitive": "node benchmarks/competitive-v1/run.mjs",
     "pack": "node bin/package.mjs",
     "release": "node bin/release.mjs"
   },

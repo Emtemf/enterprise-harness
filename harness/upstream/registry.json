@@ -36,9 +36,10 @@
         "Asset model only: change/spec/archive and related workflow concepts.",
         "Do not auto-sync OPSX command surface into this project."
       ],
-      "lastReviewed": "2026-07-14",
+      "lastReviewed": "2026-09-07",
+      "reviewedCommit": "e062b9572be933564ba3899d059377dfa1393e32",
       "observedVersions": [
-        "repo-main"
+        "1.12.0"
       ]
     },
     {

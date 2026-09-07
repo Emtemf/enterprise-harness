@@ -1,157 +1,50 @@
-# Enterprise Harness 正式发布帖素材包（营销历史）
+# Enterprise Harness 推广素材包
 
-> **普通用户 30 秒开始：**
-> 1. 安装 `enterprise-harness`
-> 2. 打开 Claude Code
-> 3. 输入 `/enterprise-harness:harness`
->
-> 这就是普通用户路径；其余 runtime / maintainer 内容都不是普通用户前门。
+> 证据和限制以 [竞争证据基线](competitive-evidence.md) 为准。不要删除限定语后单独传播比较结论。
 
-> 这份文档是**发布 / 宣传素材包**，不是普通用户安装与上手说明。
->
-> 普通用户请直接看：
->
-> - [`quickstart.md`](../user/quickstart.md)
->
-> 普通用户只需要记住：**安装插件，然后从 `/enterprise-harness:harness` 开始。**
+## GitHub About
 
-## 使用说明
+Claude Code 企业变更治理插件：用证据先行的 Clarify、隔离设计与实施、独立评审、真实命令 receipt、freshness gate 和离线归档，把一次软件变更变成可恢复、可验证的交付记录。
 
-这份文档不是单一公告，而是一套可复用的发布素材。
+## 社区短帖
 
-你可以按渠道直接拷贝、微调：
+很多 AI coding workflow 能写 spec、拆 task、跑测试。Enterprise Harness 关注的是更难的一层：**谁做了什么、基于哪版输入、测试是否真的执行、review 是否独立、重启后能否从证据恢复。**
 
-- GitHub 仓库简介
-- GitHub Release / 仓库公告
-- 微信群 / 飞书群 / 内部群
-- X / Twitter
-- 掘金
-- 即刻
-- 知乎回答 / 专栏
+它把这些规则放进 Claude Code 的 Skill + runtime：
 
-统一口径：
+- CodeGraph / Context7 分 lane 取证，事实没齐不进入提问；
+- 用户决定绑定 requirements digest，输入变化自动 stale；
+- Design、测试设计、Plan、TDD 实施、Verify、Archive 分离；
+- implementer 使用 worktree/write scope，reviewer 使用独立 run；
+- 归档保留可离线复验的 lineage。
 
-> **Enterprise Harness = 围绕 Claude Code 的企业后端交付骨架**
->
-> 当前状态：**Claude Code-only phase 1 的 staged workflow repo contract 基线**
->
-> 普通用户入口：**安装插件后直接从 `/enterprise-harness:harness` 开始**
+Superpowers 更轻、更通用，工程方法成熟；OpenSpec 更便携，适配 30+ 工具。Enterprise Harness 的目标用户是愿意用更多前置治理换取可审计和 fail-closed 交付的 Claude Code 团队。
 
----
+我们不会先宣称“更省 token”：首轮 pilot 反而显示 Harness 成本更高，并帮我们抓到了 continuity 与 action-boundary bug。固定版本 runner、失败样本和后续正式数据都放在仓库里。
 
-## 1. 最短版（适合 GitHub About / 仓库描述）
+安装后唯一入口：`/enterprise-harness:harness`
 
-### 中文版
+## 演示脚本
 
-围绕 Claude Code 的企业后端交付骨架：把需求 intake、codegraph-first 探索、Context7-first 文档检索、design / TDD / review / validation、change 资产与 Claude Code-only phase 1 的动作层 / maintainer layer 收敛成一套可落盘、可验证、可跨机器接入的工程流程。
+最有说服力的 5 分钟演示不是让模型写一个 Todo App，而是：
 
-普通用户使用方式：**安装插件后直接从 `/enterprise-harness:harness` 开始。**
+1. 发起一个含现有代码、版本化 SDK 和关键业务歧义的变更；
+2. 展示 code/docs 两个隔离 ResearchPacket；
+3. 修改 requirements，展示旧 design/proof 自动 stale；
+4. 尝试跳过独立 review 或真实 RED，展示 runtime 拒绝；
+5. 中断并重启会话，从 state/receipt 恢复；
+6. Verify 后归档，在没有聊天记录时复验 lineage。
 
-### 英文版
+## 推荐标题
 
-An enterprise backend delivery harness for Claude Code: turning intake, codegraph-first exploration, Context7-first docs lookup, design/TDD/review/validation, change artifacts, and a Claude Code-only phase 1 的动作层 / maintainer layer into a durable, verifiable, cross-machine workflow.
+- “不是让 Claude Code 更会说完成，而是让 runtime 能验证完成”
+- “给 Claude Code 加一条企业交付证据链”
+- “从 prompt workflow 到 fail-closed delivery protocol”
 
-For plugin users, the entrypoint is: **install the plugin, then start from `/enterprise-harness:harness`**.
+## 禁止口径
 
----
-
-## 2. GitHub 仓库公告版（标准长文）
-
-我们整理出了 **Enterprise Harness** 的第一版骨架。
-
-这个项目围绕 **Claude Code + Java / Spring Boot 后端交付** 场景，不是为了证明“模型会写代码”，而是想把一次需求从输入到落地，推进成一套更接近企业团队协作的工程过程。
-
-在这套骨架里：
-
-- 项目共享约定通过 `CLAUDE.md`、根目录 `skills/`、`agents/`、`hooks/`、`harness/specs/`、`harness/templates/` 定义
-- 每次变更可以沉淀到 `harness/changes/`，而不是只留在聊天上下文里
-- 代码探索默认走 **codegraph-first**
-- 外部库与框架文档默认走 **Context7-first**
-- 本地运行方式统一到 Claude Code-only phase 1 的动作层 / maintainer layer
-- 对受治理路径的修改，开始接入 `active change`、`designApproved`、`redVerified`、stale validation 等最小 gate
-- 对 plugin 用户，唯一工作流前门是 `/enterprise-harness:harness`
-
-如果你要向普通用户解释怎么开始，只需要两步：
-
-1. 安装插件
-2. 从 `/enterprise-harness:harness` 开始
-
----
-
-## 3. 发布帖标准版（适合朋友圈 / 微信群 / 飞书群 / Telegram）
-
-最近把一个想法整理成了第一版公开骨架：**Enterprise Harness**。
-
-它的目标不是“让 Claude Code 更会写代码”，而是让 Claude Code 更像能进入团队工程流程的交付工具。
-
-对普通用户，入口已经尽量收口成：
-
-> **安装插件，然后从 `/enterprise-harness:harness` 开始。**
-
-更底层的 动作层 / maintainer layer、change 资产、hook gate、codegraph-first / Context7-first 等机制则留给仓库治理与维护层。
-
----
-
-## 4. X / Twitter 版本
-
-### 版本 A（简洁）
-
-I open-sourced the first MVP of **Enterprise Harness** — a Claude Code-only phase 1 repo contract around Claude Code for enterprise-style backend delivery.
-
-For end users, the path is simple:
-**install the plugin, then start from `/enterprise-harness:harness`**.
-
-### 版本 B（更解释型）
-
-Most “AI coding workflows” stop at prompts.
-
-**Enterprise Harness** tries to go one layer deeper with shared repo contract, machine-local 动作层 / maintainer layer, change artifacts in-repo, codegraph-first exploration, and Context7-first docs lookup.
-
-For regular users, the front door is still just:
-**install, then start from `/enterprise-harness:harness`**.
-
----
-
-## 5. 掘金版
-
-# 我做了一个围绕 Claude Code 的企业后端交付骨架：Enterprise Harness
-
-很多人讨论 Claude Code，讨论的是“能不能写代码”。
-
-但如果把场景放到团队协作里，真正的问题往往不是“能不能写”，而是：
-
-- 需求怎么 intake？
-- 项目规则怎么真正进运行时？
-- 探索证据、变更状态、验证结果怎么落盘？
-- 换一台机器之后，为什么同样的仓库就跑不起来了？
-- 怎么避免所有东西都只停留在会话上下文里？
-
-我最近把这类想法整理成了一个公开骨架项目：**Enterprise Harness**。
-
-但对普通用户，它尽量不要求先理解这么多东西；普通用户只需要：
-
-1. 安装插件
-2. 从 `/enterprise-harness:harness` 开始
-
-更底层的 动作层 / maintainer layer、change 资产、hook gate 和 reviewer 机制则留给维护层与工程治理层。
-
----
-
-## 6. 即刻版
-
-最近把一个想法整理成公开骨架了：**Enterprise Harness**。
-
-它不是让 Claude Code “更像聊天助手”，而是想让它更像能进入团队工程流程的东西。
-
-但对普通用户，入口已经尽量收口得很简单：
-
-> **安装插件后直接从 `/enterprise-harness:harness` 开始。**
-
----
-
-## 7. 文档入口
-
-- [项目概览](../../README.md)
-- [安装教程](../user/quickstart.md)
-- [维护 / 排障指南](../maintainer/runtime-operations.md)
-- `README.md`
+- 全面碾压 Superpowers / OpenSpec；
+- 零幻觉、零事故；
+- 更省 token（正式数据完成前）；
+- 支持所有 coding agent；
+- 一键替代企业 CI、审批或合规平台。

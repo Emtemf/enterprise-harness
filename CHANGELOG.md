@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [0.5.30] - 2026-09-07
+
+### Added
+
+- 新增固定 Superpowers 6.3.0、OpenSpec 1.12.0 与 Claude Code 模型参数的竞争评测 pilot，保留 input/output/cache token、成本、耗时、产物与失败样本，并明确禁止从 `n=1` 推导总体优势。
+- 新增竞争证据基线、能力定位图、token 反证图和可直接复用的推广素材；所有比较主张按 L0-L4 证据等级区分，保留竞品优势和产品边界。
+
+### Changed
+
+- 推广定位从“通用企业后端骨架”收敛为 Claude Code 中可机械拒绝、可恢复、可审计的企业软件变更治理；绝对 token 节省在正式重复实验完成前标记为未证实。
+- OpenSpec 上游基线固定到 1.12.0 / `e062b9572be933564ba3899d059377dfa1393e32`，避免用漂移的 main 做比较。
+
+### Fixed
+
+- UserPromptSubmit receipt 现在正确剥离与需求同一行的 `/enterprise-harness:harness` 或 `/harness` 路由前缀，避免完整原始需求被误判为 continuity 不一致。
+- `start-change` 在 Skill 与 runtime 输出中都显式标记为当前轮 terminal action，降低模型同轮越过 action boundary 提前探索的概率。
+
 ## [0.5.29] - 2026-09-07
 
 ### Fixed

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "brownfield-cancel-with-sdk",
+      "prompt": "在现有 Java 项目中为 OrderService 增加取消能力：只有 PENDING 订单可取消，否则返回 ORDER_NOT_PENDING；成功取消还要通过 Stripe Java 24.0.0 退款。我没有说明退款失败时订单状态如何处理、是否重试、审计字段或最终验收方式。不要写代码。请按你的工作流完成本轮能够可靠完成的需求澄清或规格准备；代码和官方文档能查到的事实不要问我。如果需要业务决定，只问一个最重要的问题并停止。",
+      "maxWorkflowTurns": 6,
+      "requiredRepositoryFacts": [
+        "OrderService.java",
+        "OrderStatus.PENDING"
+      ],
+      "requiredExternalFacts": [
+        "Stripe Java 24.0.0",
+        "idempotency"
+      ],
+      "unresolvedDecisions": [
+        "refund failure consistency",
+        "retry policy",
+        "audit fields",
+        "acceptance observability"
+      ],
+      "forbiddenProductChanges": [
+        "src/main/**",
+        "src/test/**"
+      ]
+    }
+  ]
+}

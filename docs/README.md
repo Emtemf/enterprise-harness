@@ -28,4 +28,5 @@
 
 - `adr/`：历史设计决策
 - `marketing/`：发布宣传，不进入产品手册
+- [竞争证据基线](marketing/competitive-evidence.md)：对外比较主张、证据等级、token pilot 与正式评测合同
 - `internal/`：可过期研发快照，不进入发布包

@@ -1,0 +1,22 @@
+{
+  "verifiedAt": "2026-09-07",
+  "sources": [
+    {
+      "system": "enterprise-harness",
+      "version": "0.5.30",
+      "source": "https://github.com/Emtemf/enterprise-harness"
+    },
+    {
+      "system": "superpowers",
+      "version": "6.3.0",
+      "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "source": "https://github.com/obra/superpowers"
+    },
+    {
+      "system": "openspec",
+      "version": "1.12.0",
+      "commit": "e062b9572be933564ba3899d059377dfa1393e32",
+      "source": "https://github.com/Fission-AI/OpenSpec"
+    }
+  ]
+}

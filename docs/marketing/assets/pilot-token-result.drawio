@@ -1,0 +1,28 @@
+<mxfile host="Electron" modified="2026-09-07T00:00:00.000Z" agent="Enterprise Harness" version="24.7.17">
+  <diagram id="tokens" name="Page-1">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1600" height="900" as="geometry"/></mxCell>
+        <mxCell id="title" value="Token pilot：当前不能宣称 Enterprise Harness 更省" style="text;html=1;strokeColor=none;fillColor=none;fontSize=34;fontStyle=1;fontColor=#0F172A;align=left;" vertex="1" parent="1"><mxGeometry x="90" y="55" width="1350" height="55" as="geometry"/></mxCell>
+        <mxCell id="subtitle" value="Input + Output tokens · 越低越好 · Claude Code 2.1.263 / Sonnet / 同一请求 · n=1 diagnostic only" style="text;html=1;strokeColor=none;fillColor=none;fontSize=18;fontColor=#475569;align=left;" vertex="1" parent="1"><mxGeometry x="92" y="112" width="1380" height="34" as="geometry"/></mxCell>
+
+        <mxCell id="spLabel" value="Superpowers 6.3.0" style="text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;fontColor=#065F46;align=right;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="90" y="210" width="260" height="62" as="geometry"/></mxCell>
+        <mxCell id="spBar" value="41,610" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#10B981;strokeColor=#059669;fontSize=22;fontStyle=1;fontColor=#FFFFFF;align=right;spacingRight=18;arcSize=14;" vertex="1" parent="1"><mxGeometry x="380" y="210" width="250" height="62" as="geometry"/></mxCell>
+        <mxCell id="spNote" value="2m07s · 到达一个关键问题" style="text;html=1;strokeColor=none;fillColor=none;fontSize=18;fontColor=#475569;align=left;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="650" y="210" width="390" height="62" as="geometry"/></mxCell>
+
+        <mxCell id="osLabel" value="OpenSpec 1.12.0" style="text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;fontColor=#1E3A8A;align=right;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="90" y="320" width="260" height="62" as="geometry"/></mxCell>
+        <mxCell id="osBar" value="51,270" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3B82F6;strokeColor=#2563EB;fontSize=22;fontStyle=1;fontColor=#FFFFFF;align=right;spacingRight=18;arcSize=14;" vertex="1" parent="1"><mxGeometry x="380" y="320" width="308" height="62" as="geometry"/></mxCell>
+        <mxCell id="osNote" value="2m00s · 先写制品，后暴露关键决定" style="text;html=1;strokeColor=none;fillColor=none;fontSize=18;fontColor=#475569;align=left;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="708" y="320" width="500" height="62" as="geometry"/></mxCell>
+
+        <mxCell id="ehLabel" value="Harness 0.5.29" style="text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;fontColor=#4C1D95;align=right;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="90" y="430" width="260" height="62" as="geometry"/></mxCell>
+        <mxCell id="ehBar" value="149,249" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8B5CF6;strokeColor=#7C3AED;fontSize=22;fontStyle=1;fontColor=#FFFFFF;align=right;spacingRight=18;arcSize=14;" vertex="1" parent="1"><mxGeometry x="380" y="430" width="895" height="62" as="geometry"/></mxCell>
+        <mxCell id="ehNote" value="10m02s · 未到达业务问题" style="text;html=1;strokeColor=none;fillColor=none;fontSize=18;fontColor=#475569;align=left;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1295" y="430" width="260" height="62" as="geometry"/></mxCell>
+
+        <mxCell id="warning" value="结论：pilot 是产品诊断证据，不是胜负结论。它反驳了“绝对 token 已更省”，并暴露了 continuity / action-boundary 缺陷。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;strokeWidth=2;fontSize=22;fontStyle=1;fontColor=#991B1B;align=left;verticalAlign=middle;spacingLeft=28;spacingRight=28;arcSize=10;" vertex="1" parent="1"><mxGeometry x="90" y="570" width="1420" height="100" as="geometry"/></mxCell>
+        <mxCell id="next" value="下一步才是可发布数据：≥5 次/系统/case · 统一足额预算 · 盲审 · 中位数/IQR · tokens per accepted run · 全部失败保留" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;strokeWidth=2;fontSize=21;fontColor=#334155;align=center;verticalAlign=middle;arcSize=10;" vertex="1" parent="1"><mxGeometry x="155" y="725" width="1290" height="90" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
