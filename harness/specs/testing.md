@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-06
+lastVerified: 2026-09-07
 implementationRefs:
   - bin/local-quality.mjs
   - runtime/test
@@ -13,6 +13,7 @@ testRefs:
   - runtime/test/verify-run-smoke.mjs
   - runtime/test/installed-verify-plugin-e2e.mjs
   - runtime/test/installed-archive-plugin-e2e.mjs
+  - runtime/test/main-lifecycle-standard-sample-smoke.mjs
 ---
 
 # Testing Contract
@@ -29,6 +30,12 @@ Archive 的标准验收必须从真实 installed plugin fork Archive Skill，生
 attestation 和 persisted StageResult，再由 fresh 独立 reviewer 产生 ReviewResult；最后只有 runtime
 Archive CompletionProof 才能物理移动 change；移动后必须在无 source path、无需 `.git` receipt 的条件下复验
 manifest v2 全部 archivePath/digest，之后才能清理 active pointer。
+
+Main 的确定性全生命周期验收必须使用同一 change 连续经过 Clarify→Archive。每个动作前由 fresh 进程
+重新读取 `workflow status --json`，后段 fixture 不得覆盖上游 state、task、command 或 completion proof；
+Implement 必须包含真实 RED/GREEN/REFACTOR、独立 task review 和受治理 worktree 集成，Archive 移动后必须
+离线复验 manifest。各阶段真实安装态 `claude -p` E2E 继续证明模型与 packaged Skill 行为，但不能替代该
+连续性测试，也不能伪称需要用户业务决策的单个长会话可以无人值守完成。
 
 RED 必须由目标断言在缺少实现时失败；同一测试在实现后通过。
 

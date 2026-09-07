@@ -14,8 +14,10 @@
 处理 blocker（例如 expired lease）；只有 active Clarify 没有前置 blocker 时才检查 question recovery。
 
 精确需求可能走 Fast Path，但仍会完成事实确认、最终 scope 授权、技术债与项目合同处置、classification、
-独立 review 和 fresh proof。Clarify 只审计现有项目指令并记录缺口或冲突；这个 slice 不会创建、修改或写入
-`CLAUDE.md`。code/docs 事实冲突会按 authority scope 重新派发更窄的 immutable brief；不会让用户裁决事实。
-出现中断时，Harness 复用 fresh artifacts，只执行 status/recover 返回的一个恢复动作。
+独立 review 和 fresh proof。Clarify 会审计现有项目指令；缺失或不完整时先生成 immutable、baseDigest-bound
+proposal，只有用户明确批准对应 digest 后，runtime 才能创建或增量更新允许的项目指令路径。已有文件不会整份
+覆盖，目标在批准后发生变化也会因 CAS 失败而要求重新生成 proposal。code/docs 事实冲突会按 authority scope
+重新派发更窄的 immutable brief，不会让用户裁决事实。出现中断时，Harness 复用 fresh artifacts，只执行
+status/recover 返回的一个恢复动作。
 
 安装与命令入口见[快速开始](quickstart.md)，完整阶段行为见[六阶段工作流](workflow.md)。

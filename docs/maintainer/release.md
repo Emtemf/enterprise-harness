@@ -1,11 +1,15 @@
 # 发布
 
-0.3.19 到 0.4.0 使用 minor bump：
+发布遵循 SemVer。兼容性修复和已批准能力的增量通常使用 patch；新增不兼容合同才使用 minor，稳定版后的
+breaking change 使用 major。先 dry-run，再执行同一 bump：
 
 ```bash
-node bin/release.mjs --minor --dry-run
-node bin/release.mjs --minor
+node bin/release.mjs --patch --dry-run
+node bin/release.mjs --patch
 ```
+
+不要把示例中的 `--patch` 机械套用于 breaking change；应按本次 CHANGELOG 与兼容性结论替换为
+`--minor` 或 `--major`。
 
 release 前提：本机 `gh auth status --hostname github.com` 成功，且当前账号对 `origin` 指向的 GitHub 仓库具有 write、maintain 或 admin 权限。
 

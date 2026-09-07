@@ -4,8 +4,8 @@
 
 ## 九个主合同
 
-1. [architecture.md](architecture.md) — Claude Code-only surface and the compound-but-six-stage Design boundary
-2. [workflow.md](workflow.md) — six lifecycle stages, Design internal proof sequence, downstream test-case authority, and Plan dual-artifact freeze
+1. [architecture.md](architecture.md) — Claude Code-only 产品边界、五层职责与六阶段内的复合 Design 边界
+2. [workflow.md](workflow.md) — 六阶段生命周期、Design 内部 proof 顺序、下游测试用例权威与 Plan 双产物冻结
 3. [state-schema.md](state-schema.md)
 4. [agents-and-handoff.md](agents-and-handoff.md)
 5. [hooks.md](hooks.md) — session-scoped opt-in 写入治理、UserPromptSubmit 摘要凭据、共享写 lease/独占 transaction 与自动异常恢复
@@ -16,7 +16,7 @@
 
 ## 附录
 
-- [development-target.md](development-target.md) — Claude Code 每次会话自动加载的已批准重构目标；明确目标与当前实现的边界、TECPC、Clarify 垂直闭环、compound Design 和实施顺序
+- [development-target.md](development-target.md) — 由本仓库 `CLAUDE.md` 显式导入的已批准目标基线；明确产品边界、TECPC、Clarify 垂直闭环、compound Design 和已验证实施顺序，本文件自身不是 Claude Code 自动发现入口
 - [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、evidence-bound readiness predicates、条件风险面与 Decision frontier
 - [tdd-execution.md](tdd-execution.md) — named Implementer、预加载重 Skill、worktree baseline、strategy runner、canonical receipt、独立 task review 与精确集成门禁
 - [verify-contract.md](verify-contract.md) — Plan 冻结命令、逐 TC 机器执行证据、validation、独立完成审查与 CompletionProof

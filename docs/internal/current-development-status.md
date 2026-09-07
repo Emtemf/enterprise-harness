@@ -36,7 +36,7 @@
 - Plan finalizer 通过公开 runtime API 原子持久化同时绑定 `tasks.md` 与 `task-commands.json` 的 StageResult；重复写、stale input、占位和双产物不一致均 fail closed。
 - canonical Plan/Test Design 绑定反向覆盖全部 accepted `TC*`，并强制 migration level 由 migration strategy 的 `DRY_RUN/APPLY/ROLLBACK` 承接。
 - 真实 `npm pack` + 两个 fresh `claude -p --plugin-dir` session 已完成 Plan worker 与独立 reviewer；Main 显式选择首个冻结 task 后，runtime 发布 PlanProof 并推进到 `implement`。
-- Plan reviewer rubric 覆盖行为切片、R/D/VO/TC、模式理由、SQL 历史、literal argv、write scope、验收和恢复；下一切片是单 Task Implement 闭环。
+- Plan reviewer rubric 覆盖行为切片、R/D/VO/TC、模式理由、SQL 历史、literal argv、write scope、验收和恢复；当时规划的下一切片单 Task Implement 已在后续版本闭环。
 
 ## 2026-09-04 Implement 安装态标准样例
 
@@ -70,8 +70,8 @@
 - **P0-7 Runtime API**：新增 `runtime/api/{handoff,result,task}.mjs` facade，
   9 个 skill scripts 不再 import runtime/core|lib；validator 强制。
 
-验证：`node bin/run-smoke-suite.mjs` 208 files PASS。**尚未发布**——发布需
-版本 bump + tag + CHANGELOG + 隔离安装验证（见发布流程 memory）。
+当时验证：`node bin/run-smoke-suite.mjs` 208 files PASS；该 P0 结构治理随后已随版本发布。当前发布状态与
+验证数量以文件顶部快照、CHANGELOG 和 fresh `quality:local` 输出为准。
 
 ### 已知遗留（P1 候选）
 

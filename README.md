@@ -18,7 +18,7 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - Java、Spring Boot、Maven 项目；路径和构建边界可通过 `harness/project.json` profile v1 调整。
 - `src/main/java/**`、`src/test/java/**`、`openapi/**` 默认约定路径。
 - CodeGraph-first 代码探索，关键事实在当前源码中做 scoped confirmation。
-- Context7 MCP-first 外部库和框架资料查询；未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
+- Context7-first 外部库和框架资料查询；当前运行适配器使用锁定版本的 Context7 CLI，未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
 - State v6、session binding、change lock、artifact stale propagation。
 - 六阶段 happy path：`clarify → design → plan → implement → verify → archive`。
 - `design` 仍是一个生命周期阶段，但内部固定执行 architecture 产出与独立 review、seal、独立 `test-design` 产出与 review，随后由 runtime 形成 compound `DesignProof`。
@@ -27,8 +27,7 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - Claude Code 原生 `worktree.baseRef=head`，worktree 只做代码隔离，不承载 change 真相。
 - 本地 `quality:local` 发布门禁，以及按需手动触发的 Linux、macOS、Windows 兼容性 matrix。
 
-“Claude Code-only” 是当前明确的产品边界：暂不设计 Codex、OpenCode、Gemini CLI 等其他
-agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin 自身的可移植性验证。
+“Claude Code-only” 是当前明确的产品边界：暂不设计 Codex、OpenCode、Gemini CLI 等其他 agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin 自身的可移植性验证。
 
 当前仍是早期治理框架。它不替代 CI/CD、人工代码审查、安全扫描、制品签名、权限平台或生产发布审批。OpenAPI 检查已具备基础门禁，但复杂 YAML 和 Spring 映射仍可能返回 `unsupported`，不能视为完整 API 治理平台。
 
@@ -36,11 +35,11 @@ agent harness 的兼容层。操作系统测试矩阵只是 Claude Code plugin �
 
 要求：
 
-- Claude Code 2.1.219 或更高版本（当前验证版本：2.1.227）
+- Claude Code 2.1.219 或更高版本（最近验证版本：2.1.263，2026-09-07）
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper
-- CodeGraph MCP；需要外部文档时配置 Context7 MCP，无需 API Key（匿名可用，有 Key 时从环境变量 `CONTEXT7_API_KEY` 读取以获取更高额度）。
+- CodeGraph MCP；需要外部文档时安装项目锁定的 Context7 CLI。Context7 可匿名使用，也可从环境变量 `CONTEXT7_API_KEY` 读取凭据以获取更高额度。
 
 从 GitHub marketplace 安装：
 
@@ -61,9 +60,7 @@ gh auth setup-git
 git ls-remote https://github.com/Emtemf/enterprise-harness.git
 ```
 
-最后一条必须能输出 refs，才安装或更新插件。若出现 `Cannot prompt because user interactivity
-has been disabled`、`unable to get password` 或 `Failed to clone marketplace repository`，说明 Git
-凭据尚未配置好，不是插件版本或 release 附件问题。配置完成后使用：
+最后一条必须能输出 refs，才安装或更新插件。若出现 `Cannot prompt because user interactivity has been disabled`、`unable to get password` 或 `Failed to clone marketplace repository`，说明 Git 凭据尚未配置好，不是插件版本或 release 附件问题。配置完成后使用：
 
 ```bash
 claude plugin marketplace update enterprise-harness
@@ -105,7 +102,8 @@ claude plugin install enterprise-harness@enterprise-harness --scope local
 6. 同时冻结人类可审查的 `tasks.md` 与 runtime 可执行的 `task-commands.json`，逐 task 绑定 `TC*`、strategy、phase、literal argv 和 write scope。
 7. 在隔离 worktree 中按 task strategy 执行（TDD / regression / direct 等）。
 8. 派独立 checker，消费 result 而不是 executor 的聊天上下文。
-9. 汇总每个 `TC*` 的 fresh validation、completion evidence 后才允许归档。
+9. 以 Plan 冻结 argv 重新执行每个 accepted `TC*`，形成 fresh validation 和独立完成审查。
+10. Archive 绑定全链 lineage，经独立 review 后原子移动，并可只读归档目录离线复验。
 
 ## 用户会看到什么
 
@@ -132,7 +130,7 @@ EH-TASK-RECEIPT-025 / EH-WORKFLOW-STAGE-GATE-007 / EH-AGENT-BINDING-003
 - 对应 change 的 `state.json`、runId 和已脱敏 ledger 片段。
 - 操作系统、Node、Java、Maven 和插件版本。
 
-插件验收不会检查 Claude 账户、订阅、认证或服务容量。本地质量门禁调用 Claude Code CLI 仅用于 `claude plugin validate`。
+确定性本地质量门禁不会检查 Claude 账户、订阅、认证或服务容量，其中 Claude Code CLI 只用于 `claude plugin validate`。需要模型行为证据时，维护者另行运行真实 `npm pack` + fresh `claude -p` 安装态 E2E；两类证据不能互相冒充。
 
 ## 更新与卸载
 
