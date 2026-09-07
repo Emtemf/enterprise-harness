@@ -1,6 +1,6 @@
 {
   "skill": "verify",
-  "version": "0.5.25",
+  "version": "0.5.26",
   "cases": [
     {
       "id": "frozen-validation-argv",

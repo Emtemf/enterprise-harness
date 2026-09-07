@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createHandoffV2 } from '../core/handoff-v2.mjs';
 import { artifactDependencies } from '../lib/artifacts.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { archiveManifestAttestationRef, validateArchiveManifest } from '../api/archive.mjs';
+import { archiveManifestAttestationRef, archiveManifestInputRefs, validateArchiveManifest } from '../api/archive.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 import { writeCanonicalVerifyCompletionFixture } from './verify-completion-fixture.mjs';
 
@@ -38,12 +38,27 @@ try {
     type: 'completion-proof', stage: 'design',
     stageProofs: [{ kind: 'test-design', executionRunId: 'run_test-design-execute', reviewRunId: 'run_test-design-review' }],
   }));
+  for (const ref of Object.values(archiveManifestInputRefs(changeId))) {
+    const target = path.join(root, ref);
+    if (!fs.existsSync(target)) {
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, ref.endsWith('.json') ? '{}\n' : `# ${path.basename(ref)}\n`);
+    }
+  }
+  fs.writeFileSync(path.join(root, base, 'state.json'), `${JSON.stringify({
+    schemaVersion: 6,
+    revision: 1,
+    changeId,
+    lifecycle: 'active',
+    stage: 'archive',
+    validation: { status: 'fresh', digest: 'fixture', validatedAt: '2026-09-06T00:00:00.000Z' },
+  }, null, 2)}\n`);
   const missingTestCases = createHandoffV2(root, {
     changeId,
     stage: 'archive',
     behavior: 'archive',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
-    inputRefs: [validationRef, verifyProofRef, testCasesRef, designProofRef],
+    inputRefs: Object.values(archiveManifestInputRefs(changeId)),
     tecpc: { target: 'archive missing test cases', evidence: [validationRef, verifyProofRef], context: [testCasesRef, designProofRef], path: manifestRef, correction: null },
   });
   fs.renameSync(path.join(root, testCasesRef), path.join(root, `${testCasesRef}.missing`));
@@ -51,6 +66,8 @@ try {
   assert.notEqual(missing.status, 0, 'archive must reject missing test-cases.md');
   assert.match(missing.stderr, /testCases.*unreadable|test-cases\.md/u);
   fs.renameSync(path.join(root, `${testCasesRef}.missing`), path.join(root, testCasesRef));
+  fs.rmSync(path.join(root, base), { recursive: true, force: true });
+  fs.mkdirSync(path.join(root, base), { recursive: true });
   // GREEN fixture: an Archive success must consume actual trusted Design and
   // Verify chains, not the shallow JSON used by the RED probe above.
   fs.writeFileSync(path.join(root, testCasesRef), [
@@ -61,12 +78,21 @@ try {
   ].join('\n'));
   writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'verify' });
   const verify = writeCanonicalVerifyCompletionFixture(root, changeId);
+  const archiveStatePath = path.join(root, base, 'state.json');
+  const archiveState = JSON.parse(fs.readFileSync(archiveStatePath, 'utf-8'));
+  fs.writeFileSync(archiveStatePath, `${JSON.stringify({
+    ...archiveState,
+    revision: archiveState.revision + 1,
+    stage: 'archive',
+    validation: { status: 'fresh', digest: sha256Artifact(root, verify.validationRef), validatedAt: '2026-09-06T00:00:00.000Z' },
+  }, null, 2)}\n`);
+  const archiveInputRefs = Object.values(archiveManifestInputRefs(changeId));
   const handoff = createHandoffV2(root, {
     changeId,
     stage: 'archive',
     behavior: 'archive',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
-    inputRefs: [verify.validationRef, verify.verifyProofRef, verify.testCasesRef, verify.designProofRef],
+    inputRefs: archiveInputRefs,
     tecpc: { target: 'archive downstream evidence', evidence: [verify.validationRef, verify.verifyProofRef], context: [verify.testCasesRef, verify.designProofRef], path: manifestRef, correction: null },
   });
   const result = spawnSync(process.execPath, [archiveFinalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
@@ -75,9 +101,13 @@ try {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, manifestRef), 'utf-8'));
   const archiveStageResult = JSON.parse(result.stdout);
   assert.equal(manifest.testCases.path, testCasesRef);
+  assert.equal(manifest.testCases.archivePath, `harness/archive/${changeId}/test-cases.md`);
   assert.equal(manifest.designProof.path, designProofRef);
   assert.equal(manifest.verifyCompletionProof.path, verifyProofRef);
   assert.equal(manifest.archiveRunId, handoff.runId);
+  assert.equal(manifest.manifestVersion, 2);
+  assert.ok(manifest.lineage.every((entry) => entry.archivePath.startsWith(`harness/archive/${changeId}/`)),
+    'every frozen input must have a durable in-archive path');
   const attestationRef = archiveManifestAttestationRef(changeId);
   assert.equal(fs.existsSync(path.join(root, attestationRef)), true,
     'the canonical archive writer must persist an immutable manifest attestation');
@@ -124,15 +154,16 @@ try {
   fs.copyFileSync(externalAttestation, path.join(root, attestationRef));
 
   const duplicate = spawnSync(process.execPath, [archiveFinalize, changeId, handoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
-  assert.equal(duplicate.status, 0, duplicate.stderr || 'identical archive writer retry must be idempotent');
-  assert.deepEqual(JSON.parse(duplicate.stdout).artifacts.find((artifact) => artifact.path === attestationRef), attestationArtifact,
-    'idempotent writer retry must preserve the attestation artifact identity');
+  assert.notEqual(duplicate.status, 0, 'Archive finalizer must persist exactly one durable StageResult');
+  assert.match(duplicate.stderr, /durable result already exists/u);
+  assert.equal(fs.readFileSync(path.join(root, attestationRef), 'utf-8'), originalAttestation,
+    'duplicate finalization must preserve the original attestation');
   const conflictingHandoff = createHandoffV2(root, {
     changeId,
     stage: 'archive',
     behavior: 'archive',
     agent: { type: 'enterprise-harness:artifact-worker', skill: 'archive' },
-    inputRefs: [verify.validationRef, verify.verifyProofRef, verify.testCasesRef, verify.designProofRef],
+    inputRefs: archiveInputRefs,
     tecpc: { target: 'conflicting archive writer', evidence: [verify.validationRef, verify.verifyProofRef], context: [verify.testCasesRef, verify.designProofRef], path: manifestRef, correction: null },
   });
   const conflictingWriter = spawnSync(process.execPath, [archiveFinalize, changeId, conflictingHandoff.runId], { cwd: root, encoding: 'utf-8', shell: false });
@@ -157,6 +188,12 @@ try {
     validateArchiveManifest(root, changeId, { expectedArchiveRunId: handoff.runId, expectedInputDigests: handoff.input.inputDigests }).join('\n'),
     /testDesign.*canonical trusted independent/u,
     'a hand-written manifest cannot swap a trusted test-design review run',
+  );
+  fs.writeFileSync(path.join(root, manifestRef), JSON.stringify({ ...manifest, lineage: manifest.lineage.slice(1) }));
+  assert.match(
+    validateArchiveManifest(root, changeId, { expectedArchiveRunId: handoff.runId, expectedInputDigests: handoff.input.inputDigests }).join('\n'),
+    /lineage must exactly bind/u,
+    'a manifest cannot omit a frozen lifecycle input from lineage',
   );
   console.log(`PASS test-cases-downstream-binding ${mode}`);
 } finally {

@@ -22,6 +22,41 @@ StageResult、ReviewResult、TECPC 与 digest freshness。
 
 `classification` 是 clarify 后的内部制品；`tdd` 是 task execution strategy。它们不是 v6 lifecycle stage。
 
+## Archive：完整 lineage 封口
+
+命中 Archive worker 时，Main 必须创建只含 canonical refs 的 execute handoff；不能只传 VerifyProof 或
+`validation.md`，也不能把聊天摘要塞入 marker：
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" handoff create \
+  <change-id> archive archive execute \
+  --input-ref harness/changes/<change-id>/requirements.md \
+  --input-ref harness/changes/<change-id>/classification.json \
+  --input-ref harness/changes/<change-id>/debt-assessment.json \
+  --input-ref harness/changes/<change-id>/project-contract-assessment.json \
+  --input-ref harness/changes/<change-id>/evidence/decisions/clarify-decision-snapshot.json \
+  --input-ref harness/changes/<change-id>/design.md \
+  --input-ref harness/changes/<change-id>/validation.md \
+  --input-ref harness/changes/<change-id>/evidence/completion/verify.json \
+  --input-ref harness/changes/<change-id>/test-cases.md \
+  --input-ref harness/changes/<change-id>/evidence/completion/design.json \
+  --input-ref harness/changes/<change-id>/tasks.md \
+  --input-ref harness/changes/<change-id>/task-commands.json \
+  --input-ref harness/changes/<change-id>/evidence/completion/plan.json \
+  --input-ref harness/changes/<change-id>/evidence/completion/implement.json \
+  --target "封存从 Clarify 决策到 Verify 的完整摘要绑定证据链"
+```
+
+只把 stdout 的一整行 `HANDOFF_INPUT=<canonical-input.json-path>` 原样传给 `enterprise-harness:archive`。
+worker 返回后只认 durable result；Main 创建不同 reviewer 的 archive check handoff，输入包含 Archive
+StageResult、manifest/attestation 和 StageResult 的全部 artifacts。独立 ReviewResult 通过后只运行：
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" lifecycle archive-finalize <change-id>
+```
+
+不得让 Archive worker 自行 review、persist 第二次或执行物理移动；命令失败时保留 runtime 原始恢复提示。
+
 ## Implement：命名 worktree agent + 预加载 Skill
 
 命中 Implement 当前 task 时，Main 创建 `implement.execute-task` Handoff v2，input refs 至少绑定

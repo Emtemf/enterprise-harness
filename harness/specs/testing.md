@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-04
+lastVerified: 2026-09-06
 implementationRefs:
   - bin/local-quality.mjs
   - runtime/test
@@ -12,6 +12,7 @@ testRefs:
   - runtime/test/release-version-acceptance-smoke.mjs
   - runtime/test/verify-run-smoke.mjs
   - runtime/test/installed-verify-plugin-e2e.mjs
+  - runtime/test/installed-archive-plugin-e2e.mjs
 ---
 
 # Testing Contract
@@ -23,6 +24,11 @@ testRefs:
 Verify 的标准验收必须证明 installed plugin 能在真实 `claude -p --plugin-dir` 会话中 fork Verify Skill，
 从 Plan 解析冻结命令，通过 runtime runner 执行，产出逐 TC command evidence/canonical receipt，并由
 finalizer 持久化 StageResult。仅校验 Skill 文本或本地手写 fixture 不构成该链路的 E2E 证据。
+
+Archive 的标准验收必须从真实 installed plugin fork Archive Skill，生成完整 lineage manifest/runtime
+attestation 和 persisted StageResult，再由 fresh 独立 reviewer 产生 ReviewResult；最后只有 runtime
+Archive CompletionProof 才能物理移动 change；移动后必须在无 source path、无需 `.git` receipt 的条件下复验
+manifest v2 全部 archivePath/digest，之后才能清理 active pointer。
 
 RED 必须由目标断言在缺少实现时失败；同一测试在实现后通过。
 

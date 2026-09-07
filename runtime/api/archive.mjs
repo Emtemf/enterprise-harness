@@ -4,5 +4,6 @@ export {
   archiveManifestInputRefs,
   archiveManifestRef,
   createArchiveManifest,
+  validateArchivedManifest,
   validateArchiveManifest,
 } from '../lib/archive-manifest.mjs';

@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.5.26] - 2026-09-06
+
+### Added
+
+- 新增安装态 Archive 标准样例，使用真实 `npm pack` 与 `claude -p` 验证 Archive Skill、独立 archive review、runtime CompletionProof、物理移动和活动指针清理。
+- Archive Skill 补齐 marker prepare、归档方法、制品合同、自检清单、正反 few-shot 与 adversarial eval。
+- Archive Skill 明确区分 canonical script 成功与额外 Bash 诊断拒绝：冻结制品只用 Read，prepare 成功后必须运行 finalizer，禁止误报 writer 被阻断或手工拼 StageResult。
+
+### Changed
+
+- Archive manifest v2 新增按 source path 排序的完整 `lineage`，以 source path、稳定 archivePath 与 digest 显式绑定 Clarify 治理制品、Design/Plan/Implement/Verify proofs、任务/冻结命令、测试用例与 validation；物理移动后无需 source 或 `.git` receipt 即可离线复验，失败会回滚目录和 lifecycle。
+- Archive finalizer 现在重验 active Archive state、fresh validation 和完整 handoff closure，并通过公开 runtime API 一次性持久化 StageResult。
+
+### Fixed
+
+- manifest/attestation writer 现在受 change transaction 保护；普通 attestation 写失败会回滚本次新建 manifest，避免留下不可恢复的单边 pair。
+- Main 的 Archive 路由补齐 exact handoff 输入、独立 review 与 `archive-finalize` 顺序，worker 不能自行持久化第二次、评审或移动目录。
+
 ## [0.5.25] - 2026-09-06
 
 ### Added

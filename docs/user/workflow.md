@@ -131,9 +131,14 @@ StageResult，随后仍需不同 run/identity 的独立完成审查。
 
 目的：在 completion predicate 全部通过时冻结变更历史并清理 active change。
 
-Archive 与最终完成声明使用同一套 fresh evidence：包括 compound `DesignProof`、`test-cases.md`、每个 TC
-validation receipt 和 runtime 写入的 archive manifest/attestation。不能通过直接编辑 `state.json`、复制聊天输出
-或强制移动目录伪造成功。
+Archive handoff 显式绑定 requirements、澄清决策、技术债与项目契约处置、Design/Plan/Implement/Verify
+proof、测试用例、任务/冻结命令和 validation。runtime 将完整 input closure 写入 manifest v2 的 `lineage`，
+每项同时绑定迁移前路径、归档内稳定路径和 digest，再生成配对 attestation；Archive Skill 自己持久化
+StageResult，但不能自行评审或移动目录。
+
+不同 reviewer 通过 archive rubric 后，runtime 生成 Archive CompletionProof，Main 才能执行物理归档。
+目标已存在、证据 stale、lineage 缺失、归档后离线复验失败或移动失败都会阻断并回滚。未完成 change 使用带原因的
+`abandon`，不能通过直接编辑 `state.json`、复制聊天输出或强制移动目录伪造成功。
 
 ## 下游交接坑点
 

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-04
+lastVerified: 2026-09-06
 implementationRefs:
   - runtime/lib/evidence-policy.mjs
   - runtime/lib/tdd-receipts.mjs
@@ -20,6 +20,8 @@ testRefs:
   - runtime/test/task-execution-receipt-smoke.mjs
   - runtime/test/waiver-result-contract-smoke.mjs
   - runtime/test/verification-receipt-contract-smoke.mjs
+  - runtime/test/archive-skill-script-smoke.mjs
+  - runtime/test/installed-archive-plugin-e2e.mjs
   - runtime/test/verify-run-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
 ---
@@ -60,8 +62,10 @@ an advisory outcome.
 
 Completion evaluates fresh artifacts, task receipts, self-checks, independent review, applicable
 API/data/security rubrics, validation, and archive evidence. The compound `DesignProof` binds the sealed architecture
-chain and independent test-design chain; `test-cases.md` is then digest-bound by Plan, per-case Verify command evidence/receipts, and
-the archive manifest/attestation. The result has a stable
+chain and independent test-design chain; `test-cases.md` is then digest-bound by Plan and per-case Verify evidence.
+The archive manifest v2 `lineage` finally binds each frozen artifact by source path, durable archive path and digest,
+including Clarify governance artifacts, Design/Plan/Implement/Verify proofs,
+tasks/commands, test cases and validation; its paired attestation binds the writer run and manifest digest. The result has a stable
 `{code,status,path,message,recovery}` shape. A hook, worker chat message, or stale review alone
 cannot establish completion.
 

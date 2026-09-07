@@ -145,5 +145,18 @@ export function writeCanonicalVerifyCompletionFixture(root, changeId) {
   const candidate = resolveStageCompletionCandidate(root, changeId, 'verify', { requiredArtifactPath: validationRef });
   if (!candidate.proof) throw new Error(`verify fixture cannot build canonical proof: ${candidate.problems.join('; ')}`);
   writeJson(path.join(root, verifyProofRef), candidate.proof);
-  return { validationRef, testCasesRef, designProofRef, verifyProofRef, execute, check, result, review };
+  return {
+    validationRef,
+    testCasesRef,
+    designProofRef,
+    planProofRef,
+    implementProofRef,
+    tasksRef,
+    taskCommandsRef,
+    verifyProofRef,
+    execute,
+    check,
+    result,
+    review,
+  };
 }

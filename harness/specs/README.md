@@ -20,6 +20,7 @@
 - [ambiguity-scoring.md](ambiguity-scoring.md) — Clarify fact gate、evidence-bound readiness predicates、条件风险面与 Decision frontier
 - [tdd-execution.md](tdd-execution.md) — named Implementer、预加载重 Skill、worktree baseline、strategy runner、canonical receipt、独立 task review 与精确集成门禁
 - [verify-contract.md](verify-contract.md) — Plan 冻结命令、逐 TC 机器执行证据、validation、独立完成审查与 CompletionProof
+- [archive-contract.md](archive-contract.md) — 完整生命周期 lineage、runtime manifest/attestation、独立归档审查与原子移动
 - [stage-observability.md](stage-observability.md) — 阶段时序、Design 内部顺序、artifact、独立 review、transition-owned persisted proof gate 与 `workflow audit` 的可执行合同
 - [upstream-mapping.md](upstream-mapping.md) — 三套 Clarify 方法、Claude Code 职责边界与固定审阅来源
 - [skill-packaging.md](skill-packaging.md) — Skill 目录结构、运行资源、研发 eval 分离和路径约定

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-31
+lastVerified: 2026-09-06
 implementationRefs:
   - skills/harness/SKILL.md
   - runtime/core/change-state.mjs
@@ -19,6 +19,8 @@ testRefs:
   - runtime/test/handoff-v2-common-dir-smoke.mjs
   - runtime/test/design-compound-gate-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
+  - runtime/test/lifecycle-archive-transition-smoke.mjs
+  - runtime/test/installed-archive-plugin-e2e.mjs
 ---
 
 # Workflow Contract
@@ -140,11 +142,12 @@ sufficient without the independent completion review.
 
 ## Archive
 
-Archive is allowed only when the completion predicate consumes fresh verification and all
-required durable evidence. Its runtime-written manifest binds current `test-cases.md`, compound `DesignProof`, both
-test-design runs, Verify completion, and per-case receipts; the paired runtime attestation prevents a handwritten
-manifest from substituting for the writer path. It moves completed work into immutable history and clears only
-compatibility pointers. An unfinished change is abandoned explicitly, never disguised as archived.
+Archive is allowed only when the completion predicate consumes fresh verification and the complete frozen lifecycle
+lineage. Its runtime-written manifest v2 explicitly binds source and durable archive paths plus digests for Clarify governance artifacts, Design/Plan/Implement/Verify
+proofs, tasks/commands, test cases and validation; the paired runtime attestation prevents a handwritten or partial
+pair from substituting for the writer path. A distinct archive review and runtime CompletionProof precede the atomic
+move into immutable history. The move clears session bindings and compatibility pointers. An unfinished change is
+abandoned explicitly, never disguised as archived.
 
 ## Compatibility and recovery
 

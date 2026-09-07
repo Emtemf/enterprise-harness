@@ -10,6 +10,7 @@ import { sha256Artifact } from '../lib/result-contract.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import { writeCanonicalCompoundDesignFixture } from './design-proof-fixture.mjs';
 import { writeCanonicalVerifyCompletionFixture } from './verify-completion-fixture.mjs';
+import { archiveManifestInputRefs, validateArchivedManifest } from '../api/archive.mjs';
 
 const mode = process.argv[2];
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -92,7 +93,7 @@ try {
   assert.equal(enteredArchive.status, 0, enteredArchive.stderr || enteredArchive.stdout);
   assert.equal(JSON.parse(fs.readFileSync(statePath, 'utf-8')).stage, 'archive');
 
-  const archiveRefs = [verify.validationRef, verify.verifyProofRef, verify.testCasesRef, verify.designProofRef];
+  const archiveRefs = Object.values(archiveManifestInputRefs(changeId));
   const archiveTecpc = {
     target: 'archive verified change', evidence: [verify.validationRef, verify.verifyProofRef],
     context: [verify.testCasesRef, verify.designProofRef], path: `${verify.validationRef} -> archive`, correction: null,
@@ -126,7 +127,6 @@ try {
   const archiveResult = JSON.parse(finalizedWorker.stdout);
   assert.ok(archiveResult.artifacts.some((artifact) => artifact.path === `${base}/evidence/archive-manifest-attestation.json`),
     'Archive StageResult must bind the canonical runtime writer attestation');
-  persistHandoffV2Result(root, changeId, archiveExecute.runId, archiveResult);
   appendCompletedHandoffBinding(root, changeId, archiveExecute.input, { agentId: 'archive-executor' });
   const archiveCheck = createHandoffV2(root, {
     changeId, stage: 'archive', behavior: 'review', role: 'check', parentRunId: archiveExecute.runId,
@@ -149,6 +149,10 @@ try {
   const archivedDir = path.join(root, 'harness', 'archive', changeId);
   assert.equal(JSON.parse(fs.readFileSync(path.join(archivedDir, 'state.json'), 'utf-8')).lifecycle, 'archived');
   assert.equal(fs.existsSync(path.join(archivedDir, 'evidence', 'completion', 'archive.json')), true);
+  assert.deepEqual(validateArchivedManifest(root, changeId), [], 'moved archive must verify without source or .git receipts');
+  fs.appendFileSync(path.join(archivedDir, 'validation.md'), '\nTAMPERED\n');
+  assert.ok(validateArchivedManifest(root, changeId).some((problem) => problem.includes('digest is stale')),
+    'offline archive validation must reject a modified frozen artifact');
   console.log(`PASS lifecycle-archive-transition ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

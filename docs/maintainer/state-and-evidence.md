@@ -35,7 +35,7 @@ ResearchPackets + Decisions
 | Test Design | 独立的 `test-cases.md`、test-design StageResult 与独立 ReviewResult | runtime 组合 ArchitectureProof 与 test-design chain，形成 compound DesignProof；`test-cases.md` 是详细 `TC*` 的唯一权威 |
 | Plan / Implement | `tasks.md`、`task-commands.json`、每个 task 的 strategy、phase、literal argv、write scope、`TC*` 映射，以及 execute/check receipts | Plan 同时绑定 compound DesignProof 和当前 `test-cases.md`；两个计划产物由同一 StageResult/review 绑定，Implement 只能用相应 task 的冻结输入完成工作 |
 | Verify | `evidence/verify/<run>/<TC>.json` 机器命令证据、`validation.md`、每个 accepted `TC*` 的 canonical receipt、fresh validation 与独立 final review | executed 必须绑定 Plan 冻结 argv 的 fresh runner 结果；手写日志/task receipt 不能代替；`unsupported` 不能提升为 pass；适用的 critical E2E 必须实际执行 |
-| Archive | runtime 写入的 `evidence/archive-manifest.json` 及配对 writer attestation | manifest 绑定 compound DesignProof、`test-cases.md`、两段 test-design run、Verify completion 和逐 TC receipts；手写 manifest 不能替代 writer path |
+| Archive | runtime 写入的 `evidence/archive-manifest.json`、配对 writer attestation 和 Archive StageResult | manifest v2 `lineage` 以 source path、稳定 archivePath、digest 显式绑定 Clarify 治理制品、Design/Plan/Implement/Verify proofs、任务/命令、测试用例与 validation；移动后只读归档目录即可离线复验；手写或单边 pair 不能替代 writer path |
 
 ## Freshness、stale 传播与恢复
 

@@ -209,15 +209,20 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-VERIFY-FINALIZE-004` | verify StageResult 不符合运行时合同 | 修复 evidence/result 后重新 finalise |
 | `EH-VERIFY-RUN-001` | Verify runner 的 handoff/agent 绑定、冻结 argv、输入 freshness、命令执行或不可变证据写入失败 | 保留当前 run 证据，按报错修复最早失效输入或命令；需要重试时创建新的 verify run，不能手写 evidence |
 | `EH-ARCHIVE-FINALIZE-001` | archive finalizer 的 handoff 不匹配 | 创建 artifact-worker/archive 的 execute handoff |
-| `EH-ARCHIVE-FINALIZE-002` | 缺少 validation 或 verify CompletionProof | 修复 verify evidence 后重新运行 archive self-check |
-| `EH-ARCHIVE-FINALIZE-003` | verify CompletionProof 不是有效的 verify proof | 重新获得 fresh verify completion proof |
+| `EH-ARCHIVE-FINALIZE-002` | change 不在 active Archive/fresh validation 状态，或完整 lineage 未被 handoff 绑定 | 修复最早失效阶段，并用全部 canonical Archive input refs 创建新 handoff |
+| `EH-ARCHIVE-FINALIZE-003` | finalizer 发现 handoff input digest stale | 保留旧 run，使用当前 artifact 创建新的 Archive execute handoff |
 | `EH-ARCHIVE-FINALIZE-004` | archive StageResult 不符合运行时合同 | 修复 archive evidence 后重新 finalise |
 | `EH-ARCHIVE-MANIFEST-001` | archive 输入、Verify CompletionProof、compound DesignProof 或 test-design 独立链不是当前 canonical closure | 回到 Verify/Design 修复最早报告的 stale/missing result、review、receipt 或 digest；由 archive finalizer 重建 manifest，不要手写或复用旧 manifest |
 | `EH-ARCHIVE-MANIFEST-002` | archive manifest / runtime writer attestation 已存在但不构成当前 run 的同一 immutable pair | 不要手写、覆盖或移动任一证据；保留原 pair，并按受支持恢复流程创建新的 archive execution |
-| `EH-ARCHIVE-MANIFEST-003` | manifest 已写入但 runtime writer attestation 无法以 immutable record 写入 | 不要手写 attestation；保留失败证据并按 archive recovery 创建新的执行，而不是尝试补造 receipt |
+| `EH-ARCHIVE-MANIFEST-003` | runtime writer 无法写入 attestation | 不要手写 attestation；普通失败会回滚本次新 manifest，修复路径/权限后用同一未完成 run 重试 |
 | `EH-VERIFY-RECEIPT-001` | Verify 的 TC coverage 缺失、unsupported、无理由 skipped，或不对应 accepted TC | 为每个 accepted TC 记录 executed/skipped 状态和明确理由；unsupported 不能通过，critical E2E 必须实际 executed |
 | `EH-VERIFY-RECEIPT-002` | verification receipt 的 provenance、run、digest、路径或输入闭包无效/过期 | 使用当前 verify run 的 canonical `evidence/verify/<runId>/<TC>.json` 机器命令证据；刷新 digest 后重跑 Verify，不能用 task receipt 或手写日志替代 |
 | `EH-VERIFY-RECEIPT-003` | verification receipt 已存在，runtime 拒绝重复写入 | receipt 是 immutable；保留原 run evidence，需重试时创建新的 verify run |
+| `EH-ARCHIVE-PREPARE-000` | Archive Skill 没有收到唯一 canonical marker，或 marker 校验失败 | 由 Main 重新创建 archive execute handoff，并只传完整 `HANDOFF_INPUT=...` 行 |
+| `EH-ARCHIVE-PREPARE-001` | handoff 的 stage/behavior/agent/role 不是 canonical Archive execute | 使用 `archive/archive/execute` 与 artifact-worker/archive，不能复用其他阶段 run |
+| `EH-ARCHIVE-PREPARE-002` | change 不在 active Archive stage，或 validation 已 stale | 返回最早失效阶段修复并重新获得 fresh Verify CompletionProof |
+| `EH-ARCHIVE-PREPARE-003` / `004` | required lifecycle lineage 缺文件或未被 handoff digest-bind | 按 Archive 合同补齐 Clarify 治理制品、Design/Plan/Implement/Verify proofs、任务/命令、测试与 validation 后创建新 handoff |
+| `EH-ARCHIVE-PREPARE-005` | Archive handoff 输入摘要过期 | 不覆盖旧 run；用当前 artifact 创建新的 Archive handoff |
 | `EH-HANDOFF-V2-023` | handoff v2 role 非法 | 仅使用 `execute` 或 `check` |
 | `EH-HANDOFF-V2-024` | handoff v2 缺 agent type 或 skill | 提供已声明的 agent type 与 skill |
 | `EH-HANDOFF-V2-025` | handoff v2 缺 TECPC target | 明确写出本次执行的目标 |

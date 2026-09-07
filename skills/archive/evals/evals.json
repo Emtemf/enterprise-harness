@@ -1,30 +1,60 @@
 {
   "skill": "archive",
-  "version": "0.5.25",
+  "version": "0.5.26",
   "cases": [
     {
-      "id": "fresh-completion-proof",
-      "description": "验证 fresh CompletionProof 存在且 digest 匹配",
-      "expected": "stale proof 被阻断",
+      "id": "canonical-marker-only",
+      "description": "Archive worker 只接受原样 HANDOFF_INPUT marker，并先运行 prepare",
+      "expected": "错 stage、错 behavior、错 agent、缺 marker 或 stale digest 全部阻断",
+      "category": "invocation"
+    },
+    {
+      "id": "complete-lineage",
+      "description": "handoff 与 manifest 显式绑定 Clarify 治理制品以及 Design/Plan/Implement/Verify 全链路",
+      "expected": "缺少任一 required ref 或 lineage 漂移均阻断",
       "category": "runtime-gate"
     },
     {
-      "id": "all-evidence-closed",
-      "description": "所有适用 rubrics、receipt、scope decisions 和 required artifacts 已闭合",
-      "expected": "stale/missing/block/unsupported 一律阻断",
-      "category": "runtime-gate"
+      "id": "runtime-writer-provenance",
+      "description": "manifest 与 attestation 只由 runtime facade 创建并绑定同一 run/input closure",
+      "expected": "手写、符号链接、错 run、错 digest 或单边 pair 均阻断",
+      "category": "adversarial"
     },
     {
-      "id": "immutable-after-archive",
-      "description": "归档后历史不可变，不从 archive 目录修改或补造",
-      "expected": "archive 目录只读",
+      "id": "recoverable-pair-write",
+      "description": "manifest/attestation 在 change transaction 内创建，attestation 写失败回滚新 manifest",
+      "expected": "不留下无法恢复的 runtime 半成品",
+      "category": "failure-path"
+    },
+    {
+      "id": "atomic-stage-result",
+      "description": "Archive finalizer 自行持久化唯一 StageResult",
+      "expected": "Main 不做 stdout 二次 persist，重复 finalization 被拒绝且原证据不变",
+      "category": "finalization"
+    },
+    {
+      "id": "independent-review-before-move",
+      "description": "Archive worker 完成后由不同 reviewer 审查，只有 runtime ArchiveProof 可触发物理移动",
+      "expected": "worker 自检或聊天完成声明不能调用 archive-finalize",
       "category": "behavioral"
     },
     {
-      "id": "abandon-or-archive",
-      "description": "未完成内容使用 abandon，保留原因和证据",
-      "expected": "abandon 命令记录原因",
+      "id": "archive-or-abandon",
+      "description": "完成 change 才归档；未完成 change 由 Main 带原因 abandon",
+      "expected": "不把 abandon 伪装成成功归档，也不覆盖已有历史目录",
       "category": "behavioral"
+    },
+    {
+      "id": "diagnostic-denial-is-not-writer-denial",
+      "description": "prepare 成功后，额外 Bash cat/ls/find 被 hook 拒绝",
+      "expected": "使用 Read 完成冻结输入检查并继续 exact finalizer；不得手工拼 StageResult 或误报 canonical writer 被阻断",
+      "category": "recovery"
+    },
+    {
+      "id": "future-extension-boundary",
+      "description": "当前 Archive 只封存已有决策和负知识制品",
+      "expected": "不自动生成 lessons，不实现 RAG、PDR 反推或学习闭环",
+      "category": "scope"
     }
   ]
 }

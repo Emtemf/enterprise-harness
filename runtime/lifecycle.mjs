@@ -26,6 +26,7 @@ import {
 import { atomicWriteJson, withChangeTransaction } from './lib/state-store.mjs';
 import { assertForwardTransition } from './core/stage-transition.mjs';
 import { saveChangeState, statePath as statePathFor } from './core/lifecycle-state.mjs';
+import { validateArchivedManifest } from './api/archive.mjs';
 
 const repoRoot = process.cwd();
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
@@ -430,7 +431,19 @@ function moveArchivedChange(changeId, data, { isV6 }) {
   try {
     fs.mkdirSync(archiveDir, { recursive: true });
     fs.renameSync(source, destination);
+    if (isV6) {
+      const problems = validateArchivedManifest(repoRoot, changeId);
+      if (problems.length > 0) throw new Error(`归档后离线校验失败：${problems.join('; ')}`);
+    }
   } catch (error) {
+    if (isV6 && !fs.existsSync(source) && fs.existsSync(destination)) {
+      try {
+        fs.renameSync(destination, source);
+      } catch (rollbackMoveError) {
+        console.error(`BLOCK EH-ARCHIVE-TRANSACTION-002: 归档校验失败且目录回滚失败：${rollbackMoveError.message}`);
+        process.exit(2);
+      }
+    }
     if (isV6 && fs.existsSync(path.join(source, 'state.json'))) {
       const archivedState = readJson(path.join(source, 'state.json'));
       try {

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-28
+lastVerified: 2026-09-06
 implementationRefs:
   - runtime/core/completion-proof.mjs
   - runtime/lib/stage-contract.mjs
@@ -18,6 +18,7 @@ testRefs:
   - runtime/test/lifecycle-clarify-transition-smoke.mjs
   - runtime/test/design-controller-sequence-smoke.mjs
   - runtime/test/test-cases-downstream-binding-smoke.mjs
+  - runtime/test/installed-archive-plugin-e2e.mjs
 ---
 
 # 阶段时序、事件与产物合同
@@ -112,7 +113,7 @@ Artifact 一旦修改，旧 result、review 和 completion evidence 自然 stale
 | plan | `tasks.md`、current `test-cases.md` and compound `DesignProof` | artifact-worker + plan Skill | reviewer plan rubric | tasks/strategy/exact argv/write scope and `TC*` mappings frozen，result/review fresh |
 | implement | `currentTask`；task receipts；产品变更 | implementer + implement Skill | reviewer task rubrics | 每 task receipt/self-check/review fresh，write scope 合规 |
 | verify | `validation.md`；`validation.status=fresh`；current test cases and canonical TC receipts | artifact-worker + verify Skill | reviewer final rubrics | frozen argv 全执行；every accepted `TC*` has allowed status/receipt, critical E2E executed, validation、final review 和 completion fresh |
-| archive | immutable archive manifest/attestation + current test cases/proofs | artifact-worker + archive Skill | reviewer archive rubric | manifest binds DesignProof/test cases/test-design chain/Verify receipts, writer attestation and CompletionProof are fresh |
+| archive | immutable archive manifest/attestation + complete frozen lifecycle lineage | artifact-worker + archive Skill | distinct reviewer archive rubric | lineage 以 source/archive 双路径和 digest 绑定完整闭环；writer pair、StageResult、review 与 Archive CompletionProof fresh 后才移动，移动后必须通过归档目录离线复验 |
 
 Classification 是 clarify artifact；execution strategy 是 implement task 属性。没有 `route` 或 `tdd`
 lifecycle stage。Clarify 只能通过 lifecycle state command 推进；该命令写入并重新读取 CompletionProof 后才 CAS 更新 stage。
