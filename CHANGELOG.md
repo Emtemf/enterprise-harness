@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.5.29] - 2026-09-07
+
+### Fixed
+
+- Context7 CLI fallback 显式锁定为已审阅的 `ctx7@0.5.6`，不再通过 `npx -y ctx7` 隐式安装并执行最新版依赖。
+- 文档恢复真实运行顺序：外部文档研究以插件 Context7 MCP 为主，CLI 和官方文档只在不足时作为带降级记录的 fallback。
+
 ## [0.5.28] - 2026-09-07
 
 ### Added

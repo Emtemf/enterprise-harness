@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,6 +10,12 @@ const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const mode = process.argv[2];
 const cliPath = path.join(repoRoot, 'runtime', 'cli.mjs');
 const context7Path = path.join(repoRoot, 'runtime', 'context7.mjs');
+const upstreamRegistry = JSON.parse(fs.readFileSync(
+  path.join(repoRoot, 'harness', 'upstream', 'registry.json'),
+  'utf-8',
+));
+const context7Version = upstreamRegistry.runtimeUpstreams.find(({ name }) => name === 'Context7')?.currentValidatedVersion;
+assert.match(context7Version || '', /^\d+\.\d+\.\d+$/u, 'Context7 registry version must be an exact semver');
 
 function fail(message) {
   console.error(message);
@@ -84,7 +91,7 @@ try {
   if (!(context7Docs.status === 0)) {
     failures.push(`context7 docs failed (exit=${context7Docs.status}) stdout=${JSON.stringify(String(context7Docs.stdout || '').trim())} stderr=${JSON.stringify(String(context7Docs.stderr || '').trim())}`);
   }
-  const expectedArgv = ['-y', 'ctx7', 'docs', '/react/react', 'use effect examples'];
+  const expectedArgv = ['-y', `ctx7@${context7Version}`, 'docs', '/react/react', 'use effect examples'];
   if (JSON.stringify(argvObserved) !== JSON.stringify(expectedArgv)) {
     failures.push(`context7 argv mismatch observed=${JSON.stringify(argvObserved)} expected=${JSON.stringify(expectedArgv)}`);
   }

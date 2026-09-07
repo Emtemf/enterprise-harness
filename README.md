@@ -18,7 +18,7 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - Java、Spring Boot、Maven 项目；路径和构建边界可通过 `harness/project.json` profile v1 调整。
 - `src/main/java/**`、`src/test/java/**`、`openapi/**` 默认约定路径。
 - CodeGraph-first 代码探索，关键事实在当前源码中做 scoped confirmation。
-- Context7-first 外部库和框架资料查询；当前运行适配器使用锁定版本的 Context7 CLI，未配置或不可用时记录 fallback/degraded 状态并使用官方文档。
+- Context7 MCP-first 外部库和框架资料查询；MCP 不可用或不足时才使用锁定版本的 Context7 CLI 或官方文档，并记录 fallback/degraded 状态。
 - State v6、session binding、change lock、artifact stale propagation。
 - 六阶段 happy path：`clarify → design → plan → implement → verify → archive`。
 - `design` 仍是一个生命周期阶段，但内部固定执行 architecture 产出与独立 review、seal、独立 `test-design` 产出与 review，随后由 runtime 形成 compound `DesignProof`。
@@ -39,7 +39,7 @@ Enterprise Harness 是面向 Claude Code 的工程治理插件。它把需求澄
 - Node.js 20 或 22
 - Git
 - Java 项目建议提供 Maven Wrapper
-- CodeGraph MCP；需要外部文档时安装项目锁定的 Context7 CLI。Context7 可匿名使用，也可从环境变量 `CONTEXT7_API_KEY` 读取凭据以获取更高额度。
+- CodeGraph MCP；插件已声明 Context7 MCP，必要时可从环境变量 `CONTEXT7_API_KEY` 读取凭据。CLI 只作为受控 fallback，由 runtime 按锁定版本启动。
 
 从 GitHub marketplace 安装：
 

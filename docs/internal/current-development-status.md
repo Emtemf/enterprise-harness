@@ -1,10 +1,10 @@
 # 当前研发快照
 
-更新时间：2026-09-07（Main 单 change 全生命周期标准样例通过）
+更新时间：2026-09-07（全生命周期基线与 Context7 fallback 依赖锁定）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.28
+- 当前版本：0.5.29
 - 当前阶段：Clarify→Archive 各阶段安装态标准样例与同一 change 的确定性连续验收均已完成；后续优化必须从 fresh issue、模型 eval 或真实项目证据立项
 - active change：`redesign-040`（历史遗留状态，当前 audit blocked；不作为本轮实现或完成声明的依据）
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
@@ -15,6 +15,11 @@
 - 每个动作前都由 fresh `workflow status --json` 进程重新读取 durable state，并断言 14 个唯一 route，覆盖中断、重启或 compaction 后不从聊天猜测进度的合同。
 - Design、Plan、Verify fixture 新增仅供连续验收的保留上游模式；默认行为保持兼容，且后段 fixture 不得重写前序 state、task、command 或 proof。
 - 模型证据仍按 stage 使用真实 `npm pack` + fresh `claude -p` 定位验证；不把需要用户业务决策的 Clarify 伪称为可无人值守跑完的单个长会话。
+
+## 2026-09-07 Context7 运行路径校正
+
+- 外部文档研究的主路径是插件声明的 Context7 MCP；`runtime/context7.mjs` 只承担 MCP 不可用或不足时的 CLI fallback。
+- fallback 从隐式 `npx -y ctx7` 改为锁定的 `ctx7@0.5.6`，避免安装并执行未审阅的最新版依赖。
 
 ## 2026-09-02 Project-contract 安全写入闭环
 
@@ -114,9 +119,9 @@
 - 深度不足改为 fail-loud：`runtime/lib/spawn-depth.mjs` 求值 → doctor 在 depth<2 判 fail、未设置判 warn，session-start 报 `EH-SPAWN-DEPTH-020`。`.claude/settings.json` 按 `harness/specs/architecture.md` 属开发通道、刻意不进发布包，所以发布通道靠 runtime 侧检测覆盖，而非扩白名单。
 - `dependency-review` 按仓库可见性 gate：私有仓库缺 dependency graph，该 job 每个 PR 必然失败，与 `ossf/scorecard` 是同一种"把红当正常"的模式。`ci-workflow-contract-smoke` 的可见性断言同时改为按 job 作用域，此前整文件正则会让一个已 gate 的 job 替未 gate 的 job 背书。
 
-### 已知缺口
+### 当时的已知缺口
 
-- Context7 仍走 CLI（`runtime/context7.mjs` + doctor/sync/registry/launcher smoke），未改 MCP。这是刻意设计，非缺陷。
+- 0.3.10 当时 Context7 仍以 CLI 为主；当前版本已改为插件 Context7 MCP-first，锁定版本 CLI 仅作受控 fallback。
 
 ## 0.3.14 Hook 瘦身 + 阶段链验证 skill 驱动（KISS 重构）
 

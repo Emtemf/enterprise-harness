@@ -9,7 +9,7 @@ if (!action || action === '--help' || action === '-h') {
   process.exit(0);
 }
 
-const childArgs = ['-y', 'ctx7', action, ...args];
+const childArgs = ['-y', 'ctx7@0.5.6', action, ...args];
 const npxCliCandidates = [
   process.env.npm_execpath?.replace(/[\\/]npm-cli\.js$/u, `${path.sep}npx-cli.js`),
   path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js'),
