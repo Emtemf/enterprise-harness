@@ -15,10 +15,13 @@ export function writeCanonicalSingleTaskPlanFixture(root, changeId, {
   taskId,
   tasksContent,
   taskCommands,
+  design: suppliedDesign = null,
+  persistProof = true,
+  stateStage = 'implement',
 } = {}) {
   const base = `harness/changes/${changeId}`;
   const changeDir = path.join(root, base);
-  const design = writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'plan' });
+  const design = suppliedDesign || writeCanonicalCompoundDesignFixture(root, changeId, { stateStage: 'plan' });
   const tasksRef = `${base}/tasks.md`;
   const commandsRef = `${base}/task-commands.json`;
   fs.writeFileSync(path.join(root, tasksRef), tasksContent);
@@ -92,9 +95,11 @@ export function writeCanonicalSingleTaskPlanFixture(root, changeId, {
   const completion = resolveStageCompletionCandidate(root, changeId, 'plan');
   if (!completion.proof) throw new Error(`single-task Plan fixture is invalid: ${completion.problems.join('; ')}`);
   const proofRef = `${base}/evidence/completion/plan.json`;
-  writeJson(path.join(root, proofRef), completion.proof);
-  const statePath = path.join(changeDir, 'state.json');
-  const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-  writeJson(statePath, { ...state, revision: (state.revision || 0) + 1, stage: 'implement', currentTask: taskId });
+  if (persistProof) writeJson(path.join(root, proofRef), completion.proof);
+  if (stateStage) {
+    const statePath = path.join(changeDir, 'state.json');
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    writeJson(statePath, { ...state, revision: (state.revision || 0) + 1, stage: stateStage, currentTask: taskId });
+  }
   return { ...design, tasksRef, commandsRef, planProofRef: proofRef, execute, check };
 }

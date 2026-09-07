@@ -55,6 +55,8 @@ function reviewResult(root, changeId, input, parent, artifactRef, reviewedAt) {
 
 export function writeCanonicalCompoundDesignFixture(root, changeId, {
   stateStage = 'plan',
+  preserveState = false,
+  persistCompoundProof = true,
 } = {}) {
   const base = `harness/changes/${changeId}`;
   const changeDir = path.join(root, base);
@@ -74,18 +76,16 @@ export function writeCanonicalCompoundDesignFixture(root, changeId, {
       '| TC1 | R1 / D1 / VO1 | unit | normal | setup | input | run | observable | cleanup | accepted |',
     ].join('\n'));
   }
-  const classification = writeClassificationV2Fixture(root, changeId, {
-    impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
-  });
-  writeJson(path.join(changeDir, 'state.json'), {
-    schemaVersion: 6,
-    revision: 1,
-    changeId,
-    lifecycle: 'active',
-    stage: stateStage,
-    artifacts: { classification },
-    validation: { status: 'missing', digest: null, validatedAt: null },
-  });
+  const statePath = path.join(changeDir, 'state.json');
+  if (!preserveState || !fs.existsSync(statePath)) {
+    const classification = writeClassificationV2Fixture(root, changeId, {
+      impact: { api: 'no', data: 'no', architecture: 'no', rule: 'no', security: 'no' },
+    });
+    writeJson(statePath, {
+      schemaVersion: 6, revision: 1, changeId, lifecycle: 'active', stage: stateStage,
+      artifacts: { classification }, validation: { status: 'missing', digest: null, validatedAt: null },
+    });
+  }
 
   const architectureTecpc = {
     target: 'produce architecture design', evidence: [designRef], context: [requirementsRef], path: `${requirementsRef} -> ${designRef}`, correction: null,
@@ -128,6 +128,6 @@ export function writeCanonicalCompoundDesignFixture(root, changeId, {
   appendCompletedHandoffBinding(root, changeId, testDesignExecute.input, { agentId: 'fixture-test-design-executor' });
   appendCompletedHandoffBinding(root, changeId, testDesignCheck.input, { agentId: 'fixture-test-design-reviewer' });
   const designProof = buildCompoundDesignProof(root, architectureProof, testDesignResult, testDesignReview);
-  writeJson(path.join(root, designProofRef), designProof);
+  if (persistCompoundProof) writeJson(path.join(root, designProofRef), designProof);
   return { requirementsRef, designRef, testCasesRef, architectureProofRef, designProofRef, designProof, testDesignExecute, testDesignCheck };
 }

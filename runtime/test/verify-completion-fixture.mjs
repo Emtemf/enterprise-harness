@@ -14,7 +14,11 @@ function writeJson(target, value) {
   fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-export function writeCanonicalVerifyCompletionFixture(root, changeId) {
+export function writeCanonicalVerifyCompletionFixture(root, changeId, {
+  preserveUpstream = false,
+  taskId = 'task-verify-fixture',
+  verifyArgv = [process.execPath, '-e', 'process.exit(0)'],
+} = {}) {
   const base = `harness/changes/${changeId}`;
   const validationRef = `${base}/validation.md`;
   const testCasesRef = `${base}/test-cases.md`;
@@ -24,25 +28,27 @@ export function writeCanonicalVerifyCompletionFixture(root, changeId) {
   const tasksRef = `${base}/tasks.md`;
   const taskCommandsRef = `${base}/task-commands.json`;
   const verifyProofRef = `${base}/evidence/completion/verify.json`;
-  fs.writeFileSync(path.join(root, tasksRef), [
-    '# Tasks', '', '## Task 1: task-verify-fixture', '',
+  if (!preserveUpstream) fs.writeFileSync(path.join(root, tasksRef), [
+    '# Tasks', '', `## Task 1: ${taskId}`, '',
     '- Test cases: TC1', '- Strategy: `direct`', '- Minimal RED case: none', '',
   ].join('\n'));
-  writeJson(path.join(root, taskCommandsRef), {
+  if (!preserveUpstream) writeJson(path.join(root, taskCommandsRef), {
     schemaVersion: 4,
     tasks: {
-      'task-verify-fixture': {
+      [taskId]: {
         executionStrategy: 'direct',
         strategyRationale: 'fixture validation',
         testCases: ['TC1'],
         minimalRedCase: null,
         writeScope: { allowed: ['fixture.txt'], forbidden: [] },
-        commands: [{ phase: 'VERIFY', argv: [process.execPath, '-e', 'process.exit(0)'] }],
+        commands: [{ phase: 'VERIFY', argv: verifyArgv }],
       },
     },
   });
-  writeJson(path.join(root, planProofRef), { type: 'completion-proof', stage: 'plan', fixture: true });
-  writeJson(path.join(root, implementProofRef), { type: 'completion-proof', stage: 'implement', fixture: true });
+  if (!preserveUpstream) {
+    writeJson(path.join(root, planProofRef), { type: 'completion-proof', stage: 'plan', fixture: true });
+    writeJson(path.join(root, implementProofRef), { type: 'completion-proof', stage: 'implement', fixture: true });
+  }
   const tecpc = {
     target: 'collect fresh verification evidence',
     evidence: [validationRef],
@@ -73,7 +79,7 @@ export function writeCanonicalVerifyCompletionFixture(root, changeId) {
     agent: { id: 'fixture-verify-executor', type: 'enterprise-harness:artifact-worker', skill: 'verify' },
     inputDigests: { ...execute.input.inputDigests },
     executions: [{
-      taskId: 'task-verify-fixture', phase: 'VERIFY', argv: [process.execPath, '-e', 'process.exit(0)'],
+      taskId, phase: preserveUpstream ? 'REFACTOR' : 'VERIFY', argv: verifyArgv,
       outcome: 'exit', exitCode: 0, signal: null, spawnError: null,
       startedAt: '2026-08-29T00:00:02.000Z', finishedAt: '2026-08-29T00:00:03.000Z',
       stdoutDigest: sha256Artifact(root, stdoutRef), stderrDigest: sha256Artifact(root, stderrRef),

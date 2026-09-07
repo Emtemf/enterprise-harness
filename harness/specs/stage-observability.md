@@ -23,6 +23,7 @@ testRefs:
   - runtime/test/installed-archive-plugin-e2e.mjs
   - runtime/test/post-design-stage-readiness-smoke.mjs
   - runtime/test/task-worktree-integration-smoke.mjs
+  - runtime/test/main-lifecycle-standard-sample-smoke.mjs
 ---
 
 # 阶段时序、事件与产物合同
@@ -156,5 +157,6 @@ enterprise-harness trace --change <change-id> --mermaid
 | `trace-mermaid-smoke` | 时序输出脱离真实 ledger |
 | `post-design-stage-readiness-smoke` | Main 在 Plan/Implement/Verify/Archive 之间靠模型猜测动作 |
 | `task-worktree-integration-smoke` | 已评审 worktree 被手工复制、路径逃逸或未精确集成就进入 Verify |
+| `main-lifecycle-standard-sample-smoke` | 分段 fixture 覆盖上游状态或伪造 proof，却宣称同一 change 已完成 Clarify→Archive 全链 |
 
 发布前至少运行直接行为测试与 `npm run quality:local`；后者统一覆盖 prepublish、plugin validation、external-project E2E 和 artifact 内容检查。

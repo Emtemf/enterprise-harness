@@ -1,7 +1,7 @@
 ---
 status: target
 owner: enterprise-harness-maintainers
-lastVerified: 2026-08-28
+lastVerified: 2026-09-07
 implementationRefs:
   - CLAUDE.md
   - skills/harness/SKILL.md
@@ -23,6 +23,7 @@ testRefs:
   - runtime/test/installed-design-plugin-e2e.mjs
   - runtime/test/installed-plan-plugin-e2e.mjs
   - runtime/test/skill-script-hook-smoke.mjs
+  - runtime/test/main-lifecycle-standard-sample-smoke.mjs
 ---
 
 # Enterprise Harness Development Target
@@ -154,9 +155,9 @@ CompletionProof fresh；requirements→architecture→test-cases→tasks→recei
 2. Project-contract 安全 proposal/apply 与 InstructionsLoaded 诊断（已落地；持续以真实安装态 E2E 守卫）。
 3. Design 输出合同和条件审查。
 4. Plan 到 `task-commands.json` 的机器闭环（已落地；由真实安装态标准样例持续守卫）。
-5. Implement Task runner/receipt/review/proof。
-6. Verify frozen validation runner 和 E2E receipt。
-7. Archive/analysis traceability。
-8. 标准样例项目中的 Clarify→Archive 全链 E2E。
+5. Implement Task runner/receipt/review/proof（已落地；真实 worktree 标准样例持续守卫）。
+6. Verify frozen validation runner 和 E2E receipt（已落地；真实安装态标准样例持续守卫）。
+7. Archive/analysis traceability（已落地；物理移动与离线复验标准样例持续守卫）。
+8. 标准样例项目中的 Clarify→Archive 全链 E2E（已落地确定性单 change 连续验收；各阶段真实安装态模型证据独立保留，不能伪称无需用户决策的单长会话）。
 
 不得为了兼容未发布或无存量用户的内部草案而保留双重权威；新目标稳定后应删除被替代路径。

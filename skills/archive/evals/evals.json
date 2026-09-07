@@ -1,6 +1,6 @@
 {
   "skill": "archive",
-  "version": "0.5.27",
+  "version": "0.5.28",
   "cases": [
     {
       "id": "canonical-marker-only",

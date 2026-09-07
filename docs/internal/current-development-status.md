@@ -1,13 +1,20 @@
 # 当前研发快照
 
-更新时间：2026-09-04（安装态 Implement 标准样例通过）
+更新时间：2026-09-07（Main 单 change 全生命周期标准样例通过）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.24
-- 当前阶段：Clarify、project-contract、compound Design、packaged Plan 与单 Task Implement 标准样例完成；下一垂直切片为 Verify/E2E canonical case receipt 闭环
-- active change：无
+- 当前版本：0.5.28
+- 当前阶段：Clarify→Archive 各阶段安装态标准样例与同一 change 的确定性连续验收均已完成；后续优化必须从 fresh issue、模型 eval 或真实项目证据立项
+- active change：`redesign-040`（历史遗留状态，当前 audit blocked；不作为本轮实现或完成声明的依据）
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
+
+## 2026-09-07 Main 全生命周期标准样例
+
+- 同一 change 依次通过 Clarify、compound Design、Plan、真实 TDD Task、独立 Task Review、git worktree 精确集成、Verify、Archive Review、原子移动和离线 manifest 复验。
+- 每个动作前都由 fresh `workflow status --json` 进程重新读取 durable state，并断言 14 个唯一 route，覆盖中断、重启或 compaction 后不从聊天猜测进度的合同。
+- Design、Plan、Verify fixture 新增仅供连续验收的保留上游模式；默认行为保持兼容，且后段 fixture 不得重写前序 state、task、command 或 proof。
+- 模型证据仍按 stage 使用真实 `npm pack` + fresh `claude -p` 定位验证；不把需要用户业务决策的 Clarify 伪称为可无人值守跑完的单个长会话。
 
 ## 2026-09-02 Project-contract 安全写入闭环
 

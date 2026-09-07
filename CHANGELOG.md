@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.5.28] - 2026-09-07
+
+### Added
+
+- 新增 Main 单 change 全生命周期标准样例，连续覆盖 Clarify→Design→Plan→Implement→Verify→Archive、真实 TDD runner、独立审查、git worktree 精确集成、原子归档和离线 manifest 复验。
+
+### Changed
+
+- Design、Plan 与 Verify canonical fixture 支持保留真实上游 state、任务、命令和 proof，使后段阶段产物可以组合验收而不伪造前序完成状态。
+- 维护文档明确区分确定性单 change 连续验收与各阶段真实安装态 `claude -p` 模型证据，不再用分段 fixture 冒充完整生命周期。
+
 ## [0.5.27] - 2026-09-07
 
 ### Added
