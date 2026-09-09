@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "failureCases": [
+    {
+      "id": "stale-pending-question",
+      "claim": "准备后的澄清问题或其输入被修改时，宿主调用必须被拒绝",
+      "test": "runtime/test/clarify-question-hook-smoke.mjs",
+      "assertion": "stale pending candidate must block"
+    },
+    {
+      "id": "stale-clarify-artifact",
+      "claim": "Clarify 工件 digest 变化后，Design transition 必须被拒绝",
+      "test": "runtime/test/lifecycle-clarify-transition-smoke.mjs",
+      "assertion": "stale Clarify artifact digest must block Design"
+    },
+    {
+      "id": "changed-test-design",
+      "claim": "test-cases.md 变化后，旧 Plan proof 必须失效",
+      "test": "runtime/test/execution-prerequisites-v6-smoke.mjs",
+      "assertion": "test-cases mutation must stale the Plan gate"
+    },
+    {
+      "id": "write-scope-escape",
+      "claim": "实现 agent 越出授权 write scope 时，写入必须被拒绝",
+      "test": "runtime/test/governed-task-run-write-gate-smoke.mjs",
+      "assertion": "outside the allowed write scope"
+    },
+    {
+      "id": "review-without-proof",
+      "claim": "独立 review 记录本身不能替代完整 CompletionProof",
+      "test": "runtime/test/reviewer-authorization-smoke.mjs",
+      "assertion": "independent review alone must not satisfy a read-only stage gate"
+    }
+  ],
+  "successCases": [
+    {
+      "id": "complete-lineage",
+      "claim": "具备 fresh result、独立 review、receipt 与 proof 的完整 change 可以归档并离线复验",
+      "test": "runtime/test/main-lifecycle-standard-sample-smoke.mjs",
+      "assertion": "validateArchivedManifest returns no problems"
+    }
+  ]
+}

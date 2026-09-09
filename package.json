@@ -33,6 +33,7 @@
     "quality:local": "node bin/local-quality.mjs",
     "docs:check": "node runtime/test/docs-consistency-smoke.mjs verify",
     "benchmark:competitive": "node benchmarks/competitive-v1/run.mjs",
+    "benchmark:governance": "node benchmarks/governance-v1/run.mjs",
     "pack": "node bin/package.mjs",
     "release": "node bin/release.mjs"
   },

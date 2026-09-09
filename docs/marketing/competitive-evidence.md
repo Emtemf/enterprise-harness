@@ -42,6 +42,26 @@ Harness 的 L2 依据来自仓库长期合同与对应 smoke/E2E，例如 [Clari
 
 因此，现在可以说“Enterprise Harness 对需要机械拒绝、输入 freshness、身份绑定和离线审计的 Claude Code 变更更合适”。还不能说“总体更好”。
 
+## 优势到底在哪里：改变“完成”的定义
+
+如果团队只要快速生成一份设计或尽快开始编码，Enterprise Harness 当前没有优势，Superpowers 或 OpenSpec 更轻、更便宜。Harness 的目标用户是另一类团队：错误需求、陈旧设计、越权写入或自我批准一旦进入主干，返工与审计成本远高于前置取证成本。
+
+三者最关键的差异不是有没有文档、review 或 TDD，而是“完成”由谁裁定：
+
+| 默认工作方式 | “完成”的主要载体 | agent 偏离方法时 | 最适合 |
+|---|---|---|---|
+| Superpowers | Skill 方法、聊天与计划/ledger | 依赖后续 agent 继续遵守方法并识别偏离 | 追求优秀工程方法和较低流程成本 |
+| OpenSpec | 可编辑 change artifacts | 鼓励流动迭代；Verify 默认不阻断 Archive | 追求轻量规格化和跨工具使用 |
+| Enterprise Harness | runtime 重新计算的 acceptance predicate | 缺 fresh digest、独立身份、receipt 或 lineage 就不能进入下一个已验收状态 | 不能把“模型说完成”当交付证据的 Claude Code 团队 |
+
+所以 Harness 可验证的产品优势应表述为：
+
+> 它不是让模型第一次回答得更便宜，而是把错误工作变成“不可被验收的工作”。
+
+为避免这句话仍然只是宣传，仓库新增了 [`governance-v1`](../../benchmarks/governance-v1/README.md) 确定性失效注入基线。当前 checkout 实测：5/5 类无效状态被拒绝，同时 1/1 条具备完整 lineage 的有效生命周期可通过。五类失败分别是 stale pending question、stale Clarify 工件、测试设计变更后复用旧 Plan、越权写入和“有 review 但没有 CompletionProof”。这证明 Harness 自己的门禁真实存在；它不等于竞品行为评分，也不等于 ROI 证据。
+
+推广主图改用 [`competitive-positioning.png`](assets/competitive-positioning.png)：先展示“错误是否能进入已验收状态”，再展示成本边界。第一次澄清的 token 图只用于说明当前成本，不再承担“优势证明”。
+
 ## 修复后 pilot：有效性已闭环，token 优势仍未成立
 
 同一 Claude Code 2.1.263、Sonnet、fresh repo、相同请求和每系统 $1.5 总预算下，修正后的内部 pilot 每系统仍只有 1 次，因此只能诊断，不能对外推断总体表现。三个系统都到达一个核心业务问题，且都没有修改产品代码。
@@ -81,7 +101,7 @@ Harness 的 L2 依据来自仓库长期合同与对应 smoke/E2E，例如 [Clari
 2. **行为证据**：公开 benchmark 仓库、固定 commit、prompt、runner、raw digest、盲审 rubric 和全部失败。
 3. **业务证据**：试点团队的返工率、PR review 往返、事故逃逸、恢复时间和单个已验收 change 成本。只有这一层才能支撑 ROI。
 
-推荐配图：[`competitive-positioning.png`](assets/competitive-positioning.png) 展示能力定位；[`clarify-pilot-tradeoff.png`](assets/clarify-pilot-tradeoff.png) 同时展示修复后结果、治理差异与真实成本。旧 [`pilot-token-result.png`](assets/pilot-token-result.png) 只保留为 2026-09-07 修复前历史诊断图，不再用于当前推广。
+推荐配图：[`competitive-positioning.png`](assets/competitive-positioning.png) 展示“错误不能成为已验收事实”的核心优势；[`clarify-pilot-tradeoff.png`](assets/clarify-pilot-tradeoff.png) 展示修复后结果、治理差异与真实成本。旧 [`pilot-token-result.png`](assets/pilot-token-result.png) 只保留为 2026-09-07 修复前历史诊断图，不再用于当前推广。
 
 ## 可直接使用的推广口径
 

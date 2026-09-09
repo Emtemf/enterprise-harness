@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-09-09（Clarify 可恢复闭环与竞争 pilot 修正）
+更新时间：2026-09-09（企业控制优势失效注入基线）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -28,6 +28,14 @@
 - 修复 benchmark 的跨语言终问识别：旧 detector 漏掉英文 `Which ...?`，曾错误续跑并污染 Superpowers token/产物；污染样本保留在新 pilot 的 `excludedRuns`，不参与比较。
 - 修正后同 case 单样本：Superpowers 40,729 tokens/90 秒、无 durable artifact；OpenSpec 35,211 tokens/200 秒，但回答前持久化 6 个业务假设；Harness 最重但保留 gap、证据和恢复状态。当前只能支持“治理取舍不同”，不能支持总体更好或绝对省 token。
 - 拒绝的候选：把污染后的 Superpowers 270,074 tokens 当竞品成本、把 OpenSpec 低 token 直接解释为低质量、从 `n=1` 计算显著性、隐藏 Harness 修复前超时样本。
+
+## 2026-09-09 企业控制优势失效注入基线
+
+- 推广定位从“步骤更多/可能更省 token”收敛为“错误工作不能进入已验收状态”；低风险、只追求首轮速度的场景明确不推荐 Harness。
+- 新增 `benchmarks/governance-v1/`，直接运行五类确定性失败注入：stale pending question、stale Clarify 工件、测试设计变更后复用旧 Plan、越权写入、独立 review 缺 CompletionProof。
+- 当前 checkout 实测 5/5 类无效状态被拒绝，且 1/1 条完整 Clarify→Archive lineage 通过；成功样例用于防止把“全拒绝”伪装成安全。
+- 该基线只证明 Harness 自己的 runtime enforcement，不给竞品虚构 0 分。竞品差异仍使用固定版本官方合同；token 与 ROI 仍等待完整生命周期、多次真实模型运行。
+- `docs/marketing/assets/competitive-positioning.*` 改为 acceptance control plane 主图，图上同时保留“最重、Claude Code only、token 优势未成立”的限制。
 
 ## 2026-09-07 Main 全生命周期标准样例
 
