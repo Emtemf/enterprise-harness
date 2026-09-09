@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="29.7.9">
+  <diagram id="clarify-tradeoff" name="Page-1">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="同一澄清案例：速度、成本与企业治理是不同指标" style="text;html=1;strokeColor=none;fillColor=none;fontSize=34;fontStyle=1;fontColor=#0F172A;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="1440" height="52" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="Claude Code 2.1.263 · Sonnet · 同一 brownfield + Stripe 24.0.0 请求 · 每系统 n=1 · $1.5 统一预算 · diagnostic only" style="text;html=1;strokeColor=none;fillColor=none;fontSize=18;fontColor=#475569;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="108" width="1440" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="Superpowers 6.3.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;strokeWidth=2;fontSize=25;fontStyle=1;fontColor=#1E3A8A;align=center;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="440" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="&lt;b&gt;40,729 tokens · 90 秒 · $0.187&lt;/b&gt;&lt;br&gt;&lt;br&gt;✓ 读取代码，提出 1 个核心问题&lt;br&gt;✓ 未修改产品代码&lt;br&gt;△ Stripe 事实缺少 durable 来源绑定&lt;br&gt;△ 关键结论只在聊天中，无恢复状态" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#BFDBFE;strokeWidth=2;fontSize=20;fontColor=#1F2937;align=left;verticalAlign=top;spacing=24;spacingTop=22;lineHeight=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="270" width="440" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="OpenSpec 1.12.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#F97316;strokeWidth=2;fontSize=25;fontStyle=1;fontColor=#9A3412;align=center;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="180" width="440" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="&lt;b&gt;35,211 tokens · 200 秒 · $0.263&lt;/b&gt;&lt;br&gt;&lt;br&gt;✓ 生成 proposal / spec / design / tasks&lt;br&gt;✓ 未修改产品代码&lt;br&gt;✗ 用户回答前写入 6 个业务假设&lt;br&gt;△ 有 Markdown，但无 freshness / identity gate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FED7AA;strokeWidth=2;fontSize=20;fontColor=#1F2937;align=left;verticalAlign=top;spacing=24;spacingTop=22;lineHeight=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="270" width="440" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="Enterprise Harness 0.5.31 candidate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#7C3AED;strokeWidth=2;fontSize=24;fontStyle=1;fontColor=#4C1D95;align=center;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="180" width="440" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" value="&lt;b&gt;149,847 tokens · 630 秒 · $1.177&lt;/b&gt;&lt;br&gt;&lt;br&gt;✓ Code / Docs 双 lane 后只问 1 个问题&lt;br&gt;✓ 未知项保留为 gap，不冒充验收事实&lt;br&gt;✓ digest-bound evidence / pending decision / 恢复状态&lt;br&gt;△ 当前 raw token 与延迟最高" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#DDD6FE;strokeWidth=2;fontSize=20;fontColor=#1F2937;align=left;verticalAlign=top;spacing=24;spacingTop=22;lineHeight=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="270" width="440" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="本次 pilot 能证明" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;strokeWidth=2;fontSize=22;fontStyle=1;fontColor=#065F46;align=center;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="260" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="Harness 已从“高成本且未闭环”修到“高成本但可恢复闭环”；OpenSpec 的轻量来自允许先写假设；Superpowers 的快速来自把关键证据留在会话。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;strokeWidth=2;fontSize=21;fontColor=#334155;align=left;verticalAlign=middle;spacingLeft=28;spacingRight=28;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="650" width="1150" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="不能证明" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;strokeWidth=2;fontSize=22;fontStyle=1;fontColor=#991B1B;align=center;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="785" width="260" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="“总体更好”或“绝对更省 token”——正式结论仍需要 ≥5 次/系统/case、盲审、成功率、中位数/IQR 与 tokens per accepted run。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FCA5A5;strokeWidth=2;fontSize=20;fontColor=#7F1D1D;align=left;verticalAlign=middle;spacingLeft=28;spacingRight=28;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="785" width="1150" height="70" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

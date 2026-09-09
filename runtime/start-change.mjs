@@ -9,13 +9,18 @@ import { bindLatestPromptReceipt } from './lib/prompt-receipts.mjs';
 const repoRoot = process.cwd();
 // 兄弟 runtime 脚本相对本文件自身目录定位，不依赖调用方 cwd。
 const runtimeDir = path.dirname(fileURLToPath(import.meta.url));
-const [, , changeId, owner = 'harness-governance', tier = 'L1', topic = 'minimum-discovery'] = process.argv;
+const rawArgs = process.argv.slice(2);
+// Claude Code commonly appends a terminal --json to runtime commands. This
+// command keeps its established text output, but the compatibility flag must
+// never be interpreted as the optional owner positional.
+if (rawArgs.at(-1) === '--json') rawArgs.pop();
+const [changeId, owner = 'harness-governance', tier = 'L1', topic = 'minimum-discovery', ...extraArgs] = rawArgs;
 
-if (!changeId || changeId === '--help' || changeId === '-h') {
+if (!changeId || changeId === '--help' || changeId === '-h' || extraArgs.length > 0) {
   console.log('Enterprise Harness Start Change');
   console.log('Usage: node runtime/start-change.mjs <change-id> [owner] [tier] [topic]');
   console.log('Creates the minimum change scaffold, prepares one exploration artifact, and sets the active change.');
-  process.exit(changeId ? 0 : 1);
+  process.exit(changeId && ['--help', '-h'].includes(changeId) ? 0 : 1);
 }
 
 try {

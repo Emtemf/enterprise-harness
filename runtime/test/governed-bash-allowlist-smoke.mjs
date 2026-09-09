@@ -80,6 +80,8 @@ try {
     'rg --no-config --files harness',
     'git rev-parse --show-toplevel',
     `node "${runtimeCli}" status`,
+    `node "${runtimeCli}" workflow status ${changeId} --json 2>&1`,
+    'git rev-parse --show-toplevel 2>&1',
     'enterprise-harness status',
   ].entries()) {
     const toolUseId = `allowed-${index}`;

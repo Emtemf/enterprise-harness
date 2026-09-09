@@ -6,11 +6,13 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { hasFinalUserQuestion } from './checkpoint.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
+const maxAgentTurnsPerInvocation = 60;
 const pins = {
-  'enterprise-harness': { version: '0.5.30' },
+  'enterprise-harness': { version: '0.5.31' },
   superpowers: { version: '6.3.0', commit: 'b36e0829c6d0140e93cfef2ca599b1b07d4a7797' },
   openspec: { version: '1.12.0', commit: 'e062b9572be933564ba3899d059377dfa1393e32' },
 };
@@ -151,7 +153,17 @@ function continuationPrompt(system) {
 
 function reachedCheckpoint(system, root, parsed) {
   if (parsed.tools.some((name) => /AskUserQuestion/iu.test(name))) return true;
-  if (/[？?]\s*$/u.test(parsed.text.trim())) return true;
+  if (system === 'enterprise-harness') {
+    const pendingDir = path.join(root, '.git', 'enterprise-harness', 'pending-decisions');
+    if (fs.existsSync(pendingDir) && fs.readdirSync(pendingDir).some((entry) => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(pendingDir, entry), 'utf-8')).status === 'pending';
+      } catch { return false; }
+    })) return true;
+  }
+  const text = parsed.text.trim();
+  if (/[？?]/u.test(text) && /(?:请回复|请选择|请确认|待决问题|decision question)/iu.test(text)) return true;
+  if (hasFinalUserQuestion(text)) return true;
   if (system === 'openspec') {
     const changes = path.join(root, 'openspec', 'changes');
     return fs.existsSync(changes) && fs.readdirSync(changes).some((entry) => entry !== 'archive');
@@ -183,10 +195,13 @@ function runOnce(system, selected, repetition) {
   const turnRecords = [];
   try {
     for (let turn = 1; turn <= selected.maxWorkflowTurns; turn += 1) {
+      const spentUsd = turnRecords.reduce((sum, record) => sum + record.usage.costUsd, 0);
+      const remainingBudgetUsd = Math.max(0, turnBudgetUsd - spentUsd);
+      if (remainingBudgetUsd <= 0.001) break;
       const claudeArgs = [
         '-p', ...(turn === 1 ? ['--session-id', sessionId] : ['--resume', sessionId]),
         '--output-format', 'stream-json', '--verbose',
-        '--max-turns', '20', '--max-budget-usd', String(turnBudgetUsd), '--model', model,
+        '--max-turns', String(maxAgentTurnsPerInvocation), '--max-budget-usd', remainingBudgetUsd.toFixed(6), '--model', model,
         '--permission-mode', 'bypassPermissions', '--setting-sources', system === 'openspec' ? 'project' : '',
       ];
       if (system === 'enterprise-harness') claudeArgs.push('--plugin-dir', repoRoot);
@@ -196,6 +211,8 @@ function runOnce(system, selected, repetition) {
       const child = spawnSync('claude', claudeArgs, { cwd: root, encoding: 'utf-8', shell: false, timeout: 900_000 });
       const raw = `${child.stdout || ''}`;
       const parsed = parseStream(raw);
+      const terminationReason = parsed.result?.subtype || null;
+      const checkpointReached = reachedCheckpoint(system, root, parsed);
       if (/Unknown command:/u.test(parsed.text)) {
         throw new Error(`${system} entrypoint was not loaded: ${parsed.text.trim()}`);
       }
@@ -208,8 +225,11 @@ function runOnce(system, selected, repetition) {
         text: parsed.text,
         rawDigest: sha256(raw),
         error: String(child.stderr || '').trim() || null,
+        terminationReason,
+        checkpointReached,
       });
-      if (child.status !== 0 || reachedCheckpoint(system, root, parsed)) break;
+      if (checkpointReached) break;
+      if (child.status !== 0 && terminationReason !== 'error_max_turns') break;
     }
     const diff = exec('git', ['status', '--short'], { cwd: root }).stdout.trim().split(/\r?\n/u).filter(Boolean);
     return {
@@ -254,6 +274,7 @@ const output = {
   model,
   repetitions: reps,
   turnBudgetUsd,
+  maxAgentTurnsPerInvocation,
   systems,
   pins,
   runnerCommit: exec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim(),

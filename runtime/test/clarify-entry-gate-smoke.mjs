@@ -23,7 +23,9 @@ assert.equal(skill.indexOf('AskUserQuestion') > statusStart, true,
 const entry = skill.slice(entryStart, statusStart);
 const statusController = skill.slice(statusStart, routerStart);
 assert.match(entry, /factGateOpen iff 任一 required lane 为 pending、missing、invalid 或 stale/u);
-assert.match(entry, /只执行一个 agent-owned research\/recovery action[\s\S]*重算[\s\S]*回到本入口/u);
+assert.match(entry, /bounded research pipeline[\s\S]*同步 lanes[\s\S]*派发全部 required fact workers[\s\S]*close-research[\s\S]*重取 snapshot/u);
+assert.match(entry, /新 route 精确变为 `decisions`[\s\S]*同一 assistant turn[\s\S]*一个业务问题/u);
+assert.match(entry, /任一 research blocker\/recovery 都立即结束/u);
 assert.match(entry, /Plan mode、tools disabled、packet in-flight/u);
 assert.match(entry, /请求、选择、确认、普通问句、meta-choice/u);
 assert.match(entry, /changeId、path、SDK、version、entrypoint、stack、status、偏离授权/u);

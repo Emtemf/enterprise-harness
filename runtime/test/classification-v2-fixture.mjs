@@ -14,7 +14,7 @@ import {
 } from '../core/clarify-assessments.mjs';
 import { classifyClarify, writeClassificationArtifact } from '../core/classification-artifact.mjs';
 import { sha256Artifact } from '../lib/result-contract.mjs';
-import { readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
+import { clarifyResearchAuthorityDigest, readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
 import { createHandoffV2, persistHandoffV2Result, v2ResultPath } from '../core/handoff-v2.mjs';
 import { appendCompletedHandoffBinding } from './handoff-binding-fixture.mjs';
 import {
@@ -61,16 +61,53 @@ export function ensureRequiredCodeResearchFixture(root, changeId, requirementsRe
   return { briefRef, runId: handoff.runId, packetRef };
 }
 
+export function appendQuestionSynthesisFixture(root, changeId, requirementsRef) {
+  const requirementsPath = path.join(root, requirementsRef);
+  const content = fs.readFileSync(requirementsPath, 'utf-8');
+  const rawRequest = content.match(/### 原始需求\n([\s\S]*?)\n### 澄清后的目标/u)?.[1]?.trim().replace(/^(?:>\s*)+/u, '');
+  if (!rawRequest || content.includes('## 组件拓扑')) return;
+  fs.appendFileSync(requirementsPath, [
+    '',
+    '## 组件拓扑',
+    '| Component | Outcome / boundary | Status | Depends on | Confirmation source |',
+    '|---|---|---|---|---|',
+    '| refund | Govern the externally visible refund compatibility outcome. | active | none | E-RAW-1 |',
+    '- topology confirmed: false',
+    '',
+    '## Evidence ledger',
+    '| Evidence ID | Kind | Locator | Claim | Supports |',
+    '|---|---|---|---|---|',
+    `| E-RAW-1 | raw-request | original-request | ${rawRequest} | refund:Goal.consumer |`,
+    '| E-FACT-1 | research-packet | fact:code | The fixture code boundary is known. | refund:Context.current-state |',
+    '',
+    '## Component × Dimension 评分',
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |',
+    '|---|---|---:|---:|---|---|---|---|---|',
+    '| refund | Goal | — | 2 | consumer | E-RAW-1 | outcome is open | Decision | user / open |',
+    '| refund | Scope | — | 0 | | | boundaries are open | Decision | user / open |',
+    '| refund | Constraints | — | 0 | | | compatibility policy is open | Decision | user / open |',
+    '| refund | Acceptance | — | 0 | | | acceptance is open | Decision | user / open |',
+    '| refund | Context | — | 2 | current-state | E-FACT-1 | need is open | Decision | user / open |',
+    '',
+    '## Frontier（component × unresolved dimension）',
+    '| Priority | Component | Unresolved dimension | Current score | Evidence / known fact | Risk | Next action |',
+    '|---:|---|---|---:|---|---|---|',
+    '| 1 | refund | Constraints | 0 | E-FACT-1 | high | ask |',
+    '',
+  ].join('\n'), 'utf-8');
+}
+
 export function appendLaneApplicabilityFixture(root, changeId, requirementsRef, selections = {}) {
   const digest = sha256Artifact(root, requirementsRef);
   const requirements = fs.readFileSync(path.join(root, requirementsRef), 'utf-8');
+  const authorityDigest = clarifyResearchAuthorityDigest(requirements);
   const existingTargets = new Set(readDecisionEvents(root, changeId)
     .filter(({ decisionType }) => decisionType === 'lane-applicability')
     .map(({ targetRef }) => targetRef));
   for (const lane of ['code', 'docs']) {
     const selectedOption = selections[lane]
       || (new RegExp(`\\|\\s*${lane}\\s*\\|\\s*yes\\s*\\|`, 'iu').test(requirements) ? 'required' : 'not-required');
-    const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${digest}`;
+    const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${authorityDigest}`;
     if (existingTargets.has(targetRef)) continue;
     appendDecisionEvent(root, changeId, {
       eventVersion: 1,

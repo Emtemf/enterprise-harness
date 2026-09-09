@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-02
+lastVerified: 2026-09-08
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
@@ -21,6 +21,8 @@ testRefs:
   - runtime/test/hook-health-lifecycle-smoke.mjs
   - runtime/test/subagent-stop-v2-research-persist-smoke.mjs
   - runtime/test/pre-write-governed-target-smoke.mjs
+  - runtime/test/pre-explore-smoke.mjs
+  - runtime/test/pre-explore-budget-smoke.mjs
   - runtime/test/governed-bash-allowlist-smoke.mjs
   - runtime/test/skill-script-hook-smoke.mjs
   - runtime/test/change-transaction-lease-smoke.mjs
@@ -58,6 +60,15 @@ frozen write scope in the current isolated worktree, and an active Implement tas
 canonical receipt's declared changed paths in that receipt's worktree. Main, unbound agents, Grep/Glob and expanded
 business-code exploration remain CodeGraph-first and fail closed. Skills and runtime own synthesis, self-check,
 review verdicts and lifecycle semantics. Shell policy is limited to the active v6 boundary below.
+
+The code-explore read gate admits and records at most one real CodeGraph search/explore/call attempt; a status
+probe or ToolSearch reference is not an attempt. For one active agent identity it then admits at most one discovery
+Glob, one focused Grep, and six governed source Reads. Each admitted call is an append-only lightweight receipt;
+the next call fails closed with the stable recovery instruction to stop expanding scope and return the current
+ResearchPacket uncertainty/blocker. This hook enforces only count, identity, and ordering—not semantic sufficiency.
+The same PreToolUse budget boundary admits Context7 only for the active doc-research identity, with at most one
+`resolve-library-id` and two `query-docs` calls per worker. Additional synonymous queries fail closed; official
+vendor fallback remains available through the worker's declared non-Context7 tools.
 
 Inside an active v6 workflow, Bash is fail-closed by allowlist rather than classified by a
 mutation denylist. Main may run only canonical Harness runtime commands or bounded read-only

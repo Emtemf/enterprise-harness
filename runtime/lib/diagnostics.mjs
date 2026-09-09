@@ -99,6 +99,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify question hook payload 无效。',
     recovery: '按 Claude Code AskUserQuestion payload 发送所需字段；不要附加 rationale 或 chat 文本。',
   },
+  'EH-QUESTION-SYNTHESIS-116': {
+    summary: 'Clarify question 没有绑定已落盘的证据、拓扑、五维歧义评分与最高风险 frontier。',
+    recovery: '先在 requirements.md 中持久化 evidence-grounded topology、五维 score grid 和匹配 candidate 的 high-risk ask frontier，再重新 prepare。',
+  },
   'EH-QUESTION-FACT-GATE-161': {
     summary: 'Clarify 研究事实门尚未关闭，不能准备或调用 AskUserQuestion。',
     recovery: '完成 required code/docs ResearchPacket，处置 degraded、conflict 与 uncertainty，再从当前证据重新生成 candidate。',
@@ -190,6 +194,8 @@ export const DIAGNOSTICS = Object.freeze({
   'EH-CLARIFY-RESEARCH-LANES-144': { summary: 'Clarify code/docs research applicability 尚未决定。', recovery: '分别决定 code 与 docs research lane 是否适用。' },
   'EH-CLARIFY-RESEARCH-131': { summary: 'Clarify required ResearchPacket 缺失、无效或过期。', recovery: '完成并持久化每个 required fresh ResearchPacket。' },
   'EH-CLARIFY-RESEARCH-CONFLICTS-145': { summary: 'Clarify research conflict、degraded packet 或 uncertainty 尚未处置。', recovery: '处置 degraded research、冲突与 remaining fact uncertainty。' },
+  'EH-CLARIFY-RESEARCH-CLOSE-167': { summary: 'Clarify research 不能形成可信的完整事实闭包。', recovery: '使用每个 required lane 的完整 canonical runId 重试 close-research；若 packet 不 clean，创建更窄 brief 并重新派发。' },
+  'EH-CLARIFY-SOURCES-169': { summary: 'Clarify 无法从 clean fact gate 投影可用于 Evidence ledger 的精确来源分句。', recovery: '先关闭并验证 required research，再原样运行 clarify synthesis-sources <changeId>，只复制其 claim/locator/ref。' },
   'EH-CLARIFY-TOPOLOGY-132': { summary: 'Clarify component topology 未确认。', recovery: '确认 evidence-derived component topology。' },
   'EH-CLARIFY-AMBIGUITY-133': { summary: 'Clarify evidence-bound ambiguity 未达阈值。', recovery: '解决 weakest ambiguity 并重新计算 requirements。' },
   'EH-CLARIFY-QUESTION-134': { summary: '仍有一个 authorized Clarify question 未关闭。', recovery: '原样解决当前 authorized pending question。' },

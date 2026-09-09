@@ -40,8 +40,16 @@ assert.equal(/Grill Me|Deep Interview|Superpowers Brainstorming/u.test(skill), f
 assert.equal(skill.includes('evals/evals.json'), false,
   'production Skill must not load development eval definitions');
 
-for (const reference of fs.readdirSync(path.join(root, 'skills/harness/references'))) {
-  assert.ok(skill.includes(`references/${reference}`), `packaged reference must have a SKILL.md consumption point: ${reference}`);
+const references = fs.readdirSync(path.join(root, 'skills/harness/references'))
+  .filter((reference) => reference.endsWith('.md'));
+const referenceBodies = references.map((reference) => fs.readFileSync(
+  path.join(root, 'skills/harness/references', reference),
+  'utf-8',
+));
+for (const reference of references) {
+  const reachable = skill.includes(`references/${reference}`)
+    || referenceBodies.some((body) => body.includes(`(${reference})`));
+  assert.ok(reachable, `packaged reference must have a controller or phase-reference consumption point: ${reference}`);
 }
 
 console.log(`PASS harness-fact-gate ${mode}`);

@@ -43,8 +43,7 @@ Return to controller: after exactly one assessment, scope, seal, classification,
       `clarify project-contract-status <change-id>`，以 assessment/receipt 为完成事实；
       `InstructionsLoaded` 仅证明 Claude Code 后续确实加载了对应 digest，是诊断信号而不是阻断 gate。
 3. 用相同的 one-candidate authorization 协议取得最终 scope confirmation。读取
-   lane 使用 [lane input 模板](../assets/lane-applicability-input.json.tmpl) 和
-   `clarify record-lanes <change-id> <input-ref>` 原子追加；classification route 事件才使用
+   lane 使用 `clarify sync-lanes <change-id>` 从当前 requirements 七列表、digest 原子派生并追加；classification route 事件才使用
    [decision event 模板](../assets/decision-event.json.tmpl)写入 canonical `evidence/clarify/decision-events/<event-id>.json`，
    再用 `clarify record-decision <change-id> <event-ref>` 追加；用户 scope/debt/project-contract 决策只能走 authorized
    question hook。用 `clarify seal-decisions <change-id> <event-id>...` 密封 ordered prefix；从 requirements、

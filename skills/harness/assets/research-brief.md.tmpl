@@ -3,9 +3,10 @@
 - changeId：
 - lane：code / docs
 - question：一个可由该事实 lane 独立回答的精确问题
-- scope：允许探索的模块、symbol、library 或 version 边界
+- scope：最多 3 个已知模块/symbol，或 1 个 library+version+行为；不得加入猜测的层、全仓影响面或未来版本
 - known user facts：只记录用户已明确给出的事实
-- exclusions：不得研究或推断的范围
+- exclusions：不得研究或推断的业务策略、设计方案和相邻 lane 范围
+- closure：一次 CodeGraph 或 bounded fallback / 一次 Context7 resolve + 最多两次 query 内，哪些事实足以让本 question 以 `uncertainties=[]` 关闭；目标不存在也是一种可关闭事实；不得把未点名的辅助 API/symbol 当成 closure 条件
 - source request ref：requirements 中原始请求的位置
 
 ## Relevant technical debt

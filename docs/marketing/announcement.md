@@ -8,6 +8,6 @@ Superpowers 已经很好地回答了“怎样 brainstorming、TDD 和用 subagen
 
 Enterprise Harness 的答案是把交付拆成 Clarify → Design → Plan → Implement → Verify → Archive，并让 runtime 校验 evidence digest、agent identity、worktree、write scope、真实命令 receipt、独立 review 与 freshness。无法证明时，流程停在最早的无效 gate，而不是继续生成看似完整的文档。
 
-它的边界也很明确：当前只面向 Claude Code，流程比 Superpowers 和 OpenSpec 更重，首轮内部 pilot 也没有证明 token 更省。我们的推广证据会包含失败样本、固定竞品版本、相同 prompt、原始 usage 和盲审规则，而不是只展示成功 demo。
+它的边界也很明确：当前只面向 Claude Code，流程比 Superpowers 和 OpenSpec 更重。2026-09-09 的修复后 pilot 已能在双 lane 取证、负知识与 digest-bound checkpoint 后只问一个问题，但 raw token 和耗时仍明显更高，不能宣传“绝对更省 token”。我们的推广证据包含失败样本、固定竞品版本、相同 prompt、原始 usage 和盲审规则，而不是只展示成功 demo。
 
 普通用户安装后从 `/enterprise-harness:harness` 开始。完整比较、配图、数据与禁止主张见 [竞争证据基线](competitive-evidence.md)。

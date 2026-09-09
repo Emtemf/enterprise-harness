@@ -102,11 +102,14 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CHECKER-REQUIRED-005` | 缺少独立 checker | 创建 check handoff |
 | `EH-CLARIFY-AMBIGUITY-006` | 歧义评分不足 | 补 weakest dimension |
 | `EH-QUESTION-FACT-GATE-161` | 研究事实门未关闭却准备或调用 AskUserQuestion | 完成 required ResearchPacket 并处置 degraded、冲突和 uncertainty，再从当前证据生成 candidate |
+| `EH-QUESTION-SYNTHESIS-116` | candidate 没有对应已落盘的组件拓扑、确定性五维歧义评分或 high-risk ask frontier | 按错误中的 expected score/coverage/refs 修正五维行；分数为 `floor(coverage/total*4)`，完整覆盖为 4，另有 confirmed evidence 才为 5，再重新执行 `clarify prepare-question` |
 | `EH-CLASSIFICATION-ROUTE-128` | classification tier 与 route event 不一致 | 按当前 evidence-derived tier 追加匹配 route event 后重算 |
 | `EH-CLASSIFICATION-STALE-129` | classification input digest 过期 | 从当前 authoritative inputs 重算 classification |
 | `EH-CLARIFY-RESEARCH-LANES-144` | code/docs research applicability 未决定 | 分别决定两个 lane 是否适用 |
 | `EH-CLARIFY-RESEARCH-131` | required research 缺失、无效或过期 | 完成并持久化 required fresh ResearchPackets |
 | `EH-CLARIFY-RESEARCH-CONFLICTS-145` | research degraded、冲突或 uncertainty 未处置 | 处置冲突与 remaining fact uncertainty |
+| `EH-CLARIFY-RESEARCH-CLOSE-167` | required run 未完整覆盖、handoff/binding 不可信，或 packet 仍有事实缺口 | 使用各 required lane 的完整 canonical runId 重试 `clarify close-research`；packet 不 clean 时缩小 brief 并重新派发 |
+| `EH-CLARIFY-SOURCES-169` | fact gate 尚未 clean，无法生成精确 Evidence 来源投影 | 先完成 `close-research`，再运行 `clarify synthesis-sources <changeId>`；Evidence ledger 只原样复制返回的 claim/locator/ref |
 | `EH-CLARIFY-TOPOLOGY-132` | component topology 未确认 | 确认 evidence-derived topology |
 | `EH-CLARIFY-AMBIGUITY-133` | ambiguity threshold 未达标 | 解决 weakest ambiguity |
 | `EH-CLARIFY-QUESTION-134` | authorized question 仍 pending | 原样解决该问题 |
@@ -265,6 +268,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-QUESTION-ANSWER-113` | answer replay 与已记录选择冲突或 response shape 无效 | 使用 host 显示的 option label 作答；Other 会被脱敏记录并要求重新澄清，已记录事件不可改写 |
 | `EH-QUESTION-RECOVERY-114` | pending state 与同一 candidate target 的 decision ledger 事件冲突 | 保留 append-only ledger，恢复与事件绑定一致的 candidate/pending evidence 后运行 `enterprise-harness clarify recover <changeId>` |
 | `EH-QUESTION-INPUT-115` | `clarify` CLI 子命令或参数形状无效 | 运行 `enterprise-harness clarify --help`，按显示的 exact argv 重试；不要附加 rationale 或 chat 文本 |
+| `EH-QUESTION-SYNTHESIS-116` | 问题只存在于对话推理中，未由 durable requirements 中的歧义计算授权 | 持久化证据账本、active component、五维评分和同 component/dimension/score 的 `high + ask` frontier 后重试 |
 | `EH-DECISION-STALE-146` | public decision event 的 evidence binding 缺失或已过期 | 从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试 |
 | `EH-DECISION-INPUT-147` | public decision event input 缺失、无效或不是 canonical main/runtime event | 使用 `evidence/clarify/decision-events/<eventId>.json`；用户决策必须经 AskUserQuestion |
 | `EH-LANE-INPUT-156` | lane applicability input 缺失、无效或路径不 canonical | 按模板重建 `evidence/clarify/lane-applicability-input.json`，绑定当前 requirements digest 后重试 |

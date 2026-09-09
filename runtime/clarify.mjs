@@ -18,10 +18,13 @@ import { formatDiagnostic } from './lib/diagnostics.mjs';
 import { buildClarifyArtifactReadiness } from './lib/clarify-readiness.mjs';
 import { sha256Artifact } from './lib/result-contract.mjs';
 import {
+  closeClarifyResearch,
+  inspectClarifySynthesisSources,
   inspectClarifyRequirements,
   persistClarifyClassification,
   recordClarifyDecision,
   recordClarifyLanes,
+  syncClarifyLanes,
   sealClarifyDecisions,
 } from './core/clarify-governance.mjs';
 
@@ -31,7 +34,7 @@ const root = process.cwd();
 function help(exitCode = 0) {
   console.log('Enterprise Harness Clarify');
   console.log('Usage:');
-  console.log('  node runtime/cli.mjs clarify prepare-question <change-id> <candidate-ref>');
+  console.log('  node runtime/cli.mjs clarify prepare-question <change-id> <candidate-ref> [--json]');
   console.log('  node runtime/cli.mjs clarify status <change-id> [--json]');
   console.log('  node runtime/cli.mjs clarify recover <change-id>');
   console.log('  node runtime/cli.mjs clarify validate-debt <change-id> <artifact-ref>');
@@ -40,8 +43,11 @@ function help(exitCode = 0) {
   console.log('  node runtime/cli.mjs clarify apply-project-contract <change-id> <proposal-ref>');
   console.log('  node runtime/cli.mjs clarify project-contract-status <change-id>');
   console.log('  node runtime/cli.mjs clarify record-decision <change-id> <event-ref>');
-  console.log('  node runtime/cli.mjs clarify requirements-digest <change-id>');
+  console.log('  node runtime/cli.mjs clarify requirements-digest <change-id> [--json]');
   console.log('  node runtime/cli.mjs clarify record-lanes <change-id> <input-ref>');
+  console.log('  node runtime/cli.mjs clarify sync-lanes <change-id> [--json]');
+  console.log('  node runtime/cli.mjs clarify close-research <change-id> <run-id> [run-id...] [--json]');
+  console.log('  node runtime/cli.mjs clarify synthesis-sources <change-id> [--json]');
   console.log('  node runtime/cli.mjs clarify seal-decisions <change-id> <event-id> [event-id...]');
   console.log('  node runtime/cli.mjs clarify classify <change-id> <input-ref>');
   process.exit(exitCode);
@@ -60,6 +66,12 @@ function requireArgs(expected, usage, code = 'EH-QUESTION-INPUT-115') {
   }
 }
 
+function jsonCompatibleArgs(expected, usage, code) {
+  const positional = args.at(-1) === '--json' ? args.slice(0, -1) : args;
+  if (positional.length !== expected) throw new Error(`${code}: usage: ${usage}`);
+  return positional;
+}
+
 function validateCanonicalAssessment(changeId, artifactRef, expectedPath, readAssessment, code) {
   if (artifactRef !== expectedPath) {
     throw new Error(`${code}: artifact-ref must be ${expectedPath}`);
@@ -72,8 +84,8 @@ if (!subcommand || subcommand === '--help' || subcommand === '-h') help(subcomma
 
 try {
   if (subcommand === 'prepare-question') {
-    requireArgs(2, 'clarify prepare-question <change-id> <candidate-ref>');
-    console.log(JSON.stringify(prepareClarifyQuestion(root, args[0], args[1]), null, 2));
+    const positional = jsonCompatibleArgs(2, 'clarify prepare-question <change-id> <candidate-ref> [--json]', 'EH-QUESTION-INPUT-115');
+    console.log(JSON.stringify(prepareClarifyQuestion(root, positional[0], positional[1]), null, 2));
   } else if (subcommand === 'status') {
     if (args.length < 1 || args.length > 2 || (args.length === 2 && args[1] !== '--json')) {
       throw new Error('EH-QUESTION-INPUT-115: usage: clarify status <change-id> [--json]');
@@ -125,11 +137,23 @@ try {
     requireArgs(1, 'clarify project-contract-status <change-id>', 'EH-PROJECT-CONTRACT-PROPOSAL-162');
     console.log(JSON.stringify(projectContractStatus(root, args[0]), null, 2));
   } else if (subcommand === 'requirements-digest') {
-    requireArgs(1, 'clarify requirements-digest <change-id>', 'EH-LANE-DIGEST-160');
-    console.log(JSON.stringify(inspectClarifyRequirements(root, args[0]), null, 2));
+    const positional = jsonCompatibleArgs(1, 'clarify requirements-digest <change-id> [--json]', 'EH-LANE-DIGEST-160');
+    console.log(JSON.stringify(inspectClarifyRequirements(root, positional[0]), null, 2));
   } else if (subcommand === 'record-lanes') {
     requireArgs(2, 'clarify record-lanes <change-id> <input-ref>', 'EH-LANE-INPUT-156');
     console.log(JSON.stringify(recordClarifyLanes(root, args[0], args[1]), null, 2));
+  } else if (subcommand === 'sync-lanes') {
+    const positional = jsonCompatibleArgs(1, 'clarify sync-lanes <change-id> [--json]', 'EH-LANE-INPUT-156');
+    console.log(JSON.stringify(syncClarifyLanes(root, positional[0]), null, 2));
+  } else if (subcommand === 'close-research') {
+    const positional = args.at(-1) === '--json' ? args.slice(0, -1) : args;
+    if (positional.length < 2 || positional.length > 3) {
+      throw new Error('EH-CLARIFY-RESEARCH-CLOSE-167: usage: clarify close-research <change-id> <run-id> [run-id...] [--json]');
+    }
+    console.log(JSON.stringify(closeClarifyResearch(root, positional[0], positional.slice(1)), null, 2));
+  } else if (subcommand === 'synthesis-sources') {
+    const positional = jsonCompatibleArgs(1, 'clarify synthesis-sources <change-id> [--json]', 'EH-CLARIFY-SOURCES-169');
+    console.log(JSON.stringify(inspectClarifySynthesisSources(root, positional[0]), null, 2));
   } else if (subcommand === 'seal-decisions') {
     if (args.length < 2) throw new Error('EH-DECISION-SNAPSHOT-104: usage: clarify seal-decisions <change-id> <event-id> [event-id...]');
     console.log(JSON.stringify(sealClarifyDecisions(root, args[0], args.slice(1)), null, 2));

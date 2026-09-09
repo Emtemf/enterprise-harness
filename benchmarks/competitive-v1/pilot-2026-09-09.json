@@ -1,0 +1,78 @@
+{
+  "status": "diagnostic-only",
+  "publishableConclusion": false,
+  "semanticReviewStatus": "pending-label-blind-review",
+  "date": "2026-09-09",
+  "caseId": "brownfield-cancel-with-sdk",
+  "model": "sonnet",
+  "claudeCodeVersion": "2.1.263",
+  "sampleSizePerSystem": 1,
+  "turnBudgetUsd": 1.5,
+  "records": [
+    {
+      "system": "superpowers",
+      "version": "6.3.0",
+      "inputTokens": 37689,
+      "outputTokens": 3040,
+      "cacheReadInputTokens": 96000,
+      "costUsd": 0.187467,
+      "durationMs": 90376,
+      "toolCalls": 19,
+      "artifactCount": 0,
+      "reachedDecisionQuestion": true,
+      "productCodeChanged": false,
+      "durableBusinessAssumptionsBeforeAnswer": 0,
+      "rawDigest": "409c26f638a3bbf8630978beb25e497863958db6b4e0a4b7d319676e763f52c8",
+      "notableFinding": "读取骨架代码并快速提出退款失败的一项核心问题；Stripe 结论和需求边界只存在最终聊天中，没有 input-bound durable change、freshness 或恢复证据。"
+    },
+    {
+      "system": "openspec",
+      "version": "1.12.0",
+      "inputTokens": 30059,
+      "outputTokens": 5152,
+      "cacheReadInputTokens": 318912,
+      "costUsd": 0.263131,
+      "durationMs": 199722,
+      "toolCalls": 17,
+      "artifactCount": 7,
+      "reachedDecisionQuestion": true,
+      "productCodeChanged": false,
+      "durableBusinessAssumptionsBeforeAnswer": 6,
+      "rawDigest": "51948c70febe61d630054fcf335bebeb855b59558159e5af3c2f308562b168ff",
+      "notableFinding": "生成 proposal/spec/design/tasks 并提出核心问题，但回答前已持久化退款失败保持 PENDING、无重试、无审计、全额退款、幂等延后和验收后定等六项假设。"
+    },
+    {
+      "system": "enterprise-harness",
+      "version": "0.5.31-candidate",
+      "inputTokens": 125314,
+      "outputTokens": 24533,
+      "cacheReadInputTokens": 1493760,
+      "costUsd": 1.177461,
+      "durationMs": 629624,
+      "toolCalls": 56,
+      "artifactCount": 12,
+      "reachedDecisionQuestion": true,
+      "productCodeChanged": false,
+      "durableBusinessAssumptionsBeforeAnswer": 0,
+      "rawDigest": "3f41d74bb53477276b34d8d5006208af6bd66d65afd19e52a498ae510c297376",
+      "notableFinding": "完成 code/docs 双 lane、exact-source Evidence ledger、负知识 gap、机械评分和 digest-bound pending question 后停止；raw token、成本和墙钟时间均为三个样本最高。"
+    }
+  ],
+  "excludedRuns": [
+    {
+      "system": "enterprise-harness",
+      "reason": "修复前 Phase 2 whole-file digest 使 Phase 1 lane event stale，运行在 695713ms 被 runner 终止；该失败用于定位 research-authority freshness bug，不计入修正后横向样本。",
+      "rawDigest": "38a533497d25008f26186e6629a90f260debd4131c7d5c6d2a23091e65c3d9f0"
+    },
+    {
+      "system": "superpowers",
+      "reason": "旧 checkpoint detector 未识别英文最终问题，错误续跑四轮并污染产物和 token；修复 detector 后重新采样，旧总数不用于比较。"
+    }
+  ],
+  "conclusions": [
+    "三个修正后样本都在统一预算内到达一个业务问题且未修改产品代码。",
+    "当前数据仍不能支持 Enterprise Harness 绝对更省 token；本 case 中它的 raw token 和耗时最高。",
+    "当前样本支持继续检验的差异是 decision integrity 与 durable auditability：OpenSpec 在回答前持久化关键假设，Superpowers 没有持久化恢复证据，Harness 保留 gap 并形成 input-bound checkpoint。",
+    "正式结论至少需要每系统每 case 5 次、label-blind review、中位数/IQR、hard-fail 率和 tokens_per_accepted_run。"
+  ]
+}

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { prepareClarifyQuestion } from '../core/clarify-question.mjs';
 import { readDecisionEvents } from '../core/decision-ledger.mjs';
 import {
+  appendQuestionSynthesisFixture,
   appendLaneApplicabilityFixture,
   ensureRequiredCodeResearchFixture,
 } from './classification-v2-fixture.mjs';
@@ -54,7 +55,7 @@ function ensureFactGate(changeId) {
   const rawRequest = `Clarify the governed request for ${changeId}.`;
   fs.mkdirSync(path.dirname(requirementsPath), { recursive: true });
   fs.writeFileSync(requirementsPath, [
-    '# Requirements', '', '## 目标与验收', '### 原始需求', rawRequest,
+    '# Requirements', '', '## 目标与验收', '### 原始需求', `> ${rawRequest}`,
     '### 澄清后的目标', `Exercise ${changeId}.`, '', '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
@@ -66,6 +67,7 @@ function ensureFactGate(changeId) {
   recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
   bindLatestPromptReceipt(root, changeId, sessionId);
   ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
+  appendQuestionSynthesisFixture(root, changeId, requirementsRef);
   appendLaneApplicabilityFixture(root, changeId, requirementsRef);
   factGateFixtures.add(changeId);
 }
@@ -83,7 +85,7 @@ function candidateFor(changeId, questionId = 'Q-001') {
     dimension: 'Constraints',
     decisionNeeded: 'Choose refund compatibility policy',
     whyUserOnly: 'Repository evidence cannot choose the business compatibility promise',
-    decisionType: 'scope-confirmation',
+    decisionType: 'clarify-answer',
     targetRef: inputRef,
     header: 'Refund',
     question: 'Which refund compatibility policy should this change guarantee?',

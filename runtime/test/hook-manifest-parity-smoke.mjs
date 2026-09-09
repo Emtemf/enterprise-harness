@@ -13,6 +13,19 @@ const generated = spawnSync(process.execPath, [path.join(root, 'bin', 'generate-
 });
 assert.equal(generated.status, 0, generated.stderr);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'harness', 'plugin', 'hooks-manifest.json'), 'utf-8'));
+const preExplore = manifest.hooks.PreToolUse.find((entry) => entry.script === 'pre-explore.mjs');
+assert.ok(preExplore, 'manifest must register pre-explore');
+for (const toolPattern of [
+  'Bash',
+  'Grep',
+  'Read',
+  'Glob',
+  'mcp__codegraph__.*',
+  'mcp__plugin_enterprise-harness_codegraph__.*',
+]) {
+  assert.ok(preExplore.matcher.split('|').includes(toolPattern),
+    `pre-explore matcher must observe ${toolPattern} so CodeGraph attempts can authorize fallback`);
+}
 for (const [event, expected] of [
   ['PreToolUse', {
     matcher: 'AskUserQuestion',

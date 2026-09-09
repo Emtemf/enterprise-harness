@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [0.5.31] - 2026-09-09
+
+### Added
+
+- 新增 `clarify synthesis-sources`，向 Main 投影可逐字引用的原始需求条款和 validated ResearchPacket facts；新增小型综合 few-shot、研究 seed/brief few-shot、CodeGraph/Context7 预算合同与真实问题综合门禁。
+- 新增 2026-09-09 修正后竞争 pilot 和取舍图，保留修复前超时及 checkpoint detector 污染样本，明确把治理效果、raw token 与墙钟成本分开报告。
+
+### Changed
+
+- Clarify Evidence ledger、组件五维评分与 high-risk frontier 改为 runtime 可重算合同：分数由已覆盖 predicate 确定，候选必须匹配同一 component/dimension/current score；负知识只能登记为 `.gap`，不能虚增覆盖率。
+- code worker 保持一次 CodeGraph attempt，并把 fallback Glob 上限从 1 调整为 2，以同时覆盖目标源码和直接相关测试/项目指令；generic built-in Explore 在 active change 中被拒绝，Main 必须使用受治理 handoff。
+- lane applicability 改为绑定原始需求与完整 fact-gate 的稳定 research-authority digest；Phase 2 topology/ledger/评分编辑不再使已关闭的 Phase 1 研究过期，真正修改研究 authority 仍 fail closed。
+- 推广口径从修复前 token 失败图更新为修复后真实取舍：当前已证明可恢复澄清闭环，但仍未证明总体优于竞品或绝对节省 token。
+
+### Fixed
+
+- `start-change`、`sync-lanes`、`close-research`、`requirements-digest`、`synthesis-sources` 兼容 Claude 自动追加的尾随 `--json`，避免 flag 被误当 owner 或导致 usage failure。
+- 修复原始条款解析把 `24.0.0` 拆成三个句段的问题，并兼容旧 prompt receipt digest；问题综合错误现在返回具体 Evidence ID、来源、期望 coverage/refs/score 和 frontier。
+- 修复竞争 runner 只识别少量中英文提示语、漏掉英文最终问题而错误续跑的偏差。
+
 ## [0.5.30] - 2026-09-07
 
 ### Added

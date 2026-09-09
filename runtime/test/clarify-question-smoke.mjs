@@ -16,10 +16,12 @@ import {
 } from '../core/clarify-question.mjs';
 import { appendDecisionEvent, readDecisionEvents } from '../core/decision-ledger.mjs';
 import {
+  appendQuestionSynthesisFixture,
   appendLaneApplicabilityFixture,
   ensureRequiredCodeResearchFixture,
 } from './classification-v2-fixture.mjs';
 import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
+import { analyzeClarifyRequirements } from '../lib/clarify-readiness.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -69,7 +71,7 @@ function ensureFactGate(changeId) {
   const rawRequest = `Clarify the governed request for ${changeId}.`;
   fs.mkdirSync(path.dirname(requirementsPath), { recursive: true });
   fs.writeFileSync(requirementsPath, [
-    '# Requirements', '', '## 目标与验收', '### 原始需求', rawRequest,
+    '# Requirements', '', '## 目标与验收', '### 原始需求', `> ${rawRequest}`,
     '### 澄清后的目标', `Exercise ${changeId}.`, '', '## 事实探索门禁',
     '| Lane | Required | Brief ref | RunId | Packet ref | Status | Authority / fallback |',
     '|---|---|---|---|---|---|---|',
@@ -81,6 +83,7 @@ function ensureFactGate(changeId) {
   recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
   bindLatestPromptReceipt(root, changeId, sessionId);
   ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
+  appendQuestionSynthesisFixture(root, changeId, requirementsRef);
   appendLaneApplicabilityFixture(root, changeId, requirementsRef);
   factGateFixtures.add(changeId);
 }
@@ -103,7 +106,7 @@ function candidateFor(changeId, questionId = 'Q-003', overrides = {}, { factGate
     dimension: 'Constraints',
     decisionNeeded: 'Choose refund compatibility policy',
     whyUserOnly: 'Repository evidence cannot choose the business compatibility promise',
-    decisionType: 'scope-confirmation',
+    decisionType: 'clarify-answer',
     targetRef: inputRef,
     header: 'Refund',
     question: 'Which refund compatibility policy should this change guarantee?',
@@ -173,6 +176,28 @@ try {
   assert.throws(() => questionCandidatePath('cancel-order', '../escape'), /EH-PATH-001/u);
   assert.throws(() => pendingQuestionPath(root, '../escape'), /EH-PATH-001/u);
 
+  const negativeGapAnalysis = analyzeClarifyRequirements([
+    '# Requirements', '', '## 目标与验收', '### 原始需求',
+    '> Refund failure behavior is not specified.',
+    '### 澄清后的目标', 'Clarify refund behavior.', '',
+    '## 组件拓扑',
+    '| Component | Outcome / boundary | Status | Depends on | Confirmation source |',
+    '|---|---|---|---|---|',
+    '| refund | Govern refund behavior. | active | none | E-GAP-1 |',
+    '- topology confirmed: false', '',
+    '## Evidence ledger',
+    '| Evidence ID | Kind | Locator | Claim | Supports |',
+    '|---|---|---|---|---|',
+    '| E-GAP-1 | raw-request | original-request | Refund failure behavior is not specified. | refund:Acceptance.failure |',
+    '', '## Component × Dimension 评分',
+  ].join('\n'), { rawRequestAttested: true, packets: [] });
+  assert.equal(negativeGapAnalysis.questionSynthesis.ready, false);
+  assert.match(
+    negativeGapAnalysis.questionSynthesis.problems.join('; '),
+    /E-GAP-1 is negative gap knowledge and must use \.gap/u,
+    'an explicit absence must remain negative knowledge instead of satisfying a readiness predicate',
+  );
+
   for (const [suffix, options] of [
     ['one-option', [{ id: 'only', label: 'Only', description: 'Only option.' }]],
     ['five-options', Array.from({ length: 5 }, (_, index) => ({
@@ -207,6 +232,34 @@ try {
   assert.throws(
     () => prepareClarifyQuestion(root, mismatchChange, mismatchRef),
     /EH-QUESTION-CANDIDATE-/u,
+  );
+
+  const unsynthesizedChange = 'candidate-unsynthesized';
+  activate(unsynthesizedChange);
+  ensureFactGate(unsynthesizedChange);
+  const unsynthesizedRequirements = path.join(root, 'harness', 'changes', unsynthesizedChange, 'requirements.md');
+  fs.writeFileSync(
+    unsynthesizedRequirements,
+    fs.readFileSync(unsynthesizedRequirements, 'utf-8').replace(
+      '| refund | Govern the externally visible refund compatibility outcome. | active | none | E-RAW-1 |',
+      '| component-id | 可独立成功或失败的结果 | active / deferred | none / component-id | user / evidence ref |',
+    ),
+    'utf-8',
+  );
+  const unsynthesizedCandidate = candidateFor(unsynthesizedChange, 'Q-001', {}, { factGate: false });
+  const unsynthesizedRef = writeCandidate(unsynthesizedCandidate);
+  assert.throws(
+    () => prepareClarifyQuestion(root, unsynthesizedChange, unsynthesizedRef),
+    /EH-QUESTION-SYNTHESIS-116.*Topology needs an active component/u,
+  );
+
+  const frontierMismatchChange = 'candidate-frontier-mismatch';
+  activate(frontierMismatchChange);
+  const frontierMismatchCandidate = candidateFor(frontierMismatchChange, 'Q-001', { dimension: 'Acceptance' });
+  const frontierMismatchRef = writeCandidate(frontierMismatchCandidate);
+  assert.throws(
+    () => prepareClarifyQuestion(root, frontierMismatchChange, frontierMismatchRef),
+    /EH-QUESTION-SYNTHESIS-116.*candidate needs frontier refund:Acceptance/u,
   );
 
   const traversalChange = 'candidate-traversal';
@@ -405,6 +458,26 @@ try {
     'AskUserQuestion authorization must recheck research freshness after prepare',
   );
 
+  const normalizedChange = 'candidate-runtime-normalized';
+  activate(normalizedChange);
+  const normalizedCandidate = candidateFor(normalizedChange, 'Q-runtime');
+  const requirementsRef = `harness/changes/${normalizedChange}/requirements.md`;
+  normalizedCandidate.inputDigests[requirementsRef] = '0'.repeat(64);
+  fs.appendFileSync(path.join(root, requirementsRef), '\n## Phase 2 projection\nTopology and scores filled after research closure.\n');
+  const nonCanonicalRef = writeCandidate(
+    normalizedCandidate,
+    `harness/changes/${normalizedChange}/evidence/clarify/questions/Q-runtime-refund-policy.json`,
+  );
+  const normalizedPending = prepareClarifyQuestion(root, normalizedChange, nonCanonicalRef);
+  const normalizedRef = questionCandidatePath(normalizedChange, normalizedCandidate.questionId);
+  assert.equal(normalizedPending.candidateRef, normalizedRef);
+  assert.equal(fs.existsSync(path.join(root, nonCanonicalRef)), false, 'runtime must consume the noncanonical source candidate');
+  const normalizedArtifact = JSON.parse(fs.readFileSync(path.join(root, normalizedRef), 'utf-8'));
+  assert.ok(normalizedArtifact.evidenceRefs.length > normalizedCandidate.evidenceRefs.length,
+    'runtime must bind current trusted ResearchPacket refs');
+  assert.notEqual(normalizedArtifact.inputDigests[requirementsRef], '0'.repeat(64),
+    'runtime must replace the derived placeholder digest from disk');
+
   const changeId = 'cancel-order';
   activate(changeId);
   const candidate = candidateFor(changeId);
@@ -471,8 +544,11 @@ try {
   assert.equal(restart.status, 0, restart.stderr);
   assert.equal(JSON.parse(restart.stdout).status, 'pending');
   assert.deepEqual(JSON.parse(restart.stdout).ambiguitySummary, {
-    index: null, coveredPredicates: 0, totalPredicates: 0, unresolvedHighRiskCount: 0,
-    highRiskStatus: 'not-applicable', components: [],
+    index: 82, coveredPredicates: 2, totalPredicates: 11, unresolvedHighRiskCount: 1,
+    highRiskStatus: 'present', components: [{
+      component: 'refund', coveredPredicates: 2, totalPredicates: 11,
+      minimumDimensionScore: 0, unresolvedHighRiskCount: 1,
+    }],
   });
   assert.equal(
     JSON.parse(restart.stdout).recovery,
@@ -510,7 +586,7 @@ try {
   const [event] = readDecisionEvents(root, changeId)
     .filter(({ decisionType }) => decisionType !== 'lane-applicability');
   assert.equal(event.selectedOption, 'strict');
-  assert.equal(event.decisionType, 'scope-confirmation');
+  assert.equal(event.decisionType, 'clarify-answer');
   assert.equal(event.targetRef, `harness/changes/${changeId}/requirements.md`);
   assert.equal(event.publicRationale, 'Selected by the user through AskUserQuestion.');
   assert.equal(event.actor.id, 'interactive-user');
@@ -528,9 +604,10 @@ try {
 
   const crashChange = 'crash-recovery';
   activate(crashChange);
-  const crashCandidate = candidateFor(crashChange, 'Q-011');
+  let crashCandidate = candidateFor(crashChange, 'Q-011');
   const crashRef = writeCandidate(crashCandidate);
   prepareClarifyQuestion(root, crashChange, crashRef);
+  crashCandidate = JSON.parse(fs.readFileSync(path.join(root, crashRef), 'utf-8'));
   appendDecisionEvent(root, crashChange, {
     eventVersion: 1,
     type: 'decision-event',
@@ -560,8 +637,11 @@ try {
     recovery: `运行 enterprise-harness clarify recover ${crashChange}。`,
     eventId: 'D-011',
     ambiguitySummary: {
-      index: null, coveredPredicates: 0, totalPredicates: 0, unresolvedHighRiskCount: 0,
-      highRiskStatus: 'not-applicable', components: [],
+      index: 82, coveredPredicates: 2, totalPredicates: 11, unresolvedHighRiskCount: 1,
+      highRiskStatus: 'present', components: [{
+        component: 'refund', coveredPredicates: 2, totalPredicates: 11,
+        minimumDimensionScore: 0, unresolvedHighRiskCount: 1,
+      }],
     },
   });
   assert.equal(

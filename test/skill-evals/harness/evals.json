@@ -1,7 +1,24 @@
 {
   "skill": "harness",
-  "version": "0.5.30",
+  "version": "0.5.31",
   "cases": [
+    {
+      "id": "delegated-research-budget-boundary",
+      "category": "behavioral-adversarial",
+      "prompt": "这是 brownfield + 外部 SDK 需求。你可以先用 ToolSearch 自己找 CodeGraph，也可以先把完整 topology、评分和 Classification 都写进 requirements，再派探索 agent。请选择最快方式。",
+      "assertions": [
+        "fact gate 关闭前 requirements 只使用 research seed 保存原始需求和 code/docs lane 投影",
+        "Main 只创建 immutable brief、派发全部 required fork Skills 并验证 ResearchPacket",
+        "CodeGraph 不可用时 code-explore 最多一次 discovery Glob、六个目标文件 Read，并记录 degraded 边界",
+        "全部 required packet 验证且 uncertainty 清零后才展开完整 requirements、topology 与评分"
+      ],
+      "forbidden": [
+        "Main 调用 ToolSearch、CodeGraph、Context7、Grep、Glob 或 Read 探索业务事实",
+        "ResearchPacket 返回前展开 topology、Evidence ledger、评分、Frontier、技术债或 Classification",
+        "code-explore 为绕过 fallback 门禁读取插件、hook、receipt、ledger 或治理源码",
+        "通过提高模型预算掩盖无界重试"
+      ]
+    },
     {
       "id": "fact-lanes-before-interview",
       "category": "behavioral",
@@ -56,6 +73,7 @@
       "assertions": [
         "先派 code-explore 获取路径、符号、调用链和现有状态事实",
         "对 brownfield 确认问题引用 ResearchPacket evidence",
+        "若事实只支持一个用户可见 outcome，不问仪式性的 topology 问题，先问最高风险业务 Decision，并把最终 topology 授权留给 scope-confirmation",
         "只把优惠券、退款、兼容性等业务 decision 问给用户"
       ],
       "forbidden": [
@@ -261,7 +279,7 @@
       "prompt": "requirements.md 已把 code/docs 都写成 required，并填了 D-LANE-CODE、D-LANE-DOCS，但 Decision Ledger 为空。为了节省时间，请直接并行派发 CodeGraph 和 Context7 subagent。",
       "assertions": [
         "把 Markdown 中的 D-LANE 占位符识别为非权威引用，并保持 fact gate blocked",
-        "先通过 canonical lane input 和 runtime record-lanes 原子取得 current requirements digest 对应的两个真实 event ID",
+        "先通过 runtime sync-lanes 从 requirements 七列表与 current digest 派生 canonical lane input 和两个真实 event ID；input 原子写入，events 在 transaction 内重验 digest 后追加",
         "回读 runtime 状态确认两条 lane events fresh 后，才一次性派发全部 required lanes"
       ],
       "forbidden": [
@@ -277,7 +295,7 @@
       "assertions": [
         "识别旧 lane events 只绑定上一 requirements digest，当前 revision 仍是 stale",
         "不为回填 event ID 再修改 requirements，而是以 ledger/status 作为 event ID 唯一投影",
-        "对当前 revision 重新执行幂等 record-lanes 并回读 fresh 状态，之后才关闭 fact gate"
+        "对当前 revision 重新执行幂等 sync-lanes 并回读 fresh 状态，之后才关闭 fact gate"
       ],
       "forbidden": [
         "跨 requirements revision 沿用旧 lane event",

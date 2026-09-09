@@ -1,6 +1,6 @@
 # Enterprise Harness 竞争证据基线
 
-> 截止 2026-09-07。本文是推广主张的唯一证据入口，不是“竞品打分榜”。结论仅适用于 Claude Code 中的企业软件变更治理。
+> 截止 2026-09-09。本文是推广主张的唯一证据入口，不是“竞品打分榜”。结论仅适用于 Claude Code 中的企业软件变更治理。
 
 ## 一句话定位
 
@@ -16,7 +16,7 @@ Enterprise Harness 不是更轻的提示词包，而是把“先取证、再决�
 
 | 系统 | 固定版本 | 它真正擅长的事 | 本比较不否认的优势 |
 |---|---|---|---|
-| Enterprise Harness | 0.5.29；修复候选 0.5.30 | Claude Code 内的机械门禁、证据链、恢复和审查 | 代价更重，目前只支持 Claude Code |
+| Enterprise Harness | 0.5.31 candidate | Claude Code 内的机械门禁、证据链、恢复和审查 | 代价更重，目前只支持 Claude Code |
 | Superpowers | [v6.3.0](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797) | brainstorming、批准门禁、TDD、fresh subagent 和多层 review | 多 harness、成熟方法论、低进入成本 |
 | OpenSpec | [v1.12.0](https://github.com/Fission-AI/OpenSpec/tree/e062b9572be933564ba3899d059377dfa1393e32) | 轻量 proposal/spec/design/tasks、归档和跨仓 Stores | 30+ 工具、流动工作流、易采用 |
 
@@ -42,23 +42,22 @@ Harness 的 L2 依据来自仓库长期合同与对应 smoke/E2E，例如 [Clari
 
 因此，现在可以说“Enterprise Harness 对需要机械拒绝、输入 freshness、身份绑定和离线审计的 Claude Code 变更更合适”。还不能说“总体更好”。
 
-## Token pilot：当前结论是否定的
+## 修复后 pilot：有效性已闭环，token 优势仍未成立
 
-同一 Claude Code 2.1.263、Sonnet、fresh repo、相同请求和单轮 $1 上限下，内部 pilot 每系统只有 1 次，因此只能诊断，不能对外推断总体表现。
+同一 Claude Code 2.1.263、Sonnet、fresh repo、相同请求和每系统 $1.5 总预算下，修正后的内部 pilot 每系统仍只有 1 次，因此只能诊断，不能对外推断总体表现。三个系统都到达一个核心业务问题，且都没有修改产品代码。
 
-| 系统 | Input | Output | Cache read | 耗时 | 成本 | 到达合格业务问题 |
+| 系统 | Input | Output | Cache read | 耗时 | 成本 | 到达问题前的关键差异 |
 |---|---:|---:|---:|---:|---:|---|
-| Superpowers 6.3.0 | 38,900 | 2,710 | 92,928 | 2m07s | $0.185 | 是，但 SDK 事实无来源 |
-| OpenSpec 1.12.0 | 44,187 | 7,083 | 340,736 | 2m00s | $0.341 | 是，但先写完含未决假设的全套制品 |
-| Enterprise Harness 0.5.29 | 132,839 | 16,410 | 1,284,160 | 10m02s | $1.030 | 否，暴露 continuity/dispatch 缺陷 |
-| Harness 0.5.30 candidate | 197,692 | 13,855 | 1,078,144 | 6m51s | $1.124 | 否；恢复边界修复，research worker 未在预算内返回 |
+| Superpowers 6.3.0 | 37,689 | 3,040 | 96,000 | 1m30s | $0.187 | 代码探索后提问；关键结论仅在聊天中，无 durable recovery evidence |
+| OpenSpec 1.12.0 | 30,059 | 5,152 | 318,912 | 3m20s | $0.263 | 生成完整 change 后提问；回答前已持久化 6 项关键业务假设 |
+| Enterprise Harness 0.5.31 candidate | 125,314 | 24,533 | 1,493,760 | 10m30s | $1.177 | 双 lane、gap、机械评分与 digest-bound pending question 后停下 |
 
-原始聚合记录见 [`pilot-2026-09-07.json`](../../benchmarks/competitive-v1/pilot-2026-09-07.json)。它明确标注 `publishableConclusion=false`。
+修正后聚合记录见 [`pilot-2026-09-09.json`](../../benchmarks/competitive-v1/pilot-2026-09-09.json)，修复前失败与 checkpoint detector 污染样本也列在 `excludedRuns`，没有从研发记录中抹掉。旧基线仍见 [`pilot-2026-09-07.json`](../../benchmarks/competitive-v1/pilot-2026-09-07.json)。两者都明确标注 `publishableConclusion=false`。
 
 当前必须公开承认：
 
-1. “绝对 token 更少”没有证据，而且 pilot 方向相反。
-2. 更合理的待证假设是“高风险变更的 `tokens_per_accepted_run` 或 `tokens_per_verified_change` 更低”，因为早期发现错误可能减少返工；现在还没有完成全生命周期样本支持它。
+1. “绝对 token 更少”没有证据；修复后 Harness 已从“高成本且未闭环”变为“高成本但可恢复闭环”，但本 case 的 raw token 与耗时仍最高。
+2. 当前可观察差异是决策完整性与 durable auditability，不是总体胜负。更合理的待证假设仍是高风险变更的 `tokens_per_accepted_run` 或 `tokens_per_verified_change` 更低；现在还没有全生命周期样本支持它。
 3. 静态 Skill 字节数不是 token 结论；缓存 token 也不能从总 token 中偷偷删除。
 
 ## 正式评测应采哪些数据
@@ -82,7 +81,7 @@ Harness 的 L2 依据来自仓库长期合同与对应 smoke/E2E，例如 [Clari
 2. **行为证据**：公开 benchmark 仓库、固定 commit、prompt、runner、raw digest、盲审 rubric 和全部失败。
 3. **业务证据**：试点团队的返工率、PR review 往返、事故逃逸、恢复时间和单个已验收 change 成本。只有这一层才能支撑 ROI。
 
-配图：[`competitive-positioning.png`](assets/competitive-positioning.png) 展示能力定位；[`pilot-token-result.png`](assets/pilot-token-result.png) 展示为什么当前不能声称节省 token。
+推荐配图：[`competitive-positioning.png`](assets/competitive-positioning.png) 展示能力定位；[`clarify-pilot-tradeoff.png`](assets/clarify-pilot-tradeoff.png) 同时展示修复后结果、治理差异与真实成本。旧 [`pilot-token-result.png`](assets/pilot-token-result.png) 只保留为 2026-09-07 修复前历史诊断图，不再用于当前推广。
 
 ## 可直接使用的推广口径
 

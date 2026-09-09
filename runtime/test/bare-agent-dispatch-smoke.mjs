@@ -92,6 +92,18 @@ check('D: non-harness agent types stay untouched', () => {
   }
 });
 
+check('E: built-in Explore cannot bypass the governed code research handoff', () => {
+  const root = makeRoot();
+  try {
+    const result = run(root, 'Explore', 'Explore OrderService codebase');
+    assert.equal(result.status, 2, `expected exit 2, got ${result.status}; stderr=${result.stderr}`);
+    assert.match(result.stderr, /EH-HANDOFF-INPUT-001/u);
+    assert.match(result.stderr, /clarify\.explore-code/u);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 if (failures.length > 0) {
   console.error('bare-agent-dispatch-smoke failed.');
   for (const item of failures) console.error(`  - ${item}`);

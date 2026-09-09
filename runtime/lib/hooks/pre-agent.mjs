@@ -34,7 +34,21 @@ export function preAgent({ root, event }) {
   const invocationText = event.tool_name === 'Skill'
     ? event.tool_input?.args
     : event.tool_input?.prompt;
-  if (event.tool_name === 'Agent' && !isHarnessAgentType(requestedRaw)) return { exitCode: 0 };
+  if (event.tool_name === 'Agent' && !isHarnessAgentType(requestedRaw)) {
+    const repoRoot = hookRepoRoot(root, event);
+    const changeId = hookChangeId(repoRoot, event);
+    if (changeId && /^explore$/iu.test(requestedRaw)) {
+      return {
+        exitCode: 2,
+        stderr: formatDiagnostic(
+          'EH-HANDOFF-INPUT-001',
+          'active Harness change 的代码探索不得使用未绑定的 built-in Explore agent；先创建 clarify.explore-code handoff，再用 enterprise-harness:explore-code Skill 传入 exact HANDOFF_INPUT',
+          { changeId },
+        ),
+      };
+    }
+    return { exitCode: 0 };
+  }
   if (event.tool_name === 'Skill' && !isHarnessForkSkill(invokedSkill)) return { exitCode: 0 };
 
   const repoRoot = hookRepoRoot(root, event);

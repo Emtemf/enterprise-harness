@@ -81,6 +81,9 @@ try {
     requirementsRef,
     requirementsDigest: sha256Artifact(root, requirementsRef),
   });
+  const inspectedJson = run('requirements-digest', changeId, '--json');
+  assert.equal(inspectedJson.status, 0, inspectedJson.stderr);
+  assert.deepEqual(JSON.parse(inspectedJson.stdout), JSON.parse(inspected.stdout));
 
   fs.writeFileSync(requirementsPath, requirementsContent.replace('| code | yes |', '| code | yes / no |'));
   writeJson(inputRef, input());
@@ -88,7 +91,15 @@ try {
   assert.equal(placeholder.status, 2);
   assert.match(placeholder.stderr, /EH-LANE-INPUT-156/u);
   fs.writeFileSync(requirementsPath, requirementsContent);
-  writeJson(inputRef, input());
+
+  fs.rmSync(path.join(root, inputRef), { force: true });
+  const synced = run('sync-lanes', changeId);
+  assert.equal(synced.status, 0, synced.stderr);
+  assert.equal(fs.existsSync(path.join(root, inputRef)), true, 'sync-lanes must persist the canonical derived input');
+  assert.equal(JSON.parse(synced.stdout).requirementsDigest, sha256Artifact(root, requirementsRef));
+  const syncedJson = run('sync-lanes', changeId, '--json');
+  assert.equal(syncedJson.status, 0, syncedJson.stderr);
+  assert.ok(JSON.parse(syncedJson.stdout).events.every(({ duplicate }) => duplicate));
 
   const recorded = run('record-lanes', changeId, inputRef);
   assert.equal(recorded.status, 0, recorded.stderr);
@@ -126,6 +137,14 @@ try {
   const unknown = run('record-lanes', changeId, inputRef);
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /EH-LANE-INPUT-156/u);
+
+  fs.rmSync(path.join(root, inputRef));
+  const outsideInput = path.join(root, 'outside-lane-input.json');
+  fs.writeFileSync(outsideInput, '{}\n');
+  fs.symlinkSync(outsideInput, path.join(root, inputRef));
+  const symlinked = run('sync-lanes', changeId);
+  assert.equal(symlinked.status, 2);
+  assert.match(symlinked.stderr, /EH-PATH-001/u);
 
   console.log(`PASS clarify-lane-cli ${mode}`);
 } finally {

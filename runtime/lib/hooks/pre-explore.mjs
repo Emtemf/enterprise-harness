@@ -4,7 +4,7 @@ import { loadHandoffV2 } from '../../core/handoff-v2.mjs';
 import { hasChangeTracking } from '../checks.mjs';
 import {
   activeHarnessSkillAgent,
-  appendAgentEvent,
+  claimAgentEventBudget,
   gitCommonDir,
   normalizeAgentType,
   readAgentEvents,
@@ -123,9 +123,11 @@ export function preExplore({ root, event }) {
   // code-explore 可先查一次 status 再直接 fallback 到 Grep/Read，绕过 CodeGraph-first。
   const codegraphTool = (toolName === 'Bash' && /(?:^|[;&|]\s*|\$\(\s*)codegraph\s+(?:explore|search|callers|callees|impact|node|files)\b/u.test(bash))
     || CODEGRAPH_EXPLORATION_MCP.test(toolName);
+  const context7Capability = toolName.match(/context7__(resolve-library-id|query-docs)$/u)?.[1] || null;
+  const context7Tool = Boolean(context7Capability);
   // Bash codegraph 与 MCP CodeGraph 都是一次必须落账的 attempt。
   const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
-  if (!codegraphTool && !fallbackTool) return { exitCode: 0 };
+  if (!codegraphTool && !context7Tool && !fallbackTool) return { exitCode: 0 };
   if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) return { exitCode: 0 };
   const targets = extractExplorationTargets(eventRoot, event);
   // CodeGraph 查询通常带的是符号而非文件路径，不能因其 token 不在受治理目录就豁免；
@@ -133,13 +135,41 @@ export function preExplore({ root, event }) {
   // 其他工具没有可解析目标且不属于全仓 Grep/Glob 时，才可按所有目标豁免。
   const unbounded = hasUnboundedExplorationScope(eventRoot, event);
   const active = loadHookChange(root, event);
+  const agentId = String(event.agent_id || '').trim();
+  const codeExploreBinding = active.ok && agentId
+    ? startedHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:code-explore')
+    : null;
+  const docResearchBinding = active.ok && agentId
+    ? startedHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:doc-research')
+    : null;
   if (active.ok) {
     const implementerDecision = implementerReadDecision(eventRoot, event, active, targets, unbounded);
     if (implementerDecision) return implementerDecision;
     const reviewerDecision = reviewerReadDecision(eventRoot, event, active, targets, unbounded);
     if (reviewerDecision) return reviewerDecision;
   }
-  if (!codegraphTool && !unbounded && targets.every((target) => isExplorationTargetExempt(eventRoot, target))) {
+  if (context7Tool) {
+    if (!active.ok || !docResearchBinding) {
+      return {
+        exitCode: 2,
+        stderr: 'BLOCK: Context7 事实研究只能由 active enterprise-harness:doc-research subagent 执行。',
+      };
+    }
+    const limit = context7Capability === 'resolve-library-id' ? 1 : 2;
+    const claim = claimAgentEventBudget(root, active.changeId, {
+      kind: 'context7-use', sessionId: event.session_id, toolUseId: event.tool_use_id, agentId,
+      observedAgentType: normalizeAgentType(docResearchBinding.observedAgentType),
+      capability: context7Capability, toolName: context7Capability,
+      commandDigest: sha256(JSON.stringify({ toolName, input })), cwd: event.cwd || root,
+    }, { kind: 'context7-use', agentId, toolName: context7Capability, limit });
+    return claim.claimed ? { exitCode: 0 } : {
+      exitCode: 2,
+      stderr: `BLOCK: doc-research Context7 ${context7Capability} budget 已用尽（上限 ${limit}）；停止扩大查询，基于现有证据返回 ResearchPacket uncertainty/blocker。`,
+    };
+  }
+  const boundedWorkerDiscovery = Boolean(codeExploreBinding) && ['Glob', 'Grep'].includes(toolName);
+  if (!codegraphTool && !boundedWorkerDiscovery && !unbounded
+      && targets.every((target) => isExplorationTargetExempt(eventRoot, target))) {
     return { exitCode: 0 };
   }
 
@@ -149,12 +179,11 @@ export function preExplore({ root, event }) {
       stderr: 'BLOCK: 业务代码探索需要 active change，并且必须在 enterprise-harness:code-explore subagent 中执行。',
     };
   }
-  const agentId = String(event.agent_id || '').trim();
   // The gate runs while the subagent is still executing, so it can only rely on
   // evidence that exists mid-flight. `dispatch-binding` is written by
   // PostToolUse:Agent — after the subagent exits — so requiring it here made a
   // code-explore subagent unable to pass its own gate.
-  const binding = agentId && startedHarnessAgent(root, active.changeId, agentId, 'enterprise-harness:code-explore');
+  const binding = codeExploreBinding;
   if (!binding) {
     return {
       exitCode: 2,
@@ -162,17 +191,23 @@ export function preExplore({ root, event }) {
     };
   }
   if (codegraphTool) {
-    appendAgentEvent(root, active.changeId, {
+    const claim = claimAgentEventBudget(root, active.changeId, {
       kind: 'codegraph-attempt',
       sessionId: event.session_id,
       agentId,
       observedAgentType: normalizeAgentType(binding.observedAgentType),
       commandDigest: sha256(JSON.stringify({ toolName, input })),
       cwd: event.cwd || root,
+    }, {
+      kind: 'codegraph-attempt', agentId, limit: 1,
     });
-    return { exitCode: 0 };
+    return claim.claimed ? { exitCode: 0 } : {
+      exitCode: 2,
+      stderr: 'BLOCK: code-explore CodeGraph 查询预算已用尽（上限 1）；停止重复查询并按已有证据或 bounded fallback 返回 ResearchPacket。',
+    };
   }
-  const attempted = readAgentEvents(root, active.changeId).some((item) => (
+  const agentEvents = readAgentEvents(root, active.changeId);
+  const attempted = agentEvents.some((item) => (
     item.kind === 'codegraph-attempt' && item.agentId === agentId
   ));
   if (!attempted) {
@@ -180,6 +215,31 @@ export function preExplore({ root, event }) {
       exitCode: 2,
       stderr: 'BLOCK: code-explore fallback 前必须由同一 agent_id 产生 CodeGraph attempt 证据。',
     };
+  }
+  const fallbackLimits = Object.freeze({ Glob: 2, Grep: 1, Read: 6 });
+  const fallbackLimit = fallbackLimits[toolName];
+  if (fallbackLimit) {
+    const claim = claimAgentEventBudget(root, active.changeId, {
+      kind: 'codegraph-fallback-use',
+      sessionId: event.session_id,
+      toolUseId: event.tool_use_id,
+      agentId,
+      observedAgentType: normalizeAgentType(binding.observedAgentType),
+      toolName,
+      commandDigest: sha256(JSON.stringify({ toolName, input })),
+      cwd: event.cwd || root,
+    }, {
+      kind: 'codegraph-fallback-use',
+      agentId,
+      toolName,
+      limit: fallbackLimit,
+    });
+    if (!claim.claimed) {
+      return {
+        exitCode: 2,
+        stderr: `BLOCK: code-explore ${toolName} fallback budget 已用尽（上限 ${fallbackLimit}）；停止扩大探索，基于现有证据返回 ResearchPacket uncertainty/blocker。`,
+      };
+    }
   }
   return { exitCode: 0 };
 }

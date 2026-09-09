@@ -100,12 +100,19 @@ export function classifyGovernedBash(root, command, cwd = root) {
   // Claude Code commonly appends a terminal `2>&1` when it wants one combined
   // diagnostic stream.  That operator cannot write a file, but the general
   // tokenizer intentionally rejects every redirection operator.  Recognize the
-  // one harmless form only for a declared Skill supporting script; all other
+  // one harmless form only after the command itself passes the normal
+  // allowlist. This keeps canonical runtime commands and read-only diagnostics
+  // usable when Claude Code requests a combined diagnostic stream; all other
   // redirects, pipelines and compound commands remain denied below.
   if (input.endsWith(' 2>&1')) {
-    const skillTokens = tokenizeGovernedBash(input.slice(0, -5));
-    const skillScript = skillTokens && skillScriptCommandKind(root, cwd, skillTokens);
-    if (skillScript) return { allowed: true, ...skillScript };
+    const redirectedTokens = tokenizeGovernedBash(input.slice(0, -5));
+    if (redirectedTokens) {
+      const runtime = runtimeCommandKind(root, cwd, redirectedTokens);
+      if (runtime?.kind === 'runtime') return { allowed: true, ...runtime };
+      const skillScript = skillScriptCommandKind(root, cwd, redirectedTokens);
+      if (skillScript) return { allowed: true, ...skillScript };
+      if (isReadOnlyDiagnostic(redirectedTokens)) return { allowed: true, kind: 'read-only' };
+    }
   }
   const tokens = tokenizeGovernedBash(input);
   if (!tokens) return { allowed: false, kind: 'denied' };

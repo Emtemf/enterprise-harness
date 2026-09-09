@@ -5,6 +5,7 @@ import { appendDecisionEvent, readDecisionEvents } from './decision-ledger.mjs';
 import { statePathFor, validateV6State } from './change-state.mjs';
 import { activeChangeId, gitCommonDir } from '../lib/agent-evidence.mjs';
 import { assertClarifyQuestionFactGate } from '../lib/clarify-question-gate.mjs';
+import { analyzeClarifyRequirements } from '../lib/clarify-readiness.mjs';
 import {
   assertNoSymlinkComponents,
   assertSafeId,
@@ -15,6 +16,7 @@ import {
 import { atomicWriteJson, withFileLock } from '../lib/state-store.mjs';
 
 const DIGEST = /^[a-f0-9]{64}$/u;
+const PLACEHOLDER_DIGEST = /^0{64}$/u;
 const DIMENSIONS = new Set([
   'Goal', 'Scope', 'Constraints', 'Acceptance', 'Context', 'TechnicalDebt', 'ProjectContract',
 ]);
@@ -122,6 +124,9 @@ export function validateQuestionCandidate(candidate) {
   }
   if (!DIMENSIONS.has(candidate.dimension)) problems.push('dimension is invalid');
   if (!INTERACTIVE_DECISION_TYPES.has(candidate.decisionType)) problems.push('decisionType is invalid for an interactive question');
+  if (candidate.decisionType === 'scope-confirmation' && candidate.dimension !== 'Scope') {
+    problems.push('scope-confirmation is only valid for the Scope dimension');
+  }
   const targetPath = artifactPathFromReference(candidate.targetRef);
   if (targetPath === null) problems.push('targetRef must be a safe artifact reference');
   for (const field of ['decisionNeeded', 'whyUserOnly', 'header', 'question', 'recommendationReason']) {
@@ -234,6 +239,114 @@ function loadCandidate(root, expectedChangeId, candidateRef) {
   assertEvidenceReferencesContained(root, candidate);
   assertFreshInputs(root, candidate);
   return { candidate, candidateDigest: sha256Bytes(bytes) };
+}
+
+function canonicalizeCandidateBindings(root, changeId, candidateRef, research) {
+  if (!isSafeRelativePath(candidateRef)) throw pathFailure(new Error('candidateRef must be a safe relative path'));
+  const target = resolveRepoTarget(root, candidateRef, 'candidateRef');
+  let candidate;
+  try { candidate = JSON.parse(fs.readFileSync(target, 'utf-8')); } catch (error) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', `candidate has invalid JSON: ${error.message}`);
+  }
+  if (!isObject(candidate) || candidate.changeId !== changeId || !isSafeId(candidate.questionId)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', 'candidate must bind the active change and a safe questionId');
+  }
+  const canonicalRef = questionCandidatePath(changeId, candidate.questionId);
+  if (path.posix.dirname(candidateRef) !== path.posix.dirname(canonicalRef)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', `candidateRef must stay within ${path.posix.dirname(canonicalRef)}`);
+  }
+  const targetPath = artifactPathFromReference(candidate.targetRef);
+  const trustedResearchRefs = new Set(research.refs || []);
+  for (const ref of candidate.evidenceRefs || []) {
+    const artifactPath = artifactPathFromReference(ref);
+    if (artifactPath && !Object.hasOwn(candidate.inputDigests || {}, artifactPath)
+        && !trustedResearchRefs.has(artifactPath)) {
+      throw questionError('EH-QUESTION-CANDIDATE-106', `evidenceRefs requires inputDigests.${artifactPath}`);
+    }
+  }
+  const refs = [...new Set([...(candidate.evidenceRefs || []), ...(research.refs || []), targetPath].filter(Boolean))];
+  if (refs.length === 0 || refs.some((ref) => artifactPathFromReference(ref) === null)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', 'candidate evidenceRefs and targetRef must be safe artifact references');
+  }
+  candidate.evidenceRefs = refs;
+  candidate.inputDigests = Object.fromEntries(refs.map((ref) => {
+    const artifactPath = artifactPathFromReference(ref);
+    const artifact = resolveRepoTarget(root, artifactPath, 'candidate derived input');
+    if (!fs.existsSync(artifact) || !fs.statSync(artifact).isFile()) {
+      throw questionError('EH-QUESTION-STALE-107', `candidate input is missing: ${artifactPath}`);
+    }
+    return [artifactPath, sha256Bytes(fs.readFileSync(artifact))];
+  }));
+  const canonicalTarget = resolveRepoTarget(root, canonicalRef, 'canonical candidateRef');
+  if (candidateRef !== canonicalRef && fs.existsSync(canonicalTarget)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', `canonical candidate already exists: ${canonicalRef}`);
+  }
+  atomicWriteJson(canonicalTarget, candidate);
+  if (candidateRef !== canonicalRef) fs.rmSync(target);
+  return canonicalRef;
+}
+
+function assertCandidateEnvelope(root, changeId, candidateRef, research) {
+  if (!isSafeRelativePath(candidateRef)) throw pathFailure(new Error('candidateRef must be a safe relative path'));
+  const target = resolveRepoTarget(root, candidateRef, 'candidateRef');
+  let candidate;
+  try { candidate = JSON.parse(fs.readFileSync(target, 'utf-8')); } catch (error) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', `candidate has invalid JSON: ${error.message}`);
+  }
+  if (!isObject(candidate) || candidate.changeId !== changeId || !isSafeId(candidate.questionId)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', 'candidate must bind the active change and a safe questionId');
+  }
+  const canonicalRef = questionCandidatePath(changeId, candidate.questionId);
+  if (path.posix.dirname(candidateRef) !== path.posix.dirname(canonicalRef)) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', `candidateRef must stay within ${path.posix.dirname(canonicalRef)}`);
+  }
+  const derivedRefs = new Set([...(research?.refs || []), artifactPathFromReference(candidate.targetRef)].filter(Boolean));
+  const declaredInputs = Object.entries(isObject(candidate.inputDigests) ? candidate.inputDigests : {});
+  const resolvedInputs = new Map();
+  for (const [ref, digest] of declaredInputs) {
+    if (!isSafeRelativePath(ref) || !DIGEST.test(String(digest || ''))) {
+      throw questionError('EH-QUESTION-CANDIDATE-106', `candidate input digest is invalid: ${ref}`);
+    }
+    resolvedInputs.set(ref, resolveRepoTarget(root, ref, 'candidate declared input'));
+  }
+  for (const [ref, digest] of declaredInputs) {
+    const artifact = resolvedInputs.get(ref);
+    const placeholder = PLACEHOLDER_DIGEST.test(digest);
+    const mustMatch = research ? (!placeholder || !derivedRefs.has(ref)) : !placeholder;
+    if ((mustMatch && !fs.existsSync(artifact))
+        || (mustMatch && sha256Bytes(fs.readFileSync(artifact)) !== digest)) {
+      throw questionError('EH-QUESTION-STALE-107', `candidate input digest is stale: ${ref}`);
+    }
+  }
+}
+
+function assertQuestionSynthesis(root, changeId, candidate, research) {
+  if (candidate.decisionType !== 'clarify-answer') return;
+  const requirementsRef = `harness/changes/${changeId}/requirements.md`;
+  const requirementsPath = resolveRepoTarget(root, requirementsRef, 'requirements');
+  const analysis = analyzeClarifyRequirements(fs.readFileSync(requirementsPath, 'utf-8'), research);
+  const synthesis = analysis.questionSynthesis;
+  const score = synthesis.scoreGrid.get(`${candidate.componentId}:${candidate.dimension}`)?.score;
+  const frontier = synthesis.frontiers.find((entry) => (
+    entry.component === candidate.componentId
+    && entry.dimension === candidate.dimension
+    && entry.currentScore === score
+    && entry.risk === 'high'
+    && entry.nextAction === 'ask'
+  ));
+  if (!synthesis.ready || !synthesis.activeComponents.includes(candidate.componentId) || !frontier) {
+    const details = [...synthesis.problems];
+    if (!synthesis.activeComponents.includes(candidate.componentId)) {
+      details.push(`candidate component ${candidate.componentId} is not a grounded active component`);
+    }
+    if (!frontier) {
+      details.push(`candidate needs frontier ${candidate.componentId}:${candidate.dimension}:${String(score)} with Risk=high and Next action=ask`);
+    }
+    throw questionError(
+      'EH-QUESTION-SYNTHESIS-116',
+      `requirements synthesis is invalid: ${[...new Set(details)].slice(0, 8).join('; ')}`,
+    );
+  }
 }
 
 function assertActiveClarifyChange(root, changeId) {
@@ -429,8 +542,18 @@ export function pendingQuestionPath(root, changeId) {
 export function prepareClarifyQuestion(root, changeId, candidateRef) {
   assertQuestionSafeId(changeId, 'changeId');
   assertActiveClarifyChange(root, changeId);
-  const loaded = loadCandidate(root, changeId, candidateRef);
-  assertClarifyQuestionFactGate(root, changeId);
+  assertCandidateEnvelope(root, changeId, candidateRef, null);
+  const research = assertClarifyQuestionFactGate(root, changeId);
+  assertCandidateEnvelope(root, changeId, candidateRef, research);
+  const candidatePath = resolveRepoTarget(root, candidateRef, 'candidateRef');
+  const candidate = JSON.parse(fs.readFileSync(candidatePath, 'utf-8'));
+  const candidateProblems = validateQuestionCandidate(candidate);
+  if (candidateProblems.length > 0) {
+    throw questionError('EH-QUESTION-CANDIDATE-106', candidateProblems.join('; '));
+  }
+  assertQuestionSynthesis(root, changeId, candidate, research);
+  const canonicalRef = canonicalizeCandidateBindings(root, changeId, candidateRef, research);
+  const loaded = loadCandidate(root, changeId, canonicalRef);
   const target = ensurePendingParent(root, changeId);
   return withFileLock(target, () => {
     const current = readPending(root, changeId, { required: false });
@@ -438,10 +561,10 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
       throw questionError('EH-QUESTION-PENDING-110', `question ${current.questionId} must be resolved before preparing another`);
     }
     assertActiveClarifyChange(root, changeId);
-    const fresh = loadCandidate(root, changeId, candidateRef);
+    const fresh = loadCandidate(root, changeId, canonicalRef);
     assertClarifyQuestionFactGate(root, changeId);
     if (fresh.candidateDigest !== loaded.candidateDigest) {
-      throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${candidateRef}`);
+      throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${canonicalRef}`);
     }
     const resolvedTarget = readDecisionEvents(root, changeId).find((event) => (
       event.decisionType === fresh.candidate.decisionType
@@ -457,7 +580,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
       pendingVersion: 1,
       changeId,
       questionId: fresh.candidate.questionId,
-      candidateRef,
+      candidateRef: canonicalRef,
       candidateDigest: fresh.candidateDigest,
       status: 'pending',
       preparedAt: new Date().toISOString(),
@@ -475,8 +598,8 @@ export function authorizeClarifyQuestion(root, toolInput) {
   if (pending.status !== 'pending') {
     throw questionError('EH-QUESTION-PENDING-111', `question ${pending.questionId} is not pending`);
   }
-  const candidate = loadPendingCandidate(root, changeId, pending);
   assertClarifyQuestionFactGate(root, changeId);
+  const candidate = loadPendingCandidate(root, changeId, pending);
   assertExactToolInput(candidate, toolInput);
   return Object.freeze({ changeId, questionId: candidate.questionId });
 }

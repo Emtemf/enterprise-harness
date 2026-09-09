@@ -3,7 +3,7 @@
   "sources": [
     {
       "system": "enterprise-harness",
-      "version": "0.5.30",
+      "version": "0.5.31",
       "source": "https://github.com/Emtemf/enterprise-harness"
     },
     {

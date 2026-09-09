@@ -92,7 +92,13 @@ export function appendAgentEvent(root, changeId, event) {
   if (!changeId) return null;
   const target = receiptSpoolPath(root, changeId);
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  const record = {
+  const record = agentEventRecord(root, changeId, event);
+  withFileLock(target, () => appendJsonLineOnce(target, record));
+  return record;
+}
+
+function agentEventRecord(root, changeId, event) {
+  return {
     receiptVersion: 1,
     eventId: event.eventId || `agent_${crypto.randomUUID()}`,
     changeId,
@@ -112,8 +118,26 @@ export function appendAgentEvent(root, changeId, event) {
     issuedAt: event.issuedAt || new Date().toISOString(),
     ...event,
   };
-  withFileLock(target, () => appendJsonLineOnce(target, record));
-  return record;
+}
+
+export function claimAgentEventBudget(root, changeId, event, { kind, agentId, toolName, limit }) {
+  if (!changeId || !Number.isSafeInteger(limit) || limit < 1) return { claimed: false, used: 0 };
+  const target = receiptSpoolPath(root, changeId);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  return withFileLock(target, () => {
+    const events = fs.existsSync(target)
+      ? fs.readFileSync(target, 'utf-8').split('\n').filter(Boolean).flatMap((line) => {
+        try { return [JSON.parse(line)]; } catch { return []; }
+      })
+      : [];
+    const used = events.filter((item) => (
+      item.kind === kind && item.agentId === agentId && item.toolName === toolName
+    )).length;
+    if (used >= limit) return { claimed: false, used };
+    const record = agentEventRecord(root, changeId, event);
+    appendJsonLineOnce(target, record);
+    return { claimed: true, used: used + 1, record };
+  });
 }
 
 export function readAgentEvents(root, changeId) {

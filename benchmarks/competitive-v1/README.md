@@ -2,13 +2,15 @@
 
 本基准比较的不是“谁在所有场景都更好”，而是三个工具在 Claude Code 企业软件变更场景中的可观察行为：
 
-- Enterprise Harness `0.5.30`；
+- Enterprise Harness `0.5.31`；
 - Superpowers `v6.3.0` / `b36e0829c6d0140e93cfef2ca599b1b07d4a7797`；
 - OpenSpec `v1.12.0` / `e062b9572be933564ba3899d059377dfa1393e32`。
 
 ## 公平性规则
 
-1. 使用相同 Claude Code 版本、模型、基础仓库、业务请求、最大轮数和单轮预算。
+1. 使用相同 Claude Code 版本、模型、基础仓库、业务请求、最大轮数和总样本预算。每次 CLI invocation
+   的 agentic turn 上限固定为 60，避免需要 fork worker 的系统仅因 20 次内部 tool step 被迫 resume；该上限
+   对三个系统完全相同，实际消耗仍受总样本美元预算约束并完整计入。
 2. 每个 system/repetition 使用 fresh git repository 和 fresh Claude session；运行顺序必须轮换。
 3. 使用各产品官方入口，不强迫竞争产品模仿 Enterprise Harness 的命令面。
    OpenSpec 使用其 `init` 生成的项目级 Claude Code 配置；另两者使用 `--plugin-dir`。三者都隔离用户和 local settings。

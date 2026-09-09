@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { loadHandoffV2, v2ResultPath } from '../core/handoff-v2.mjs';
 import { readDecisionEvents } from '../core/decision-ledger.mjs';
 import { trustedHandoffAgentBindings } from './agent-evidence.mjs';
@@ -53,6 +54,12 @@ function sameDigestMap(left, right) {
   return JSON.stringify(entries(left)) === JSON.stringify(entries(right));
 }
 
+export function clarifyResearchAuthorityDigest(content) {
+  const rawRequest = between(section(content, '## 目标与验收'), '### 原始需求', '### 澄清后的目标').trim();
+  const factSection = section(content, '## 事实探索门禁').trim();
+  return createHash('sha256').update(JSON.stringify({ rawRequest, factSection })).digest('hex');
+}
+
 export function readClarifyResearchEvidence(root, changeId, requirementsRef, content) {
   const factSection = section(content, '## 事实探索门禁');
   const lanes = tableRows(factSection)
@@ -86,13 +93,18 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
     const selectedOption = requiredValue === 'yes' ? 'required' : 'not-required';
     let requirementsDigest = null;
     try { requirementsDigest = sha256Artifact(root, requirementsRef); } catch { /* reported below */ }
-    const targetRef = `${requirementsRef}#fact-lane-${lane}#sha256=${requirementsDigest || 'missing'}`;
-    const laneEvents = decisionEvents.filter((event) => (
-      event.decisionType === 'lane-applicability' && event.targetRef === targetRef
+    const authorityDigest = clarifyResearchAuthorityDigest(content);
+    const authorityTarget = `${requirementsRef}#fact-lane-${lane}#sha256=${authorityDigest}`;
+    const legacyTarget = `${requirementsRef}#fact-lane-${lane}#sha256=${requirementsDigest || 'missing'}`;
+    const authorityEvents = decisionEvents.filter((event) => (
+      event.decisionType === 'lane-applicability' && event.targetRef === authorityTarget
+    ));
+    const laneEvents = authorityEvents.length > 0 ? authorityEvents : decisionEvents.filter((event) => (
+      event.decisionType === 'lane-applicability' && event.targetRef === legacyTarget
     ));
     try {
       const event = laneEvents.length === 1 ? laneEvents[0] : null;
-      if (!event) throw new Error(`requires exactly one DecisionEvent targeting ${targetRef}`);
+      if (!event) throw new Error(`requires exactly one DecisionEvent targeting ${authorityTarget}`);
       if (event.selectedOption !== selectedOption
         || JSON.stringify(event.options) !== JSON.stringify(['required', 'not-required'])) {
         throw new Error(`DecisionEvent does not match Required=${required}`);
@@ -105,8 +117,8 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
       }
       if (!requirementsDigest
         || !event.evidenceRefs.includes(requirementsRef)
-        || event.inputDigests?.[requirementsRef] !== requirementsDigest) {
-        throw new Error('DecisionEvent must bind the current requirements as canonical applicability evidence');
+        || !/^[a-f0-9]{64}$/u.test(event.inputDigests?.[requirementsRef] || '')) {
+        throw new Error('DecisionEvent must bind the requirements used as canonical applicability evidence');
       }
       for (const evidenceRef of event.evidenceRefs) {
         if (!Object.hasOwn(event.inputDigests || {}, evidenceRef)) {
@@ -114,6 +126,7 @@ export function readClarifyResearchEvidence(root, changeId, requirementsRef, con
         }
       }
       for (const [inputRef, digest] of Object.entries(event.inputDigests || {})) {
+        if (inputRef === requirementsRef) continue;
         const inputPath = resolveWithin(root, inputRef, 'lane applicability evidence');
         assertNoSymlinkComponents(root, inputPath, 'lane applicability evidence');
         if (sha256Artifact(root, inputRef) !== digest) {

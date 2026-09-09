@@ -4,7 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { bindLatestPromptReceipt, promptBindingCovers, readPromptBinding } from '../lib/prompt-receipts.mjs';
+import {
+  bindLatestPromptReceipt,
+  promptBindingCovers,
+  promptClauseLiterals,
+  readPromptBinding,
+} from '../lib/prompt-receipts.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -13,6 +18,11 @@ const hook = path.join(sourceRoot, 'hooks', 'scripts', 'user-prompt-receipt.mjs'
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-harness-prompt-hook-'));
 
 try {
+  assert.deepEqual(
+    promptClauseLiterals('Use Stripe Java 24.0.0. Retry failures?'),
+    ['Use Stripe Java 24.0.0', 'Retry failures'],
+    'semantic clause splitting must preserve dotted version literals',
+  );
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   const event = {
     hook_event_name: 'UserPromptSubmit',

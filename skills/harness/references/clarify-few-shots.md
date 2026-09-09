@@ -18,20 +18,17 @@ restoring every clause from the visible user message, not by scanning receipts, 
 
 **Correct Main sequence**:
 
-1. Finish the current requirements revision. Run exactly
-   `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify requirements-digest <change-id>`; do not hash it with shell
-   utilities or invent a placeholder.
-2. Copy that JSON stdout into the canonical
-   `harness/changes/<change-id>/evidence/clarify/lane-applicability-input.json` from its template.
-   Each lane keeps the complete `requirementsRef` as a file ref; never turn an Evidence-ledger ID into `#E-*`.
-3. Run exactly `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify record-lanes <change-id> <input-ref>`.
-4. Use the JSON stdout and `clarify status <change-id> --json` to confirm both current-digest events are fresh.
-5. Only then create all required research handoffs and issue parallel `Skill` tool calls in one assistant message. Use
+1. Finish the current requirements revision and its exact seven-column code/docs projection.
+2. Run exactly `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify sync-lanes <change-id>`; runtime computes the
+   digest, writes canonical lane input, and appends both events atomically. Do not hash or edit lane input manually.
+3. Treat exit 0 and JSON stdout as the completed current-revision synchronization; do not add status, directory listing,
+   project exploration, or a trial Skill call.
+4. Create all required research handoffs, then issue parallel `Skill` tool calls in one assistant message. Use
    `enterprise-harness:explore-code` and `enterprise-harness:research-docs`; never call `Agent`/`Task` directly. Never hand-write event IDs or append a lane event
    with `clarify record-decision`.
 
 If ResearchPacket metadata changes requirements and the digest becomes stale, keep the old ledger events as history,
-update only the canonical lane input digest, rerun `record-lanes`, and stop before topology or questions until the fresh
+rerun `sync-lanes`, and stop before topology or questions until the fresh
 events are visible. Do not edit requirements merely to display the new event IDs.
 
 **Uncertainty trap**: canonical and validated does not mean conflict-disposed. If either packet has a non-empty
@@ -39,6 +36,9 @@ events are visible. Do not edit requirements merely to display the new event IDs
 with `none`, or claim topology may proceed. Narrow the research or emit the fixed five-line blocker.
 
 ## 1. Brownfield cancellation: facts before refund compatibility
+
+正式 Evidence ledger 与五维评分的紧凑格式由
+[Clarify durable synthesis 小样例](clarify-synthesis-example.md) 唯一说明；本文件不复制第二份。
 
 **Input briefs**
 
@@ -52,12 +52,10 @@ with `none`, or claim topology may proceed. Narrow the research or emit the fixe
 - code packet: `PENDING` is cancellable; paid cancellation calls `RefundGateway.refund`; mobile and batch consumers use the current response; no retry test exists.
 - docs packet: the pinned SDK supports idempotency keys but duplicate semantics differ when no key is supplied; no uncertainty remains.
 
-**Fresh topology prerequisite**: before the business question, canonical candidate `Q-topology` was prepared and its
-schema-valid event was persisted:
-
-```json
-{"eventVersion":1,"type":"decision-event","eventId":"D-topology","changeId":"cancel-order","stage":"clarify","actor":{"type":"user","id":"interactive-user"},"decisionType":"scope-confirmation","targetRef":"harness/changes/cancel-order/requirements.md","questionId":"Q-topology","options":["confirm","adjust","defer"],"recommendedOption":"confirm","selectedOption":"confirm","publicRationale":"Selected by the user through AskUserQuestion.","evidenceRefs":["harness/changes/cancel-order/requirements.md","harness/changes/cancel-order/evidence/handoffs/code-run/result.json","harness/changes/cancel-order/evidence/handoffs/docs-run/result.json"],"inputDigests":{"harness/changes/cancel-order/requirements.md":"0000000000000000000000000000000000000000000000000000000000000000","harness/changes/cancel-order/evidence/handoffs/code-run/result.json":"0000000000000000000000000000000000000000000000000000000000000000","harness/changes/cancel-order/evidence/handoffs/docs-run/result.json":"0000000000000000000000000000000000000000000000000000000000000000"},"recordedAt":"1970-01-01T00:00:00.000Z"}
-```
+**Single-outcome routing**: the raw request names one user-visible outcome, order cancellation; refund calls, status
+values, gateways and SDK details are internal boundaries, not sibling top-level components. Keep the topology provisional
+and `topology confirmed: false`; ask the highest-risk business Decision first. The later final scope-confirmation explicitly
+confirms this single-component boundary, so no topology authorization is silently invented.
 
 **Candidate JSON projection**
 

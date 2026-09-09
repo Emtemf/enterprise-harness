@@ -17,13 +17,23 @@ export function normalizePromptClause(value) {
     .replace(/\s+/gu, ' ').trim().toLocaleLowerCase('en-US');
 }
 
-export function promptClauses(value) {
+export function promptClauseLiterals(value) {
+  return String(value || '').split(/(?:[。；;!?！？\n]+|(?<!\d)\.|\.(?!\d))/u)
+    .map((clause) => clause.normalize('NFKC').replace(/^(?:>\s*)+/u, '').replace(/\s+/gu, ' ').trim())
+    .filter(Boolean);
+}
+
+function legacyPromptClauses(value) {
   return String(value || '').split(/[。；;.!?！？\n]+/u).map(normalizePromptClause).filter(Boolean);
 }
 
-function semanticPromptClauseDigests(value) {
+export function promptClauses(value) {
+  return promptClauseLiterals(value).map(normalizePromptClause).filter(Boolean);
+}
+
+function semanticPromptClauseDigests(value, { legacy = false } = {}) {
   const withoutRoutingPrefix = String(value || '').normalize('NFKC').replace(HARNESS_ROUTING_PREFIX, '');
-  return [...new Set(promptClauses(withoutRoutingPrefix)
+  return [...new Set((legacy ? legacyPromptClauses : promptClauses)(withoutRoutingPrefix)
     .filter((clause) => !HARNESS_ROUTING_CLAUSES.has(clause))
     .map(sha256))];
 }
@@ -112,9 +122,12 @@ export function promptBindingCovers(root, changeId, rawRequest) {
   const binding = readPromptBinding(root, changeId);
   const clauses = semanticPromptClauseDigests(rawRequest);
   if (!binding || clauses.length === 0) return false;
-  const required = new Set(clauses);
   // Compatibility for receipts written before the routing literal was excluded.
   const captured = new Set(binding.clauseDigests);
   for (const clause of HARNESS_ROUTING_CLAUSES) captured.delete(sha256(clause));
-  return required.size === captured.size && [...required].every((digest) => captured.has(digest));
+  const matches = (values) => {
+    const required = new Set(values);
+    return required.size === captured.size && [...required].every((digest) => captured.has(digest));
+  };
+  return matches(clauses) || matches(semanticPromptClauseDigests(rawRequest, { legacy: true }));
 }

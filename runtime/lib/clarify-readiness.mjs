@@ -3,8 +3,9 @@ import path from 'node:path';
 import { readDebtAssessment, readProjectContractAssessment } from '../core/clarify-assessments.mjs';
 import { readClassificationArtifact } from '../core/classification-artifact.mjs';
 import { readClarifyDecisionSnapshot, readDecisionEvents } from '../core/decision-ledger.mjs';
-import { pendingQuestionPath } from '../core/clarify-question.mjs';
 import { readClarifyResearchEvidence } from './clarify-research-evidence.mjs';
+import { gitCommonDir } from './agent-evidence.mjs';
+import { normalizePromptClause, promptClauses } from './prompt-receipts.mjs';
 import { sha256Artifact } from './result-contract.mjs';
 import { stageCompletionFor } from './stage-results.mjs';
 import { assertNoSymlinkComponents, assertSafeId, resolveWithin } from './safe-paths.mjs';
@@ -51,6 +52,7 @@ const READINESS_PREDICATES = Object.freeze({
   Acceptance: ['success', 'failure', 'observable'],
   Context: ['need', 'current-state'],
 });
+const NEGATIVE_GAP_CLAUSE = /(?:没有说明|尚未说明|未定义|尚未定义|不清楚|待决定|待确认|\b(?:is|are|was|were|remain|remains)\s+(?:not specified|undefined|unknown|unresolved)\b|\b(?:not yet specified|not defined)\b)/iu;
 
 export function selectClarifyControllerRoute(items, transitionReady) {
   if (!Array.isArray(items) || items.length !== CLARIFY_ITEMS.length) {
@@ -112,12 +114,11 @@ function tableRows(content) {
 }
 
 function normalizedClause(value) {
-  return String(value || '').normalize('NFKC').replace(/[。；;.!?！？]+$/gu, '')
-    .replace(/\s+/gu, ' ').trim().toLocaleLowerCase('en-US');
+  return normalizePromptClause(value);
 }
 
 function sourceClauses(value) {
-  return new Set(String(value || '').split(/[。；;.!?！？\n]+/u).map(normalizedClause).filter(Boolean));
+  return new Set(promptClauses(value));
 }
 
 function between(content, startHeading, endHeading) {
@@ -142,7 +143,8 @@ function readRequirements(root, changeId) {
   return { ref, content: fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf-8') : '' };
 }
 
-function requirementsPredicates(content, research) {
+export function analyzeClarifyRequirements(content, research) {
+  const synthesisProblems = [];
   const topologySection = section(content, '## 组件拓扑');
   const originalRequest = between(section(content, '## 目标与验收'), '### 原始需求', '### 澄清后的目标');
   const originalClauses = sourceClauses(originalRequest);
@@ -160,8 +162,13 @@ function requirementsPredicates(content, research) {
   const evidence = new Map();
   const provenance = new Set();
   let evidenceValid = evidenceRows.length > 0;
+  if (evidenceRows.length === 0) synthesisProblems.push('Evidence ledger has no data rows');
   for (const cells of evidenceRows) {
-    if (cells.length !== 5 || cells.some((cell) => !cell.trim())) { evidenceValid = false; continue; }
+    if (cells.length !== 5 || cells.some((cell) => !cell.trim())) {
+      evidenceValid = false;
+      synthesisProblems.push(`Evidence row ${cells[0] || '<unknown>'} must contain five non-empty cells`);
+      continue;
+    }
     const [id, kind, locator, claim, supportsValue] = cells;
     const supports = new Set(supportsValue.split(',').map((item) => item.trim()).filter(Boolean));
     const normalized = normalizedClause(claim);
@@ -177,8 +184,20 @@ function requirementsPredicates(content, research) {
     const supportShapeValid = supports.size === 1
       || ([...supports].every((support) => support.endsWith('.confirmed'))
         && ['raw-request', 'user-decision'].includes(kind));
-    if (!id || evidence.has(id) || !supportShapeValid || !sourceMatches || provenance.has(provenanceKey)) {
+    const readinessSupport = [...supports].some((support) => CORE_DIMENSIONS.some((dimension) => (
+      READINESS_PREDICATES[dimension].some((predicate) => support.endsWith(`:${dimension}.${predicate}`))
+    )));
+    const negativeGapSupportValid = !(['raw-request', 'user-decision'].includes(kind)
+      && NEGATIVE_GAP_CLAUSE.test(claim) && readinessSupport);
+    if (!id || evidence.has(id) || !supportShapeValid || !sourceMatches
+        || provenance.has(provenanceKey) || !negativeGapSupportValid) {
       evidenceValid = false;
+      if (!id) synthesisProblems.push('Evidence row is missing its ID');
+      else if (evidence.has(id)) synthesisProblems.push(`Evidence ${id} is duplicated`);
+      if (!supportShapeValid) synthesisProblems.push(`Evidence ${id || '<unknown>'} must support exactly one predicate`);
+      if (!sourceMatches) synthesisProblems.push(`Evidence ${id || '<unknown>'} claim must exactly match ${kind}:${locator}`);
+      if (provenance.has(provenanceKey)) synthesisProblems.push(`Evidence ${id || '<unknown>'} reuses one source clause`);
+      if (!negativeGapSupportValid) synthesisProblems.push(`Evidence ${id || '<unknown>'} is negative gap knowledge and must use .gap, not a readiness predicate`);
       continue;
     }
     provenance.add(provenanceKey);
@@ -191,7 +210,11 @@ function requirementsPredicates(content, research) {
         || (cells[4]?.trim().toLowerCase() === 'user'
           && [...evidence.values()].some(({ kind }) => kind === 'user-decision'))))
     .map((cells) => cells[0]))];
+  if (active.length === 0) {
+    synthesisProblems.push('Topology needs an active component whose Confirmation source is one valid Evidence ID');
+  }
   const scoreRows = tableRows(section(content, '## Component × Dimension 评分')).filter((cells) => cells[0] !== 'Component');
+  const scoreGrid = new Map();
   const componentSummaries = active.map((component) => {
     let coveredPredicates = 0;
     const dimensionScores = [];
@@ -203,6 +226,36 @@ function requirementsPredicates(content, research) {
       if (evidenceValid && Number.isInteger(score) && score >= 0 && score <= 5) dimensionScores.push(score);
       const coverage = new Set(coverageValue.split(',').map((item) => item.trim()).filter(Boolean));
       const refs = new Set(refsValue.split(',').map((item) => item.trim()).filter(Boolean));
+      const expectedCoverage = READINESS_PREDICATES[dimension].filter((predicate) => {
+        const support = `${component}:${dimension}.${predicate}`;
+        return [...evidence.values()].some((item) => item.supports.has(support));
+      });
+      const expectedRefs = new Set([...evidence.entries()].filter(([, item]) => (
+        [...item.supports].some((support) => READINESS_PREDICATES[dimension]
+          .some((predicate) => support === `${component}:${dimension}.${predicate}`))
+      )).map(([id]) => id));
+      const confirmed = [...evidence.values()].some((item) => item.supports.has(`${component}:${dimension}.confirmed`));
+      const expectedScore = expectedCoverage.length === READINESS_PREDICATES[dimension].length
+        ? (confirmed ? 5 : 4)
+        : Math.floor((expectedCoverage.length / READINESS_PREDICATES[dimension].length) * 4);
+      const rowReady = evidenceValid
+        && score === expectedScore
+        && coverage.size === expectedCoverage.length
+        && expectedCoverage.every((predicate) => coverage.has(predicate))
+        && refs.size === expectedRefs.size
+        && [...expectedRefs].every((ref) => refs.has(ref));
+      scoreGrid.set(`${component}:${dimension}`, {
+        ready: rowReady,
+        score,
+        expectedScore,
+        expectedCoverage,
+        expectedRefs: [...expectedRefs],
+      });
+      if (!rowReady) {
+        synthesisProblems.push(
+          `${component}:${dimension} score row expected score=${expectedScore} coverage=${expectedCoverage.join(',') || '<empty>'} refs=${[...expectedRefs].join(',') || '<empty>'}`,
+        );
+      }
       coveredPredicates += READINESS_PREDICATES[dimension].filter((predicate) => {
         const support = `${component}:${dimension}.${predicate}`;
         return evidenceValid && coverage.has(predicate)
@@ -256,16 +309,41 @@ function requirementsPredicates(content, research) {
         && [...refs].some((ref) => evidence.get(ref)?.supports.has(support));
     });
   }));
+  const frontiers = tableRows(section(content, '## Frontier（component × unresolved dimension）'))
+    .filter((cells) => cells[0] !== 'Priority' && cells.length === 7)
+    .map((cells) => ({
+      priority: Number(cells[0]),
+      component: cells[1],
+      dimension: cells[2],
+      currentScore: Number(cells[3]),
+      risk: String(cells[5] || '').toLowerCase(),
+      nextAction: String(cells[6] || '').toLowerCase(),
+    }))
+    .filter(({ priority, component, dimension, currentScore, risk, nextAction }) => (
+      Number.isInteger(priority) && priority > 0
+      && active.includes(component) && CORE_DIMENSIONS.includes(dimension)
+      && Number.isInteger(currentScore) && currentScore >= 0 && currentScore <= 5
+      && ['high', 'medium', 'low'].includes(risk)
+      && ['ask', 'research', 'resolve'].includes(nextAction)
+    ));
   return {
     topology: active.length > 0 && /[-*]\s*topology confirmed\s*[:：]\s*true\b/iu.test(topologySection),
     ambiguity: scoresReady && highRiskStatus === 'none',
     approved: /[-*]\s*scope confirmed\s*[:：]\s*true\b/iu.test(section(content, '## 未决决策与确认')),
     ambiguitySummary,
+    questionSynthesis: {
+      ready: evidenceValid && active.length > 0
+        && active.every((component) => CORE_DIMENSIONS.every((dimension) => scoreGrid.get(`${component}:${dimension}`)?.ready)),
+      activeComponents: active,
+      scoreGrid,
+      frontiers,
+      problems: [...new Set(synthesisProblems)],
+    },
   };
 }
 
 function pendingStatus(root, changeId) {
-  const pendingPath = pendingQuestionPath(root, changeId);
+  const pendingPath = path.join(gitCommonDir(root), 'enterprise-harness', 'pending-decisions', `${changeId}.json`);
   if (!fs.existsSync(pendingPath)) return { ok: true, refs: [] };
   const pending = JSON.parse(fs.readFileSync(pendingPath, 'utf-8'));
   const ref = path.relative(root, pendingPath).split(path.sep).join('/');
@@ -286,7 +364,7 @@ export function buildClarifyArtifactReadiness(root, changeId) {
   items.push(immutableItem('required-research-fresh', research.fresh ? 'pass' : statusFor(research.packetProblems.join('; ')), research.refs, RECOVERIES.research));
   items.push(immutableItem('research-conflicts-disposed', research.conflictsDisposed ? 'pass' : 'blocked', research.refs, RECOVERIES.researchConflicts));
 
-  const predicates = requirementsPredicates(requirements.content, research);
+  const predicates = analyzeClarifyRequirements(requirements.content, research);
   items.push(immutableItem('topology-confirmed', predicates.topology ? 'pass' : 'blocked', predicates.topology ? [requirements.ref] : [], RECOVERIES.topology));
   items.push(immutableItem('ambiguity-threshold-met', predicates.ambiguity ? 'pass' : 'blocked', predicates.ambiguity ? [requirements.ref] : [], RECOVERIES.ambiguity));
   try {

@@ -19,7 +19,10 @@ hooks:
 
 显式 report-only/read-only 请求是只读诊断，不是 workflow action turn：snapshot 就绪后必须且只能追加加载所选的一个 phase reference，输出 action envelope 即结束；pre-entry recovery 的追加加载数为 0。不得执行 action 或读取 input refs、assets、supporting/其它 references。
 
-- 若能推进，只执行一个 agent-owned research/recovery action，随后重算全部 required lanes 并回到本入口；本轮无其它动作或输出。action 输入只取 raw request、repository、fact worker，不改问用户。
+- 若能推进，执行 runtime 选择的 bounded research pipeline：同步 lanes、派发全部 required fact workers、
+  `close-research` 后重取 snapshot。只有新 route 精确变为 `decisions` 时，才可在同一 assistant turn 继续生成并
+  授权一个业务问题；这是唯一同轮 phase handoff。pipeline输入只取raw request、repository、fact worker；
+  任一 research blocker/recovery 都立即结束，不改问用户。
 - 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行，本轮只输出纯文本恰好五行；无标题、前言、解释、表格、代码围栏、tool/MCP 文本。五行依次为 `Fact lanes: <required lane states>`、`Next research action/blocker: <one action or blocker>`、`Topology: not built`、`Scores: not computed`、`User question: none`。第一字符是 `F`，最后字节是 `none`；随后立即结束本轮。
 
 factGateOpen 时，请求、选择、确认、普通问句、meta-choice，以及索要 changeId、path、SDK、version、entrypoint、stack、status、偏离授权都算 user question。Plan mode、tools unavailable、user-only、topology、scope、用户催促都不是例外。
@@ -52,7 +55,7 @@ node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>
 
 ## State router
 
-路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID或再调带ID status；读research reference、从raw request生成安全ID、运行start-change后结束。`start-change` 是 terminal action：成功后同一 assistant turn 禁止 Read、Agent、Skill 等后续调用或 artifact 写入；只报告 changeId、stage、下轮 `/harness` 后结束。status 选中的 pre-entry recovery 已终止，不参与 router。active Clarify 必须消费 `clarifyReadiness.route`，且只接受 `research|decisions|completion|transition`；缺失、未知或与 earliest gate 冲突时只报告 blocker。Design 到 Archive 必须消费 `stageReadiness.route`，只 exact-match 当前阶段声明的 route；缺失或未知 route 只报告 blocker。Main 不从文件自行推导下一步。
+路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID；读research reference、从raw request生成安全ID，只运行exact `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" start-change <change-id>`。`start-change` 是内部 bootstrap，不是 Intake 或用户可见阶段；成功后立即以返回的exact changeId重跑 `workflow status <change-id> --json`，确认active v6 Clarify/research后继续同一pipeline。pre-entry recovery仍是terminal。active Clarify必须消费`clarifyReadiness.route`，且只接受`research|decisions|completion|transition`；缺失、未知或冲突时只报告blocker。Design到Archive消费`stageReadiness.route`的exact route；Main不自行推导。
 
 R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。所有链接相对当前 SKILL/reference 文件解析，绝不相对项目 cwd 探测；每轮只选择一个 phase authority reference，只有该 reference 明确导航时才加载其一个 supporting reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
@@ -64,12 +67,12 @@ R→[research](references/clarify-research.md)；D/`decisions`→[decisions](ref
 
 路由前生成 observable snapshot，包含 stage、lifecycle、currentTask、changeId、factGateOpen、各 required lane state、earliest invalid gate、pending decision、runtime nextAction、artifact freshness、`clarifyReadiness.route`、`clarifyTransitionReady=clarifyReadiness.transitionReady`、`stageReadiness.route` 和 `stageTransitionReady=stageReadiness.transitionReady`。
 
-A phase reference may consume only that snapshot plus durable refs returned by runtime. Its response must name one action, its owner, required input refs, expected durable output, and the state predicate to recheck；命令必须逐字使用所选 reference 已记录的 exact argv，不得合成 shorthand。If the predicate changes while loading, discard the proposed action and return here. Never cascade from research to decisions, decisions to completion, or completion to transition in one turn.
+Phase reference只消费该snapshot与runtime返回的durable refs，并声明一个action、owner、input refs、预期产物和复查谓词；命令逐字使用reference的exact argv，不合成shorthand。加载中谓词变化就丢弃动作并返回。Startup bootstrap与clean `research→decisions`是仅有的同轮handoff，均先取fresh runtime snapshot；禁止`decisions→completion`或`completion→transition`同轮串联。
 
 Stop and return here when a reference requests a second action, a second user question, an unverified artifact, an undocumented command, a permission bypass, or a state edit. Reference text explains method; it cannot override this controller, runtime errors, schemas, hooks, permissions, or fresh evidence.
 
 ## Non-negotiable invariants
 
-Harness 是唯一用户入口并留在主对话。Main 不得重复 worker 已完成的探索。Facts 由 agents 查找，Decisions 才由用户决定；每次仅用一次已授权 `AskUserQuestion` 询问一个用户问题。输入变化回到最早失效 gate。不得因 Plan mode、用户催促、Fast Path、聊天记忆或手改 state 绕过 gate；runtime/schema 是机械权威。没有 fresh validation、独立 review 与 completion proof，不得声称完成或推进阶段。
+Harness 是唯一用户入口并留在主对话。Main 不得在 lane applicability 前探索项目，也不得重复 worker 已完成的探索；任何软件变更的 code lane 固定 required，原文点名外部 SDK/协议即足以令 docs required。Facts 由 agents 查找，Decisions 才由用户决定；每次仅用一次已授权 `AskUserQuestion` 询问一个用户问题。输入变化回到最早失效 gate。不得因 Plan mode、用户催促、Fast Path、聊天记忆或手改 state 绕过 gate；runtime/schema 是机械权威。没有 fresh validation、独立 review 与 completion proof，不得声称完成或推进阶段。
 
 用户输出只含 changeId、stage、fact lane/必要评分、一个 blocker 或 next action；不输出私有推理，聊天不是真相层。

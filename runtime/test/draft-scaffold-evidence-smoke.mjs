@@ -8,15 +8,22 @@ import { validateChangeEvidence } from '../lib/checks.mjs';
 const sourceRoot = process.cwd();
 const changeId = 'draft-scaffold-probe';
 
-function scaffolded() {
+function scaffolded({ jsonCompatibility = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-draft-scaffold-'));
   spawnSync('git', ['init', '-q'], { cwd: root, shell: false });
-  const result = spawnSync('node', [
-    path.join(sourceRoot, 'runtime/cli.mjs'),
-    'start-change', changeId, 'smoke', 'L1', 'draft scaffold probe',
-  ], { cwd: root, encoding: 'utf-8', shell: false });
+  const argv = jsonCompatibility
+    ? [path.join(sourceRoot, 'runtime/cli.mjs'), 'start-change', changeId, '--json']
+    : [path.join(sourceRoot, 'runtime/cli.mjs'), 'start-change', changeId, 'smoke', 'L1', 'draft scaffold probe'];
+  const result = spawnSync('node', argv, { cwd: root, encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, `start-change must succeed; stderr=${result.stderr}`);
   return root;
+}
+
+{
+  const root = scaffolded({ jsonCompatibility: true });
+  const state = JSON.parse(fs.readFileSync(statePath(root), 'utf-8'));
+  assert.equal(state.owner, 'harness-governance', 'terminal --json compatibility flag must not become the owner positional');
+  fs.rmSync(root, { recursive: true, force: true });
 }
 
 function statePath(root) {

@@ -41,7 +41,7 @@ assert.deepEqual(Object.keys(laneTemplate.lanes).sort(), ['code', 'docs']);
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 for (const [body, tokens] of [
-  [research, ['../assets/research-brief.md.tmpl', 'lane-applicability-input.json', 'clarify requirements-digest', 'clarify record-lanes', 'handoff create', 'handoff validate', 'expired lease']],
+  [research, ['../assets/research-brief.md.tmpl', 'clarify sync-lanes', 'clarify close-research', 'handoff create', 'expired lease']],
   [decisions, ['../assets/question-candidate.json.tmpl', 'clarify prepare-question']],
   [completion, [
     '../assets/decision-event.json.tmpl',
@@ -58,13 +58,17 @@ for (const [body, tokens] of [
   ]],
 ]) for (const token of tokens) assert.match(body, new RegExp(escapeRegExp(token), 'u'),
   `Phase authority must reference ${token}`);
-for (const token of ['逐句完整引用当前 UserPromptSubmit', 'EH-LANE-CONTINUITY-158', '不得查找 prompt receipt 原文', '不得追加 `#E-*`']) {
+for (const token of ['逐句完整引用当前 UserPromptSubmit', 'EH-LANE-CONTINUITY-158', '不得查找 prompt receipt 原文']) {
   assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research contract must preserve ${token}`);
+}
+for (const token of ['任何受治理软件变更固定 `code = required`', '不需要 Main 追加 status 回读', 'handoff create 成功前调用 fork Skill必然失败']) {
+  assert.match(research.replaceAll(' ', ''), new RegExp(escapeRegExp(token.replaceAll(' ', '')), 'u'),
+    `Research contract must eliminate pre-dispatch ceremony: ${token}`);
 }
 for (const token of ['uncertainties.length > 0', '无权把 packet 的非空 `uncertainties` 判成“低风险”', 'fact gate complete: false']) {
   assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research uncertainty gate must preserve ${token}`);
 }
-assert.match(research, /每个 lane 永远恰好一行.*更窄的新 run.*替换.*绝不追加第二条 code\/docs 行.*record-lanes/isu,
+assert.match(research, /close-research.*每个 lane 永远恰好一行.*更窄的新 run.*替换.*绝不追加第二条 code\/docs 行/isu,
   'narrow research must replace the current lane projection instead of duplicating table rows');
 for (const token of [
   'references/clarify-research.md',
@@ -101,7 +105,7 @@ assert.ok(
   decisions.includes('harness/changes/<change-id>/evidence/clarify/questions/<question-id>.json'),
   `Decision reference question path must agree with runtime helper (${canonicalQuestionPath})`,
 );
-assert.equal(questionTemplate.decisionType, 'scope-confirmation');
+assert.equal(questionTemplate.decisionType, 'clarify-answer');
 assert.equal(questionTemplate.targetRef, 'harness/changes/change-id/requirements.md');
 assert.ok([...questionTemplate.header].length <= 12, 'AskUserQuestion header must be at most 12 characters');
 assert.equal(
@@ -161,9 +165,9 @@ for (const field of [
 assert.match(factGate, /`User question: none`[\s\S]{0,80}最后字节是 `none`；随后立即结束本轮/iu,
   'Incomplete fact gate must terminate immediately after its fixed gate block');
 assert.match(factGate,
-  /factGateOpen[\s\S]{0,500}只执行一个 agent-owned research\/recovery action/iu,
-  'Incomplete fact gate must keep the single research/recovery action executable');
-assert.match(factGate, /重算全部 required lanes 并回到本入口/iu,
+  /factGateOpen[\s\S]{0,600}bounded research pipeline/iu,
+  'Incomplete fact gate must keep the bounded research pipeline executable');
+assert.match(factGate, /close-research` 后重取 snapshot/iu,
   'Incomplete fact gate must recompute lane state after its research/recovery action');
 assert.match(factGate,
   /不能执行[\s\S]{0,240}纯文本恰好五行[\s\S]{0,300}`User question: none`[\s\S]{0,80}最后字节是 `none`/iu,
@@ -178,5 +182,11 @@ assert.match(factGate, /请求、选择、确认、普通问句、meta-choice/iu
   'Incomplete fact gate must classify every conversational request as a user question');
 assert.match(factGate, /changeId、path、SDK、version、entrypoint、stack、status、偏离授权/iu,
   'Incomplete fact gate must prohibit requesting every observed brief-input placeholder');
+
+assert.match(decisions,
+  /单一[^\n]*(?:user-visible|用户可见)[^\n]*outcome[\s\S]{0,320}(?:最高风险|high-risk)[^\n]*(?:业务|Decision)[^\n]*(?:先|优先)/iu,
+  'A single evidence-supported outcome must ask the highest-risk business decision before ceremonial topology confirmation');
+assert.match(decisions, /candidate label[^\n]*(?:不得|禁止)[^\n]*(?:推荐|Recommended)/iu,
+  'Question candidate labels must not embed recommendation markers');
 
 console.log(`PASS clarify-skill-contract ${mode}`);

@@ -1,13 +1,33 @@
 # 当前研发快照
 
-更新时间：2026-09-07（全生命周期基线与 Context7 fallback 依赖锁定）
+更新时间：2026-09-09（Clarify 可恢复闭环与竞争 pilot 修正）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
-- 当前版本：0.5.29
+- 当前版本：0.5.31 candidate
 - 当前阶段：Clarify→Archive 各阶段安装态标准样例与同一 change 的确定性连续验收均已完成；后续优化必须从 fresh issue、模型 eval 或真实项目证据立项
 - active change：`redesign-040`（历史遗留状态，当前 audit blocked；不作为本轮实现或完成声明的依据）
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
+
+## 2026-09-07 Clarify token 失败样本整改
+
+- 竞争 pilot 的 Harness 样本未在预算内到达业务问题，因此只作为内部失败基线，不能用作推广优势。
+- 已确认一个机械死锁：`pre-explore.mjs` 支持记录 CodeGraph attempt，但 hook manifest 未匹配 CodeGraph MCP/Bash，导致合法 fallback 永远拿不到 attempt 证据。
+- Clarify 在 ResearchPacket 返回前改用小型 research seed，不再提前把完整 topology、Evidence ledger、歧义评分、Frontier、技术债与 Classification 注入主上下文。
+- Main 在 fact gate open 时只做 brief、fork Skill handoff 与 packet validation；禁止直接 ToolSearch/事实探索。code-explore fallback 限制为一次 discovery Glob 与六个目标文件，并禁止通过研究 Harness 治理内部来绕过门禁。
+- lane digest、canonical input 与两个 DecisionEvents 由 `clarify sync-lanes` 单命令派生：先原子写 canonical input，再在 change transaction 内重验 digest 并追加事件，替代 Main 的 `requirements-digest → 读写 input → record-lanes` 多轮机械往返；低层命令仅保留兼容与诊断用途。
+- 拒绝的候选：提高单轮预算（掩盖死锁与膨胀）、取消 CodeGraph-first 或放开 Main 探索（破坏职责隔离）、用静态 Skill 字节数宣称省 token（指标无效）、继续把失败图当推广证据（结论误导）。
+
+## 2026-09-09 Clarify 可恢复闭环与竞争 pilot 修正
+
+- `requirements.md` 的 Evidence ledger 现在由 runtime 校验 exact raw-request / resolved decision / ResearchPacket claim；五维分数按覆盖 predicate 机械计算，frontier 必须与候选的 component、dimension、current score 精确一致。
+- 明确“未说明/待确认”的负知识只能登记为 `.gap`，不能冒充 Acceptance.failure 等已覆盖谓词；准备问题失败时返回逐 Evidence ID、期望 coverage/refs/score 的可操作诊断。
+- 新增 `clarify synthesis-sources` 输出可复制的精确原始条款与 validated packet facts；CodeGraph/Context7 worker 预算、generic Explore 禁止、CLI 尾随 `--json` 兼容和候选 canonical 化均有行为测试。
+- 修复 Phase 2 自咬：lane event 改为绑定“原始需求 + 完整事实门禁”的 research-authority digest，同时保留决策时 whole-file digest；topology/ledger/评分编辑不再使已关闭的 Phase 1 研究 stale，原始请求或 fact gate 变化仍 fail closed。
+- 真实 `claude -p` 修正样本在 $1.5 预算内以 exit 0、149,847 raw input+output tokens、$1.177、630 秒形成 digest-bound pending question，未修改产品代码；这是首个当前链路完整成功样本，不是重复性证明。
+- 修复 benchmark 的跨语言终问识别：旧 detector 漏掉英文 `Which ...?`，曾错误续跑并污染 Superpowers token/产物；污染样本保留在新 pilot 的 `excludedRuns`，不参与比较。
+- 修正后同 case 单样本：Superpowers 40,729 tokens/90 秒、无 durable artifact；OpenSpec 35,211 tokens/200 秒，但回答前持久化 6 个业务假设；Harness 最重但保留 gap、证据和恢复状态。当前只能支持“治理取舍不同”，不能支持总体更好或绝对省 token。
+- 拒绝的候选：把污染后的 Superpowers 270,074 tokens 当竞品成本、把 OpenSpec 低 token 直接解释为低质量、从 `n=1` 计算显著性、隐藏 Harness 修复前超时样本。
 
 ## 2026-09-07 Main 全生命周期标准样例
 

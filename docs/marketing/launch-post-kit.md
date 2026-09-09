@@ -20,7 +20,7 @@ Claude Code 企业变更治理插件：用证据先行的 Clarify、隔离设计
 
 Superpowers 更轻、更通用，工程方法成熟；OpenSpec 更便携，适配 30+ 工具。Enterprise Harness 的目标用户是愿意用更多前置治理换取可审计和 fail-closed 交付的 Claude Code 团队。
 
-我们不会先宣称“更省 token”：首轮 pilot 反而显示 Harness 成本更高，并帮我们抓到了 continuity 与 action-boundary bug。固定版本 runner、失败样本和后续正式数据都放在仓库里。
+我们不会先宣称“更省 token”：修复后 pilot 已完成双 lane 取证与可恢复问题 checkpoint，但 Harness 的 raw token 和延迟仍最高。这个过程也抓到了 research-authority freshness 与跨语言 checkpoint detector bug；固定版本 runner、失败样本和后续正式数据都放在仓库里。
 
 安装后唯一入口：`/enterprise-harness:harness`
 
