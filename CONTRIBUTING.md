@@ -24,12 +24,17 @@
 
 ## 开发流程
 
-1. 从 active change 或新 change 开始。
-2. 先写能证明缺陷的行为测试。
-3. 修改最小实现。
-4. 运行直接测试。
-5. 运行 P0 aggregate 和 prepublish。
-6. 更新唯一权威合同和用户可见文档。
+用户可见行为遵循契约先行；详细责任边界见[文档治理](docs/maintainer/documentation-governance.md)。
+
+1. 用 issue、失败样本或现有行为证据定义问题，不把方案当问题。
+2. 先更新产品承诺与适用边界、现行 Spec/ADR、`harness/capabilities.json` 和验收条件。
+3. 写出能证明缺陷或缺失能力的 RED 行为测试，并实际看到预期失败。
+4. 修改最小实现，使直接测试转为 GREEN。
+5. 在同一 change 内刷新 README、用户手册、维护投影、故障恢复和生成型 CLI reference。
+6. 运行 `npm run docs:check`、直接行为测试、P0 aggregate 和 prepublish。
+7. 独立检查用户承诺、Spec、实现、测试和文档投影的追踪关系后再合并或发布。
+
+纯内部重构可以不改变产品承诺，但必须由行为测试证明等价；不能先扩大实现，再用 README 为既成事实补授权。
 
 ## Runtime command
 
@@ -67,6 +72,19 @@ implementationRefs: []
 testRefs: []
 ```
 
+## Capability trace
+
+`harness/capabilities.json` 只列当前可发布能力。新增或改变一项产品承诺时，必须同时提供：
+
+- 中文 `productClaim`；
+- `specRefs`；
+- `implementationRefs`；
+- `testRefs`；
+- `userDocRefs`；
+- `maintainerDocRefs`。
+
+`npm run docs:check` 会检查 ID、真相层、引用完整性和 README 核心定位。只有未来目标、没有实现或验收证据的内容不得进入 capability registry。
+
 ## 测试
 
 直接验收：
@@ -100,10 +118,13 @@ artifact 必须排除 changes、archive、work、lessons、源仓库 evidence po
 ## PR checklist
 
 - [ ] 变更范围清楚且没有无关文件。
+- [ ] 用户承诺、适用边界和 Spec 在 implementation 之前明确。
+- [ ] capability trace 已绑定 Spec、实现、测试、用户文档和维护文档。
 - [ ] 新行为有真实测试。
 - [ ] 路径、symlink、Windows 大小写和无效输入已考虑。
 - [ ] hooks/settings 和版本投影由生成器更新。
 - [ ] 文档没有复制第二份 schema 或 runtime 输出。
+- [ ] README/用户手册没有把目标、单次 pilot 或未证明 ROI 写成当前事实。
 - [ ] artifact 内容已解包验证。
 - [ ] 没有 secrets、账户、容量或本机状态检查。
 

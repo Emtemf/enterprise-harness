@@ -12,28 +12,59 @@ const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
 
 if (mode === 'red') {
-  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-docs-consistency-red-'));
-  try {
-    fs.cpSync(sourceRoot, fixture, {
-      recursive: true,
-      filter: (entry) => !['.git', '.codegraph', '.superpowers', 'node_modules', 'dist'].includes(path.basename(entry)),
-    });
+  const expectRejectedMutation = (label, mutate, expected) => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), `eh-docs-consistency-${label}-`));
+    try {
+      fs.cpSync(sourceRoot, fixture, {
+        recursive: true,
+        filter: (entry) => !['.git', '.codegraph', '.superpowers', 'node_modules', 'dist'].includes(path.basename(entry)),
+      });
+      mutate(fixture);
+      const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), 'verify'], {
+        cwd: sourceRoot,
+        encoding: 'utf-8',
+        env: { ...process.env, EH_DOCS_CONSISTENCY_ROOT: fixture },
+        shell: false,
+      });
+      assert.notEqual(result.status, 0, `${label} mutation must fail docs validation`);
+      assert.match(`${result.stdout}\n${result.stderr}`, expected);
+      console.log(`PASS docs-consistency red negative-mutation (${label} rejected)`);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  };
+
+  expectRejectedMutation('compound-design', (fixture) => {
     const workflowPath = path.join(fixture, 'harness/specs/workflow.md');
     const workflow = fs.readFileSync(workflowPath, 'utf-8').replaceAll('DesignProof', 'BROKEN');
     fs.writeFileSync(workflowPath, workflow);
-    const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), 'verify'], {
-      cwd: sourceRoot,
-      encoding: 'utf-8',
-      env: { ...process.env, EH_DOCS_CONSISTENCY_ROOT: fixture },
-      shell: false,
-    });
-    assert.notEqual(result.status, 0, 'missing compound Design documentation must fail docs validation');
-    assert.match(`${result.stdout}\n${result.stderr}`, /compound Design internal sequence|DesignProof/u);
-    console.log('PASS docs-consistency red negative-mutation (compound Design documentation rejected)');
-  } finally {
-    fs.rmSync(fixture, { recursive: true, force: true });
-  }
+  }, /compound Design internal sequence|DesignProof/u);
+
+  expectRejectedMutation('readme-positioning', (fixture) => {
+    const readmePath = path.join(fixture, 'README.md');
+    const readme = fs.readFileSync(readmePath, 'utf-8').replace('acceptance control plane', 'legacy staged workflow');
+    fs.writeFileSync(readmePath, readme);
+  }, /README must define the acceptance control plane/u);
+
+  expectRejectedMutation('capability-trace', (fixture) => {
+    const registryPath = path.join(fixture, 'harness/capabilities.json');
+    const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+    delete registry.capabilities[0].userDocRefs;
+    fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
+  }, /userDocRefs/u);
+
   process.exit(0);
+}
+
+function assertUniqueNonEmptyRefs(capability, field, allowed) {
+  assert.ok(Array.isArray(capability[field]) && capability[field].length > 0,
+    `${capability.id}.${field} must be a non-empty array`);
+  assert.equal(new Set(capability[field]).size, capability[field].length,
+    `${capability.id}.${field} contains duplicate refs`);
+  for (const reference of capability[field]) {
+    assert.ok(allowed(reference), `${capability.id}.${field} has an invalid truth-layer ref: ${reference}`);
+    assert.ok(fs.existsSync(path.join(root, reference)), `${capability.id}.${field} ref missing: ${reference}`);
+  }
 }
 const normalizedRoot = path.resolve(root);
 const walkMarkdown = (relative) => {
@@ -113,12 +144,33 @@ assert.doesNotMatch(workflowDocs, /Design[\s\S]{0,100}完整测试用例/u,
 assert.match(runtimeSequence, /architecture[\s\S]*seal[\s\S]*test-design[\s\S]*DesignProof/iu,
   'maintainer sequence must show the exact Design internal ordering');
 
+const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf-8');
+assert.match(readme, /acceptance control plane/u, 'README must define the acceptance control plane');
+assert.match(readme, /stale[\s\S]*越权[\s\S]*自我批准[\s\S]*缺少证据/u,
+  'README must state the invalid-acceptance product promise');
+assert.match(readme, /不能证明绝对更省 token|不能宣传为绝对省 token/u,
+  'README must retain the token evidence boundary');
+assert.match(readme, /clarify → design → plan → implement → verify → archive/u,
+  'README must document the canonical lifecycle');
+assert.match(readme, /status → nextAction → pendingDecision → evidence refs/u,
+  'README must document the recovery reading order');
+
 const capabilities = JSON.parse(fs.readFileSync(path.join(root, 'harness/capabilities.json'), 'utf-8'));
+assert.equal(capabilities.schemaVersion, 2, 'capability registry must use schemaVersion 2');
+assert.ok(Array.isArray(capabilities.capabilities) && capabilities.capabilities.length > 0,
+  'capability registry must contain capabilities');
+const capabilityIds = new Set();
 for (const capability of capabilities.capabilities) {
-  assert.ok(capability.testRefs.length > 0, `${capability.id} has no acceptance test`);
-  for (const testRef of capability.testRefs) {
-    assert.ok(fs.existsSync(path.join(root, testRef)), `${capability.id} test missing: ${testRef}`);
-  }
+  assert.match(capability.id || '', /^[a-z0-9]+(?:-[a-z0-9]+)*$/u, 'capability id must be stable kebab-case');
+  assert.ok(!capabilityIds.has(capability.id), `duplicate capability id: ${capability.id}`);
+  capabilityIds.add(capability.id);
+  assert.ok(typeof capability.productClaim === 'string' && /[\u3400-\u9fff]/u.test(capability.productClaim),
+    `${capability.id}.productClaim must be a non-empty Chinese user-facing claim`);
+  assertUniqueNonEmptyRefs(capability, 'specRefs', (reference) => reference.startsWith('harness/specs/') && reference.endsWith('.md'));
+  assertUniqueNonEmptyRefs(capability, 'implementationRefs', (reference) => /^(?:runtime|skills|agents|hooks|bin|harness\/plugin)\//u.test(reference));
+  assertUniqueNonEmptyRefs(capability, 'testRefs', (reference) => /^(?:runtime\/test|test)\//u.test(reference));
+  assertUniqueNonEmptyRefs(capability, 'userDocRefs', (reference) => reference === 'README.md' || reference.startsWith('docs/user/'));
+  assertUniqueNonEmptyRefs(capability, 'maintainerDocRefs', (reference) => reference.startsWith('docs/maintainer/'));
 }
 for (const spec of walkMarkdown('harness/specs').filter((file) => path.basename(file) !== 'README.md')) {
   const text = fs.readFileSync(path.join(root, spec), 'utf-8');

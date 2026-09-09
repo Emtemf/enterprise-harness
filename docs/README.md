@@ -18,6 +18,7 @@
 - [打包](maintainer/packaging.md)
 - [发布](maintainer/release.md)
 - [Runtime 操作](maintainer/runtime-operations.md)
+- [文档治理](maintainer/documentation-governance.md)
 - [CLI Reference（生成）](maintainer/cli-reference.md)
 
 ## 长期规范

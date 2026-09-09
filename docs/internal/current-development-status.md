@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-09-09（企业控制优势失效注入基线）
+更新时间：2026-09-09（文档契约先行与 capability trace v2）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -36,6 +36,14 @@
 - 当前 checkout 实测 5/5 类无效状态被拒绝，且 1/1 条完整 Clarify→Archive lineage 通过；成功样例用于防止把“全拒绝”伪装成安全。
 - 该基线只证明 Harness 自己的 runtime enforcement，不给竞品虚构 0 分。竞品差异仍使用固定版本官方合同；token 与 ROI 仍等待完整生命周期、多次真实模型运行。
 - `docs/marketing/assets/competitive-positioning.*` 改为 acceptance control plane 主图，图上同时保留“最重、Claude Code only、token 优势未成立”的限制。
+
+## 2026-09-09 文档契约先行与 capability trace v2
+
+- README 从 Java/Maven 中心的 staged workflow 介绍改为 acceptance control plane 产品入口，明确核心承诺、目标用户、不适用场景、机制证据和 token/ROI 边界；删除无法代表当前 runtime 的旧 `overall: 3.2/5.0` 输出示例。
+- 新增 `docs/maintainer/documentation-governance.md`，冻结“问题证据→用户承诺/Spec→acceptance test→implementation→文档投影→独立一致性检查→release”的顺序；README/用户手册是同 change 投影，不是第二份 schema authority。
+- `harness/capabilities.json` 升级为 v2，13 项当前产品能力分别绑定中文 productClaim、Spec、实现、测试、用户文档和维护文档。
+- `docs-consistency-smoke` 新增三类真实负例：compound Design 文档断裂、README 丢失 acceptance control plane 定位、capability 缺 userDocRefs；verify 还校验 ID 唯一、路径存在和真相层合法。
+- `CONTRIBUTING.md` 改为契约先行，并把五向 capability trace 与未证明主张检查加入 PR checklist；`distribution-and-release` 把 docs gate 纳入发布合同。
 
 ## 2026-09-07 Main 全生命周期标准样例
 

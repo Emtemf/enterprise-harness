@@ -1,62 +1,349 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "capabilities": [
     {
-      "id": "safe-path-containment",
-      "testRefs": ["runtime/test/safe-paths-adversarial-smoke.mjs"]
-    },
-    {
-      "id": "isolated-executor-checker-handoff",
+      "id": "evidence-before-user-decisions",
+      "productClaim": "代码与外部版本事实完成取证并保持 fresh 后，Clarify 才向用户询问真正的业务决定。",
+      "specRefs": [
+        "harness/specs/clarify-governance.md",
+        "harness/specs/ambiguity-scoring.md"
+      ],
+      "implementationRefs": [
+        "skills/harness/SKILL.md",
+        "skills/harness/references/clarify-research.md",
+        "runtime/core/clarify-governance.mjs"
+      ],
       "testRefs": [
-        "runtime/test/v05-capability-surface-smoke.mjs",
-        "runtime/test/handoff-v2-common-dir-smoke.mjs",
-        "runtime/test/failed-dispatch-recovery-smoke.mjs"
+        "runtime/test/clarify-lane-handoff-gate-smoke.mjs",
+        "runtime/test/clarify-question-hook-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/getting-started.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/architecture.md",
+        "docs/maintainer/runtime-sequence.md"
       ]
     },
     {
-      "id": "topology-frontier-clarification",
-      "testRefs": [
-        "runtime/test/clarify-topology-template-smoke.mjs",
-        "runtime/test/clarify-stage-contract-smoke.mjs"
-      ]
-    },
-    {
-      "id": "durable-clarify-decision-chain",
+      "id": "evidence-derived-ambiguity-and-decisions",
+      "productClaim": "歧义评分、问题 frontier 与用户选择由可追踪证据和不可变 Decision Ledger 约束，不能靠聊天自报。",
+      "specRefs": [
+        "harness/specs/clarify-governance.md",
+        "harness/specs/ambiguity-scoring.md",
+        "harness/specs/evidence.md"
+      ],
+      "implementationRefs": [
+        "skills/harness/references/clarify-decisions.md",
+        "runtime/core/clarify-question.mjs",
+        "runtime/core/decision-ledger.mjs"
+      ],
       "testRefs": [
         "runtime/test/clarify-question-smoke.mjs",
-        "runtime/test/clarify-question-hook-smoke.mjs",
-        "runtime/test/clarify-decision-cli-smoke.mjs",
-        "runtime/test/decision-ledger-smoke.mjs"
+        "runtime/test/decision-ledger-smoke.mjs",
+        "runtime/test/clarify-readiness-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/architecture.md",
+        "docs/maintainer/state-and-evidence.md"
       ]
     },
     {
-      "id": "strategy-aware-task-runner",
+      "id": "safe-project-contract-update",
+      "productClaim": "项目长期指令只能经 immutable proposal、精确用户批准和 CAS 应用增量更新，已有文件不会被静默覆盖。",
+      "specRefs": [
+        "harness/specs/clarify-governance.md",
+        "harness/specs/hooks.md"
+      ],
+      "implementationRefs": [
+        "runtime/core/project-contract.mjs",
+        "runtime/core/clarify-assessments.mjs",
+        "skills/harness/assets/project-contract-proposal.json.tmpl"
+      ],
       "testRefs": [
-        "runtime/test/task-runner-v6-smoke.mjs",
+        "runtime/test/project-contract-proposal-smoke.mjs",
+        "runtime/test/clarify-assessments-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/getting-started.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/architecture.md",
+        "docs/maintainer/state-and-evidence.md"
+      ]
+    },
+    {
+      "id": "compound-architecture-and-test-design",
+      "productClaim": "架构设计和独立测试设计分别执行与审查，全部 fresh 后才形成一个 compound DesignProof。",
+      "specRefs": [
+        "harness/specs/workflow.md",
+        "harness/specs/evidence.md",
+        "harness/specs/stage-observability.md"
+      ],
+      "implementationRefs": [
+        "skills/design/SKILL.md",
+        "skills/test-design/SKILL.md",
+        "runtime/core/design-proof.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/design-compound-gate-smoke.mjs",
+        "runtime/test/design-controller-sequence-smoke.mjs",
+        "runtime/test/test-design-semantic-contract-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/runtime-sequence.md",
+        "docs/maintainer/state-and-evidence.md"
+      ]
+    },
+    {
+      "id": "human-plan-and-machine-command-freeze",
+      "productClaim": "Plan 同时冻结人类可审查的任务和 runtime 可执行的 literal argv、策略、测试映射与写入范围。",
+      "specRefs": [
+        "harness/specs/workflow.md",
+        "harness/specs/tdd-execution.md"
+      ],
+      "implementationRefs": [
+        "skills/plan/SKILL.md",
+        "skills/plan/assets/tasks.md.tmpl",
+        "skills/plan/assets/task-commands.json.tmpl",
+        "runtime/lib/plan-test-case-binding.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/plan-skill-script-smoke.mjs",
+        "runtime/test/plan-test-case-binding-smoke.mjs",
+        "runtime/test/task-command-v2-sequencing-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/state-and-evidence.md",
+        "docs/maintainer/runtime-sequence.md"
+      ]
+    },
+    {
+      "id": "isolated-governed-task-execution",
+      "productClaim": "实现任务在隔离 worktree 中按冻结策略执行，命令、变更路径和独立 reviewer 身份形成机器 receipt。",
+      "specRefs": [
+        "harness/specs/agents-and-handoff.md",
+        "harness/specs/tdd-execution.md",
+        "harness/specs/evidence.md"
+      ],
+      "implementationRefs": [
+        "agents/implementer.md",
+        "agents/reviewer.md",
+        "runtime/task-run.mjs",
+        "runtime/lib/task-execution-receipt.mjs"
+      ],
+      "testRefs": [
         "runtime/test/governed-task-run-write-gate-smoke.mjs",
-        "runtime/test/task-execution-authority-smoke.mjs"
+        "runtime/test/task-execution-receipt-matrix-smoke.mjs",
+        "runtime/test/task-worktree-integration-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/architecture.md",
+        "docs/maintainer/state-and-evidence.md"
       ]
     },
     {
-      "id": "incremental-hook-attribution",
-      "testRefs": ["runtime/test/hook-snapshot-attribution-smoke.mjs"]
-    },
-    {
-      "id": "allowlisted-release-artifact",
-      "testRefs": ["runtime/test/artifact-content-smoke.mjs"]
-    },
-    {
-      "id": "structured-completion-layers",
+      "id": "canonical-verification-evidence",
+      "productClaim": "Verify 按已接受测试用例重放 Plan 冻结命令，手写日志或 Implement receipt 不能冒充验证通过。",
+      "specRefs": [
+        "harness/specs/verify-contract.md",
+        "harness/specs/evidence.md"
+      ],
+      "implementationRefs": [
+        "skills/verify/SKILL.md",
+        "runtime/verify-run.mjs",
+        "runtime/lib/verify-command-evidence.mjs"
+      ],
       "testRefs": [
-        "runtime/test/completion-layers-smoke.mjs",
-        "runtime/test/task-review-binding-smoke.mjs"
+        "runtime/test/verify-run-smoke.mjs",
+        "runtime/test/verify-runtime-gate-smoke.mjs",
+        "runtime/test/verify-validation-verdict-coherence-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/testing.md",
+        "docs/maintainer/state-and-evidence.md"
+      ]
+    },
+    {
+      "id": "offline-verifiable-archive-lineage",
+      "productClaim": "Archive 只有在独立审查和完整 fresh lineage 通过后才能原子移动，并可从归档目录离线复验。",
+      "specRefs": [
+        "harness/specs/archive-contract.md",
+        "harness/specs/evidence.md"
+      ],
+      "implementationRefs": [
+        "skills/archive/SKILL.md",
+        "runtime/api/archive.mjs",
+        "runtime/lib/archive-manifest.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/archive-contract-smoke.mjs",
+        "runtime/test/archive-completion-smoke.mjs",
+        "runtime/test/main-lifecycle-standard-sample-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/runtime-sequence.md",
+        "docs/maintainer/state-and-evidence.md"
+      ]
+    },
+    {
+      "id": "digest-derived-stale-recovery",
+      "productClaim": "权威输入变化会机械失效下游结论；中断或重启后从 durable state 返回最早 blocker 和唯一恢复动作。",
+      "specRefs": [
+        "harness/specs/state-schema.md",
+        "harness/specs/workflow.md",
+        "harness/specs/stage-observability.md"
+      ],
+      "implementationRefs": [
+        "runtime/lib/stage-results.mjs",
+        "runtime/lib/workflow-audit.mjs",
+        "runtime/workflow.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/lifecycle-clarify-transition-smoke.mjs",
+        "runtime/test/execution-prerequisites-v6-smoke.mjs",
+        "runtime/test/workflow-audit-v6-result-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/quickstart.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/runtime-sequence.md",
+        "docs/maintainer/state-and-evidence.md"
+      ]
+    },
+    {
+      "id": "safe-path-and-write-scope",
+      "productClaim": "不可信 ID、路径、symlink 与实现写入范围由 runtime 校验，越界目标不能通过受治理写入。",
+      "specRefs": [
+        "harness/specs/architecture.md",
+        "harness/specs/hooks.md",
+        "harness/specs/tdd-execution.md"
+      ],
+      "implementationRefs": [
+        "runtime/lib/safe-paths.mjs",
+        "runtime/lib/task-write-scope.mjs",
+        "runtime/lib/hooks/pre-write.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/safe-paths-adversarial-smoke.mjs",
+        "runtime/test/task-write-scope-smoke.mjs",
+        "runtime/test/governed-task-run-write-gate-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/limitations.md",
+        "docs/user/workflow.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/hooks.md",
+        "docs/maintainer/architecture.md"
+      ]
+    },
+    {
+      "id": "lightweight-host-boundary-hooks",
+      "productClaim": "Hook 只记录宿主事件和执行轻量机械门禁，不承担需求分析、事实探索或第二套工作流。",
+      "specRefs": [
+        "harness/specs/hooks.md",
+        "harness/specs/architecture.md"
+      ],
+      "implementationRefs": [
+        "harness/plugin/hooks-manifest.json",
+        "runtime/lib/hooks/pre-write.mjs",
+        "runtime/lib/hooks/post-write.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/hook-manifest-parity-smoke.mjs",
+        "runtime/test/hook-snapshot-attribution-smoke.mjs",
+        "runtime/test/plugin-native-hooks-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/limitations.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/hooks.md",
+        "docs/maintainer/architecture.md"
       ]
     },
     {
       "id": "conservative-openapi-gate",
+      "productClaim": "API 检查无法可靠解析复杂 OpenAPI 或映射时返回 unsupported，不把未知状态提升为通过。",
+      "specRefs": [
+        "harness/specs/testing.md",
+        "harness/specs/verify-contract.md"
+      ],
+      "implementationRefs": [
+        "runtime/lib/checks.mjs",
+        "skills/design/references/api-design.md"
+      ],
       "testRefs": [
         "runtime/test/checks-openapi-scan-unit-smoke.mjs",
         "runtime/test/openapi-controller-consistency-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/limitations.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/testing.md",
+        "docs/maintainer/architecture.md"
+      ]
+    },
+    {
+      "id": "deterministic-local-release",
+      "productClaim": "发布只从 clean、已提交的 main 构建 allowlisted artifact，并在本地完成制品、SBOM、release notes 和解包验收。",
+      "specRefs": [
+        "harness/specs/distribution-and-release.md",
+        "harness/specs/testing.md"
+      ],
+      "implementationRefs": [
+        "bin/local-quality.mjs",
+        "bin/package.mjs",
+        "bin/release.mjs"
+      ],
+      "testRefs": [
+        "runtime/test/artifact-content-smoke.mjs",
+        "runtime/test/release-version-acceptance-smoke.mjs",
+        "runtime/test/task4-release-acceptance-smoke.mjs"
+      ],
+      "userDocRefs": [
+        "README.md",
+        "docs/user/limitations.md"
+      ],
+      "maintainerDocRefs": [
+        "docs/maintainer/release.md",
+        "docs/maintainer/testing.md",
+        "docs/maintainer/documentation-governance.md"
       ]
     }
   ]
