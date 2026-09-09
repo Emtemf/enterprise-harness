@@ -28,6 +28,7 @@
 ## 决策、营销与内部状态
 
 - `adr/`：历史设计决策
-- `marketing/`：发布宣传，不进入产品手册
-- [竞争证据基线](marketing/competitive-evidence.md)：对外比较主张、证据等级、token pilot 与正式评测合同
+- `marketing/`：面向最终用户的公开产品介绍，不放维护决策或实验计划
+- [企业价值与选型](marketing/competitive-evidence.md)：交付物、效果优先的评估方式、对比边界与可复验证据
 - `internal/`：可过期研发快照，不进入发布包
+- [竞争证据维护说明](internal/competitive-evidence-notes.md)：内部主张边界、pilot 诊断与正式评测设计

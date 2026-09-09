@@ -53,6 +53,11 @@ if (mode === 'red') {
     fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
   }, /userDocRefs/u);
 
+  expectRejectedMutation('marketing-audience', (fixture) => {
+    const marketingPath = path.join(fixture, 'docs/marketing/competitive-evidence.md');
+    fs.appendFileSync(marketingPath, '\n## 推广时建议\n\n不要使用未经验证的口径。\n');
+  }, /public marketing must not contain maintainer-only language/u);
+
   process.exit(0);
 }
 
@@ -154,6 +159,23 @@ assert.match(readme, /clarify → design → plan → implement → verify → a
   'README must document the canonical lifecycle');
 assert.match(readme, /status → nextAction → pendingDecision → evidence refs/u,
   'README must document the recovery reading order');
+
+const publicMarketingFiles = [
+  'docs/marketing/competitive-evidence.md',
+  'docs/marketing/announcement.md',
+  'docs/marketing/launch-post-kit.md',
+];
+const maintainerOnlyMarketingLanguage = /禁止口径|不要使用|推广时建议|最稳妥的推广文案|当前 checkout|正式评测应/u;
+for (const file of publicMarketingFiles) {
+  const text = fs.readFileSync(path.join(root, file), 'utf-8');
+  assert.doesNotMatch(text, maintainerOnlyMarketingLanguage,
+    `${file}: public marketing must not contain maintainer-only language`);
+}
+const competitiveEvidence = fs.readFileSync(path.join(root, 'docs/marketing/competitive-evidence.md'), 'utf-8');
+assert.match(competitiveEvidence, /交付效果[^。\n]*(?:首要|主指标)|正确产出[^。\n]*(?:首要|主指标)/u,
+  'public marketing must make delivery outcomes the primary evaluation criterion');
+assert.match(competitiveEvidence, /token[^。\n]*资源指标/u,
+  'public marketing must frame token as a resource metric instead of the primary value claim');
 
 const capabilities = JSON.parse(fs.readFileSync(path.join(root, 'harness/capabilities.json'), 'utf-8'));
 assert.equal(capabilities.schemaVersion, 2, 'capability registry must use schemaVersion 2');

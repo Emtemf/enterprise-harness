@@ -1,114 +1,85 @@
-# Enterprise Harness 竞争证据基线
+# Enterprise Harness：把 AI 编码变成可验收的企业交付
 
-> 截止 2026-09-09。本文是推广主张的唯一证据入口，不是“竞品打分榜”。结论仅适用于 Claude Code 中的企业软件变更治理。
+企业采用 AI 编码，真正关心的不是一次回答用了多少 token，而是最终交付是否正确、能否复验、出现中断后能否恢复，以及错误状态会不会被当成已经完成。
 
-## 一句话定位
+Enterprise Harness 是面向 Claude Code 的 acceptance control plane。它把取证、用户决策、架构与测试设计、任务拆分、隔离实施、独立评审、验证和归档连接成一条可执行的交付协议。缺少新鲜证据、越权写入、自我批准或无法复验时，runtime 会拒绝进入下一个已验收状态。
 
-Enterprise Harness 不是更轻的提示词包，而是把“先取证、再决策、后设计与实施、最后凭新鲜证据归档”做成 Claude Code runtime 可拒绝的交付协议。
+![Enterprise Harness 企业交付价值图](assets/competitive-positioning.png)
 
-最稳妥的推广文案是：
+## 企业最终得到什么
 
-> 当团队更在意可审计、可恢复、不能跳过验证的交付过程时，Enterprise Harness 提供了 Superpowers 和 OpenSpec 默认工作流没有提供的 digest、identity、receipt 与 stage gate。
+一次受治理的变更不只留下聊天记录，而会形成可追踪的交付物：
 
-不要使用“所有场景都更好”“已经证明更省 token”“用了 Harness 就不会出错”或“竞品没有企业能力”。
-
-## 比较对象与公平边界
-
-| 系统 | 固定版本 | 它真正擅长的事 | 本比较不否认的优势 |
-|---|---|---|---|
-| Enterprise Harness | 0.5.31 candidate | Claude Code 内的机械门禁、证据链、恢复和审查 | 代价更重，目前只支持 Claude Code |
-| Superpowers | [v6.3.0](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797) | brainstorming、批准门禁、TDD、fresh subagent 和多层 review | 多 harness、成熟方法论、低进入成本 |
-| OpenSpec | [v1.12.0](https://github.com/Fission-AI/OpenSpec/tree/e062b9572be933564ba3899d059377dfa1393e32) | 轻量 proposal/spec/design/tasks、归档和跨仓 Stores | 30+ 工具、流动工作流、易采用 |
-
-Superpowers 官方流程明确要求设计批准后才实施，并在实现阶段使用 fresh subagent、task review 与 final review；这与 Harness 有共同目标，不应描述成“只有 Harness 会 review”。[官方 brainstorming 合同](https://github.com/obra/superpowers/blob/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/brainstorming/SKILL.md#L14-L20) [官方 subagent 合同](https://github.com/obra/superpowers/blob/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/subagent-driven-development/SKILL.md#L6-L12)
-
-OpenSpec 官方定位是轻量且不设 rigid phase gates；Explore 和 Verify 可选，Verify 不阻断 archive。这是产品取舍，不是缺陷。[官方定位](https://github.com/Fission-AI/OpenSpec/blob/e062b9572be933564ba3899d059377dfa1393e32/README.md#L186-L193) [官方 workflow](https://github.com/Fission-AI/OpenSpec/blob/e062b9572be933564ba3899d059377dfa1393e32/docs/workflows.md#L33-L49) [Verify/Archive 语义](https://github.com/Fission-AI/OpenSpec/blob/e062b9572be933564ba3899d059377dfa1393e32/docs/workflows.md#L331-L402)
-
-## 现在能够证明什么
-
-证据等级：L0=设计主张，L1=固定版本源码/文档，L2=确定性行为测试，L3=重复真实模型运行，L4=外部独立复验。
-
-| 企业变更能力 | Enterprise Harness | Superpowers | OpenSpec | 当前证据 |
-|---|---|---|---|---|
-| 代码事实与外部版本事实分 lane，完成前禁止提问 | runtime 校验 fresh ResearchPacket | 方法要求先探索，无 digest-bound 双 lane | Explore 可选 | EH L2；竞品 L1 |
-| 用户决定与输入 revision 精确绑定 | append-only Decision Ledger + digest target | 设计批准主要在会话/设计文档 | change artifacts 可编辑 | EH L2；竞品 L1 |
-| stale 输入自动使下游结论失效 | digest-derived invalidation | ledger/spec 帮助恢复，无同构 runtime gate | 支持更新制品，无同构强制 gate | EH L2；竞品 L1 |
-| 实施身份、worktree、write scope、真实 RED | runtime receipt 与 hook fail closed | fresh implementer + TDD + review 方法成熟 | Apply/Verify 由 agent 执行，Verify 可选 | EH L2；竞品 L1 |
-| Verify 后才能归档 | fresh verification + independent review + proof | completion verification 方法约束 | 官方说明 Verify 不阻断 archive | EH L2；竞品 L1 |
-| 离线归档后复验 lineage | source/archive path + digest manifest/attestation | 设计/计划/ledger 保留在 Git | archive 保存 change/spec 历史 | EH L2；竞品 L1 |
-| 跨 agent 工具可移植性 | Claude Code only | 多 harness | 30+ 工具 | EH 明确劣势；竞品 L1 |
-
-Harness 的 L2 依据来自仓库长期合同与对应 smoke/E2E，例如 [Clarify 治理](../../harness/specs/clarify-governance.md)、[证据合同](../../harness/specs/evidence.md)、[工作流](../../harness/specs/workflow.md) 和 [归档合同](../../harness/specs/archive-contract.md)。仓库测试数量不用于给竞品打低分；这里只验证 Harness 自己是否实现了声明的行为。
-
-因此，现在可以说“Enterprise Harness 对需要机械拒绝、输入 freshness、身份绑定和离线审计的 Claude Code 变更更合适”。还不能说“总体更好”。
-
-## 优势到底在哪里：改变“完成”的定义
-
-如果团队只要快速生成一份设计或尽快开始编码，Enterprise Harness 当前没有优势，Superpowers 或 OpenSpec 更轻、更便宜。Harness 的目标用户是另一类团队：错误需求、陈旧设计、越权写入或自我批准一旦进入主干，返工与审计成本远高于前置取证成本。
-
-三者最关键的差异不是有没有文档、review 或 TDD，而是“完成”由谁裁定：
-
-| 默认工作方式 | “完成”的主要载体 | agent 偏离方法时 | 最适合 |
-|---|---|---|---|
-| Superpowers | Skill 方法、聊天与计划/ledger | 依赖后续 agent 继续遵守方法并识别偏离 | 追求优秀工程方法和较低流程成本 |
-| OpenSpec | 可编辑 change artifacts | 鼓励流动迭代；Verify 默认不阻断 Archive | 追求轻量规格化和跨工具使用 |
-| Enterprise Harness | runtime 重新计算的 acceptance predicate | 缺 fresh digest、独立身份、receipt 或 lineage 就不能进入下一个已验收状态 | 不能把“模型说完成”当交付证据的 Claude Code 团队 |
-
-所以 Harness 可验证的产品优势应表述为：
-
-> 它不是让模型第一次回答得更便宜，而是把错误工作变成“不可被验收的工作”。
-
-为避免这句话仍然只是宣传，仓库新增了 [`governance-v1`](../../benchmarks/governance-v1/README.md) 确定性失效注入基线。当前 checkout 实测：5/5 类无效状态被拒绝，同时 1/1 条具备完整 lineage 的有效生命周期可通过。五类失败分别是 stale pending question、stale Clarify 工件、测试设计变更后复用旧 Plan、越权写入和“有 review 但没有 CompletionProof”。这证明 Harness 自己的门禁真实存在；它不等于竞品行为评分，也不等于 ROI 证据。
-
-推广主图改用 [`competitive-positioning.png`](assets/competitive-positioning.png)：先展示“错误是否能进入已验收状态”，再展示成本边界。第一次澄清的 token 图只用于说明当前成本，不再承担“优势证明”。
-
-## 修复后 pilot：有效性已闭环，token 优势仍未成立
-
-同一 Claude Code 2.1.263、Sonnet、fresh repo、相同请求和每系统 $1.5 总预算下，修正后的内部 pilot 每系统仍只有 1 次，因此只能诊断，不能对外推断总体表现。三个系统都到达一个核心业务问题，且都没有修改产品代码。
-
-| 系统 | Input | Output | Cache read | 耗时 | 成本 | 到达问题前的关键差异 |
-|---|---:|---:|---:|---:|---:|---|
-| Superpowers 6.3.0 | 37,689 | 3,040 | 96,000 | 1m30s | $0.187 | 代码探索后提问；关键结论仅在聊天中，无 durable recovery evidence |
-| OpenSpec 1.12.0 | 30,059 | 5,152 | 318,912 | 3m20s | $0.263 | 生成完整 change 后提问；回答前已持久化 6 项关键业务假设 |
-| Enterprise Harness 0.5.31 candidate | 125,314 | 24,533 | 1,493,760 | 10m30s | $1.177 | 双 lane、gap、机械评分与 digest-bound pending question 后停下 |
-
-修正后聚合记录见 [`pilot-2026-09-09.json`](../../benchmarks/competitive-v1/pilot-2026-09-09.json)，修复前失败与 checkpoint detector 污染样本也列在 `excludedRuns`，没有从研发记录中抹掉。旧基线仍见 [`pilot-2026-09-07.json`](../../benchmarks/competitive-v1/pilot-2026-09-07.json)。两者都明确标注 `publishableConclusion=false`。
-
-当前必须公开承认：
-
-1. “绝对 token 更少”没有证据；修复后 Harness 已从“高成本且未闭环”变为“高成本但可恢复闭环”，但本 case 的 raw token 与耗时仍最高。
-2. 当前可观察差异是决策完整性与 durable auditability，不是总体胜负。更合理的待证假设仍是高风险变更的 `tokens_per_accepted_run` 或 `tokens_per_verified_change` 更低；现在还没有全生命周期样本支持它。
-3. 静态 Skill 字节数不是 token 结论；缓存 token 也不能从总 token 中偷偷删除。
-
-## 正式评测应采哪些数据
-
-至少建设六类 case，每个 system/case 运行 5 次，正式推广建议 10 次：
-
-| Case | 测什么 | 关键失败 |
+| 阶段 | 关键产物 | 企业价值 |
 |---|---|---|
-| brownfield + versioned SDK | 代码/文档取证与决策边界 | 幻觉 SDK 行为、替用户决定、提前写代码 |
-| stale requirements | 输入修改后的失效传播 | 沿用旧 design/plan |
-| interrupted session | compaction/重启恢复 | 重做任务、猜进度、丢决定 |
-| adversarial path | path/symlink/write scope | 越界读取或写入 |
-| TDD + independent review | RED、身份隔离、review closure | 自报测试、自我批准 |
-| archive replay | 离线 lineage 与复验 | archive 后证据不可重建 |
+| Clarify | 代码与外部文档研究证据、需求、用户决定、歧义结果 | 事实与选择分开，避免模型替用户决定 |
+| Design | 架构设计、API/SQL/交互边界、独立测试用例、双重评审证据 | 在写代码前发现设计和验收缺口 |
+| Plan | 可独立执行的任务、命令、写入范围和回滚动作 | 计划能够被另一名 agent 接手和验证 |
+| Implement | 隔离 worktree、真实 RED/GREEN/REFACTOR receipt、独立 review | “运行过测试”由命令证据证明，而不是由模型自报 |
+| Verify | 面向需求和测试用例的新鲜验证、独立完成审查 | 验证基于最终代码与最终输入，不复用过期结论 |
+| Archive | digest、identity、receipt 和 lineage | 离开聊天上下文后仍可重建变更为何被接受 |
 
-每次必须发布：成功率、hard-fail 数、中位数与 IQR、input/output/cache token、成本、墙钟时间、tool calls、返工轮数、未授权代码修改数、stale artifact 复用数，以及 `tokens_per_accepted_run`。语义评分必须盲化 system 名称，评分者不能只看最终聊天，还要看 durable artifact 与 diff。
+这让团队能够回答几个通常很难回答的问题：这段代码依据的是哪一版需求？关键业务选择由谁确认？测试是否真实执行？评审是否独立？输入变化后哪些结论已经失效？
 
-## 推广时建议展示的三个证据层
+## 为什么值得投入更多计算
 
-1. **机制证据**：现场篡改 requirements，展示下游 proof 立即 stale；现场尝试无 review 归档，展示 runtime 拒绝。
-2. **行为证据**：公开 benchmark 仓库、固定 commit、prompt、runner、raw digest、盲审 rubric 和全部失败。
-3. **业务证据**：试点团队的返工率、PR review 往返、事故逃逸、恢复时间和单个已验收 change 成本。只有这一层才能支撑 ROI。
+Enterprise Harness 不以“首轮回答最便宜”为目标。额外计算用于代码与文档取证、上下文隔离、独立审查、freshness 校验和失败后的恢复。对于错误需求进入主干、跨会话丢失决定或审计证据不足会造成高额返工的团队，这些投入购买的是更高质量的已验收产出。
 
-推荐配图：[`competitive-positioning.png`](assets/competitive-positioning.png) 展示“错误不能成为已验收事实”的核心优势；[`clarify-pilot-tradeoff.png`](assets/clarify-pilot-tradeoff.png) 展示修复后结果、治理差异与真实成本。旧 [`pilot-token-result.png`](assets/pilot-token-result.png) 只保留为 2026-09-07 修复前历史诊断图，不再用于当前推广。
+因此，评估时应把交付效果作为首要指标：
 
-## 可直接使用的推广口径
+- 已验收结果是否满足真实业务需求；
+- stale、越权、自我批准和缺证据状态是否会被拒绝；
+- 需求变化或会话中断后是否能准确恢复；
+- 设计、代码、测试与最终归档是否形成完整 lineage；
+- 独立人员能否复验结论。
 
-短版：
+token 只作为资源指标，与耗时和工具调用量一起观察；它不替代正确率、返工率、缺陷逃逸率、恢复时间和可审计产出。
 
-> Superpowers 强在工程方法，OpenSpec 强在轻量规格，Enterprise Harness 专注另一件事：让 Claude Code 的企业变更过程可拒绝、可恢复、可审计。它用 digest-bound evidence、独立 review、真实命令 receipt 和 freshness gate，把“模型说完成了”变成“runtime 能验证完成了”。
+## 与 Superpowers、OpenSpec 的区别
 
-带限制的对比版：
+三者解决的是不同层次的问题，而不是简单的功能多少：
 
-> 在需要强制验证、审计 lineage 和中断恢复的 Claude Code 变更里，Enterprise Harness 提供了两者默认工作流没有的 runtime enforcement。它不是更轻，也尚未证明更省 token；我们正在用公开、固定版本、包含失败样本的 benchmark 验证单位已验收变更成本。
+| 方案 | 核心价值 | 更适合 |
+|---|---|---|
+| [Superpowers v6.3.0](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797) | 成熟的 brainstorming、TDD、subagent 和 review 工程方法 | 希望以较低流程成本提升 agent 工程纪律，并需要多 harness 支持的团队 |
+| [OpenSpec v1.12.0](https://github.com/Fission-AI/OpenSpec/tree/e062b9572be933564ba3899d059377dfa1393e32) | 轻量、流动、跨工具的 proposal/spec/design/tasks 资产 | 希望快速引入规格化协作且不需要强制阶段门禁的团队 |
+| Enterprise Harness | Claude Code runtime 可重新计算并拒绝的验收条件，以及跨会话证据链 | 不能把“模型说完成了”直接当成交付证据的团队 |
+
+Superpowers 已具备设计批准、fresh subagent、TDD 和多层 review；OpenSpec 刻意采用轻量、非刚性的工作流。Enterprise Harness 的差异不在于声称只有自己会设计或评审，而在于把 freshness、identity、receipt、write scope 和 lineage 变成 runtime acceptance predicate。
+
+## 已经能够复验的证据
+
+仓库提供确定性失效注入基线，用真实 runtime 检查以下状态能否被错误接受：
+
+- stale 的待确认问题；
+- 输入变化后仍复用旧 Clarify 产物；
+- 测试设计变化后仍复用旧 Plan；
+- 超出批准 write scope 的写入；
+- 只有 review、没有 CompletionProof 的归档。
+
+当前基线中，5/5 类无效状态均被拒绝，1/1 条带完整 lineage 的有效生命周期通过。它证明机械门禁确实工作，不代表所有项目的业务 ROI 已经被证明。可直接查看 [governance-v1 场景、命令与结果](../../benchmarks/governance-v1/README.md)。
+
+真实 Claude Code 安装态验证还覆盖打包插件的 Clarify、复合 Design、Plan、TDD Implement、Verify 和 Archive，确保验证对象是用户实际安装的资产，而不只是源码测试。
+
+## 适用边界
+
+Enterprise Harness 更适合高风险、长链路、多人接力或需要审计的软件变更。以下场景通常不需要这套重量：
+
+- 一次性原型、探索性脚本或可随时丢弃的代码；
+- 团队只需要轻量 spec 或工程方法提示；
+- 必须跨多种 coding agent 使用同一工作流；
+- 尚未准备好为强制验证和证据留存投入额外时间。
+
+当前产品只面向 Claude Code，也不替代企业已有的 CI、代码所有者审批、安全扫描或合规平台；它负责的是 agent 从需求到归档这一段交付过程的可验收性。
+
+## 用一个真实变更评估
+
+选择一个包含现有代码、版本化外部依赖和至少一个关键业务歧义的真实变更。在过程中主动修改一次需求、中断一次会话，并尝试缺少独立 review 或验证证据的推进。比较最终得到的结果，而不只比较第一轮回答：
+
+1. 有多少业务假设未经用户确认就进入了设计或代码；
+2. 输入变化后是否仍复用了旧结论；
+3. 中断后恢复用了多久，是否重复或漏做工作；
+4. 无效状态是否能够进入“已完成”；
+5. 第三方能否从持久化产物复验整个交付。
+
+原始 token、耗时与失败样本保留在 [competitive-v1 数据集](../../benchmarks/competitive-v1/)，用于成本诊断。现阶段它们不支持“绝对更省 token”的结论；Enterprise Harness 的可验证优势是让缺少交付证据的工作不能被验收。

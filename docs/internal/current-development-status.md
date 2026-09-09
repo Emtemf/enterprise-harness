@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-09-09（文档契约先行与 capability trace v2）
+更新时间：2026-09-09（公开 marketing 与内部证据维护隔离）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -8,6 +8,13 @@
 - 当前阶段：Clarify→Archive 各阶段安装态标准样例与同一 change 的确定性连续验收均已完成；后续优化必须从 fresh issue、模型 eval 或真实项目证据立项
 - active change：`redesign-040`（历史遗留状态，当前 audit blocked；不作为本轮实现或完成声明的依据）
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
+
+## 2026-09-09 Marketing 受众隔离
+
+- `docs/marketing/` 改为最终用户可直接阅读的公开产品表面，主线从“研发团队如何宣传”调整为“企业会得到哪些交付物、为何值得投入更多计算、如何选择和复验”。
+- token 与耗时保留为资源指标，价值主指标改为正确产出、无效验收拒绝、恢复能力、lineage 完整性和第三方复验。
+- 宣传约束、n=1 pilot 原始诊断和正式评测设计迁入 `docs/internal/competitive-evidence-notes.md`，原始数据仍以 `benchmarks/` 为准。
+- `docs-consistency-smoke` 阻止维护者语言再次进入三份公开 marketing 页面，并机械检查效果优先与 token 边界。
 
 ## 2026-09-07 Clarify token 失败样本整改
 

@@ -30,9 +30,13 @@ Enterprise Harness 采用“契约先行、实现闭环”，而不是“代码�
 | 当前机械能力追踪 | `harness/capabilities.json` | docs consistency 报告 | 同一 change 内、实现前 |
 | CLI 参数与命令 | runtime CLI source | 生成的 `docs/maintainer/cli-reference.md` | 实现后由生成器刷新 |
 | 错误码与恢复动作 | runtime behavior | `docs/user/troubleshooting.md` | 新错误码进入实现的同一 change |
+| 对外价值、交付物与选型边界 | `README.md`、`docs/user/`、已验证 benchmark | `docs/marketing/` | 能力或证据等级变化的同一 change |
+| 传播约束、实验设计与研发诊断 | `benchmarks/` 原始记录 | `docs/internal/` | 评测方案或样本变化时 |
 | 当前研发状态 | `docs/internal/` | 无 | 仅作为可过期维护快照 |
 
 同一规则不能在多个位置各自演化。投影文档应链接权威来源并面向其读者解释，不复制完整 schema、命令输出或实现细节。
+
+`docs/marketing/` 是公开产品表面，默认每一页都会被最终用户直接打开。它回答“能交付什么、为什么值得投入、适合谁、证据在哪里”，不得出现宣传审批、禁用文案、当前 checkout 诊断或下一轮实验计划。这些维护内容进入 `docs/internal/`，原始数据和可复现命令进入 `benchmarks/`。
 
 ## Capability trace
 
