@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "order-cancel-idempotency",
+      "changeId": "model-uplift-order-cancel",
+      "maxHarnessInvocations": 14,
+      "spec": "实现 OrderService.cancel({ orderId, requestId })。refundGateway 和 auditSink 是本项目注入的内部端口，不是外部 SDK，不需要外部文档研究。只有 PENDING 订单可取消；不存在时抛出 new DomainError('ORDER_NOT_FOUND')，非 PENDING 时抛出 new DomainError('ORDER_NOT_PENDING')。调用 refundGateway.refund({ orderId, requestId })，它成功返回 { refundId }；成功后才把状态改为 CANCELLED，并 await auditSink.append({ orderId, requestId, type: 'ORDER_CANCELLED' })。成功结果精确包含 { orderId, requestId, status: 'CANCELLED', refundId }。退款抛错时必须保持 PENDING、不写审计，并抛出 new DomainError('REFUND_FAILED', cause)。相同 requestId 的串行或并发调用必须幂等：只退款一次、只写一次审计并返回相同结果。订单已由其他 requestId 取消时，新请求抛出 ORDER_NOT_PENDING。保留现有导出和 status() 行为；使用 Node.js 内置能力，不增加依赖。实现测试并运行 node --test。不要修改 BENCHMARK_SPEC.md。",
+      "criticalChecks": [
+        "unknown-order",
+        "non-pending",
+        "refund-success",
+        "refund-failure-atomicity",
+        "sequential-idempotency",
+        "concurrent-idempotency",
+        "different-request-after-cancel"
+      ]
+    }
+  ]
+}

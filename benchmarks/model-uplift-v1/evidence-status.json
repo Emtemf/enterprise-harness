@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-only",
+  "publishableModelUplift": false,
+  "minimumPairedObservations": 10,
+  "validPairedObservations": 0,
+  "decisionRule": "paired bootstrap 95% lower(effect mean gap) >= -5pp and 95% upper(cost per accepted change ratio) < 1",
+  "reason": "当前只有 runner 诊断：简单 case 的两个裸跑臂经校准后都通过；Harness 臂超时且缺少完整 billing result。尚无低成本模型路由达到高价模型效果的可发布证据。",
+  "lastUpdated": "2026-09-09",
+  "latestDiagnostic": "pilot-2026-09-09.json"
+}

@@ -176,6 +176,17 @@ assert.match(competitiveEvidence, /交付效果[^。\n]*(?:首要|主指标)|正
   'public marketing must make delivery outcomes the primary evaluation criterion');
 assert.match(competitiveEvidence, /token[^。\n]*资源指标/u,
   'public marketing must frame token as a resource metric instead of the primary value claim');
+assert.match(competitiveEvidence, /model-uplift-hero\.png/u,
+  'public marketing must use the generated model-uplift hero visual');
+assert.match(competitiveEvidence, /cost_per_accepted_change/u,
+  'public marketing must evaluate model economics per accepted change');
+const modelUpliftStatus = JSON.parse(fs.readFileSync(path.join(root, 'benchmarks/model-uplift-v1/evidence-status.json'), 'utf-8'));
+if (!modelUpliftStatus.publishableModelUplift) {
+  assert.match(competitiveEvidence, /模型放大效果目前尚未完成可发布验证/u,
+    'unproven model uplift must remain explicit on the public evidence page');
+  assert.doesNotMatch(competitiveEvidence, /已证明[^。\n]*低价模型[^。\n]*高价模型/u,
+    'public marketing must not claim model uplift before the evidence gate passes');
+}
 
 const capabilities = JSON.parse(fs.readFileSync(path.join(root, 'harness/capabilities.json'), 'utf-8'));
 assert.equal(capabilities.schemaVersion, 2, 'capability registry must use schemaVersion 2');

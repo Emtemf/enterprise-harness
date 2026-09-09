@@ -42,9 +42,17 @@
 
 这组数据说明当前 Harness 为更完整的取证与恢复证据支付了更高资源成本；它没有证明 token 优势。后续假设应围绕单位已验收变更的效果与成本，而不是首轮 token。
 
+## 2026-09-09 Model uplift runner 诊断
+
+新增 `benchmarks/model-uplift-v1/`，比较 Haiku controller + Harness（插件专项 agents 仍固定 Sonnet）、裸 Haiku 与裸 Opus。主指标是系统中立隐藏业务测试，经济指标是包含失败样本的 `cost_per_accepted_change`。
+
+首轮同步 runner 的原始 grader 错误地强制了需求未声明的异常/返回值与 `auditSink` 方法名，导致裸 Haiku 和裸 Opus 都被误判为 0/7。按用户可观察合同校准后，两者均为 7/7；实际成本分别为 $0.1132476 与 $0.448735，说明该简单 case 没有区分模型效果，也不能证明 Harness 的增量价值。
+
+Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `claude` 未返回最终 billing result。旧 runner 把缺失 cost 显示为 $0，已改为流式保存事件并标记 `measurementValid=false`；任何不完整账单都阻断公开结论。完整诊断见 [`pilot-2026-09-09.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-09.json)。
+
 ## 正式评测设计
 
-至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。每个 system/case 至少运行 5 次，面向正式发布建议 10 次。
+至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大结论至少需要 10 对 measurement-valid 观测，并优先增加有区分度的不同 case，而不是只重复一个简单编码题。
 
 主指标：
 

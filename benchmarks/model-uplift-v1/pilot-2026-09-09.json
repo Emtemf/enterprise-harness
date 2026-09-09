@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "runner-diagnostic",
+  "publishableConclusion": false,
+  "date": "2026-09-09",
+  "caseId": "order-cancel-idempotency",
+  "sampleSizePerArm": 1,
+  "records": [
+    {
+      "armId": "haiku-harness",
+      "requestedControllerModel": "haiku",
+      "expectedSpecialistModel": "sonnet",
+      "effectScorePercent": 0,
+      "accepted": false,
+      "measurementValid": false,
+      "costUsd": null,
+      "durationMs": 902718,
+      "finding": "同步 runner 在 Clarify research 内超时，未返回最终 billing result，产品代码未修改；不能把缺失成本记为零。"
+    },
+    {
+      "armId": "haiku-bare",
+      "resolvedModels": ["claude-haiku-4-5"],
+      "effectScorePercentAfterGraderCalibration": 100,
+      "acceptedAfterGraderCalibration": true,
+      "costUsd": 0.1132476,
+      "durationMs": 199941,
+      "finding": "通过全部七项系统中立隐藏行为；原始 0 分来自 grader 私自规定错误/审计接口，已纠正。"
+    },
+    {
+      "armId": "opus-bare",
+      "resolvedModels": ["claude-opus-5"],
+      "effectScorePercentAfterGraderCalibration": 100,
+      "acceptedAfterGraderCalibration": true,
+      "costUsd": 0.448735,
+      "durationMs": 834892,
+      "finding": "通过全部七项系统中立隐藏行为；该简单 case 上未观察到相对 Haiku 的产品效果增益。"
+    }
+  ],
+  "diagnostic": {
+    "haikuBareCostAsFractionOfOpusBare": 0.252371,
+    "caseDiscriminatesBareModelQuality": false,
+    "harnessEconomicsMeasurable": false,
+    "rawResultDigest": "6e2dfb717a67bfb15163a35a9c91ae075f5ea6bcdc5f25c13168919800b6ebaa",
+    "shortDriverRawResultDigest": "184dc7c954693770db8defcd777f16c52d0d9927bce7236be78cfe8b63d80a0d"
+  },
+  "nextEvidenceRequirement": "使用流式 runner，在包含 brownfield 事实、输入变化或跨阶段验收的多类 case 上取得至少 10 对 measurementValid 观测。"
+}

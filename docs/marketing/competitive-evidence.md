@@ -4,7 +4,9 @@
 
 Enterprise Harness 是面向 Claude Code 的 acceptance control plane。它把取证、用户决策、架构与测试设计、任务拆分、隔离实施、独立评审、验证和归档连接成一条可执行的交付协议。缺少新鲜证据、越权写入、自我批准或无法复验时，runtime 会拒绝进入下一个已验收状态。
 
-![Enterprise Harness 企业交付价值图](assets/competitive-positioning.png)
+![较低成本模型通过证据、审查和验证轨道形成可验收交付](assets/model-uplift-hero.png)
+
+我们要验证的核心命题不是“流程越多越好”，而是：能否用较低成本的模型路由，在 Harness 的事实取证、上下文隔离、独立审查和可执行验证约束下，达到高价模型的产品效果，同时降低单位合格交付成本。
 
 ## 企业最终得到什么
 
@@ -34,6 +36,27 @@ Enterprise Harness 不以“首轮回答最便宜”为目标。额外计算用�
 - 独立人员能否复验结论。
 
 token 只作为资源指标，与耗时和工具调用量一起观察；它不替代正确率、返工率、缺陷逃逸率、恢复时间和可审计产出。
+
+## Token 经济学：计算单位合格交付，而不是单次回答
+
+便宜模型可以使用更多 token，只要它最终产生同等质量的已验收结果，并且总成本仍更低。评估公式是：
+
+```text
+单位合格交付成本 = 所有成功与失败运行的实际模型费用总和 / 已验收变更数
+
+Harness 模型路由成本 = Haiku controller 成本
+                      + Sonnet 专项 worker 成本
+                      + cache 与工具成本
+```
+
+当前插件并不是“全程 Haiku”：主 controller 可以使用 Haiku，代码探索、设计、实施和评审等专项 agent 当前声明为 Sonnet。正式比较因此必须读取 Claude Code `modelUsage` 中每个真实模型的 token 与 `costUSD`，再与 Opus 裸工作流比较，不能给整轮贴一个便宜模型标签。
+
+截至 2026-09-09，[Anthropic 官方价格](https://claude.com/pricing)显示 Haiku 4.5、Sonnet 5、Opus 5 的标准输入/输出价格分别为 $1/$5、$2/$10、$5/$25 每百万 token。价格倍率提供了经济空间，但不能证明效果；最终仍需要同时通过两个门槛：
+
+1. 在相同隐藏业务验收上，低成本路由相对 Opus 的效果均值差，其配对 bootstrap 95% 置信区间下界不低于 -5 个百分点；
+2. `cost_per_accepted_change` 比值的 95% 置信区间上界小于 1。
+
+仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含 Haiku controller + Sonnet workers + Harness、裸 Haiku、裸 Opus 三个实验臂。模型放大效果目前尚未完成可发布验证：首轮诊断发现简单编码 case 中裸 Haiku 与裸 Opus 都能通过，因此该 case 不能证明 Harness 增益；Harness 长调用还暴露了账单采集缺口。公开结论会等待多类 case、至少 10 对完整计费观测同时通过效果与成本的置信边界。
 
 ## 与 Superpowers、OpenSpec 的区别
 

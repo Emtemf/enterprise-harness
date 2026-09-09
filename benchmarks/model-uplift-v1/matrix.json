@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "arms": [
+    {
+      "id": "haiku-harness",
+      "model": "haiku",
+      "workflow": "enterprise-harness",
+      "modelRouting": "haiku controller; plugin-declared sonnet specialist workers"
+    },
+    {
+      "id": "haiku-bare",
+      "model": "haiku",
+      "workflow": "bare",
+      "modelRouting": "haiku only"
+    },
+    {
+      "id": "opus-bare",
+      "model": "opus",
+      "workflow": "bare",
+      "modelRouting": "opus only"
+    }
+  ]
+}

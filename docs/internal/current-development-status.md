@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-09-09（公开 marketing 与内部证据维护隔离）
+更新时间：2026-09-09（模型放大证据基准已建立，公开结论仍受门禁阻断）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -8,6 +8,13 @@
 - 当前阶段：Clarify→Archive 各阶段安装态标准样例与同一 change 的确定性连续验收均已完成；后续优化必须从 fresh issue、模型 eval 或真实项目证据立项
 - active change：`redesign-040`（历史遗留状态，当前 audit blocked；不作为本轮实现或完成声明的依据）
 - 主干保留手动 Linux/macOS/Windows 与 Node 20/22 matrix；日常与发布权威 gate 已迁移到本地 `quality:local`
+
+## 2026-09-09 模型放大与 token 经济学基准
+
+- 新增 `benchmarks/model-uplift-v1/` 三臂真实运行器：Haiku controller + 插件声明的 Sonnet workers + Harness、裸 Haiku、裸 Opus；原始结果保留 Claude 返回的 resolved model 与 `costUSD`，不再把混合路由误写为“纯 Haiku”。
+- 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求至少 10 组完整配对观测，同时通过效果非劣和单位验收成本优势的配对 bootstrap 95% 置信边界。
+- 首轮诊断经 grader 合同校准后，简单 case 的裸 Haiku 与裸 Opus 都是 7/7，不能区分模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
+- 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。
 
 ## 2026-09-09 Marketing 受众隔离
 
