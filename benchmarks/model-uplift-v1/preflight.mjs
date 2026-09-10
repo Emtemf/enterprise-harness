@@ -25,7 +25,8 @@ const claudeVersionResult = spawnSync('claude', ['--version'], { encoding: 'utf-
 if (claudeVersionResult.status !== 0) throw new Error(`claude --version failed: ${claudeVersionResult.stderr || claudeVersionResult.stdout}`);
 const claudeCodeVersion = claudeVersionResult.stdout.trim();
 const selectedModel = option('--model');
-const requestedModels = selectedModel ? [selectedModel] : Object.keys(matrix.modelRoutes);
+const benchmarkRoutes = [...new Set(matrix.arms.flatMap((arm) => [arm.controllerRoute, ...(arm.workerRoutes || [])]))];
+const requestedModels = selectedModel ? [selectedModel] : benchmarkRoutes;
 if (requestedModels.some((model) => !matrix.modelRoutes[model])) throw new Error('--model is not present in matrix.modelRoutes');
 
 function parse(raw) {

@@ -49,14 +49,14 @@ Harness 模型路由成本 = GLM-5.1 controller 成本
                       + cache 与工具成本
 ```
 
-当前 CC Switch 评测把 Haiku/Fable 路由到 GLM-5.1，把 Sonnet/Opus 路由到 GLM-5.2。因此 Harness 实验臂不是“全程弱模型”：主 controller 是 GLM-5.1，代码探索、设计、实施和评审等专项 agent 是 GLM-5.2；强模型基线是裸 GLM-5.2。
+当前 CC Switch 评测把 Haiku/Fable 路由到 GLM-5.1，把 Sonnet/Opus 路由到 GLM-5.2。正式矩阵分别运行全弱 Harness、全强 Harness 和 GLM-5.1 controller + GLM-5.2 专项 agent 的生产混合路由，避免把强 worker 的贡献误算成弱模型自身的提升。
 
 效果与成本使用两道独立证据门：
 
 1. 在相同隐藏业务验收上，Harness 组合相对裸 GLM-5.2 的效果均值差，其配对 bootstrap 95% 置信区间下界不低于 -5 个百分点；
 2. 取得 GLM provider 真实账单后，`cost_per_accepted_change` 比值的 95% 置信区间上界小于 1。
 
-仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含 GLM-5.1 controller + GLM-5.2 workers + Harness、裸 GLM-5.1、裸 GLM-5.2 三个实验臂。模型放大效果目前尚未完成可发布验证：公开效果结论等待多类 case、至少 10 对身份有效观测通过效果置信边界；经济结论还必须取得 provider 真实费用。Claude Code 按 Claude alias 返回的 `costUSD` 只保留为诊断估值，不冒充 GLM 实际账单。
+仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness 五个实验臂。模型放大效果目前尚未完成可发布验证：公开效果结论等待至少 5 类 holdout 业务 case、每项比较至少 20 对身份有效观测通过效果置信边界；经济结论还必须取得 provider 真实费用。Claude Code 按 Claude alias 返回的 `costUSD` 只保留为诊断估值，不冒充 GLM 实际账单。
 
 ## 与 Superpowers、OpenSpec 的区别
 

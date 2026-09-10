@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "status": "protocol-frozen-before-formal-data",
+  "primaryQuestion": "不同模型与工作流能否把不完整业务诉求转化为正确、可验收且可恢复的软件变更",
+  "tracks": [
+    {
+      "id": "clarification",
+      "input": "故意不完整且含关键歧义的业务请求、brownfield 代码与可版本化外部文档",
+      "hiddenTruth": "业务方答案、必须发现的关键未知项、禁止自行决定项与证据位置",
+      "primaryMeasures": [
+        "critical_unknown_recall",
+        "premature_assumption_rate",
+        "evidence_grounding_rate",
+        "critical_decisions_per_user_turn",
+        "clarification_acceptance"
+      ]
+    },
+    {
+      "id": "delivery",
+      "input": "澄清后冻结的完整需求与代码库",
+      "hiddenTruth": "业务验收、失败路径、并发与安全属性、允许写入范围",
+      "primaryMeasures": [
+        "business_acceptance_score",
+        "critical_defect_escape_rate",
+        "unauthorized_change_rate",
+        "rework_cycles",
+        "third_party_replay_success"
+      ]
+    },
+    {
+      "id": "change-and-resume",
+      "input": "执行中业务规则变更与强制会话中断",
+      "hiddenTruth": "应失效的旧结论、恢复点与新验收基线",
+      "primaryMeasures": [
+        "stale_artifact_reuse_rate",
+        "resume_accuracy",
+        "resume_duration_ms",
+        "duplicate_or_omitted_work_rate"
+      ]
+    }
+  ],
+  "decisionHierarchy": {
+    "primary": [
+      "clarification_acceptance",
+      "business_acceptance_score",
+      "critical_defect_escape_rate",
+      "premature_assumption_rate"
+    ],
+    "secondary": [
+      "rework_cycles",
+      "resume_accuracy",
+      "third_party_replay_success"
+    ],
+    "resourceOnly": [
+      "input_tokens",
+      "output_tokens",
+      "cache_tokens",
+      "tool_calls",
+      "duration_ms"
+    ],
+    "economics": [
+      "provider_cost_per_accepted_change"
+    ]
+  },
+  "publicationGate": {
+    "minimumDistinctCases": 5,
+    "minimumPairedObservationsPerComparison": 20,
+    "caseSplit": {
+      "development": "只用于调试 runner 与阈值，不发布产品结论",
+      "holdout": "冻结后才运行正式矩阵；不得根据结果改题或 grader"
+    },
+    "requiredControls": [
+      "相同初始仓库、请求、外部文档快照和用户回答脚本",
+      "模型身份与路由 preflight 通过",
+      "实验臂顺序随机化且记录失败和超时",
+      "隐藏真值不进入模型上下文",
+      "确定性 grader 为主，盲化业务专家复核抽样为辅",
+      "多个主假设分别报告，不用单一总分掩盖严重缺陷",
+      "provider 账单与效果结论分开验收"
+    ]
+  },
+  "scriptedUser": {
+    "purpose": "保证不同实验臂收到相同业务答案，同时允许模型自行选择提问顺序",
+    "rules": [
+      "只回答当前问题直接涉及的隐藏业务事实",
+      "不主动补充模型尚未发现的关键未知项",
+      "问题含未经授权的默认选择时记录 premature assumption",
+      "重复问题返回相同答案并计入效率指标"
+    ]
+  }
+}

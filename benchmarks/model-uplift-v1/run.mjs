@@ -258,11 +258,14 @@ async function invoke(root, arm, sessionId, resume, invocation, remainingBudget,
     let timedOut = false;
     fs.mkdirSync(path.dirname(streamPath), { recursive: true });
     const stream = fs.createWriteStream(streamPath, { flags: 'a' });
+    const childEnv = { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
+    delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL;
+    if (arm.subagentModelOverride) childEnv.CLAUDE_CODE_SUBAGENT_MODEL = arm.subagentModelOverride;
     const child = spawn('claude', claudeArgs, {
       cwd: root,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
-      env: { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' },
+      env: childEnv,
     });
     child.stdout.on('data', (chunk) => { stdout.push(chunk); stream.write(chunk); });
     child.stderr.on('data', (chunk) => { stderr.push(chunk); });
@@ -420,7 +423,7 @@ for (const [caseIndex, selectedCase] of selectedCases.entries()) {
   if (interrupted) break;
 }
 const output = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   status: interrupted ? 'interrupted-partial-observations' : 'raw-observations',
   generatedAt: new Date().toISOString(),
   runnerCommit: mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim(),
@@ -437,7 +440,7 @@ const output = {
   } : null,
   arms: selectedArms,
   routingProfile: matrix.routingProfile,
-  comparison: matrix.comparison,
+  comparisons: matrix.comparisons,
   records,
 };
 write(path.join(resultsDir, 'raw-results.json'), `${JSON.stringify(output, null, 2)}\n`);

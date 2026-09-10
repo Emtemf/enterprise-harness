@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "routingProfile": "cc-switch-glm-5.1-vs-5.2",
   "modelRoutes": {
     "haiku": {
@@ -18,13 +18,51 @@
       "billingModelFamilies": ["opus", "glm-5.2"]
     }
   },
-  "comparison": {
-    "treatmentArm": "weak-harness",
-    "controlArm": "strong-bare"
-  },
+  "comparisons": [
+    {
+      "id": "weak-workflow-uplift",
+      "claim": "同为 GLM-5.1 时，Harness 提高业务效果",
+      "treatmentArm": "weak-harness",
+      "controlArm": "weak-bare",
+      "minimumEffectGapPp": 0,
+      "strictEffectGate": true
+    },
+    {
+      "id": "weak-model-substitution",
+      "claim": "GLM-5.1 + Harness 的业务效果不劣于裸 GLM-5.2",
+      "treatmentArm": "weak-harness",
+      "controlArm": "strong-bare",
+      "minimumEffectGapPp": -5
+    },
+    {
+      "id": "strong-workflow-uplift",
+      "claim": "同为 GLM-5.2 时，Harness 进一步提高业务效果",
+      "treatmentArm": "strong-harness",
+      "controlArm": "strong-bare",
+      "minimumEffectGapPp": 0,
+      "strictEffectGate": true
+    },
+    {
+      "id": "hybrid-model-substitution",
+      "claim": "生产混合路由的业务效果不劣于裸 GLM-5.2",
+      "treatmentArm": "hybrid-harness",
+      "controlArm": "strong-bare",
+      "minimumEffectGapPp": -5,
+      "economicComparison": true
+    }
+  ],
   "arms": [
     {
       "id": "weak-harness",
+      "model": "haiku",
+      "workflow": "enterprise-harness",
+      "controllerRoute": "haiku",
+      "workerRoutes": ["haiku"],
+      "subagentModelOverride": "haiku",
+      "modelRouting": "glm-5.1 controller and glm-5.1 workers"
+    },
+    {
+      "id": "hybrid-harness",
       "model": "haiku",
       "workflow": "enterprise-harness",
       "controllerRoute": "haiku",
@@ -41,11 +79,20 @@
     },
     {
       "id": "strong-bare",
-      "model": "opus",
+      "model": "sonnet",
       "workflow": "bare",
-      "controllerRoute": "opus",
+      "controllerRoute": "sonnet",
       "workerRoutes": [],
       "modelRouting": "glm-5.2 only"
+    },
+    {
+      "id": "strong-harness",
+      "model": "sonnet",
+      "workflow": "enterprise-harness",
+      "controllerRoute": "sonnet",
+      "workerRoutes": ["sonnet"],
+      "subagentModelOverride": "sonnet",
+      "modelRouting": "glm-5.2 controller and glm-5.2 workers"
     }
   ]
 }
