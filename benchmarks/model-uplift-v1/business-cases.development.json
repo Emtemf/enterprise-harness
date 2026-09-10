@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "split": "development",
+  "publishable": false,
+  "cases": [
+    {
+      "id": "refund-policy",
+      "initialRequest": "给订单加一个用户自助退款功能。",
+      "evidenceFiles": {
+        "src/order-policy.txt": "订单状态有 PAID、FULFILLED、CANCELLED。现有客服退款入口会调用 PaymentGateway，并写入 audit_log。",
+        "docs/payment-provider-v3.txt": "Provider v3 要求每次退款携带唯一 idempotency_key；超时结果未知，重试必须复用原 key。"
+      },
+      "requiredFacts": [
+        {"id":"eligible-window","weight":3,"questionPattern":"(多久|时间窗|天内|退款期限)","answer":"只有付款后 7 天内且尚未发货的订单允许自助退款。","acceptancePattern":"7 天.*尚未发货|尚未发货.*7 天"},
+        {"id":"partial-refund","weight":3,"questionPattern":"(部分退款|全额|金额)","answer":"第一版只支持全额退款，不支持部分退款。","acceptancePattern":"只支持全额|不支持部分退款"},
+        {"id":"timeout-policy","weight":3,"questionPattern":"(超时|未知结果|重试|幂等)","answer":"网关超时后订单保持原状态，后台使用同一幂等键查询或重试，不能再次生成退款请求。","acceptancePattern":"同一.*幂等|幂等.*重试"},
+        {"id":"user-feedback","weight":2,"questionPattern":"(用户.*提示|失败.*展示|状态.*展示)","answer":"超时向用户显示“退款处理中”，最终成功或失败通过站内信通知。","acceptancePattern":"退款处理中.*站内信|站内信.*退款处理中"}
+      ]
+    },
+    {
+      "id": "webhook-replay",
+      "initialRequest": "把支付回调接进来，收到后更新订单。",
+      "evidenceFiles": {
+        "src/payment-handler.txt": "当前订单更新不是幂等的；重复 PAID 事件会重复发放积分。",
+        "docs/provider-webhook-v2.txt": "Webhook v2 使用原始 body 做 HMAC；失败会指数退避重试 24 小时，事件可能乱序。"
+      },
+      "requiredFacts": [
+        {"id":"duplicate-semantics","weight":3,"questionPattern":"(重复|幂等|重放)","answer":"以 provider_event_id 去重；重复事件返回成功但不重复更新订单或发积分。","acceptancePattern":"provider_event_id.*去重|去重.*provider_event_id"},
+        {"id":"ordering","weight":3,"questionPattern":"(乱序|顺序|旧事件)","answer":"按 provider_event_created_at 只接受比订单已处理事件更新的状态变更，旧事件仅留审计。","acceptancePattern":"provider_event_created_at.*旧事件|旧事件.*审计"},
+        {"id":"unknown-order","weight":2,"questionPattern":"(订单不存在|未知订单|找不到订单)","answer":"未知订单进入隔离队列并告警，HTTP 仍返回 2xx，避免 provider 无限重试。","acceptancePattern":"隔离队列.*2xx|2xx.*隔离队列"},
+        {"id":"signature-failure","weight":3,"questionPattern":"(签名失败|验签|HMAC)","answer":"验签失败返回 401，不写业务数据，并记录不含原始敏感载荷的安全审计。","acceptancePattern":"401.*不写|不写.*401"}
+      ]
+    },
+    {
+      "id": "subscription-downgrade",
+      "initialRequest": "用户可以把订阅套餐降级。",
+      "evidenceFiles": {
+        "src/subscription-policy.txt": "套餐为 BASIC、PRO、ENTERPRISE。席位和存储配额由独立 usage 服务提供。",
+        "docs/billing-v4.txt": "Billing v4 支持 immediate 与 period_end 两种变更模式；请求必须带 request_id。"
+      },
+      "requiredFacts": [
+        {"id":"effective-time","weight":3,"questionPattern":"(何时生效|立即|周期|账期)","answer":"降级在当前计费周期结束时生效，不立即退款。","acceptancePattern":"周期结束.*生效|账期结束.*生效"},
+        {"id":"over-quota","weight":3,"questionPattern":"(超额|配额|席位|存储)","answer":"当前用量超过目标套餐时不允许提交降级，必须先降低席位和存储。","acceptancePattern":"超过.*不允许|先降低.*席位.*存储"},
+        {"id":"cancel-pending","weight":2,"questionPattern":"(撤销|取消.*降级|反悔)","answer":"生效前允许用户撤销待生效降级。","acceptancePattern":"生效前.*撤销|撤销.*待生效"},
+        {"id":"enterprise-approval","weight":3,"questionPattern":"(企业版|ENTERPRISE|审批|管理员)","answer":"ENTERPRISE 只能由组织管理员发起，且需要财务管理员二次确认。","acceptancePattern":"组织管理员.*财务管理员|财务管理员.*二次确认"}
+      ]
+    },
+    {
+      "id": "customer-export",
+      "initialRequest": "做一个客户数据导出按钮。",
+      "evidenceFiles": {
+        "src/customer-access.txt": "系统是多租户；客服角色当前能查看客户基础资料，但不能读取付款明细。",
+        "docs/object-storage.txt": "对象存储支持 1 到 1440 分钟的签名下载链接，并支持服务端加密。"
+      },
+      "requiredFacts": [
+        {"id":"scope","weight":3,"questionPattern":"(导出哪些|字段|范围|数据内容)","answer":"只导出当前租户客户的基础资料和订单摘要，不包含付款凭证、密码散列或内部备注。","acceptancePattern":"当前租户.*不包含.*密码|不包含.*付款凭证.*内部备注"},
+        {"id":"authorization","weight":3,"questionPattern":"(谁能|权限|角色|授权)","answer":"只有租户管理员可以发起导出；客服角色无权导出。","acceptancePattern":"租户管理员.*客服.*无权|客服.*无权.*导出"},
+        {"id":"delivery","weight":2,"questionPattern":"(下载|链接|交付|有效期)","answer":"异步生成 CSV，完成后提供 15 分钟有效的一次性下载链接。","acceptancePattern":"15 分钟.*一次性|一次性.*15 分钟"},
+        {"id":"audit-retention","weight":3,"questionPattern":"(审计|留存|删除|保留多久)","answer":"记录发起人、租户、字段范围和下载结果；导出文件 24 小时后删除，审计保留 180 天。","acceptancePattern":"24 小时.*180 天|180 天.*审计"}
+      ]
+    },
+    {
+      "id": "inventory-reservation",
+      "initialRequest": "下单的时候把库存预留起来，别超卖。",
+      "evidenceFiles": {
+        "src/inventory.txt": "库存按 warehouse_id + sku 管理。支付和库存服务通过至少一次投递的事件总线通信。",
+        "docs/event-bus.txt": "事件可能重复、延迟或乱序；消费者负责幂等，消息没有全局事务。"
+      },
+      "requiredFacts": [
+        {"id":"reservation-expiry","weight":3,"questionPattern":"(多久|超时|过期|释放)","answer":"创建订单后预留 15 分钟；未支付则自动释放。","acceptancePattern":"15 分钟.*释放|释放.*15 分钟"},
+        {"id":"allocation","weight":3,"questionPattern":"(仓库|拆分|分配|warehouse)","answer":"第一版不能跨仓拆分，选择能够完整满足订单的单一仓库，否则下单失败。","acceptancePattern":"不能跨仓.*单一仓库|单一仓库.*完整满足"},
+        {"id":"late-payment","weight":3,"questionPattern":"(支付晚到|过期后支付|延迟支付|迟到)","answer":"预留过期后才收到支付成功时进入人工补偿队列，不自动重新扣库存。","acceptancePattern":"人工补偿队列.*不自动|不自动.*重新扣库存"},
+        {"id":"concurrency","weight":3,"questionPattern":"(并发|原子|锁|超卖)","answer":"库存服务必须使用带版本条件的原子扣减；事件消费者按 order_id 幂等。","acceptancePattern":"版本条件.*原子扣减.*order_id|order_id.*幂等"}
+      ]
+    }
+  ]
+}

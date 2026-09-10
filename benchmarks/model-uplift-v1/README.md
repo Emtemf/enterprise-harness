@@ -26,6 +26,10 @@ Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC S
 
 第二轨才使用澄清后的冻结需求做隐藏业务验收；第三轨在执行中修改需求并中断会话，检查旧证据失效和恢复准确性。这样可以区分“会做题”与“会把模糊业务问题梳理成正确交付”。至少 5 个不同 holdout case、每项比较至少 20 对有效观测后才允许发布正式产品效果；开发 case 只用于调试，不能混入公开结论。
 
+仓库内的 [`business-cases.development.json`](business-cases.development.json) 提供退款、支付回调、订阅降级、客户数据导出和库存预留 5 个开发 case。`business-run.mjs` 在 fresh repository 中运行真实 Claude Code 会话，捕获 `AskUserQuestion` 或最终文本问题；脚本化用户只返回问题命中的隐藏事实。评分器计算关键未知项召回、最终需求覆盖、未询问却写入的假设、证据路径落地、提问效率和提前修改产品代码。开发 case 固定 `publishable=false`，即使重复运行达到样本门也不能生成公开结论。
+
+正式 holdout 必须通过仓库外的 case pack 提供，并声明 `split=holdout`、`publishable=true`；runner 会记录 pack digest，拒绝把仓库内题库伪装成 holdout。由于真实 Claude Code 使用 `bypassPermissions`，外部路径本身不构成保密边界：正式运行还必须提供与 case pack digest 绑定的 isolation receipt，证明采用容器文件系统隔离或远程盲评。没有该回执的数据只能诊断，不能发布。
+
 ## 效果、资源与经济学
 
 主指标是系统中立的隐藏验收。当前 case 覆盖订单取消的状态、原子性与并发幂等，Webhook 的 HMAC 签名、时间窗、多签名轮换、负载校验和重放防护，以及订阅变更的乐观锁、外部失败原子性、幂等冲突和 forward/rollback SQL migration。`accepted` 要求当前 case 的全部关键测试通过、公开回归测试通过且未篡改需求。
@@ -50,6 +54,7 @@ runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提�
 
 ```bash
 node benchmarks/model-uplift-v1/preflight.mjs --output /tmp/model-uplift-preflight.json
+node benchmarks/model-uplift-v1/business-run.mjs --case all --reps 1 --preflight-receipt /tmp/model-uplift-preflight.json
 node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000 --preflight-receipt /tmp/model-uplift-preflight.json
 node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <results>/summary.json
 ```

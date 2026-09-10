@@ -62,7 +62,9 @@ CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用
 
 ## 正式评测设计
 
-至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大结论至少需要 10 对 measurement-valid 观测，并优先增加有区分度的不同 case，而不是只重复一个简单编码题。
+至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大正式结论每项比较至少需要 20 对 measurement-valid 观测并覆盖至少 5 个不同 holdout case；10 对只用于诊断置信区间，不能发布产品主张。
+
+2026-09-10 五臂矩阵与业务澄清轨已落地。五臂分别为弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness；开发题库包含 5 类业务问题，脚本化用户按问题命中返回事实，确定性 grader 检查关键未知项召回、最终覆盖、未经询问的业务假设、证据落地和提前代码写入。仓库内 development pack 永久不可发布；正式 holdout 必须从仓库外注入并记录 digest。公开效果门提升为每项比较至少 20 对、至少 5 个不同 holdout case；10 对只提供诊断置信区间。
 
 主指标：
 

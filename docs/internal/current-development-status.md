@@ -12,6 +12,7 @@
 ## 2026-09-09 模型放大与 token 经济学基准
 
 - `benchmarks/model-uplift-v1/` 已升级为五臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、GLM-5.1 controller + GLM-5.2 workers 混合 Harness、裸 GLM-5.2、全 GLM-5.2 Harness；分别检验弱模型流程增益、弱强非劣、强模型流程增益和生产路由经济性，不再把 Haiku/Sonnet/Opus alias 当成实际模型。
+- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门；`bypassPermissions` 下没有隔离证明的数据不能形成公开结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求至少 10 组完整配对观测，同时通过效果非劣和单位验收成本优势的配对 bootstrap 95% 置信边界。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。

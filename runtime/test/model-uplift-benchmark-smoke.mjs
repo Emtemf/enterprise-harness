@@ -7,12 +7,16 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { routeIdentityValid, modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
 import { validatePreflightReceipt } from '../../benchmarks/model-uplift-v1/lib/preflight-receipt.mjs';
+import { answerBusinessQuestion, extractQuestionFromStream } from '../../benchmarks/model-uplift-v1/lib/scripted-user.mjs';
+import { gradeBusinessClarification } from '../../benchmarks/model-uplift-v1/lib/business-grade.mjs';
+import { validateHoldoutIsolationReceipt } from '../../benchmarks/model-uplift-v1/lib/holdout-receipt.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-model-uplift-smoke-'));
 const matrix = JSON.parse(fs.readFileSync(path.join(benchmark, 'matrix.json'), 'utf-8'));
 const businessProtocol = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-evaluation.json'), 'utf-8'));
+const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-cases.development.json'), 'utf-8'));
 
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'hybrid-harness', 'weak-bare', 'strong-bare', 'strong-harness']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
@@ -22,6 +26,32 @@ assert.equal(businessProtocol.publicationGate.minimumDistinctCases, 5);
 assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerComparison, 20);
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
+const isolationReceipt = {
+  schemaVersion: 1, status: 'pass', casePackDigest: 'a'.repeat(64),
+  mechanism: 'container-filesystem-isolation', verifier: 'benchmark-host', generatedAt: '2026-09-10T00:00:00Z',
+};
+assert.equal(validateHoldoutIsolationReceipt(isolationReceipt, { casePackDigest: 'a'.repeat(64) }), isolationReceipt);
+assert.throws(() => validateHoldoutIsolationReceipt(isolationReceipt, { casePackDigest: 'b'.repeat(64) }), /not bound/u);
+assert.equal(businessCases.cases.length, 5);
+assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
+for (const selectedCase of businessCases.cases) {
+  const transcript = selectedCase.requiredFacts.map((fact, index) => {
+    const scripted = answerBusinessQuestion(selectedCase, `请澄清 ${fact.questionPattern}？`, new Set());
+    assert.ok(scripted.answeredFactIds.includes(fact.id), `${selectedCase.id}/${fact.id} must be script-answerable`);
+    return { turn: index + 1, question: fact.questionPattern, answer: fact.answer, answeredFactIds: [fact.id], unmatched: false };
+  });
+  const completeRequirements = [
+    ...Object.keys(selectedCase.evidenceFiles),
+    ...selectedCase.requiredFacts.map(({ answer }) => answer),
+  ].join('\n');
+  const grade = gradeBusinessClarification(selectedCase, transcript, completeRequirements);
+  assert.equal(grade.accepted, true, `${selectedCase.id} complete transcript must pass`);
+  assert.equal(grade.evidenceGroundingRate, 1);
+  const assumed = gradeBusinessClarification(selectedCase, transcript.slice(1), completeRequirements);
+  assert.ok(assumed.prematureAssumptionRate > 0, `${selectedCase.id} unasked decisions must be counted as premature assumptions`);
+  assert.equal(gradeBusinessClarification(selectedCase, transcript.slice(1), '').accepted, false);
+}
+assert.equal(extractQuestionFromStream([{ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'AskUserQuestion', input: { questions: [{ question: '退款期限是多少？' }] } }] } }], ''), '退款期限是多少？');
 
 const modelRoutes = {
   haiku: { messageModelFamilies: ['glm-5.1'], billingModelFamilies: ['haiku'] },
@@ -93,6 +123,25 @@ try {
   result = spawnSync(process.execPath, [path.join(benchmark, 'run.mjs'), '--case', 'all'], { encoding: 'utf-8', shell: false });
   assert.notEqual(result.status, 0, 'formal all-case matrix must require a preflight receipt');
   assert.match(result.stderr, /requires --preflight-receipt/u);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--help'], { encoding: 'utf-8', shell: false });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /--case-pack/u);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--case', 'all'], { encoding: 'utf-8', shell: false });
+  assert.notEqual(result.status, 0, 'formal all-case business matrix must require a preflight receipt');
+  assert.match(result.stderr, /requires --preflight-receipt/u);
+  const unsafePackPath = path.join(fixture, 'unsafe-business-pack.json');
+  fs.writeFileSync(unsafePackPath, `${JSON.stringify({
+    schemaVersion: 1,
+    split: 'development',
+    publishable: false,
+    cases: [{
+      id: 'unsafe-case', initialRequest: 'test', evidenceFiles: { '../escape.txt': 'bad' },
+      requiredFacts: [{ id: 'fact', weight: 1, questionPattern: 'x', answer: 'y', acceptancePattern: 'y' }],
+    }],
+  })}\n`);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--case-pack', unsafePackPath], { encoding: 'utf-8', shell: false });
+  assert.notEqual(result.status, 0, 'business case pack paths must not escape the fixture');
+  assert.match(result.stderr, /safe relative paths/u);
 
   const rawPath = path.join(fixture, 'raw.json');
   const summaryPath = path.join(fixture, 'summary.json');
@@ -139,6 +188,13 @@ try {
   assert.equal(summary.decision.publishableCombinedClaim, true);
   assert.equal(summary.comparisons.find(({ id }) => id === 'weak-model-substitution').decision.diagnostic.bootstrap.effectGapMeanLower95Pp, 0);
   assert.equal(summary.comparisons.find(({ id }) => id === 'hybrid-model-substitution').decision.diagnostic.bootstrap.costPerAcceptedRatioUpper95, 0.5);
+
+  fs.writeFileSync(rawPath, `${JSON.stringify({ ...raw(), claimEligibleInput: false })}\n`);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
+  assert.equal(result.status, 0, result.stderr);
+  summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+  assert.equal(summary.decision.publishableEffectStory, false, 'development case packs must never support a published claim');
+  assert.equal(summary.comparisons[0].decision.reason.effect, 'the case pack is diagnostic-only and cannot support a published claim');
 
   records[0] = { ...records[0], grade: { accepted: true, effectScore: 0 } };
   fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);

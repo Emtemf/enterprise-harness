@@ -34,6 +34,7 @@
     "docs:check": "node runtime/test/docs-consistency-smoke.mjs verify",
     "benchmark:competitive": "node benchmarks/competitive-v1/run.mjs",
     "benchmark:model-uplift": "node benchmarks/model-uplift-v1/run.mjs",
+    "benchmark:model-uplift:business": "node benchmarks/model-uplift-v1/business-run.mjs",
     "benchmark:model-uplift:preflight": "node benchmarks/model-uplift-v1/preflight.mjs",
     "benchmark:governance": "node benchmarks/governance-v1/run.mjs",
     "pack": "node bin/package.mjs",

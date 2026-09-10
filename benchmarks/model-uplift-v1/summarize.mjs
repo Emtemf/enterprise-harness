@@ -11,6 +11,7 @@ if (!rawPath || !outputPath) {
 const raw = JSON.parse(fs.readFileSync(path.resolve(rawPath), 'utf-8'));
 const minimumPairedObservations = 20;
 const minimumDistinctCases = 5;
+const claimEligibleInput = raw.claimEligibleInput !== false;
 const byArm = new Map();
 for (const record of raw.records || []) {
   const rows = byArm.get(record.armId) || [];
@@ -120,7 +121,7 @@ const comparisons = configuredComparisons.map((comparison) => {
   const validEffectMeasurements = pairs.every(({ effectMeasurementValid }) => effectMeasurementValid);
   const distinctCases = new Set(pairs.map(({ caseId }) => caseId)).size;
   const diagnosticEligible = pairs.length >= 10 && validEffectMeasurements;
-  const effectEligible = pairs.length >= minimumPairedObservations
+  const effectEligible = claimEligibleInput && pairs.length >= minimumPairedObservations
     && distinctCases >= minimumDistinctCases && validEffectMeasurements;
   const economicEligible = effectEligible && pairs.every(({ economicMeasurementValid }) => economicMeasurementValid);
   const bootstrap = bootstrapPairedDecision(pairs);
@@ -142,7 +143,7 @@ const comparisons = configuredComparisons.map((comparison) => {
       eligibleForEconomicClaim: economicEligible,
       publishableEconomics,
       reason: {
-        effect: effectEligible ? (publishableEffect ? 'effect confidence-bound gate passed' : 'effect confidence-bound gate failed') : `at least ${minimumPairedObservations} identity-valid pairs across ${minimumDistinctCases} distinct holdout cases are required`,
+        effect: effectEligible ? (publishableEffect ? 'effect confidence-bound gate passed' : 'effect confidence-bound gate failed') : claimEligibleInput ? `at least ${minimumPairedObservations} identity-valid pairs across ${minimumDistinctCases} distinct holdout cases are required` : 'the case pack is diagnostic-only and cannot support a published claim',
         economics: economicEligible ? (publishableEconomics ? 'provider-billed cost confidence bound passed' : 'cost confidence-bound gate failed') : 'provider-billed cost is required; Claude alias cost estimates are not accepted',
       },
       diagnostic: {
@@ -173,6 +174,7 @@ const summary = {
     publishableCombinedClaim: publishableEffectStory && Boolean(economicComparison?.decision.publishableEconomics),
     effectRequirements: requiredEffectIds,
     economicComparison: economicComparison?.id || null,
+    claimEligibleInput,
     minimumPairedObservations,
     minimumDistinctCases,
   },
