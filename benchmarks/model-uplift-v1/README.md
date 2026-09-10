@@ -2,7 +2,7 @@
 
 本基准检验一个可证伪的产品假设：
 
-> 在相同软件变更上，低价模型 + Enterprise Harness 的产品效果不劣于高价模型裸工作流 5 个百分点，并且每个已验收变更的实际模型成本更低。
+> 在相同软件变更上，弱模型路由 + Enterprise Harness 的产品效果不劣于强模型裸工作流 5 个百分点；在取得 provider 真实账单后，再独立检验每个已验收变更的实际成本是否更低。
 
 它不是用 Harness 产物数量给 Harness 打分。产品效果由系统不可见的隐藏业务测试决定；企业治理产物单独报告。
 
@@ -10,11 +10,13 @@
 
 | 实验臂 | 作用 |
 |---|---|
-| `haiku-harness` | 待验证的模型路由：Haiku controller，插件声明的 Sonnet 专项 workers，Harness 提供取证、隔离、评审和验证结构 |
-| `haiku-bare` | 因果对照：识别提升来自模型本身还是 Harness |
-| `opus-bare` | 高价模型基线：检验低价组合能否达到强模型产品效果 |
+| `weak-harness` | GLM-5.1 controller；插件声明的 Sonnet workers 经 CC Switch 映射为 GLM-5.2；Harness 提供取证、隔离、评审和验证结构 |
+| `weak-bare` | 裸 GLM-5.1 因果对照：识别提升来自模型本身还是 Harness |
+| `strong-bare` | 裸 GLM-5.2 强模型基线 |
 
-模型 alias 由 Claude Code 或兼容 provider 解析，原始结果同时记录 assistant 事件的 `message.model`、最终 `modelUsage` 的模型 ID 和 `costUSD`。两类模型身份必须与实验臂预期 family 一致，否则即使账单完整也标记为 `modelIdentityValid=false`，不能进入公开模型对比。不能把整个 Harness 实验臂错误标成“纯 Haiku”。截至 2026-09-09，Anthropic 公布的 Haiku 4.5 输入/输出/缓存读取价格为 $1/$5/$0.10 每百万 token，Sonnet 5 为 $2/$10/$0.20，Opus 5 为 $5/$25/$0.50；[`pricing.json`](pricing.json) 只适用于身份一致的 Anthropic 模型运行，正式成本仍以实际账单字段为准。
+Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。原始结果同时记录 assistant `message.model` 与最终 `modelUsage` billing key；Harness 臂不是“纯 GLM-5.1”，而是 GLM-5.1 controller 与 GLM-5.2 专项 workers 的组合。
+
+Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC Switch 上游的 GLM 实际费用。效果证据和经济证据因此分开发布：隐藏验收只要求身份与运行完整；`cost_per_accepted_change` 必须使用 provider 账单或可审计的 provider 价格 receipt。[`pricing.json`](pricing.json) 明确记录当前成本证据缺口。
 
 ## 效果与经济学
 
@@ -23,15 +25,16 @@
 经济指标：
 
 ```text
-cost_per_accepted_change = 全部运行实际 costUSD / accepted runs
-model_uplift 可发布 = paired observations >= 10
-                      AND bootstrap_95%_lower(mean effect gap) >= -5pp
-                      AND bootstrap_95%_upper(cost_per_accepted_change ratio) < 1
+effect_uplift 可发布 = identity-valid paired observations >= 10
+                       AND bootstrap_95%_lower(mean effect gap) >= -5pp
+
+economic_advantage 可发布 = provider-billed cost complete
+                            AND bootstrap_95%_upper(cost_per_accepted_change ratio) < 1
 ```
 
-正式结论至少需要 10 个按 case/repetition 配对的观测，并通过固定种子、10,000 次配对 bootstrap 的效果非劣与成本优势置信边界；`n=1` 只能发现 runner、预算和任务难度问题。后续应扩展到 API/SQL migration、多服务契约、安全修复、中断恢复和浏览器 E2E，而不是在一个 case 上重复到看似显著。
+效果结论至少需要 10 个按 case/repetition 配对且模型身份有效的观测，并通过固定种子、10,000 次配对 bootstrap 的非劣置信边界。成本结论额外要求每个样本具备 provider-billed cost；Claude alias 估值不合格。`n=1` 只能发现 runner、预算和任务难度问题。
 
-当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。2026-09-09 的首轮诊断见 [`pilot-2026-09-09.json`](pilot-2026-09-09.json)：校准 grader 后，裸 Haiku 与裸 Opus 在简单 case 上均为 7/7，Haiku 成本为 Opus 的 25.2%；这说明 case 缺少模型区分度，不能证明 Harness 增益。Harness 臂因 runner 超时且缺最终 billing result 无法计算经济性。
+当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。早期诊断中的 Haiku/Opus 是 CC Switch alias，不应解释为 Anthropic 模型；[`pilot-2026-09-10.json`](pilot-2026-09-10.json) 保留了这项口径修正。现有单样本只验证 runner/case，尚不能发布 GLM-5.1 与 GLM-5.2 的效果结论。
 
 ## 运行
 
@@ -41,12 +44,12 @@ node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max
 node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <results>/summary.json
 ```
 
-正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检分别探测 Haiku、Sonnet、Opus，请求 alias 对应的 assistant `message.model` 与 billing `modelUsage` 必须属于同一模型 family，且 Claude Code 版本和非 secret 路由配置摘要与正式运行一致；失败时停止，不允许用 `--force` 绕过。单 case 仍可用于明确标记为 diagnostic 的 runner 调试。
+正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检验证 Haiku/Sonnet/Opus alias 是否分别解析到 profile 声明的 GLM-5.1/GLM-5.2，并绑定 Claude Code 版本和非 secret 路由配置摘要；失败时停止，不允许用 `--force` 绕过。单 case 仍可用于 diagnostic runner 调试。
 
 只运行一个实验臂：
 
 ```bash
-node benchmarks/model-uplift-v1/run.mjs --arm haiku-harness --reps 1 --budget-usd 3
+node benchmarks/model-uplift-v1/run.mjs --arm weak-harness --reps 1 --budget-usd 3
 ```
 
 runner 使用 fresh git repository、相同不可变业务规格和相同隐藏 grader。接口形状、错误语义和可观察结果必须先写入公开给模型的规格，隐藏 grader 不得添加未声明的实现偏好。Harness 实验臂的首条用户消息同时内嵌完整规格，runner 还会验证 `requirements.md` 逐字绑定了该 raw request；只让模型“另行读取规格文件”不算同输入。Harness 必须走真实插件入口；裸实验臂不加载项目或用户设置。Harness 每轮前后读取 durable workflow status，以 exact `stage/status/nextAction/pendingDecision` 驱动下一轮；同阶段恢复原会话，跨阶段创建新会话以减少上下文污染，连续两轮无状态进展则停止。stdout 同步写入 `results/**/streams/`；超时仍保留部分事件，但没有最终 billing result、模型身份冲突或 raw request 未绑定的样本都标记为 `measurementValid=false`，成本不得按 $0 汇总。原始失败、无状态进展、未归档和预算耗尽都保留在结果中，不能从汇总中删除。

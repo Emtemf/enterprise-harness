@@ -180,6 +180,12 @@ assert.match(competitiveEvidence, /model-uplift-hero\.png/u,
   'public marketing must use the generated model-uplift hero visual');
 assert.match(competitiveEvidence, /cost_per_accepted_change/u,
   'public marketing must evaluate model economics per accepted change');
+assert.match(competitiveEvidence, /GLM-5\.1[\s\S]*GLM-5\.2/u,
+  'public marketing must name the actual weak and strong models behind CC Switch aliases');
+assert.match(competitiveEvidence, /provider 真实(?:费用|账单)/u,
+  'public marketing must require provider cost evidence for economics');
+assert.doesNotMatch(competitiveEvidence, /Anthropic 官方价格/u,
+  'CC Switch GLM economics must not use Anthropic alias pricing');
 const modelUpliftStatus = JSON.parse(fs.readFileSync(path.join(root, 'benchmarks/model-uplift-v1/evidence-status.json'), 'utf-8'));
 if (!modelUpliftStatus.publishableModelUplift) {
   assert.match(competitiveEvidence, /模型放大效果目前尚未完成可发布验证/u,

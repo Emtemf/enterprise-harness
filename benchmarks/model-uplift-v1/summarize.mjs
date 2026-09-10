@@ -37,7 +37,7 @@ const seededRandom = (initialSeed) => {
   };
 };
 const bootstrapPairedDecision = (pairs, iterations = 10_000) => {
-  if (pairs.length === 0 || pairs.some(({ measurementValid }) => !measurementValid)) {
+  if (pairs.length === 0 || pairs.some(({ effectMeasurementValid }) => !effectMeasurementValid)) {
     return { iterations, effectGapMeanLower95Pp: null, costPerAcceptedRatioUpper95: null };
   }
   const random = seededRandom(0x45485631);
@@ -46,17 +46,19 @@ const bootstrapPairedDecision = (pairs, iterations = 10_000) => {
   for (let iteration = 0; iteration < iterations; iteration += 1) {
     const sample = Array.from({ length: pairs.length }, () => pairs[Math.floor(random() * pairs.length)]);
     effectMeans.push(mean(sample.map(({ effectGapPp }) => effectGapPp)));
-    const treatmentAccepted = sample.filter(({ treatmentAccepted: accepted }) => accepted).length;
-    const controlAccepted = sample.filter(({ controlAccepted: accepted }) => accepted).length;
-    const treatmentCostPerAccepted = treatmentAccepted === 0
-      ? Number.POSITIVE_INFINITY
-      : sample.reduce((sum, { treatmentCostUsd }) => sum + treatmentCostUsd, 0) / treatmentAccepted;
-    const controlCostPerAccepted = controlAccepted === 0
-      ? Number.POSITIVE_INFINITY
-      : sample.reduce((sum, { controlCostUsd }) => sum + controlCostUsd, 0) / controlAccepted;
-    costRatios.push(Number.isFinite(treatmentCostPerAccepted) && Number.isFinite(controlCostPerAccepted)
-      ? treatmentCostPerAccepted / controlCostPerAccepted
-      : Number.POSITIVE_INFINITY);
+    if (sample.every(({ economicMeasurementValid }) => economicMeasurementValid)) {
+      const treatmentAccepted = sample.filter(({ treatmentAccepted: accepted }) => accepted).length;
+      const controlAccepted = sample.filter(({ controlAccepted: accepted }) => accepted).length;
+      const treatmentCostPerAccepted = treatmentAccepted === 0
+        ? Number.POSITIVE_INFINITY
+        : sample.reduce((sum, { treatmentCostUsd }) => sum + treatmentCostUsd, 0) / treatmentAccepted;
+      const controlCostPerAccepted = controlAccepted === 0
+        ? Number.POSITIVE_INFINITY
+        : sample.reduce((sum, { controlCostUsd }) => sum + controlCostUsd, 0) / controlAccepted;
+      costRatios.push(Number.isFinite(treatmentCostPerAccepted) && Number.isFinite(controlCostPerAccepted)
+        ? treatmentCostPerAccepted / controlCostPerAccepted
+        : Number.POSITIVE_INFINITY);
+    }
   }
   const costUpper = percentile(costRatios, 0.975);
   return {
@@ -65,47 +67,56 @@ const bootstrapPairedDecision = (pairs, iterations = 10_000) => {
     costPerAcceptedRatioUpper95: Number.isFinite(costUpper) ? costUpper : null,
   };
 };
+const providerCost = (row) => row.costAuthority === 'provider-billing' && Number.isFinite(row.providerCostUsd)
+  ? row.providerCostUsd
+  : null;
 const arms = [...byArm].map(([armId, rows]) => {
   const accepted = rows.filter((row) => row.grade.accepted);
-  const measuredCosts = rows.map((row) => row.totals.costUsd).filter((value) => Number.isFinite(value));
-  const completeCost = measuredCosts.length === rows.length;
+  const providerCosts = rows.map(providerCost).filter((value) => Number.isFinite(value));
+  const completeProviderCost = providerCosts.length === rows.length;
+  const aliasCosts = rows.map((row) => row.totals.costUsd).filter((value) => Number.isFinite(value));
   return {
     armId,
     runs: rows.length,
     acceptedRuns: accepted.length,
     acceptanceRate: accepted.length / rows.length,
     effectScoreMedian: median(rows.map((row) => row.grade.effectScore)),
-    measurementValidRuns: rows.filter((row) => row.measurementValid !== false && Number.isFinite(row.totals.costUsd)).length,
-    costUsdMedian: completeCost ? median(measuredCosts) : null,
-    costPerAcceptedChange: accepted.length === 0 || !completeCost
+    measurementValidRuns: rows.filter((row) => row.measurementValid !== false).length,
+    providerCostValidRuns: providerCosts.length,
+    reportedAliasCostUsdMedian: aliasCosts.length === rows.length ? median(aliasCosts) : null,
+    providerCostUsdMedian: completeProviderCost ? median(providerCosts) : null,
+    costPerAcceptedChange: accepted.length === 0 || !completeProviderCost
       ? null
-      : measuredCosts.reduce((sum, value) => sum + value, 0) / accepted.length,
+      : providerCosts.reduce((sum, value) => sum + value, 0) / accepted.length,
     durationMsMedian: median(rows.map((row) => row.totals.durationMs)),
     completedArchiveRate: rows.filter((row) => row.completedArchive).length / rows.length,
   };
 });
-const treatment = byArm.get('haiku-harness') || [];
-const control = byArm.get('opus-bare') || [];
+const treatmentArmId = raw.comparison?.treatmentArm || 'weak-harness';
+const controlArmId = raw.comparison?.controlArm || 'strong-bare';
+const treatment = byArm.get(treatmentArmId) || [];
+const control = byArm.get(controlArmId) || [];
 const pairs = treatment.flatMap((left) => {
   const right = control.find((candidate) => candidate.caseId === left.caseId && candidate.repetition === left.repetition);
   return right ? [{
     caseId: left.caseId,
     repetition: left.repetition,
-    measurementValid: left.measurementValid !== false && right.measurementValid !== false
-      && left.modelIdentityValid !== false && right.modelIdentityValid !== false
-      && Number.isFinite(left.totals.costUsd) && Number.isFinite(right.totals.costUsd),
+    effectMeasurementValid: left.measurementValid !== false && right.measurementValid !== false
+      && left.modelIdentityValid !== false && right.modelIdentityValid !== false,
+    economicMeasurementValid: providerCost(left) !== null && providerCost(right) !== null,
     effectGapPp: left.grade.effectScore - right.grade.effectScore,
     treatmentAccepted: left.grade.accepted,
     controlAccepted: right.grade.accepted,
-    treatmentCostUsd: Number.isFinite(left.totals.costUsd) ? left.totals.costUsd : null,
-    controlCostUsd: Number.isFinite(right.totals.costUsd) ? right.totals.costUsd : null,
-    costGapUsd: Number.isFinite(left.totals.costUsd) && Number.isFinite(right.totals.costUsd)
-      ? left.totals.costUsd - right.totals.costUsd : null,
+    treatmentCostUsd: providerCost(left),
+    controlCostUsd: providerCost(right),
+    costGapUsd: providerCost(left) !== null && providerCost(right) !== null
+      ? providerCost(left) - providerCost(right) : null,
   }] : [];
 });
-const treatmentSummary = arms.find(({ armId }) => armId === 'haiku-harness');
-const controlSummary = arms.find(({ armId }) => armId === 'opus-bare');
-const eligible = pairs.length >= 10 && pairs.every(({ measurementValid }) => measurementValid);
+const treatmentSummary = arms.find(({ armId }) => armId === treatmentArmId);
+const controlSummary = arms.find(({ armId }) => armId === controlArmId);
+const effectEligible = pairs.length >= 10 && pairs.every(({ effectMeasurementValid }) => effectMeasurementValid);
+const economicEligible = effectEligible && pairs.every(({ economicMeasurementValid }) => economicMeasurementValid);
 const bootstrap = bootstrapPairedDecision(pairs);
 const diagnostic = {
   pairedRuns: pairs.length,
@@ -116,22 +127,27 @@ const diagnostic = {
     && treatmentSummary.costPerAcceptedChange < controlSummary.costPerAcceptedChange),
   bootstrap,
 };
-const publishableModelUplift = eligible
+const publishableEffectUplift = effectEligible
   && bootstrap.effectGapMeanLower95Pp !== null
-  && bootstrap.effectGapMeanLower95Pp >= -5
+  && bootstrap.effectGapMeanLower95Pp >= -5;
+const publishableEconomicAdvantage = economicEligible
   && bootstrap.costPerAcceptedRatioUpper95 !== null
   && bootstrap.costPerAcceptedRatioUpper95 < 1;
 const summary = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   source: path.resolve(rawPath),
   arms,
   pairs,
   decision: {
-    eligibleForPublicClaim: eligible,
-    publishableModelUplift,
-    reason: eligible
-      ? (publishableModelUplift ? 'paired bootstrap confidence bounds passed for effect non-inferiority and cost superiority' : 'effect or cost confidence-bound gate failed')
-      : 'at least 10 paired observations with complete billing measurements are required',
+    eligibleForEffectClaim: effectEligible,
+    publishableEffectUplift,
+    eligibleForEconomicClaim: economicEligible,
+    publishableEconomicAdvantage,
+    publishableModelUplift: publishableEffectUplift && publishableEconomicAdvantage,
+    reason: {
+      effect: effectEligible ? (publishableEffectUplift ? 'effect non-inferiority confidence bound passed' : 'effect confidence-bound gate failed') : 'at least 10 identity-valid paired effect observations are required',
+      economics: economicEligible ? (publishableEconomicAdvantage ? 'provider-billed cost confidence bound passed' : 'cost confidence-bound gate failed') : 'provider-billed cost is required; Claude alias cost estimates are not accepted',
+    },
     nonInferiorityMarginPp: 5,
     diagnostic,
   },

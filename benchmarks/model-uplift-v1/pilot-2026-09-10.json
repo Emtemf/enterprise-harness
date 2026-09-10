@@ -4,7 +4,7 @@
   "publishableConclusion": false,
   "date": "2026-09-10",
   "caseId": "webhook-signature-replay",
-  "requestedArm": "haiku-bare",
+  "requestedArm": "weak-bare",
   "effectScorePercent": 100,
   "accepted": true,
   "costUsd": 0.1052646,
@@ -15,9 +15,12 @@
   "assistantMessageModelIds": [
     "glm-5.1"
   ],
-  "modelIdentityValid": false,
-  "measurementValidForModelComparison": false,
-  "finding": "新增 Webhook case 的 7 类隐藏验收全部通过，证明 fixture 与 grader 可执行；但 assistant 流事件模型与最终 billing modelUsage 身份冲突，不能把该运行作为 Anthropic Haiku 效果或官方价格证据。",
+  "modelIdentityValid": true,
+  "measurementValidForEffectComparison": true,
+  "measurementValidForEconomicComparison": false,
+  "costAuthority": "claude-code-alias-estimate",
+  "providerCostUsd": null,
+  "finding": "新增 Webhook case 的 7 类隐藏验收全部通过；结合 CC Switch 显式映射，glm-5.1 assistant model 与 Haiku billing alias 是预期的一条路由，而不是身份冲突。该 n=1 样本可用于 runner/case 诊断，不足以发布效果结论；costUSD 也不是 GLM provider 实际账单。",
   "rawResultDigest": "fb523b39ca070e81c8c0f525b701f171f36f2a68c30acbd106e3213a5cab4215",
   "streamDigest": "1f4fbcf12870b25322b3d8e0a6f95bf09e7182d2967c4d173deb249cbed158d7",
   "harnessDriverDiagnostic": {
@@ -40,10 +43,27 @@
     "requestedModels": ["haiku", "sonnet", "opus"],
     "assistantMessageModels": ["glm-5.1"],
     "billingModelIds": ["claude-haiku-4-5", "claude-sonnet-4-6[1M]", "claude-opus-4-8[1M]"],
-    "identityValidForAllProbes": false,
+    "identityValidForConfiguredProfile": false,
     "probeCostUsd": 0.1474236,
-    "note": "Sonnet 与 Opus 探针同时触发过低的 $0.03 max-budget，但三项探针在退出前都已返回相同的 glm-5.1 assistant model，模型身份门禁独立失败。正式默认探针预算随后调整为每模型 $0.10。",
+    "note": "这份旧环境快照中 Sonnet/Opus 也返回 glm-5.1，不符合后来确认的 CC Switch profile；同时两者触发过低的 $0.03 max-budget。它保留为 preflight 应拒绝 stale/wrong routing 的负样本，正式默认探针预算随后调整为每模型 $0.10。",
     "receiptDigest": "933e87886b8e825d963f6718fca57529eb08a778d8fdef3ef8ec8e316b159a40"
   },
-  "nextEvidenceRequirement": "在模型身份可验证的 provider 环境重新运行三臂配对；message.model 与 modelUsage model ID 必须都匹配实验臂允许的模型 family。"
+  "ccSwitchProfileCheck": {
+    "status": "fail-current-process-not-routed-as-configured",
+    "expected": {
+      "haiku": "glm-5.1",
+      "sonnet": "glm-5.2",
+      "opus": "glm-5.2"
+    },
+    "observed": {
+      "haiku": "unrecognized claude-haiku-4-5 with synthetic error result",
+      "sonnet": "glm-5.3",
+      "opus": "glm-5.3"
+    },
+    "directModelOverrideFinding": "Directly setting Claude defaults to glm-5.1/glm-5.2 also returns unrecognized_model, confirming that the rewrite must happen in the CC Switch local routing/proxy layer rather than inside the benchmark.",
+    "inheritedRouteReceiptDigest": "1f69b8c2a2efcbcc9fd3ca18b0a41d783ffaf903860f4ab68569df2aad4a1876",
+    "haikuDebugReceiptDigest": "0acfb553f43bfdab2ff1d91821ee0609eec6ed4f8f8b6f78ae957fec0cbcfcf3",
+    "directOverrideReceiptDigest": "84d92e420a3eb9ef40b05757e4e752b57173c5e7a115f5a5782988adca09bcd7"
+  },
+  "nextEvidenceRequirement": "用 fresh pass preflight 运行 weak-harness、weak-bare、strong-bare 三臂至少 10 对；效果先独立判定，经济结论另行导入 provider 真实账单。"
 }

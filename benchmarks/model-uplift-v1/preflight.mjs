@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { controllerIdentityValid } from './lib/model-identity.mjs';
+import { routeIdentityValid } from './lib/model-identity.mjs';
 import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -15,7 +15,7 @@ const option = (name, fallback = null) => {
   return index < 0 ? fallback : args[index + 1];
 };
 if (args.includes('--help')) {
-  console.log('Usage: node benchmarks/model-uplift-v1/preflight.mjs [--budget-usd-per-model <n>] [--output <path>]');
+  console.log('Usage: node benchmarks/model-uplift-v1/preflight.mjs [--model <alias>] [--budget-usd-per-model <n>] [--output <path>]');
   process.exit(0);
 }
 const budgetUsdPerModel = Number(option('--budget-usd-per-model', '0.10'));
@@ -24,7 +24,9 @@ const outputPath = path.resolve(option('--output', path.join(here, 'results', `p
 const claudeVersionResult = spawnSync('claude', ['--version'], { encoding: 'utf-8', shell: false });
 if (claudeVersionResult.status !== 0) throw new Error(`claude --version failed: ${claudeVersionResult.stderr || claudeVersionResult.stdout}`);
 const claudeCodeVersion = claudeVersionResult.stdout.trim();
-const requestedModels = [...new Set(matrix.arms.flatMap((arm) => [arm.controllerModelFamily || arm.model, ...(arm.workerModelFamilies || [])]))];
+const selectedModel = option('--model');
+const requestedModels = selectedModel ? [selectedModel] : Object.keys(matrix.modelRoutes);
+if (requestedModels.some((model) => !matrix.modelRoutes[model])) throw new Error('--model is not present in matrix.modelRoutes');
 
 function parse(raw) {
   const events = String(raw).split(/\r?\n/u).filter(Boolean).flatMap((line) => {
@@ -46,18 +48,20 @@ const probes = requestedModels.map((requestedModel) => {
     '--permission-mode', 'bypassPermissions', '--setting-sources', '',
   ], { cwd: here, encoding: 'utf-8', shell: false, timeout: 180_000 });
   const parsed = parse(child.stdout || '');
-  const arm = { model: requestedModel, controllerModelFamily: requestedModel };
-  const identityValid = controllerIdentityValid(arm, parsed.messageModels, parsed.billingModels);
-  const costUsd = Object.values(parsed.result?.modelUsage || {}).reduce((sum, usage) => sum + Number(usage.costUSD || 0), 0);
+  const identityValid = routeIdentityValid(matrix.modelRoutes[requestedModel], parsed.messageModels, parsed.billingModels);
+  const billingEntries = Object.values(parsed.result?.modelUsage || {});
+  const costUsd = billingEntries.reduce((sum, usage) => sum + Number(usage.costUSD || 0), 0);
   return {
     requestedModel,
     exitCode: child.status,
     terminationReason: parsed.result?.subtype || null,
     messageModels: parsed.messageModels,
     billingModels: parsed.billingModels,
-    costUsd: parsed.result?.modelUsage ? costUsd : null,
+    costUsd: billingEntries.length > 0 ? costUsd : null,
     identityValid,
-    complete: Boolean(parsed.result?.modelUsage),
+    complete: billingEntries.length > 0,
+    resultIsError: parsed.result?.is_error ?? null,
+    resultText: typeof parsed.result?.result === 'string' ? parsed.result.result.slice(0, 2_000) : null,
     error: String(child.stderr || '').trim() || null,
   };
 });
@@ -69,6 +73,7 @@ const receipt = {
   expiresAfterHours: 24,
   claudeCodeVersion,
   environmentFingerprint: environmentFingerprint(process.env, claudeCodeVersion),
+  routingProfile: matrix.routingProfile,
   budgetUsdPerModel,
   probes,
 };

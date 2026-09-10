@@ -1,29 +1,51 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "routingProfile": "cc-switch-glm-5.1-vs-5.2",
+  "modelRoutes": {
+    "haiku": {
+      "actualModel": "glm-5.1",
+      "messageModelFamilies": ["glm-5.1"],
+      "billingModelFamilies": ["haiku", "glm-5.1"]
+    },
+    "sonnet": {
+      "actualModel": "glm-5.2",
+      "messageModelFamilies": ["glm-5.2"],
+      "billingModelFamilies": ["sonnet", "glm-5.2"]
+    },
+    "opus": {
+      "actualModel": "glm-5.2",
+      "messageModelFamilies": ["glm-5.2"],
+      "billingModelFamilies": ["opus", "glm-5.2"]
+    }
+  },
+  "comparison": {
+    "treatmentArm": "weak-harness",
+    "controlArm": "strong-bare"
+  },
   "arms": [
     {
-      "id": "haiku-harness",
+      "id": "weak-harness",
       "model": "haiku",
       "workflow": "enterprise-harness",
-      "controllerModelFamily": "haiku",
-      "workerModelFamilies": ["sonnet"],
-      "modelRouting": "haiku controller; plugin-declared sonnet specialist workers"
+      "controllerRoute": "haiku",
+      "workerRoutes": ["sonnet"],
+      "modelRouting": "glm-5.1 controller; plugin-declared Sonnet workers mapped to glm-5.2"
     },
     {
-      "id": "haiku-bare",
+      "id": "weak-bare",
       "model": "haiku",
       "workflow": "bare",
-      "controllerModelFamily": "haiku",
-      "workerModelFamilies": [],
-      "modelRouting": "haiku only"
+      "controllerRoute": "haiku",
+      "workerRoutes": [],
+      "modelRouting": "glm-5.1 only"
     },
     {
-      "id": "opus-bare",
+      "id": "strong-bare",
       "model": "opus",
       "workflow": "bare",
-      "controllerModelFamily": "opus",
-      "workerModelFamilies": [],
-      "modelRouting": "opus only"
+      "controllerRoute": "opus",
+      "workerRoutes": [],
+      "modelRouting": "glm-5.2 only"
     }
   ]
 }

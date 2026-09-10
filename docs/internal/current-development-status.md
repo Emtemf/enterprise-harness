@@ -11,12 +11,13 @@
 
 ## 2026-09-09 模型放大与 token 经济学基准
 
-- 新增 `benchmarks/model-uplift-v1/` 三臂真实运行器：Haiku controller + 插件声明的 Sonnet workers + Harness、裸 Haiku、裸 Opus；原始结果保留 Claude 返回的 resolved model 与 `costUSD`，不再把混合路由误写为“纯 Haiku”。
+- 新增 `benchmarks/model-uplift-v1/` 三臂真实运行器；经 CC Switch 配置确认后，正式口径修正为 GLM-5.1 controller + GLM-5.2 workers + Harness、裸 GLM-5.1、裸 GLM-5.2，不再把 Haiku/Sonnet/Opus 路由 alias 误写为实际模型。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求至少 10 组完整配对观测，同时通过效果非劣和单位验收成本优势的配对 bootstrap 95% 置信边界。
-- 首轮诊断经 grader 合同校准后，简单 case 的裸 Haiku 与裸 Opus 都是 7/7，不能区分模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
+- 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。
-- 2026-09-10 基准扩展到订单幂等、Webhook 签名/时间窗/重放防护、订阅乐观锁与 forward/rollback SQL migration 三类 case。Webhook 真实运行通过 7/7 隐藏验收，但流事件报告 `glm-5.1`、最终计费报告 `claude-haiku-4-5`，模型身份不一致，已作为不可发布诊断保留。runner 现在同时校验 message 与 billing 模型 family、完整 raw request 绑定，并以 durable workflow status 驱动 Harness 阶段恢复。
-- 新增低成本环境 preflight：在正式 `--case all` 前分别探测 controller/worker 所需模型 family，绑定 Claude Code 版本和非 secret 路由配置摘要，receipt 24 小时过期且不可强制绕过。当前环境三种 alias 的流事件均解析为 `glm-5.1`，正式矩阵被正确阻断。
+- 2026-09-10 基准扩展到订单幂等、Webhook 签名/时间窗/重放防护、订阅乐观锁与 forward/rollback SQL migration 三类 case。Webhook 的 GLM-5.1 裸跑通过 7/7；该单样本可验证 case 与弱模型路由，但不足以形成效果结论。runner 同时校验实际 GLM message model、Claude alias billing key、完整 raw request 绑定，并以 durable workflow status 驱动 Harness 阶段恢复。
+- 新增低成本环境 preflight：在正式 `--case all` 前分别探测 controller/worker 所需路由，绑定 Claude Code 版本、CC Switch profile 和非 secret 路由配置摘要，receipt 24 小时过期且不可强制绕过。Haiku 必须解析为 GLM-5.1，Sonnet/Opus 必须解析为 GLM-5.2。
+- 用户提供的 CC Switch profile 已纳入评测真相；fresh runtime preflight 当前仍得到 Haiku unavailable、Sonnet/Opus→GLM-5.3，表明此 Codex 进程未被目标本地路由接管。runner 不自行覆盖模型名，等待 CC Switch 在新进程真实生效。
 
 ## 2026-09-09 Marketing 受众隔离
 

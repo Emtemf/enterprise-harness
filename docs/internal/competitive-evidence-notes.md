@@ -44,17 +44,19 @@
 
 ## 2026-09-09 Model uplift runner 诊断
 
-新增 `benchmarks/model-uplift-v1/`，比较 Haiku controller + Harness（插件专项 agents 仍固定 Sonnet）、裸 Haiku 与裸 Opus。主指标是系统中立隐藏业务测试，经济指标是包含失败样本的 `cost_per_accepted_change`。
+新增 `benchmarks/model-uplift-v1/`。早期以 Claude alias 记为 Haiku controller + Harness、裸 Haiku、裸 Opus；用户随后提供 CC Switch 显式映射，权威评测口径修正为 GLM-5.1 controller + GLM-5.2 workers + Harness、裸 GLM-5.1、裸 GLM-5.2。主指标是系统中立隐藏业务测试；经济指标单独使用 provider-billed `cost_per_accepted_change`。
 
-首轮同步 runner 的原始 grader 错误地强制了需求未声明的异常/返回值与 `auditSink` 方法名，导致裸 Haiku 和裸 Opus 都被误判为 0/7。按用户可观察合同校准后，两者均为 7/7；实际成本分别为 $0.1132476 与 $0.448735，说明该简单 case 没有区分模型效果，也不能证明 Harness 的增量价值。
+首轮同步 runner 的原始 grader 错误地强制了需求未声明的异常/返回值与 `auditSink` 方法名，导致两个裸跑 alias 都被误判为 0/7。按用户可观察合同校准后，两者均为 7/7；Claude Code alias costUSD 分别为 $0.1132476 与 $0.448735。该简单 case 没有区分模型效果，而 alias cost 也不能解释为 GLM provider 实际成本。
 
 Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `claude` 未返回最终 billing result。旧 runner 把缺失 cost 显示为 $0，已改为流式保存事件并标记 `measurementValid=false`；任何不完整账单都阻断公开结论。完整诊断见 [`pilot-2026-09-09.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-09.json)。
 
-2026-09-10 增加 Webhook 安全 case 后，首个请求 `haiku` 的裸跑样本通过 7/7，实际计费 $0.1052646；但 stream 中 assistant `message.model` 为 `glm-5.1`，最终 `modelUsage` key 为 `claude-haiku-4-5`。这可能来自兼容 provider 的 alias 或代理映射，无法仅凭账单 key 确认模型身份。该样本标记为 `modelIdentityValid=false`，只证明 case/grader 可执行，不参与 Anthropic 模型效果或官方价格比较。诊断见 [`pilot-2026-09-10.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-10.json)。
+2026-09-10 增加 Webhook 安全 case 后，请求 Haiku alias 的裸跑样本通过 7/7，stream 为 `glm-5.1`，最终 `modelUsage` key 为 `claude-haiku-4-5`。结合 CC Switch 配置，这两者分别是实际模型和 billing alias，属于预期路由；样本可进入弱模型效果诊断。其 $0.1052646 只是 Claude alias costUSD，不能进入 GLM 经济结论。诊断见 [`pilot-2026-09-10.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-10.json)。
 
 状态驱动 Harness runner 的后续诊断完成两个独立 code-explore packet、关闭 fact gate，并把 durable revision 从 1 推进到 2，证明旧版固定 6 分钟盲跑并非唯一可行驱动方式。但本轮 `requirements.md` 的原始需求只绑定入口说明，完整业务规格仅存在于附件文件，违反 Harness 自己的“附件是 evidence、不是用户原文”合同。运行因此被主动停止；runner 已改为首条消息内嵌完整规格，并以逐字 `rawRequestBound` 检查阻断同输入不成立的样本。
 
-环境预检进一步探测 Haiku、Sonnet、Opus 三个 alias：assistant stream 均报告 `glm-5.1`，最终 billing keys 分别报告 Claude family ID。三次探针合计账单字段为 $0.1474236；Sonnet/Opus 同时触发 $0.03 探针预算上限，但模型身份冲突在退出前已经成立。正式 `--case all` 现在要求 24 小时内、Claude Code 版本和非 secret 路由摘要一致的 pass receipt，不提供 `--force` 绕过。
+旧环境预检探测 Haiku、Sonnet、Opus 三个 alias 时，assistant stream 均报告 `glm-5.1`；这符合弱路由，但不符合 CC Switch profile 中 Sonnet/Opus 应为 GLM-5.2 的强路由。三次探针的 Claude alias costUSD 合计 $0.1474236，Sonnet/Opus 同时触发 $0.03 预算上限。该快照保留为错误/过期路由负样本；正式 `--case all` 要求 24 小时内、Claude Code 版本、CC Switch profile 和非 secret 路由摘要一致的 pass receipt，不提供 `--force` 绕过。
+
+用户提供 CC Switch 设置截图后确认目标映射为 Haiku/Fable→GLM-5.1、Sonnet/Opus→GLM-5.2。fresh 预检仍观察到 Haiku alias 指向不可用的 `claude-haiku-4-5`，Sonnet/Opus 的 response model 为 `glm-5.3`；直接把 Claude 默认模型覆盖为 `glm-5.1/5.2` 又返回 `unrecognized_model`。这与 CC Switch 页面“仅在开启本地路由/代理接管后生效”的边界一致：模型名重写必须由 CC Switch 层完成，benchmark 不应伪造环境覆盖。当前正式矩阵继续 fail closed，等待 CC Switch 保存、启用接管并让新进程继承后重跑 preflight。
 
 ## 正式评测设计
 

@@ -31,7 +31,7 @@ Enterprise Harness 将这些情况转换为稳定 blocker 和唯一恢复动作�
 | 规格资产工具 | 保存 proposal、spec、design 和 tasks | 输入变化后机械失效旧 proof，并重新计算最早 blocker |
 | Enterprise Harness | Claude Code 内的 acceptance control plane | 绑定事实、用户决定、身份、命令、review、freshness 与 archive lineage |
 
-企业评估应先比较正确产出、无效验收拒绝、恢复能力和可复验证据，再观察 token、耗时与工具调用量。Superpowers 更轻且方法成熟，OpenSpec 更流动且跨工具；Harness 用更多前置计算换取 runtime 强制验收。当前证据可以证明机械门禁存在，尚不能证明绝对更省 token 或总体 ROI 更高。我们正在用 `cost_per_accepted_change` 检验“Haiku controller + Sonnet 专项 workers + Harness”能否以低于 Opus 裸跑的成本达到同等产品效果；完整交付物、模型经济学和证据状态见[企业价值与选型](docs/marketing/competitive-evidence.md)。
+企业评估应先比较正确产出、无效验收拒绝、恢复能力和可复验证据，再观察 token、耗时与工具调用量。Superpowers 更轻且方法成熟，OpenSpec 更流动且跨工具；Harness 用更多前置计算换取 runtime 强制验收。当前证据可以证明机械门禁存在，尚不能证明绝对更省 token 或总体 ROI 更高。当前 CC Switch 评测检验“GLM-5.1 controller + GLM-5.2 专项 workers + Harness”能否达到裸 GLM-5.2 的产品效果；成本优势单独等待 provider 真实账单，以免把 Claude alias 估值冒充实际支出。完整交付物、模型经济学和证据状态见[企业价值与选型](docs/marketing/competitive-evidence.md)。
 
 ## 已有证据
 

@@ -5,25 +5,29 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { controllerIdentityValid, modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
+import { routeIdentityValid, modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
 import { validatePreflightReceipt } from '../../benchmarks/model-uplift-v1/lib/preflight-receipt.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-model-uplift-smoke-'));
 
-const bareHaiku = { id: 'haiku-bare', model: 'haiku', controllerModelFamily: 'haiku', workerModelFamilies: [] };
-const harnessHaiku = { id: 'haiku-harness', model: 'haiku', controllerModelFamily: 'haiku', workerModelFamilies: ['sonnet'] };
-assert.equal(controllerIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5']), true);
-assert.equal(controllerIdentityValid(bareHaiku, ['glm-5.1'], ['claude-haiku-4-5']), false);
-assert.equal(modelIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5']), true);
-assert.equal(modelIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['glm-5.1']), false);
-assert.equal(modelIdentityValid(harnessHaiku, ['claude-haiku-4-5', 'claude-sonnet-5'], ['claude-haiku-4-5'], ['claude-sonnet-5']), true);
-assert.equal(modelIdentityValid(harnessHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5'], []), false);
+const modelRoutes = {
+  haiku: { messageModelFamilies: ['glm-5.1'], billingModelFamilies: ['haiku'] },
+  sonnet: { messageModelFamilies: ['glm-5.2'], billingModelFamilies: ['sonnet'] },
+};
+const bareWeak = { id: 'weak-bare', controllerRoute: 'haiku', workerRoutes: [] };
+const harnessWeak = { id: 'weak-harness', controllerRoute: 'haiku', workerRoutes: ['sonnet'] };
+assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.1'], ['claude-haiku-4-5']), true);
+assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.2'], ['claude-haiku-4-5']), false);
+assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1']), true);
+assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.2']), false);
+assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5', 'claude-sonnet-4-6'], ['glm-5.1'], ['glm-5.2']), true);
+assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1'], []), false);
 const receiptNow = Date.parse('2026-09-10T00:00:00Z');
 const validReceipt = {
   status: 'pass', generatedAt: '2026-09-10T00:00:00Z', expiresAfterHours: 24,
-  claudeCodeVersion: '2.1.263', environmentFingerprint: 'env-digest',
+  claudeCodeVersion: '2.1.263', environmentFingerprint: 'env-digest', routingProfile: 'cc-switch-glm-5.1-vs-5.2',
   probes: ['haiku', 'sonnet', 'opus'].map((requestedModel) => ({ requestedModel, identityValid: true, complete: true, exitCode: 0 })),
 };
 assert.equal(validatePreflightReceipt(validReceipt, {
@@ -80,56 +84,69 @@ try {
   const rawPath = path.join(fixture, 'raw.json');
   const summaryPath = path.join(fixture, 'summary.json');
   const record = (armId, repetition, effectScore, costUsd, accepted = true) => ({
-    armId, caseId: 'case', repetition, completedArchive: armId === 'haiku-harness',
+    armId, caseId: 'case', repetition, completedArchive: armId === 'weak-harness',
     grade: { accepted, effectScore }, totals: { costUsd, durationMs: 1 },
+    costAuthority: 'provider-billing', providerCostUsd: costUsd,
   });
   const records = Array.from({ length: 9 }, (_, index) => index + 1).flatMap((repetition) => [
-    record('haiku-harness', repetition, 100, 0.4),
-    record('haiku-bare', repetition, 70, 0.1, false),
-    record('opus-bare', repetition, 100, 0.8),
+    record('weak-harness', repetition, 100, 0.4),
+    record('weak-bare', repetition, 70, 0.1, false),
+    record('strong-bare', repetition, 100, 0.8),
   ]);
-  fs.writeFileSync(rawPath, `${JSON.stringify({ records })}\n`);
+  const raw = () => ({ comparison: { treatmentArm: 'weak-harness', controlArm: 'strong-bare' }, records });
+  fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   let summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.decision.eligibleForPublicClaim, false, 'nine pairs must remain diagnostic');
+  assert.equal(summary.decision.eligibleForEffectClaim, false, 'nine pairs must remain diagnostic');
   assert.equal(summary.decision.publishableModelUplift, false);
 
-  records.push(record('haiku-harness', 10, 100, 0.4), record('haiku-bare', 10, 70, 0.1, false), record('opus-bare', 10, 100, 0.8));
-  fs.writeFileSync(rawPath, `${JSON.stringify({ records })}\n`);
+  records.push(record('weak-harness', 10, 100, 0.4), record('weak-bare', 10, 70, 0.1, false), record('strong-bare', 10, 100, 0.8));
+  fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.decision.eligibleForPublicClaim, true);
+  assert.equal(summary.decision.eligibleForEffectClaim, true);
+  assert.equal(summary.decision.publishableEffectUplift, true);
+  assert.equal(summary.decision.publishableEconomicAdvantage, true);
   assert.equal(summary.decision.publishableModelUplift, true);
   assert.equal(summary.decision.diagnostic.bootstrap.effectGapMeanLower95Pp, 0);
   assert.equal(summary.decision.diagnostic.bootstrap.costPerAcceptedRatioUpper95, 0.5);
 
   records[0] = { ...records[0], grade: { accepted: true, effectScore: 0 } };
-  fs.writeFileSync(rawPath, `${JSON.stringify({ records })}\n`);
+  fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.decision.publishableModelUplift, false, 'an uncertain effect lower bound must block the claim');
 
-  records[0] = { ...records[0], measurementValid: false, totals: { ...records[0].totals, costUsd: null } };
-  fs.writeFileSync(rawPath, `${JSON.stringify({ records })}\n`);
+  records[0] = { ...records[0], measurementValid: false, totals: { ...records[0].totals, costUsd: null }, providerCostUsd: null };
+  fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.decision.eligibleForPublicClaim, false, 'incomplete billing must block a public claim');
+  assert.equal(summary.decision.eligibleForEffectClaim, false, 'incomplete result must block an effect claim');
   assert.equal(summary.decision.publishableModelUplift, false);
-  assert.equal(summary.arms.find(({ armId }) => armId === 'haiku-harness').costPerAcceptedChange, null);
+  assert.equal(summary.arms.find(({ armId }) => armId === 'weak-harness').costPerAcceptedChange, null);
 
   const identityRecords = Array.from({ length: 10 }, (_, index) => index + 1).flatMap((repetition) => [
-    { ...record('haiku-harness', repetition, 100, 0.4), modelIdentityValid: repetition !== 1 },
-    record('opus-bare', repetition, 100, 0.8),
+    { ...record('weak-harness', repetition, 100, 0.4), modelIdentityValid: repetition !== 1 },
+    record('strong-bare', repetition, 100, 0.8),
   ]);
-  fs.writeFileSync(rawPath, `${JSON.stringify({ records: identityRecords })}\n`);
+  fs.writeFileSync(rawPath, `${JSON.stringify({ comparison: raw().comparison, records: identityRecords })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.decision.eligibleForPublicClaim, false, 'model identity conflict must block a public claim');
+  assert.equal(summary.decision.eligibleForEffectClaim, false, 'model identity conflict must block an effect claim');
+
+  const noProviderCost = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, costAuthority: 'claude-code-alias-estimate', providerCostUsd: null }));
+  fs.writeFileSync(rawPath, `${JSON.stringify({ comparison: raw().comparison, records: noProviderCost })}\n`);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
+  assert.equal(result.status, 0, result.stderr);
+  summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+  assert.equal(summary.decision.publishableEffectUplift, true, 'effect claim must not require provider pricing');
+  assert.equal(summary.decision.eligibleForEconomicClaim, false, 'Claude alias estimates must not qualify as provider cost');
+  assert.equal(summary.decision.publishableEconomicAdvantage, false);
   console.log('PASS model-uplift-benchmark smoke');
 } finally {
   fs.rmSync(fixture, { recursive: true, force: true });

@@ -1,11 +1,13 @@
 {
   "schemaVersion": 1,
   "status": "diagnostic-only",
+  "publishableEffectUplift": false,
+  "publishableEconomicAdvantage": false,
   "publishableModelUplift": false,
   "minimumPairedObservations": 10,
   "validPairedObservations": 0,
-  "decisionRule": "paired bootstrap 95% lower(effect mean gap) >= -5pp and 95% upper(cost per accepted change ratio) < 1",
-  "reason": "当前只有 runner 诊断：简单 case 的两个裸跑臂经校准后都通过；Harness 臂超时且缺少完整 billing result；环境预检确认 Haiku、Sonnet、Opus 三个 alias 的 assistant message model 均为 glm-5.1，与 billing modelUsage 身份冲突。正式多 case 矩阵已被预检门禁阻断，尚无可发布模型放大证据。",
+  "decisionRule": "effect: paired bootstrap 95% lower(effect mean gap) >= -5pp; economics: provider-billed 95% upper(cost per accepted change ratio) < 1",
+  "reason": "CC Switch 目标路由已明确为弱 GLM-5.1、强 GLM-5.2；但当前进程预检观察到 Haiku 不可用、Sonnet/Opus 返回 GLM-5.3，说明本地路由/代理接管尚未作用于该进程。正式矩阵等待 fresh pass receipt。Claude alias costUSD 也不是 GLM provider 实际账单。",
   "lastUpdated": "2026-09-10",
   "latestDiagnostic": "pilot-2026-09-10.json"
 }

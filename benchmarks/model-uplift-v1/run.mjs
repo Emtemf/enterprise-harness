@@ -48,12 +48,14 @@ function validatePreflight(receiptPath) {
   if (!receiptPath) throw new Error('--case all requires --preflight-receipt from preflight.mjs');
   const receipt = JSON.parse(fs.readFileSync(path.resolve(receiptPath), 'utf-8'));
   const version = mustExec('claude', ['--version'], { cwd: repoRoot }).stdout.trim();
-  const expectedModels = new Set(selectedArms.flatMap((arm) => [arm.controllerModelFamily || arm.model, ...(arm.workerModelFamilies || [])]));
-  return validatePreflightReceipt(receipt, {
+  const expectedModels = new Set(selectedArms.flatMap((arm) => [arm.controllerRoute, ...(arm.workerRoutes || [])]));
+  validatePreflightReceipt(receipt, {
     expectedModels,
     environmentFingerprint: environmentFingerprint(process.env, version),
     claudeCodeVersion: version,
   });
+  if (receipt.routingProfile !== matrix.routingProfile) throw new Error('preflight receipt routing profile does not match the benchmark matrix');
+  return receipt;
 }
 const preflightReceipt = caseOption === 'all' ? validatePreflight(preflightReceiptPath) : null;
 
@@ -368,12 +370,14 @@ async function runOnce(arm, selected, repetition) {
     const controllerMessageModels = [...new Set(invocations.flatMap((item) => item.controllerMessageModels || []))];
     const workerMessageModels = [...new Set(invocations.flatMap((item) => item.workerMessageModels || []))];
     const billingMeasurementValid = invocations.length > 0 && invocations.every(({ timedOut, usage }) => !timedOut && usage.completeness === 'complete');
-    const identityValid = modelIdentityValid(arm, billingModels, controllerMessageModels, workerMessageModels);
+    const identityValid = modelIdentityValid(arm, matrix.modelRoutes, billingModels, controllerMessageModels, workerMessageModels);
     const requestBound = rawRequestBound(root, selected, arm);
     return {
       armId: arm.id,
       workflow: arm.workflow,
       requestedModel: arm.model,
+      actualControllerModel: matrix.modelRoutes[arm.controllerRoute]?.actualModel || null,
+      actualWorkerModels: (arm.workerRoutes || []).map((route) => matrix.modelRoutes[route]?.actualModel).filter(Boolean),
       resolvedModels: billingModels,
       controllerMessageModels,
       workerMessageModels,
@@ -382,6 +386,8 @@ async function runOnce(arm, selected, repetition) {
       completedArchive: archived(root, selected.changeId),
       invocations,
       totals,
+      costAuthority: 'claude-code-alias-estimate',
+      providerCostUsd: null,
       grade: graded,
       changedPaths: diff,
       finalDiff: mustExec('git', ['diff', '--', 'src', 'test', 'migrations'], { cwd: root }).stdout,
@@ -430,6 +436,8 @@ const output = {
     environmentFingerprint: preflightReceipt.environmentFingerprint,
   } : null,
   arms: selectedArms,
+  routingProfile: matrix.routingProfile,
+  comparison: matrix.comparison,
   records,
 };
 write(path.join(resultsDir, 'raw-results.json'), `${JSON.stringify(output, null, 2)}\n`);

@@ -44,19 +44,19 @@ token 只作为资源指标，与耗时和工具调用量一起观察；它不�
 ```text
 单位合格交付成本 = 所有成功与失败运行的实际模型费用总和 / 已验收变更数
 
-Harness 模型路由成本 = Haiku controller 成本
-                      + Sonnet 专项 worker 成本
+Harness 模型路由成本 = GLM-5.1 controller 成本
+                      + GLM-5.2 专项 worker 成本
                       + cache 与工具成本
 ```
 
-当前插件并不是“全程 Haiku”：主 controller 可以使用 Haiku，代码探索、设计、实施和评审等专项 agent 当前声明为 Sonnet。正式比较因此必须读取 Claude Code `modelUsage` 中每个真实模型的 token 与 `costUSD`，再与 Opus 裸工作流比较，不能给整轮贴一个便宜模型标签。
+当前 CC Switch 评测把 Haiku/Fable 路由到 GLM-5.1，把 Sonnet/Opus 路由到 GLM-5.2。因此 Harness 实验臂不是“全程弱模型”：主 controller 是 GLM-5.1，代码探索、设计、实施和评审等专项 agent 是 GLM-5.2；强模型基线是裸 GLM-5.2。
 
-截至 2026-09-09，[Anthropic 官方价格](https://claude.com/pricing)显示 Haiku 4.5、Sonnet 5、Opus 5 的标准输入/输出价格分别为 $1/$5、$2/$10、$5/$25 每百万 token。价格倍率提供了经济空间，但不能证明效果；最终仍需要同时通过两个门槛：
+效果与成本使用两道独立证据门：
 
-1. 在相同隐藏业务验收上，低成本路由相对 Opus 的效果均值差，其配对 bootstrap 95% 置信区间下界不低于 -5 个百分点；
-2. `cost_per_accepted_change` 比值的 95% 置信区间上界小于 1。
+1. 在相同隐藏业务验收上，Harness 组合相对裸 GLM-5.2 的效果均值差，其配对 bootstrap 95% 置信区间下界不低于 -5 个百分点；
+2. 取得 GLM provider 真实账单后，`cost_per_accepted_change` 比值的 95% 置信区间上界小于 1。
 
-仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含 Haiku controller + Sonnet workers + Harness、裸 Haiku、裸 Opus 三个实验臂。模型放大效果目前尚未完成可发布验证：首轮诊断发现简单编码 case 中裸 Haiku 与裸 Opus 都能通过，因此该 case 不能证明 Harness 增益；Harness 长调用还暴露了账单采集缺口。公开结论会等待多类 case、至少 10 对完整计费观测同时通过效果与成本的置信边界。
+仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含 GLM-5.1 controller + GLM-5.2 workers + Harness、裸 GLM-5.1、裸 GLM-5.2 三个实验臂。模型放大效果目前尚未完成可发布验证：公开效果结论等待多类 case、至少 10 对身份有效观测通过效果置信边界；经济结论还必须取得 provider 真实费用。Claude Code 按 Claude alias 返回的 `costUSD` 只保留为诊断估值，不冒充 GLM 实际账单。
 
 ## 与 Superpowers、OpenSpec 的区别
 
