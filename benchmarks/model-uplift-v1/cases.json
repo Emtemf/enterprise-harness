@@ -4,6 +4,8 @@
     {
       "id": "order-cancel-idempotency",
       "changeId": "model-uplift-order-cancel",
+      "fixture": "order-service",
+      "grader": "grade.mjs",
       "maxHarnessInvocations": 14,
       "spec": "实现 OrderService.cancel({ orderId, requestId })。refundGateway 和 auditSink 是本项目注入的内部端口，不是外部 SDK，不需要外部文档研究。只有 PENDING 订单可取消；不存在时抛出 new DomainError('ORDER_NOT_FOUND')，非 PENDING 时抛出 new DomainError('ORDER_NOT_PENDING')。调用 refundGateway.refund({ orderId, requestId })，它成功返回 { refundId }；成功后才把状态改为 CANCELLED，并 await auditSink.append({ orderId, requestId, type: 'ORDER_CANCELLED' })。成功结果精确包含 { orderId, requestId, status: 'CANCELLED', refundId }。退款抛错时必须保持 PENDING、不写审计，并抛出 new DomainError('REFUND_FAILED', cause)。相同 requestId 的串行或并发调用必须幂等：只退款一次、只写一次审计并返回相同结果。订单已由其他 requestId 取消时，新请求抛出 ORDER_NOT_PENDING。保留现有导出和 status() 行为；使用 Node.js 内置能力，不增加依赖。实现测试并运行 node --test。不要修改 BENCHMARK_SPEC.md。",
       "criticalChecks": [
@@ -14,6 +16,40 @@
         "sequential-idempotency",
         "concurrent-idempotency",
         "different-request-after-cancel"
+      ]
+    },
+    {
+      "id": "webhook-signature-replay",
+      "changeId": "model-uplift-webhook-security",
+      "fixture": "webhook-verifier",
+      "grader": "grade-webhook.mjs",
+      "maxHarnessInvocations": 14,
+      "spec": "实现 WebhookVerifier.verify({ rawBody, signatureHeader, nowSeconds })。构造参数为 { secret, replayStore }；replayStore 是内部端口，不是外部 SDK，其 async claim({ eventId, timestamp }) 在首次事件返回 true，重复事件返回 false。signatureHeader 格式为逗号分隔的 t=<十进制 Unix 秒> 与一个或多个 v1=<小写或大写十六进制摘要>；顺序任意，未知字段忽略。签名内容是 HMAC-SHA256(secret, `${t}.${rawBody}`)，任一 v1 使用常量时间比较匹配即可。缺少/重复 t、t 非整数、没有合法 64 位十六进制 v1 时抛出 new WebhookError('SIGNATURE_MALFORMED')；nowSeconds 与 t 的绝对差大于 300 时抛出 WEBHOOK_TIMESTAMP_OUT_OF_RANGE，恰好 300 有效；无匹配摘要时抛出 WEBHOOK_SIGNATURE_INVALID。只有签名和时间验证通过后才 JSON.parse(rawBody)；无效 JSON 或缺少非空字符串 id/type 时抛出 WEBHOOK_PAYLOAD_INVALID，且不得调用 replayStore。随后 await replayStore.claim({ eventId: payload.id, timestamp: t })；返回 false 时抛出 WEBHOOK_REPLAY。成功结果精确包含 { eventId: payload.id, type: payload.type, timestamp: t, payload }。所有错误实例都必须有 code 字段。保留现有导出；使用 Node.js 内置能力，不增加依赖。实现测试并运行 node --test。不要修改 BENCHMARK_SPEC.md。",
+      "criticalChecks": [
+        "valid-signature",
+        "header-order-and-rotated-signature",
+        "malformed-header",
+        "timestamp-boundary",
+        "invalid-signature-no-side-effect",
+        "invalid-payload-no-replay-claim",
+        "replay-rejected"
+      ]
+    },
+    {
+      "id": "subscription-plan-migration",
+      "changeId": "model-uplift-subscription-plan",
+      "fixture": "subscription-service",
+      "grader": "grade-subscription.mjs",
+      "maxHarnessInvocations": 14,
+      "spec": "实现 SubscriptionService.changePlan({ subscriptionId, requestId, targetPlan, expectedVersion })，并归档 SQL migration。只有 BASIC、PRO、ENTERPRISE 是合法 targetPlan，否则在任何外部调用前抛出 new DomainError('PLAN_INVALID')。订阅不存在抛出 SUBSCRIPTION_NOT_FOUND；当前 version 不等于 expectedVersion 抛出 VERSION_CONFLICT。调用 await billingGateway.changePlan({ subscriptionId, targetPlan, requestId })；失败时保持 repository 原值、不写审计，并抛出 new DomainError('BILLING_UPDATE_FAILED', cause)。成功后把 plan 更新为 targetPlan、version 加一，await auditSink.append({ subscriptionId, requestId, type: 'SUBSCRIPTION_PLAN_CHANGED', fromPlan, toPlan: targetPlan, version: expectedVersion + 1 })，并精确返回 { subscriptionId, requestId, plan: targetPlan, version: expectedVersion + 1 }。相同 requestId 且输入完全相同的串行或并发调用只调用 billing、save 和 audit 一次并返回相同结果；复用 requestId 但 subscriptionId、targetPlan 或 expectedVersion 任一不同，抛出 IDEMPOTENCY_CONFLICT。新增 migrations/002_plan_change_requests.sql，创建 plan_change_requests 表，字段 request_id TEXT PRIMARY KEY、subscription_id TEXT NOT NULL、target_plan TEXT NOT NULL、result_json TEXT NOT NULL、created_at TEXT NOT NULL，并为 subscription_id 创建索引；forward migration 不得 DROP/DELETE/TRUNCATE 已有对象。新增 migrations/002_plan_change_requests.down.sql，仅使用 DROP TABLE IF EXISTS plan_change_requests 回滚该新表。保留现有导出和 getPlan() 行为；使用 Node.js 内置能力，不增加依赖。实现测试并运行 node --test。不要修改 BENCHMARK_SPEC.md。",
+      "criticalChecks": [
+        "migration-forward-safe",
+        "migration-rollback-scoped",
+        "validation-and-version",
+        "successful-change",
+        "billing-failure-atomicity",
+        "sequential-idempotency-and-conflict",
+        "concurrent-idempotency"
       ]
     }
   ]

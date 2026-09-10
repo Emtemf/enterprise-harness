@@ -6,6 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
+import { modelIdentityValid } from './lib/model-identity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
@@ -17,21 +18,28 @@ const option = (name, fallback = null) => {
   return index < 0 ? fallback : args[index + 1];
 };
 if (args.includes('--help')) {
-  console.log('Usage: node benchmarks/model-uplift-v1/run.mjs [--arm <id>] [--case <id>] [--reps <n>] [--budget-usd <n>] [--results-dir <path>] [--keep-fixtures]');
+  console.log('Usage: node benchmarks/model-uplift-v1/run.mjs [--arm <id>] [--case <id>] [--reps <n>] [--budget-usd <n>] [--max-agent-turns <n>] [--invocation-timeout-ms <n>] [--results-dir <path>] [--keep-fixtures]');
   process.exit(0);
 }
 const selectedArms = option('--arm')
   ? matrix.arms.filter(({ id }) => id === option('--arm'))
   : matrix.arms;
-const selectedCase = cases.cases.find(({ id }) => id === option('--case', cases.cases[0].id));
+const caseOption = option('--case', cases.cases[0].id);
+const selectedCases = caseOption === 'all' ? cases.cases : cases.cases.filter(({ id }) => id === caseOption);
 const reps = Number(option('--reps', '1'));
 const budgetUsd = Number(option('--budget-usd', '3'));
+const maxAgentTurns = Number(option('--max-agent-turns', '60'));
+const invocationTimeoutMs = Number(option('--invocation-timeout-ms', '900000'));
 const resultsDir = path.resolve(option('--results-dir', path.join(here, 'results', new Date().toISOString().replaceAll(/[:.]/gu, '-'))));
 const keepFixtures = args.includes('--keep-fixtures');
+let interrupted = false;
+process.on('SIGINT', () => { interrupted = true; });
 if (selectedArms.length === 0) throw new Error('unknown --arm');
-if (!selectedCase) throw new Error('unknown --case');
+if (selectedCases.length === 0) throw new Error('unknown --case');
 if (!Number.isSafeInteger(reps) || reps < 1) throw new Error('--reps must be an integer >= 1');
 if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) throw new Error('--budget-usd must be > 0');
+if (!Number.isSafeInteger(maxAgentTurns) || maxAgentTurns < 1) throw new Error('--max-agent-turns must be an integer >= 1');
+if (!Number.isSafeInteger(invocationTimeoutMs) || invocationTimeoutMs < 60_000) throw new Error('--invocation-timeout-ms must be an integer >= 60000');
 
 function write(target, content) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -53,7 +61,8 @@ function parseStream(raw) {
   const texts = events.flatMap((event) => event.type === 'assistant'
     ? (event.message?.content || []).filter((block) => block.type === 'text').map((block) => block.text || '')
     : []);
-  return { events, result, text: result?.result || texts.join('\n') };
+  const messageModels = [...new Set(events.filter((event) => event.type === 'assistant' && event.message?.model).map((event) => event.message.model))];
+  return { events, result, messageModels, text: result?.result || texts.join('\n') };
 }
 function usageOf(parsed) {
   if (parsed.result?.modelUsage) return {
@@ -85,9 +94,9 @@ function fixture(selected) {
   mustExec('git', ['config', 'user.email', 'model-uplift@example.test'], { cwd: root });
   mustExec('git', ['config', 'user.name', 'Model Uplift Benchmark'], { cwd: root });
   write(path.join(root, 'AGENTS.md'), '# Benchmark contract\n\n- `BENCHMARK_SPEC.md` is authoritative and immutable.\n- Implement and test the requested behavior; do not weaken existing tests.\n');
-  write(path.join(root, 'BENCHMARK_SPEC.md'), `# Order cancellation benchmark\n\n${selected.spec}\n`);
+  write(path.join(root, 'BENCHMARK_SPEC.md'), `# Model uplift benchmark: ${selected.id}\n\n${selected.spec}\n`);
   write(path.join(root, 'package.json'), '{"name":"model-uplift-fixture","private":true,"type":"module","scripts":{"test":"node --test"}}\n');
-  write(path.join(root, 'src/order-service.mjs'), [
+  if (selected.fixture === 'order-service') write(path.join(root, 'src/order-service.mjs'), [
     'export class DomainError extends Error {',
     '  constructor(code, cause) { super(code, cause ? { cause } : undefined); this.code = code; }',
     '}',
@@ -111,7 +120,7 @@ function fixture(selected) {
     '}',
     '',
   ].join('\n'));
-  write(path.join(root, 'test/order-service.test.mjs'), [
+  if (selected.fixture === 'order-service') write(path.join(root, 'test/order-service.test.mjs'), [
     "import test from 'node:test';",
     "import assert from 'node:assert/strict';",
     "import { InMemoryOrderRepository, OrderService } from '../src/order-service.mjs';",
@@ -121,6 +130,68 @@ function fixture(selected) {
     '});',
     '',
   ].join('\n'));
+  if (selected.fixture === 'webhook-verifier') write(path.join(root, 'src/webhook-verifier.mjs'), [
+    "export class WebhookError extends Error {",
+    "  constructor(code, cause) { super(code, cause ? { cause } : undefined); this.code = code; }",
+    "}",
+    "",
+    "export class WebhookVerifier {",
+    "  constructor({ secret, replayStore }) { this.secret = secret; this.replayStore = replayStore; }",
+    "  async verify({ rawBody, signatureHeader, nowSeconds }) {",
+    "    throw new WebhookError('NOT_IMPLEMENTED');",
+    "  }",
+    "}",
+    "",
+  ].join('\n'));
+  if (selected.fixture === 'webhook-verifier') write(path.join(root, 'test/webhook-verifier.test.mjs'), [
+    "import test from 'node:test';",
+    "import assert from 'node:assert/strict';",
+    "import { WebhookVerifier } from '../src/webhook-verifier.mjs';",
+    "test('constructor preserves injected contract', () => {",
+    "  const replayStore = { claim: async () => true };",
+    "  const verifier = new WebhookVerifier({ secret: 'secret', replayStore });",
+    "  assert.equal(verifier.replayStore, replayStore);",
+    "});",
+    "",
+  ].join('\n'));
+  if (selected.fixture === 'subscription-service') write(path.join(root, 'migrations/001_subscriptions.sql'), [
+    'CREATE TABLE subscriptions (',
+    '  id TEXT PRIMARY KEY,',
+    '  plan TEXT NOT NULL,',
+    '  version INTEGER NOT NULL',
+    ');',
+    '',
+  ].join('\n'));
+  if (selected.fixture === 'subscription-service') write(path.join(root, 'src/subscription-service.mjs'), [
+    "export class DomainError extends Error {",
+    "  constructor(code, cause) { super(code, cause ? { cause } : undefined); this.code = code; }",
+    "}",
+    "",
+    "export class InMemorySubscriptionRepository {",
+    "  constructor(rows = []) { this.rows = new Map(rows.map((row) => [row.id, { ...row }])); this.saveCount = 0; }",
+    "  get(id) { const row = this.rows.get(id); return row ? { ...row } : null; }",
+    "  save(row) { this.saveCount += 1; this.rows.set(row.id, { ...row }); return { ...row }; }",
+    "}",
+    "",
+    "export class SubscriptionService {",
+    "  constructor({ repository, billingGateway, auditSink }) { this.repository = repository; this.billingGateway = billingGateway; this.auditSink = auditSink; }",
+    "  getPlan(subscriptionId) { return this.repository.get(subscriptionId)?.plan ?? null; }",
+    "  async changePlan(input) { throw new DomainError('NOT_IMPLEMENTED'); }",
+    "}",
+    "",
+  ].join('\n'));
+  if (selected.fixture === 'subscription-service') write(path.join(root, 'test/subscription-service.test.mjs'), [
+    "import test from 'node:test';",
+    "import assert from 'node:assert/strict';",
+    "import { InMemorySubscriptionRepository, SubscriptionService } from '../src/subscription-service.mjs';",
+    "test('getPlan preserves existing behavior', () => {",
+    "  const repository = new InMemorySubscriptionRepository([{ id: 'sub-1', plan: 'BASIC', version: 1 }]);",
+    "  const service = new SubscriptionService({ repository, billingGateway: {}, auditSink: {} });",
+    "  assert.equal(service.getPlan('sub-1'), 'BASIC');",
+    "});",
+    "",
+  ].join('\n'));
+  if (!['order-service', 'webhook-verifier', 'subscription-service'].includes(selected.fixture)) throw new Error(`unsupported fixture: ${selected.fixture}`);
   mustExec('git', ['add', '.'], { cwd: root });
   mustExec('git', ['commit', '-qm', 'benchmark baseline'], { cwd: root });
   return root;
@@ -128,10 +199,33 @@ function fixture(selected) {
 function archived(root, changeId) {
   return fs.existsSync(path.join(root, 'harness', 'archive', changeId));
 }
-async function invoke(root, arm, sessionId, invocation, remainingBudget, prompt, streamPath) {
+function workflowStatus(root, changeId) {
+  const result = exec(process.execPath, [path.join(repoRoot, 'runtime/cli.mjs'), 'workflow', 'status', changeId, '--json'], { cwd: root, timeout: 120_000 });
+  if (result.status !== 0) return { unavailable: true, error: String(result.stderr || result.stdout || '').trim() };
+  try { return JSON.parse(result.stdout); } catch { return { unavailable: true, error: 'workflow status returned invalid JSON' }; }
+}
+function workflowFingerprint(status) {
+  if (!status || status.unavailable) return null;
+  return JSON.stringify({
+    revision: status.revision,
+    stage: status.stage,
+    status: status.status,
+    nextAction: status.nextAction,
+    pendingDecision: status.pendingDecision,
+    currentGap: status.currentGap,
+  });
+}
+function harnessPrompt(selected, invocation, status) {
+  if (invocation === 1 || status?.unavailable) {
+    return `/enterprise-harness:harness Start change ${selected.changeId}. The following text is the user's complete authoritative business request and must be persisted verbatim as the raw request; BENCHMARK_SPEC.md contains the same immutable text:\n\n${selected.spec}\n\nComplete this governed change through verified archive. Use the runtime-recommended route and perform only the current authorized action.`;
+  }
+  const pending = status.pendingDecision ? ` Runtime pendingDecision is ${JSON.stringify(status.pendingDecision)}; treat BENCHMARK_SPEC.md as the user's exact answer and record only the matching choice.` : '';
+  return `/enterprise-harness:harness Resume change ${selected.changeId} from durable state. Fresh workflow status reports stage=${status.stage}, status=${status.status}, nextAction=${status.nextAction}.${pending} Perform only that exact authorized action and stop at the next required user or stage boundary.`;
+}
+async function invoke(root, arm, sessionId, resume, invocation, remainingBudget, prompt, streamPath) {
   const claudeArgs = [
-    '-p', ...(invocation === 1 ? ['--session-id', sessionId] : ['--resume', sessionId]),
-    '--output-format', 'stream-json', '--verbose', '--max-turns', '20',
+    '-p', ...(resume ? ['--resume', sessionId] : ['--session-id', sessionId]),
+    '--output-format', 'stream-json', '--verbose', '--max-turns', String(maxAgentTurns),
     '--max-budget-usd', remainingBudget.toFixed(6), '--model', arm.model,
     '--permission-mode', 'bypassPermissions', '--setting-sources', '',
   ];
@@ -156,7 +250,7 @@ async function invoke(root, arm, sessionId, invocation, remainingBudget, prompt,
       timedOut = true;
       child.kill('SIGTERM');
       setTimeout(() => child.kill('SIGKILL'), 5_000).unref();
-    }, 360_000);
+    }, invocationTimeoutMs);
     child.on('close', (code, signal) => {
       clearTimeout(timeout);
       stream.end();
@@ -170,6 +264,7 @@ async function invoke(root, arm, sessionId, invocation, remainingBudget, prompt,
         durationMs: Date.now() - startedAt,
         usage,
         resolvedModels: Object.keys(parsed.result?.modelUsage || {}),
+        messageModels: parsed.messageModels,
         terminationReason: parsed.result?.subtype || null,
         text: parsed.text,
         streamPath,
@@ -178,9 +273,9 @@ async function invoke(root, arm, sessionId, invocation, remainingBudget, prompt,
     });
   });
 }
-function grade(root) {
+function grade(root, selected) {
   const publicTest = exec(process.execPath, ['--test'], { cwd: root, timeout: 120_000 });
-  const hidden = exec(process.execPath, [path.join(here, 'grade.mjs'), root], { cwd: repoRoot, timeout: 120_000 });
+  const hidden = exec(process.execPath, [path.join(here, selected.grader), root], { cwd: repoRoot, timeout: 120_000 });
   let hiddenResult = null;
   try { hiddenResult = JSON.parse(String(hidden.stdout || '').trim().split(/\r?\n/u).at(-1)); } catch { /* retained below */ }
   const specChanged = mustExec('git', ['diff', '--name-only', 'HEAD'], { cwd: root }).stdout.split(/\r?\n/u).includes('BENCHMARK_SPEC.md');
@@ -196,29 +291,51 @@ function grade(root) {
     specChanged,
   };
 }
+function rawRequestBound(root, selected, arm) {
+  if (arm.workflow !== 'enterprise-harness') return true;
+  const requirementsPath = path.join(root, 'harness', 'changes', selected.changeId, 'requirements.md');
+  return fs.existsSync(requirementsPath) && fs.readFileSync(requirementsPath, 'utf-8').includes(selected.spec);
+}
 async function runOnce(arm, selected, repetition) {
   const root = fixture(selected);
-  const sessionId = crypto.randomUUID();
+  let sessionId = crypto.randomUUID();
+  let resume = false;
   const invocations = [];
+  let unchangedInvocations = 0;
   try {
     const limit = arm.workflow === 'enterprise-harness' ? selected.maxHarnessInvocations : 4;
     for (let invocation = 1; invocation <= limit; invocation += 1) {
+      if (interrupted) break;
       const spent = invocations.reduce((sum, item) => sum + Number(item.usage.costUsd || 0), 0);
       const remaining = budgetUsd - spent;
       if (remaining <= 0.001 || archived(root, selected.changeId)) break;
-      const prompt = invocation === 1
-        ? (arm.workflow === 'enterprise-harness'
-          ? `/enterprise-harness:harness Start change ${selected.changeId}. Read BENCHMARK_SPEC.md and complete the governed change through verified archive. Every business choice and acceptance criterion is already explicitly approved in BENCHMARK_SPEC.md. Use the runtime-recommended route and perform only the current authorized action.`
-          : 'Read BENCHMARK_SPEC.md, implement it completely, add tests, run all tests, inspect the final diff, and fix every failure. Do not modify BENCHMARK_SPEC.md.')
-        : `/enterprise-harness:harness Continue change ${selected.changeId} from fresh runtime state and perform the next authorized action. BENCHMARK_SPEC.md contains the approved business decisions and acceptance criteria. Approve the runtime-recommended route when route confirmation is pending. If a pending question repeats a choice already fixed in BENCHMARK_SPEC.md, record that exact choice. Continue until this invocation's required stop point.`;
+      const beforeStatus = arm.workflow === 'enterprise-harness' && invocation > 1
+        ? workflowStatus(root, selected.changeId)
+        : null;
+      const prompt = arm.workflow === 'enterprise-harness'
+        ? harnessPrompt(selected, invocation, beforeStatus)
+        : 'Read BENCHMARK_SPEC.md, implement it completely, add tests, run all tests, inspect the final diff, and fix every failure. Do not modify BENCHMARK_SPEC.md.';
       const streamPath = path.join(resultsDir, 'streams', `${arm.id}-${selected.id}-rep-${repetition}-invocation-${invocation}.jsonl`);
-      const record = await invoke(root, arm, sessionId, invocation, remaining, prompt, streamPath);
+      const record = await invoke(root, arm, sessionId, resume, invocation, remaining, prompt, streamPath);
+      const afterStatus = arm.workflow === 'enterprise-harness' ? workflowStatus(root, selected.changeId) : null;
+      record.beforeStatus = beforeStatus;
+      record.afterStatus = afterStatus;
       invocations.push(record);
       if (arm.workflow === 'bare' && record.exitCode === 0) break;
       if (record.timedOut || record.usage.completeness !== 'complete') break;
       if (record.exitCode !== 0 && record.terminationReason !== 'error_max_turns') break;
+      if (workflowFingerprint(beforeStatus) === workflowFingerprint(afterStatus)) unchangedInvocations += 1;
+      else unchangedInvocations = 0;
+      if (unchangedInvocations >= 2) break;
+      const stageBefore = beforeStatus?.stage || (invocation === 1 ? 'clarify' : null);
+      if (stageBefore && afterStatus?.stage && stageBefore !== afterStatus.stage) {
+        sessionId = crypto.randomUUID();
+        resume = false;
+      } else {
+        resume = true;
+      }
     }
-    const graded = grade(root);
+    const graded = grade(root, selected);
     const totals = invocations.reduce((sum, item) => ({
       inputTokens: sum.inputTokens + item.usage.inputTokens,
       outputTokens: sum.outputTokens + item.usage.outputTokens,
@@ -228,11 +345,17 @@ async function runOnce(arm, selected, repetition) {
       durationMs: sum.durationMs + item.durationMs,
     }), { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUsd: 0, durationMs: 0 });
     const diff = mustExec('git', ['status', '--short'], { cwd: root }).stdout.trim().split(/\r?\n/u).filter(Boolean);
+    const billingModels = [...new Set(invocations.flatMap(({ resolvedModels }) => resolvedModels))];
+    const messageModels = [...new Set(invocations.flatMap((item) => item.messageModels || []))];
+    const billingMeasurementValid = invocations.length > 0 && invocations.every(({ timedOut, usage }) => !timedOut && usage.completeness === 'complete');
+    const identityValid = modelIdentityValid(arm, billingModels, messageModels);
+    const requestBound = rawRequestBound(root, selected, arm);
     return {
       armId: arm.id,
       workflow: arm.workflow,
       requestedModel: arm.model,
-      resolvedModels: [...new Set(invocations.flatMap(({ resolvedModels }) => resolvedModels))],
+      resolvedModels: billingModels,
+      messageModels,
       caseId: selected.id,
       repetition,
       completedArchive: archived(root, selected.changeId),
@@ -240,8 +363,11 @@ async function runOnce(arm, selected, repetition) {
       totals,
       grade: graded,
       changedPaths: diff,
-      finalDiff: mustExec('git', ['diff', '--', 'src', 'test'], { cwd: root }).stdout,
-      measurementValid: invocations.length > 0 && invocations.every(({ timedOut, usage }) => !timedOut && usage.completeness === 'complete'),
+      finalDiff: mustExec('git', ['diff', '--', 'src', 'test', 'migrations'], { cwd: root }).stdout,
+      billingMeasurementValid,
+      modelIdentityValid: identityValid,
+      rawRequestBound: requestBound,
+      measurementValid: billingMeasurementValid && identityValid && requestBound,
       fixturePath: keepFixtures ? root : null,
     };
   } finally {
@@ -251,27 +377,35 @@ async function runOnce(arm, selected, repetition) {
 
 fs.mkdirSync(resultsDir, { recursive: true });
 const records = [];
-for (let repetition = 1; repetition <= reps; repetition += 1) {
-  const offset = (repetition - 1) % selectedArms.length;
-  const ordered = selectedArms.slice(offset).concat(selectedArms.slice(0, offset));
-  for (const arm of ordered) {
-    const record = await runOnce(arm, selectedCase, repetition);
-    records.push(record);
-    const cost = record.totals.costUsd === null ? 'unavailable' : `$${record.totals.costUsd.toFixed(4)}`;
-    console.log(`${arm.id} rep=${repetition} effect=${record.grade.effectScore.toFixed(1)} accepted=${record.grade.accepted} cost=${cost} measurement=${record.measurementValid} archive=${record.completedArchive}`);
+for (const [caseIndex, selectedCase] of selectedCases.entries()) {
+  for (let repetition = 1; repetition <= reps; repetition += 1) {
+    const offset = (caseIndex + repetition - 1) % selectedArms.length;
+    const ordered = selectedArms.slice(offset).concat(selectedArms.slice(0, offset));
+    for (const arm of ordered) {
+      if (interrupted) break;
+      const record = await runOnce(arm, selectedCase, repetition);
+      records.push(record);
+      const cost = record.totals.costUsd === null ? 'unavailable' : `$${record.totals.costUsd.toFixed(4)}`;
+      console.log(`${arm.id} case=${selectedCase.id} rep=${repetition} effect=${record.grade.effectScore.toFixed(1)} accepted=${record.grade.accepted} cost=${cost} measurement=${record.measurementValid} archive=${record.completedArchive}`);
+    }
+    if (interrupted) break;
   }
+  if (interrupted) break;
 }
 const output = {
   schemaVersion: 1,
-  status: 'raw-observations',
+  status: interrupted ? 'interrupted-partial-observations' : 'raw-observations',
   generatedAt: new Date().toISOString(),
   runnerCommit: mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim(),
   claudeCodeVersion: mustExec('claude', ['--version'], { cwd: repoRoot }).stdout.trim(),
-  caseId: selectedCase.id,
-  repetitions: reps,
+  caseIds: selectedCases.map(({ id }) => id),
+  repetitionsPerCase: reps,
   budgetUsdPerArm: budgetUsd,
+  maxAgentTurns,
+  invocationTimeoutMs,
   arms: selectedArms,
   records,
 };
 write(path.join(resultsDir, 'raw-results.json'), `${JSON.stringify(output, null, 2)}\n`);
 console.log(`results=${path.join(resultsDir, 'raw-results.json')}`);
+if (interrupted) process.exitCode = 130;

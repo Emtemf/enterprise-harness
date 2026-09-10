@@ -14,11 +14,11 @@
 | `haiku-bare` | 因果对照：识别提升来自模型本身还是 Harness |
 | `opus-bare` | 高价模型基线：检验低价组合能否达到强模型产品效果 |
 
-模型 alias 由 Claude Code 解析，原始结果记录 `modelUsage` 返回的每个真实模型 ID 和 `costUSD`，不能把整个 Harness 实验臂错误标成“纯 Haiku”。截至 2026-09-09，Anthropic 公布的 Haiku 4.5 输入/输出/缓存读取价格为 $1/$5/$0.10 每百万 token，Sonnet 5 为 $2/$10/$0.20，Opus 5 为 $5/$25/$0.50；[`pricing.json`](pricing.json) 固定本轮解释口径，正式成本仍以实际账单字段为准。
+模型 alias 由 Claude Code 或兼容 provider 解析，原始结果同时记录 assistant 事件的 `message.model`、最终 `modelUsage` 的模型 ID 和 `costUSD`。两类模型身份必须与实验臂预期 family 一致，否则即使账单完整也标记为 `modelIdentityValid=false`，不能进入公开模型对比。不能把整个 Harness 实验臂错误标成“纯 Haiku”。截至 2026-09-09，Anthropic 公布的 Haiku 4.5 输入/输出/缓存读取价格为 $1/$5/$0.10 每百万 token，Sonnet 5 为 $2/$10/$0.20，Opus 5 为 $5/$25/$0.50；[`pricing.json`](pricing.json) 只适用于身份一致的 Anthropic 模型运行，正式成本仍以实际账单字段为准。
 
 ## 效果与经济学
 
-主指标是系统中立的隐藏验收：未知订单、非 PENDING、退款成功、退款失败原子性、串行幂等、并发幂等和不同 requestId 冲突。`accepted` 要求全部关键测试通过、公开回归测试通过且未篡改需求。
+主指标是系统中立的隐藏验收。当前 case 覆盖订单取消的状态、原子性与并发幂等，Webhook 的 HMAC 签名、时间窗、多签名轮换、负载校验和重放防护，以及订阅变更的乐观锁、外部失败原子性、幂等冲突和 forward/rollback SQL migration。`accepted` 要求当前 case 的全部关键测试通过、公开回归测试通过且未篡改需求。
 
 经济指标：
 
@@ -36,7 +36,7 @@ model_uplift 可发布 = paired observations >= 10
 ## 运行
 
 ```bash
-node benchmarks/model-uplift-v1/run.mjs --reps 1 --budget-usd 3
+node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000
 node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <results>/summary.json
 ```
 
@@ -46,4 +46,4 @@ node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <result
 node benchmarks/model-uplift-v1/run.mjs --arm haiku-harness --reps 1 --budget-usd 3
 ```
 
-runner 使用 fresh git repository、相同不可变业务规格和相同隐藏 grader。接口形状、错误语义和可观察结果必须先写入公开给模型的规格，隐藏 grader 不得添加未声明的实现偏好。Harness 实验臂必须走真实插件入口；裸实验臂不加载项目或用户设置。三组都使用最多 20 agent turns 的短调用并通过 session resume 继续，stdout 同步写入 `results/**/streams/`；超时仍保留部分事件，但没有最终 billing result 的样本标记为 `measurementValid=false`，成本不得按 $0 汇总。原始失败、未归档和预算耗尽都保留在结果中，不能从汇总中删除。
+runner 使用 fresh git repository、相同不可变业务规格和相同隐藏 grader。接口形状、错误语义和可观察结果必须先写入公开给模型的规格，隐藏 grader 不得添加未声明的实现偏好。Harness 实验臂的首条用户消息同时内嵌完整规格，runner 还会验证 `requirements.md` 逐字绑定了该 raw request；只让模型“另行读取规格文件”不算同输入。Harness 必须走真实插件入口；裸实验臂不加载项目或用户设置。Harness 每轮前后读取 durable workflow status，以 exact `stage/status/nextAction/pendingDecision` 驱动下一轮；同阶段恢复原会话，跨阶段创建新会话以减少上下文污染，连续两轮无状态进展则停止。stdout 同步写入 `results/**/streams/`；超时仍保留部分事件，但没有最终 billing result、模型身份冲突或 raw request 未绑定的样本都标记为 `measurementValid=false`，成本不得按 $0 汇总。原始失败、无状态进展、未归档和预算耗尽都保留在结果中，不能从汇总中删除。

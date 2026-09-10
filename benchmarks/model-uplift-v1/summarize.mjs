@@ -92,6 +92,7 @@ const pairs = treatment.flatMap((left) => {
     caseId: left.caseId,
     repetition: left.repetition,
     measurementValid: left.measurementValid !== false && right.measurementValid !== false
+      && left.modelIdentityValid !== false && right.modelIdentityValid !== false
       && Number.isFinite(left.totals.costUsd) && Number.isFinite(right.totals.costUsd),
     effectGapPp: left.grade.effectScore - right.grade.effectScore,
     treatmentAccepted: left.grade.accepted,

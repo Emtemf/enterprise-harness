@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "runner-and-case-diagnostic",
+  "publishableConclusion": false,
+  "date": "2026-09-10",
+  "caseId": "webhook-signature-replay",
+  "requestedArm": "haiku-bare",
+  "effectScorePercent": 100,
+  "accepted": true,
+  "costUsd": 0.1052646,
+  "durationMs": 263864,
+  "billingModelIds": [
+    "claude-haiku-4-5"
+  ],
+  "assistantMessageModelIds": [
+    "glm-5.1"
+  ],
+  "modelIdentityValid": false,
+  "measurementValidForModelComparison": false,
+  "finding": "新增 Webhook case 的 7 类隐藏验收全部通过，证明 fixture 与 grader 可执行；但 assistant 流事件模型与最终 billing modelUsage 身份冲突，不能把该运行作为 Anthropic Haiku 效果或官方价格证据。",
+  "rawResultDigest": "fb523b39ca070e81c8c0f525b701f171f36f2a68c30acbd106e3213a5cab4215",
+  "streamDigest": "1f4fbcf12870b25322b3d8e0a6f95bf09e7182d2967c4d173deb249cbed158d7",
+  "harnessDriverDiagnostic": {
+    "status": "manually-stopped-invalid-input",
+    "costUsd": null,
+    "billingComplete": false,
+    "stateStage": "clarify",
+    "stateRevision": 2,
+    "factGateClosed": true,
+    "codeResearchPacketsCompleted": 2,
+    "rawRequestIncludedFullSpec": false,
+    "finding": "状态驱动版 runner 已派发独立 code-explore workers、关闭 fact gate 并把 durable revision 从 1 推进到 2；但首条 raw request 只绑定了启动说明，没有逐字包含业务规格。该运行被主动停止，不能用于公平比较。runner 随后改为内嵌并机械验证完整 raw request。",
+    "streamDigest": "a3285fa5584e2f34468750b0b49798720ca0fbc6da634d054e84f3d81ae363dc",
+    "requirementsDigest": "4797bb9ead8a1fae95d773b84787ee6971d54bd06ca7ba51ac6216ff884a05c1",
+    "stateDigest": "c2cfab3c3a22ab7e0b1d333b2acd3ed5f58d8991b953ce6baff68f6e88bb613c"
+  },
+  "nextEvidenceRequirement": "在模型身份可验证的 provider 环境重新运行三臂配对；message.model 与 modelUsage model ID 必须都匹配实验臂允许的模型 family。"
+}

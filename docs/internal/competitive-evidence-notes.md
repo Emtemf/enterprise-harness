@@ -50,6 +50,10 @@
 
 Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `claude` 未返回最终 billing result。旧 runner 把缺失 cost 显示为 $0，已改为流式保存事件并标记 `measurementValid=false`；任何不完整账单都阻断公开结论。完整诊断见 [`pilot-2026-09-09.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-09.json)。
 
+2026-09-10 增加 Webhook 安全 case 后，首个请求 `haiku` 的裸跑样本通过 7/7，实际计费 $0.1052646；但 stream 中 assistant `message.model` 为 `glm-5.1`，最终 `modelUsage` key 为 `claude-haiku-4-5`。这可能来自兼容 provider 的 alias 或代理映射，无法仅凭账单 key 确认模型身份。该样本标记为 `modelIdentityValid=false`，只证明 case/grader 可执行，不参与 Anthropic 模型效果或官方价格比较。诊断见 [`pilot-2026-09-10.json`](../../benchmarks/model-uplift-v1/pilot-2026-09-10.json)。
+
+状态驱动 Harness runner 的后续诊断完成两个独立 code-explore packet、关闭 fact gate，并把 durable revision 从 1 推进到 2，证明旧版固定 6 分钟盲跑并非唯一可行驱动方式。但本轮 `requirements.md` 的原始需求只绑定入口说明，完整业务规格仅存在于附件文件，违反 Harness 自己的“附件是 evidence、不是用户原文”合同。运行因此被主动停止；runner 已改为首条消息内嵌完整规格，并以逐字 `rawRequestBound` 检查阻断同输入不成立的样本。
+
 ## 正式评测设计
 
 至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大结论至少需要 10 对 measurement-valid 观测，并优先增加有区分度的不同 case，而不是只重复一个简单编码题。
