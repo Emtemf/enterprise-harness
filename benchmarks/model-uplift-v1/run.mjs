@@ -7,6 +7,8 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import { modelIdentityValid } from './lib/model-identity.mjs';
+import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
+import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
@@ -18,7 +20,7 @@ const option = (name, fallback = null) => {
   return index < 0 ? fallback : args[index + 1];
 };
 if (args.includes('--help')) {
-  console.log('Usage: node benchmarks/model-uplift-v1/run.mjs [--arm <id>] [--case <id>] [--reps <n>] [--budget-usd <n>] [--max-agent-turns <n>] [--invocation-timeout-ms <n>] [--results-dir <path>] [--keep-fixtures]');
+  console.log('Usage: node benchmarks/model-uplift-v1/run.mjs [--arm <id>] [--case <id|all>] [--reps <n>] [--budget-usd <n>] [--max-agent-turns <n>] [--invocation-timeout-ms <n>] [--preflight-receipt <path>] [--results-dir <path>] [--keep-fixtures]');
   process.exit(0);
 }
 const selectedArms = option('--arm')
@@ -30,6 +32,7 @@ const reps = Number(option('--reps', '1'));
 const budgetUsd = Number(option('--budget-usd', '3'));
 const maxAgentTurns = Number(option('--max-agent-turns', '60'));
 const invocationTimeoutMs = Number(option('--invocation-timeout-ms', '900000'));
+const preflightReceiptPath = option('--preflight-receipt');
 const resultsDir = path.resolve(option('--results-dir', path.join(here, 'results', new Date().toISOString().replaceAll(/[:.]/gu, '-'))));
 const keepFixtures = args.includes('--keep-fixtures');
 let interrupted = false;
@@ -40,6 +43,19 @@ if (!Number.isSafeInteger(reps) || reps < 1) throw new Error('--reps must be an 
 if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) throw new Error('--budget-usd must be > 0');
 if (!Number.isSafeInteger(maxAgentTurns) || maxAgentTurns < 1) throw new Error('--max-agent-turns must be an integer >= 1');
 if (!Number.isSafeInteger(invocationTimeoutMs) || invocationTimeoutMs < 60_000) throw new Error('--invocation-timeout-ms must be an integer >= 60000');
+
+function validatePreflight(receiptPath) {
+  if (!receiptPath) throw new Error('--case all requires --preflight-receipt from preflight.mjs');
+  const receipt = JSON.parse(fs.readFileSync(path.resolve(receiptPath), 'utf-8'));
+  const version = mustExec('claude', ['--version'], { cwd: repoRoot }).stdout.trim();
+  const expectedModels = new Set(selectedArms.flatMap((arm) => [arm.controllerModelFamily || arm.model, ...(arm.workerModelFamilies || [])]));
+  return validatePreflightReceipt(receipt, {
+    expectedModels,
+    environmentFingerprint: environmentFingerprint(process.env, version),
+    claudeCodeVersion: version,
+  });
+}
+const preflightReceipt = caseOption === 'all' ? validatePreflight(preflightReceiptPath) : null;
 
 function write(target, content) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -61,8 +77,10 @@ function parseStream(raw) {
   const texts = events.flatMap((event) => event.type === 'assistant'
     ? (event.message?.content || []).filter((block) => block.type === 'text').map((block) => block.text || '')
     : []);
-  const messageModels = [...new Set(events.filter((event) => event.type === 'assistant' && event.message?.model).map((event) => event.message.model))];
-  return { events, result, messageModels, text: result?.result || texts.join('\n') };
+  const assistantEvents = events.filter((event) => event.type === 'assistant' && event.message?.model);
+  const controllerMessageModels = [...new Set(assistantEvents.filter((event) => !event.subagent_type).map((event) => event.message.model))];
+  const workerMessageModels = [...new Set(assistantEvents.filter((event) => event.subagent_type).map((event) => event.message.model))];
+  return { events, result, controllerMessageModels, workerMessageModels, text: result?.result || texts.join('\n') };
 }
 function usageOf(parsed) {
   if (parsed.result?.modelUsage) return {
@@ -264,7 +282,8 @@ async function invoke(root, arm, sessionId, resume, invocation, remainingBudget,
         durationMs: Date.now() - startedAt,
         usage,
         resolvedModels: Object.keys(parsed.result?.modelUsage || {}),
-        messageModels: parsed.messageModels,
+        controllerMessageModels: parsed.controllerMessageModels,
+        workerMessageModels: parsed.workerMessageModels,
         terminationReason: parsed.result?.subtype || null,
         text: parsed.text,
         streamPath,
@@ -346,16 +365,18 @@ async function runOnce(arm, selected, repetition) {
     }), { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUsd: 0, durationMs: 0 });
     const diff = mustExec('git', ['status', '--short'], { cwd: root }).stdout.trim().split(/\r?\n/u).filter(Boolean);
     const billingModels = [...new Set(invocations.flatMap(({ resolvedModels }) => resolvedModels))];
-    const messageModels = [...new Set(invocations.flatMap((item) => item.messageModels || []))];
+    const controllerMessageModels = [...new Set(invocations.flatMap((item) => item.controllerMessageModels || []))];
+    const workerMessageModels = [...new Set(invocations.flatMap((item) => item.workerMessageModels || []))];
     const billingMeasurementValid = invocations.length > 0 && invocations.every(({ timedOut, usage }) => !timedOut && usage.completeness === 'complete');
-    const identityValid = modelIdentityValid(arm, billingModels, messageModels);
+    const identityValid = modelIdentityValid(arm, billingModels, controllerMessageModels, workerMessageModels);
     const requestBound = rawRequestBound(root, selected, arm);
     return {
       armId: arm.id,
       workflow: arm.workflow,
       requestedModel: arm.model,
       resolvedModels: billingModels,
-      messageModels,
+      controllerMessageModels,
+      workerMessageModels,
       caseId: selected.id,
       repetition,
       completedArchive: archived(root, selected.changeId),
@@ -403,6 +424,11 @@ const output = {
   budgetUsdPerArm: budgetUsd,
   maxAgentTurns,
   invocationTimeoutMs,
+  preflight: preflightReceipt ? {
+    path: path.resolve(preflightReceiptPath),
+    generatedAt: preflightReceipt.generatedAt,
+    environmentFingerprint: preflightReceipt.environmentFingerprint,
+  } : null,
   arms: selectedArms,
   records,
 };

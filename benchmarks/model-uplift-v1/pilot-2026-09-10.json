@@ -34,5 +34,16 @@
     "requirementsDigest": "4797bb9ead8a1fae95d773b84787ee6971d54bd06ca7ba51ac6216ff884a05c1",
     "stateDigest": "c2cfab3c3a22ab7e0b1d333b2acd3ed5f58d8991b953ce6baff68f6e88bb613c"
   },
+  "environmentPreflightDiagnostic": {
+    "status": "fail",
+    "claudeCodeVersion": "2.1.263 (Claude Code)",
+    "requestedModels": ["haiku", "sonnet", "opus"],
+    "assistantMessageModels": ["glm-5.1"],
+    "billingModelIds": ["claude-haiku-4-5", "claude-sonnet-4-6[1M]", "claude-opus-4-8[1M]"],
+    "identityValidForAllProbes": false,
+    "probeCostUsd": 0.1474236,
+    "note": "Sonnet 与 Opus 探针同时触发过低的 $0.03 max-budget，但三项探针在退出前都已返回相同的 glm-5.1 assistant model，模型身份门禁独立失败。正式默认探针预算随后调整为每模型 $0.10。",
+    "receiptDigest": "933e87886b8e825d963f6718fca57529eb08a778d8fdef3ef8ec8e316b159a40"
+  },
   "nextEvidenceRequirement": "在模型身份可验证的 provider 环境重新运行三臂配对；message.model 与 modelUsage model ID 必须都匹配实验臂允许的模型 family。"
 }

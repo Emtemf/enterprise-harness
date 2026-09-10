@@ -16,6 +16,7 @@
 - 首轮诊断经 grader 合同校准后，简单 case 的裸 Haiku 与裸 Opus 都是 7/7，不能区分模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。
 - 2026-09-10 基准扩展到订单幂等、Webhook 签名/时间窗/重放防护、订阅乐观锁与 forward/rollback SQL migration 三类 case。Webhook 真实运行通过 7/7 隐藏验收，但流事件报告 `glm-5.1`、最终计费报告 `claude-haiku-4-5`，模型身份不一致，已作为不可发布诊断保留。runner 现在同时校验 message 与 billing 模型 family、完整 raw request 绑定，并以 durable workflow status 驱动 Harness 阶段恢复。
+- 新增低成本环境 preflight：在正式 `--case all` 前分别探测 controller/worker 所需模型 family，绑定 Claude Code 版本和非 secret 路由配置摘要，receipt 24 小时过期且不可强制绕过。当前环境三种 alias 的流事件均解析为 `glm-5.1`，正式矩阵被正确阻断。
 
 ## 2026-09-09 Marketing 受众隔离
 

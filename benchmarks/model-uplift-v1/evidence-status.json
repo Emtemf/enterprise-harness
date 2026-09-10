@@ -5,7 +5,7 @@
   "minimumPairedObservations": 10,
   "validPairedObservations": 0,
   "decisionRule": "paired bootstrap 95% lower(effect mean gap) >= -5pp and 95% upper(cost per accepted change ratio) < 1",
-  "reason": "当前只有 runner 诊断：简单 case 的两个裸跑臂经校准后都通过；Harness 臂超时且缺少完整 billing result；新增 Webhook 样本又出现 assistant message model 与 billing modelUsage 身份冲突。尚无低成本模型路由达到高价模型效果的可发布证据。",
+  "reason": "当前只有 runner 诊断：简单 case 的两个裸跑臂经校准后都通过；Harness 臂超时且缺少完整 billing result；环境预检确认 Haiku、Sonnet、Opus 三个 alias 的 assistant message model 均为 glm-5.1，与 billing modelUsage 身份冲突。正式多 case 矩阵已被预检门禁阻断，尚无可发布模型放大证据。",
   "lastUpdated": "2026-09-10",
   "latestDiagnostic": "pilot-2026-09-10.json"
 }

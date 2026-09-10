@@ -36,9 +36,12 @@ model_uplift 可发布 = paired observations >= 10
 ## 运行
 
 ```bash
-node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000
+node benchmarks/model-uplift-v1/preflight.mjs --output /tmp/model-uplift-preflight.json
+node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000 --preflight-receipt /tmp/model-uplift-preflight.json
 node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <results>/summary.json
 ```
+
+正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检分别探测 Haiku、Sonnet、Opus，请求 alias 对应的 assistant `message.model` 与 billing `modelUsage` 必须属于同一模型 family，且 Claude Code 版本和非 secret 路由配置摘要与正式运行一致；失败时停止，不允许用 `--force` 绕过。单 case 仍可用于明确标记为 diagnostic 的 runner 调试。
 
 只运行一个实验臂：
 

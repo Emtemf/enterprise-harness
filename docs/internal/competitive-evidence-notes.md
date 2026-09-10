@@ -54,6 +54,8 @@ Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `c
 
 状态驱动 Harness runner 的后续诊断完成两个独立 code-explore packet、关闭 fact gate，并把 durable revision 从 1 推进到 2，证明旧版固定 6 分钟盲跑并非唯一可行驱动方式。但本轮 `requirements.md` 的原始需求只绑定入口说明，完整业务规格仅存在于附件文件，违反 Harness 自己的“附件是 evidence、不是用户原文”合同。运行因此被主动停止；runner 已改为首条消息内嵌完整规格，并以逐字 `rawRequestBound` 检查阻断同输入不成立的样本。
 
+环境预检进一步探测 Haiku、Sonnet、Opus 三个 alias：assistant stream 均报告 `glm-5.1`，最终 billing keys 分别报告 Claude family ID。三次探针合计账单字段为 $0.1474236；Sonnet/Opus 同时触发 $0.03 探针预算上限，但模型身份冲突在退出前已经成立。正式 `--case all` 现在要求 24 小时内、Claude Code 版本和非 secret 路由摘要一致的 pass receipt，不提供 `--force` 绕过。
+
 ## 正式评测设计
 
 至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大结论至少需要 10 对 measurement-valid 观测，并优先增加有区分度的不同 case，而不是只重复一个简单编码题。

@@ -5,15 +5,36 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
+import { controllerIdentityValid, modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
+import { validatePreflightReceipt } from '../../benchmarks/model-uplift-v1/lib/preflight-receipt.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-model-uplift-smoke-'));
 
-assert.equal(modelIdentityValid({ id: 'haiku-bare', model: 'haiku' }, ['claude-haiku-4-5'], ['claude-haiku-4-5']), true);
-assert.equal(modelIdentityValid({ id: 'haiku-bare', model: 'haiku' }, ['claude-haiku-4-5'], ['glm-5.1']), false);
-assert.equal(modelIdentityValid({ id: 'haiku-harness', model: 'haiku' }, ['claude-haiku-4-5', 'claude-sonnet-5'], ['claude-haiku-4-5']), true);
+const bareHaiku = { id: 'haiku-bare', model: 'haiku', controllerModelFamily: 'haiku', workerModelFamilies: [] };
+const harnessHaiku = { id: 'haiku-harness', model: 'haiku', controllerModelFamily: 'haiku', workerModelFamilies: ['sonnet'] };
+assert.equal(controllerIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5']), true);
+assert.equal(controllerIdentityValid(bareHaiku, ['glm-5.1'], ['claude-haiku-4-5']), false);
+assert.equal(modelIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5']), true);
+assert.equal(modelIdentityValid(bareHaiku, ['claude-haiku-4-5'], ['glm-5.1']), false);
+assert.equal(modelIdentityValid(harnessHaiku, ['claude-haiku-4-5', 'claude-sonnet-5'], ['claude-haiku-4-5'], ['claude-sonnet-5']), true);
+assert.equal(modelIdentityValid(harnessHaiku, ['claude-haiku-4-5'], ['claude-haiku-4-5'], []), false);
+const receiptNow = Date.parse('2026-09-10T00:00:00Z');
+const validReceipt = {
+  status: 'pass', generatedAt: '2026-09-10T00:00:00Z', expiresAfterHours: 24,
+  claudeCodeVersion: '2.1.263', environmentFingerprint: 'env-digest',
+  probes: ['haiku', 'sonnet', 'opus'].map((requestedModel) => ({ requestedModel, identityValid: true, complete: true, exitCode: 0 })),
+};
+assert.equal(validatePreflightReceipt(validReceipt, {
+  expectedModels: new Set(['haiku', 'sonnet', 'opus']), environmentFingerprint: 'env-digest', claudeCodeVersion: '2.1.263', now: receiptNow,
+}), validReceipt);
+assert.throws(() => validatePreflightReceipt({ ...validReceipt, generatedAt: '2026-09-08T00:00:00Z' }, {
+  expectedModels: new Set(['haiku']), environmentFingerprint: 'env-digest', claudeCodeVersion: '2.1.263', now: receiptNow,
+}), /expired/u);
+assert.throws(() => validatePreflightReceipt(validReceipt, {
+  expectedModels: new Set(['haiku']), environmentFingerprint: 'changed', claudeCodeVersion: '2.1.263', now: receiptNow,
+}), /routing environment/u);
 
 try {
   fs.mkdirSync(path.join(fixture, 'src'), { recursive: true });
@@ -51,6 +72,10 @@ try {
   result = spawnSync(process.execPath, [path.join(benchmark, 'run.mjs'), '--help'], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /--invocation-timeout-ms/u);
+  assert.match(result.stdout, /--preflight-receipt/u);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'run.mjs'), '--case', 'all'], { encoding: 'utf-8', shell: false });
+  assert.notEqual(result.status, 0, 'formal all-case matrix must require a preflight receipt');
+  assert.match(result.stderr, /requires --preflight-receipt/u);
 
   const rawPath = path.join(fixture, 'raw.json');
   const summaryPath = path.join(fixture, 'summary.json');
