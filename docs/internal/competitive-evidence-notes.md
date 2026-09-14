@@ -68,6 +68,8 @@ CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用
 
 2026-09-14 根据 CC Switch 上游账单可观测性修正模型身份边界：alias 与 response model 只负责运行期路由诊断，正式 GLM-5.1/5.2 产品档位由逐样本 provider billing receipt 证明。导入器要求账单覆盖全部 benchmark 记录、模型覆盖 controller/workers、请求 ID 全局唯一、provider 请求时间落在对应 invocation 窗口内，并将 `providerIdentityValid` 写入效果发布门；费用按逐请求记录求和且只参与经济结论。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
 
+同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 provider 请求级回执。
+
 主指标：
 
 - accepted change 的需求正确率与 hard-fail 数；

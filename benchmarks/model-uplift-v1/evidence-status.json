@@ -8,7 +8,7 @@
   "minimumDistinctHoldoutCases": 5,
   "validPairedObservations": 0,
   "decisionRule": "effect: weak workflow uplift + weak-to-strong non-inferiority + strong workflow uplift each pass paired confidence gates; economics: hybrid-vs-strong provider-billed 95% upper(cost per accepted change ratio) < 1",
-  "reason": "CC Switch 与上游使用记录已经证明 GLM-5.1/5.2 路由和计费可观测；assistant response model 只作为 backend identity 诊断，不单独决定 provider 产品档位。最近一次 fresh Haiku 弱入口仍返回 model unavailable，因此正式五臂矩阵等待同一窗口内弱强调用均成功的 pass receipt；正式效果与经济结论都等待逐样本 provider billing export 机器回执，其中费用只用于经济结论。",
+  "reason": "2026-09-14 fresh preflight 已在同一环境窗口验证 Haiku→GLM-5.1、Sonnet→GLM-5.2，二者调用、billing alias、response identity 与完整账单结果均通过。当前仍无外部 holdout 配对观测；正式效果与经济结论等待至少 5 个 holdout case、每项比较 20 对样本及逐样本 provider billing export 机器回执，其中费用只用于经济结论。",
   "lastUpdated": "2026-09-14",
-  "latestDiagnostic": "pilot-2026-09-10.json"
+  "latestDiagnostic": "preflight-2026-09-14.json"
 }

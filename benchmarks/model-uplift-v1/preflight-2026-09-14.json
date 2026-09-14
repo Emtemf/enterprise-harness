@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "pass",
+  "generatedAt": "2026-09-14T01:53:36.237Z",
+  "expiresAfterHours": 24,
+  "claudeCodeVersion": "2.1.268 (Claude Code)",
+  "environmentFingerprint": "b9b9d6def33e1768b8cfe26a785c1a463082b63c1bd405bec639874789a77d91",
+  "routingProfile": "cc-switch-glm-5.1-vs-5.2",
+  "budgetUsdPerModel": 0.1,
+  "probes": [
+    {
+      "requestedModel": "haiku",
+      "exitCode": 0,
+      "terminationReason": "success",
+      "messageModels": ["glm-5.1"],
+      "billingModels": ["claude-haiku-4-5"],
+      "costUsd": 0.0207288,
+      "identityValid": true,
+      "responseIdentityValid": true,
+      "complete": true,
+      "resultIsError": false,
+      "resultText": "MODEL_PREFLIGHT_OK",
+      "error": null
+    },
+    {
+      "requestedModel": "sonnet",
+      "exitCode": 0,
+      "terminationReason": "success",
+      "messageModels": ["glm-5.2"],
+      "billingModels": ["claude-sonnet-4-6[1M]"],
+      "costUsd": 0.022285199999999998,
+      "identityValid": true,
+      "responseIdentityValid": true,
+      "complete": true,
+      "resultIsError": false,
+      "resultText": "MODEL_PREFLIGHT_OK",
+      "error": null
+    }
+  ]
+}

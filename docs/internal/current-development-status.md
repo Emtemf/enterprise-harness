@@ -20,6 +20,7 @@
 - 新增低成本环境 preflight：在正式 `--case all` 前分别探测 controller/worker 所需 alias，绑定 Claude Code 版本、CC Switch profile 和非 secret 路由配置摘要，receipt 24 小时过期且不可强制绕过；调用失败或预期 billing alias 缺失即阻断。GLM 产品档位由后续 provider receipt 闭环。
 - 用户提供的 CC Switch profile 与上游使用记录已纳入评测真相。preflight 验证 alias 可用性、账单键和环境绑定；assistant response model 独立记录为 backend 漂移诊断，不再冒充 provider 产品档位。正式效果发布要求逐样本 provider receipt 证明 GLM-5.1/5.2 档位，经济结论另读取同一回执的真实费用。
 - 2026-09-14 业务澄清开发 runner 已修复主问题/选项问号抽取和重复确认误判，退款 case 补齐资格窗口、审批、入口、订单归属、状态机、失败恢复、并发重复提交、审计与用户反馈等关键事实；每个完整对话轮次原子写入 checkpoint，并记录 UTC invocation 窗口供 provider 请求机械对账。holdout 拒绝 dirty runner，避免不可复现样本进入正式证据。
+- clean `891406a` 上的 2026-09-14 fresh preflight 已同窗验证 Haiku→GLM-5.1 与 Sonnet→GLM-5.2 均可调用、billing alias 正确且结果完整；环境已可开始采样，但有效配对数仍为 0，不能提前发布模型放大结论。
 
 ## 2026-09-09 Marketing 受众隔离
 
