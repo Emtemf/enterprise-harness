@@ -14,7 +14,9 @@ import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 import { validateHoldoutIsolationReceipt } from './lib/holdout-receipt.mjs';
 import { bareFinalRequirements } from './lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
+import { planHeadlessDecision } from './lib/headless-decision.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
+import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
@@ -25,7 +27,7 @@ const option = (name, fallback = null) => {
   return index < 0 ? fallback : args[index + 1];
 };
 if (args.includes('--help')) {
-  console.log('Usage: node business-run.mjs [--arm <id>] [--case <id|all>] [--case-pack <path>] [--holdout-isolation bwrap] [--reps <n>] [--budget-usd <n>] [--max-dialogue-turns <n>] [--preflight-receipt <path>] [--results-dir <path>]');
+  console.log('Usage: node business-run.mjs [--arm <id>] [--case <id|all>] [--case-pack <path>] [--holdout-isolation bwrap] [--reps <n>] [--budget-usd <n>] [--max-dialogue-turns <n>] [--invocation-timeout-ms <n>] [--preflight-receipt <path>] [--results-dir <path>]');
   process.exit(0);
 }
 const casePackPath = path.resolve(option('--case-pack', path.join(here, 'business-cases.development.json')));
@@ -38,6 +40,7 @@ const selectedArms = option('--arm') ? matrix.arms.filter(({ id }) => id === opt
 const reps = Number(option('--reps', '1'));
 const budgetUsd = Number(option('--budget-usd', '1'));
 const maxDialogueTurns = Number(option('--max-dialogue-turns', '16'));
+const invocationTimeoutMs = Number(option('--invocation-timeout-ms', '1800000'));
 const preflightReceiptPath = option('--preflight-receipt');
 const resultsDir = path.resolve(option('--results-dir', path.join(here, 'results', `business-${new Date().toISOString().replaceAll(/[:.]/gu, '-')}`)));
 function validateCasePack(pack) {
@@ -72,6 +75,7 @@ if (selectedArms.length === 0) throw new Error('unknown --arm');
 if (!Number.isSafeInteger(reps) || reps < 1) throw new Error('--reps must be an integer >= 1');
 if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) throw new Error('--budget-usd must be > 0');
 if (!Number.isSafeInteger(maxDialogueTurns) || maxDialogueTurns < 1) throw new Error('--max-dialogue-turns must be an integer >= 1');
+if (!Number.isSafeInteger(invocationTimeoutMs) || invocationTimeoutMs < 60_000) throw new Error('--invocation-timeout-ms must be an integer >= 60000');
 const packInsideRepository = !path.relative(repoRoot, casePackPath).startsWith('..');
 if (casePack.split === 'holdout' && packInsideRepository) throw new Error('holdout case pack must be supplied from outside the repository');
 if (casePack.split === 'holdout' && casePack.publishable !== true) throw new Error('holdout case pack must declare publishable=true');
@@ -140,19 +144,54 @@ function fixture(selectedCase) {
   mustExec('git', ['commit', '-qm', 'business evaluation baseline'], { cwd: root });
   return root;
 }
-function workflowStatus(root, changeId) {
-  const result = exec(process.execPath, [path.join(repoRoot, 'runtime/cli.mjs'), 'workflow', 'status', changeId, '--json'], { cwd: root, timeout: 120_000 });
+function workflowStatus(root, changeId, sessionId) {
+  const statusArgs = [path.join(repoRoot, 'runtime/cli.mjs'), 'workflow', 'status'];
+  if (changeId) statusArgs.push(changeId);
+  statusArgs.push('--json');
+  const result = exec(process.execPath, statusArgs, {
+    cwd: root,
+    timeout: 120_000,
+    env: { ...process.env, CLAUDE_SESSION_ID: sessionId, ENTERPRISE_HARNESS_SESSION_ID: sessionId },
+  });
   if (result.status !== 0) return null;
   try { return JSON.parse(result.stdout); } catch { return null; }
 }
+function headlessDecision(root, changeId, sessionId, selectedCase, answered) {
+  const pendingPath = path.join(root, '.git', 'enterprise-harness', 'pending-decisions', `${changeId}.json`);
+  if (!fs.existsSync(pendingPath)) return null;
+  const pending = JSON.parse(fs.readFileSync(pendingPath, 'utf-8'));
+  if (pending.status !== 'pending' || !isSafeRelativePath(pending.candidateRef)) return null;
+  const candidatePath = path.resolve(root, pending.candidateRef);
+  if (!candidatePath.startsWith(`${root}${path.sep}`) || !fs.existsSync(candidatePath)) return null;
+  const candidate = JSON.parse(fs.readFileSync(candidatePath, 'utf-8'));
+  const planned = planHeadlessDecision(selectedCase, candidate, answered);
+  const hookEnv = {
+    ...process.env,
+    CLAUDE_SESSION_ID: sessionId,
+    ENTERPRISE_HARNESS_SESSION_ID: sessionId,
+  };
+  const pre = exec(process.execPath, [path.join(repoRoot, 'hooks/scripts/pre-question.mjs')], {
+    cwd: root, env: hookEnv, input: JSON.stringify({ tool_input: planned.toolInput }), timeout: 120_000,
+  });
+  if (pre.status !== 0) throw new Error(`headless pre-question bridge failed: ${pre.stderr || pre.stdout}`);
+  const post = exec(process.execPath, [path.join(repoRoot, 'hooks/scripts/post-question.mjs')], {
+    cwd: root,
+    env: hookEnv,
+    input: JSON.stringify({ tool_input: planned.toolInput, tool_response: planned.toolResponse }),
+    timeout: 120_000,
+  });
+  if (post.status !== 0) throw new Error(`headless post-question bridge failed: ${post.stderr || post.stdout}`);
+  return planned;
+}
 function finalRequirements(root, arm, changeId, fallbackText) {
   if (arm.workflow !== 'enterprise-harness') return bareFinalRequirements(fallbackText);
+  if (!changeId) return fallbackText;
   const target = path.join(root, 'harness', 'changes', changeId, 'requirements.md');
   return fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : fallbackText;
 }
 function promptFor(arm, selectedCase, turn, pendingAnswer, answeredCount) {
   if (turn === 1 && arm.workflow === 'enterprise-harness') {
-    return `/enterprise-harness:harness Start change business-eval-${selectedCase.id}. 用户的完整原始请求是：${selectedCase.initialRequest}\n先派遣代码与外部文档研究，汇聚证据后逐一澄清业务决定。未获得明确答案前不得替用户选择或修改产品代码；最终需求必须用相对路径标注采用的代码与文档证据。`;
+    return `/enterprise-harness:harness\n${selectedCase.initialRequest}`;
   }
   if (turn === 1) {
     return `你处于需求澄清阶段。用户原始请求是：${selectedCase.initialRequest}\n读取仓库代码事实和 docs 下的固定外部文档快照。不得修改产品代码，不得替用户决定业务规则。每轮只问一个最高价值问题；信息充分后输出 CLARIFICATION_COMPLETE 和完整、可验收的需求，并用相对路径标注使用的代码与文档证据。`;
@@ -183,7 +222,7 @@ if (casePack.split === 'holdout' && !runnerTreeClean) throw new Error('holdout r
 
 function runOnce(arm, selectedCase, repetition) {
   const root = fixture(selectedCase);
-  const changeId = `business-eval-${selectedCase.id}`;
+  let changeId = null;
   const sessionId = crypto.randomUUID();
   const transcript = [];
   const invocations = [];
@@ -210,10 +249,10 @@ function runOnce(arm, selectedCase, repetition) {
       pendingAnswer = null;
       const startedAt = Date.now();
       const invocation = holdoutIsolation ? holdoutIsolation.wrap('claude', claudeArgs, { writableRoot: root }) : { command: 'claude', argv: claudeArgs };
-      const child = exec(invocation.command, invocation.argv, { cwd: root, env: childEnv, timeout: 900_000 });
+      const child = exec(invocation.command, invocation.argv, { cwd: root, env: childEnv, timeout: invocationTimeoutMs });
       const parsed = parseStream(child.stdout || '');
       lastText = parsed.text;
-      const question = extractQuestionFromStream(parsed.events, parsed.text);
+      let question = extractQuestionFromStream(parsed.events, parsed.text);
       const usage = usageOf(parsed.result);
       invocations.push({
         turn,
@@ -228,15 +267,29 @@ function runOnce(arm, selectedCase, repetition) {
         question,
         text: parsed.text,
         outputDigest: sha256(child.stdout || ''),
-        error: String(child.stderr || '').trim() || null,
+        timedOut: child.error?.code === 'ETIMEDOUT',
+        error: child.error?.message || String(child.stderr || '').trim() || null,
       });
-      if (question) {
+      const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId, sessionId) : null;
+      if (status?.changeId) changeId = status.changeId;
+      const bridged = arm.workflow === 'enterprise-harness' && changeId
+        ? headlessDecision(root, changeId, sessionId, selectedCase, answered) : null;
+      if (bridged) {
+        question = bridged.question;
+        for (const factId of bridged.answeredFactIds) answered.add(factId);
+        if (bridged.decisionType === 'clarify-answer') transcript.push({ turn, ...bridged });
+        invocations.at(-1).question = question;
+        invocations.at(-1).headlessDecision = {
+          questionId: bridged.questionId,
+          decisionType: bridged.decisionType,
+          selectedOptionId: bridged.selectedOptionId,
+        };
+      } else if (question) {
         const scripted = answerBusinessQuestion(selectedCase, question, answered);
         for (const factId of scripted.answeredFactIds) answered.add(factId);
         transcript.push({ turn, question, ...scripted });
         pendingAnswer = scripted.answer;
       }
-      const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId) : null;
       writeJsonAtomic(checkpoint, {
         schemaVersion: 1,
         status: 'running',
@@ -246,6 +299,7 @@ function runOnce(arm, selectedCase, repetition) {
         armId: arm.id,
         caseId: selectedCase.id,
         repetition,
+        changeId,
         lastCompletedTurn: turn,
         answeredFactIds: [...answered].sort(),
         transcript,
@@ -265,6 +319,8 @@ function runOnce(arm, selectedCase, repetition) {
     const responseIdentity = responseIdentityValid(matrix.modelRoutes[arm.controllerRoute], controllerModels)
       && (arm.workerRoutes || []).every((routeId) => responseIdentityValid(matrix.modelRoutes[routeId], workerModels));
     const billingComplete = invocations.length > 0 && invocations.every((item) => item.billingModels.length > 0);
+    const rawRequestBound = arm.workflow !== 'enterprise-harness'
+      || Boolean(changeId && promptBindingCovers(root, changeId, selectedCase.initialRequest));
     const record = {
       armId: arm.id,
       workflow: arm.workflow,
@@ -274,6 +330,7 @@ function runOnce(arm, selectedCase, repetition) {
       allowedActualModels: arm.allowedActualModels || [],
       caseId: selectedCase.id,
       repetition,
+      changeId,
       caseSplit: casePack.split,
       transcript,
       finalRequirements: requirements,
@@ -281,8 +338,9 @@ function runOnce(arm, selectedCase, repetition) {
       grade: gradeBusinessClarification(selectedCase, transcript, requirements, { productCodeChanged }),
       modelIdentityValid: identityValid,
       responseIdentityValid: responseIdentity,
+      rawRequestBound,
       billingComplete,
-      measurementValid: identityValid && billingComplete,
+      measurementValid: identityValid && billingComplete && rawRequestBound,
       costAuthority: 'claude-code-alias-estimate',
       providerCostUsd: null,
       invocations,

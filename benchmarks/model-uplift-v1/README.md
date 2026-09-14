@@ -14,7 +14,7 @@
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
 | `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
 
-Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。`weak-harness` 通过每次子进程的 subagent 模型覆盖把 controller 和声明的 workers 都锁定 Haiku/GLM-5.1，不修改插件生产配置；该覆盖遵循 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)。
+Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。`weak-harness` 按 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)，为每次子进程设置最高优先级的 `CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5`，把 controller 和声明的 workers 都锁定 Haiku/GLM-5.1；任何实际 GLM-5.2 worker 仍由 route receipt 判定为污染样本。
 
 效果证据与资源统计分开：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位，并按用户确认的中转站规则累计请求计费单位。GLM-5.1 每次请求记 1 单位，GLM-5.2 每次请求记 3 单位。Claude Code 返回的 alias `costUSD` 仅保留作诊断；计费单位、token 和耗时都不参与效果发布门槛。
 
@@ -29,6 +29,8 @@ Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅
 第二轨才使用澄清后的冻结需求做隐藏业务验收；第三轨在执行中修改需求并中断会话，检查旧证据失效和恢复准确性。这样可以区分“会做题”与“会把模糊业务问题梳理成正确交付”。至少 5 个不同 holdout case、每项比较至少 20 对有效观测后才允许发布正式产品效果；仓库内开发 case 和当前生命周期 runner 固定为诊断输入，不能混入公开结论。
 
 仓库内的 [`business-cases.development.json`](business-cases.development.json) 提供退款、支付回调、订阅降级、客户数据导出和库存预留 5 个开发 case。`business-run.mjs` 在 fresh repository 中运行真实 Claude Code 会话，捕获 `AskUserQuestion` 或最终文本问题；脚本化用户只返回问题命中的隐藏事实。评分器计算关键未知项召回、最终需求覆盖、未询问却写入的假设、证据路径落地、提问效率和提前修改产品代码。开发 case 固定 `publishable=false`，即使重复运行达到样本门也不能生成公开结论。
+
+Claude Code headless `-p` 不提供交互式 `AskUserQuestion` UI。Harness 臂检测到模型已经通过 `prepare-question` 生成的唯一 canonical candidate 后，由 runner 充当测试用户：逐字构造该 candidate 的 tool input，依次执行真实 pre-question/post-question hook，并从脚本化隐藏真值选择业务选项。若候选选项不包含正确业务答案，则提交自由文本并由 runtime 记录 `other`，不能为让流程通过而选错答案。拓扑等非业务治理确认只接受 candidate 已授权的推荐项；每次桥接的 questionId、decisionType 与 selectedOptionId 都写入 invocation evidence。
 
 正式 holdout 必须通过仓库外的 case pack 提供，并声明 `split=holdout`、`publishable=true`；runner 会记录 pack digest，拒绝把仓库内题库伪装成 holdout。由于真实 Claude Code 使用 `bypassPermissions`，外部路径本身不构成保密边界：本地正式运行要求把 case pack 单独放在 `/var/tmp` 下并传入 `--holdout-isolation bwrap`。runner 使用 bubblewrap 对 Claude 子进程遮蔽整个 `/var/tmp`，并自动生成 digest-bound isolation receipt；不接受手工声明本地隔离。当前实现限 Linux/bwrap，其他平台需未来接入远程盲评器。
 
@@ -60,7 +62,7 @@ runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提�
 
 ```bash
 node benchmarks/model-uplift-v1/preflight.mjs --output /tmp/model-uplift-preflight.json
-node benchmarks/model-uplift-v1/business-run.mjs --case all --case-pack /var/tmp/enterprise-harness-holdouts/v1/cases.json --holdout-isolation bwrap --reps 1 --preflight-receipt /tmp/model-uplift-preflight.json
+node benchmarks/model-uplift-v1/business-run.mjs --case all --case-pack /var/tmp/enterprise-harness-holdouts/v1/cases.json --holdout-isolation bwrap --reps 1 --invocation-timeout-ms 1800000 --preflight-receipt /tmp/model-uplift-preflight.json
 node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000 --preflight-receipt /tmp/model-uplift-preflight.json
 python3 benchmarks/model-uplift-v1/export-cc-switch-route-receipt.py <business-results.json> ~/.cc-switch/cc-switch.db <route-receipt.json>
 node benchmarks/model-uplift-v1/attach-route-receipt.mjs <business-results.json> <route-receipt.json> <route-reconciled.json>

@@ -43,7 +43,7 @@
       "controllerRoute": "haiku",
       "workerRoutes": ["haiku"],
       "allowedActualModels": ["glm-5.1"],
-      "subagentModelOverride": "haiku",
+      "subagentModelOverride": "claude-haiku-4-5",
       "modelRouting": "glm-5.1 controller and glm-5.1 workers"
     },
     {

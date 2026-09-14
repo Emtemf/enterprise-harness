@@ -14,6 +14,7 @@ import { attachProviderReceipt } from '../../benchmarks/model-uplift-v1/lib/prov
 import { bareFinalRequirements } from '../../benchmarks/model-uplift-v1/lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from '../../benchmarks/model-uplift-v1/lib/holdout-bwrap.mjs';
 import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-receipt.mjs';
+import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -25,6 +26,7 @@ const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-
 
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'weak-bare', 'strong-bare']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
+assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').subagentModelOverride, 'claude-haiku-4-5');
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'strong-bare').allowedActualModels, ['glm-5.1', 'glm-5.2']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
   'weak-workflow-uplift', 'weak-model-substitution',
@@ -148,6 +150,27 @@ const compoundAnswer = answerBusinessQuestion(businessCases.cases[0], '网关退
 assert.deepEqual(compoundAnswer.answeredFactIds.sort(), ['deterministic-failure', 'timeout-policy']);
 assert.equal(bareFinalRequirements('当前已确认：只支持全额退款。\n下一问题是什么？'), '');
 assert.match(bareFinalRequirements('CLARIFICATION_COMPLETE\n只支持全额退款。'), /只支持全额退款/u);
+const refundCase = businessCases.cases.find(({ id }) => id === 'refund-policy');
+const businessDecision = planHeadlessDecision(refundCase, {
+  questionId: 'Q-REFUND-SCOPE', decisionType: 'clarify-answer', header: '退款范围',
+  question: '用户自助退款支持全额还是部分退款？', decisionNeeded: '确定退款金额范围',
+  recommendedOption: 'full-and-partial',
+  options: [
+    { id: 'full-only', label: '仅全额退款', description: '第一版只支持全额退款，不支持部分退款。' },
+    { id: 'full-and-partial', label: '全额与部分退款', description: '同时支持全额退款与部分退款。' },
+  ],
+}, new Set());
+assert.equal(businessDecision.selectedOptionId, 'full-only', 'scripted business truth must override an incorrect recommendation');
+assert.deepEqual(businessDecision.answeredFactIds, ['partial-refund']);
+const governanceDecision = planHeadlessDecision(refundCase, {
+  questionId: 'Q-TOPOLOGY', decisionType: 'scope-confirmation', header: '组件确认',
+  question: '单一组件是否正确？', decisionNeeded: '确认组件拓扑', recommendedOption: 'confirm-single',
+  options: [
+    { id: 'confirm-single', label: '确认单一组件', description: '确认一个顶层组件。' },
+    { id: 'adjust', label: '调整范围', description: '调整顶层组件。' },
+  ],
+}, new Set());
+assert.equal(governanceDecision.selectedOptionId, 'confirm-single');
 
 const modelRoutes = {
   haiku: { messageModelFamilies: ['glm-5.1'], billingModelFamilies: ['haiku'] },
@@ -238,6 +261,10 @@ try {
   result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--help'], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /--case-pack/u);
+  assert.match(result.stdout, /--invocation-timeout-ms/u);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--invocation-timeout-ms', '0'], { encoding: 'utf-8', shell: false });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must be an integer >= 60000/u);
   result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--case', 'all'], { encoding: 'utf-8', shell: false });
   assert.notEqual(result.status, 0, 'formal all-case business matrix must require a preflight receipt');
   assert.match(result.stderr, /requires --preflight-receipt/u);

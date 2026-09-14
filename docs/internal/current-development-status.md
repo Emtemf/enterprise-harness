@@ -13,6 +13,7 @@
 
 - `benchmarks/model-uplift-v1/` 的正式主张已收敛为三臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2；同时通过“弱 Harness 严格优于弱裸”和“弱 Harness 对强裸 5pp 非劣”才能证明弱模型经 Harness 提升并比肩强模型。
 - 中转站按实际请求计次：GLM-5.1=1 单位、GLM-5.2=3 单位。CC Switch route receipt 负责模型身份并累计计费单位；token、请求数、计费单位与耗时仅作资源统计，不再等待 provider CSV，也不作为效果发布门槛。
+- 首轮三臂 development 校准没有形成产品结论：两条裸跑有效但均未验收；Harness 先暴露 benchmark 把控制话术混入 UserPromptSubmit 的 continuity 错误，修正后又证明 headless `-p` 的文本回答不会自动触发 AskUserQuestion post-hook。runner 现已改为纯原始请求、session-bound 状态读取与真实 pre/post-question hook 桥接，并把 subagent override 从不稳定的 `haiku` alias 改为官方要求的完整 `claude-haiku-4-5`；正式 holdout 观测仍为 0。
 - 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门；`bypassPermissions` 下没有隔离证明的数据不能形成公开结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求每项比较至少 20 组、覆盖至少 5 个 holdout case，并分别通过效果门与单位验收成本的配对 bootstrap 95% 置信边界；10 对只产生诊断区间。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。

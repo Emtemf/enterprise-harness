@@ -76,7 +76,9 @@ clean `764d55d` 的真实 bwrap 单轮探针中，用户消息明确给出 holdo
 
 随后在任何正式效果数据产生前冻结外部 holdout v1：5 个企业业务 case、36 个加权关键未知项；case/fact ID 唯一、全部正则可编译、每个事实可由 scripted user 命中，完整 oracle transcript 对 5 个 case 均通过。Git 只保存 SHA-256 与非秘密 manifest，pack 内容保持在 bwrap 遮蔽的 `/var/tmp`。正式观测仍为 0。
 
-同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 provider 请求级回执。
+同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 CC Switch 请求级路由回执。
+
+三臂 development 校准随后发现两类 benchmark-host 偏差。第一版 Harness 首条消息把 change ID 和评测控制话术也放入 UserPromptSubmit，requirements 只保存真实业务请求时被 continuity gate 正确拒绝；现改为首条消息仅含 Skill 路由与原始请求，changeId 从携带同一 session identity 的 workflow status 动态发现，并用 `rawRequestBound` 复验。第二版完成 code/docs research 后，在 headless `-p` 中无法获得交互式 AskUserQuestion UI，普通 resume 文本不会产生 post-question 决策回执；现由 runner 只对已经 prepare 的 canonical candidate 执行真实 pre/post-question hook，业务选项由冻结 scripted truth 决定。校准流还观察到 `CLAUDE_CODE_SUBAGENT_MODEL=haiku` 下 worker response=`glm-5.2`；根据官方模型配置要求，override 改为完整 `claude-haiku-4-5`，最终仍由 CC Switch route receipt 判定弱臂是否污染。这些失败样本不计入正式观测。
 
 主指标：
 
