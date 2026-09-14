@@ -382,9 +382,11 @@ async function runOnce(arm, selected, repetition) {
     return {
       armId: arm.id,
       workflow: arm.workflow,
+      claudeSessionId: sessionId,
       requestedModel: arm.model,
       actualControllerModel: matrix.modelRoutes[arm.controllerRoute]?.actualModel || null,
       actualWorkerModels: (arm.workerRoutes || []).map((route) => matrix.modelRoutes[route]?.actualModel).filter(Boolean),
+      allowedActualModels: arm.allowedActualModels || [],
       resolvedModels: billingModels,
       controllerMessageModels,
       workerMessageModels,

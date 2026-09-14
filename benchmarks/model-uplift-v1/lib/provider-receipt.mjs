@@ -57,6 +57,10 @@ export function attachProviderReceipt(raw, receipt) {
     if ([...expectedModels].some((model) => !providerModels.includes(model))) {
       throw new Error(`provider model evidence does not cover expected route for ${record.armId}/${record.caseId}/${record.repetition}`);
     }
+    const allowedModels = new Set(record.allowedActualModels || [...expectedModels]);
+    if (providerModels.some((model) => !allowedModels.has(model))) {
+      throw new Error(`provider receipt contains a disallowed actual model for ${record.armId}/${record.caseId}/${record.repetition}`);
+    }
     const providerCostUsd = receiptRecord.requests.reduce((sum, request) => sum + request.costUsd, 0);
     return {
       ...record,
@@ -64,7 +68,8 @@ export function attachProviderReceipt(raw, receipt) {
       providerCostUsd,
       providerModels,
       providerRequestIds: receiptRecord.requests.map(({ providerRequestId }) => providerRequestId).sort(),
-      providerIdentityValid: true,
+      modelTierIdentityValid: true,
+      providerBillingValid: true,
     };
   });
   if (receiptByKey.size !== records.length) throw new Error('provider receipt contains records that are not present in benchmark results');

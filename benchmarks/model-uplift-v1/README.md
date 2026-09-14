@@ -13,12 +13,16 @@
 | `weak-bare` | 裸 GLM-5.1 基线 |
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
 | `hybrid-harness` | GLM-5.1 controller + GLM-5.2 专项 workers，对应生产型经济路由 |
-| `strong-bare` | 裸 GLM-5.2 强模型基线 |
-| `strong-harness` | controller 与 subagent 都锁定 GLM-5.2，检验强模型是否继续受益 |
+| `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
+| `strong-harness` | controller 与声明的 subagent 锁定 GLM-5.2，检验强模型是否继续受益 |
 
 Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。模型档位身份由 CC Switch 路由配置与 provider 账单模型闭环；assistant `message.model` 另存为 backend response identity，发生漂移时告警但不单独推翻 provider 产品档位。调用失败、billing alias 不符或 provider receipt 缺失仍会阻断对应结论。纯弱、混合、纯强三个 Harness 臂通过每次子进程的 subagent 模型覆盖隔离，不修改插件生产配置；该覆盖遵循 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)。
 
-Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC Switch 上游的 GLM 实际费用。效果证据和经济证据因此分开发布：隐藏验收决定业务效果，provider receipt 证明每条样本实际使用的产品档位，只有经济结论才使用其中的真实费用。将上游记录整理成 [`provider-receipt.example.json`](provider-receipt.example.json) 的结构后，由 `attach-provider-receipt.mjs` 校验 runner commit、路由 profile、完整样本覆盖、模型覆盖、请求 ID 唯一性、请求时间是否落在 invocation 窗口内以及逐请求费用，再写回可汇总结果；允许 2 分钟时钟偏差。截图和 Claude alias 估值都不能直接充当机器账单。[`pricing.json`](pricing.json) 记录成本证据边界。
+Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC Switch 上游的 GLM 实际费用。效果证据和经济证据分层验收：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位；只有 provider billing export 的逐请求费用才进入经济结论。CC Switch 的 `total_cost_usd` 作为本地估算保留在 route receipt 中，不冒充真实支出。
+
+`export-cc-switch-route-receipt.py` 从只读 SQLite 生成路由证据，`attach-route-receipt.mjs` 校验完整样本覆盖、session、请求 ID、模型与时间窗并写入 `modelTierIdentityValid`。上游记录整理成 [`provider-receipt.example.json`](provider-receipt.example.json) 后，再由 `attach-provider-receipt.mjs` 校验 runner commit、路由 profile、完整样本覆盖、请求 ID、模型、时间窗和逐请求费用；两类时间关联均允许 2 分钟时钟偏差。截图、Claude alias 估值和 CC Switch 本地估价都不能直接充当机器账单。[`pricing.json`](pricing.json) 记录成本证据边界。
+
+Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅助。route receipt 必须完整记录这些请求：弱臂只允许实际 GLM-5.1，出现任何 GLM-5.2 即判污染；混合臂和强 controller 臂允许 GLM-5.1/5.2，但所有请求都计入 token、耗时与 provider 成本。因此“强模型”指 GLM-5.2 controller 档位，不声称进程中的每个内部请求都是 GLM-5.2。
 
 ## 先评业务问题，再评代码
 
@@ -28,7 +32,7 @@ Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC S
 
 仓库内的 [`business-cases.development.json`](business-cases.development.json) 提供退款、支付回调、订阅降级、客户数据导出和库存预留 5 个开发 case。`business-run.mjs` 在 fresh repository 中运行真实 Claude Code 会话，捕获 `AskUserQuestion` 或最终文本问题；脚本化用户只返回问题命中的隐藏事实。评分器计算关键未知项召回、最终需求覆盖、未询问却写入的假设、证据路径落地、提问效率和提前修改产品代码。开发 case 固定 `publishable=false`，即使重复运行达到样本门也不能生成公开结论。
 
-正式 holdout 必须通过仓库外的 case pack 提供，并声明 `split=holdout`、`publishable=true`；runner 会记录 pack digest，拒绝把仓库内题库伪装成 holdout。由于真实 Claude Code 使用 `bypassPermissions`，外部路径本身不构成保密边界：正式运行还必须提供与 case pack digest 绑定的 isolation receipt，证明采用容器文件系统隔离或远程盲评。没有该回执的数据只能诊断，不能发布。
+正式 holdout 必须通过仓库外的 case pack 提供，并声明 `split=holdout`、`publishable=true`；runner 会记录 pack digest，拒绝把仓库内题库伪装成 holdout。由于真实 Claude Code 使用 `bypassPermissions`，外部路径本身不构成保密边界：本地正式运行要求把 case pack 单独放在 `/var/tmp` 下并传入 `--holdout-isolation bwrap`。runner 使用 bubblewrap 对 Claude 子进程遮蔽整个 `/var/tmp`，并自动生成 digest-bound isolation receipt；不接受手工声明本地隔离。当前实现限 Linux/bwrap，其他平台需未来接入远程盲评器。
 
 ## 效果、资源与经济学
 
@@ -54,10 +58,12 @@ runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提�
 
 ```bash
 node benchmarks/model-uplift-v1/preflight.mjs --output /tmp/model-uplift-preflight.json
-node benchmarks/model-uplift-v1/business-run.mjs --case all --reps 1 --preflight-receipt /tmp/model-uplift-preflight.json
+node benchmarks/model-uplift-v1/business-run.mjs --case all --case-pack /var/tmp/enterprise-harness-holdouts/v1/cases.json --holdout-isolation bwrap --reps 1 --preflight-receipt /tmp/model-uplift-preflight.json
 node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000 --preflight-receipt /tmp/model-uplift-preflight.json
-node benchmarks/model-uplift-v1/attach-provider-receipt.mjs <raw-results.json> <provider-receipt.json> <reconciled-results.json>
-node benchmarks/model-uplift-v1/summarize.mjs <results>/raw-results.json <results>/summary.json
+python3 benchmarks/model-uplift-v1/export-cc-switch-route-receipt.py <business-results.json> ~/.cc-switch/cc-switch.db <route-receipt.json>
+node benchmarks/model-uplift-v1/attach-route-receipt.mjs <business-results.json> <route-receipt.json> <route-reconciled.json>
+node benchmarks/model-uplift-v1/attach-provider-receipt.mjs <route-reconciled.json> <provider-receipt.json> <fully-reconciled.json>
+node benchmarks/model-uplift-v1/summarize.mjs <fully-reconciled.json> <summary.json>
 ```
 
 正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检验证选中实验臂使用的 Haiku/Sonnet alias 是否分别可用且 billing alias 与 profile 一致，并绑定 Claude Code 版本和非 secret 路由配置摘要；provider 产品档位最终由账单回执闭环，assistant response model 仅作漂移诊断。失败时停止，不允许用 `--force` 绕过。单 case 仍可用于 diagnostic runner 调试；holdout 还会拒绝 dirty worktree，避免账单绑定到不能复现的 runner。

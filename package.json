@@ -35,6 +35,8 @@
     "benchmark:competitive": "node benchmarks/competitive-v1/run.mjs",
     "benchmark:model-uplift": "node benchmarks/model-uplift-v1/run.mjs",
     "benchmark:model-uplift:business": "node benchmarks/model-uplift-v1/business-run.mjs",
+    "benchmark:model-uplift:export-route-receipt": "python3 benchmarks/model-uplift-v1/export-cc-switch-route-receipt.py",
+    "benchmark:model-uplift:attach-route-receipt": "node benchmarks/model-uplift-v1/attach-route-receipt.mjs",
     "benchmark:model-uplift:attach-provider-receipt": "node benchmarks/model-uplift-v1/attach-provider-receipt.mjs",
     "benchmark:model-uplift:preflight": "node benchmarks/model-uplift-v1/preflight.mjs",
     "benchmark:governance": "node benchmarks/governance-v1/run.mjs",

@@ -66,7 +66,11 @@ CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用
 
 2026-09-10 五臂矩阵与业务澄清轨已落地。五臂分别为弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness；开发题库包含 5 类业务问题，脚本化用户按问题命中返回事实，确定性 grader 检查关键未知项召回、最终覆盖、未经询问的业务假设、证据落地和提前代码写入。仓库内 development pack 永久不可发布；正式 holdout 必须从仓库外注入并记录 digest。公开效果门提升为每项比较至少 20 对、至少 5 个不同 holdout case；10 对只提供诊断置信区间。
 
-2026-09-14 根据 CC Switch 上游账单可观测性修正模型身份边界：alias 与 response model 只负责运行期路由诊断，正式 GLM-5.1/5.2 产品档位由逐样本 provider billing receipt 证明。导入器要求账单覆盖全部 benchmark 记录、模型覆盖 controller/workers、请求 ID 全局唯一、provider 请求时间落在对应 invocation 窗口内，并将 `providerIdentityValid` 写入效果发布门；费用按逐请求记录求和且只参与经济结论。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
+2026-09-14 根据 CC Switch 上游账单可观测性修正模型身份边界：alias 与 response model 只负责运行期诊断，正式 GLM-5.1/5.2 档位由 CC Switch proxy log 的 Claude session ID、实际 model 和 invocation 时间窗闭环，写入 `modelTierIdentityValid`；provider billing export 独立提供逐请求真实费用。两类导入都要求全样本覆盖与请求 ID 唯一，CC Switch 本地估价不充当 provider 支出。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
+
+holdout 的本地隔离由 runner 强制执行：case pack 必须位于 `/var/tmp`，Claude 调用经 bwrap 运行并以 tmpfs 遮蔽整个 `/var/tmp`；代码 fixture 与必要用户环境仍可用。isolation receipt 由实际 wrapper 自动产生，不能再用任意 JSON 声称“容器隔离”。当前只支持 Linux/bwrap，远程盲评保留为后续扩展。
+
+一次单轮 route receipt dry-run 还证明 Sonnet controller 会伴随 Claude Code 内部 Haiku 辅助请求：实际路由同时出现 GLM-5.2 与 GLM-5.1。实验臂因此增加 `allowedActualModels`：所有弱臂仅允许 GLM-5.1，任何 GLM-5.2 泄漏都使样本无效；混合臂与强 controller 臂允许 5.1/5.2，内部辅助的全部资源和费用照常计入。“强模型”口径只描述 controller，不再写成所有请求纯强。
 
 同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 provider 请求级回执。
 

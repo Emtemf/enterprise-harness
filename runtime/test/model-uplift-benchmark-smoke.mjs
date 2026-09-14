@@ -12,6 +12,8 @@ import { gradeBusinessClarification } from '../../benchmarks/model-uplift-v1/lib
 import { validateHoldoutIsolationReceipt } from '../../benchmarks/model-uplift-v1/lib/holdout-receipt.mjs';
 import { attachProviderReceipt } from '../../benchmarks/model-uplift-v1/lib/provider-receipt.mjs';
 import { bareFinalRequirements } from '../../benchmarks/model-uplift-v1/lib/clarification-output.mjs';
+import { prepareBwrapHoldout } from '../../benchmarks/model-uplift-v1/lib/holdout-bwrap.mjs';
+import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-receipt.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -21,6 +23,8 @@ const businessProtocol = JSON.parse(fs.readFileSync(path.join(benchmark, 'busine
 const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-cases.development.json'), 'utf-8'));
 
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'hybrid-harness', 'weak-bare', 'strong-bare', 'strong-harness']);
+assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
+assert.deepEqual(matrix.arms.find(({ id }) => id === 'strong-bare').allowedActualModels, ['glm-5.1', 'glm-5.2']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
   'weak-workflow-uplift', 'weak-model-substitution', 'strong-workflow-uplift', 'hybrid-model-substitution',
 ]);
@@ -50,7 +54,8 @@ const providerReceipt = {
 const reconciledProvider = attachProviderReceipt(providerRaw, providerReceipt);
 assert.equal(reconciledProvider.records[0].costAuthority, 'provider-billing');
 assert.equal(reconciledProvider.records[0].providerCostUsd, 0.25);
-assert.equal(reconciledProvider.records[0].providerIdentityValid, true);
+assert.equal(reconciledProvider.records[0].modelTierIdentityValid, true);
+assert.equal(reconciledProvider.records[0].providerBillingValid, true);
 assert.throws(() => attachProviderReceipt(providerRaw, {
   ...providerReceipt, records: [{ ...providerReceipt.records[0], requests: [{ ...providerReceipt.records[0].requests[0], model: 'glm-5.2' }] }],
 }), /does not cover expected route/u);
@@ -58,6 +63,31 @@ assert.throws(() => attachProviderReceipt({ ...providerRaw, records: [...provide
 assert.throws(() => attachProviderReceipt(providerRaw, {
   ...providerReceipt, records: [{ ...providerReceipt.records[0], requests: [{ ...providerReceipt.records[0].requests[0], observedAt: '2026-09-10T01:00:00Z' }] }],
 }), /outside benchmark invocation windows/u);
+const routeRaw = {
+  ...providerRaw,
+  records: [{ ...providerRaw.records[0], claudeSessionId: 'session-1', allowedActualModels: ['glm-5.1'] }],
+};
+const routeReceipt = {
+  schemaVersion: 1, status: 'final', authority: 'cc-switch-proxy-log', generatedAt: '2026-09-10T00:03:00Z',
+  sourceDigest: 'b'.repeat(64), runnerCommit: routeRaw.runnerCommit, routingProfile: routeRaw.routingProfile,
+  records: [{
+    armId: 'weak-bare', caseId: 'case-1', repetition: 1, claudeSessionId: 'session-1',
+    requests: [{ proxyRequestId: 'proxy-1', model: 'glm-5.1', requestModel: 'claude-haiku-4-5', observedAt: '2026-09-10T00:01:00Z' }],
+  }],
+};
+const reconciledRoute = attachRouteReceipt(routeRaw, routeReceipt);
+assert.equal(reconciledRoute.records[0].modelTierIdentityValid, true);
+assert.equal(reconciledRoute.records[0].routeAuthority, 'cc-switch-proxy-log');
+assert.throws(() => attachRouteReceipt(routeRaw, {
+  ...routeReceipt, records: [{ ...routeReceipt.records[0], claudeSessionId: 'other-session' }],
+}), /session mismatch/u);
+assert.throws(() => attachRouteReceipt(routeRaw, {
+  ...routeReceipt,
+  records: [{
+    ...routeReceipt.records[0],
+    requests: [...routeReceipt.records[0].requests, { proxyRequestId: 'proxy-strong', model: 'glm-5.2', requestModel: 'claude-sonnet-4-6', observedAt: '2026-09-10T00:01:00Z' }],
+  }],
+}), /disallowed actual model/u);
 assert.equal(businessCases.cases.length, 5);
 assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
 for (const selectedCase of businessCases.cases) {
@@ -122,6 +152,22 @@ assert.throws(() => validatePreflightReceipt(validReceipt, {
 }), /routing environment/u);
 
 try {
+  if (process.platform === 'linux' && spawnSync('bwrap', ['--version'], { encoding: 'utf-8', shell: false }).status === 0) {
+    const holdoutFixture = fs.mkdtempSync('/var/tmp/eh-holdout-isolation-smoke-');
+    try {
+      const hiddenPath = path.join(holdoutFixture, 'pack.json');
+      fs.writeFileSync(hiddenPath, '{"hidden":true}\n');
+      const isolation = prepareBwrapHoldout({ casePackPath: hiddenPath, casePackDigest: 'a'.repeat(64) });
+      const wrapped = isolation.wrap(process.execPath, ['-e', "process.exit(require('fs').existsSync(process.argv[1]) ? 9 : 0)", hiddenPath], { writableRoot: fixture });
+      const isolated = spawnSync(wrapped.command, wrapped.argv, { encoding: 'utf-8', shell: false });
+      assert.equal(isolated.status, 0, `${isolated.stdout}\n${isolated.stderr}`);
+      assert.equal(isolation.receipt.maskedRoot, '/var/tmp');
+    } finally {
+      fs.rmSync(holdoutFixture, { recursive: true, force: true });
+    }
+    assert.throws(() => prepareBwrapHoldout({ casePackPath: path.join(benchmark, 'business-cases.development.json'), casePackDigest: 'a'.repeat(64) }), /below \/var\/tmp/u);
+  }
+
   fs.mkdirSync(path.join(fixture, 'src'), { recursive: true });
   fs.copyFileSync(path.join(benchmark, 'reference/order-service.mjs'), path.join(fixture, 'src/order-service.mjs'));
   let result = spawnSync(process.execPath, [path.join(benchmark, 'grade.mjs'), fixture], { encoding: 'utf-8', shell: false });
@@ -187,7 +233,7 @@ try {
     armId, caseId: `case-${((repetition - 1) % 5) + 1}`, repetition, completedArchive: armId === 'weak-harness',
     grade: { accepted, effectScore }, totals: { costUsd, durationMs: 1 },
     costAuthority: 'provider-billing', providerCostUsd: costUsd,
-    providerIdentityValid: true,
+    modelTierIdentityValid: true,
   });
   const records = Array.from({ length: 19 }, (_, index) => index + 1).flatMap((repetition) => [
     record('weak-harness', repetition, 90, 0.3),
@@ -262,12 +308,12 @@ try {
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'model identity conflict must block an effect claim');
 
-  const missingProviderIdentity = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, providerIdentityValid: false }));
-  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: missingProviderIdentity })}\n`);
+  const missingModelTierIdentity = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, modelTierIdentityValid: false }));
+  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: missingModelTierIdentity })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'provider model receipt must gate a publishable effect claim');
+  assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'model-tier route receipt must gate a publishable effect claim');
 
   const noProviderCost = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, costAuthority: 'claude-code-alias-estimate', providerCostUsd: null }));
   fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: [{ ...identityComparison[0], economicComparison: true }], records: noProviderCost })}\n`);

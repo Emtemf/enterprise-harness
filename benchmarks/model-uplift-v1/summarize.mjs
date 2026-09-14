@@ -83,6 +83,7 @@ const arms = [...byArm].map(([armId, rows]) => {
     acceptanceRate: accepted.length / rows.length,
     effectScoreMedian: median(rows.map((row) => row.grade.effectScore)),
     measurementValidRuns: rows.filter((row) => row.measurementValid !== false).length,
+    modelTierIdentityValidRuns: rows.filter((row) => row.modelTierIdentityValid === true).length,
     providerCostValidRuns: providerCosts.length,
     tokensMedian: median(tokens),
     reportedAliasCostUsdMedian: aliasCosts.length === rows.length ? median(aliasCosts) : null,
@@ -108,7 +109,7 @@ const comparisons = configuredComparisons.map((comparison) => {
       repetition: left.repetition,
       effectMeasurementValid: left.measurementValid !== false && right.measurementValid !== false
         && left.modelIdentityValid !== false && right.modelIdentityValid !== false,
-      providerIdentityValid: left.providerIdentityValid === true && right.providerIdentityValid === true,
+      modelTierIdentityValid: left.modelTierIdentityValid === true && right.modelTierIdentityValid === true,
       economicMeasurementValid: providerCost(left) !== null && providerCost(right) !== null,
       effectGapPp: left.grade.effectScore - right.grade.effectScore,
       treatmentAccepted: left.grade.accepted,
@@ -120,13 +121,16 @@ const comparisons = configuredComparisons.map((comparison) => {
     }] : [];
   });
   const validEffectMeasurements = pairs.every(({ effectMeasurementValid }) => effectMeasurementValid);
-  const validProviderIdentities = pairs.every(({ providerIdentityValid }) => providerIdentityValid);
+  const validModelTierIdentities = pairs.every(({ modelTierIdentityValid }) => modelTierIdentityValid);
   const distinctCases = new Set(pairs.map(({ caseId }) => caseId)).size;
-  const diagnosticEligible = pairs.length >= 10 && validEffectMeasurements;
+  const diagnosticEligible = pairs.length >= 10 && validEffectMeasurements && validModelTierIdentities;
   const effectEligible = claimEligibleInput && pairs.length >= minimumPairedObservations
-    && distinctCases >= minimumDistinctCases && validEffectMeasurements && validProviderIdentities;
+    && distinctCases >= minimumDistinctCases && validEffectMeasurements && validModelTierIdentities;
   const economicEligible = effectEligible && pairs.every(({ economicMeasurementValid }) => economicMeasurementValid);
-  const bootstrap = bootstrapPairedDecision(pairs);
+  const bootstrap = bootstrapPairedDecision(pairs.map((pair) => ({
+    ...pair,
+    effectMeasurementValid: pair.effectMeasurementValid && pair.modelTierIdentityValid,
+  })));
   const minimumEffectGapPp = Number(comparison.minimumEffectGapPp ?? -5);
   const confidenceGatePassed = comparison.strictEffectGate
     ? bootstrap.effectGapMeanLower95Pp > minimumEffectGapPp
@@ -152,7 +156,7 @@ const comparisons = configuredComparisons.map((comparison) => {
         pairedRuns: pairs.length,
         distinctCases,
         diagnosticEligible,
-        validProviderIdentities,
+        validModelTierIdentities,
         medianEffectGapPp: median(pairs.map(({ effectGapPp }) => effectGapPp)),
         medianCostGapUsd: pairs.every(({ costGapUsd }) => Number.isFinite(costGapUsd))
           ? median(pairs.map(({ costGapUsd }) => costGapUsd)) : null,

@@ -13,6 +13,7 @@ import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
 import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 import { validateHoldoutIsolationReceipt } from './lib/holdout-receipt.mjs';
 import { bareFinalRequirements } from './lib/clarification-output.mjs';
+import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -24,13 +25,13 @@ const option = (name, fallback = null) => {
   return index < 0 ? fallback : args[index + 1];
 };
 if (args.includes('--help')) {
-  console.log('Usage: node business-run.mjs [--arm <id>] [--case <id|all>] [--case-pack <path>] [--holdout-isolation-receipt <path>] [--reps <n>] [--budget-usd <n>] [--max-dialogue-turns <n>] [--preflight-receipt <path>] [--results-dir <path>]');
+  console.log('Usage: node business-run.mjs [--arm <id>] [--case <id|all>] [--case-pack <path>] [--holdout-isolation bwrap] [--reps <n>] [--budget-usd <n>] [--max-dialogue-turns <n>] [--preflight-receipt <path>] [--results-dir <path>]');
   process.exit(0);
 }
 const casePackPath = path.resolve(option('--case-pack', path.join(here, 'business-cases.development.json')));
 const casePack = JSON.parse(fs.readFileSync(casePackPath, 'utf-8'));
 const casePackDigest = crypto.createHash('sha256').update(fs.readFileSync(casePackPath)).digest('hex');
-const holdoutIsolationReceiptPath = option('--holdout-isolation-receipt');
+const holdoutIsolationMode = option('--holdout-isolation');
 const caseOption = option('--case', casePack.cases[0]?.id);
 const selectedCases = caseOption === 'all' ? casePack.cases : casePack.cases.filter(({ id }) => id === caseOption);
 const selectedArms = option('--arm') ? matrix.arms.filter(({ id }) => id === option('--arm')) : matrix.arms;
@@ -74,13 +75,12 @@ if (!Number.isSafeInteger(maxDialogueTurns) || maxDialogueTurns < 1) throw new E
 const packInsideRepository = !path.relative(repoRoot, casePackPath).startsWith('..');
 if (casePack.split === 'holdout' && packInsideRepository) throw new Error('holdout case pack must be supplied from outside the repository');
 if (casePack.split === 'holdout' && casePack.publishable !== true) throw new Error('holdout case pack must declare publishable=true');
+let holdoutIsolation = null;
 let holdoutIsolationReceipt = null;
 if (casePack.split === 'holdout') {
-  if (!holdoutIsolationReceiptPath) throw new Error('holdout case pack requires --holdout-isolation-receipt');
-  holdoutIsolationReceipt = validateHoldoutIsolationReceipt(
-    JSON.parse(fs.readFileSync(path.resolve(holdoutIsolationReceiptPath), 'utf-8')),
-    { casePackDigest },
-  );
+  if (holdoutIsolationMode !== 'bwrap') throw new Error('holdout case pack requires --holdout-isolation bwrap');
+  holdoutIsolation = prepareBwrapHoldout({ casePackPath, casePackDigest });
+  holdoutIsolationReceipt = validateHoldoutIsolationReceipt(holdoutIsolation.receipt, { casePackDigest });
 }
 
 function exec(command, argv, options = {}) {
@@ -209,7 +209,8 @@ function runOnce(arm, selectedCase, repetition) {
       claudeArgs.push(promptFor(arm, selectedCase, turn, pendingAnswer, answered.size));
       pendingAnswer = null;
       const startedAt = Date.now();
-      const child = exec('claude', claudeArgs, { cwd: root, env: childEnv, timeout: 900_000 });
+      const invocation = holdoutIsolation ? holdoutIsolation.wrap('claude', claudeArgs, { writableRoot: root }) : { command: 'claude', argv: claudeArgs };
+      const child = exec(invocation.command, invocation.argv, { cwd: root, env: childEnv, timeout: 900_000 });
       const parsed = parseStream(child.stdout || '');
       lastText = parsed.text;
       const question = extractQuestionFromStream(parsed.events, parsed.text);
@@ -267,8 +268,10 @@ function runOnce(arm, selectedCase, repetition) {
     const record = {
       armId: arm.id,
       workflow: arm.workflow,
+      claudeSessionId: sessionId,
       actualControllerModel: matrix.modelRoutes[arm.controllerRoute]?.actualModel || null,
       actualWorkerModels: (arm.workerRoutes || []).map((route) => matrix.modelRoutes[route]?.actualModel).filter(Boolean),
+      allowedActualModels: arm.allowedActualModels || [],
       caseId: selectedCase.id,
       repetition,
       caseSplit: casePack.split,
@@ -326,9 +329,10 @@ const output = {
   runnerTreeClean,
   casePack: { path: casePackPath, digest: casePackDigest, split: casePack.split, publishable: casePack.publishable === true },
   holdoutIsolation: holdoutIsolationReceipt ? {
-    receiptDigest: sha256(fs.readFileSync(path.resolve(holdoutIsolationReceiptPath))),
+    receiptDigest: sha256(JSON.stringify(holdoutIsolationReceipt)),
     mechanism: holdoutIsolationReceipt.mechanism,
     verifier: holdoutIsolationReceipt.verifier,
+    maskedRoot: holdoutIsolationReceipt.maskedRoot,
   } : null,
   claimEligibleInput: casePack.split === 'holdout' && casePack.publishable === true && Boolean(preflight) && Boolean(holdoutIsolationReceipt),
   preflight: preflight ? { path: path.resolve(preflightReceiptPath), digest: sha256(fs.readFileSync(path.resolve(preflightReceiptPath))) } : null,
