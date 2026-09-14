@@ -54,6 +54,8 @@ runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提�
 
 当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。早期诊断中的 Haiku/Opus 是 CC Switch alias，不应解释为 Anthropic 模型；[`pilot-2026-09-10.json`](pilot-2026-09-10.json) 保留了这项口径修正。2026-09-14 的 [fresh preflight](preflight-2026-09-14.json) 已验证 Haiku→GLM-5.1、Sonnet→GLM-5.2 同窗可用；[真实 bwrap 探针](holdout-isolation-smoke-2026-09-14.json) 证明 Claude 看不到指定 holdout 路径但仍能读取公开 evidence 并提问。两者只证明采样环境就绪，尚不能发布效果结论。
 
+[Holdout v1 manifest](holdout-v1-manifest.json) 已在正式数据产生前冻结 5 个外部 case、36 个关键未知项及 case pack digest；manifest 不含隐藏答案。任何 pack 修改都会改变 digest，并使既有 isolation/result receipt 无法匹配。
+
 ## 运行
 
 ```bash

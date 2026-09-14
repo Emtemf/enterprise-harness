@@ -74,6 +74,8 @@ holdout 的本地隔离由 runner 强制执行：case pack 必须位于 `/var/tm
 
 clean `764d55d` 的真实 bwrap 单轮探针中，用户消息明确给出 holdout 绝对路径；Claude 报告该路径不存在，同时成功读取 fixture 中公开 evidence、提出审批角色问题并 exit 0。assistant 输出中的隐藏标记命中数为 0，产品代码变化为 false。该证据只验收隔离机制，不计入模型效果样本。
 
+随后在任何正式效果数据产生前冻结外部 holdout v1：5 个企业业务 case、36 个加权关键未知项；case/fact ID 唯一、全部正则可编译、每个事实可由 scripted user 命中，完整 oracle transcript 对 5 个 case 均通过。Git 只保存 SHA-256 与非秘密 manifest，pack 内容保持在 bwrap 遮蔽的 `/var/tmp`。正式观测仍为 0。
+
 同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 provider 请求级回执。
 
 主指标：

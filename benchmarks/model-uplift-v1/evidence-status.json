@@ -8,7 +8,7 @@
   "minimumDistinctHoldoutCases": 5,
   "validPairedObservations": 0,
   "decisionRule": "effect: weak workflow uplift + weak-to-strong non-inferiority + strong workflow uplift each pass paired confidence gates; economics: hybrid-vs-strong provider-billed 95% upper(cost per accepted change ratio) < 1",
-  "reason": "2026-09-14 fresh preflight 已在同一环境窗口验证 Haiku→GLM-5.1、Sonnet controller→GLM-5.2，二者调用、billing alias、response identity 与完整结果均通过；route dry-run 同时确认强 controller 可能带有内部 GLM-5.1 辅助请求，矩阵已纳入允许模型与弱臂防泄漏门。当前仍无外部 holdout 配对观测；正式效果等待 CC Switch route receipt，经济结论另等 provider billing export 真实费用。",
+  "reason": "2026-09-14 fresh preflight 与真实 bwrap 隔离探针均通过；外部 holdout v1 已在正式采样前冻结，包含 5 个 case、36 个关键未知项且 oracle 自检通过。当前正式配对观测仍为 0；效果结论等待五臂采样与 CC Switch route receipt，经济结论另等 provider billing export 真实费用。",
   "lastUpdated": "2026-09-14",
-  "latestDiagnostic": "holdout-isolation-smoke-2026-09-14.json"
+  "latestDiagnostic": "holdout-v1-manifest.json"
 }

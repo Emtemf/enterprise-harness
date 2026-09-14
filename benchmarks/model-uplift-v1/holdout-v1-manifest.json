@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "business-clarification-holdout-v1",
+  "status": "frozen-before-formal-data",
+  "frozenAt": "2026-09-14T02:41:15Z",
+  "split": "holdout",
+  "publishable": true,
+  "packLocationClass": "external-var-tmp-not-committed",
+  "casePackSha256": "394b841b979c2a8b4ea14d3d0a7ad88e70610a1e4f0827f9e9db7fd02ad6aff6",
+  "distinctCaseCount": 5,
+  "requiredFactCount": 36,
+  "oracleSelfTest": {
+    "status": "pass",
+    "checks": [
+      "unique case and fact ids",
+      "question and acceptance regex compilation",
+      "scripted user reachability for every fact",
+      "complete oracle transcript accepted for every case"
+    ]
+  },
+  "formalObservationCount": 0,
+  "containsHiddenTruth": false,
+  "note": "The case contents remain outside Git and are masked from Claude by the bwrap holdout runner. This manifest freezes only non-secret metadata."
+}
