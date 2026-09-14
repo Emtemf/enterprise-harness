@@ -52,7 +52,7 @@ runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提�
 
 四个假设分别报告：弱 Harness 对弱裸的严格正向流程增益、弱 Harness 对强裸的 5pp 非劣、强 Harness 对强裸的严格正向流程增益，以及生产混合 Harness 对强裸的效果与单位合格交付成本。前三项全部通过才能讲完整的“弱模型比肩强模型、强模型变得更好”故事。token、耗时和工具调用只用于解释资源投入，不参与业务效果判定。
 
-当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。早期诊断中的 Haiku/Opus 是 CC Switch alias，不应解释为 Anthropic 模型；[`pilot-2026-09-10.json`](pilot-2026-09-10.json) 保留了这项口径修正。2026-09-14 的 [fresh preflight](preflight-2026-09-14.json) 已验证 Haiku→GLM-5.1、Sonnet→GLM-5.2 同窗可用；它只证明采样环境就绪，尚不能发布效果结论。
+当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。早期诊断中的 Haiku/Opus 是 CC Switch alias，不应解释为 Anthropic 模型；[`pilot-2026-09-10.json`](pilot-2026-09-10.json) 保留了这项口径修正。2026-09-14 的 [fresh preflight](preflight-2026-09-14.json) 已验证 Haiku→GLM-5.1、Sonnet→GLM-5.2 同窗可用；[真实 bwrap 探针](holdout-isolation-smoke-2026-09-14.json) 证明 Claude 看不到指定 holdout 路径但仍能读取公开 evidence 并提问。两者只证明采样环境就绪，尚不能发布效果结论。
 
 ## 运行
 

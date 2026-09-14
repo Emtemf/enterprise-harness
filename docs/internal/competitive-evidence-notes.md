@@ -72,6 +72,8 @@ holdout 的本地隔离由 runner 强制执行：case pack 必须位于 `/var/tm
 
 一次单轮 route receipt dry-run 还证明 Sonnet controller 会伴随 Claude Code 内部 Haiku 辅助请求：实际路由同时出现 GLM-5.2 与 GLM-5.1。实验臂因此增加 `allowedActualModels`：所有弱臂仅允许 GLM-5.1，任何 GLM-5.2 泄漏都使样本无效；混合臂与强 controller 臂允许 5.1/5.2，内部辅助的全部资源和费用照常计入。“强模型”口径只描述 controller，不再写成所有请求纯强。
 
+clean `764d55d` 的真实 bwrap 单轮探针中，用户消息明确给出 holdout 绝对路径；Claude 报告该路径不存在，同时成功读取 fixture 中公开 evidence、提出审批角色问题并 exit 0。assistant 输出中的隐藏标记命中数为 0，产品代码变化为 false。该证据只验收隔离机制，不计入模型效果样本。
+
 同日基于 clean `891406a` 与 Claude Code 2.1.268 的 fresh preflight 首次同窗通过：Haiku response=`glm-5.1`、billing=`claude-haiku-4-5`；Sonnet response=`glm-5.2`、billing=`claude-sonnet-4-6[1M]`，两条探针均 exit 0、complete。该回执证明 CC Switch 强弱采样入口已经就绪，不是效果样本；公开结论仍需外部 holdout、20 对/比较和 provider 请求级回执。
 
 主指标：

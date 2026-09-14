@@ -23,6 +23,7 @@
 - clean `891406a` 上的 2026-09-14 fresh preflight 已同窗验证 Haiku→GLM-5.1 与 Sonnet→GLM-5.2 均可调用、billing alias 正确且结果完整；环境已可开始采样，但有效配对数仍为 0，不能提前发布模型放大结论。
 - 正式 holdout 本地运行已从“外部提供隔离声明”收紧为 runner 强制 bwrap：case pack 只能位于 `/var/tmp`，Claude 子进程中的 `/var/tmp` 被 tmpfs 遮蔽，隔离回执由实际 wrapper 自动生成。benchmark 同时记录 Claude session ID，可从 CC Switch SQLite 精确导出实际 GLM 路由回执；模型档位证据与上游真实费用证据分开验收。
 - 单轮 route receipt dry-run 观察到 Sonnet→GLM-5.2 controller 同时触发内部 Haiku→GLM-5.1 辅助请求。矩阵已显式声明允许实际模型集合：弱臂出现 5.2 直接判污染；混合/强 controller 臂允许 5.1/5.2，并把内部辅助纳入全部资源成本。“强模型”仅指 controller 档位。
+- clean `764d55d` 上的真实 bwrap 探针已通过：Claude 在已知 holdout 绝对路径的情况下确认文件不可见，仍能读取公开 evidence、正常提问并 exit 0；隐藏标记无泄漏。该单轮探针只证明隔离实现，不计为产品效果观测。
 
 ## 2026-09-09 Marketing 受众隔离
 

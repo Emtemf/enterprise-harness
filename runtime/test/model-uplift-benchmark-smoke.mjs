@@ -111,6 +111,7 @@ assert.equal(extractQuestionFromStream([{ type: 'assistant', message: { content:
 assert.equal(extractQuestionFromStream([], '已读取 `docs/provider.txt`：超时必须重试。\n\n**最高价值问题：哪些订单状态允许退款？**'), '哪些订单状态允许退款？');
 assert.equal(extractQuestionFromStream([], '**问题：哪些订单状态允许退款？**\n- A. 仅 PAID\n- B. PAID + FULFILLED（是否包含退货流程？）'), '哪些订单状态允许退款？');
 assert.equal(extractQuestionFromStream([], '> **用户在什么状态下可以自助申请退款？**\n> - 仅限 PAID？\n> - 是否需要额外约束（例如 N 小时内）？\n请给出边界。'), '用户在什么状态下可以自助申请退款？');
+assert.equal(extractQuestionFromStream([], '**业务澄清问题**\n请确认：一个发布需要哪些角色（例如：产品负责人、技术负责人）审批？'), '一个发布需要哪些角色（例如：产品负责人、技术负责人）审批？');
 const repeatedAnswer = answerBusinessQuestion(businessCases.cases[0], 'FULFILLED 已发货订单可以退款吗？', new Set(['eligible-window']));
 assert.equal(repeatedAnswer.unmatched, false);
 assert.equal(repeatedAnswer.repeated, true);

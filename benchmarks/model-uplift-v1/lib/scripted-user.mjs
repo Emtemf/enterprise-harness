@@ -48,6 +48,6 @@ export function extractQuestionFromStream(events, resultText = '') {
   const line = [...candidates].sort((left, right) => left.score - right.score || left.index - right.index).at(-1).content;
   const questionEnd = Math.max(line.lastIndexOf('？'), line.lastIndexOf('?'));
   const throughQuestion = line.slice(0, questionEnd + 1);
-  const separator = Math.max(throughQuestion.lastIndexOf('：'), throughQuestion.lastIndexOf(':'));
-  return normalize(separator >= 0 ? throughQuestion.slice(separator + 1) : throughQuestion);
+  const labeled = throughQuestion.match(/(?:最高价值问题|第[^：:]{0,12}问题|问题|请确认)[：:]\s*(.+)$/u);
+  return normalize(labeled ? labeled[1] : throughQuestion);
 }
