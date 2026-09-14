@@ -1,13 +1,18 @@
 {
-  "schemaVersion": 2,
-  "currency": "USD",
+  "schemaVersion": 3,
+  "unit": "relay-charge-unit",
   "routingProfile": "cc-switch-glm-5.1-vs-5.2",
-  "status": "provider-pricing-required",
-  "acceptedCostAuthority": "provider-billing",
-  "rejectedCostAuthority": "claude-code-alias-estimate",
+  "status": "confirmed",
+  "authority": "user-confirmed-relay-request-tariff",
+  "chargingBasis": "per-proxy-request",
   "models": {
-    "glm-5.1": null,
-    "glm-5.2": null
+    "glm-5.1": {
+      "chargeUnitsPerRequest": 1
+    },
+    "glm-5.2": {
+      "chargeUnitsPerRequest": 3
+    }
   },
-  "reason": "Claude Code modelUsage costUSD is keyed by Claude aliases while CC Switch routes requests to GLM models. Import an auditable provider bill or versioned provider price receipt before publishing economic claims."
+  "claimRole": "resource-statistic-only",
+  "reason": "当前中转站按请求计次：GLM-5.1 每次 1 单位，GLM-5.2 每次 3 单位。计费单位与 token 只解释资源投入，不参与业务效果发布门槛。"
 }

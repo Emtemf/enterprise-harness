@@ -44,7 +44,7 @@
 
 ## 2026-09-09 Model uplift runner 诊断
 
-新增 `benchmarks/model-uplift-v1/`。早期以 Claude alias 记为 Haiku controller + Harness、裸 Haiku、裸 Opus；用户随后提供 CC Switch 显式映射。当前五臂口径为裸 GLM-5.1、全 GLM-5.1 Harness、GLM-5.1 controller + GLM-5.2 workers 混合 Harness、裸 GLM-5.2、全 GLM-5.2 Harness。主指标是系统中立隐藏业务验收；经济指标单独使用 provider-billed `cost_per_accepted_change`。
+新增 `benchmarks/model-uplift-v1/`。早期以 Claude alias 记为 Haiku controller + Harness、裸 Haiku、裸 Opus，随后按 CC Switch 显式映射扩展为五臂探索矩阵。2026-09-14 根据最终推广问题收敛为三臂：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2。主指标是系统中立隐藏业务验收；必须同时证明 Harness 对同一弱模型的因果提升，以及弱 Harness 对强裸的 5pp 非劣。
 
 首轮同步 runner 的原始 grader 错误地强制了需求未声明的异常/返回值与 `auditSink` 方法名，导致两个裸跑 alias 都被误判为 0/7。按用户可观察合同校准后，两者均为 7/7；Claude Code alias costUSD 分别为 $0.1132476 与 $0.448735。该简单 case 没有区分模型效果，而 alias cost 也不能解释为 GLM provider 实际成本。
 
@@ -64,9 +64,9 @@ CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用
 
 至少覆盖 brownfield + versioned SDK、stale requirements、interrupted session、adversarial path、TDD + independent review、archive replay 六类 case。模型放大正式结论每项比较至少需要 20 对 measurement-valid 观测并覆盖至少 5 个不同 holdout case；10 对只用于诊断置信区间，不能发布产品主张。
 
-2026-09-10 五臂矩阵与业务澄清轨已落地。五臂分别为弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness；开发题库包含 5 类业务问题，脚本化用户按问题命中返回事实，确定性 grader 检查关键未知项召回、最终覆盖、未经询问的业务假设、证据落地和提前代码写入。仓库内 development pack 永久不可发布；正式 holdout 必须从仓库外注入并记录 digest。公开效果门提升为每项比较至少 20 对、至少 5 个不同 holdout case；10 对只提供诊断置信区间。
+2026-09-10 五臂探索矩阵与业务澄清轨落地；2026-09-14 正式矩阵收敛为弱裸、全弱 Harness、强裸三臂，减少与主张无关的采样。开发题库包含 5 类业务问题，脚本化用户按问题命中返回事实，确定性 grader 检查关键未知项召回、最终覆盖、未经询问的业务假设、证据落地和提前代码写入。仓库内 development pack 永久不可发布；正式 holdout 必须从仓库外注入并记录 digest。公开效果门为每项比较至少 20 对、至少 5 个不同 holdout case；10 对只提供诊断置信区间。
 
-2026-09-14 根据 CC Switch 上游账单可观测性修正模型身份边界：alias 与 response model 只负责运行期诊断，正式 GLM-5.1/5.2 档位由 CC Switch proxy log 的 Claude session ID、实际 model 和 invocation 时间窗闭环，写入 `modelTierIdentityValid`；provider billing export 独立提供逐请求真实费用。两类导入都要求全样本覆盖与请求 ID 唯一，CC Switch 本地估价不充当 provider 支出。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
+2026-09-14 根据 CC Switch 请求记录修正模型身份边界：alias 与 response model 只负责运行期诊断，正式 GLM-5.1/5.2 档位由 CC Switch proxy log 的 Claude session ID、实际 model 和 invocation 时间窗闭环，写入 `modelTierIdentityValid`。同一回执按用户确认的中转规则累计实际请求：GLM-5.1=1 单位、GLM-5.2=3 单位；这是资源统计而非效果门槛，无需 provider CSV。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
 
 holdout 的本地隔离由 runner 强制执行：case pack 必须位于 `/var/tmp`，Claude 调用经 bwrap 运行并以 tmpfs 遮蔽整个 `/var/tmp`；代码 fixture 与必要用户环境仍可用。isolation receipt 由实际 wrapper 自动产生，不能再用任意 JSON 声称“容器隔离”。当前只支持 Linux/bwrap，远程盲评保留为后续扩展。
 

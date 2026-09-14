@@ -39,42 +39,26 @@ const seededRandom = (initialSeed) => {
     return (seed >>> 0) / 0x100000000;
   };
 };
-const providerCost = (row) => row.costAuthority === 'provider-billing' && Number.isFinite(row.providerCostUsd)
-  ? row.providerCostUsd
-  : null;
 const bootstrapPairedDecision = (pairs, iterations = 10_000) => {
   if (pairs.length === 0 || pairs.some(({ effectMeasurementValid }) => !effectMeasurementValid)) {
-    return { iterations, effectGapMeanLower95Pp: null, costPerAcceptedRatioUpper95: null };
+    return { iterations, effectGapMeanLower95Pp: null };
   }
   const random = seededRandom(0x45485631);
   const effectMeans = [];
-  const costRatios = [];
   for (let iteration = 0; iteration < iterations; iteration += 1) {
     const sample = Array.from({ length: pairs.length }, () => pairs[Math.floor(random() * pairs.length)]);
     effectMeans.push(mean(sample.map(({ effectGapPp }) => effectGapPp)));
-    if (sample.every(({ economicMeasurementValid }) => economicMeasurementValid)) {
-      const treatmentAccepted = sample.filter(({ treatmentAccepted }) => treatmentAccepted).length;
-      const controlAccepted = sample.filter(({ controlAccepted }) => controlAccepted).length;
-      const treatmentCost = treatmentAccepted === 0 ? Number.POSITIVE_INFINITY
-        : sample.reduce((sum, pair) => sum + pair.treatmentCostUsd, 0) / treatmentAccepted;
-      const controlCost = controlAccepted === 0 ? Number.POSITIVE_INFINITY
-        : sample.reduce((sum, pair) => sum + pair.controlCostUsd, 0) / controlAccepted;
-      costRatios.push(Number.isFinite(treatmentCost) && Number.isFinite(controlCost)
-        ? treatmentCost / controlCost : Number.POSITIVE_INFINITY);
-    }
   }
-  const costUpper = percentile(costRatios, 0.975);
   return {
     iterations,
     effectGapMeanLower95Pp: percentile(effectMeans, 0.025),
-    costPerAcceptedRatioUpper95: Number.isFinite(costUpper) ? costUpper : null,
   };
 };
 const arms = [...byArm].map(([armId, rows]) => {
   const accepted = rows.filter((row) => row.grade.accepted);
-  const providerCosts = rows.map(providerCost).filter(Number.isFinite);
-  const completeProviderCost = providerCosts.length === rows.length;
   const aliasCosts = rows.map((row) => row.totals.costUsd).filter(Number.isFinite);
+  const relayChargeUnits = rows.map((row) => row.relayChargeUnits).filter(Number.isFinite);
+  const completeRelayCharge = relayChargeUnits.length === rows.length;
   const tokens = rows.map((row) => Number(row.totals.inputTokens || 0) + Number(row.totals.outputTokens || 0));
   return {
     armId,
@@ -84,12 +68,13 @@ const arms = [...byArm].map(([armId, rows]) => {
     effectScoreMedian: median(rows.map((row) => row.grade.effectScore)),
     measurementValidRuns: rows.filter((row) => row.measurementValid !== false).length,
     modelTierIdentityValidRuns: rows.filter((row) => row.modelTierIdentityValid === true).length,
-    providerCostValidRuns: providerCosts.length,
+    relayChargeValidRuns: relayChargeUnits.length,
+    relayRequestCountMedian: median(rows.map((row) => row.relayRequestCount).filter(Number.isFinite)),
+    relayChargeUnitsMedian: completeRelayCharge ? median(relayChargeUnits) : null,
+    relayChargeUnitsPerAcceptedChange: accepted.length === 0 || !completeRelayCharge
+      ? null : relayChargeUnits.reduce((sum, value) => sum + value, 0) / accepted.length,
     tokensMedian: median(tokens),
     reportedAliasCostUsdMedian: aliasCosts.length === rows.length ? median(aliasCosts) : null,
-    providerCostUsdMedian: completeProviderCost ? median(providerCosts) : null,
-    costPerAcceptedChange: accepted.length === 0 || !completeProviderCost
-      ? null : providerCosts.reduce((sum, value) => sum + value, 0) / accepted.length,
     durationMsMedian: median(rows.map((row) => row.totals.durationMs)),
     completedArchiveRate: rows.filter((row) => row.completedArchive).length / rows.length,
   };
@@ -110,14 +95,13 @@ const comparisons = configuredComparisons.map((comparison) => {
       effectMeasurementValid: left.measurementValid !== false && right.measurementValid !== false
         && left.modelIdentityValid !== false && right.modelIdentityValid !== false,
       modelTierIdentityValid: left.modelTierIdentityValid === true && right.modelTierIdentityValid === true,
-      economicMeasurementValid: providerCost(left) !== null && providerCost(right) !== null,
       effectGapPp: left.grade.effectScore - right.grade.effectScore,
       treatmentAccepted: left.grade.accepted,
       controlAccepted: right.grade.accepted,
-      treatmentCostUsd: providerCost(left),
-      controlCostUsd: providerCost(right),
-      costGapUsd: providerCost(left) !== null && providerCost(right) !== null
-        ? providerCost(left) - providerCost(right) : null,
+      treatmentRelayChargeUnits: Number.isFinite(left.relayChargeUnits) ? left.relayChargeUnits : null,
+      controlRelayChargeUnits: Number.isFinite(right.relayChargeUnits) ? right.relayChargeUnits : null,
+      relayChargeUnitGap: Number.isFinite(left.relayChargeUnits) && Number.isFinite(right.relayChargeUnits)
+        ? left.relayChargeUnits - right.relayChargeUnits : null,
     }] : [];
   });
   const validEffectMeasurements = pairs.every(({ effectMeasurementValid }) => effectMeasurementValid);
@@ -126,7 +110,6 @@ const comparisons = configuredComparisons.map((comparison) => {
   const diagnosticEligible = pairs.length >= 10 && validEffectMeasurements && validModelTierIdentities;
   const effectEligible = claimEligibleInput && pairs.length >= minimumPairedObservations
     && distinctCases >= minimumDistinctCases && validEffectMeasurements && validModelTierIdentities;
-  const economicEligible = effectEligible && pairs.every(({ economicMeasurementValid }) => economicMeasurementValid);
   const bootstrap = bootstrapPairedDecision(pairs.map((pair) => ({
     ...pair,
     effectMeasurementValid: pair.effectMeasurementValid && pair.modelTierIdentityValid,
@@ -136,8 +119,6 @@ const comparisons = configuredComparisons.map((comparison) => {
     ? bootstrap.effectGapMeanLower95Pp > minimumEffectGapPp
     : bootstrap.effectGapMeanLower95Pp >= minimumEffectGapPp;
   const publishableEffect = effectEligible && bootstrap.effectGapMeanLower95Pp !== null && confidenceGatePassed;
-  const publishableEconomics = economicEligible && bootstrap.costPerAcceptedRatioUpper95 !== null
-    && bootstrap.costPerAcceptedRatioUpper95 < 1;
   return {
     ...comparison,
     pairs,
@@ -146,11 +127,9 @@ const comparisons = configuredComparisons.map((comparison) => {
       publishableEffect,
       minimumEffectGapPp,
       strictEffectGate: Boolean(comparison.strictEffectGate),
-      eligibleForEconomicClaim: economicEligible,
-      publishableEconomics,
       reason: {
         effect: effectEligible ? (publishableEffect ? 'effect confidence-bound gate passed' : 'effect confidence-bound gate failed') : claimEligibleInput ? `at least ${minimumPairedObservations} identity-valid pairs across ${minimumDistinctCases} distinct holdout cases are required` : 'the case pack is diagnostic-only and cannot support a published claim',
-        economics: economicEligible ? (publishableEconomics ? 'provider-billed cost confidence bound passed' : 'cost confidence-bound gate failed') : 'provider-billed cost is required; Claude alias cost estimates are not accepted',
+        resources: 'relay charge units, token usage and duration are descriptive statistics and do not gate the effect claim',
       },
       diagnostic: {
         pairedRuns: pairs.length,
@@ -158,29 +137,27 @@ const comparisons = configuredComparisons.map((comparison) => {
         diagnosticEligible,
         validModelTierIdentities,
         medianEffectGapPp: median(pairs.map(({ effectGapPp }) => effectGapPp)),
-        medianCostGapUsd: pairs.every(({ costGapUsd }) => Number.isFinite(costGapUsd))
-          ? median(pairs.map(({ costGapUsd }) => costGapUsd)) : null,
+        medianRelayChargeUnitGap: pairs.every(({ relayChargeUnitGap }) => Number.isFinite(relayChargeUnitGap))
+          ? median(pairs.map(({ relayChargeUnitGap }) => relayChargeUnitGap)) : null,
         bootstrap,
       },
     },
   };
 });
-const requiredEffectIds = ['weak-workflow-uplift', 'weak-model-substitution', 'strong-workflow-uplift'];
+const requiredEffectIds = ['weak-workflow-uplift', 'weak-model-substitution'];
 const requiredEffects = requiredEffectIds.map((id) => comparisons.find((item) => item.id === id)).filter(Boolean);
-const economicComparison = comparisons.find((item) => item.economicComparison);
 const publishableEffectStory = requiredEffects.length === requiredEffectIds.length
   && requiredEffects.every((item) => item.decision.publishableEffect);
 const summary = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   source: path.resolve(rawPath),
   arms,
   comparisons,
   decision: {
     publishableEffectStory,
-    publishableEconomicAdvantage: Boolean(economicComparison?.decision.publishableEconomics),
-    publishableCombinedClaim: publishableEffectStory && Boolean(economicComparison?.decision.publishableEconomics),
+    publishableModelUplift: publishableEffectStory,
     effectRequirements: requiredEffectIds,
-    economicComparison: economicComparison?.id || null,
+    resourceMetricsArePublicationGate: false,
     claimEligibleInput,
     minimumPairedObservations,
     minimumDistinctCases,

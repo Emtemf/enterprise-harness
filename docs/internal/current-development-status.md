@@ -11,14 +11,15 @@
 
 ## 2026-09-09 模型放大与 token 经济学基准
 
-- `benchmarks/model-uplift-v1/` 已升级为五臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、GLM-5.1 controller + GLM-5.2 workers 混合 Harness、裸 GLM-5.2、全 GLM-5.2 Harness；分别检验弱模型流程增益、弱强非劣、强模型流程增益和生产路由经济性，不再把 Haiku/Sonnet/Opus alias 当成实际模型。
+- `benchmarks/model-uplift-v1/` 的正式主张已收敛为三臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2；同时通过“弱 Harness 严格优于弱裸”和“弱 Harness 对强裸 5pp 非劣”才能证明弱模型经 Harness 提升并比肩强模型。
+- 中转站按实际请求计次：GLM-5.1=1 单位、GLM-5.2=3 单位。CC Switch route receipt 负责模型身份并累计计费单位；token、请求数、计费单位与耗时仅作资源统计，不再等待 provider CSV，也不作为效果发布门槛。
 - 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门；`bypassPermissions` 下没有隔离证明的数据不能形成公开结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求每项比较至少 20 组、覆盖至少 5 个 holdout case，并分别通过效果门与单位验收成本的配对 bootstrap 95% 置信边界；10 对只产生诊断区间。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。
 - 2026-09-10 基准扩展到订单幂等、Webhook 签名/时间窗/重放防护、订阅乐观锁与 forward/rollback SQL migration 三类 case。Webhook 的 GLM-5.1 裸跑通过 7/7；该单样本可验证 case 与弱模型路由，但不足以形成效果结论。runner 同时校验实际 GLM message model、Claude alias billing key、完整 raw request 绑定，并以 durable workflow status 驱动 Harness 阶段恢复。
 - 新增低成本环境 preflight：在正式 `--case all` 前分别探测 controller/worker 所需 alias，绑定 Claude Code 版本、CC Switch profile 和非 secret 路由配置摘要，receipt 24 小时过期且不可强制绕过；调用失败或预期 billing alias 缺失即阻断。GLM 产品档位由后续 provider receipt 闭环。
-- 用户提供的 CC Switch profile 与上游使用记录已纳入评测真相。preflight 验证 alias 可用性、账单键和环境绑定；assistant response model 独立记录为 backend 漂移诊断，不再冒充 provider 产品档位。正式效果发布要求逐样本 provider receipt 证明 GLM-5.1/5.2 档位，经济结论另读取同一回执的真实费用。
+- 用户提供的 CC Switch profile 与请求记录已纳入评测真相。preflight 验证 alias 可用性、账单键和环境绑定；assistant response model 独立记录为 backend 漂移诊断。正式效果发布要求逐样本 CC Switch route receipt 证明 GLM-5.1/5.2 档位，并从同一批实际请求累计 1:3 中转计费单位。
 - 2026-09-14 业务澄清开发 runner 已修复主问题/选项问号抽取和重复确认误判，退款 case 补齐资格窗口、审批、入口、订单归属、状态机、失败恢复、并发重复提交、审计与用户反馈等关键事实；每个完整对话轮次原子写入 checkpoint，并记录 UTC invocation 窗口供 provider 请求机械对账。holdout 拒绝 dirty runner，避免不可复现样本进入正式证据。
 - clean `891406a` 上的 2026-09-14 fresh preflight 已同窗验证 Haiku→GLM-5.1 与 Sonnet→GLM-5.2 均可调用、billing alias 正确且结果完整；环境已可开始采样，但有效配对数仍为 0，不能提前发布模型放大结论。
 - 正式 holdout 本地运行已从“外部提供隔离声明”收紧为 runner 强制 bwrap：case pack 只能位于 `/var/tmp`，Claude 子进程中的 `/var/tmp` 被 tmpfs 遮蔽，隔离回执由实际 wrapper 自动生成。benchmark 同时记录 Claude session ID，可从 CC Switch SQLite 精确导出实际 GLM 路由回执；模型档位证据与上游真实费用证据分开验收。

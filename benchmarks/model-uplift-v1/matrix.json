@@ -33,22 +33,6 @@
       "treatmentArm": "weak-harness",
       "controlArm": "strong-bare",
       "minimumEffectGapPp": -5
-    },
-    {
-      "id": "strong-workflow-uplift",
-      "claim": "同为 GLM-5.2 时，Harness 进一步提高业务效果",
-      "treatmentArm": "strong-harness",
-      "controlArm": "strong-bare",
-      "minimumEffectGapPp": 0,
-      "strictEffectGate": true
-    },
-    {
-      "id": "hybrid-model-substitution",
-      "claim": "生产混合路由的业务效果不劣于裸 GLM-5.2",
-      "treatmentArm": "hybrid-harness",
-      "controlArm": "strong-bare",
-      "minimumEffectGapPp": -5,
-      "economicComparison": true
     }
   ],
   "arms": [
@@ -61,15 +45,6 @@
       "allowedActualModels": ["glm-5.1"],
       "subagentModelOverride": "haiku",
       "modelRouting": "glm-5.1 controller and glm-5.1 workers"
-    },
-    {
-      "id": "hybrid-harness",
-      "model": "haiku",
-      "workflow": "enterprise-harness",
-      "controllerRoute": "haiku",
-      "workerRoutes": ["sonnet"],
-      "allowedActualModels": ["glm-5.1", "glm-5.2"],
-      "modelRouting": "glm-5.1 controller; plugin-declared Sonnet workers mapped to glm-5.2"
     },
     {
       "id": "weak-bare",
@@ -88,16 +63,6 @@
       "workerRoutes": [],
       "allowedActualModels": ["glm-5.1", "glm-5.2"],
       "modelRouting": "glm-5.2 controller; Claude Code internal weaker auxiliaries are measured when present"
-    },
-    {
-      "id": "strong-harness",
-      "model": "sonnet",
-      "workflow": "enterprise-harness",
-      "controllerRoute": "sonnet",
-      "workerRoutes": ["sonnet"],
-      "allowedActualModels": ["glm-5.1", "glm-5.2"],
-      "subagentModelOverride": "sonnet",
-      "modelRouting": "glm-5.2 controller and declared workers; Claude Code internal weaker auxiliaries are measured when present"
     }
   ]
 }

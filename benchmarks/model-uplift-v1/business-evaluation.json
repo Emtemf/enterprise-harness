@@ -59,7 +59,7 @@
       "duration_ms"
     ],
     "economics": [
-      "provider_cost_per_accepted_change"
+      "relay_charge_units_per_accepted_change"
     ]
   },
   "publicationGate": {
@@ -77,7 +77,7 @@
       "本地 holdout 由 runner 强制 bwrap 文件系统隔离并自动生成 digest-bound receipt；远程盲评作为后续扩展",
       "确定性 grader 为主，盲化业务专家复核抽样为辅",
       "多个主假设分别报告，不用单一总分掩盖严重缺陷",
-      "provider 账单与效果结论分开验收"
+      "按实际路由请求累计 1:3 中转计费单位；计费单位与 token 只作资源统计，不阻断效果结论"
     ]
   },
   "scriptedUser": {

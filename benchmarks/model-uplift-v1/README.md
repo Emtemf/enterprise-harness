@@ -2,27 +2,25 @@
 
 本基准检验一个可证伪的产品假设：
 
-> 在相同业务问题上，Harness 能提高弱模型效果，使弱模型达到强模型裸工作流的效果，并继续提高强模型效果；在取得 provider 真实账单后，再独立检验每个已验收变更的实际成本是否更低。
+> 在相同业务问题上，全程使用 GLM-5.1 的 Harness 能提高弱模型效果，并达到裸 GLM-5.2 工作流的效果。
 
 它不是用 Harness 产物数量给 Harness 打分。产品效果由系统不可见的隐藏业务测试决定；企业治理产物单独报告。
 
-## 五个实验臂
+## 三个实验臂
 
 | 实验臂 | 作用 |
 |---|---|
 | `weak-bare` | 裸 GLM-5.1 基线 |
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
-| `hybrid-harness` | GLM-5.1 controller + GLM-5.2 专项 workers，对应生产型经济路由 |
 | `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
-| `strong-harness` | controller 与声明的 subagent 锁定 GLM-5.2，检验强模型是否继续受益 |
 
-Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。模型档位身份由 CC Switch 路由配置与 provider 账单模型闭环；assistant `message.model` 另存为 backend response identity，发生漂移时告警但不单独推翻 provider 产品档位。调用失败、billing alias 不符或 provider receipt 缺失仍会阻断对应结论。纯弱、混合、纯强三个 Harness 臂通过每次子进程的 subagent 模型覆盖隔离，不修改插件生产配置；该覆盖遵循 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)。
+Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。`weak-harness` 通过每次子进程的 subagent 模型覆盖把 controller 和声明的 workers 都锁定 Haiku/GLM-5.1，不修改插件生产配置；该覆盖遵循 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)。
 
-Claude Code 返回的 `costUSD` 仍基于 Claude billing key，不能代表 CC Switch 上游的 GLM 实际费用。效果证据和经济证据分层验收：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位；只有 provider billing export 的逐请求费用才进入经济结论。CC Switch 的 `total_cost_usd` 作为本地估算保留在 route receipt 中，不冒充真实支出。
+效果证据与资源统计分开：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位，并按用户确认的中转站规则累计请求计费单位。GLM-5.1 每次请求记 1 单位，GLM-5.2 每次请求记 3 单位。Claude Code 返回的 alias `costUSD` 仅保留作诊断；计费单位、token 和耗时都不参与效果发布门槛。
 
-`export-cc-switch-route-receipt.py` 从只读 SQLite 生成路由证据，`attach-route-receipt.mjs` 校验完整样本覆盖、session、请求 ID、模型与时间窗并写入 `modelTierIdentityValid`。上游记录整理成 [`provider-receipt.example.json`](provider-receipt.example.json) 后，再由 `attach-provider-receipt.mjs` 校验 runner commit、路由 profile、完整样本覆盖、请求 ID、模型、时间窗和逐请求费用；两类时间关联均允许 2 分钟时钟偏差。截图、Claude alias 估值和 CC Switch 本地估价都不能直接充当机器账单。[`pricing.json`](pricing.json) 记录成本证据边界。
+`export-cc-switch-route-receipt.py` 从只读 SQLite 生成路由证据，`attach-route-receipt.mjs` 校验完整样本覆盖、session、请求 ID、模型与时间窗，写入 `modelTierIdentityValid`、逐模型请求数和 `relayChargeUnits`。时间关联允许 2 分钟时钟偏差。[`pricing.json`](pricing.json) 是 1:3 固定计次规则的版本化权威。provider receipt 工具仍保留给其他按真实金额结算的环境，但不是本轮模型效果主张的输入或门槛。
 
-Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅助。route receipt 必须完整记录这些请求：弱臂只允许实际 GLM-5.1，出现任何 GLM-5.2 即判污染；混合臂和强 controller 臂允许 GLM-5.1/5.2，但所有请求都计入 token、耗时与 provider 成本。因此“强模型”指 GLM-5.2 controller 档位，不声称进程中的每个内部请求都是 GLM-5.2。
+Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅助。route receipt 必须完整记录这些请求：两个弱臂只允许实际 GLM-5.1，出现任何 GLM-5.2 即判污染；`strong-bare` 允许 GLM-5.1/5.2，全部请求分别按 1/3 单位计入。因此“强模型”指 GLM-5.2 controller 档位，不声称进程中的每个内部请求都是 GLM-5.2。
 
 ## 先评业务问题，再评代码
 
@@ -38,19 +36,21 @@ Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅
 
 主指标是系统中立的隐藏验收。当前 case 覆盖订单取消的状态、原子性与并发幂等，Webhook 的 HMAC 签名、时间窗、多签名轮换、负载校验和重放防护，以及订阅变更的乐观锁、外部失败原子性、幂等冲突和 forward/rollback SQL migration。`accepted` 要求当前 case 的全部关键测试通过、公开回归测试通过且未篡改需求。
 
-经济指标：
+效果判定：
 
 ```text
-effect_uplift 可发布 = identity-valid paired observations >= 10
-                       AND bootstrap_95%_lower(mean effect gap) >= -5pp
+weak_workflow_uplift 可发布 = identity-valid paired observations >= 20
+                            AND distinct holdout cases >= 5
+                            AND bootstrap_95%_lower(mean effect gap) > 0pp
 
-economic_advantage 可发布 = provider-billed cost complete
-                            AND bootstrap_95%_upper(cost_per_accepted_change ratio) < 1
+weak_model_substitution 可发布 = identity-valid paired observations >= 20
+                              AND distinct holdout cases >= 5
+                              AND bootstrap_95%_lower(mean effect gap) >= -5pp
 ```
 
-runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提供诊断置信区间，但不会发布结论；正式业务报告采用至少 20 对、至少 5 个不同 holdout case，并通过固定种子、10,000 次配对 bootstrap。成本结论额外要求每个样本具备 provider-billed cost；Claude alias 估值不合格。`n=1` 只能发现 runner、预算和任务难度问题。
+runner 在 10 对按 case/repetition 配对且模型身份有效的观测后提供诊断置信区间，但不会发布结论；正式业务报告采用至少 20 对、至少 5 个不同 holdout case，并通过固定种子、10,000 次配对 bootstrap。两项效果门必须同时通过，才能表述“弱模型经 Harness 提升并比肩强模型”。`n=1` 只能发现 runner、预算和任务难度问题。
 
-四个假设分别报告：弱 Harness 对弱裸的严格正向流程增益、弱 Harness 对强裸的 5pp 非劣、强 Harness 对强裸的严格正向流程增益，以及生产混合 Harness 对强裸的效果与单位合格交付成本。前三项全部通过才能讲完整的“弱模型比肩强模型、强模型变得更好”故事。token、耗时和工具调用只用于解释资源投入，不参与业务效果判定。
+两个假设分别报告：弱 Harness 对弱裸的严格正向流程增益，以及弱 Harness 对强裸的 5pp 非劣。token、请求次数、1:3 中转计费单位、耗时和工具调用只用于解释资源投入，不参与业务效果判定；“强模型使用 Harness 会更好”不在本轮主张范围内。
 
 当前证据状态由 [`evidence-status.json`](evidence-status.json) 机械声明。早期诊断中的 Haiku/Opus 是 CC Switch alias，不应解释为 Anthropic 模型；[`pilot-2026-09-10.json`](pilot-2026-09-10.json) 保留了这项口径修正。2026-09-14 的 [fresh preflight](preflight-2026-09-14.json) 已验证 Haiku→GLM-5.1、Sonnet→GLM-5.2 同窗可用；[真实 bwrap 探针](holdout-isolation-smoke-2026-09-14.json) 证明 Claude 看不到指定 holdout 路径但仍能读取公开 evidence 并提问。两者只证明采样环境就绪，尚不能发布效果结论。
 
@@ -64,13 +64,12 @@ node benchmarks/model-uplift-v1/business-run.mjs --case all --case-pack /var/tmp
 node benchmarks/model-uplift-v1/run.mjs --case all --reps 1 --budget-usd 3 --max-agent-turns 60 --invocation-timeout-ms 900000 --preflight-receipt /tmp/model-uplift-preflight.json
 python3 benchmarks/model-uplift-v1/export-cc-switch-route-receipt.py <business-results.json> ~/.cc-switch/cc-switch.db <route-receipt.json>
 node benchmarks/model-uplift-v1/attach-route-receipt.mjs <business-results.json> <route-receipt.json> <route-reconciled.json>
-node benchmarks/model-uplift-v1/attach-provider-receipt.mjs <route-reconciled.json> <provider-receipt.json> <fully-reconciled.json>
-node benchmarks/model-uplift-v1/summarize.mjs <fully-reconciled.json> <summary.json>
+node benchmarks/model-uplift-v1/summarize.mjs <route-reconciled.json> <summary.json>
 ```
 
-正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检验证选中实验臂使用的 Haiku/Sonnet alias 是否分别可用且 billing alias 与 profile 一致，并绑定 Claude Code 版本和非 secret 路由配置摘要；provider 产品档位最终由账单回执闭环，assistant response model 仅作漂移诊断。失败时停止，不允许用 `--force` 绕过。单 case 仍可用于 diagnostic runner 调试；holdout 还会拒绝 dirty worktree，避免账单绑定到不能复现的 runner。
+正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检验证选中实验臂使用的 Haiku/Sonnet alias 是否分别可用且 billing alias 与 profile 一致，并绑定 Claude Code 版本和非 secret 路由配置摘要；实际产品档位最终由 CC Switch 路由回执闭环。失败时停止，不允许用 `--force` 绕过。单 case 仍可用于 diagnostic runner 调试；holdout 还会拒绝 dirty worktree，避免回执绑定到不能复现的 runner。
 
-业务澄清 runner 在 `results/.../checkpoints/` 中为每个实验臂原子写入上一完整轮的 transcript、模型观测和 token 使用；进程中断后可以定位最后完成位置。checkpoint 是审计证据，不替代最终结果、隔离回执或 provider receipt。
+业务澄清 runner 在 `results/.../checkpoints/` 中为每个实验臂原子写入上一完整轮的 transcript、模型观测和 token 使用；进程中断后可以定位最后完成位置。checkpoint 是审计证据，不替代最终结果、隔离回执或 CC Switch route receipt。
 
 只运行一个实验臂：
 

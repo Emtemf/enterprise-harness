@@ -39,24 +39,23 @@ token 只作为资源指标，与耗时和工具调用量一起观察；它不�
 
 ## Token 经济学：计算单位合格交付，而不是单次回答
 
-便宜模型可以使用更多 token，只要它最终产生同等质量的已验收结果，并且总成本仍更低。评估公式是：
+便宜模型可以使用更多 token；首先要判断它能否产生同等质量的结果，再用实际计费方式解释资源投入。本轮中转站按请求计次，评估公式是：
 
 ```text
-单位合格交付成本 = 所有成功与失败运行的实际模型费用总和 / 已验收变更数
+单位合格交付计费量 = 所有成功与失败运行的中转计费单位总和 / 已验收变更数
 
-Harness 模型路由成本 = GLM-5.1 controller 成本
-                      + GLM-5.2 专项 worker 成本
-                      + cache 与工具成本
+GLM-5.1 请求 = 1 计费单位
+GLM-5.2 请求 = 3 计费单位
 ```
 
-当前 CC Switch 评测把 Haiku/Fable 路由到 GLM-5.1，把 Sonnet/Opus 路由到 GLM-5.2。正式矩阵分别运行全弱 Harness、全强 Harness 和 GLM-5.1 controller + GLM-5.2 专项 agent 的生产混合路由，避免把强 worker 的贡献误算成弱模型自身的提升。
+当前 CC Switch 评测把 Haiku 路由到 GLM-5.1，把 Sonnet 路由到 GLM-5.2。正式矩阵只运行三个实验臂：裸 GLM-5.1、controller 与 subagent 均锁定 GLM-5.1 的 Harness、裸 GLM-5.2。这样不会把强 worker 的贡献误算成 Harness 对弱模型的提升。
 
-效果与成本使用两道独立证据门：
+核心主张必须同时通过两道效果证据门：
 
-1. 在相同隐藏业务验收上，Harness 组合相对裸 GLM-5.2 的效果均值差，其配对 bootstrap 95% 置信区间下界不低于 -5 个百分点；
-2. 取得 GLM provider 真实账单后，`cost_per_accepted_change` 比值的 95% 置信区间上界小于 1。
+1. 同为 GLM-5.1 时，Harness 相对裸跑的效果均值差，其配对 bootstrap 95% 置信区间下界必须严格大于 0；
+2. GLM-5.1 + Harness 相对裸 GLM-5.2 的效果均值差，其配对 bootstrap 95% 置信区间下界不得低于 -5 个百分点。
 
-仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness 五个实验臂。模型放大效果目前尚未完成可发布验证：公开效果结论等待至少 5 类 holdout 业务 case、每项比较至少 20 对身份有效观测通过效果置信边界；经济结论还必须取得 provider 真实费用。Claude Code 按 Claude alias 返回的 `costUSD` 只保留为诊断估值，不冒充 GLM 实际账单。
+仓库已经提供可复现的 [Model Uplift Benchmark](../../benchmarks/model-uplift-v1/README.md)，包含上述三个实验臂。模型放大效果目前尚未完成可发布验证：公开效果结论等待至少 5 类 holdout 业务 case、每项比较至少 20 对身份有效观测通过效果置信边界。CC Switch 路由回执会按实际请求模型累计计费单位；token、请求数、计费单位、耗时都只作资源统计，不替代业务效果，也不作为本轮主张的发布门槛。
 
 ## 与 Superpowers、OpenSpec 的区别
 

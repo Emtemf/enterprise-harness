@@ -2,21 +2,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { attachRouteReceipt } from './lib/route-receipt.mjs';
 
 const args = process.argv.slice(2);
-const usage = 'Usage: node attach-route-receipt.mjs <raw-results.json> <cc-switch-route-receipt.json> <reconciled-results.json>';
+const usage = 'Usage: node attach-route-receipt.mjs <raw-results.json> <cc-switch-route-receipt.json> <reconciled-results.json> [relay-tariff.json]';
 if (args.includes('--help') || args.includes('-h')) {
   console.log(usage);
   process.exit(0);
 }
-const [rawPath, receiptPath, outputPath] = args;
+const [rawPath, receiptPath, outputPath, tariffPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'pricing.json')] = args;
 if (!rawPath || !receiptPath || !outputPath) {
   console.error(usage);
   process.exit(2);
 }
 const raw = JSON.parse(fs.readFileSync(path.resolve(rawPath), 'utf-8'));
 const receipt = JSON.parse(fs.readFileSync(path.resolve(receiptPath), 'utf-8'));
-const reconciled = attachRouteReceipt(raw, receipt);
+const tariff = JSON.parse(fs.readFileSync(path.resolve(tariffPath), 'utf-8'));
+const reconciled = attachRouteReceipt(raw, receipt, tariff);
 fs.writeFileSync(path.resolve(outputPath), `${JSON.stringify(reconciled, null, 2)}\n`);
 console.log(`reconciled=${path.resolve(outputPath)}`);

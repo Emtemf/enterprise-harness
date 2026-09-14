@@ -19,15 +19,18 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-model-uplift-smoke-'));
 const matrix = JSON.parse(fs.readFileSync(path.join(benchmark, 'matrix.json'), 'utf-8'));
+const relayTariff = JSON.parse(fs.readFileSync(path.join(benchmark, 'pricing.json'), 'utf-8'));
 const businessProtocol = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-evaluation.json'), 'utf-8'));
 const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-cases.development.json'), 'utf-8'));
 
-assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'hybrid-harness', 'weak-bare', 'strong-bare', 'strong-harness']);
+assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'weak-bare', 'strong-bare']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'strong-bare').allowedActualModels, ['glm-5.1', 'glm-5.2']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
-  'weak-workflow-uplift', 'weak-model-substitution', 'strong-workflow-uplift', 'hybrid-model-substitution',
+  'weak-workflow-uplift', 'weak-model-substitution',
 ]);
+assert.equal(relayTariff.models['glm-5.1'].chargeUnitsPerRequest, 1);
+assert.equal(relayTariff.models['glm-5.2'].chargeUnitsPerRequest, 3);
 assert.equal(businessProtocol.publicationGate.minimumDistinctCases, 5);
 assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerComparison, 20);
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
@@ -75,19 +78,45 @@ const routeReceipt = {
     requests: [{ proxyRequestId: 'proxy-1', model: 'glm-5.1', requestModel: 'claude-haiku-4-5', observedAt: '2026-09-10T00:01:00Z' }],
   }],
 };
-const reconciledRoute = attachRouteReceipt(routeRaw, routeReceipt);
+const reconciledRoute = attachRouteReceipt(routeRaw, routeReceipt, relayTariff);
 assert.equal(reconciledRoute.records[0].modelTierIdentityValid, true);
 assert.equal(reconciledRoute.records[0].routeAuthority, 'cc-switch-proxy-log');
+assert.equal(reconciledRoute.records[0].relayRequestCount, 1);
+assert.equal(reconciledRoute.records[0].relayChargeUnits, 1);
+assert.deepEqual(reconciledRoute.records[0].relayRequestCountsByModel, { 'glm-5.1': 1 });
+const strongRouteRaw = {
+  ...routeRaw,
+  records: [{
+    ...routeRaw.records[0], armId: 'strong-bare', actualControllerModel: 'glm-5.2',
+    allowedActualModels: ['glm-5.1', 'glm-5.2'],
+  }],
+};
+const strongRouteReceipt = {
+  ...routeReceipt,
+  records: [{
+    ...routeReceipt.records[0], armId: 'strong-bare',
+    requests: [
+      { proxyRequestId: 'proxy-weak-aux', model: 'glm-5.1', requestModel: 'claude-haiku-4-5', observedAt: '2026-09-10T00:01:00Z' },
+      { proxyRequestId: 'proxy-strong', model: 'glm-5.2', requestModel: 'claude-sonnet-4-6', observedAt: '2026-09-10T00:01:30Z' },
+    ],
+  }],
+};
+const reconciledStrongRoute = attachRouteReceipt(strongRouteRaw, strongRouteReceipt, relayTariff);
+assert.equal(reconciledStrongRoute.records[0].relayRequestCount, 2);
+assert.equal(reconciledStrongRoute.records[0].relayChargeUnits, 4, 'all actual weak and strong requests must be charged');
 assert.throws(() => attachRouteReceipt(routeRaw, {
   ...routeReceipt, records: [{ ...routeReceipt.records[0], claudeSessionId: 'other-session' }],
-}), /session mismatch/u);
+}, relayTariff), /session mismatch/u);
 assert.throws(() => attachRouteReceipt(routeRaw, {
   ...routeReceipt,
   records: [{
     ...routeReceipt.records[0],
     requests: [...routeReceipt.records[0].requests, { proxyRequestId: 'proxy-strong', model: 'glm-5.2', requestModel: 'claude-sonnet-4-6', observedAt: '2026-09-10T00:01:00Z' }],
   }],
-}), /disallowed actual model/u);
+}, relayTariff), /disallowed actual model/u);
+assert.throws(() => attachRouteReceipt(routeRaw, routeReceipt, {
+  ...relayTariff, models: { 'glm-5.2': { chargeUnitsPerRequest: 3 } },
+}), /no request rate/u);
 assert.equal(businessCases.cases.length, 5);
 assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
 for (const selectedCase of businessCases.cases) {
@@ -126,7 +155,6 @@ const modelRoutes = {
 };
 const bareWeak = { id: 'weak-bare', controllerRoute: 'haiku', workerRoutes: [] };
 const harnessWeak = { id: 'weak-harness', controllerRoute: 'haiku', workerRoutes: ['haiku'] };
-const harnessHybrid = { id: 'hybrid-harness', controllerRoute: 'haiku', workerRoutes: ['sonnet'] };
 assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.1'], ['claude-haiku-4-5']), true);
 assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.2'], ['claude-haiku-4-5']), true);
 assert.equal(responseIdentityValid(modelRoutes.haiku, ['glm-5.2']), false);
@@ -135,7 +163,6 @@ assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['g
 assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5', 'claude-sonnet-4-6'], ['glm-5.2']), true);
 assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1'], ['glm-5.1']), true);
 assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1'], []), false);
-assert.equal(modelIdentityValid(harnessHybrid, modelRoutes, ['claude-haiku-4-5', 'claude-sonnet-4-6'], ['glm-5.1'], ['glm-5.2']), true);
 const receiptNow = Date.parse('2026-09-10T00:00:00Z');
 const validReceipt = {
   status: 'pass', generatedAt: '2026-09-10T00:00:00Z', expiresAfterHours: 24,
@@ -230,24 +257,20 @@ try {
 
   const rawPath = path.join(fixture, 'raw.json');
   const summaryPath = path.join(fixture, 'summary.json');
-  const record = (armId, repetition, effectScore, costUsd, accepted = true) => ({
+  const record = (armId, repetition, effectScore, relayChargeUnits, accepted = true) => ({
     armId, caseId: `case-${((repetition - 1) % 5) + 1}`, repetition, completedArchive: armId === 'weak-harness',
-    grade: { accepted, effectScore }, totals: { costUsd, durationMs: 1 },
-    costAuthority: 'provider-billing', providerCostUsd: costUsd,
+    grade: { accepted, effectScore }, totals: { costUsd: null, durationMs: 1 },
+    relayChargeUnits, relayRequestCount: relayChargeUnits,
     modelTierIdentityValid: true,
   });
   const records = Array.from({ length: 19 }, (_, index) => index + 1).flatMap((repetition) => [
-    record('weak-harness', repetition, 90, 0.3),
-    record('weak-bare', repetition, 70, 0.1, false),
-    record('hybrid-harness', repetition, 95, 0.4),
-    record('strong-bare', repetition, 90, 0.8),
-    record('strong-harness', repetition, 100, 1.0),
+    record('weak-harness', repetition, 90, 1),
+    record('weak-bare', repetition, 70, 1, false),
+    record('strong-bare', repetition, 90, 3),
   ]);
   const comparisons = [
     { id: 'weak-workflow-uplift', treatmentArm: 'weak-harness', controlArm: 'weak-bare', minimumEffectGapPp: 0, strictEffectGate: true },
     { id: 'weak-model-substitution', treatmentArm: 'weak-harness', controlArm: 'strong-bare', minimumEffectGapPp: -5 },
-    { id: 'strong-workflow-uplift', treatmentArm: 'strong-harness', controlArm: 'strong-bare', minimumEffectGapPp: 0, strictEffectGate: true },
-    { id: 'hybrid-model-substitution', treatmentArm: 'hybrid-harness', controlArm: 'strong-bare', minimumEffectGapPp: -5, economicComparison: true },
   ];
   const raw = () => ({ claimEligibleInput: true, comparisons, records });
   fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
@@ -259,21 +282,19 @@ try {
   assert.equal(summary.decision.publishableEffectStory, false);
 
   records.push(
-    record('weak-harness', 20, 90, 0.3),
-    record('weak-bare', 20, 70, 0.1, false),
-    record('hybrid-harness', 20, 95, 0.4),
-    record('strong-bare', 20, 90, 0.8),
-    record('strong-harness', 20, 100, 1.0),
+    record('weak-harness', 20, 90, 1),
+    record('weak-bare', 20, 70, 1, false),
+    record('strong-bare', 20, 90, 3),
   );
   fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.decision.publishableEffectStory, true);
-  assert.equal(summary.decision.publishableEconomicAdvantage, true);
-  assert.equal(summary.decision.publishableCombinedClaim, true);
+  assert.equal(summary.decision.publishableModelUplift, true);
+  assert.equal(summary.decision.resourceMetricsArePublicationGate, false);
   assert.equal(summary.comparisons.find(({ id }) => id === 'weak-model-substitution').decision.diagnostic.bootstrap.effectGapMeanLower95Pp, 0);
-  assert.equal(summary.comparisons.find(({ id }) => id === 'hybrid-model-substitution').decision.diagnostic.bootstrap.costPerAcceptedRatioUpper95, 0.5);
+  assert.equal(summary.arms.find(({ armId }) => armId === 'weak-harness').relayChargeUnitsPerAcceptedChange, 1);
 
   fs.writeFileSync(rawPath, `${JSON.stringify({ ...raw(), claimEligibleInput: false })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
@@ -296,11 +317,12 @@ try {
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.comparisons.find(({ id }) => id === 'weak-workflow-uplift').decision.eligibleForEffectClaim, false, 'incomplete result must block an effect claim');
   assert.equal(summary.decision.publishableEffectStory, false);
-  assert.equal(summary.arms.find(({ armId }) => armId === 'weak-harness').costPerAcceptedChange, null);
+  assert.equal(summary.arms.find(({ armId }) => armId === 'weak-harness').relayChargeUnitsPerAcceptedChange, 1,
+    'a failed effect measurement must still retain its observed relay resource usage');
 
   const identityRecords = Array.from({ length: 20 }, (_, index) => index + 1).flatMap((repetition) => [
-    { ...record('weak-harness', repetition, 100, 0.4), modelIdentityValid: repetition !== 1 },
-    record('strong-bare', repetition, 100, 0.8),
+    { ...record('weak-harness', repetition, 100, 1), modelIdentityValid: repetition !== 1 },
+    record('strong-bare', repetition, 100, 3),
   ]);
   const identityComparison = [{ id: 'identity-check', treatmentArm: 'weak-harness', controlArm: 'strong-bare', minimumEffectGapPp: -5 }];
   fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: identityRecords })}\n`);
@@ -316,14 +338,13 @@ try {
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'model-tier route receipt must gate a publishable effect claim');
 
-  const noProviderCost = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, costAuthority: 'claude-code-alias-estimate', providerCostUsd: null }));
-  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: [{ ...identityComparison[0], economicComparison: true }], records: noProviderCost })}\n`);
+  const noResourceStats = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, relayChargeUnits: null }));
+  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: noResourceStats })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
-  assert.equal(summary.comparisons[0].decision.publishableEffect, true, 'effect claim must not require provider pricing');
-  assert.equal(summary.comparisons[0].decision.eligibleForEconomicClaim, false, 'Claude alias estimates must not qualify as provider cost');
-  assert.equal(summary.comparisons[0].decision.publishableEconomics, false);
+  assert.equal(summary.comparisons[0].decision.publishableEffect, true, 'effect claim must not require resource statistics');
+  assert.equal(summary.arms.find(({ armId }) => armId === 'weak-harness').relayChargeUnitsMedian, null);
   console.log('PASS model-uplift-benchmark smoke');
 } finally {
   fs.rmSync(fixture, { recursive: true, force: true });
