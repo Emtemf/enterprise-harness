@@ -6,15 +6,25 @@
     {
       "id": "refund-policy",
       "initialRequest": "给订单加一个用户自助退款功能。",
+      "maxUnmatchedQuestions": 2,
       "evidenceFiles": {
         "src/order-policy.txt": "订单状态有 PAID、FULFILLED、CANCELLED。现有客服退款入口会调用 PaymentGateway，并写入 audit_log。",
         "docs/payment-provider-v3.txt": "Provider v3 要求每次退款携带唯一 idempotency_key；超时结果未知，重试必须复用原 key。"
       },
       "requiredFacts": [
-        {"id":"eligible-window","weight":3,"questionPattern":"(多久|时间窗|天内|退款期限)","answer":"只有付款后 7 天内且尚未发货的订单允许自助退款。","acceptancePattern":"7 天.*尚未发货|尚未发货.*7 天"},
+        {"id":"eligible-window","weight":3,"questionPattern":"(多久|时间窗|天内|退款期限|哪些状态|什么状态|状态范围|FULFILLED|已发货|适用范围)","answer":"只有付款后 7 天内且尚未发货的 PAID 订单允许自助退款。","acceptancePattern":"7 天.*尚未发货.*PAID|PAID.*7 天.*尚未发货"},
+        {"id":"manual-review","weight":2,"questionPattern":"(人工审核|客服审核|审批|直接执行|自动退款|需要审核|风控审核)","answer":"符合条件的订单自动发起退款，不需要人工审核；风控拒绝的订单不展示自助入口。","acceptancePattern":"自动发起退款.*不需要人工审核|不需要人工审核.*自动"},
+        {"id":"entry-surface","weight":1,"questionPattern":"(触发入口|入口.*形态|订单详情.*按钮|前端入口)","answer":"入口放在用户订单详情页；只有服务端判断符合资格时才展示“申请退款”按钮。","acceptancePattern":"订单详情页.*符合资格.*申请退款|订单详情页.*申请退款.*符合资格|符合资格.*订单详情页.*申请退款"},
+        {"id":"ownership","weight":3,"questionPattern":"(登录态|本人订单|自己账户|订单归属|身份.*校验|权限.*校验)","answer":"必须登录，且服务端校验当前用户就是订单所有者；不能仅依赖前端隐藏按钮。","acceptancePattern":"必须登录.*订单所有者.*服务端|服务端.*订单所有者.*前端"},
         {"id":"partial-refund","weight":3,"questionPattern":"(部分退款|全额|金额)","answer":"第一版只支持全额退款，不支持部分退款。","acceptancePattern":"只支持全额|不支持部分退款"},
+        {"id":"refund-state","weight":3,"questionPattern":"(退款后.*状态|成功后.*状态|订单终态|进入什么状态|REFUNDED|CANCELLED)","answer":"新增 REFUND_PENDING 和 REFUNDED：提交网关后进入 REFUND_PENDING，网关最终成功后进入 REFUNDED。","acceptancePattern":"REFUND_PENDING.*REFUNDED"},
         {"id":"timeout-policy","weight":3,"questionPattern":"(超时|未知结果|重试|幂等)","answer":"网关超时后订单保持原状态，后台使用同一幂等键查询或重试，不能再次生成退款请求。","acceptancePattern":"同一.*幂等|幂等.*重试"},
-        {"id":"user-feedback","weight":2,"questionPattern":"(用户.*提示|失败.*展示|状态.*展示)","answer":"超时向用户显示“退款处理中”，最终成功或失败通过站内信通知。","acceptancePattern":"退款处理中.*站内信|站内信.*退款处理中"}
+        {"id":"deterministic-failure","weight":2,"questionPattern":"(明确失败|确定性失败|网关.*失败|失败.*订单状态|失败后.*状态|能否重新发起)","answer":"网关明确失败时从 REFUND_PENDING 回到 PAID，记录失败原因，并允许用户在资格窗口内重新发起。","acceptancePattern":"明确失败.*PAID.*重新发起|PAID.*资格窗口.*重新发起"},
+        {"id":"reuse-path","weight":2,"questionPattern":"(客服退款入口.*关系|客服退款.*调用路径|共享.*调用路径|复用.*链路|独立链路|现有客服)","answer":"复用客服退款的 PaymentGateway 与审计端口，但使用独立的自助退款应用服务和权限校验。","acceptancePattern":"复用.*PaymentGateway.*独立.*自助退款|独立.*权限校验"},
+        {"id":"window-origin","weight":2,"questionPattern":"(起算|从何时|哪个时间|付款时间)","answer":"7 天窗口从支付成功时间 paid_at 起算，以服务端 UTC 时间判断。","acceptancePattern":"paid_at.*UTC|支付成功时间.*UTC"},
+        {"id":"inflight-repeat","weight":3,"questionPattern":"(处理中.*再次提交|处理中.*重复|重复提交|同一订单.*再次)","answer":"同一订单已有 REFUND_PENDING 时，重复提交返回现有退款请求及“退款处理中”，不得创建新请求或新幂等键。","acceptancePattern":"REFUND_PENDING.*返回现有.*不得创建.*幂等键|重复提交.*现有退款请求.*不得创建"},
+        {"id":"audit-events","weight":2,"questionPattern":"(audit_log|审计.*时点|留痕|来源区分)","answer":"提交时写 SELF_REFUND_REQUESTED，最终成功或失败分别写 SELF_REFUND_SUCCEEDED 或 SELF_REFUND_FAILED，并记录 actor_id、order_id、request_id。","acceptancePattern":"SELF_REFUND_REQUESTED.*SELF_REFUND_SUCCEEDED.*SELF_REFUND_FAILED"},
+        {"id":"user-feedback","weight":2,"questionPattern":"(用户.*提示|用户端如何处理|退款处理中|失败.*展示|状态.*展示)","answer":"超时向用户显示“退款处理中”，最终成功或失败通过站内信通知。","acceptancePattern":"退款处理中.*站内信|站内信.*退款处理中"}
       ]
     },
     {

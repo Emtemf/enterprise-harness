@@ -66,6 +66,8 @@ CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用
 
 2026-09-10 五臂矩阵与业务澄清轨已落地。五臂分别为弱裸、全弱 Harness、生产混合 Harness、强裸和全强 Harness；开发题库包含 5 类业务问题，脚本化用户按问题命中返回事实，确定性 grader 检查关键未知项召回、最终覆盖、未经询问的业务假设、证据落地和提前代码写入。仓库内 development pack 永久不可发布；正式 holdout 必须从仓库外注入并记录 digest。公开效果门提升为每项比较至少 20 对、至少 5 个不同 holdout case；10 对只提供诊断置信区间。
 
+2026-09-14 根据 CC Switch 上游账单可观测性修正模型身份边界：alias 与 response model 只负责运行期路由诊断，正式 GLM-5.1/5.2 产品档位由逐样本 provider billing receipt 证明。导入器要求账单覆盖全部 benchmark 记录、模型覆盖 controller/workers、请求 ID 全局唯一、provider 请求时间落在对应 invocation 窗口内，并将 `providerIdentityValid` 写入效果发布门；费用按逐请求记录求和且只参与经济结论。业务澄清开发样本同时修复了“误取选项中的问号”“换一种问法被当成题库外”两类 runner 偏差，补入资格、审批、权限、状态、并发重复提交等真实退款决策，并按完整轮原子保存 checkpoint。该开发样本仍不可用于宣传结论。
+
 主指标：
 
 - accepted change 的需求正确率与 hard-fail 数；

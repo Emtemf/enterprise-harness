@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "status": "final",
+  "authority": "provider-billing-export",
+  "generatedAt": "2026-09-10T00:00:00Z",
+  "sourceDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runnerCommit": "0000000000000000000000000000000000000000",
+  "routingProfile": "cc-switch-glm-5.1-vs-5.2",
+  "records": [
+    {
+      "armId": "weak-bare",
+      "caseId": "example-case",
+      "repetition": 1,
+      "requests": [
+        {
+          "providerRequestId": "redacted-example-request-id",
+          "model": "glm-5.1",
+          "observedAt": "2026-09-10T00:01:00Z",
+          "costUsd": 0.01
+        }
+      ]
+    }
+  ]
+}

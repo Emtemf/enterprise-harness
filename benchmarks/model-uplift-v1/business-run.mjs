@@ -8,10 +8,11 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { answerBusinessQuestion, extractQuestionFromStream } from './lib/scripted-user.mjs';
 import { gradeBusinessClarification } from './lib/business-grade.mjs';
-import { modelIdentityValid } from './lib/model-identity.mjs';
+import { modelIdentityValid, responseIdentityValid } from './lib/model-identity.mjs';
 import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
 import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 import { validateHoldoutIsolationReceipt } from './lib/holdout-receipt.mjs';
+import { bareFinalRequirements } from './lib/clarification-output.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +36,7 @@ const selectedCases = caseOption === 'all' ? casePack.cases : casePack.cases.fil
 const selectedArms = option('--arm') ? matrix.arms.filter(({ id }) => id === option('--arm')) : matrix.arms;
 const reps = Number(option('--reps', '1'));
 const budgetUsd = Number(option('--budget-usd', '1'));
-const maxDialogueTurns = Number(option('--max-dialogue-turns', '12'));
+const maxDialogueTurns = Number(option('--max-dialogue-turns', '16'));
 const preflightReceiptPath = option('--preflight-receipt');
 const resultsDir = path.resolve(option('--results-dir', path.join(here, 'results', `business-${new Date().toISOString().replaceAll(/[:.]/gu, '-')}`)));
 function validateCasePack(pack) {
@@ -94,6 +95,11 @@ function write(target, content) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, content, 'utf-8');
 }
+function writeJsonAtomic(target, value) {
+  const temporary = `${target}.${process.pid}.tmp`;
+  write(temporary, `${JSON.stringify(value, null, 2)}\n`);
+  fs.renameSync(temporary, target);
+}
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
@@ -140,7 +146,7 @@ function workflowStatus(root, changeId) {
   try { return JSON.parse(result.stdout); } catch { return null; }
 }
 function finalRequirements(root, arm, changeId, fallbackText) {
-  if (arm.workflow !== 'enterprise-harness') return fallbackText;
+  if (arm.workflow !== 'enterprise-harness') return bareFinalRequirements(fallbackText);
   const target = path.join(root, 'harness', 'changes', changeId, 'requirements.md');
   return fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : fallbackText;
 }
@@ -171,6 +177,9 @@ function validatePreflight() {
   return receipt;
 }
 const preflight = validatePreflight();
+const runnerCommit = mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim();
+const runnerTreeClean = mustExec('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: repoRoot }).stdout.trim() === '';
+if (casePack.split === 'holdout' && !runnerTreeClean) throw new Error('holdout runs require a clean committed benchmark runner');
 
 function runOnce(arm, selectedCase, repetition) {
   const root = fixture(selectedCase);
@@ -181,6 +190,7 @@ function runOnce(arm, selectedCase, repetition) {
   const answered = new Set();
   let pendingAnswer = null;
   let lastText = '';
+  const checkpoint = path.join(resultsDir, 'checkpoints', `${arm.id}--${selectedCase.id}--${repetition}.json`);
   try {
     for (let turn = 1; turn <= maxDialogueTurns; turn += 1) {
       const childEnv = { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
@@ -206,6 +216,8 @@ function runOnce(arm, selectedCase, repetition) {
       const usage = usageOf(parsed.result);
       invocations.push({
         turn,
+        startedAt: new Date(startedAt).toISOString(),
+        completedAt: new Date().toISOString(),
         exitCode: child.status,
         durationMs: Date.now() - startedAt,
         usage,
@@ -213,6 +225,7 @@ function runOnce(arm, selectedCase, repetition) {
         workerModels: parsed.workerModels,
         billingModels: parsed.billingModels,
         question,
+        text: parsed.text,
         outputDigest: sha256(child.stdout || ''),
         error: String(child.stderr || '').trim() || null,
       });
@@ -223,6 +236,20 @@ function runOnce(arm, selectedCase, repetition) {
         pendingAnswer = scripted.answer;
       }
       const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId) : null;
+      writeJsonAtomic(checkpoint, {
+        schemaVersion: 1,
+        status: 'running',
+        runnerCommit,
+        runnerTreeClean,
+        routingProfile: matrix.routingProfile,
+        armId: arm.id,
+        caseId: selectedCase.id,
+        repetition,
+        lastCompletedTurn: turn,
+        answeredFactIds: [...answered].sort(),
+        transcript,
+        invocations,
+      });
       if (arm.workflow === 'enterprise-harness' && status && status.stage !== 'clarify') break;
       if (arm.workflow === 'bare' && /CLARIFICATION_COMPLETE/u.test(parsed.text) && !question) break;
       if (child.status !== 0 && parsed.result?.subtype !== 'error_max_turns') break;
@@ -234,9 +261,14 @@ function runOnce(arm, selectedCase, repetition) {
     const controllerModels = [...new Set(invocations.flatMap((item) => item.controllerModels))];
     const workerModels = [...new Set(invocations.flatMap((item) => item.workerModels))];
     const identityValid = modelIdentityValid(arm, matrix.modelRoutes, billingModels, controllerModels, workerModels);
+    const responseIdentity = responseIdentityValid(matrix.modelRoutes[arm.controllerRoute], controllerModels)
+      && (arm.workerRoutes || []).every((routeId) => responseIdentityValid(matrix.modelRoutes[routeId], workerModels));
     const billingComplete = invocations.length > 0 && invocations.every((item) => item.billingModels.length > 0);
-    return {
+    const record = {
       armId: arm.id,
+      workflow: arm.workflow,
+      actualControllerModel: matrix.modelRoutes[arm.controllerRoute]?.actualModel || null,
+      actualWorkerModels: (arm.workerRoutes || []).map((route) => matrix.modelRoutes[route]?.actualModel).filter(Boolean),
       caseId: selectedCase.id,
       repetition,
       caseSplit: casePack.split,
@@ -245,6 +277,7 @@ function runOnce(arm, selectedCase, repetition) {
       finalRequirementsDigest: sha256(requirements),
       grade: gradeBusinessClarification(selectedCase, transcript, requirements, { productCodeChanged }),
       modelIdentityValid: identityValid,
+      responseIdentityValid: responseIdentity,
       billingComplete,
       measurementValid: identityValid && billingComplete,
       costAuthority: 'claude-code-alias-estimate',
@@ -259,6 +292,16 @@ function runOnce(arm, selectedCase, repetition) {
         durationMs: sum.durationMs + item.durationMs,
       }), { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUsd: 0, durationMs: 0 }),
     };
+    writeJsonAtomic(checkpoint, {
+      schemaVersion: 1,
+      status: 'complete',
+      runnerCommit,
+      runnerTreeClean,
+      routingProfile: matrix.routingProfile,
+      lastCompletedTurn: invocations.length,
+      record,
+    });
+    return record;
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -279,7 +322,8 @@ const output = {
   schemaVersion: 1,
   status: 'business-clarification-observations',
   generatedAt: new Date().toISOString(),
-  runnerCommit: mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim(),
+  runnerCommit,
+  runnerTreeClean,
   casePack: { path: casePackPath, digest: casePackDigest, split: casePack.split, publishable: casePack.publishable === true },
   holdoutIsolation: holdoutIsolationReceipt ? {
     receiptDigest: sha256(fs.readFileSync(path.resolve(holdoutIsolationReceiptPath))),
@@ -289,6 +333,7 @@ const output = {
   claimEligibleInput: casePack.split === 'holdout' && casePack.publishable === true && Boolean(preflight) && Boolean(holdoutIsolationReceipt),
   preflight: preflight ? { path: path.resolve(preflightReceiptPath), digest: sha256(fs.readFileSync(path.resolve(preflightReceiptPath))) } : null,
   arms: selectedArms,
+  routingProfile: matrix.routingProfile,
   comparisons: matrix.comparisons,
   records,
 };

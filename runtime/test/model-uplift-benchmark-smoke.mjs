@@ -5,11 +5,13 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { routeIdentityValid, modelIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
+import { routeIdentityValid, modelIdentityValid, responseIdentityValid } from '../../benchmarks/model-uplift-v1/lib/model-identity.mjs';
 import { validatePreflightReceipt } from '../../benchmarks/model-uplift-v1/lib/preflight-receipt.mjs';
 import { answerBusinessQuestion, extractQuestionFromStream } from '../../benchmarks/model-uplift-v1/lib/scripted-user.mjs';
 import { gradeBusinessClarification } from '../../benchmarks/model-uplift-v1/lib/business-grade.mjs';
 import { validateHoldoutIsolationReceipt } from '../../benchmarks/model-uplift-v1/lib/holdout-receipt.mjs';
+import { attachProviderReceipt } from '../../benchmarks/model-uplift-v1/lib/provider-receipt.mjs';
+import { bareFinalRequirements } from '../../benchmarks/model-uplift-v1/lib/clarification-output.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -32,6 +34,30 @@ const isolationReceipt = {
 };
 assert.equal(validateHoldoutIsolationReceipt(isolationReceipt, { casePackDigest: 'a'.repeat(64) }), isolationReceipt);
 assert.throws(() => validateHoldoutIsolationReceipt(isolationReceipt, { casePackDigest: 'b'.repeat(64) }), /not bound/u);
+const providerRaw = {
+  runnerCommit: '1'.repeat(40), routingProfile: 'cc-switch-glm-5.1-vs-5.2',
+  records: [{
+    armId: 'weak-bare', caseId: 'case-1', repetition: 1,
+    actualControllerModel: 'glm-5.1', actualWorkerModels: [], costAuthority: 'claude-code-alias-estimate', providerCostUsd: null,
+    invocations: [{ startedAt: '2026-09-10T00:00:00Z', completedAt: '2026-09-10T00:02:00Z' }],
+  }],
+};
+const providerReceipt = {
+  schemaVersion: 1, status: 'final', authority: 'provider-billing-export', generatedAt: '2026-09-10T00:00:00Z',
+  sourceDigest: 'a'.repeat(64), runnerCommit: providerRaw.runnerCommit, routingProfile: providerRaw.routingProfile,
+  records: [{ armId: 'weak-bare', caseId: 'case-1', repetition: 1, requests: [{ providerRequestId: 'request-1', model: 'glm-5.1', observedAt: '2026-09-10T00:01:00Z', costUsd: 0.25 }] }],
+};
+const reconciledProvider = attachProviderReceipt(providerRaw, providerReceipt);
+assert.equal(reconciledProvider.records[0].costAuthority, 'provider-billing');
+assert.equal(reconciledProvider.records[0].providerCostUsd, 0.25);
+assert.equal(reconciledProvider.records[0].providerIdentityValid, true);
+assert.throws(() => attachProviderReceipt(providerRaw, {
+  ...providerReceipt, records: [{ ...providerReceipt.records[0], requests: [{ ...providerReceipt.records[0].requests[0], model: 'glm-5.2' }] }],
+}), /does not cover expected route/u);
+assert.throws(() => attachProviderReceipt({ ...providerRaw, records: [...providerRaw.records, { ...providerRaw.records[0], caseId: 'case-2' }] }, providerReceipt), /missing record/u);
+assert.throws(() => attachProviderReceipt(providerRaw, {
+  ...providerReceipt, records: [{ ...providerReceipt.records[0], requests: [{ ...providerReceipt.records[0].requests[0], observedAt: '2026-09-10T01:00:00Z' }] }],
+}), /outside benchmark invocation windows/u);
 assert.equal(businessCases.cases.length, 5);
 assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
 for (const selectedCase of businessCases.cases) {
@@ -52,6 +78,16 @@ for (const selectedCase of businessCases.cases) {
   assert.equal(gradeBusinessClarification(selectedCase, transcript.slice(1), '').accepted, false);
 }
 assert.equal(extractQuestionFromStream([{ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'AskUserQuestion', input: { questions: [{ question: '退款期限是多少？' }] } }] } }], ''), '退款期限是多少？');
+assert.equal(extractQuestionFromStream([], '已读取 `docs/provider.txt`：超时必须重试。\n\n**最高价值问题：哪些订单状态允许退款？**'), '哪些订单状态允许退款？');
+assert.equal(extractQuestionFromStream([], '**问题：哪些订单状态允许退款？**\n- A. 仅 PAID\n- B. PAID + FULFILLED（是否包含退货流程？）'), '哪些订单状态允许退款？');
+assert.equal(extractQuestionFromStream([], '> **用户在什么状态下可以自助申请退款？**\n> - 仅限 PAID？\n> - 是否需要额外约束（例如 N 小时内）？\n请给出边界。'), '用户在什么状态下可以自助申请退款？');
+const repeatedAnswer = answerBusinessQuestion(businessCases.cases[0], 'FULFILLED 已发货订单可以退款吗？', new Set(['eligible-window']));
+assert.equal(repeatedAnswer.unmatched, false);
+assert.equal(repeatedAnswer.repeated, true);
+const compoundAnswer = answerBusinessQuestion(businessCases.cases[0], '网关退款失败或超时后，订单状态如何处理？', new Set());
+assert.deepEqual(compoundAnswer.answeredFactIds.sort(), ['deterministic-failure', 'timeout-policy']);
+assert.equal(bareFinalRequirements('当前已确认：只支持全额退款。\n下一问题是什么？'), '');
+assert.match(bareFinalRequirements('CLARIFICATION_COMPLETE\n只支持全额退款。'), /只支持全额退款/u);
 
 const modelRoutes = {
   haiku: { messageModelFamilies: ['glm-5.1'], billingModelFamilies: ['haiku'] },
@@ -61,9 +97,11 @@ const bareWeak = { id: 'weak-bare', controllerRoute: 'haiku', workerRoutes: [] }
 const harnessWeak = { id: 'weak-harness', controllerRoute: 'haiku', workerRoutes: ['haiku'] };
 const harnessHybrid = { id: 'hybrid-harness', controllerRoute: 'haiku', workerRoutes: ['sonnet'] };
 assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.1'], ['claude-haiku-4-5']), true);
-assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.2'], ['claude-haiku-4-5']), false);
+assert.equal(routeIdentityValid(modelRoutes.haiku, ['glm-5.2'], ['claude-haiku-4-5']), true);
+assert.equal(responseIdentityValid(modelRoutes.haiku, ['glm-5.2']), false);
 assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1']), true);
-assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.2']), false);
+assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.2']), true);
+assert.equal(modelIdentityValid(bareWeak, modelRoutes, ['claude-haiku-4-5', 'claude-sonnet-4-6'], ['glm-5.2']), true);
 assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1'], ['glm-5.1']), true);
 assert.equal(modelIdentityValid(harnessWeak, modelRoutes, ['claude-haiku-4-5'], ['glm-5.1'], []), false);
 assert.equal(modelIdentityValid(harnessHybrid, modelRoutes, ['claude-haiku-4-5', 'claude-sonnet-4-6'], ['glm-5.1'], ['glm-5.2']), true);
@@ -149,6 +187,7 @@ try {
     armId, caseId: `case-${((repetition - 1) % 5) + 1}`, repetition, completedArchive: armId === 'weak-harness',
     grade: { accepted, effectScore }, totals: { costUsd, durationMs: 1 },
     costAuthority: 'provider-billing', providerCostUsd: costUsd,
+    providerIdentityValid: true,
   });
   const records = Array.from({ length: 19 }, (_, index) => index + 1).flatMap((repetition) => [
     record('weak-harness', repetition, 90, 0.3),
@@ -163,7 +202,7 @@ try {
     { id: 'strong-workflow-uplift', treatmentArm: 'strong-harness', controlArm: 'strong-bare', minimumEffectGapPp: 0, strictEffectGate: true },
     { id: 'hybrid-model-substitution', treatmentArm: 'hybrid-harness', controlArm: 'strong-bare', minimumEffectGapPp: -5, economicComparison: true },
   ];
-  const raw = () => ({ comparisons, records });
+  const raw = () => ({ claimEligibleInput: true, comparisons, records });
   fs.writeFileSync(rawPath, `${JSON.stringify(raw())}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
@@ -217,14 +256,21 @@ try {
     record('strong-bare', repetition, 100, 0.8),
   ]);
   const identityComparison = [{ id: 'identity-check', treatmentArm: 'weak-harness', controlArm: 'strong-bare', minimumEffectGapPp: -5 }];
-  fs.writeFileSync(rawPath, `${JSON.stringify({ comparisons: identityComparison, records: identityRecords })}\n`);
+  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: identityRecords })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
   assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'model identity conflict must block an effect claim');
 
+  const missingProviderIdentity = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, providerIdentityValid: false }));
+  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: identityComparison, records: missingProviderIdentity })}\n`);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
+  assert.equal(result.status, 0, result.stderr);
+  summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+  assert.equal(summary.comparisons[0].decision.eligibleForEffectClaim, false, 'provider model receipt must gate a publishable effect claim');
+
   const noProviderCost = identityRecords.map((item) => ({ ...item, modelIdentityValid: true, costAuthority: 'claude-code-alias-estimate', providerCostUsd: null }));
-  fs.writeFileSync(rawPath, `${JSON.stringify({ comparisons: [{ ...identityComparison[0], economicComparison: true }], records: noProviderCost })}\n`);
+  fs.writeFileSync(rawPath, `${JSON.stringify({ claimEligibleInput: true, comparisons: [{ ...identityComparison[0], economicComparison: true }], records: noProviderCost })}\n`);
   result = spawnSync(process.execPath, [path.join(benchmark, 'summarize.mjs'), rawPath, summaryPath], { encoding: 'utf-8', shell: false });
   assert.equal(result.status, 0, result.stderr);
   summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));

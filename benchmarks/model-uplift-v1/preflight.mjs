@@ -4,7 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { routeIdentityValid } from './lib/model-identity.mjs';
+import { responseIdentityValid, routeIdentityValid } from './lib/model-identity.mjs';
 import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -60,6 +60,7 @@ const probes = requestedModels.map((requestedModel) => {
     billingModels: parsed.billingModels,
     costUsd: billingEntries.length > 0 ? costUsd : null,
     identityValid,
+    responseIdentityValid: responseIdentityValid(matrix.modelRoutes[requestedModel], parsed.messageModels),
     complete: billingEntries.length > 0,
     resultIsError: parsed.result?.is_error ?? null,
     resultText: typeof parsed.result?.result === 'string' ? parsed.result.result.slice(0, 2_000) : null,

@@ -11,7 +11,7 @@ if (!rawPath || !outputPath) {
 const raw = JSON.parse(fs.readFileSync(path.resolve(rawPath), 'utf-8'));
 const minimumPairedObservations = 20;
 const minimumDistinctCases = 5;
-const claimEligibleInput = raw.claimEligibleInput !== false;
+const claimEligibleInput = raw.claimEligibleInput === true;
 const byArm = new Map();
 for (const record of raw.records || []) {
   const rows = byArm.get(record.armId) || [];
@@ -108,6 +108,7 @@ const comparisons = configuredComparisons.map((comparison) => {
       repetition: left.repetition,
       effectMeasurementValid: left.measurementValid !== false && right.measurementValid !== false
         && left.modelIdentityValid !== false && right.modelIdentityValid !== false,
+      providerIdentityValid: left.providerIdentityValid === true && right.providerIdentityValid === true,
       economicMeasurementValid: providerCost(left) !== null && providerCost(right) !== null,
       effectGapPp: left.grade.effectScore - right.grade.effectScore,
       treatmentAccepted: left.grade.accepted,
@@ -119,10 +120,11 @@ const comparisons = configuredComparisons.map((comparison) => {
     }] : [];
   });
   const validEffectMeasurements = pairs.every(({ effectMeasurementValid }) => effectMeasurementValid);
+  const validProviderIdentities = pairs.every(({ providerIdentityValid }) => providerIdentityValid);
   const distinctCases = new Set(pairs.map(({ caseId }) => caseId)).size;
   const diagnosticEligible = pairs.length >= 10 && validEffectMeasurements;
   const effectEligible = claimEligibleInput && pairs.length >= minimumPairedObservations
-    && distinctCases >= minimumDistinctCases && validEffectMeasurements;
+    && distinctCases >= minimumDistinctCases && validEffectMeasurements && validProviderIdentities;
   const economicEligible = effectEligible && pairs.every(({ economicMeasurementValid }) => economicMeasurementValid);
   const bootstrap = bootstrapPairedDecision(pairs);
   const minimumEffectGapPp = Number(comparison.minimumEffectGapPp ?? -5);
@@ -150,6 +152,7 @@ const comparisons = configuredComparisons.map((comparison) => {
         pairedRuns: pairs.length,
         distinctCases,
         diagnosticEligible,
+        validProviderIdentities,
         medianEffectGapPp: median(pairs.map(({ effectGapPp }) => effectGapPp)),
         medianCostGapUsd: pairs.every(({ costGapUsd }) => Number.isFinite(costGapUsd))
           ? median(pairs.map(({ costGapUsd }) => costGapUsd)) : null,

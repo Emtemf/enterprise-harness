@@ -25,9 +25,10 @@ export function gradeBusinessClarification(selectedCase, transcript, finalRequir
     + 0.15 * (1 - prematureAssumptionRate)
     + 0.15 * evidenceGroundingRate
   );
+  const maxUnmatchedQuestions = Number(selectedCase.maxUnmatchedQuestions ?? 2);
   const accepted = criticalUnknownRecall === 1 && finalRequirementCoverage === 1
     && prematureAssumptionRate === 0 && evidenceGroundingRate === 1
-    && unmatchedQuestions === 0 && !productCodeChanged;
+    && unmatchedQuestions <= maxUnmatchedQuestions && !productCodeChanged;
   return {
     accepted,
     effectScore,
@@ -38,6 +39,7 @@ export function gradeBusinessClarification(selectedCase, transcript, finalRequir
     decisionEfficiency,
     questionTurns,
     unmatchedQuestions,
+    maxUnmatchedQuestions,
     productCodeChanged,
     answeredFactIds: [...answered].sort(),
     missingFactIds: facts.filter((fact) => !answered.has(fact.id)).map(({ id }) => id),

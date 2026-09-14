@@ -6,7 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
-import { modelIdentityValid } from './lib/model-identity.mjs';
+import { modelIdentityValid, responseIdentityValid } from './lib/model-identity.mjs';
 import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
 import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 
@@ -281,6 +281,8 @@ async function invoke(root, arm, sessionId, resume, invocation, remainingBudget,
       const usage = usageOf(parsed);
       resolve({
         invocation,
+        startedAt: new Date(startedAt).toISOString(),
+        completedAt: new Date().toISOString(),
         exitCode: code,
         signal,
         timedOut,
@@ -374,6 +376,8 @@ async function runOnce(arm, selected, repetition) {
     const workerMessageModels = [...new Set(invocations.flatMap((item) => item.workerMessageModels || []))];
     const billingMeasurementValid = invocations.length > 0 && invocations.every(({ timedOut, usage }) => !timedOut && usage.completeness === 'complete');
     const identityValid = modelIdentityValid(arm, matrix.modelRoutes, billingModels, controllerMessageModels, workerMessageModels);
+    const responseIdentity = responseIdentityValid(matrix.modelRoutes[arm.controllerRoute], controllerMessageModels)
+      && (arm.workerRoutes || []).every((routeId) => responseIdentityValid(matrix.modelRoutes[routeId], workerMessageModels));
     const requestBound = rawRequestBound(root, selected, arm);
     return {
       armId: arm.id,
@@ -396,6 +400,7 @@ async function runOnce(arm, selected, repetition) {
       finalDiff: mustExec('git', ['diff', '--', 'src', 'test', 'migrations'], { cwd: root }).stdout,
       billingMeasurementValid,
       modelIdentityValid: identityValid,
+      responseIdentityValid: responseIdentity,
       rawRequestBound: requestBound,
       measurementValid: billingMeasurementValid && identityValid && requestBound,
       fixturePath: keepFixtures ? root : null,
@@ -405,6 +410,8 @@ async function runOnce(arm, selected, repetition) {
   }
 }
 
+const runnerCommit = mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim();
+const runnerTreeClean = mustExec('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: repoRoot }).stdout.trim() === '';
 fs.mkdirSync(resultsDir, { recursive: true });
 const records = [];
 for (const [caseIndex, selectedCase] of selectedCases.entries()) {
@@ -426,7 +433,9 @@ const output = {
   schemaVersion: 2,
   status: interrupted ? 'interrupted-partial-observations' : 'raw-observations',
   generatedAt: new Date().toISOString(),
-  runnerCommit: mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).stdout.trim(),
+  runnerCommit,
+  runnerTreeClean,
+  claimEligibleInput: false,
   claudeCodeVersion: mustExec('claude', ['--version'], { cwd: repoRoot }).stdout.trim(),
   caseIds: selectedCases.map(({ id }) => id),
   repetitionsPerCase: reps,
