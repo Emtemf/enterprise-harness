@@ -64,6 +64,10 @@ Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `c
 
 随后 clean `c1c0498` 的首个完整开发样本在第 4 轮触发 `EH-PROMPT-RECEIPT-155`：runner 首轮发送原始需求，续轮却改成“继续当前 change”，被 Harness 正确识别为不同 host prompt。运行在完成 6 轮后人工停止，不能评分。修复后 Harness 每次 resume 重放同一原始业务请求，并增加连续三轮无问题即保留失败并停止的预算保护；该问题属于评测校准，不是产品门禁放宽。
 
+续轮绑定修复后的下一次校准证明外置 headless hook bridge 仍不等价于真实交互：`Other` 自由文本只进入脚本 transcript，Claude session 仅看到 runtime 脱敏事件，因而重复追问。评测 runner 改用精确锁定的 `@anthropic-ai/claude-agent-sdk` 和官方 `canUseTool` AskUserQuestion callback，同时指定本机 Claude Code 2.1.268 executable；callback 在同一 agent loop 返回自由文本，让真实 plugin pre/post hooks 与 Claude 上下文同时消费答案。holdout bwrap 增加 SDK executable wrapper，仍遮蔽外部 case pack。
+
+SDK 首轮探针还暴露弱模型恢复负担：模型把可信 research result ref 加入 candidate `evidenceRefs` 却漏填对应 digest，runtime 在能自动派生前先按完整 schema 拒绝，随后模型错误修改评分。`prepare-question` 现允许草稿缺少“当前可信 ResearchPacket ref”的 digest，再由 runtime 原子补齐；任意不可信 ref、非占位 stale digest 与其他 schema 错误仍 fail closed。Skill 同时收紧为草稿只写 targetRef + 64 零占位，禁止模型拼 `.git` run ref 或 hash。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

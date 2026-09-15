@@ -86,11 +86,12 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    [question candidate 模板](../assets/question-candidate.json.tmpl)，把当前 frontier
    渲染为 schema-valid canonical
    `harness/changes/<change-id>/evidence/clarify/questions/<question-id>.json`：一个 user-only Decision、受验证的
-   `decisionType`、canonical `targetRef`、2–4 个互斥选项、recommendation、evidence refs、当前 input digests
-   和 `blocking=true`。所有用于问题、选项或推荐的 ResearchPacket 都必须同时出现在 `evidenceRefs` 与
-   `inputDigests`；`prepare-question` 会把 current clean ResearchPacket refs 与 targetRef 自动并入 evidenceRefs，
-   把当前文件规范化为 `<questionId>.json`，并从磁盘替换 runtime-derived 全零占位 digest。Main 禁止手工 hash、
-   补写、移动 candidate 或缩写 packet ref；任一非占位 digest 若已 stale 仍立即拒绝。任一 packet 变化都会使 candidate stale。不把 rationale、聊天文本或第二问
+   `decisionType`、canonical `targetRef`、2–4 个互斥选项、recommendation 和 `blocking=true`。candidate 草稿的
+   `evidenceRefs` **只写 canonical targetRef**，`inputDigests` **只写该 targetRef 的 64 个零占位**；禁止添加
+   `.git/enterprise-harness/runs/**`、ResearchPacket ref 或手算 digest。`prepare-question` 会把 current clean
+   ResearchPacket refs 与 targetRef 自动并入 evidenceRefs，补齐缺失的可信 research digest，把当前文件规范化为
+   `<questionId>.json`，并从磁盘替换 runtime-derived 全零占位 digest。任一非占位 digest 若已 stale 仍立即拒绝。
+   任一 packet 变化都会使 candidate stale。不把 rationale、聊天文本或第二问
    塞进 tool payload。
    candidate 和用户可见问题只能引用当前 Evidence ledger 中真实存在的 `E-*` ID，不得沿用 worker packet 的
    `CODE-*`/`DOCS-*` sourceId。推荐理由必须把已验证事实与基于事实的取舍推断分开表达，不得把尚未授权的

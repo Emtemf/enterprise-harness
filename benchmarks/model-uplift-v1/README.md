@@ -30,7 +30,7 @@ Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅
 
 仓库内的 [`business-cases.development.json`](business-cases.development.json) 提供退款、支付回调、订阅降级、客户数据导出和库存预留 5 个开发 case。`business-run.mjs` 在 fresh repository 中运行真实 Claude Code 会话，捕获 `AskUserQuestion` 或最终文本问题；脚本化用户只返回问题命中的隐藏事实。评分器计算关键未知项召回、最终需求覆盖、未询问却写入的假设、证据路径落地、提问效率和提前修改产品代码。开发 case 固定 `publishable=false`，即使重复运行达到样本门也不能生成公开结论。
 
-Claude Code headless `-p` 不提供交互式 `AskUserQuestion` UI。Harness 臂检测到模型已经通过 `prepare-question` 生成的唯一 canonical candidate 后，由 runner 充当测试用户：逐字构造该 candidate 的 tool input，依次执行真实 pre-question/post-question hook，并从脚本化隐藏真值选择业务选项。若候选选项不包含正确业务答案，则提交自由文本并由 runtime 记录 `other`，不能为让流程通过而选错答案。拓扑等非业务治理确认只接受 candidate 已授权的推荐项；每次桥接的 questionId、decisionType 与 selectedOptionId 都写入 invocation evidence。
+Harness 臂使用锁定版本的 Claude Agent SDK，并显式复用本机 Claude Code executable、当前 plugin 与 CC Switch 环境。SDK 的官方 `canUseTool` host callback 在真实 `AskUserQuestion` agent loop 内返回脚本化用户答案，因此自由文本既经过插件真实 pre/post-question hooks，也会进入 Claude 当前会话上下文；不再通过外置 hook 调用伪造交互。若候选选项不包含正确业务答案，callback 提交真实自由文本，不能为让流程通过而选错答案。拓扑等非业务治理确认只接受 candidate 已授权的推荐项；每次交互的 questionId、decisionType 与 selectedOptionId 都写入 invocation evidence。裸模型臂继续使用 `claude -p` 多轮文本会话。
 
 正式 holdout 必须通过仓库外的 case pack 提供，并声明 `split=holdout`、`publishable=true`；runner 会记录 pack digest，拒绝把仓库内题库伪装成 holdout。由于真实 Claude Code 使用 `bypassPermissions`，外部路径本身不构成保密边界：本地正式运行要求把 case pack 单独放在 `/var/tmp` 下并传入 `--holdout-isolation bwrap`。runner 使用 bubblewrap 对 Claude 子进程遮蔽整个 `/var/tmp`，并自动生成 digest-bound isolation receipt；不接受手工声明本地隔离。当前实现限 Linux/bwrap，其他平台需未来接入远程盲评器。
 

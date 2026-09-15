@@ -6,6 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { answerBusinessQuestion, extractQuestionFromStream } from './lib/scripted-user.mjs';
 import { gradeBusinessClarification } from './lib/business-grade.mjs';
 import { modelIdentityValid, responseIdentityValid } from './lib/model-identity.mjs';
@@ -157,32 +158,89 @@ function workflowStatus(root, changeId, sessionId) {
   if (result.status !== 0) return null;
   try { return JSON.parse(result.stdout); } catch { return null; }
 }
-function headlessDecision(root, changeId, sessionId, selectedCase, answered) {
+function pendingCandidate(root, changeId) {
   const pendingPath = path.join(root, '.git', 'enterprise-harness', 'pending-decisions', `${changeId}.json`);
   if (!fs.existsSync(pendingPath)) return null;
   const pending = JSON.parse(fs.readFileSync(pendingPath, 'utf-8'));
   if (pending.status !== 'pending' || !isSafeRelativePath(pending.candidateRef)) return null;
   const candidatePath = path.resolve(root, pending.candidateRef);
   if (!candidatePath.startsWith(`${root}${path.sep}`) || !fs.existsSync(candidatePath)) return null;
-  const candidate = JSON.parse(fs.readFileSync(candidatePath, 'utf-8'));
-  const planned = planHeadlessDecision(selectedCase, candidate, answered);
-  const hookEnv = {
-    ...process.env,
-    CLAUDE_SESSION_ID: sessionId,
-    ENTERPRISE_HARNESS_SESSION_ID: sessionId,
+  return JSON.parse(fs.readFileSync(candidatePath, 'utf-8'));
+}
+
+async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, childEnv, answered, changeId, remainingBudgetUsd }) {
+  const events = [];
+  let plannedDecision = null;
+  let resolvedChangeId = changeId;
+  let timedOut = false;
+  let caughtError = null;
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    abortController.abort();
+  }, invocationTimeoutMs);
+  const installedClaude = fs.realpathSync(mustExec('which', ['claude'], { cwd: repoRoot }).stdout.trim());
+  const claudeExecutable = holdoutIsolation
+    ? holdoutIsolation.sdkExecutable(installedClaude, { writableRoot: root })
+    : installedClaude;
+  try {
+    const stream = query({
+      prompt: businessPromptFor(arm, selectedCase, turn, null, answered.size),
+      options: {
+        cwd: root,
+        pathToClaudeCodeExecutable: claudeExecutable,
+        sessionId: turn === 1 ? sessionId : undefined,
+        resume: turn === 1 ? undefined : sessionId,
+        model: arm.model,
+        maxTurns: 60,
+        maxBudgetUsd: remainingBudgetUsd,
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
+        settingSources: [],
+        plugins: [{ type: 'local', path: repoRoot }],
+        env: { ...childEnv, CLAUDE_AGENT_SDK_CLIENT_APP: 'enterprise-harness-model-uplift' },
+        abortController,
+        canUseTool: async (toolName, input) => {
+          if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: input };
+          const status = workflowStatus(root, resolvedChangeId, sessionId);
+          if (status?.changeId) resolvedChangeId = status.changeId;
+          const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
+          if (!candidate) return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: true };
+          const planned = planHeadlessDecision(selectedCase, candidate, answered);
+          if (JSON.stringify(input.questions) !== JSON.stringify(planned.toolInput.questions)) {
+            return { behavior: 'deny', message: 'AskUserQuestion input is not the canonical prepared candidate.', interrupt: true };
+          }
+          plannedDecision = planned;
+          return {
+            behavior: 'allow',
+            updatedInput: { ...planned.toolInput, ...planned.toolResponse },
+          };
+        },
+      },
+    });
+    for await (const event of stream) events.push(event);
+  } catch (error) {
+    caughtError = error;
+  } finally {
+    clearTimeout(timeout);
+  }
+  const result = [...events].reverse().find((event) => event.type === 'result');
+  const assistant = events.filter((event) => event.type === 'assistant' && event.message);
+  const text = result?.result || assistant.flatMap((event) => (event.message.content || [])
+    .filter((block) => block.type === 'text').map((block) => block.text || '')).join('\n');
+  return {
+    events,
+    result,
+    text,
+    plannedDecision,
+    changeId: resolvedChangeId,
+    timedOut,
+    error: caughtError,
+    status: caughtError || result?.is_error ? 1 : 0,
+    controllerModels: [...new Set(assistant.filter((event) => !event.parent_tool_use_id && !event.subagent_type).map((event) => event.message.model).filter(Boolean))],
+    workerModels: [...new Set(assistant.filter((event) => event.parent_tool_use_id || event.subagent_type).map((event) => event.message.model).filter(Boolean))],
+    billingModels: Object.keys(result?.modelUsage || {}),
   };
-  const pre = exec(process.execPath, [path.join(repoRoot, 'hooks/scripts/pre-question.mjs')], {
-    cwd: root, env: hookEnv, input: JSON.stringify({ tool_input: planned.toolInput }), timeout: 120_000,
-  });
-  if (pre.status !== 0) throw new Error(`headless pre-question bridge failed: ${pre.stderr || pre.stdout}`);
-  const post = exec(process.execPath, [path.join(repoRoot, 'hooks/scripts/post-question.mjs')], {
-    cwd: root,
-    env: hookEnv,
-    input: JSON.stringify({ tool_input: planned.toolInput, tool_response: planned.toolResponse }),
-    timeout: 120_000,
-  });
-  if (post.status !== 0) throw new Error(`headless post-question bridge failed: ${post.stderr || post.stdout}`);
-  return planned;
 }
 function finalRequirements(root, arm, changeId, fallbackText) {
   if (arm.workflow !== 'enterprise-harness') return bareFinalRequirements(fallbackText);
@@ -208,7 +266,7 @@ const runnerCommit = mustExec('git', ['rev-parse', 'HEAD'], { cwd: repoRoot }).s
 const runnerTreeClean = mustExec('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: repoRoot }).stdout.trim() === '';
 if (casePack.split === 'holdout' && !runnerTreeClean) throw new Error('holdout runs require a clean committed benchmark runner');
 
-function runOnce(arm, selectedCase, repetition) {
+async function runOnce(arm, selectedCase, repetition) {
   const root = fixture(selectedCase);
   let changeId = null;
   const sessionId = crypto.randomUUID();
@@ -235,16 +293,25 @@ function runOnce(arm, selectedCase, repetition) {
         '-p', ...(turn === 1 ? ['--session-id', sessionId] : ['--resume', sessionId]),
         '--output-format', 'stream-json', '--verbose', '--max-turns', '60', '--max-budget-usd', remaining.toFixed(6),
         '--model', arm.model, '--permission-mode', 'bypassPermissions', '--setting-sources', '',
+        businessPromptFor(arm, selectedCase, turn, pendingAnswer, answered.size),
       ];
-      if (arm.workflow === 'enterprise-harness') claudeArgs.push('--plugin-dir', repoRoot);
-      claudeArgs.push(businessPromptFor(arm, selectedCase, turn, pendingAnswer, answered.size));
       pendingAnswer = null;
       const startedAt = Date.now();
-      const invocation = holdoutIsolation ? holdoutIsolation.wrap('claude', claudeArgs, { writableRoot: root }) : { command: 'claude', argv: claudeArgs };
-      const child = exec(invocation.command, invocation.argv, { cwd: root, env: childEnv, timeout: invocationTimeoutMs });
-      const parsed = parseStream(child.stdout || '');
+      let child;
+      let parsed;
+      if (arm.workflow === 'enterprise-harness') {
+        parsed = await invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, childEnv, answered, changeId, remainingBudgetUsd: remaining });
+        child = { status: parsed.status, error: parsed.error, stderr: parsed.error?.message || '' };
+        if (parsed.changeId) changeId = parsed.changeId;
+      } else {
+        const invocation = holdoutIsolation ? holdoutIsolation.wrap('claude', claudeArgs, { writableRoot: root }) : { command: 'claude', argv: claudeArgs };
+        child = exec(invocation.command, invocation.argv, { cwd: root, env: childEnv, timeout: invocationTimeoutMs });
+        parsed = parseStream(child.stdout || '');
+      }
       lastText = parsed.text;
-      let question = extractQuestionFromStream(parsed.events, parsed.text);
+      let question = arm.workflow === 'enterprise-harness'
+        ? parsed.plannedDecision?.question || null
+        : extractQuestionFromStream(parsed.events, parsed.text);
       const usage = usageOf(parsed.result);
       invocations.push({
         turn,
@@ -258,20 +325,18 @@ function runOnce(arm, selectedCase, repetition) {
         billingModels: parsed.billingModels,
         question,
         text: parsed.text,
-        outputDigest: sha256(child.stdout || ''),
-        timedOut: child.error?.code === 'ETIMEDOUT',
+        outputDigest: sha256(arm.workflow === 'enterprise-harness' ? JSON.stringify(parsed.events) : child.stdout || ''),
+        timedOut: arm.workflow === 'enterprise-harness' ? parsed.timedOut : child.error?.code === 'ETIMEDOUT',
         error: child.error?.message || String(child.stderr || '').trim() || null,
       });
       const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId, sessionId) : null;
       if (status?.changeId) changeId = status.changeId;
-      const bridged = arm.workflow === 'enterprise-harness' && changeId
-        ? headlessDecision(root, changeId, sessionId, selectedCase, answered) : null;
+      const bridged = parsed.plannedDecision;
       if (bridged) {
-        question = bridged.question;
         for (const factId of bridged.answeredFactIds) answered.add(factId);
         if (bridged.decisionType === 'clarify-answer') transcript.push({ turn, ...bridged });
         invocations.at(-1).question = question;
-        invocations.at(-1).headlessDecision = {
+        invocations.at(-1).sdkDecision = {
           questionId: bridged.questionId,
           decisionType: bridged.decisionType,
           selectedOptionId: bridged.selectedOptionId,
@@ -371,7 +436,7 @@ const records = [];
 for (const selectedCase of selectedCases) {
   for (let repetition = 1; repetition <= reps; repetition += 1) {
     for (const arm of selectedArms) {
-      const record = runOnce(arm, selectedCase, repetition);
+      const record = await runOnce(arm, selectedCase, repetition);
       records.push(record);
       console.log(`${arm.id} case=${selectedCase.id} rep=${repetition} accepted=${record.grade.accepted} recall=${record.grade.criticalUnknownRecall.toFixed(3)} identity=${record.modelIdentityValid}`);
     }

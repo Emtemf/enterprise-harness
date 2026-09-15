@@ -478,6 +478,21 @@ try {
   assert.notEqual(normalizedArtifact.inputDigests[requirementsRef], '0'.repeat(64),
     'runtime must replace the derived placeholder digest from disk');
 
+  const missingTrustedDigestChange = 'candidate-missing-trusted-digest';
+  activate(missingTrustedDigestChange);
+  const missingTrustedDigestCandidate = candidateFor(missingTrustedDigestChange, 'Q-runtime');
+  const trustedCodeLane = fs.readFileSync(
+    path.join(root, `harness/changes/${missingTrustedDigestChange}/requirements.md`),
+    'utf-8',
+  ).split('\n').find((line) => /^\|\s*code\s*\|/u.test(line));
+  const trustedResearchRef = trustedCodeLane.split('|').map((cell) => cell.trim())[5];
+  missingTrustedDigestCandidate.evidenceRefs.push(trustedResearchRef);
+  const missingTrustedDigestRef = writeCandidate(missingTrustedDigestCandidate);
+  const missingTrustedDigestPending = prepareClarifyQuestion(root, missingTrustedDigestChange, missingTrustedDigestRef);
+  const boundMissingDigest = JSON.parse(fs.readFileSync(path.join(root, missingTrustedDigestPending.candidateRef), 'utf-8'));
+  assert.match(boundMissingDigest.inputDigests[trustedResearchRef], /^[a-f0-9]{64}$/u,
+    'runtime must derive a missing digest for a current trusted ResearchPacket ref');
+
   const changeId = 'cancel-order';
   activate(changeId);
   const candidate = candidateFor(changeId);

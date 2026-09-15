@@ -547,7 +547,10 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
   assertCandidateEnvelope(root, changeId, candidateRef, research);
   const candidatePath = resolveRepoTarget(root, candidateRef, 'candidateRef');
   const candidate = JSON.parse(fs.readFileSync(candidatePath, 'utf-8'));
-  const candidateProblems = validateQuestionCandidate(candidate);
+  const candidateProblems = validateQuestionCandidate(candidate).filter((problem) => (
+    !/^evidenceRefs requires inputDigests\./u.test(problem)
+    && !/^targetRef requires inputDigests\./u.test(problem)
+  ));
   if (candidateProblems.length > 0) {
     throw questionError('EH-QUESTION-CANDIDATE-106', candidateProblems.join('; '));
   }

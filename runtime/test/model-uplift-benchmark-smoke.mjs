@@ -229,6 +229,9 @@ try {
       const isolated = spawnSync(wrapped.command, wrapped.argv, { encoding: 'utf-8', shell: false });
       assert.equal(isolated.status, 0, `${isolated.stdout}\n${isolated.stderr}`);
       assert.equal(isolation.receipt.maskedRoot, '/var/tmp');
+      const sdkExecutable = isolation.sdkExecutable(process.execPath, { writableRoot: fixture });
+      const sdkIsolated = spawnSync(sdkExecutable, ['-e', "process.exit(require('fs').existsSync(process.argv[1]) ? 9 : 0)", hiddenPath], { encoding: 'utf-8', shell: false });
+      assert.equal(sdkIsolated.status, 0, `${sdkIsolated.stdout}\n${sdkIsolated.stderr}`);
     } finally {
       fs.rmSync(holdoutFixture, { recursive: true, force: true });
     }
