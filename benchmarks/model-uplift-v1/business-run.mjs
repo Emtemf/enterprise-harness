@@ -18,6 +18,7 @@ import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
 import { planHeadlessDecision } from './lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
+import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
@@ -201,8 +202,7 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
         model: arm.model,
         maxTurns: 60,
         maxBudgetUsd: remainingBudgetUsd,
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
+        ...harnessSdkPermissionPolicy,
         settingSources: [],
         plugins: [{ type: 'local', path: repoRoot }],
         env: { ...childEnv, CLAUDE_AGENT_SDK_CLIENT_APP: 'enterprise-harness-model-uplift' },

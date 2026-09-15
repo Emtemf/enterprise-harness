@@ -17,6 +17,7 @@ import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-r
 import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-uplift-v1/lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
+import { harnessSdkPermissionPolicy } from '../../benchmarks/model-uplift-v1/lib/sdk-permission-policy.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -40,6 +41,7 @@ assert.equal(businessProtocol.publicationGate.minimumDistinctCases, 5);
 assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerComparison, 20);
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
+assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to canUseTool');
 const codeGraphCalls = [];
 const codeGraphStatus = initializeFixtureCodeGraph('/tmp/business-fixture', (command, argv, options) => {
   codeGraphCalls.push({ command, argv, options });
