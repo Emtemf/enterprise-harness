@@ -8,7 +8,7 @@
   "minimumDistinctHoldoutCases": 5,
   "validPairedObservations": 0,
   "decisionRule": "weak-harness vs weak-bare 的配对效果均值差 95% 下界严格大于 0，且 weak-harness vs strong-bare 的配对效果均值差 95% 下界不低于 -5pp；每项至少 20 对并覆盖至少 5 个 holdout case",
-  "reason": "2026-09-14 fresh preflight 与真实 bwrap 隔离探针均通过；外部 holdout v1 已在正式采样前冻结，包含 5 个 case、36 个关键未知项且 oracle 自检通过。当前正式配对观测仍为 0；效果结论等待三臂采样与 CC Switch route receipt。GLM-5.1/5.2 实际请求分别按 1/3 个中转计费单位统计，token、请求数与计费单位不参与效果门槛。",
-  "lastUpdated": "2026-09-14",
-  "latestDiagnostic": "holdout-v1-manifest.json"
+  "reason": "2026-09-14 fresh preflight 与真实 bwrap 隔离探针均通过；2026-09-15 修复 worker 模型继承后，单轮 weak-harness 请求级探针验证 54/54 个请求均为 GLM-5.1。外部 holdout v1 已冻结，包含 5 个 case、36 个关键未知项且 oracle 自检通过。当前正式配对观测仍为 0；效果结论等待三臂采样与 CC Switch route receipt。GLM-5.1/5.2 实际请求分别按 1/3 个中转计费单位统计，token、请求数与计费单位不参与效果门槛。",
+  "lastUpdated": "2026-09-15",
+  "latestDiagnostic": "weak-route-probe-2026-09-15.json"
 }
