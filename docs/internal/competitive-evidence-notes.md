@@ -62,6 +62,8 @@ Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `c
 
 同日 clean `4d6ce69` 上的单轮 weak-harness 路由探针完成：CC Switch 请求级回执覆盖 54 个成功请求，全部为 GLM-5.1；worker stream 同样只报告 `glm-5.1`，`modelTierIdentityValid=true`。资源统计为 54 中转计次单位、86,316 input、14,925 output、853,440 cache read、659,449ms。该运行限制为 1 dialogue turn，尚未进入业务问题，故 `accepted=false` 且不得用于效果比较；它只关闭弱模型整链路路由阻断。
 
+随后 clean `c1c0498` 的首个完整开发样本在第 4 轮触发 `EH-PROMPT-RECEIPT-155`：runner 首轮发送原始需求，续轮却改成“继续当前 change”，被 Harness 正确识别为不同 host prompt。运行在完成 6 轮后人工停止，不能评分。修复后 Harness 每次 resume 重放同一原始业务请求，并增加连续三轮无问题即保留失败并停止的预算保护；该问题属于评测校准，不是产品门禁放宽。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

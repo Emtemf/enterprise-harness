@@ -15,6 +15,7 @@ import { validateHoldoutIsolationReceipt } from './lib/holdout-receipt.mjs';
 import { bareFinalRequirements } from './lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
 import { planHeadlessDecision } from './lib/headless-decision.mjs';
+import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
@@ -189,19 +190,6 @@ function finalRequirements(root, arm, changeId, fallbackText) {
   const target = path.join(root, 'harness', 'changes', changeId, 'requirements.md');
   return fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : fallbackText;
 }
-function promptFor(arm, selectedCase, turn, pendingAnswer, answeredCount) {
-  if (turn === 1 && arm.workflow === 'enterprise-harness') {
-    return `/enterprise-harness:harness\n${selectedCase.initialRequest}`;
-  }
-  if (turn === 1) {
-    return `你处于需求澄清阶段。用户原始请求是：${selectedCase.initialRequest}\n读取仓库代码事实和 docs 下的固定外部文档快照。不得修改产品代码，不得替用户决定业务规则。每轮只问一个最高价值问题；信息充分后输出 CLARIFICATION_COMPLETE 和完整、可验收的需求，并用相对路径标注使用的代码与文档证据。`;
-  }
-  if (pendingAnswer) return `用户对上一问题的完整回答是：${pendingAnswer}\n记录这个决定，继续澄清；每轮最多问一个问题。`;
-  if (answeredCount >= selectedCase.requiredFacts.length) return '所有已提出业务问题都已回答。请自检遗漏，然后完成并输出可验收需求；不要修改产品代码。';
-  return arm.workflow === 'enterprise-harness'
-    ? '/enterprise-harness:harness 继续当前 change，只执行 durable state 授权的下一个澄清动作。'
-    : '继续澄清当前需求；每轮只问一个最高价值问题，信息充分后输出 CLARIFICATION_COMPLETE 和完整需求。';
-}
 function validatePreflight() {
   if (caseOption !== 'all') return null;
   if (!preflightReceiptPath) throw new Error('--case all requires --preflight-receipt from preflight.mjs');
@@ -229,6 +217,8 @@ function runOnce(arm, selectedCase, repetition) {
   const answered = new Set();
   let pendingAnswer = null;
   let lastText = '';
+  let noQuestionStreak = 0;
+  let stopReason = null;
   const checkpoint = path.join(resultsDir, 'checkpoints', `${arm.id}--${selectedCase.id}--${repetition}.json`);
   try {
     for (let turn = 1; turn <= maxDialogueTurns; turn += 1) {
@@ -247,7 +237,7 @@ function runOnce(arm, selectedCase, repetition) {
         '--model', arm.model, '--permission-mode', 'bypassPermissions', '--setting-sources', '',
       ];
       if (arm.workflow === 'enterprise-harness') claudeArgs.push('--plugin-dir', repoRoot);
-      claudeArgs.push(promptFor(arm, selectedCase, turn, pendingAnswer, answered.size));
+      claudeArgs.push(businessPromptFor(arm, selectedCase, turn, pendingAnswer, answered.size));
       pendingAnswer = null;
       const startedAt = Date.now();
       const invocation = holdoutIsolation ? holdoutIsolation.wrap('claude', claudeArgs, { writableRoot: root }) : { command: 'claude', argv: claudeArgs };
@@ -292,6 +282,7 @@ function runOnce(arm, selectedCase, repetition) {
         transcript.push({ turn, question, ...scripted });
         pendingAnswer = scripted.answer;
       }
+      noQuestionStreak = nextNoQuestionStreak(noQuestionStreak, question);
       writeJsonAtomic(checkpoint, {
         schemaVersion: 1,
         status: 'running',
@@ -310,6 +301,10 @@ function runOnce(arm, selectedCase, repetition) {
       if (arm.workflow === 'enterprise-harness' && status && status.stage !== 'clarify') break;
       if (arm.workflow === 'bare' && /CLARIFICATION_COMPLETE/u.test(parsed.text) && !question) break;
       if (child.status !== 0 && parsed.result?.subtype !== 'error_max_turns') break;
+      if (noQuestionStreak >= 3) {
+        stopReason = 'three-consecutive-turns-without-question';
+        break;
+      }
     }
     const requirements = finalRequirements(root, arm, changeId, lastText);
     const statusLines = mustExec('git', ['status', '--short'], { cwd: root }).stdout.split(/\r?\n/u).filter(Boolean);
@@ -343,6 +338,7 @@ function runOnce(arm, selectedCase, repetition) {
       rawRequestBound,
       billingComplete,
       measurementValid: identityValid && billingComplete && rawRequestBound,
+      stopReason,
       costAuthority: 'claude-code-alias-estimate',
       providerCostUsd: null,
       invocations,

@@ -15,6 +15,7 @@ import { bareFinalRequirements } from '../../benchmarks/model-uplift-v1/lib/clar
 import { prepareBwrapHoldout } from '../../benchmarks/model-uplift-v1/lib/holdout-bwrap.mjs';
 import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-receipt.mjs';
 import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
+import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-uplift-v1/lib/business-prompt.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -149,6 +150,15 @@ assert.equal(extractQuestionFromStream([], '已读取 `docs/provider.txt`：超�
 assert.equal(extractQuestionFromStream([], '**问题：哪些订单状态允许退款？**\n- A. 仅 PAID\n- B. PAID + FULFILLED（是否包含退货流程？）'), '哪些订单状态允许退款？');
 assert.equal(extractQuestionFromStream([], '> **用户在什么状态下可以自助申请退款？**\n> - 仅限 PAID？\n> - 是否需要额外约束（例如 N 小时内）？\n请给出边界。'), '用户在什么状态下可以自助申请退款？');
 assert.equal(extractQuestionFromStream([], '**业务澄清问题**\n请确认：一个发布需要哪些角色（例如：产品负责人、技术负责人）审批？'), '一个发布需要哪些角色（例如：产品负责人、技术负责人）审批？');
+const harnessPromptArm = { workflow: 'enterprise-harness' };
+const harnessPromptCase = { initialRequest: '给订单加一个用户自助退款功能。', requiredFacts: [] };
+assert.equal(
+  businessPromptFor(harnessPromptArm, harnessPromptCase, 1, null, 0),
+  businessPromptFor(harnessPromptArm, harnessPromptCase, 9, null, 2),
+  'Harness resumes must preserve the exact semantic host prompt binding',
+);
+assert.equal(nextNoQuestionStreak(nextNoQuestionStreak(nextNoQuestionStreak(0, null), ''), undefined), 3);
+assert.equal(nextNoQuestionStreak(2, '下一业务问题'), 0);
 const repeatedAnswer = answerBusinessQuestion(businessCases.cases[0], 'FULFILLED 已发货订单可以退款吗？', new Set(['eligible-window']));
 assert.equal(repeatedAnswer.unmatched, false);
 assert.equal(repeatedAnswer.repeated, true);

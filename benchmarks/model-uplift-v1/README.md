@@ -71,6 +71,8 @@ node benchmarks/model-uplift-v1/summarize.mjs <route-reconciled.json> <summary.j
 
 正式 `--case all` 在花费完整生命周期预算前强制读取 24 小时内的 preflight receipt。预检验证选中实验臂使用的 Haiku/Sonnet alias 是否分别可用且 billing alias 与 profile 一致，并绑定 Claude Code 版本和非 secret 路由配置摘要；实际产品档位最终由 CC Switch 路由回执闭环。失败时停止，不允许用 `--force` 绕过。单 case 仍可用于 diagnostic runner 调试；holdout 还会拒绝 dirty worktree，避免回执绑定到不能复现的 runner。
 
+Harness 首轮与每次 `--resume` 都发送完全相同的路由 literal + 原始业务请求，使 UserPromptSubmit continuity receipt 始终绑定同一语义输入；不能用“继续当前 change”替换原始请求。连续三轮未产生问题会以 `stopReason=three-consecutive-turns-without-question` 提前结束该样本，保留失败效果和资源数据，防止 blocker 空转烧满预算。
+
 业务澄清 runner 在 `results/.../checkpoints/` 中为每个实验臂原子写入上一完整轮的 transcript、模型观测和 token 使用；进程中断后可以定位最后完成位置。checkpoint 是审计证据，不替代最终结果、隔离回执或 CC Switch route receipt。
 
 只运行一个实验臂：
