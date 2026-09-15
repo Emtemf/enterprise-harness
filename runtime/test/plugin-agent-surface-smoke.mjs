@@ -86,6 +86,11 @@ try {
     'reviewer.md',
   ]) {
     if (!installedAgents.includes(agentFile)) failures.push(`installed plugin missing ${agentFile}`);
+    const installedAgentPath = installedAgentsDir ? path.join(installedAgentsDir, agentFile) : null;
+    if (installedAgentPath && fs.existsSync(installedAgentPath)
+      && !/^model:\s*inherit$/mu.test(fs.readFileSync(installedAgentPath, 'utf-8'))) {
+      failures.push(`installed plugin agent must inherit the selected session model: ${agentFile}`);
+    }
   }
 
   const ok = failures.length === 0;

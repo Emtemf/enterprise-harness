@@ -6,7 +6,7 @@ tools:
   - Write
   - Edit
   - Bash
-model: sonnet
+model: inherit
 ---
 
 # Artifact Worker

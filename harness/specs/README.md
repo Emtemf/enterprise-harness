@@ -24,5 +24,6 @@
 - [stage-observability.md](stage-observability.md) — 阶段时序、Design 内部顺序、artifact、独立 review、transition-owned persisted proof gate 与 `workflow audit` 的可执行合同
 - [upstream-mapping.md](upstream-mapping.md) — 三套 Clarify 方法、Claude Code 职责边界与固定审阅来源
 - [skill-packaging.md](skill-packaging.md) — Skill 目录结构、运行资源、研发 eval 分离和路径约定
+- [worker-model-policy.md](worker-model-policy.md) — 所有 plugin worker 继承主会话模型；评测强制路由只作防御，实际档位由请求级回执判定
 
 每份现行 spec 必须声明 `status`、`owner`、`lastVerified`、`implementationRefs` 和 `testRefs`。主合同负责边界，附录不能重新描述整体架构。

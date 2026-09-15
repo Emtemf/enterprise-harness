@@ -260,7 +260,9 @@ async function invoke(root, arm, sessionId, resume, invocation, remainingBudget,
     const stream = fs.createWriteStream(streamPath, { flags: 'a' });
     const childEnv = { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
     delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL;
+    delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE;
     if (arm.subagentModelOverride) childEnv.CLAUDE_CODE_SUBAGENT_MODEL = arm.subagentModelOverride;
+    if (arm.forceSubagentModel) childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE = '1';
     const child = spawn('claude', claudeArgs, {
       cwd: root,
       stdio: ['ignore', 'pipe', 'pipe'],

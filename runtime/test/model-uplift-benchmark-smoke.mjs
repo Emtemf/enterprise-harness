@@ -27,6 +27,7 @@ const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'weak-bare', 'strong-bare']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
 assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').subagentModelOverride, 'claude-haiku-4-5');
+assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').forceSubagentModel, true);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'strong-bare').allowedActualModels, ['glm-5.1', 'glm-5.2']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
   'weak-workflow-uplift', 'weak-model-substitution',
@@ -82,6 +83,7 @@ const routeReceipt = {
 };
 const reconciledRoute = attachRouteReceipt(routeRaw, routeReceipt, relayTariff);
 assert.equal(reconciledRoute.records[0].modelTierIdentityValid, true);
+assert.deepEqual(reconciledRoute.records[0].routeProblems, []);
 assert.equal(reconciledRoute.records[0].routeAuthority, 'cc-switch-proxy-log');
 assert.equal(reconciledRoute.records[0].relayRequestCount, 1);
 assert.equal(reconciledRoute.records[0].relayChargeUnits, 1);
@@ -109,13 +111,17 @@ assert.equal(reconciledStrongRoute.records[0].relayChargeUnits, 4, 'all actual w
 assert.throws(() => attachRouteReceipt(routeRaw, {
   ...routeReceipt, records: [{ ...routeReceipt.records[0], claudeSessionId: 'other-session' }],
 }, relayTariff), /session mismatch/u);
-assert.throws(() => attachRouteReceipt(routeRaw, {
+const contaminatedRoute = attachRouteReceipt(routeRaw, {
   ...routeReceipt,
   records: [{
     ...routeReceipt.records[0],
     requests: [...routeReceipt.records[0].requests, { proxyRequestId: 'proxy-strong', model: 'glm-5.2', requestModel: 'claude-sonnet-4-6', observedAt: '2026-09-10T00:01:00Z' }],
   }],
-}, relayTariff), /disallowed actual model/u);
+}, relayTariff);
+assert.equal(contaminatedRoute.records[0].modelTierIdentityValid, false);
+assert.deepEqual(contaminatedRoute.records[0].routeProblems, ['disallowed-model-observed:glm-5.2']);
+assert.equal(contaminatedRoute.records[0].relayRequestCount, 2);
+assert.equal(contaminatedRoute.records[0].relayChargeUnits, 4, 'polluted routes remain measurable but cannot publish effect');
 assert.throws(() => attachRouteReceipt(routeRaw, routeReceipt, {
   ...relayTariff, models: { 'glm-5.2': { chargeUnitsPerRequest: 3 } },
 }), /no request rate/u);

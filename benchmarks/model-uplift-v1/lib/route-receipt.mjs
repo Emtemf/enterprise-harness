@@ -73,13 +73,15 @@ export function attachRouteReceipt(raw, receipt, suppliedTariff) {
     }
     const routeModels = [...new Set(evidence.requests.map(({ model }) => model))].sort();
     const expectedModels = new Set([record.actualControllerModel, ...(record.actualWorkerModels || [])].filter(Boolean));
-    if ([...expectedModels].some((model) => !routeModels.includes(model))) {
-      throw new Error(`CC Switch model evidence does not cover expected route for ${record.armId}/${record.caseId}/${record.repetition}`);
-    }
     const allowedModels = new Set(record.allowedActualModels || [...expectedModels]);
-    if (routeModels.some((model) => !allowedModels.has(model))) {
-      throw new Error(`CC Switch route contains a disallowed actual model for ${record.armId}/${record.caseId}/${record.repetition}`);
-    }
+    const routeProblems = [
+      ...[...expectedModels]
+        .filter((model) => !routeModels.includes(model))
+        .map((model) => `expected-model-not-observed:${model}`),
+      ...routeModels
+        .filter((model) => !allowedModels.has(model))
+        .map((model) => `disallowed-model-observed:${model}`),
+    ];
     const relayRequestCountsByModel = Object.fromEntries(routeModels.map((model) => [
       model,
       evidence.requests.filter((request) => request.model === model).length,
@@ -91,9 +93,10 @@ export function attachRouteReceipt(raw, receipt, suppliedTariff) {
     }, 0);
     return {
       ...record,
-      modelTierIdentityValid: true,
+      modelTierIdentityValid: routeProblems.length === 0,
       routeAuthority: receipt.authority,
       routeModels,
+      routeProblems,
       relayChargeAuthority: tariff.authority,
       relayRequestCount: evidence.requests.length,
       relayRequestCountsByModel,

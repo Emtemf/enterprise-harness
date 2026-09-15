@@ -18,7 +18,7 @@ tools:
   - mcp__plugin_enterprise-harness_codegraph__codegraph_callers
   - mcp__plugin_enterprise-harness_codegraph__codegraph_callees
   - mcp__plugin_enterprise-harness_codegraph__codegraph_impact
-model: sonnet
+model: inherit
 ---
 
 # Code Explore

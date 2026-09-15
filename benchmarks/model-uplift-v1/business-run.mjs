@@ -235,7 +235,9 @@ function runOnce(arm, selectedCase, repetition) {
       const childEnv = { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
       for (const key of Object.keys(childEnv).filter((key) => key.startsWith('EH_BENCHMARK_'))) delete childEnv[key];
       delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL;
+      delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE;
       if (arm.subagentModelOverride) childEnv.CLAUDE_CODE_SUBAGENT_MODEL = arm.subagentModelOverride;
+      if (arm.forceSubagentModel) childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE = '1';
       const spent = invocations.reduce((sum, item) => sum + item.usage.costUsd, 0);
       const remaining = budgetUsd - spent;
       if (remaining <= 0.001) break;

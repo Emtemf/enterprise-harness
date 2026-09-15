@@ -4,7 +4,7 @@ description: 使用 digest 绑定的评审标准独立评审 Harness 制品与�
 tools:
   - Read
   - Bash
-model: sonnet
+model: inherit
 ---
 
 # Reviewer

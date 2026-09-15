@@ -7,7 +7,7 @@ tools:
   - Write
   - Edit
 isolation: worktree
-model: sonnet
+model: inherit
 skills:
   - enterprise-harness:implement
 ---

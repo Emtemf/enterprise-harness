@@ -10,7 +10,7 @@ tools:
   - mcp__context7__query-docs
   - mcp__plugin_enterprise-harness_context7__resolve-library-id
   - mcp__plugin_enterprise-harness_context7__query-docs
-model: sonnet
+model: inherit
 ---
 
 # Doc Research

@@ -14,11 +14,11 @@
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
 | `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
 
-Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。`weak-harness` 按 Claude Code 官方的 [subagent model 解析优先级](https://code.claude.com/docs/en/sub-agents#choose-a-model)，为每次子进程设置最高优先级的 `CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5`，把 controller 和声明的 workers 都锁定 Haiku/GLM-5.1；任何实际 GLM-5.2 worker 仍由 route receipt 判定为污染样本。
+Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。插件所有 named agent 都使用 `model: inherit`。`weak-harness` 还按 Claude Code 官方的 [subagent model 规则](https://code.claude.com/docs/en/sub-agents#run-every-subagent-on-one-model)，同时设置 `CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5` 与 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`，防止普通 subagent、teammate 或 workflow agent 自行升级；fork 与 `model: inherit` Skill 仍跟随 Haiku controller。任何实际 GLM-5.2 请求仍由 route receipt 判定为污染样本。
 
 效果证据与资源统计分开：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位，并按用户确认的中转站规则累计请求计费单位。GLM-5.1 每次请求记 1 单位，GLM-5.2 每次请求记 3 单位。Claude Code 返回的 alias `costUSD` 仅保留作诊断；计费单位、token 和耗时都不参与效果发布门槛。
 
-`export-cc-switch-route-receipt.py` 从只读 SQLite 生成路由证据，`attach-route-receipt.mjs` 校验完整样本覆盖、session、请求 ID、模型与时间窗，写入 `modelTierIdentityValid`、逐模型请求数和 `relayChargeUnits`。时间关联允许 2 分钟时钟偏差。[`pricing.json`](pricing.json) 是 1:3 固定计次规则的版本化权威。provider receipt 工具仍保留给其他按真实金额结算的环境，但不是本轮模型效果主张的输入或门槛。
+`export-cc-switch-route-receipt.py` 从只读 SQLite 生成路由证据，`attach-route-receipt.mjs` 校验完整样本覆盖、session、请求 ID 与时间窗，写入 `modelTierIdentityValid`、`routeProblems`、逐模型请求数和 `relayChargeUnits`。模型不符不会抹掉资源统计：样本保留但 `modelTierIdentityValid=false`，因此不能进入效果结论。时间关联允许 2 分钟时钟偏差。[`pricing.json`](pricing.json) 是 1:3 固定计次规则的版本化权威。provider receipt 工具仍保留给其他按真实金额结算的环境，但不是本轮模型效果主张的输入或门槛。
 
 Claude Code 可能在指定 Sonnet controller 时额外调用 Haiku 做内部辅助。route receipt 必须完整记录这些请求：两个弱臂只允许实际 GLM-5.1，出现任何 GLM-5.2 即判污染；`strong-bare` 允许 GLM-5.1/5.2，全部请求分别按 1/3 单位计入。因此“强模型”指 GLM-5.2 controller 档位，不声称进程中的每个内部请求都是 GLM-5.2。
 

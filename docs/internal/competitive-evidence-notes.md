@@ -58,6 +58,8 @@ Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `c
 
 用户提供 CC Switch 设置截图后确认目标映射为 Haiku/Fable→GLM-5.1、Sonnet/Opus→GLM-5.2。fresh 预检仍观察到 Haiku alias 指向不可用的 `claude-haiku-4-5`，Sonnet/Opus 的 response model 为 `glm-5.3`；直接把 Claude 默认模型覆盖为 `glm-5.1/5.2` 又返回 `unrecognized_model`。这与 CC Switch 页面“仅在开启本地路由/代理接管后生效”的边界一致：模型名重写必须由 CC Switch 层完成，benchmark 不应伪造环境覆盖。当前正式矩阵继续 fail closed，等待 CC Switch 保存、启用接管并让新进程继承后重跑 preflight。
 
+2026-09-15 在 `932d520` 上完成一次 4 轮 weak-harness 校准：headless decision bridge 成功消费 canonical question，raw request binding 和计费完整性均通过，但 CC Switch 请求级回执同时观察到 GLM-5.1 与 GLM-5.2。根因是 plugin named agents 明确声明 `model: sonnet`；Claude Code 2.1.251 以后 frontmatter 优先于单独的 `CLAUDE_CODE_SUBAGENT_MODEL`。该样本是路由污染负证据，不计入效果。修复改为所有 worker `model: inherit`，并在弱模型评测中同时设置 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`。污染样本此后仍保留逐模型请求数和 1:3 计次统计，但 `modelTierIdentityValid=false`，继续阻断发布。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

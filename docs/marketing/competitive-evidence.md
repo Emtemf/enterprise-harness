@@ -50,6 +50,8 @@ GLM-5.2 请求 = 3 计费单位
 
 当前 CC Switch 评测把 Haiku 路由到 GLM-5.1，把 Sonnet 路由到 GLM-5.2。正式矩阵只运行三个实验臂：裸 GLM-5.1、controller 与 subagent 均锁定 GLM-5.1 的 Harness、裸 GLM-5.2。这样不会把强 worker 的贡献误算成 Harness 对弱模型的提升。
 
+插件 worker 默认继承用户在主会话选择的模型，不暗中升级到 Sonnet。评测仍以 CC Switch 请求级日志为准：如果弱模型组混入任何 GLM-5.2，请求、计次单位、token 和耗时照常统计，但该样本不得证明效果。
+
 核心主张必须同时通过两道效果证据门：
 
 1. 同为 GLM-5.1 时，Harness 相对裸跑的效果均值差，其配对 bootstrap 95% 置信区间下界必须严格大于 0；
