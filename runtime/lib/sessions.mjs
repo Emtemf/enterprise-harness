@@ -104,6 +104,29 @@ export function renewSessionLease(root, sessionId, { leaseMs = 15 * 60 * 1000, n
   });
 }
 
+export function heartbeatSessionLease(root, sessionId, {
+  leaseMs = 15 * 60 * 1000,
+  renewWithinMs = 10 * 60 * 1000,
+  now = Date.now(),
+  ...options
+} = {}) {
+  const paths = ensureRuntimePaths(root, options);
+  const file = paths.sessionPath(assertSafeId(sessionId, 'sessionId'));
+  if (!fs.existsSync(file)) return { renewed: false, reason: 'missing', binding: null };
+  return withFileLock(file, () => {
+    const current = validateStoredBinding(JSON.parse(fs.readFileSync(file, 'utf-8')), sessionId);
+    if (isSessionLeaseExpired(current, { now })) {
+      return { renewed: false, reason: 'expired', binding: current };
+    }
+    if (current.leaseExpiresAt - now > renewWithinMs) {
+      return { renewed: false, reason: 'fresh', binding: current };
+    }
+    const next = { ...current, leaseExpiresAt: now + leaseMs, heartbeatedAt: new Date(now).toISOString() };
+    atomicWriteJson(file, next);
+    return { renewed: true, reason: 'renewed', binding: next };
+  });
+}
+
 export function bindSession(root, input, options = {}) {
   const paths = ensureRuntimePaths(root, options);
   const binding = normalizeBinding({ ...input, now: options.now, leaseMs: options.leaseMs });

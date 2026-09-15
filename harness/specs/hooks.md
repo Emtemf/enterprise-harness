@@ -1,12 +1,13 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-08
+lastVerified: 2026-09-15
 implementationRefs:
   - hooks/hooks.json
   - hooks/scripts/
   - runtime/lib/hooks/
   - runtime/lib/hook-health.mjs
+  - runtime/lib/hook-change.mjs
   - runtime/lib/sessions.mjs
   - runtime/lib/prompt-receipts.mjs
   - runtime/lib/instruction-load-observations.mjs
@@ -16,6 +17,7 @@ testRefs:
   - runtime/test/hook-manifest-parity-smoke.mjs
   - runtime/test/plugin-native-hooks-smoke.mjs
   - runtime/test/runtime-leases-smoke.mjs
+  - runtime/test/hook-session-heartbeat-smoke.mjs
   - runtime/test/start-change-session-recovery-smoke.mjs
   - runtime/test/hook-health-smoke.mjs
   - runtime/test/hook-health-lifecycle-smoke.mjs
@@ -133,7 +135,9 @@ A governed execution requires a fresh hook-health handshake. If host configurati
 or disables hooks, the runtime must report that condition instead of claiming enforcement.
 
 Session and change-lock records live under the git common directory and carry an expiry lease.
-The holder renews it through a heartbeat; an expired lease is recoverable only through the
+An authenticated Hook event for the still-matching session/worktree renews a session lease only
+while that lease remains fresh, so a long-running subagent stays active without allowing a stale
+process to revive an expired binding. An expired lease is recoverable only through the
 runtime's explicit recovery path. Rebinding the same session/change/worktree tuple is idempotent
 and serializes lease renewal with bind/unbind through the same per-session file lock; it must not
 return an already-expired record. Binding roots are canonicalized through the filesystem before

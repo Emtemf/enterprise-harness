@@ -19,6 +19,7 @@ import { planHeadlessDecision } from './lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
+import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
@@ -335,6 +336,7 @@ async function runOnce(arm, selectedCase, repetition) {
         outputDigest: sha256(arm.workflow === 'enterprise-harness' ? JSON.stringify(parsed.events) : child.stdout || ''),
         timedOut: arm.workflow === 'enterprise-harness' ? parsed.timedOut : child.error?.code === 'ETIMEDOUT',
         error: child.error?.message || String(child.stderr || '').trim() || null,
+        ...(arm.workflow === 'enterprise-harness' ? { toolTrace: sanitizedSdkToolTrace(parsed.events) } : {}),
       });
       const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId, sessionId) : null;
       if (status?.changeId) changeId = status.changeId;

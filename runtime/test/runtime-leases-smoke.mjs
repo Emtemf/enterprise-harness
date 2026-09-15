@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { bindSession, renewSessionLease, isSessionLeaseExpired } from '../lib/sessions.mjs';
+import { bindSession, heartbeatSessionLease, renewSessionLease, isSessionLeaseExpired } from '../lib/sessions.mjs';
 import { acquireChangeLock, isChangeLockStale, renewChangeLockLease } from '../lib/change-locks.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-leases-'));
@@ -17,6 +17,21 @@ try {
   assert.equal(isSessionLeaseExpired(binding, { now: 2_000 }), true);
   const renewed = renewSessionLease(root, 'lease-session', { leaseMs: 2_000, now: 2_000 });
   assert.equal(renewed.leaseExpiresAt, 4_000);
+  const heartbeated = heartbeatSessionLease(root, 'lease-session', {
+    leaseMs: 5_000, renewWithinMs: 3_000, now: 2_500,
+  });
+  assert.equal(heartbeated.renewed, true);
+  assert.equal(heartbeated.binding.leaseExpiresAt, 7_500);
+  const stillFresh = heartbeatSessionLease(root, 'lease-session', {
+    leaseMs: 5_000, renewWithinMs: 3_000, now: 3_000,
+  });
+  assert.equal(stillFresh.reason, 'fresh');
+  assert.equal(stillFresh.binding.leaseExpiresAt, 7_500);
+  const expiredHeartbeat = heartbeatSessionLease(root, 'lease-session', {
+    leaseMs: 5_000, renewWithinMs: 3_000, now: 7_500,
+  });
+  assert.equal(expiredHeartbeat.reason, 'expired');
+  assert.equal(expiredHeartbeat.binding.leaseExpiresAt, 7_500, 'ordinary hook heartbeat must not revive an expired session');
 
   const lock = acquireChangeLock(root, 'lease-change', 'lease-session', { leaseMs: 1_000, now: 2_000 });
   assert.equal(lock.leaseExpiresAt, 3_000);

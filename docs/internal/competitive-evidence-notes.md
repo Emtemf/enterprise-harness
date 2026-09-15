@@ -68,6 +68,8 @@ Harness 实验臂在 Clarify research 中超时，未修改产品代码，且 `c
 
 SDK 首轮探针还暴露弱模型恢复负担：模型把可信 research result ref 加入 candidate `evidenceRefs` 却漏填对应 digest，runtime 在能自动派生前先按完整 schema 拒绝，随后模型错误修改评分。`prepare-question` 现允许草稿缺少“当前可信 ResearchPacket ref”的 digest，再由 runtime 原子补齐；任意不可信 ref、非占位 stale digest 与其他 schema 错误仍 fail closed。Skill 同时收紧为草稿只写 targetRef + 64 零占位，禁止模型拼 `.git` run ref 或 hash。
 
+CodeGraph 初始化后的 SDK 探针确认代码 worker 能产出 `codegraph-first` packet，但外部文档 worker 运行超过 15 分钟后 session lease 过期：Context7 被误拒，`SubagentStop` 也无法把带前言的非法结果拦下并要求重试。这一轮在 30 分钟硬超时结束，`measurementValid=false`，不计入效果样本。runtime 现由仍处于有效期、且 session/worktree 精确匹配的 Hook 活动续租；已过期 binding 仍只能走显式恢复，不能被 Hook 复活。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

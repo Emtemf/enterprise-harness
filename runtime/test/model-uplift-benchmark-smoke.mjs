@@ -18,6 +18,7 @@ import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headl
 import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-uplift-v1/lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from '../../benchmarks/model-uplift-v1/lib/sdk-permission-policy.mjs';
+import { sanitizedSdkToolTrace } from '../../benchmarks/model-uplift-v1/lib/sdk-trace.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -42,6 +43,16 @@ assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerCompar
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
 assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to canUseTool');
+assert.deepEqual(sanitizedSdkToolTrace([
+  { message: { content: [{ type: 'tool_use', name: 'Bash', id: 'tool-1', input: { command: 'secret command' } }] } },
+  { message: { content: [{ type: 'tool_result', tool_use_id: 'tool-1', is_error: true, content: 'BLOCK EH-SESSION-LEASE-023 secret detail' }] } },
+]), [
+  { eventIndex: 0, kind: 'tool-use', toolName: 'Bash', toolUseId: 'tool-1' },
+  { eventIndex: 1, kind: 'tool-result', toolUseId: 'tool-1', isError: true, diagnosticCode: 'EH-SESSION-LEASE-023' },
+]);
+assert.doesNotMatch(JSON.stringify(sanitizedSdkToolTrace([
+  { message: { content: [{ type: 'tool_result', tool_use_id: 'tool-2', content: '隐藏业务答案' }] } },
+])), /隐藏业务答案/u, 'tool trace must not persist hidden answers or tool payloads');
 const codeGraphCalls = [];
 const codeGraphStatus = initializeFixtureCodeGraph('/tmp/business-fixture', (command, argv, options) => {
   codeGraphCalls.push({ command, argv, options });
