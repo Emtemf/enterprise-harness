@@ -70,6 +70,8 @@ SDK 首轮探针还暴露弱模型恢复负担：模型把可信 research result
 
 CodeGraph 初始化后的 SDK 探针确认代码 worker 能产出 `codegraph-first` packet，但外部文档 worker 运行超过 15 分钟后 session lease 过期：Context7 被误拒，`SubagentStop` 也无法把带前言的非法结果拦下并要求重试。这一轮在 30 分钟硬超时结束，`measurementValid=false`，不计入效果样本。runtime 现由仍处于有效期、且 session/worktree 精确匹配的 Hook 活动续租；已过期 binding 仍只能走显式恢复，不能被 Hook 复活。
 
+心跳修复后的 clean `ad40a77` 单轮探针在 942,847ms 内正常返回，controller/worker 均为 GLM-5.1，Context7 resolve/query 成功，`measurementValid=true`。它同时暴露第二个恢复缺口：doc worker 首次非纯 JSON 被 Stop Hook 拦下，修正后仍有 schema 类型错误；Claude Code 要求第二次 Stop 必须放行，但 Harness 未把该 run 标记为终态失败，导致后续重派被两个 active run 阻塞。该样本未提出业务问题，不计入效果对照。runtime 现在 stop-hook retry 耗尽时记录 terminal failure，不放宽 ResearchPacket schema，允许主 Agent 以更窄 brief 干净重派。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

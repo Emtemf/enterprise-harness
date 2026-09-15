@@ -129,6 +129,12 @@ or prove lifecycle completion. After that shape check it returns immediately: on
 Stop may emit recovery guidance. The two registrations keep separate dedup namespaces so a global
 Stop invocation cannot suppress the Skill validator, but they never duplicate guidance output.
 
+The plugin-global `SubagentStop` may block one malformed research result so the worker can repair
+its final JSON. If Claude Code marks a later stop attempt as already active, Harness records the
+associated run as a terminal failure before allowing the host-required stop. A narrower retry can
+then bind to one new run instead of remaining ambiguous with the exhausted run. This recovery does
+not persist or normalize a ResearchPacket that failed its canonical schema.
+
 ## Health and leases
 
 A governed execution requires a fresh hook-health handshake. If host configuration suppresses

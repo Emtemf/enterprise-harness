@@ -27,7 +27,10 @@ function isResearchHandoff(input) {
     || agentType === 'enterprise-harness:doc-research';
 }
 
-function v6ResultViolation({ repoRoot, changeId, event, normalized, observedRaw, cwd, message, problems }) {
+function v6ResultViolation({
+  repoRoot, changeId, event, normalized, observedRaw, cwd, message, problems,
+  runId = null, behavior = null, handoffRole = null, parentRunId = null,
+}) {
   appendAgentEvent(repoRoot, changeId, {
     kind: 'violation',
     violation: 'missing-or-ambiguous-v2-result',
@@ -40,7 +43,27 @@ function v6ResultViolation({ repoRoot, changeId, event, normalized, observedRaw,
     transcriptDigest: sha256(message),
     cwd,
   });
-  if (event.stop_hook_active) return { exitCode: 0 };
+  if (event.stop_hook_active) {
+    if (runId) {
+      appendAgentEvent(repoRoot, changeId, {
+        kind: 'failure',
+        sessionId: event.session_id,
+        agentId: event.agent_id,
+        observedAgentType: normalized,
+        rawObservedAgentType: observedRaw,
+        requestedAgentType: normalized,
+        runId,
+        behavior,
+        handoffRole,
+        parentRunId,
+        errorCode: 'EH-SUBAGENT-RESULT-004',
+        lifecycle: 'stop-hook-retry-exhausted',
+        transcriptDigest: sha256(message),
+        cwd,
+      });
+    }
+    return { exitCode: 0 };
+  }
   return {
     exitCode: 0,
     stdout: `${JSON.stringify({
@@ -103,6 +126,10 @@ function completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw,
       cwd,
       message,
       problems: ['research handoff has a pre-existing research result; only SubagentStop may persist it'],
+      runId: input.runId,
+      behavior: input.behavior,
+      handoffRole: input.role,
+      parentRunId: input.parentRunId,
     });
   }
   if (researchHandoff) {
@@ -119,6 +146,10 @@ function completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw,
         cwd,
         message,
         problems: [`research agent must return one valid ResearchPacket JSON object: ${error.message}`],
+        runId: input.runId,
+        behavior: input.behavior,
+        handoffRole: input.role,
+        parentRunId: input.parentRunId,
       });
     }
   }
@@ -132,6 +163,10 @@ function completeV6Handoff({ repoRoot, changeId, event, normalized, observedRaw,
       cwd,
       message,
       problems: ['v2 worker did not persist its required result before stopping'],
+      runId: input.runId,
+      behavior: input.behavior,
+      handoffRole: input.role,
+      parentRunId: input.parentRunId,
     });
   }
   appendAgentEvent(repoRoot, changeId, {

@@ -147,6 +147,44 @@ try {
   assert.equal(JSON.parse(invalidStop.stdout).decision, 'block');
   assert.match(JSON.parse(invalidStop.stdout).reason, /EH-SUBAGENT-RESULT-004/u);
   assert.equal(fs.existsSync(v2ResultPath(root, changeId, docs.runId)), false);
+  const exhaustedStop = subagentStop({
+    root,
+    event: {
+      hook_event_name: 'SubagentStop',
+      session_id: sessionId,
+      agent_id: 'agent-docs',
+      agent_type: 'enterprise-harness:doc-research',
+      last_assistant_message: JSON.stringify(packetFor(docs.input, 'code-explore')),
+      stop_hook_active: true,
+      cwd: root,
+    },
+  });
+  assert.equal(exhaustedStop.stdout ?? '', '');
+  assert.ok(readAgentEvents(root, changeId).some((event) => (
+    event.kind === 'failure'
+    && event.runId === docs.runId
+    && event.lifecycle === 'stop-hook-retry-exhausted'
+  )), 'a final invalid Stop retry must terminate the run so a clean re-dispatch is unambiguous');
+
+  const docsRetry = createResearch('clarify.research-docs', {
+    type: 'enterprise-harness:doc-research',
+    skill: 'research-docs',
+  });
+  authorize(docsRetry.input, 'agent-docs-retry', 'tool-docs-retry');
+  const docsRetryStop = subagentStop({
+    root,
+    event: {
+      hook_event_name: 'SubagentStop',
+      session_id: sessionId,
+      agent_id: 'agent-docs-retry',
+      agent_type: 'enterprise-harness:doc-research',
+      last_assistant_message: JSON.stringify(packetFor(docsRetry.input, 'doc-research')),
+      stop_hook_active: false,
+      cwd: root,
+    },
+  });
+  assert.equal(docsRetryStop.stdout ?? '', '', 'retry after exhausted malformed output must not see two active runs');
+  assert.equal(fs.existsSync(v2ResultPath(root, changeId, docsRetry.runId)), true);
 
   const prePersisted = createResearch('clarify.explore-code', {
     type: 'enterprise-harness:code-explore',
