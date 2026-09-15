@@ -17,6 +17,7 @@ import { bareFinalRequirements } from './lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
 import { planHeadlessDecision } from './lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
+import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
@@ -45,6 +46,7 @@ const maxDialogueTurns = Number(option('--max-dialogue-turns', '16'));
 const invocationTimeoutMs = Number(option('--invocation-timeout-ms', '1800000'));
 const preflightReceiptPath = option('--preflight-receipt');
 const resultsDir = path.resolve(option('--results-dir', path.join(here, 'results', `business-${new Date().toISOString().replaceAll(/[:.]/gu, '-')}`)));
+const codeGraphSourcePattern = /\.(?:c|cc|cpp|cs|go|h|hpp|java|js|jsx|kt|kts|mjs|cjs|php|py|rb|rs|scala|swift|ts|tsx)$/iu;
 function validateCasePack(pack) {
   if (!pack || pack.schemaVersion !== 1 || !['development', 'holdout'].includes(pack.split) || !Array.isArray(pack.cases) || pack.cases.length === 0) {
     throw new Error('case pack must be schemaVersion=1 with development/holdout split and non-empty cases');
@@ -56,6 +58,9 @@ function validateCasePack(pack) {
     if (typeof selectedCase.initialRequest !== 'string' || !selectedCase.initialRequest.trim()) throw new Error(`${selectedCase.id} requires initialRequest`);
     if (!selectedCase.evidenceFiles || Object.keys(selectedCase.evidenceFiles).some((entry) => !isSafeRelativePath(entry))) {
       throw new Error(`${selectedCase.id} evidenceFiles must use safe relative paths`);
+    }
+    if (!Object.keys(selectedCase.evidenceFiles).some((entry) => codeGraphSourcePattern.test(entry))) {
+      throw new Error(`${selectedCase.id} requires at least one CodeGraph-indexable source file`);
     }
     if (!Array.isArray(selectedCase.requiredFacts) || selectedCase.requiredFacts.length === 0) throw new Error(`${selectedCase.id} requires requiredFacts`);
     const factIds = new Set();
@@ -140,10 +145,12 @@ function fixture(selectedCase) {
   mustExec('git', ['init', '-q'], { cwd: root });
   mustExec('git', ['config', 'user.email', 'business-eval@example.test'], { cwd: root });
   mustExec('git', ['config', 'user.name', 'Business Evaluation'], { cwd: root });
+  write(path.join(root, '.gitignore'), '.codegraph/\n');
   write(path.join(root, 'AGENTS.md'), '# 业务澄清评测\n\n在需求获得明确确认前不得修改产品代码。仓库事实与外部文档快照必须作为证据，不得把未知业务选择当成事实。\n');
   for (const [relative, content] of Object.entries(selectedCase.evidenceFiles || {})) write(path.join(root, relative), `${content}\n`);
   mustExec('git', ['add', '.'], { cwd: root });
   mustExec('git', ['commit', '-qm', 'business evaluation baseline'], { cwd: root });
+  initializeFixtureCodeGraph(root);
   return root;
 }
 function workflowStatus(root, changeId, sessionId) {

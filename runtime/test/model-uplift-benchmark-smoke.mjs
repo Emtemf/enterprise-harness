@@ -16,6 +16,7 @@ import { prepareBwrapHoldout } from '../../benchmarks/model-uplift-v1/lib/holdou
 import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-receipt.mjs';
 import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-uplift-v1/lib/business-prompt.mjs';
+import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -39,6 +40,32 @@ assert.equal(businessProtocol.publicationGate.minimumDistinctCases, 5);
 assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerComparison, 20);
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
+const codeGraphCalls = [];
+const codeGraphStatus = initializeFixtureCodeGraph('/tmp/business-fixture', (command, argv, options) => {
+  codeGraphCalls.push({ command, argv, options });
+  if (argv[0] === 'status') return { status: 0, stdout: '{"initialized":true,"fileCount":2}' };
+  return { status: 0, stdout: '' };
+});
+assert.equal(codeGraphStatus.fileCount, 2);
+assert.deepEqual(codeGraphCalls.map(({ argv }) => argv), [
+  ['init', '/tmp/business-fixture'],
+  ['status', '--json', '/tmp/business-fixture'],
+]);
+assert.throws(() => initializeFixtureCodeGraph('/tmp/no-code', (command, argv) => (
+  argv[0] === 'status'
+    ? { status: 0, stdout: '{"initialized":true,"fileCount":0}' }
+    : { status: 0, stdout: '' }
+)), /no indexable source files/u);
+if (spawnSync('codegraph', ['--version'], { encoding: 'utf-8', shell: false }).status === 0) {
+  const graphFixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-codegraph-smoke-'));
+  try {
+    fs.writeFileSync(path.join(graphFixture, 'service.mjs'), 'export function service() { return true; }\n');
+    const realGraphStatus = initializeFixtureCodeGraph(graphFixture);
+    assert.ok(realGraphStatus.fileCount >= 1, 'real CodeGraph must index the fixture source');
+  } finally {
+    fs.rmSync(graphFixture, { recursive: true, force: true });
+  }
+}
 const isolationReceipt = {
   schemaVersion: 1, status: 'pass', casePackDigest: 'a'.repeat(64),
   mechanism: 'container-filesystem-isolation', verifier: 'benchmark-host', generatedAt: '2026-09-10T00:00:00Z',
@@ -129,6 +156,7 @@ assert.throws(() => attachRouteReceipt(routeRaw, routeReceipt, {
 assert.equal(businessCases.cases.length, 5);
 assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
 for (const selectedCase of businessCases.cases) {
+  assert.ok(Object.keys(selectedCase.evidenceFiles).some((reference) => reference.startsWith('src/') && reference.endsWith('.mjs')), `${selectedCase.id} must include indexable source evidence`);
   const transcript = selectedCase.requiredFacts.map((fact, index) => {
     const scripted = answerBusinessQuestion(selectedCase, `请澄清 ${fact.questionPattern}？`, new Set());
     assert.ok(scripted.answeredFactIds.includes(fact.id), `${selectedCase.id}/${fact.id} must be script-answerable`);
@@ -300,6 +328,19 @@ try {
   result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--case-pack', unsafePackPath], { encoding: 'utf-8', shell: false });
   assert.notEqual(result.status, 0, 'business case pack paths must not escape the fixture');
   assert.match(result.stderr, /safe relative paths/u);
+  const textOnlyPackPath = path.join(fixture, 'text-only-business-pack.json');
+  fs.writeFileSync(textOnlyPackPath, `${JSON.stringify({
+    schemaVersion: 1,
+    split: 'development',
+    publishable: false,
+    cases: [{
+      id: 'text-only', initialRequest: 'test', evidenceFiles: { 'src/facts.txt': 'not code' },
+      requiredFacts: [{ id: 'fact', weight: 1, questionPattern: 'x', answer: 'y', acceptancePattern: 'y' }],
+    }],
+  })}\n`);
+  result = spawnSync(process.execPath, [path.join(benchmark, 'business-run.mjs'), '--case-pack', textOnlyPackPath], { encoding: 'utf-8', shell: false });
+  assert.notEqual(result.status, 0, 'business case packs must exercise the CodeGraph lane with actual source');
+  assert.match(result.stderr, /CodeGraph-indexable source file/u);
 
   const rawPath = path.join(fixture, 'raw.json');
   const summaryPath = path.join(fixture, 'summary.json');

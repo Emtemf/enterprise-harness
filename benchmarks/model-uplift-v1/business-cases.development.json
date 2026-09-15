@@ -8,7 +8,7 @@
       "initialRequest": "给订单加一个用户自助退款功能。",
       "maxUnmatchedQuestions": 2,
       "evidenceFiles": {
-        "src/order-policy.txt": "订单状态有 PAID、FULFILLED、CANCELLED。现有客服退款入口会调用 PaymentGateway，并写入 audit_log。",
+        "src/order-policy.mjs": "export const OrderStatus = Object.freeze({ PAID: 'PAID', FULFILLED: 'FULFILLED', CANCELLED: 'CANCELLED' });\nexport async function refundByCustomerService(order, paymentGateway, auditLog) {\n  const refund = await paymentGateway.refund(order.id);\n  await auditLog.append({ action: 'CUSTOMER_SERVICE_REFUND', orderId: order.id });\n  return refund;\n}",
         "docs/payment-provider-v3.txt": "Provider v3 要求每次退款携带唯一 idempotency_key；超时结果未知，重试必须复用原 key。"
       },
       "requiredFacts": [
@@ -31,7 +31,7 @@
       "id": "webhook-replay",
       "initialRequest": "把支付回调接进来，收到后更新订单。",
       "evidenceFiles": {
-        "src/payment-handler.txt": "当前订单更新不是幂等的；重复 PAID 事件会重复发放积分。",
+        "src/payment-handler.mjs": "export async function handlePaymentPaid(event, orders, loyalty) {\n  await orders.markPaid(event.orderId);\n  // 当前无事件去重：重复 PAID 事件会重复发放积分。\n  await loyalty.grantPaymentPoints(event.orderId);\n}",
         "docs/provider-webhook-v2.txt": "Webhook v2 使用原始 body 做 HMAC；失败会指数退避重试 24 小时，事件可能乱序。"
       },
       "requiredFacts": [
@@ -45,7 +45,7 @@
       "id": "subscription-downgrade",
       "initialRequest": "用户可以把订阅套餐降级。",
       "evidenceFiles": {
-        "src/subscription-policy.txt": "套餐为 BASIC、PRO、ENTERPRISE。席位和存储配额由独立 usage 服务提供。",
+        "src/subscription-policy.mjs": "export const Plan = Object.freeze({ BASIC: 'BASIC', PRO: 'PRO', ENTERPRISE: 'ENTERPRISE' });\nexport async function readCurrentUsage(accountId, usageService) {\n  return usageService.getSeatAndStorageUsage(accountId);\n}",
         "docs/billing-v4.txt": "Billing v4 支持 immediate 与 period_end 两种变更模式；请求必须带 request_id。"
       },
       "requiredFacts": [
@@ -59,7 +59,7 @@
       "id": "customer-export",
       "initialRequest": "做一个客户数据导出按钮。",
       "evidenceFiles": {
-        "src/customer-access.txt": "系统是多租户；客服角色当前能查看客户基础资料，但不能读取付款明细。",
+        "src/customer-access.mjs": "export function canReadCustomerProfile(actor, customer) {\n  return actor.tenantId === customer.tenantId && actor.roles.includes('SUPPORT');\n}\nexport function canReadPaymentDetails() {\n  return false;\n}",
         "docs/object-storage.txt": "对象存储支持 1 到 1440 分钟的签名下载链接，并支持服务端加密。"
       },
       "requiredFacts": [
@@ -73,7 +73,7 @@
       "id": "inventory-reservation",
       "initialRequest": "下单的时候把库存预留起来，别超卖。",
       "evidenceFiles": {
-        "src/inventory.txt": "库存按 warehouse_id + sku 管理。支付和库存服务通过至少一次投递的事件总线通信。",
+        "src/inventory.mjs": "export function inventoryKey({ warehouseId, sku }) {\n  return `${warehouseId}:${sku}`;\n}\nexport async function consumePaymentEvent(event, eventBus) {\n  // 支付与库存通过至少一次投递的事件总线通信。\n  return eventBus.consumeAtLeastOnce(event);\n}",
         "docs/event-bus.txt": "事件可能重复、延迟或乱序；消费者负责幂等，消息没有全局事务。"
       },
       "requiredFacts": [
