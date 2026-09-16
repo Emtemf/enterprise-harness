@@ -133,6 +133,10 @@ assert.match(skill, /R→\[research\]\(references\/clarify-research\.md\)；D\/`
   'Controller route map must order research before decisions');
 assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,
   'Harness must authorize exactly one question at a time');
+for (const token of ['`AskUserQuestion` 返回后', '禁止再调用 Read/Edit/Write/Bash/Skill', '下一用户 turn']) {
+  assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
+    `Harness must terminate the assistant turn after a returned answer: ${token}`);
+}
 for (const token of [
   'project-contract-proposal-approval',
   'clarify propose-project-contract',

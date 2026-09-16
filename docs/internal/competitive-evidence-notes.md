@@ -76,6 +76,8 @@ clean `90b5b13` 单轮探针在 385,445ms 内把 code/docs 两个 packet 持久�
 
 `08ebcd0` 单轮探针已跨过该 Skill 缺口：trace 明确进入 decisions、持久化 question candidate 并调用真实 `AskUserQuestion`。但 host callback 返回时工具结果为 error，最终 `stop_reason=tool_use`，因此仍没有可评分答案。运行时审计发现仓库锁定 Agent SDK 0.3.272（声明配套 Claude Code 2.1.272），实际复用的本机 executable 为 2.1.268；这不是业务效果失败，而是不可接受的 SDK/CLI 协议错配。runner 现锁定 SDK 0.3.268 并在启动时校验其声明版本与 executable，错配直接失败，不把协议错误计作模型效果。
 
+配套后的 clean `f674238` 探针完成了首个真实 callback 闭环：SDK 0.3.268 与 Claude Code 2.1.268 三方版本字段一致，controller/worker 均为 GLM-5.1，`AskUserQuestion` result 成功，`sdkDecision=Q-1`，脚本化自由输入命中 `eligible-window` 与 `partial-refund` 两项隐藏事实；`measurementValid=true`，单轮关键未知项召回 0.194、未经询问假设率 0。该样本仍未验收，且 Main 在回答后错误继续准备后续问题直至 `error_max_turns`，耗时 1,298,860ms、alias 估算成本 0.5602；不能作为效果优势，只证明 bridge 可用并暴露“一问后必须结束当前 assistant turn”的 Skill 成本缺口。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

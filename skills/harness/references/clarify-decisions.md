@@ -110,9 +110,12 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
 5. post-question hook 按 candidate 的 `decisionType` 与 `targetRef` 把选中的授权 option 原子追加为 public
    `DecisionEvent`，而不是保存聊天记录或隐藏推理。若用户选择 host `Other`/自由输入，hook 不持久化原文，
    只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
-   从 fresh frontier 生成新问题。
-   回答 durable 后重新计算所有受影响分数，展示上轮→本轮、依据和新的 weakest/highest-risk frontier；下一问
-   必须从新 frontier 重新生成 candidate，不复用旧队列。用户可见摘要必须同步展示歧义指数的上轮→本轮变化。
+   在**下一用户 turn**从 fresh frontier 生成新问题。
+   `AskUserQuestion` 返回后，post-question hook 已完成本轮唯一 authorized answer action；Main 必须立即结束当前
+   assistant turn。此时禁止再调用 Read/Edit/Write/Bash/Skill、禁止重算、禁止生成/prepare 第二个 candidate，
+   只可向用户简短确认已收到回答。下一用户 turn 才读取 fresh snapshot，重新计算所有受影响分数，展示上轮→本轮、
+   依据和新的 weakest/highest-risk frontier；下一问必须从新 frontier 重新生成 candidate，不复用旧队列。
+   用户可见摘要必须同步展示歧义指数的上轮→本轮变化。
 6. 只要仍有 sibling component < 4，同一 component 最多连续问 2 个 Decision；只有 sibling 明确依赖
    当前决定才可例外，并在 round ledger 写 dependency evidence。
 
