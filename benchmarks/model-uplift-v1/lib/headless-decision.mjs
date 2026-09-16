@@ -1,4 +1,9 @@
 import { answerBusinessQuestion } from './scripted-user.mjs';
+import { isDeepStrictEqual } from 'node:util';
+
+export function canonicalAskInputMatches(actual, expected) {
+  return isDeepStrictEqual(actual?.questions, expected?.questions);
+}
 
 export function planHeadlessDecision(selectedCase, candidate, answered = new Set()) {
   if (!candidate || typeof candidate.question !== 'string' || !Array.isArray(candidate.options) || candidate.options.length < 2) {

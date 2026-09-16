@@ -15,7 +15,7 @@ import { validatePreflightReceipt } from './lib/preflight-receipt.mjs';
 import { validateHoldoutIsolationReceipt } from './lib/holdout-receipt.mjs';
 import { bareFinalRequirements } from './lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from './lib/holdout-bwrap.mjs';
-import { planHeadlessDecision } from './lib/headless-decision.mjs';
+import { canonicalAskInputMatches, planHeadlessDecision } from './lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
@@ -187,6 +187,7 @@ function pendingCandidate(root, changeId) {
 async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, childEnv, answered, changeId, remainingBudgetUsd }) {
   const events = [];
   let plannedDecision = null;
+  let callbackDiagnostic = null;
   let resolvedChangeId = changeId;
   let timedOut = false;
   let caughtError = null;
@@ -219,12 +220,17 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
           const status = workflowStatus(root, resolvedChangeId, sessionId);
           if (status?.changeId) resolvedChangeId = status.changeId;
           const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
-          if (!candidate) return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: true };
+          if (!candidate) {
+            callbackDiagnostic = 'pending-candidate-missing';
+            return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: true };
+          }
           const planned = planHeadlessDecision(selectedCase, candidate, answered);
-          if (JSON.stringify(input.questions) !== JSON.stringify(planned.toolInput.questions)) {
+          if (!canonicalAskInputMatches(input, planned.toolInput)) {
+            callbackDiagnostic = 'ask-input-canonical-mismatch';
             return { behavior: 'deny', message: 'AskUserQuestion input is not the canonical prepared candidate.', interrupt: true };
           }
           plannedDecision = planned;
+          callbackDiagnostic = 'answered';
           return {
             behavior: 'allow',
             updatedInput: { ...planned.toolInput, ...planned.toolResponse },
@@ -247,6 +253,7 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
     result,
     text,
     plannedDecision,
+    callbackDiagnostic,
     changeId: resolvedChangeId,
     timedOut,
     error: caughtError,
@@ -343,6 +350,7 @@ async function runOnce(arm, selectedCase, repetition) {
         timedOut: arm.workflow === 'enterprise-harness' ? parsed.timedOut : child.error?.code === 'ETIMEDOUT',
         error: child.error?.message || String(child.stderr || '').trim() || null,
         ...(arm.workflow === 'enterprise-harness' ? { toolTrace: sanitizedSdkToolTrace(parsed.events) } : {}),
+        ...(arm.workflow === 'enterprise-harness' ? { callbackDiagnostic: parsed.callbackDiagnostic } : {}),
       });
       const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId, sessionId) : null;
       if (status?.changeId) changeId = status.changeId;

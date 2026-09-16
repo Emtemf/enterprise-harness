@@ -14,7 +14,7 @@ import { attachProviderReceipt } from '../../benchmarks/model-uplift-v1/lib/prov
 import { bareFinalRequirements } from '../../benchmarks/model-uplift-v1/lib/clarification-output.mjs';
 import { prepareBwrapHoldout } from '../../benchmarks/model-uplift-v1/lib/holdout-bwrap.mjs';
 import { attachRouteReceipt } from '../../benchmarks/model-uplift-v1/lib/route-receipt.mjs';
-import { planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
+import { canonicalAskInputMatches, planHeadlessDecision } from '../../benchmarks/model-uplift-v1/lib/headless-decision.mjs';
 import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-uplift-v1/lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from '../../benchmarks/model-uplift-v1/lib/sdk-permission-policy.mjs';
@@ -228,6 +228,14 @@ const businessDecision = planHeadlessDecision(refundCase, {
 }, new Set());
 assert.equal(businessDecision.selectedOptionId, 'full-only', 'scripted business truth must override an incorrect recommendation');
 assert.deepEqual(businessDecision.answeredFactIds, ['partial-refund']);
+assert.equal(canonicalAskInputMatches({
+  questions: businessDecision.toolInput.questions.map(({ question, header, options, multiSelect }) => ({
+    options: options.map(({ label, description }) => ({ description, label })), multiSelect, header, question,
+  })),
+}, businessDecision.toolInput), true, 'callback matching must ignore JSON object property order');
+assert.equal(canonicalAskInputMatches({
+  questions: [{ ...businessDecision.toolInput.questions[0], question: 'changed' }],
+}, businessDecision.toolInput), false, 'callback matching must still reject changed question content');
 const governanceDecision = planHeadlessDecision(refundCase, {
   questionId: 'Q-TOPOLOGY', decisionType: 'scope-confirmation', header: '组件确认',
   question: '单一组件是否正确？', decisionNeeded: '确认组件拓扑', recommendedOption: 'confirm-single',

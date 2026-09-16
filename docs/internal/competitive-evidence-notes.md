@@ -80,6 +80,8 @@ clean `90b5b13` 单轮探针在 385,445ms 内把 code/docs 两个 packet 持久�
 
 clean `dcabf9d` 回归中，`AskUserQuestion` 成为最后一个工具动作，Claude 正常 exit 0，未再触发 `error_max_turns`；输出 token 由 27,331 降至 13,955、alias 估算成本由 0.5602 降至 0.2634、耗时由 1,298,860ms 降至 958,428ms。两次生成路径不同，因此这些比例只作诊断，不作为因果或推广结论。该轮问题“用户自助退款功能应如何验证成功与失败？”是维度级总问句，没有命中具体隐藏业务决策，召回为 0；这暴露 frontier 仍需先展开为具体 decision surface，并按权限/资金/一致性风险而非笼统维度优先。
 
+clean `a248882` 探针证明通用问题 validator 生效：首次 candidate 以 `EH-QUESTION-CANDIDATE-106` 被拒，弱模型完成改写、修复 synthesis 并成功 prepare；但最终 Ask result error、无可评分回答，既有脱敏 trace 不能区分 pending 缺失与 payload mismatch。审计同时发现 SDK host callback 使用 `JSON.stringify` 比较问题 payload，存在把字段顺序不同而语义相同的对象误判为不一致的确定性缺陷。runner 现改用结构化深比较，并记录不含问题/答案的 `callbackDiagnostic` 枚举；下一轮探针再判定实际拒绝分支。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
