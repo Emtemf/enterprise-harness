@@ -123,6 +123,11 @@ assert.equal(
   'candidate labels must not encode the host-visible recommendation marker',
 );
 assert.deepEqual(validateQuestionCandidate(questionTemplate), [], 'question template must pass runtime shape validation');
+assert.ok(validateQuestionCandidate({
+  ...questionTemplate,
+  question: '这个功能需要满足哪些条件？',
+}).some((problem) => /concrete decision surface/u.test(problem)),
+'runtime must reject generic dimension-level clarification questions');
 assert.deepEqual(validateDecisionEvent('change-id', eventTemplate), [], 'decision template must pass runtime shape validation');
 
 assert.match(research, /全部 required lane[\s\S]*`Skill` tool calls before any `AskUserQuestion`/iu,
@@ -136,6 +141,16 @@ assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:
 for (const token of ['`AskUserQuestion` 返回后', '禁止再调用 Read/Edit/Write/Bash/Skill', '下一用户 turn']) {
   assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
     `Harness must terminate the assistant turn after a returned answer: ${token}`);
+}
+for (const token of [
+  '最小 user-decidable decision surface',
+  '权限/归属/访问控制、资金资格/金额',
+  '`如何验证成功与失败`',
+  '只裁决一个具体 policy axis',
+  '不得把\n   success、failure、observable 三个 predicate 合并成一问',
+]) {
+  assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
+    `Harness question-quality gate must preserve ${token}`);
 }
 for (const token of [
   'project-contract-proposal-approval',

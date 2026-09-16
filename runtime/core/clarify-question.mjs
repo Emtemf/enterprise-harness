@@ -35,6 +35,12 @@ const PENDING_FIELDS = new Set([
   'status', 'preparedAt', 'eventId', 'resolvedAt',
 ]);
 const PUBLIC_RATIONALE = 'Selected by the user through AskUserQuestion.';
+const GENERIC_QUESTION_PATTERNS = [
+  /需要满足哪些条件/u,
+  /如何验证成功与失败/u,
+  /还有哪些需求/u,
+  /请补充验收标准/u,
+];
 
 function questionError(code, message) {
   return new Error(`${code}: ${message}`);
@@ -131,6 +137,10 @@ export function validateQuestionCandidate(candidate) {
   if (targetPath === null) problems.push('targetRef must be a safe artifact reference');
   for (const field of ['decisionNeeded', 'whyUserOnly', 'header', 'question', 'recommendationReason']) {
     if (!isNonEmptyString(candidate[field])) problems.push(`${field} must be a non-empty string`);
+  }
+  if (candidate.decisionType === 'clarify-answer'
+      && GENERIC_QUESTION_PATTERNS.some((pattern) => pattern.test(String(candidate.question || '')))) {
+    problems.push('question must choose one concrete decision surface, not ask for a dimension-level checklist');
   }
   if (isNonEmptyString(candidate.header) && [...candidate.header].length > 12) problems.push('header must be at most 12 characters');
   if (!Array.isArray(candidate.options) || candidate.options.length < 2 || candidate.options.length > 4) {

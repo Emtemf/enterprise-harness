@@ -14,7 +14,7 @@
 - `benchmarks/model-uplift-v1/` 的正式主张已收敛为三臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2；同时通过“弱 Harness 严格优于弱裸”和“弱 Harness 对强裸 5pp 非劣”才能证明弱模型经 Harness 提升并比肩强模型。
 - 中转站按实际请求计次：GLM-5.1=1 单位、GLM-5.2=3 单位。CC Switch route receipt 负责模型身份并累计计费单位；token、请求数、计费单位与耗时仅作资源统计，不再等待 provider CSV，也不作为效果发布门槛。
 - 首轮三臂 development 校准没有形成产品结论：两条裸跑有效但均未验收；Harness 先暴露 benchmark 把控制话术混入 UserPromptSubmit 的 continuity 错误，修正后又证明 headless `-p` 的外置 hook bridge 无法把自由文本回答放回 Claude 会话。runner 已迁移到锁定版本的 Claude Agent SDK `canUseTool`，复用本机 Claude Code executable、plugin、hooks 与 CC Switch，并使用 `default` 权限模式保证 `AskUserQuestion` 真正进入 host callback；正式 holdout 观测仍为 0。
-- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。development 探针已验证全弱 GLM-5.1 的 CodeGraph + Context7 双 lane、clean `research→decisions` 与真实 SDK callback 回注，首问命中 2 个隐藏业务事实；该单轮仍未验收，且回答后未及时结束导致 60 turns 耗尽，Skill 正收紧为“一问回注后立即结束、下一用户 turn 再重算”，因此尚无效果优势结论。
+- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。development 探针已验证全弱 GLM-5.1 的 CodeGraph + Context7、clean `research→decisions`、真实 SDK callback 回注与“一问回注后正常结束”；最新回归不再耗尽 60 turns，但暴露维度级问题过宽、业务召回为 0，Skill 正收紧为具体 decision surface 与企业风险优先级，因此尚无效果优势结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求每项比较至少 20 组、覆盖至少 5 个 holdout case，并分别通过效果门与单位验收成本的配对 bootstrap 95% 置信边界；10 对只产生诊断区间。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。

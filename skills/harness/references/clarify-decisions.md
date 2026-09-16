@@ -81,7 +81,11 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    `prepare-question` 会以 `EH-QUESTION-SYNTHESIS-116` 拒绝未落盘、证据不闭合、缺少五维行，或与 candidate 的
    component / dimension / current score 不一致的 `high + ask` frontier。不要先写 candidate 再补 requirements。
 2. Frontier 只包含 facts 完成后仍未解决的 `component × dimension` Decision。优先 high-risk，风险相同
-   时选最低分。Facts 永远回到 Phase 1，不问用户。
+   时选最低分。每个 unresolved dimension 必须先展开为最小 user-decidable decision surface，再选择一个 surface；
+   禁止把整个 `Scope`、`Constraints` 或 `Acceptance` 维度直接当成问题。企业业务风险顺序固定为：
+   (1) 权限/归属/访问控制、资金资格/金额、数据损失或法规边界；(2) 状态迁移、并发/幂等、超时/失败恢复；
+   (3) 范围、运营、审计；(4) 展示、文案和体验偏好。高风险 surface 优先于“当前分数更低但风险较小”的维度。
+   Facts 永远回到 Phase 1，不问用户。
 3. 每次仅用一次授权询问一个用户问题，一次只生成一个问题。读取
    [question candidate 模板](../assets/question-candidate.json.tmpl)，把当前 frontier
    渲染为 schema-valid canonical
@@ -96,6 +100,11 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    candidate 和用户可见问题只能引用当前 Evidence ledger 中真实存在的 `E-*` ID，不得沿用 worker packet 的
    `CODE-*`/`DOCS-*` sourceId。推荐理由必须把已验证事实与基于事实的取舍推断分开表达，不得把尚未授权的
    重试、运维或状态行为写成既定事实。
+   问题必须只裁决一个具体 policy axis，并显式包含业务实体、触发条件或可观察结果中的至少两项；各 option
+   只能在同一 axis 上互斥。`需要满足哪些条件`、`如何验证成功与失败`、`还有哪些需求`、`请补充验收标准`
+   这类维度级/清单式总问句一律视为未通过 candidate 自检，必须在 `prepare-question` 前改写。Acceptance 问题
+   必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得把
+   success、failure、observable 三个 predicate 合并成一问。
 4. 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify prepare-question <change-id> <candidate-ref>`。
    普通业务/产品取舍固定使用 `decisionType=clarify-answer`；只有 topology/final scope 的 `Scope` 维度确认才使用
