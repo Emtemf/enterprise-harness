@@ -19,6 +19,7 @@ import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-
 import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from '../../benchmarks/model-uplift-v1/lib/sdk-permission-policy.mjs';
 import { sanitizedSdkToolTrace } from '../../benchmarks/model-uplift-v1/lib/sdk-trace.mjs';
+import { assertSdkClaudeCompatibility, parseClaudeCodeVersion } from '../../benchmarks/model-uplift-v1/lib/sdk-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -43,6 +44,14 @@ assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerCompar
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
 assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to canUseTool');
+assert.equal(parseClaudeCodeVersion('2.1.268 (Claude Code)'), '2.1.268');
+assert.deepEqual(assertSdkClaudeCompatibility({ version: '0.3.268', claudeCodeVersion: '2.1.268' }, '2.1.268 (Claude Code)'), {
+  sdkVersion: '0.3.268', expectedClaudeVersion: '2.1.268', actualClaudeVersion: '2.1.268',
+});
+assert.throws(
+  () => assertSdkClaudeCompatibility({ version: '0.3.272', claudeCodeVersion: '2.1.272' }, '2.1.268 (Claude Code)'),
+  /requires Claude Code 2\.1\.272/u,
+);
 assert.deepEqual(sanitizedSdkToolTrace([
   { message: { content: [{ type: 'tool_use', name: 'Bash', id: 'tool-1', input: { command: 'secret command' } }] } },
   { message: { content: [{ type: 'tool_result', tool_use_id: 'tool-1', is_error: true, content: 'BLOCK EH-SESSION-LEASE-023 secret detail' }] } },

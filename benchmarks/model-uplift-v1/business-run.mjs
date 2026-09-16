@@ -20,6 +20,7 @@ import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.m
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
 import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
+import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
 
@@ -104,6 +105,12 @@ function mustExec(command, argv, options = {}) {
   if (result.status !== 0 || result.error) throw new Error(`${command} failed: ${result.error?.message || result.stderr || result.stdout}`);
   return result;
 }
+const installedClaude = fs.realpathSync(mustExec('which', ['claude'], { cwd: repoRoot }).stdout.trim());
+const installedClaudeVersion = mustExec(installedClaude, ['--version'], { cwd: repoRoot }).stdout.trim();
+const agentSdkPackage = JSON.parse(fs.readFileSync(path.join(repoRoot, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json'), 'utf-8'));
+const harnessRuntime = selectedArms.some(({ workflow }) => workflow === 'enterprise-harness')
+  ? assertSdkClaudeCompatibility(agentSdkPackage, installedClaudeVersion)
+  : null;
 function write(target, content) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, content, 'utf-8');
@@ -188,7 +195,6 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
     timedOut = true;
     abortController.abort();
   }, invocationTimeoutMs);
-  const installedClaude = fs.realpathSync(mustExec('which', ['claude'], { cwd: repoRoot }).stdout.trim());
   const claudeExecutable = holdoutIsolation
     ? holdoutIsolation.sdkExecutable(installedClaude, { writableRoot: root })
     : installedClaude;
@@ -260,7 +266,7 @@ function validatePreflight() {
   if (caseOption !== 'all') return null;
   if (!preflightReceiptPath) throw new Error('--case all requires --preflight-receipt from preflight.mjs');
   const receipt = JSON.parse(fs.readFileSync(path.resolve(preflightReceiptPath), 'utf-8'));
-  const version = mustExec('claude', ['--version'], { cwd: repoRoot }).stdout.trim();
+  const version = installedClaudeVersion;
   const expectedModels = new Set(selectedArms.flatMap((arm) => [arm.controllerRoute, ...(arm.workerRoutes || [])]));
   validatePreflightReceipt(receipt, {
     expectedModels,
@@ -468,6 +474,7 @@ const output = {
   preflight: preflight ? { path: path.resolve(preflightReceiptPath), digest: sha256(fs.readFileSync(path.resolve(preflightReceiptPath))) } : null,
   arms: selectedArms,
   routingProfile: matrix.routingProfile,
+  harnessRuntime,
   comparisons: matrix.comparisons,
   records,
 };
