@@ -13,10 +13,7 @@ const research = fs.readFileSync(path.join(root, 'skills/harness/references/clar
 const decisions = fs.readFileSync(path.join(root, 'skills/harness/references/clarify-decisions.md'), 'utf-8');
 const completion = fs.readFileSync(path.join(root, 'skills/harness/references/clarify-completion.md'), 'utf-8');
 
-const facts = skill.indexOf('references/clarify-research.md');
-const synthesize = skill.indexOf('references/clarify-decisions.md');
-const complete = skill.indexOf('references/clarify-completion.md');
-assert.ok(facts >= 0 && synthesize > facts && complete > synthesize,
+assert.match(skill, /R→\[research\]\(references\/clarify-research\.md\)；D\/`decisions`→\[decisions\]\(references\/clarify-decisions\.md\)；C\/`completion`→\[completion\]\(references\/clarify-completion\.md\)/u,
   'Harness must order fact discovery before synthesis and decision clarification');
 
 const corpus = [skill, research, decisions, completion].join('\n');

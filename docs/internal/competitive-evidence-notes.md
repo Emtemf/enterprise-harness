@@ -72,6 +72,8 @@ CodeGraph 初始化后的 SDK 探针确认代码 worker 能产出 `codegraph-fir
 
 心跳修复后的 clean `ad40a77` 单轮探针在 942,847ms 内正常返回，controller/worker 均为 GLM-5.1，Context7 resolve/query 成功，`measurementValid=true`。它同时暴露第二个恢复缺口：doc worker 首次非纯 JSON 被 Stop Hook 拦下，修正后仍有 schema 类型错误；Claude Code 要求第二次 Stop 必须放行，但 Harness 未把该 run 标记为终态失败，导致后续重派被两个 active run 阻塞。该样本未提出业务问题，不计入效果对照。runtime 现在 stop-hook retry 耗尽时记录 terminal failure，不放宽 ResearchPacket schema，允许主 Agent 以更窄 brief 干净重派。
 
+clean `90b5b13` 单轮探针在 385,445ms 内把 code/docs 两个 packet 持久化并成功 `close-research`，fresh status 明确返回 `clarifyReadiness.route=decisions`；controller/worker 均为 GLM-5.1，`measurementValid=true`。但弱模型随后错误输出“ready for topology / User question: none”而未加载 decisions authority，因此业务召回仍为 0，不计入效果对照。Harness Skill 现把 clean `research→decisions` 写成唯一明确的双 authority 同轮例外，并增加机械少样本：成功 close + route decisions 后下一个 tool call 必须是读取 `clarify-decisions.md`，失败 close 才允许返回 research blocker。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

@@ -21,7 +21,9 @@ hooks:
 
 - 若能推进，执行 runtime 选择的 bounded research pipeline：同步 lanes、派发全部 required fact workers、
   `close-research` 后重取 snapshot。只有新 route 精确变为 `decisions` 时，才可在同一 assistant turn 继续生成并
-  授权一个业务问题；这是唯一同轮 phase handoff。pipeline输入只取raw request、repository、fact worker；
+  授权一个业务问题；这是唯一同轮 phase handoff。此时必须立即加载
+  `references/clarify-decisions.md` 作为唯一允许的第二 phase authority，不得输出五行 research blocker、
+  “ready for topology”或 `User question: none`。pipeline输入只取raw request、repository、fact worker；
   任一 research blocker/recovery 都立即结束，不改问用户。
 - 若因 Plan mode、tools disabled、packet in-flight 或其它 blocker 不能执行，本轮只输出纯文本恰好五行；无标题、前言、解释、表格、代码围栏、tool/MCP 文本。五行依次为 `Fact lanes: <required lane states>`、`Next research action/blocker: <one action or blocker>`、`Topology: not built`、`Scores: not computed`、`User question: none`。第一字符是 `F`，最后字节是 `none`；随后立即结束本轮。
 
@@ -57,7 +59,7 @@ node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify recover <change-id>
 
 路由是 runtime 派生值，不在模型中重算布尔表达式。固定 lifecycle 是 `clarify→design→plan→implement→verify→archive`。无active change即R：缺少changeId是预期输入而非blocker；禁止索要ID；读research reference、从raw request生成安全ID，只运行exact `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" start-change <change-id>`。`start-change` 是内部 bootstrap，不是 Intake 或用户可见阶段；成功后立即以返回的exact changeId重跑 `workflow status <change-id> --json`，确认active v6 Clarify/research后继续同一pipeline。pre-entry recovery仍是terminal。active Clarify必须消费`clarifyReadiness.route`，且只接受`research|decisions|completion|transition`；缺失、未知或冲突时只报告blocker。Design到Archive消费`stageReadiness.route`的exact route；Main不自行推导。
 
-R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。所有链接相对当前 SKILL/reference 文件解析，绝不相对项目 cwd 探测；每轮只选择一个 phase authority reference，只有该 reference 明确导航时才加载其一个 supporting reference。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
+R→[research](references/clarify-research.md)；D/`decisions`→[decisions](references/clarify-decisions.md)；C/`completion`→[completion](references/clarify-completion.md)；W→[current-stage worker](references/behavior-map.md)；T/`transition`→[single transition](references/stage-decisions.md)。所有链接相对当前 SKILL/reference 文件解析，绝不相对项目 cwd 探测；每轮只选择一个 phase authority reference，只有该 reference 明确导航时才加载其一个 supporting reference。唯一例外是 clean `research→decisions`：research reference 明确导航后，必须在同轮加载 decisions phase authority 并生成一个授权问题。Clarify T 只原子执行 proof+CAS `clarify→design`；post-stage T 只推进当前 stage。Implement 使用原生 worktree；每阶段使用独立 reviewer。
 
 首次生成 Clarify artifact 或 final self-check 前读取 [semantic output contract](references/output-contract.md)；只有要校准 dispatch、Fast Path 或问题质量时读取 [few-shots](references/clarify-few-shots.md)。[assets](assets/) 与 [scripts](scripts/) 仅由当前 phase reference 导航，不自动加载。
 

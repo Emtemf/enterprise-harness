@@ -144,7 +144,16 @@ topology、Evidence ledger、评分、Frontier、技术债与 Classification。
   归官方 docs）。若仍冲突，创建一个更窄的新 immutable research brief，重新派发对应 lane 并等待 fresh packet；
   在冲突被 evidence reconciliation 关闭前阻断 topology/评分/提问。不得询问用户来裁决事实冲突，也不得修改
   已派发 brief 或旧 packet。
-- `close-research` 成功后回读一次 status，确认新 digest 的 lane events fresh 且 fact gate closed，才进入 Phase 2。
+- `close-research` 成功后回读一次 status，确认新 digest 的 lane events fresh 且 fact gate closed。
+  - 若 `clarifyReadiness.route` 精确为 `decisions`：**不得返回 controller、不得输出五行 blocker**；立即读取
+    [Clarify Topology and Decisions](clarify-decisions.md)，按其 Phase 2 与 Phase 3 建立 topology/评分/candidate，并在当前
+    assistant turn 发出恰好一次经授权的 `AskUserQuestion`。这是唯一允许的第二 phase authority。
+  - 若 route 仍为 `research` 或命令返回 recovery/blocker：才返回 controller 并终止，不提问。
+
+机械少样本：`close-research=exit 0` + fresh status `route=decisions` 的下一个 tool call 必须是
+`Read(${CLAUDE_SKILL_DIR}/references/clarify-decisions.md)`；不是最终文本、不是 status 重试、不是五行 blocker。
+`close-research=exit 2` + `EH-CLARIFY-RESEARCH-CLOSE-167` 的下一步才是执行其 recovery 或返回五行 blocker；
+不得加载 decisions。
 
 Main 无权把 packet 的非空 `uncertainties` 判成“低风险”或“不阻断 topology”。`close-research` 拒绝任一 current canonical packet 的
 `uncertainties.length > 0` 时，即使 handoff validate 通过，也必须保持 `fact gate complete: false`，把每项

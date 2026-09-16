@@ -41,7 +41,7 @@ assert.deepEqual(Object.keys(laneTemplate.lanes).sort(), ['code', 'docs']);
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 for (const [body, tokens] of [
-  [research, ['../assets/research-brief.md.tmpl', 'clarify sync-lanes', 'clarify close-research', 'handoff create', 'expired lease']],
+  [research, ['../assets/research-brief.md.tmpl', 'clarify-decisions.md', 'clarify sync-lanes', 'clarify close-research', 'handoff create', 'expired lease']],
   [decisions, ['../assets/question-candidate.json.tmpl', 'clarify prepare-question']],
   [completion, [
     '../assets/decision-event.json.tmpl',
@@ -68,6 +68,15 @@ for (const token of ['任何受治理软件变更固定 `code = required`', '不
 for (const token of ['uncertainties.length > 0', '无权把 packet 的非空 `uncertainties` 判成“低风险”', 'fact gate complete: false']) {
   assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research uncertainty gate must preserve ${token}`);
 }
+for (const token of [
+  '`close-research=exit 0` + fresh status `route=decisions`',
+  '不得返回 controller、不得输出五行 blocker',
+  '`Read(${CLAUDE_SKILL_DIR}/references/clarify-decisions.md)`',
+]) {
+  assert.match(research, new RegExp(escapeRegExp(token), 'u'), `Research-to-decisions handoff must preserve ${token}`);
+}
+assert.match(skill, /唯一例外是 clean `research→decisions`/u);
+assert.match(skill, /ready for topology/u);
 assert.match(research, /close-research.*每个 lane 永远恰好一行.*更窄的新 run.*替换.*绝不追加第二条 code\/docs 行/isu,
   'narrow research must replace the current lane projection instead of duplicating table rows');
 for (const token of [
@@ -120,8 +129,8 @@ assert.match(research, /全部 required lane[\s\S]*`Skill` tool calls before any
   'Research authority must dispatch all required forked Skills before AskUserQuestion');
 assert.match(research, /不得直接调用 `Agent`\/`Task` 或手写 `subagent_type`/u,
   'Research authority must prohibit bypassing context-fork Skills');
-assert.ok(skill.indexOf('references/clarify-research.md') < skill.indexOf('references/clarify-decisions.md'),
-  'Controller must route research before decisions');
+assert.match(skill, /R→\[research\]\(references\/clarify-research\.md\)；D\/`decisions`→\[decisions\]\(references\/clarify-decisions\.md\)/u,
+  'Controller route map must order research before decisions');
 assert.match(decisions, /(?:一次只|exactly)\s*(?:生成|询问|调用)?\s*(?:one|一个)(?:\s*question|问题)/iu,
   'Harness must authorize exactly one question at a time');
 for (const token of [
