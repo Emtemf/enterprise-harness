@@ -84,6 +84,8 @@ clean `a248882` 探针证明通用问题 validator 生效：首次 candidate 以
 
 clean `98b6181` 重跑把实际分支定性为 `ask-input-canonical-mismatch`：pending candidate 存在，但弱模型在 Ask 前把它改写成“适用于哪些订单？退款条件有哪些限制？”的两问合一 payload。评测宿主此前以 `interrupt=true` 直接终止，未给 Claude Code 按拒绝信息恢复的机会。现在 mismatch 采用非中断 deny，要求原样重读 pending candidate 后重试，并把诊断改为有序 `callbackDiagnostics`；runtime 同时拒绝不恰好包含一个问号的 candidate，不替模型或评测宿主静默改写问题。
 
+clean `a5f31ac` 单轮探针满足基础闭环验收：`callbackDiagnostics=["answered"]`、`sdkDecision=Q-1`、Ask result 成功且为最后一个工具动作、Claude exit 0；问题精确询问“自助退款失败后，订单应该保持原状态还是进入待处理状态？”，脚本化用户回注 `deterministic-failure`，关键未知项召回 0.065、未经询问假设率 0、`measurementValid=true`。controller/worker 均为 GLM-5.1，SDK/CLI 均为配套 2.1.268。该样本只证明真实探索→具体问题→callback→正常停轮可运行；单轮未验收且耗时 1,401,163ms，不能支持弱模型比肩强模型或更经济的公开结论。下一步是有限多轮 development 校准连续问题质量与召回曲线。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
