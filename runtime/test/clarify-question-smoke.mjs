@@ -198,6 +198,28 @@ try {
     'an explicit absence must remain negative knowledge instead of satisfying a readiness predicate',
   );
 
+  const malformedScoreAnalysis = analyzeClarifyRequirements([
+    '# Requirements', '', '## 目标与验收', '### 原始需求',
+    '> Clarify refund behavior.', '### 澄清后的目标', 'Clarify refund behavior.', '',
+    '## 组件拓扑',
+    '| Component | Outcome / boundary | Status | Depends on | Confirmation source |',
+    '|---|---|---|---|---|',
+    '| refund | Govern refund behavior. | active | none | E-RAW-1 |', '',
+    '## Evidence ledger',
+    '| Evidence ID | Kind | Locator | Claim | Supports |',
+    '|---|---|---|---|---|',
+    '| E-RAW-1 | raw-request | original-request | Clarify refund behavior. | refund:Goal.outcome |', '',
+    '## Component × Dimension 评分',
+    '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap | Gap type | Owner / status | Extra |',
+    '|---|---|---:|---:|---|---|---|---|---|---|',
+    '| refund | Goal | — | 2 | outcome | E-RAW-1 | consumer open | Decision | user / open | |',
+  ].join('\n'), { rawRequestAttested: true, packets: [] });
+  assert.match(
+    malformedScoreAnalysis.questionSynthesis.problems.join('; '),
+    /refund:Goal score row must contain 9 cells; found 10/u,
+    'malformed score tables must return an actionable column-count diagnostic',
+  );
+
   for (const [suffix, options] of [
     ['one-option', [{ id: 'only', label: 'Only', description: 'Only option.' }]],
     ['five-options', Array.from({ length: 5 }, (_, index) => ({

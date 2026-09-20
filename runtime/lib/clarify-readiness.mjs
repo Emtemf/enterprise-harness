@@ -220,7 +220,14 @@ export function analyzeClarifyRequirements(content, research) {
     const dimensionScores = [];
     for (const dimension of CORE_DIMENSIONS) {
       const matches = scoreRows.filter((cells) => cells[0] === component && cells[1] === dimension);
-      if (matches.length !== 1 || matches[0].length !== 9) continue;
+      if (matches.length !== 1) {
+        synthesisProblems.push(`${component}:${dimension} needs exactly one score row; found ${matches.length}`);
+        continue;
+      }
+      if (matches[0].length !== 9) {
+        synthesisProblems.push(`${component}:${dimension} score row must contain 9 cells; found ${matches[0].length}`);
+        continue;
+      }
       const [, , , scoreValue, coverageValue, refsValue] = matches[0];
       const score = scoreValue.trim() === '' ? Number.NaN : Number(scoreValue);
       if (evidenceValid && Number.isInteger(score) && score >= 0 && score <= 5) dimensionScores.push(score);

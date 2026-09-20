@@ -28,6 +28,10 @@ const questionTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/question-candidate.json.tmpl'),
   'utf-8',
 ));
+const requirementsTemplate = fs.readFileSync(
+  path.join(root, 'skills/harness/assets/requirements.md.tmpl'),
+  'utf-8',
+);
 const eventTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/decision-event.json.tmpl'),
   'utf-8',
@@ -123,6 +127,12 @@ assert.equal(
   'candidate labels must not encode the host-visible recommendation marker',
 );
 assert.deepEqual(validateQuestionCandidate(questionTemplate), [], 'question template must pass runtime shape validation');
+{
+  const scoreTable = requirementsTemplate.match(/\| Component \| Dimension \|[^\n]+\n\|[-:|]+\|\n\| component-id \| Goal \|[^\n]+/u)?.[0];
+  assert.ok(scoreTable, 'requirements template must expose the canonical score table');
+  const columnCounts = scoreTable.split('\n').map((line) => line.split('|').length - 2);
+  assert.deepEqual(columnCounts, [9, 9, 9], 'score header, separator, and data rows must share the 9-column shape');
+}
 assert.ok(validateQuestionCandidate({
   ...questionTemplate,
   question: '这个功能需要满足哪些条件？',
