@@ -104,7 +104,8 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    只能在同一 axis 上互斥。`需要满足哪些条件`、`如何验证成功与失败`、`还有哪些需求`、`请补充验收标准`
    这类维度级/清单式总问句一律视为未通过 candidate 自检，必须在 `prepare-question` 前改写。Acceptance 问题
    必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得把
-   success、failure、observable 三个 predicate 合并成一问。
+   success、failure、observable 三个 predicate 合并成一问。question 字符串必须恰好只有一个 `？` 或 `?`；
+   一个问号前后拼两个问句、用“以及/还有/同时”捆绑第二个 policy axis 仍然违规。
 4. 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify prepare-question <change-id> <candidate-ref>`。
    普通业务/产品取舍固定使用 `decisionType=clarify-answer`；只有 topology/final scope 的 `Scope` 维度确认才使用

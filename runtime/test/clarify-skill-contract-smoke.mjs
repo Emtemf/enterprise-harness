@@ -128,6 +128,11 @@ assert.ok(validateQuestionCandidate({
   question: '这个功能需要满足哪些条件？',
 }).some((problem) => /concrete decision surface/u.test(problem)),
 'runtime must reject generic dimension-level clarification questions');
+assert.ok(validateQuestionCandidate({
+  ...questionTemplate,
+  question: '适用于哪些订单？还要满足哪些限制？',
+}).some((problem) => /exactly one question mark/u.test(problem)),
+'runtime must reject multiple questions bundled into one candidate');
 assert.deepEqual(validateDecisionEvent('change-id', eventTemplate), [], 'decision template must pass runtime shape validation');
 
 assert.match(research, /全部 required lane[\s\S]*`Skill` tool calls before any `AskUserQuestion`/iu,

@@ -23,6 +23,7 @@ import { assertSdkClaudeCompatibility, parseClaudeCodeVersion } from '../../benc
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
+const businessRunner = fs.readFileSync(path.join(benchmark, 'business-run.mjs'), 'utf-8');
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'eh-model-uplift-smoke-'));
 const matrix = JSON.parse(fs.readFileSync(path.join(benchmark, 'matrix.json'), 'utf-8'));
 const relayTariff = JSON.parse(fs.readFileSync(path.join(benchmark, 'pricing.json'), 'utf-8'));
@@ -44,6 +45,10 @@ assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerCompar
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
 assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to canUseTool');
+assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,240}interrupt: false/u,
+  'canonical Ask mismatch must be recoverable instead of terminating the SDK turn');
+assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
+  'SDK callback evidence must preserve a successful retry after prior mismatches');
 assert.equal(parseClaudeCodeVersion('2.1.268 (Claude Code)'), '2.1.268');
 assert.deepEqual(assertSdkClaudeCompatibility({ version: '0.3.268', claudeCodeVersion: '2.1.268' }, '2.1.268 (Claude Code)'), {
   sdkVersion: '0.3.268', expectedClaudeVersion: '2.1.268', actualClaudeVersion: '2.1.268',

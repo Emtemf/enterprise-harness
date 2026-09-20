@@ -142,6 +142,10 @@ export function validateQuestionCandidate(candidate) {
       && GENERIC_QUESTION_PATTERNS.some((pattern) => pattern.test(String(candidate.question || '')))) {
     problems.push('question must choose one concrete decision surface, not ask for a dimension-level checklist');
   }
+  if (isNonEmptyString(candidate.question)
+      && (candidate.question.match(/[？?]/gu) || []).length !== 1) {
+    problems.push('question must contain exactly one question mark for one decision surface');
+  }
   if (isNonEmptyString(candidate.header) && [...candidate.header].length > 12) problems.push('header must be at most 12 characters');
   if (!Array.isArray(candidate.options) || candidate.options.length < 2 || candidate.options.length > 4) {
     problems.push('options must contain between 2 and 4 entries');

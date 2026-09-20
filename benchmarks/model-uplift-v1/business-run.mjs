@@ -187,7 +187,7 @@ function pendingCandidate(root, changeId) {
 async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, childEnv, answered, changeId, remainingBudgetUsd }) {
   const events = [];
   let plannedDecision = null;
-  let callbackDiagnostic = null;
+  const callbackDiagnostics = [];
   let resolvedChangeId = changeId;
   let timedOut = false;
   let caughtError = null;
@@ -221,16 +221,16 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
           if (status?.changeId) resolvedChangeId = status.changeId;
           const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
           if (!candidate) {
-            callbackDiagnostic = 'pending-candidate-missing';
-            return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: true };
+            callbackDiagnostics.push('pending-candidate-missing');
+            return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: false };
           }
           const planned = planHeadlessDecision(selectedCase, candidate, answered);
           if (!canonicalAskInputMatches(input, planned.toolInput)) {
-            callbackDiagnostic = 'ask-input-canonical-mismatch';
-            return { behavior: 'deny', message: 'AskUserQuestion input is not the canonical prepared candidate.', interrupt: true };
+            callbackDiagnostics.push('ask-input-canonical-mismatch');
+            return { behavior: 'deny', message: 'AskUserQuestion input is not the canonical prepared candidate. Re-read and project the pending candidate exactly, then retry once.', interrupt: false };
           }
           plannedDecision = planned;
-          callbackDiagnostic = 'answered';
+          callbackDiagnostics.push('answered');
           return {
             behavior: 'allow',
             updatedInput: { ...planned.toolInput, ...planned.toolResponse },
@@ -253,7 +253,7 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
     result,
     text,
     plannedDecision,
-    callbackDiagnostic,
+    callbackDiagnostics,
     changeId: resolvedChangeId,
     timedOut,
     error: caughtError,
@@ -350,7 +350,7 @@ async function runOnce(arm, selectedCase, repetition) {
         timedOut: arm.workflow === 'enterprise-harness' ? parsed.timedOut : child.error?.code === 'ETIMEDOUT',
         error: child.error?.message || String(child.stderr || '').trim() || null,
         ...(arm.workflow === 'enterprise-harness' ? { toolTrace: sanitizedSdkToolTrace(parsed.events) } : {}),
-        ...(arm.workflow === 'enterprise-harness' ? { callbackDiagnostic: parsed.callbackDiagnostic } : {}),
+        ...(arm.workflow === 'enterprise-harness' ? { callbackDiagnostics: parsed.callbackDiagnostics } : {}),
       });
       const status = arm.workflow === 'enterprise-harness' ? workflowStatus(root, changeId, sessionId) : null;
       if (status?.changeId) changeId = status.changeId;
