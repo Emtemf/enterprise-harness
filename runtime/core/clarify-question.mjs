@@ -41,6 +41,10 @@ const GENERIC_QUESTION_PATTERNS = [
   /还有哪些需求/u,
   /请补充验收标准/u,
 ];
+const IMPLEMENTATION_CHOICE_PATTERNS = [
+  /(?:函数|方法|类|设计模式)/u,
+  /\b(?:function|method|class|design\s+pattern)\b/iu,
+];
 
 function questionError(code, message) {
   return new Error(`${code}: ${message}`);
@@ -142,6 +146,10 @@ export function validateQuestionCandidate(candidate) {
       && GENERIC_QUESTION_PATTERNS.some((pattern) => pattern.test(String(candidate.question || '')))) {
     problems.push('question must choose one concrete decision surface, not ask for a dimension-level checklist');
   }
+  if (candidate.decisionType === 'clarify-answer'
+      && IMPLEMENTATION_CHOICE_PATTERNS.some((pattern) => pattern.test(String(candidate.question || '')))) {
+    problems.push('question must ask for a business policy or observable outcome, not an implementation structure');
+  }
   if (isNonEmptyString(candidate.question)
       && (candidate.question.match(/[？?]/gu) || []).length !== 1) {
     problems.push('question must contain exactly one question mark for one decision surface');
@@ -164,6 +172,10 @@ export function validateQuestionCandidate(candidate) {
         problems.push(`options[${index}].label must not contain the host recommendation marker or reserved Other label`);
       }
       if (!isNonEmptyString(option.description)) problems.push(`options[${index}].description must be a non-empty string`);
+      if (candidate.decisionType === 'clarify-answer'
+          && IMPLEMENTATION_CHOICE_PATTERNS.some((pattern) => pattern.test(`${option.label || ''} ${option.description || ''}`))) {
+        problems.push(`options[${index}] must express a business policy or observable outcome, not an implementation structure`);
+      }
     }
     const optionIds = candidate.options.map(({ id }) => id);
     const optionLabels = candidate.options.map(({ label }) => label);

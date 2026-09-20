@@ -218,11 +218,17 @@ try {
 
   const answered = run(postHook, answeredPayload);
   assert.equal(answered.status, 0, answered.stderr);
-  assert.equal(answered.stdout, '');
+  assert.deepEqual(JSON.parse(answered.stdout), {
+    continue: false,
+    stopReason: 'Clarify 用户回答已持久化；本轮到此结束，下一用户 turn 再从 fresh frontier 继续。',
+  });
   assert.equal(readDecisionEvents(root, changeId).filter(({ decisionType }) => decisionType !== 'lane-applicability').length, 1);
   const duplicate = run(postHook, answeredPayload);
   assert.equal(duplicate.status, 0, duplicate.stderr);
-  assert.equal(duplicate.stdout, '');
+  assert.deepEqual(JSON.parse(duplicate.stdout), {
+    continue: false,
+    stopReason: 'Clarify 用户回答已持久化；本轮到此结束，下一用户 turn 再从 fresh frontier 继续。',
+  });
   assert.equal(readDecisionEvents(root, changeId).filter(({ decisionType }) => decisionType !== 'lane-applicability').length, 1, 'duplicate PostToolUse must not append a ledger event');
 
   const retryChange = 'retry-answer';

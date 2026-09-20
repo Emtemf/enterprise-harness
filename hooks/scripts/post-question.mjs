@@ -29,7 +29,13 @@ try {
   if (!activeChangeId(root)) runHookResult({ exitCode: 0 });
   const event = payload(input.event);
   resolveClarifyQuestion(root, event.tool_input, event.tool_response);
-  runHookResult({ exitCode: 0 });
+  runHookResult({
+    exitCode: 0,
+    stdout: JSON.stringify({
+      continue: false,
+      stopReason: 'Clarify 用户回答已持久化；本轮到此结束，下一用户 turn 再从 fresh frontier 继续。',
+    }),
+  });
 } catch (error) {
   runHookResult(blocked(error));
 }

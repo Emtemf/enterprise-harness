@@ -133,6 +133,18 @@ assert.ok(validateQuestionCandidate({
   question: '适用于哪些订单？还要满足哪些限制？',
 }).some((problem) => /exactly one question mark/u.test(problem)),
 'runtime must reject multiple questions bundled into one candidate');
+assert.ok(validateQuestionCandidate({
+  ...questionTemplate,
+  question: '自助退款功能应如何处理现有的 refundByCustomerService 函数？',
+}).some((problem) => /not an implementation structure/u.test(problem)),
+'runtime must reject implementation-structure questions');
+assert.ok(validateQuestionCandidate({
+  ...questionTemplate,
+  options: questionTemplate.options.map((option, index) => index === 0
+    ? { ...option, description: '扩展现有函数并共享内部逻辑。' }
+    : option),
+}).some((problem) => /options\[0\].*not an implementation structure/u.test(problem)),
+'runtime must reject implementation-structure options');
 assert.deepEqual(validateDecisionEvent('change-id', eventTemplate), [], 'decision template must pass runtime shape validation');
 
 assert.match(research, /全部 required lane[\s\S]*`Skill` tool calls before any `AskUserQuestion`/iu,
@@ -147,6 +159,8 @@ for (const token of ['`AskUserQuestion` 返回后', '禁止再调用 Read/Edit/W
   assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
     `Harness must terminate the assistant turn after a returned answer: ${token}`);
 }
+assert.match(decisions, /post-question hook[\s\S]{0,160}`continue:false`/u,
+  'Harness must mechanically stop the agentic loop after a recorded answer');
 for (const token of [
   'canonical `toolInput`',
   '下一个 tool call 必须原样执行 `AskUserQuestion(toolInput)`',
@@ -161,6 +175,7 @@ for (const token of [
   '权限/归属/访问控制、资金资格/金额',
   '`如何验证成功与失败`',
   '只裁决一个具体 policy axis',
+  '不得让用户选择函数、方法、类、文件、模块或设计模式',
   '不得把\n   success、failure、observable 三个 predicate 合并成一问',
 ]) {
   assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),

@@ -106,6 +106,8 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得把
    success、failure、observable 三个 predicate 合并成一问。question 字符串必须恰好只有一个 `？` 或 `?`；
    一个问号前后拼两个问句、用“以及/还有/同时”捆绑第二个 policy axis 仍然违规。
+   普通 `clarify-answer` 不得让用户选择函数、方法、类、文件、模块或设计模式；这些属于后续 Design/Plan。
+   例如“自助退款应扩展现有函数还是新建类”必须拒绝，改问“退款失败后订单保持原状态还是进入待处理”。
 4. 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify prepare-question <change-id> <candidate-ref>`。
    普通业务/产品取舍固定使用 `decisionType=clarify-answer`；只有 topology/final scope 的 `Scope` 维度确认才使用
@@ -129,6 +131,8 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    只可向用户简短确认已收到回答。下一用户 turn 才读取 fresh snapshot，重新计算所有受影响分数，展示上轮→本轮、
    依据和新的 weakest/highest-risk frontier；下一问必须从新 frontier 重新生成 candidate，不复用旧队列。
    用户可见摘要必须同步展示歧义指数的上轮→本轮变化。
+   post-question hook 会按 Claude Code 官方合同返回 `continue:false` 机械终止当前 agentic loop；不得依赖模型自行遵守
+   “停止”文字，也不得把该终止视为错误或在同一用户 turn 自动恢复 session。
 
 机械少样本：`prepare-question` 或 pending `clarify status --json` 返回
 `{"toolInput":{"questions":[...]}}` → 下一动作只能是 `AskUserQuestion`，参数对象逐字段等于 stdout 的
