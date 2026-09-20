@@ -1,0 +1,33 @@
+{
+  "synthesisVersion": 1,
+  "type": "clarify-synthesis-input",
+  "changeId": "change-id",
+  "sourceDigest": "从 clarify synthesis-sources 原样复制",
+  "components": [
+    {
+      "componentId": "component-id",
+      "boundary": "一个可独立成功或失败的用户可见结果边界",
+      "status": "active",
+      "dependsOn": "none",
+      "confirmationSourceId": "RAW-1"
+    }
+  ],
+  "assignments": [
+    {
+      "evidenceId": "E-RAW-1",
+      "sourceId": "RAW-1",
+      "componentId": "component-id",
+      "dimension": "Goal",
+      "predicate": "outcome"
+    }
+  ],
+  "frontier": {
+    "componentId": "component-id",
+    "dimension": "Scope",
+    "risk": "high",
+    "nextAction": "ask",
+    "knownFact": "只写已知事实与尚未授权的业务边界，不粘贴 packet claim",
+    "question": "下一次只裁决一个 policy axis 的用户问题？",
+    "recommendationReason": "区分已验证事实和基于事实的取舍推断"
+  }
+}

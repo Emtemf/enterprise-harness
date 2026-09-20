@@ -110,6 +110,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-CLARIFY-RESEARCH-CONFLICTS-145` | research degraded、冲突或 uncertainty 未处置 | 处置冲突与 remaining fact uncertainty |
 | `EH-CLARIFY-RESEARCH-CLOSE-167` | required run 未完整覆盖、handoff/binding 不可信，或 packet 仍有事实缺口 | 使用各 required lane 的完整 canonical runId 重试 `clarify close-research`；packet 不 clean 时缩小 brief 并重新派发 |
 | `EH-CLARIFY-SOURCES-169` | fact gate 尚未 clean，无法生成精确 Evidence 来源投影 | 先完成 `close-research`，再运行 `clarify synthesis-sources <changeId>`；Evidence ledger 只原样复制返回的 claim/locator/ref |
+| `EH-CLARIFY-SYNTHESIS-170` | synthesis input 的 source digest、sourceId/predicate 映射、topology 或 frontier 无效 | 从最新 `clarify synthesis-sources` 输出重建 canonical `synthesis-input.json`，只选择来源到 predicate 的映射，再运行 `clarify persist-synthesis`；不要手抄 claim 或手算评分 |
 | `EH-CLARIFY-TOPOLOGY-132` | component topology 未确认 | 确认 evidence-derived topology |
 | `EH-CLARIFY-AMBIGUITY-133` | ambiguity threshold 未达标 | 解决 weakest ambiguity |
 | `EH-CLARIFY-QUESTION-134` | authorized question 仍 pending | 原样解决该问题 |

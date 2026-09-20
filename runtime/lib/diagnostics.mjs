@@ -107,6 +107,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify 研究事实门尚未关闭，不能准备或调用 AskUserQuestion。',
     recovery: '完成 required code/docs ResearchPacket，处置 degraded、conflict 与 uncertainty，再从当前证据重新生成 candidate。',
   },
+  'EH-CLARIFY-SYNTHESIS-170': {
+    summary: 'Clarify synthesis input 无法安全投影为 topology、Evidence ledger、五维评分与 frontier。',
+    recovery: '从当前 clarify synthesis-sources 的 sourceDigest/sourceId 重建 canonical synthesis-input.json，只选择 sourceId 到 predicate 的映射后重试 persist-synthesis。',
+  },
   'EH-DECISION-STALE-146': {
     summary: 'Clarify decision event 的 evidence binding 缺失或已过期。',
     recovery: '从当前 authoritative inputs 重新生成 canonical event input 与全部 digests 后重试。',

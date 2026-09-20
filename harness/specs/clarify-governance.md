@@ -1,9 +1,10 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-09-15
+lastVerified: 2026-09-20
 implementationRefs:
   - skills/harness/SKILL.md
+  - skills/harness/assets/synthesis-input.json.tmpl
   - harness/schemas/question-candidate.schema.json
   - harness/schemas/lane-applicability-input.schema.json
   - harness/schemas/decision-event.schema.json
@@ -53,6 +54,7 @@ implementationRefs:
   - hooks/scripts/instructions-loaded.mjs
   - runtime/lib/result-contract.mjs
 testRefs:
+  - runtime/test/clarify-synthesis-scaffold-smoke.mjs
   - runtime/test/result-schema-smoke.mjs
   - runtime/test/artifact-content-smoke.mjs
   - runtime/test/docs-consistency-smoke.mjs
@@ -102,7 +104,7 @@ The runtime owns safe-path validation, schema validation, digest comparison, dec
 
 `clarify prepare-question` and the `AskUserQuestion` PreToolUse authorization independently require all three research fact gates to pass: lane applicability decided, every required ResearchPacket fresh, and degraded/conflict/uncertainty disposed. Lane applicability targets a digest of the preserved raw request plus the complete fact-gate section, not the mutable whole-file requirements digest; therefore Phase 2 topology, ledger, score, and frontier edits cannot stale already closed Phase 1 research. A change to the raw request or fact-gate projection still fails closed. For an ordinary `clarify-answer`, preparation additionally requires durable synthesis in `requirements.md`: a grounded active component, exactly one valid Goal/Scope/Constraints/Acceptance/Context score row for every active component, and a matching `high` + `ask` frontier whose component, dimension and current score agree with the candidate. A model-created candidate therefore cannot substitute chat-only topology or scoring for recoverable evidence. Evidence that becomes stale after preparation blocks the host tool before the question is shown. Before preparation, runtime normalizes a safe file in the canonical question directory to `<questionId>.json`, adds the current trusted ResearchPacket refs and target artifact, fills a missing digest for an explicitly listed current trusted ResearchPacket, and replaces all-zero placeholders for runtime-derived inputs with current disk digests; a non-placeholder stale digest and arbitrary untrusted evidence still fail closed. Ordinary product choices use `clarify-answer`; `scope-confirmation` is restricted to the Scope dimension.
 
-After clean research closure, `clarify synthesis-sources <change-id>` exposes the exact raw-request clauses and validated packet facts that may populate Evidence ledger `Kind / Locator / Claim` cells. It is a read-only projection: Main still chooses at most one semantically supported predicate per source, but it must copy the returned claim rather than abbreviating or reconstructing it. This keeps semantic judgment in the Skill while making provenance spelling deterministic.
+After clean research closure, `clarify synthesis-sources <change-id>` exposes the exact raw-request clauses and validated packet facts plus a `sourceDigest`. Main records only topology, at most one semantically supported predicate assignment per `sourceId`, and one highest-risk frontier in canonical `synthesis-input.json`. `clarify persist-synthesis <change-id> <input-ref>` validates that input against the current source digest, projects exact `Kind / Locator / Claim` cells, calculates the five-dimension score grid, and atomically replaces the topology, Evidence ledger, score, and Frontier sections. Semantic assignment remains in the Skill; copying, score arithmetic, Markdown shape, and write ownership are deterministic runtime work.
 
 The five-dimension score is deterministic: before explicit confirmation it is `floor(covered readiness predicates / applicable predicates * 4)`; complete coverage is 4, and only complete coverage plus grounded `.confirmed` evidence is 5. Each score row must list exactly the coverage names and Evidence IDs projected by the ledger for that component and dimension. Question preparation reports the expected score, coverage, and refs for every mismatching row; chat-only or impressionistic scores cannot authorize a question.
 

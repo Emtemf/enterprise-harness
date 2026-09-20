@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   assertNoSymlinkComponents,
   assertSafeId,
@@ -11,6 +11,7 @@ import {
 import { sha256Artifact } from '../lib/result-contract.mjs';
 import { promptBindingCovers, promptClauseLiterals } from '../lib/prompt-receipts.mjs';
 import { clarifyResearchAuthorityDigest, readClarifyResearchEvidence } from '../lib/clarify-research-evidence.mjs';
+import { analyzeClarifyRequirements } from '../lib/clarify-readiness.mjs';
 import { atomicWriteJson, withChangeTransaction } from '../lib/state-store.mjs';
 import { statePathFor, updateChangeState, validateV6State } from './change-state.mjs';
 import { appendDecisionEvent, appendDecisionEvents, readDecisionEvents, sealClarifyDecisionSnapshot } from './decision-ledger.mjs';
@@ -70,6 +71,11 @@ export function laneApplicabilityInputPath(changeId) {
   return `harness/changes/${changeId}/evidence/clarify/lane-applicability-input.json`;
 }
 
+export function synthesisInputPath(changeId) {
+  safeId(changeId, 'changeId');
+  return `harness/changes/${changeId}/evidence/clarify/synthesis-input.json`;
+}
+
 export function inspectClarifyRequirements(root, changeId) {
   safeId(changeId, 'changeId');
   activeClarifyState(root, changeId, 'EH-LANE-DIGEST-160');
@@ -115,7 +121,157 @@ export function inspectClarifySynthesisSources(root, changeId) {
     claim,
     evidenceRef: research.refs[packetIndex],
   })));
-  return Object.freeze({ changeId, requirementsRef, sources: Object.freeze([...raw, ...facts].map(Object.freeze)) });
+  const sources = [...raw, ...facts];
+  const sourceDigest = createHash('sha256').update(JSON.stringify(sources)).digest('hex');
+  return Object.freeze({
+    changeId,
+    requirementsRef,
+    sourceDigest,
+    sources: Object.freeze(sources.map(Object.freeze)),
+  });
+}
+
+const SYNTHESIS_DIMENSIONS = Object.freeze({
+  Goal: ['consumer', 'outcome'],
+  Scope: ['included', 'excluded'],
+  Constraints: ['technical', 'risk'],
+  Acceptance: ['success', 'failure', 'observable'],
+  Context: ['need', 'current-state'],
+});
+
+function validateSynthesisInput(changeId, input, projection) {
+  const problems = [];
+  exactKeys(input, ['synthesisVersion', 'type', 'changeId', 'sourceDigest', 'components', 'assignments', 'frontier'], 'synthesis input', problems);
+  if (input?.synthesisVersion !== 1) problems.push('synthesisVersion must be 1');
+  if (input?.type !== 'clarify-synthesis-input') problems.push('type must be clarify-synthesis-input');
+  if (input?.changeId !== changeId) problems.push(`changeId must be ${changeId}`);
+  if (input?.sourceDigest !== projection.sourceDigest) problems.push('sourceDigest must match current synthesis-sources output');
+  const sourceIds = new Set(projection.sources.map(({ sourceId }) => sourceId));
+  const components = Array.isArray(input?.components) ? input.components : [];
+  if (components.length < 1 || components.length > 6) problems.push('components must contain 1-6 entries');
+  const componentIds = new Set();
+  for (const [index, component] of components.entries()) {
+    exactKeys(component, ['componentId', 'boundary', 'status', 'dependsOn', 'confirmationSourceId'], `components[${index}]`, problems);
+    try { safeId(component?.componentId, `components[${index}].componentId`); } catch (error) { problems.push(error.message); }
+    if (componentIds.has(component?.componentId)) problems.push(`components[${index}].componentId is duplicated`);
+    componentIds.add(component?.componentId);
+    if (!String(component?.boundary || '').trim()) problems.push(`components[${index}].boundary is required`);
+    if (!['active', 'deferred'].includes(component?.status)) problems.push(`components[${index}].status must be active or deferred`);
+    if (!(component?.dependsOn === 'none'
+      || (component?.dependsOn !== component?.componentId && componentIds.has(component?.dependsOn)))) {
+      problems.push(`components[${index}].dependsOn must be none or an earlier componentId`);
+    }
+    if (!sourceIds.has(component?.confirmationSourceId)) problems.push(`components[${index}].confirmationSourceId is unknown`);
+  }
+  if (!components.some(({ status }) => status === 'active')) problems.push('components must contain at least one active entry');
+  const assignments = Array.isArray(input?.assignments) ? input.assignments : [];
+  const assignedSources = new Set();
+  const evidenceIds = new Set();
+  for (const [index, assignment] of assignments.entries()) {
+    exactKeys(assignment, ['evidenceId', 'sourceId', 'componentId', 'dimension', 'predicate'], `assignments[${index}]`, problems);
+    try { safeId(assignment?.evidenceId, `assignments[${index}].evidenceId`); } catch (error) { problems.push(error.message); }
+    if (!/^E-[A-Z0-9-]+$/u.test(String(assignment?.evidenceId || ''))) problems.push(`assignments[${index}].evidenceId must start with E-`);
+    if (evidenceIds.has(assignment?.evidenceId)) problems.push(`assignments[${index}].evidenceId is duplicated`);
+    evidenceIds.add(assignment?.evidenceId);
+    if (!sourceIds.has(assignment?.sourceId)) problems.push(`assignments[${index}].sourceId is unknown`);
+    if (assignedSources.has(assignment?.sourceId)) problems.push(`assignments[${index}].sourceId is assigned more than once`);
+    assignedSources.add(assignment?.sourceId);
+    if (!componentIds.has(assignment?.componentId)) problems.push(`assignments[${index}].componentId is unknown`);
+    if (!Object.hasOwn(SYNTHESIS_DIMENSIONS, assignment?.dimension)
+        || !SYNTHESIS_DIMENSIONS[assignment?.dimension]?.includes(assignment?.predicate)) {
+      problems.push(`assignments[${index}] predicate is invalid for ${assignment?.dimension || '<missing>'}`);
+    }
+  }
+  for (const [index, component] of components.entries()) {
+    const confirmation = assignments.find(({ sourceId, evidenceId, componentId }) => (
+      sourceId === component.confirmationSourceId && evidenceIds.has(evidenceId) && componentId === component.componentId
+    ));
+    if (!confirmation) problems.push(`components[${index}].confirmationSourceId must have one assignment`);
+  }
+  const frontier = input?.frontier;
+  exactKeys(frontier, ['componentId', 'dimension', 'risk', 'nextAction', 'knownFact', 'question', 'recommendationReason'], 'frontier', problems);
+  if (!componentIds.has(frontier?.componentId)) problems.push('frontier.componentId is unknown');
+  if (!Object.hasOwn(SYNTHESIS_DIMENSIONS, frontier?.dimension)) problems.push('frontier.dimension is invalid');
+  if (frontier?.risk !== 'high') problems.push('frontier.risk must be high for question authorization');
+  if (frontier?.nextAction !== 'ask') problems.push('frontier.nextAction must be ask for question authorization');
+  for (const field of ['knownFact', 'question', 'recommendationReason']) {
+    if (!String(frontier?.[field] || '').trim()) problems.push(`frontier.${field} is required`);
+  }
+  return problems;
+}
+
+function renderSynthesisSections(input, projection) {
+  const sources = new Map(projection.sources.map((source) => [source.sourceId, source]));
+  const evidenceById = new Map(input.assignments.map((assignment) => [assignment.evidenceId, {
+    ...assignment,
+    source: sources.get(assignment.sourceId),
+  }]));
+  const topologyRows = input.components.map((component) => {
+    const confirmation = [...evidenceById.values()].find(({ sourceId }) => sourceId === component.confirmationSourceId);
+    return `| ${component.componentId} | ${markdownCell(component.boundary)} | ${component.status} | ${component.dependsOn} | ${confirmation.evidenceId} |`;
+  });
+  const evidenceRows = [...evidenceById.values()].map(({ evidenceId, componentId, dimension, predicate, source }) => (
+    `| ${evidenceId} | ${source.kind} | ${source.locator} | ${markdownCell(source.claim)} | ${componentId}:${dimension}.${predicate} |`
+  ));
+  const scoreRows = [];
+  for (const component of input.components.filter(({ status }) => status === 'active')) {
+    for (const [dimension, predicates] of Object.entries(SYNTHESIS_DIMENSIONS)) {
+      const matches = [...evidenceById.values()].filter((assignment) => (
+        assignment.componentId === component.componentId && assignment.dimension === dimension
+      ));
+      const coverage = predicates.filter((predicate) => matches.some((assignment) => assignment.predicate === predicate));
+      const refs = matches.filter((assignment) => coverage.includes(assignment.predicate)).map(({ evidenceId }) => evidenceId);
+      const score = coverage.length === predicates.length ? 4 : Math.floor((coverage.length / predicates.length) * 4);
+      const missing = predicates.filter((predicate) => !coverage.includes(predicate));
+      scoreRows.push(`| ${component.componentId} | ${dimension} | — | ${score} | ${coverage.join(',')} | ${refs.join(',')} | ${missing.length ? `uncovered: ${missing.join(',')}` : 'none'} | ${missing.length ? 'Decision' : 'resolved'} | ${missing.length ? 'user / open' : 'agent / resolved'} |`);
+    }
+  }
+  const frontierMatches = [...evidenceById.values()].filter(({ componentId, dimension }) => (
+    componentId === input.frontier.componentId && dimension === input.frontier.dimension
+  ));
+  const predicates = SYNTHESIS_DIMENSIONS[input.frontier.dimension];
+  const covered = predicates.filter((predicate) => frontierMatches.some((assignment) => assignment.predicate === predicate));
+  const frontierScore = covered.length === predicates.length ? 4 : Math.floor((covered.length / predicates.length) * 4);
+  return {
+    topology: ['## 组件拓扑', '', '| Component | Outcome / boundary | Status | Depends on | Confirmation source |', '|---|---|---|---|---|', ...topologyRows, '', '- topology confirmed：false', '- confirmedAt：', '- 用户确认 / 修正：'].join('\n'),
+    evidence: ['## Evidence ledger', '', '| Evidence ID | Kind | Locator | Claim | Supports |', '|---|---|---|---|---|', ...evidenceRows].join('\n'),
+    scores: ['## Component × Dimension 评分', '', '| Component | Dimension | 上轮分数 | 本轮分数 | Predicate coverage | Evidence refs | Gap / unresolved decision | Gap type | Owner / status |', '|---|---|---:|---:|---|---|---|---|---|', ...scoreRows, '', '- overall / coverage summary：由 runtime 按 Evidence ledger 计算。', '- 只读歧义摘要不持久化在本文件；以 runtime `clarify status --json` / `workflow status --json` 为准。', '- unresolved high-risk assumption：由 Frontier 记录。', '- 用户确认 / 修正：'].join('\n'),
+    frontier: ['## Frontier（component × unresolved dimension）', '', '| Priority | Component | Unresolved dimension | Current score | Evidence / known fact | Risk | Next action |', '|---:|---|---|---:|---|---|---|', `| 1 | ${input.frontier.componentId} | ${input.frontier.dimension} | ${frontierScore} | ${markdownCell(input.frontier.knownFact)} | high | ask |`, '', `- weakest / highest-risk frontier：${input.frontier.componentId}:${input.frontier.dimension}:${frontierScore}`, `- 当前下一问（一次一个）：${markdownCell(input.frontier.question)}`, `- 推荐选项及理由：${markdownCell(input.frontier.recommendationReason)}`, '', '每轮只推进一个 frontier；回答或 ResearchPacket 返回后重新计算受影响分数和 frontier。'].join('\n'),
+  };
+}
+
+export function persistClarifySynthesis(root, changeId, inputRef) {
+  safeId(changeId, 'changeId');
+  activeClarifyState(root, changeId, 'EH-CLARIFY-SYNTHESIS-170');
+  const canonicalRef = synthesisInputPath(changeId);
+  if (inputRef !== canonicalRef) throw new Error(`EH-CLARIFY-SYNTHESIS-170: input-ref must be ${canonicalRef}`);
+  const input = readJson(root, inputRef, 'clarify synthesis input', 'EH-CLARIFY-SYNTHESIS-170');
+  const projection = inspectClarifySynthesisSources(root, changeId);
+  const problems = validateSynthesisInput(changeId, input, projection);
+  if (problems.length > 0) throw new Error(`EH-CLARIFY-SYNTHESIS-170: ${problems.join('; ')}`);
+  const target = resolveWithin(root, projection.requirementsRef, 'requirements');
+  const current = fs.readFileSync(target, 'utf-8');
+  const sections = renderSynthesisSections(input, projection);
+  let updated = replaceSection(current, '## 组件拓扑', '## Evidence ledger', sections.topology);
+  updated = replaceSection(updated, '## Evidence ledger', '## Component × Dimension 评分', sections.evidence);
+  updated = replaceSection(updated, '## Component × Dimension 评分', '## Frontier（component × unresolved dimension）', sections.scores);
+  updated = replaceSection(updated, '## Frontier（component × unresolved dimension）', '## Decision refs', sections.frontier);
+  const analysis = analyzeClarifyRequirements(updated, readClarifyResearchEvidence(root, changeId, projection.requirementsRef, updated));
+  const frontier = analysis.questionSynthesis.frontiers.find((entry) => (
+    entry.component === input.frontier.componentId && entry.dimension === input.frontier.dimension
+      && entry.risk === 'high' && entry.nextAction === 'ask'
+  ));
+  if (!analysis.questionSynthesis.ready || !frontier) {
+    throw new Error(`EH-CLARIFY-SYNTHESIS-170: generated synthesis failed self-check: ${analysis.questionSynthesis.problems.join('; ') || 'frontier mismatch'}`);
+  }
+  atomicWriteText(target, updated);
+  return Object.freeze({
+    changeId,
+    requirementsRef: projection.requirementsRef,
+    requirementsDigest: sha256Artifact(root, projection.requirementsRef),
+    ambiguitySummary: analysis.ambiguitySummary,
+    frontier,
+  });
 }
 
 function exactKeys(value, expected, label, problems) {

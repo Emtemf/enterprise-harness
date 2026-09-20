@@ -32,6 +32,10 @@ const requirementsTemplate = fs.readFileSync(
   path.join(root, 'skills/harness/assets/requirements.md.tmpl'),
   'utf-8',
 );
+const synthesisTemplate = JSON.parse(fs.readFileSync(
+  path.join(root, 'skills/harness/assets/synthesis-input.json.tmpl'),
+  'utf-8',
+));
 const eventTemplate = JSON.parse(fs.readFileSync(
   path.join(root, 'skills/harness/assets/decision-event.json.tmpl'),
   'utf-8',
@@ -127,6 +131,8 @@ assert.equal(
   'candidate labels must not encode the host-visible recommendation marker',
 );
 assert.deepEqual(validateQuestionCandidate(questionTemplate), [], 'question template must pass runtime shape validation');
+assert.equal(synthesisTemplate.type, 'clarify-synthesis-input');
+assert.equal(synthesisTemplate.synthesisVersion, 1);
 {
   const scoreTable = requirementsTemplate.match(/\| Component \| Dimension \|[^\n]+\n\|[-:|]+\|\n\| component-id \| Goal \|[^\n]+/u)?.[0];
   assert.ok(scoreTable, 'requirements template must expose the canonical score table');
@@ -171,6 +177,15 @@ for (const token of ['`AskUserQuestion` 返回后', '禁止再调用 Read/Edit/W
 }
 assert.match(decisions, /post-question hook[\s\S]{0,160}`continue:false`/u,
   'Harness must mechanically stop the agentic loop after a recorded answer');
+for (const token of [
+  'synthesis-input.json',
+  'clarify persist-synthesis',
+  '不得手抄 `Kind / Locator / Claim` 或手算分数',
+  '直接 Edit 这些四个 section',
+]) {
+  assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
+    `Harness must delegate deterministic synthesis work to runtime: ${token}`);
+}
 for (const token of [
   'canonical `toolInput`',
   '下一个 tool call 必须原样执行 `AskUserQuestion(toolInput)`',

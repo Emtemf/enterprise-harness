@@ -7,8 +7,13 @@ Return to controller: after exactly one topology, scoring, candidate, or authori
 [Clarify durable synthesis 小样例](clarify-synthesis-example.md)，只校准表格的证据原子性与顺序；
 不得复制示例事实、component 或分数。
 随后恰好运行一次 `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify synthesis-sources <change-id>`；
-Evidence ledger 的 `Kind / Locator / Claim` 只从该 JSON 的 `sources[]` 原样复制，再由 Main 为每个来源至多选择
-一个真实支持的 predicate。禁止自行截短 claim、从聊天重建 packet fact，或重复运行该命令。
+读取 [synthesis input 模板](../assets/synthesis-input.json.tmpl)，Main 只为每个使用的 `sourceId` 选择至多一个真实支持的
+`componentId × dimension.predicate`，并选择 topology 与一个 frontier；不得手抄 `Kind / Locator / Claim` 或手算分数。
+把 `sourceDigest` 原样复制到 canonical
+`harness/changes/<change-id>/evidence/clarify/synthesis-input.json`，随后运行
+`node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify persist-synthesis <change-id> harness/changes/<change-id>/evidence/clarify/synthesis-input.json`。
+runtime 会从当前 `sources[]` 原样投影 Evidence rows、计算五维 score grid 并原子更新 topology/frontier。禁止自行截短
+claim、从聊天重建 packet fact、直接 Edit 这些四个 section，或重复运行 `synthesis-sources`。
 
 ### 评分算法（必须从空集合开始）
 
@@ -36,7 +41,7 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    登录时，不能静默增加注册、账号 CRUD、登出、恢复或独立 UI outcome。只有一个用户可见 outcome 且
    没有 evidence 支持拆分时，topology 必须只有一个 component；例如模糊的登录请求先记为
    `login-capability`，credential verification 和 session lifecycle 留在 decision surfaces，不拆成 components。
-2. 建立 design tree 与 decision frontier；对每个 active component 评估
+2. 在 synthesis input 中建立 design tree 与 decision frontier；对每个 active component 评估
    `Goal / Scope / Constraints / Acceptance / Context`。先建立 Evidence ledger，再按 readiness predicates
    计分：Goal=`consumer,outcome`；Scope=`included,excluded`；Constraints=`technical,risk`；
    Acceptance=`success,failure,observable`；Context=`need,current-state`。达到 4 必须覆盖本维度全部谓词；
@@ -47,11 +52,11 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    不能截取关键词、复用同一句宽泛描述或自报 `Supports` 来替代未覆盖谓词。`user-decision` 必须绑定
    `user / resolved` 且 Source 为 user 的 Decision round；ResearchPacket claim 必须精确匹配 `facts[].claim`。
    API/Data 仅在相关时展开；不适用时写 `N/A` 与依据。
-   canonical 表格使用机器可解析的原子值：topology 的 `Confirmation source` 必须是一个已存在的 Evidence ID；
+   runtime 生成的 canonical 表格使用机器可解析的原子值：topology 的 `Confirmation source` 必须是一个已存在的 Evidence ID；
    `Predicate coverage` 只写 `consumer,outcome` 这样的已覆盖 predicate 名，未覆盖则留空，禁止 `✓/✗`；
    Evidence `Claim` 必须逐字等于原始请求、resolved answer 或 packet `facts[].claim` 中的一个完整语义分句，
    不得缩写、加省略号或把 `evidence: code + docs` 当引用。一个来源分句只登记一次、只支持一个普通 predicate。
-   每次重算后从 runtime 读取只读摘要：全局 `ambiguity index = 未覆盖的适用 predicate / 适用 predicate 总数 × 100`、
+   `persist-synthesis` 成功后从 runtime 输出读取只读摘要：全局 `ambiguity index = 未覆盖的适用 predicate / 适用 predicate 总数 × 100`、
    每个 component 的覆盖数与最低维度分数、未决高风险数。指数 0 只表示 predicate 已覆盖；正式推进仍要求
    全部维度 ≥4、无 high-risk pending、无 pending question。该摘要由同一评分表和 Evidence ledger 派生，
    摘要只在 `clarify status --json` / `workflow status --json` 投影和用户输出中展示，不写回 requirements；
@@ -76,8 +81,9 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
 
 ## Phase 3：只澄清 Decisions
 
-1. 进入 Phase 3 前先把 Phase 2 的 Evidence ledger、active topology、每个 active component 恰好五行评分以及
-   Frontier **写入 canonical `requirements.md`**，再读取文件确认占位行已经消失；聊天里的表格不算产物。
+1. 进入 Phase 3 前必须让 `persist-synthesis` exit 0；它会把 Phase 2 的 Evidence ledger、active topology、每个
+   active component 恰好五行评分以及 Frontier **原子写入 canonical `requirements.md`**。聊天里的表格和 Main
+   直接 Edit 这些 section 都不算产物。
    `prepare-question` 会以 `EH-QUESTION-SYNTHESIS-116` 拒绝未落盘、证据不闭合、缺少五维行，或与 candidate 的
    component / dimension / current score 不一致的 `high + ask` frontier。不要先写 candidate 再补 requirements。
 2. Frontier 只包含 facts 完成后仍未解决的 `component × dimension` Decision。优先 high-risk，风险相同
