@@ -148,6 +148,15 @@ for (const token of ['`AskUserQuestion` 返回后', '禁止再调用 Read/Edit/W
     `Harness must terminate the assistant turn after a returned answer: ${token}`);
 }
 for (const token of [
+  'canonical `toolInput`',
+  '下一个 tool call 必须原样执行 `AskUserQuestion(toolInput)`',
+  '`clarify status <change-id> --json` 同样返回该 `toolInput`',
+  '`EH-QUESTION-MISMATCH-112`',
+]) {
+  assert.match(decisions, new RegExp(escapeRegExp(token), 'u'),
+    `Harness must pass through runtime-owned Ask payloads: ${token}`);
+}
+for (const token of [
   '最小 user-decidable decision surface',
   '权限/归属/访问控制、资金资格/金额',
   '`如何验证成功与失败`',

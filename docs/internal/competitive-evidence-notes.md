@@ -86,6 +86,8 @@ clean `98b6181` 重跑把实际分支定性为 `ask-input-canonical-mismatch`：
 
 clean `a5f31ac` 单轮探针满足基础闭环验收：`callbackDiagnostics=["answered"]`、`sdkDecision=Q-1`、Ask result 成功且为最后一个工具动作、Claude exit 0；问题精确询问“自助退款失败后，订单应该保持原状态还是进入待处理状态？”，脚本化用户回注 `deterministic-failure`，关键未知项召回 0.065、未经询问假设率 0、`measurementValid=true`。controller/worker 均为 GLM-5.1，SDK/CLI 均为配套 2.1.268。该样本只证明真实探索→具体问题→callback→正常停轮可运行；单轮未验收且耗时 1,401,163ms，不能支持弱模型比肩强模型或更经济的公开结论。下一步是有限多轮 development 校准连续问题质量与召回曲线。
 
+clean `8c3d3ba` 四轮校准在三轮无问题后提前停止：首轮已 prepare Q-1，但弱模型连续 10 次重写 Ask payload，后续恢复轮仍展示 Markdown 或改写选项，`callbackDiagnostics` 只有 mismatch、没有 answered。总耗时 957,018ms、召回 0；这与真实 pre-question hook 的阻断一致，不能通过放宽评测器解决。runtime 现在让 `prepare-question` 与 pending `clarify status --json` 直接返回 canonical `toolInput`，Skill 要求下一个动作原样透传该对象，消除弱模型从 candidate 重建 UI payload 的推理负担。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

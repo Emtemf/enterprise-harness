@@ -503,6 +503,8 @@ try {
   assert.equal(pending.questionId, 'Q-003');
   assert.equal(pending.candidateRef, candidateRef);
   assert.match(pending.candidateDigest, /^[a-f0-9]{64}$/u);
+  assert.deepEqual(pending.toolInput, askInput(candidate),
+    'prepare-question must return the exact canonical AskUserQuestion payload');
   assert.deepEqual(
     authorizeClarifyQuestion(root, askInput(candidate)),
     { changeId, questionId: 'Q-003' },
@@ -615,6 +617,7 @@ try {
   assert.deepEqual(recoverClarifyQuestion(root, unresolvedChange), {
     status: 'pending',
     recovery: '重新询问已授权的待回答问题 Q-010，不得修改问题正文或选项。',
+    toolInput: askInput(unresolvedCandidate),
   });
 
   const crashChange = 'crash-recovery';

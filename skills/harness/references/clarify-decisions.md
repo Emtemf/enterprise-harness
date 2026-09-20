@@ -116,7 +116,10 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    `header` 最多 12 个字符；candidate label 禁止包含“推荐”、`Recommended` 或任何推荐标记，projection 只给 `recommendedOption` 对应 label
    追加唯一可见的 `(Recommended)`。不要自行提供 `Other`，Claude Code host 会提供自由输入入口。
    只有 exit 0 才能把 candidate 逐字段投影为一次 `AskUserQuestion`；pre-question hook 会核对 pending
-   authorization，不能绕过或手改 pending state。
+   authorization，不能绕过或手改 pending state。exit 0 的 JSON stdout 固定返回 canonical `toolInput`；
+   Main 的**下一个 tool call 必须原样执行 `AskUserQuestion(toolInput)`**，不得从 candidate 或聊天重新拼装、翻译、
+   改序、改 recommendation marker、添加解释或先输出 Markdown。若 entry/status 表示已有 pending question，
+   `clarify status <change-id> --json` 同样返回该 `toolInput`；只复制它，不重建。
 5. post-question hook 按 candidate 的 `decisionType` 与 `targetRef` 把选中的授权 option 原子追加为 public
    `DecisionEvent`，而不是保存聊天记录或隐藏推理。若用户选择 host `Other`/自由输入，hook 不持久化原文，
    只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
@@ -126,6 +129,11 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    只可向用户简短确认已收到回答。下一用户 turn 才读取 fresh snapshot，重新计算所有受影响分数，展示上轮→本轮、
    依据和新的 weakest/highest-risk frontier；下一问必须从新 frontier 重新生成 candidate，不复用旧队列。
    用户可见摘要必须同步展示歧义指数的上轮→本轮变化。
+
+机械少样本：`prepare-question` 或 pending `clarify status --json` 返回
+`{"toolInput":{"questions":[...]}}` → 下一动作只能是 `AskUserQuestion`，参数对象逐字段等于 stdout 的
+`toolInput`。错误路径是先把问题渲染成 Markdown、把 `(Recommended)` 移到另一个 label、改写 description，
+或凭记忆重新调用；这些都会被 `EH-QUESTION-MISMATCH-112` 阻断。
 6. 只要仍有 sibling component < 4，同一 component 最多连续问 2 个 Decision；只有 sibling 明确依赖
    当前决定才可例外，并在 round ledger 写 dependency evidence。
 

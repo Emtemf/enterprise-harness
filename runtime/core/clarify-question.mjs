@@ -603,7 +603,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
       preparedAt: new Date().toISOString(),
     };
     atomicWriteJson(target, pending);
-    return Object.freeze({ ...pending });
+    return Object.freeze({ ...pending, toolInput: expectedToolInput(fresh.candidate) });
   });
 }
 
@@ -692,6 +692,7 @@ export function recoverClarifyQuestion(root, changeId, { repair = true } = {}) {
       return Object.freeze({
         status: 'pending',
         recovery: `重新询问已授权的待回答问题 ${candidate.questionId}，不得修改问题正文或选项。`,
+        toolInput: expectedToolInput(candidate),
       });
     }
     if (!repair) {
