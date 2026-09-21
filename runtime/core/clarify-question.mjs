@@ -347,10 +347,25 @@ function assertCandidateEnvelope(root, changeId, candidateRef, research) {
 }
 
 function assertQuestionSynthesis(root, changeId, candidate, research) {
-  if (candidate.decisionType !== 'clarify-answer') return;
+  if (!['clarify-answer', 'scope-confirmation'].includes(candidate.decisionType)) return;
   const requirementsRef = `harness/changes/${changeId}/requirements.md`;
   const requirementsPath = resolveRepoTarget(root, requirementsRef, 'requirements');
   const analysis = analyzeClarifyRequirements(fs.readFileSync(requirementsPath, 'utf-8'), research);
+  if (candidate.decisionType === 'scope-confirmation') {
+    const targetPath = artifactPathFromReference(candidate.targetRef);
+    const finalScopeReady = targetPath === requirementsRef
+      && analysis.topology
+      && analysis.ambiguity
+      && !analysis.approved
+      && analysis.questionSynthesis.frontiers.length === 0;
+    if (!finalScopeReady) {
+      throw questionError(
+        'EH-QUESTION-SYNTHESIS-116',
+        'scope-confirmation is reserved for final scope after topology confirmation, full ambiguity coverage, and an empty frontier; use clarify-answer for an unresolved business Scope decision',
+      );
+    }
+    return;
+  }
   const synthesis = analysis.questionSynthesis;
   const score = synthesis.scoreGrid.get(`${candidate.componentId}:${candidate.dimension}`)?.score;
   const frontier = synthesis.frontiers.find((entry) => (

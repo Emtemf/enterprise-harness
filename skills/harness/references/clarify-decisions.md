@@ -116,8 +116,10 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    例如“自助退款应扩展现有函数还是新建类”必须拒绝，改问“退款失败后订单保持原状态还是进入待处理”。
 4. 运行
    `node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify prepare-question <change-id> <candidate-ref>`。
-   普通业务/产品取舍固定使用 `decisionType=clarify-answer`；只有 topology/final scope 的 `Scope` 维度确认才使用
-   `scope-confirmation`，runtime 拒绝非 Scope 冒充 scope-confirmation。
+   普通业务/产品取舍（包括“是否支持部分退款”这类 Scope 决策）固定使用 `decisionType=clarify-answer`；只有所有
+   component 的五维评分均达到完成阈值、topology 已确认且 Frontier 已清空后的**最终范围确认**才使用
+   `scope-confirmation`。runtime 会机械拒绝提前使用、非 Scope 冒充或未绑定当前 requirements 的
+   scope-confirmation。
    Phase 2 填写 topology/评分只改变 whole-file requirements digest，不改变由“原始需求 + 事实探索门禁”计算的
    research-authority digest；已关闭的 Phase 1 packet 和 lane event 因此继续 fresh。Main 不得补跑
    `sync-lanes`、status 或 `close-research`；原始需求或事实门禁真的变化时返回 controller 处理新 authority revision。

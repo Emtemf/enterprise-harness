@@ -458,6 +458,20 @@ try {
   );
   assert.equal(fs.existsSync(pendingQuestionPath(root, blockedFactGateChange)), false);
 
+  const prematureScopeChange = 'premature-final-scope';
+  activate(prematureScopeChange);
+  const prematureScopeCandidate = candidateFor(prematureScopeChange, 'Q-scope', {
+    dimension: 'Scope',
+    decisionType: 'scope-confirmation',
+    question: 'Should self-service refunds include partial refunds?',
+  });
+  const prematureScopeRef = writeCandidate(prematureScopeCandidate);
+  assert.throws(
+    () => prepareClarifyQuestion(root, prematureScopeChange, prematureScopeRef),
+    /EH-QUESTION-SYNTHESIS-116: scope-confirmation is reserved for final scope/u,
+    'ordinary business scope decisions must use clarify-answer until final scope is ready',
+  );
+
   const staleFactGateChange = 'stale-fact-gate';
   activate(staleFactGateChange);
   const staleFactGateCandidate = candidateFor(staleFactGateChange, 'Q-002');
