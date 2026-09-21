@@ -49,6 +49,12 @@ assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,240}interrupt
   'canonical Ask mismatch must be recoverable instead of terminating the SDK turn');
 assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
   'SDK callback evidence must preserve a successful retry after prior mismatches');
+assert.match(businessRunner, /authorizeClarifyQuestion\(root, input\.tool_input\)[\s\S]{0,180}sdk-pretooluse-authorized/u,
+  'SDK AskUserQuestion bridge must run the same runtime authorization as the plugin PreToolUse hook');
+assert.match(businessRunner, /resolveClarifyQuestion\(root, input\.tool_input, input\.tool_response\)[\s\S]{0,180}sdk-posttooluse-persisted/u,
+  'SDK AskUserQuestion bridge must persist the answer through the same runtime resolver as the plugin PostToolUse hook');
+assert.match(businessRunner, /questionBridgeValid[\s\S]{0,500}measurementValid:[^\n]+questionBridgeValid/u,
+  'Harness measurements must fail closed unless the SDK question bridge authorized and persisted each answer');
 assert.equal(parseClaudeCodeVersion('2.1.268 (Claude Code)'), '2.1.268');
 assert.deepEqual(assertSdkClaudeCompatibility({ version: '0.3.268', claudeCodeVersion: '2.1.268' }, '2.1.268 (Claude Code)'), {
   sdkVersion: '0.3.268', expectedClaudeVersion: '2.1.268', actualClaudeVersion: '2.1.268',

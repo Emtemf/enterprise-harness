@@ -23,6 +23,7 @@ import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
+import { authorizeClarifyQuestion, resolveClarifyQuestion } from '../../runtime/core/clarify-question.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
@@ -215,6 +216,27 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
         plugins: [{ type: 'local', path: repoRoot }],
         env: { ...childEnv, CLAUDE_AGENT_SDK_CLIENT_APP: 'enterprise-harness-model-uplift' },
         abortController,
+        hooks: {
+          PreToolUse: [{
+            matcher: 'AskUserQuestion',
+            hooks: [async (input) => {
+              authorizeClarifyQuestion(root, input.tool_input);
+              callbackDiagnostics.push('sdk-pretooluse-authorized');
+              return {};
+            }],
+          }],
+          PostToolUse: [{
+            matcher: 'AskUserQuestion',
+            hooks: [async (input) => {
+              resolveClarifyQuestion(root, input.tool_input, input.tool_response);
+              callbackDiagnostics.push('sdk-posttooluse-persisted');
+              return {
+                continue: false,
+                stopReason: 'Harness SDK host 已持久化 Clarify 用户回答；下一轮从 fresh frontier 继续。',
+              };
+            }],
+          }],
+        },
         canUseTool: async (toolName, input) => {
           if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: input };
           const status = workflowStatus(root, resolvedChangeId, sessionId);
@@ -406,6 +428,11 @@ async function runOnce(arm, selectedCase, repetition) {
     const billingComplete = invocations.length > 0 && invocations.every((item) => item.billingModels.length > 0);
     const rawRequestBound = arm.workflow !== 'enterprise-harness'
       || Boolean(changeId && promptBindingCovers(root, changeId, selectedCase.initialRequest));
+    const questionBridgeValid = arm.workflow !== 'enterprise-harness' || invocations.every((item) => (
+      !item.callbackDiagnostics.includes('answered')
+      || (item.callbackDiagnostics.includes('sdk-pretooluse-authorized')
+        && item.callbackDiagnostics.includes('sdk-posttooluse-persisted'))
+    ));
     const record = {
       armId: arm.id,
       workflow: arm.workflow,
@@ -424,8 +451,9 @@ async function runOnce(arm, selectedCase, repetition) {
       modelIdentityValid: identityValid,
       responseIdentityValid: responseIdentity,
       rawRequestBound,
+      questionBridgeValid,
       billingComplete,
-      measurementValid: identityValid && billingComplete && rawRequestBound,
+      measurementValid: identityValid && billingComplete && rawRequestBound && questionBridgeValid,
       stopReason,
       costAuthority: 'claude-code-alias-estimate',
       providerCostUsd: null,
