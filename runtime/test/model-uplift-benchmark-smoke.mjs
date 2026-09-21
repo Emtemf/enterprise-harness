@@ -51,6 +51,8 @@ assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
   'SDK callback evidence must preserve a successful retry after prior mismatches');
 assert.doesNotMatch(businessRunner, /canUseTool\s*:/u,
   'canUseTool bypasses AskUserQuestion SDK hooks in Claude Code 2.1.268 and must not be configured');
+assert.match(businessRunner, /matcher: 'Bash\|Read\|Write[\s\S]{0,320}permissionDecision: 'allow'/u,
+  'SDK hooks must host non-interactive permissions for non-question tools without canUseTool');
 assert.match(businessRunner, /authorizeClarifyQuestion\(root, input\.tool_input\)[\s\S]{0,220}sdk-pretooluse-authorized/u,
   'SDK AskUserQuestion bridge must run the same runtime authorization as the plugin PreToolUse hook');
 assert.match(businessRunner, /resolveClarifyQuestion\(root, input\.tool_input, input\.tool_response\)[\s\S]{0,180}sdk-posttooluse-persisted/u,

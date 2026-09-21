@@ -217,9 +217,20 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
         env: { ...childEnv, CLAUDE_AGENT_SDK_CLIENT_APP: 'enterprise-harness-model-uplift' },
         abortController,
         hooks: {
-          PreToolUse: [{
-            matcher: 'AskUserQuestion',
-            hooks: [async (input) => {
+          PreToolUse: [
+            {
+              matcher: 'Bash|Read|Write|Edit|Glob|Grep|Skill|Agent|ToolSearch|NotebookEdit|WebFetch|WebSearch|mcp__.*',
+              hooks: [async (input) => ({
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'allow',
+                  updatedInput: input.tool_input,
+                },
+              })],
+            },
+            {
+              matcher: 'AskUserQuestion',
+              hooks: [async (input) => {
               const status = workflowStatus(root, resolvedChangeId, sessionId);
               if (status?.changeId) resolvedChangeId = status.changeId;
               const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
@@ -247,8 +258,9 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
                   updatedInput: { ...planned.toolInput, ...planned.toolResponse },
                 },
               };
-            }],
-          }],
+              }],
+            },
+          ],
           PostToolUse: [{
             matcher: 'AskUserQuestion',
             hooks: [async (input) => {
