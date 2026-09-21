@@ -44,12 +44,14 @@ assert.equal(businessProtocol.publicationGate.minimumDistinctCases, 5);
 assert.equal(businessProtocol.publicationGate.minimumPairedObservationsPerComparison, 20);
 assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens'));
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
-assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to canUseTool');
-assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,240}interrupt: false/u,
+assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to the PreToolUse answer host');
+assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,300}continue: true/u,
   'canonical Ask mismatch must be recoverable instead of terminating the SDK turn');
 assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
   'SDK callback evidence must preserve a successful retry after prior mismatches');
-assert.match(businessRunner, /authorizeClarifyQuestion\(root, input\.tool_input\)[\s\S]{0,180}sdk-pretooluse-authorized/u,
+assert.doesNotMatch(businessRunner, /canUseTool\s*:/u,
+  'canUseTool bypasses AskUserQuestion SDK hooks in Claude Code 2.1.268 and must not be configured');
+assert.match(businessRunner, /authorizeClarifyQuestion\(root, input\.tool_input\)[\s\S]{0,220}sdk-pretooluse-authorized/u,
   'SDK AskUserQuestion bridge must run the same runtime authorization as the plugin PreToolUse hook');
 assert.match(businessRunner, /resolveClarifyQuestion\(root, input\.tool_input, input\.tool_response\)[\s\S]{0,180}sdk-posttooluse-persisted/u,
   'SDK AskUserQuestion bridge must persist the answer through the same runtime resolver as the plugin PostToolUse hook');

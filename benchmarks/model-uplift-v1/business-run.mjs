@@ -220,9 +220,33 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
           PreToolUse: [{
             matcher: 'AskUserQuestion',
             hooks: [async (input) => {
+              const status = workflowStatus(root, resolvedChangeId, sessionId);
+              if (status?.changeId) resolvedChangeId = status.changeId;
+              const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
+              if (!candidate) {
+                callbackDiagnostics.push('pending-candidate-missing');
+                return { decision: 'block', reason: 'Harness benchmark could not resolve the canonical pending question.' };
+              }
+              const planned = planHeadlessDecision(selectedCase, candidate, answered);
+              if (!canonicalAskInputMatches(input.tool_input, planned.toolInput)) {
+                callbackDiagnostics.push('ask-input-canonical-mismatch');
+                return {
+                  decision: 'block',
+                  reason: 'AskUserQuestion input is not the canonical prepared candidate. Re-read and project the pending candidate exactly, then retry once.',
+                  continue: true,
+                };
+              }
               authorizeClarifyQuestion(root, input.tool_input);
+              plannedDecision = planned;
               callbackDiagnostics.push('sdk-pretooluse-authorized');
-              return {};
+              callbackDiagnostics.push('answered');
+              return {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'allow',
+                  updatedInput: { ...planned.toolInput, ...planned.toolResponse },
+                },
+              };
             }],
           }],
           PostToolUse: [{
@@ -236,27 +260,6 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
               };
             }],
           }],
-        },
-        canUseTool: async (toolName, input) => {
-          if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: input };
-          const status = workflowStatus(root, resolvedChangeId, sessionId);
-          if (status?.changeId) resolvedChangeId = status.changeId;
-          const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
-          if (!candidate) {
-            callbackDiagnostics.push('pending-candidate-missing');
-            return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: false };
-          }
-          const planned = planHeadlessDecision(selectedCase, candidate, answered);
-          if (!canonicalAskInputMatches(input, planned.toolInput)) {
-            callbackDiagnostics.push('ask-input-canonical-mismatch');
-            return { behavior: 'deny', message: 'AskUserQuestion input is not the canonical prepared candidate. Re-read and project the pending candidate exactly, then retry once.', interrupt: false };
-          }
-          plannedDecision = planned;
-          callbackDiagnostics.push('answered');
-          return {
-            behavior: 'allow',
-            updatedInput: { ...planned.toolInput, ...planned.toolResponse },
-          };
         },
       },
     });
