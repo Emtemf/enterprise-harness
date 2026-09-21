@@ -112,6 +112,8 @@ try {
 
   writeJson(inputRef, { ...input, sourceDigest: '0'.repeat(64) });
   assert.throws(() => persistClarifySynthesis(root, changeId, inputRef), /EH-CLARIFY-SYNTHESIS-170: sourceDigest must match/u);
+  fs.writeFileSync(path.join(root, inputRef), '{not-json\n', 'utf-8');
+  assert.throws(() => persistClarifySynthesis(root, changeId, inputRef), /EH-CLARIFY-SYNTHESIS-170: invalid JSON/u);
   assert.throws(() => persistClarifySynthesis(root, changeId, '../escape.json'), /EH-CLARIFY-SYNTHESIS-170: input-ref must be/u);
 
   const help = spawnSync(process.execPath, [path.join(sourceRoot, 'runtime', 'cli.mjs'), 'clarify', '--help'], {
