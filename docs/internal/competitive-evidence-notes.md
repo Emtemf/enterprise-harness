@@ -98,6 +98,8 @@ clean `8ed97fe` 的复验已证明 synthesis 修复有效：CodeGraph 与 Contex
 
 clean `fbc77d5` 复验证明 pending fail-closed 已生效：controller/worker 身份、raw request 与账单均有效，但 `pendingQuestionAtEnd=true` 令 `questionBridgeValid=false`、`measurementValid=false`，Markdown 问题不再计成业务 0 分。该轮在一次 duplicate source assignment 后自修复 synthesis，准备了退款失败/超时状态问题；耗时 924,291ms。SDK 进程参数已包含 `--allowedTools AskUserQuestion --tools default`，但模型可见工具列表和 ToolSearch 仍没有 Ask，证明 allowedTools 只授权既有工具，不能在此 headless 路径注册交互工具。runner 因而恢复 `canUseTool` 作为工具暴露宿主，并绑定其唯一 `toolUseID`；只在事件流收到 matching successful tool result 后持久化，不依赖该路径不会触发的本地 hooks。新适配器尚待 clean 实测。
 
+clean `f5f96fc` 复验确认 `canUseTool` 已真实暴露结构化 `AskUserQuestion`，进程参数为 `--permission-prompt-tool stdio --tools default`，模型调用了 canonical pending Q-1；但 permission host 调用 runtime core 时得到 `EH-QUESTION-ACTIVE-108: no active change is bound`。pending 与 session binding 都存在，根因是 core 只从父 Node 进程环境解析 active change，而 Claude session ID 仅传给子进程。该运行按新规则正确得到 `pendingQuestionAtEnd=true`、`questionBridgeValid=false`、`measurementValid=false`，不计效果。core 现为 authorize/resolve 增加可选 session context，adapter 显式传入 session ID；行为测试删除 `ACTIVE_CHANGE` 后仍可完成两步，证明不依赖 v5 compat 文件。尚待下一次 clean 真实复验。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

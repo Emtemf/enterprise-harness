@@ -54,7 +54,7 @@ assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
   'SDK callback evidence must preserve a successful retry after prior mismatches');
 assert.match(businessRunner, /canUseTool: async \(toolName, input, \{ toolUseID \}\)/u,
   'headless SDK host must bind AskUserQuestion permission to its unique toolUseID');
-assert.match(businessRunner, /authorizeClarifyQuestion\(root, planned\.toolInput\)[\s\S]{0,180}sdk-canusetool-authorized/u,
+assert.match(businessRunner, /authorizeClarifyQuestion\(root, planned\.toolInput, \{ sessionId \}\)[\s\S]{0,180}sdk-canusetool-authorized/u,
   'SDK AskUserQuestion bridge must run the same runtime authorization as the plugin PreToolUse hook');
 assert.match(businessRunner, /hasSuccessfulToolResult\(event, authorizedAsk\.toolUseId\)[\s\S]{0,260}sdk-tool-result-persisted/u,
   'SDK AskUserQuestion bridge must persist only after the matching successful tool result');

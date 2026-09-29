@@ -237,7 +237,7 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
               interrupt: false,
             };
           }
-          authorizeClarifyQuestion(root, planned.toolInput);
+          authorizeClarifyQuestion(root, planned.toolInput, { sessionId });
           authorizedAsk = { toolUseId: toolUseID, planned };
           callbackDiagnostics.push('sdk-canusetool-authorized');
           callbackDiagnostics.push('answered');
@@ -251,7 +251,7 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
     for await (const event of stream) {
       events.push(event);
       if (authorizedAsk && hasSuccessfulToolResult(event, authorizedAsk.toolUseId)) {
-        resolveClarifyQuestion(root, authorizedAsk.planned.toolInput, authorizedAsk.planned.toolResponse);
+        resolveClarifyQuestion(root, authorizedAsk.planned.toolInput, authorizedAsk.planned.toolResponse, { sessionId });
         plannedDecision = authorizedAsk.planned;
         authorizedAsk = null;
         callbackDiagnostics.push('sdk-tool-result-persisted');

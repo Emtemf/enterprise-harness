@@ -390,8 +390,8 @@ function assertQuestionSynthesis(root, changeId, candidate, research) {
   }
 }
 
-function assertActiveClarifyChange(root, changeId) {
-  const active = activeChangeId(root);
+function assertActiveClarifyChange(root, changeId, options = {}) {
+  const active = activeChangeId(root, options);
   if (active !== changeId) {
     throw questionError('EH-QUESTION-ACTIVE-108', `active change must be ${changeId}`);
   }
@@ -634,10 +634,10 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
   });
 }
 
-export function authorizeClarifyQuestion(root, toolInput) {
-  const changeId = activeChangeId(root);
+export function authorizeClarifyQuestion(root, toolInput, options = {}) {
+  const changeId = activeChangeId(root, options);
   if (!changeId) throw questionError('EH-QUESTION-ACTIVE-108', 'no active change is bound');
-  assertActiveClarifyChange(root, changeId);
+  assertActiveClarifyChange(root, changeId, options);
   const pending = readPending(root, changeId);
   if (pending.status !== 'pending') {
     throw questionError('EH-QUESTION-PENDING-111', `question ${pending.questionId} is not pending`);
@@ -648,10 +648,10 @@ export function authorizeClarifyQuestion(root, toolInput) {
   return Object.freeze({ changeId, questionId: candidate.questionId });
 }
 
-export function resolveClarifyQuestion(root, toolInput, toolResponse) {
-  const changeId = activeChangeId(root);
+export function resolveClarifyQuestion(root, toolInput, toolResponse, options = {}) {
+  const changeId = activeChangeId(root, options);
   if (!changeId) throw questionError('EH-QUESTION-ACTIVE-108', 'no active change is bound');
-  assertActiveClarifyChange(root, changeId);
+  assertActiveClarifyChange(root, changeId, options);
   readPending(root, changeId);
   const target = pendingQuestionPath(root, changeId);
   return withFileLock(target, () => {

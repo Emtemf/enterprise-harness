@@ -22,6 +22,7 @@ import {
 } from './classification-v2-fixture.mjs';
 import { bindLatestPromptReceipt, recordPromptReceipt } from '../lib/prompt-receipts.mjs';
 import { analyzeClarifyRequirements } from '../lib/clarify-readiness.mjs';
+import { bindSession } from '../lib/sessions.mjs';
 
 const mode = process.argv[2] || 'verify';
 if (!['red', 'green', 'verify'].includes(mode)) process.exit(2);
@@ -82,6 +83,13 @@ function ensureFactGate(changeId) {
   const sessionId = `fixture-${changeId}`;
   recordPromptReceipt(root, { session_id: sessionId, prompt: rawRequest });
   bindLatestPromptReceipt(root, changeId, sessionId);
+  bindSession(root, {
+    sessionId,
+    changeId,
+    worktreePath: root,
+    subjectRoot: root,
+    controllerRevision: 'clarify-question-smoke',
+  });
   ensureRequiredCodeResearchFixture(root, changeId, requirementsRef);
   appendQuestionSynthesisFixture(root, changeId, requirementsRef);
   appendLaneApplicabilityFixture(root, changeId, requirementsRef);
@@ -541,6 +549,14 @@ try {
   assert.match(pending.candidateDigest, /^[a-f0-9]{64}$/u);
   assert.deepEqual(pending.toolInput, askInput(candidate),
     'prepare-question must return the exact canonical AskUserQuestion payload');
+  const activeChangePath = path.join(root, 'harness', 'ACTIVE_CHANGE');
+  fs.unlinkSync(activeChangePath);
+  assert.deepEqual(
+    authorizeClarifyQuestion(root, askInput(candidate), { sessionId: `fixture-${changeId}` }),
+    { changeId, questionId: 'Q-003' },
+    'headless hosts must be able to authorize through an explicit session binding without ACTIVE_CHANGE',
+  );
+  fs.writeFileSync(activeChangePath, `${changeId}\n`, 'utf-8');
   assert.deepEqual(
     authorizeClarifyQuestion(root, askInput(candidate)),
     { changeId, questionId: 'Q-003' },
@@ -626,7 +642,14 @@ try {
   assert.equal(JSON.stringify(otherEvent).includes('custom secret'), false);
 
   activate(changeId);
-  const resolved = resolveClarifyQuestion(root, askInput(candidate), answer(candidate));
+  fs.unlinkSync(activeChangePath);
+  const resolved = resolveClarifyQuestion(
+    root,
+    askInput(candidate),
+    answer(candidate),
+    { sessionId: `fixture-${changeId}` },
+  );
+  fs.writeFileSync(activeChangePath, `${changeId}\n`, 'utf-8');
   assert.deepEqual(resolved, { eventId: 'D-003', duplicate: false });
   assert.deepEqual(
     resolveClarifyQuestion(root, askInput(candidate), answer(candidate)),
