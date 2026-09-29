@@ -116,13 +116,27 @@ try {
   assert.throws(() => persistClarifySynthesis(root, changeId, inputRef), /EH-CLARIFY-SYNTHESIS-170: invalid JSON/u);
   assert.throws(() => persistClarifySynthesis(root, changeId, '../escape.json'), /EH-CLARIFY-SYNTHESIS-170: input-ref must be/u);
 
+  writeJson(inputRef, input);
+  const jsonCli = spawnSync(process.execPath, [
+    path.join(sourceRoot, 'runtime', 'cli.mjs'),
+    'clarify', 'persist-synthesis', changeId, inputRef, '--json',
+  ], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.equal(jsonCli.status, 0, jsonCli.stderr);
+  assert.equal(JSON.parse(jsonCli.stdout).frontier.component, 'refund');
+  const unknownFlag = spawnSync(process.execPath, [
+    path.join(sourceRoot, 'runtime', 'cli.mjs'),
+    'clarify', 'persist-synthesis', changeId, inputRef, '--yaml',
+  ], { cwd: root, encoding: 'utf-8', shell: false });
+  assert.equal(unknownFlag.status, 2);
+  assert.match(unknownFlag.stderr, /EH-CLARIFY-SYNTHESIS-170/u);
+
   const help = spawnSync(process.execPath, [path.join(sourceRoot, 'runtime', 'cli.mjs'), 'clarify', '--help'], {
     cwd: root,
     encoding: 'utf-8',
     shell: false,
   });
   assert.equal(help.status, 0, help.stderr);
-  assert.match(help.stdout, /clarify persist-synthesis <change-id> <input-ref>/u);
+  assert.match(help.stdout, /clarify persist-synthesis <change-id> <input-ref> \[--json\]/u);
   console.log(`PASS clarify-synthesis-scaffold ${mode}`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

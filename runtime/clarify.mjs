@@ -49,7 +49,7 @@ function help(exitCode = 0) {
   console.log('  node runtime/cli.mjs clarify sync-lanes <change-id> [--json]');
   console.log('  node runtime/cli.mjs clarify close-research <change-id> <run-id> [run-id...] [--json]');
   console.log('  node runtime/cli.mjs clarify synthesis-sources <change-id> [--json]');
-  console.log('  node runtime/cli.mjs clarify persist-synthesis <change-id> <input-ref>');
+  console.log('  node runtime/cli.mjs clarify persist-synthesis <change-id> <input-ref> [--json]');
   console.log('  node runtime/cli.mjs clarify seal-decisions <change-id> <event-id> [event-id...]');
   console.log('  node runtime/cli.mjs clarify classify <change-id> <input-ref>');
   process.exit(exitCode);
@@ -157,8 +157,8 @@ try {
     const positional = jsonCompatibleArgs(1, 'clarify synthesis-sources <change-id> [--json]', 'EH-CLARIFY-SOURCES-169');
     console.log(JSON.stringify(inspectClarifySynthesisSources(root, positional[0]), null, 2));
   } else if (subcommand === 'persist-synthesis') {
-    requireArgs(2, 'clarify persist-synthesis <change-id> <input-ref>', 'EH-CLARIFY-SYNTHESIS-170');
-    console.log(JSON.stringify(persistClarifySynthesis(root, args[0], args[1]), null, 2));
+    const positional = jsonCompatibleArgs(2, 'clarify persist-synthesis <change-id> <input-ref> [--json]', 'EH-CLARIFY-SYNTHESIS-170');
+    console.log(JSON.stringify(persistClarifySynthesis(root, positional[0], positional[1]), null, 2));
   } else if (subcommand === 'seal-decisions') {
     if (args.length < 2) throw new Error('EH-DECISION-SNAPSHOT-104: usage: clarify seal-decisions <change-id> <event-id> [event-id...]');
     console.log(JSON.stringify(sealClarifyDecisions(root, args[0], args.slice(1)), null, 2));

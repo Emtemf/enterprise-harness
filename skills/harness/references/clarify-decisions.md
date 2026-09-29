@@ -11,7 +11,7 @@ Return to controller: after exactly one topology, scoring, candidate, or authori
 `componentId × dimension.predicate`，并选择 topology 与一个 frontier；不得手抄 `Kind / Locator / Claim` 或手算分数。
 把 `sourceDigest` 原样复制到 canonical
 `harness/changes/<change-id>/evidence/clarify/synthesis-input.json`，随后运行
-`node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify persist-synthesis <change-id> harness/changes/<change-id>/evidence/clarify/synthesis-input.json`。
+`node "${CLAUDE_PLUGIN_ROOT}/runtime/cli.mjs" clarify persist-synthesis <change-id> harness/changes/<change-id>/evidence/clarify/synthesis-input.json --json`。
 runtime 会从当前 `sources[]` 原样投影 Evidence rows、计算五维 score grid 并原子更新 topology/frontier。禁止自行截短
 claim、从聊天重建 packet fact、直接 Edit 这些四个 section，或重复运行 `synthesis-sources`。
 
