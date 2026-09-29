@@ -19,6 +19,7 @@ import { canonicalAskInputMatches, planHeadlessDecision } from './lib/headless-d
 import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.mjs';
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
+import { questionBridgeValidFor } from './lib/question-bridge.mjs';
 import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
@@ -443,11 +444,10 @@ async function runOnce(arm, selectedCase, repetition) {
     const billingComplete = invocations.length > 0 && invocations.every((item) => item.billingModels.length > 0);
     const rawRequestBound = arm.workflow !== 'enterprise-harness'
       || Boolean(changeId && promptBindingCovers(root, changeId, selectedCase.initialRequest));
-    const questionBridgeValid = arm.workflow !== 'enterprise-harness' || invocations.every((item) => (
-      !item.callbackDiagnostics.includes('answered')
-      || (item.callbackDiagnostics.includes('sdk-pretooluse-authorized')
-        && item.callbackDiagnostics.includes('sdk-posttooluse-persisted'))
-    ));
+    const pendingQuestionAtEnd = arm.workflow === 'enterprise-harness'
+      && Boolean(changeId && pendingCandidate(root, changeId));
+    const questionBridgeValid = arm.workflow !== 'enterprise-harness'
+      || questionBridgeValidFor(invocations, { pendingQuestionAtEnd });
     const record = {
       armId: arm.id,
       workflow: arm.workflow,
@@ -466,6 +466,7 @@ async function runOnce(arm, selectedCase, repetition) {
       modelIdentityValid: identityValid,
       responseIdentityValid: responseIdentity,
       rawRequestBound,
+      pendingQuestionAtEnd,
       questionBridgeValid,
       billingComplete,
       measurementValid: identityValid && billingComplete && rawRequestBound && questionBridgeValid,

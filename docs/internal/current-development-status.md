@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-09-29（Clarify headless bridge 已重构，等待最新真实单轮复验）
+更新时间：2026-09-29（Clarify headless bridge 增加工具暴露与 pending fail-closed，等待 clean 复验）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -14,7 +14,7 @@
 - `benchmarks/model-uplift-v1/` 的正式主张已收敛为三臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2；同时通过“弱 Harness 严格优于弱裸”和“弱 Harness 对强裸 5pp 非劣”才能证明弱模型经 Harness 提升并比肩强模型。
 - 中转站按实际请求计次：GLM-5.1=1 单位、GLM-5.2=3 单位。CC Switch route receipt 负责模型身份并累计计费单位；token、请求数、计费单位与耗时仅作资源统计，不再等待 provider CSV，也不作为效果发布门槛。
 - 首轮三臂 development 校准没有形成产品结论：两条裸跑有效但均未验收；Harness 先暴露 continuity、pending payload 和 synthesis CLI 合同问题。锁定版本的 Claude Agent SDK 0.3.268 / Claude Code 2.1.268 在配置 `canUseTool` 时不会触发本地 AskUserQuestion hook，因此 runner 已改为 SDK PreToolUse/PostToolUse 宿主：最小授权非交互工具、为 canonical Ask 注入 scripted answer，并由 PostToolUse 持久化同一决策。三段 bridge 标记缺任一项即 `measurementValid=false`；正式 holdout 观测仍为 0。
-- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前写代码的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。clean `c622ef9` 的单轮全弱 GLM-5.1 探针成功提出订单状态问题并命中 `eligible-window`，召回 0.0968；后续多轮分别暴露普通问题误用 `scope-confirmation`、post-question 未持久化和 `persist-synthesis --json` 不兼容。clean `2956133` 已修复最后一个本地确定性阻断并通过 253-file prepublish gate，下一步只跑一次真实单轮 bridge 复验；尚无弱模型比肩强模型的效果优势结论。
+- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前代码写入的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。clean `8ed97fe` 已验证 CodeGraph/Context7、synthesis 和具体 Q-1 能在 552,998ms 内完成，但 SDK 未暴露 `AskUserQuestion`，模型只渲染 Markdown；旧 runner 又把无 callback 的 pending question 真空判为 bridge 有效。当前实现已显式启用 Claude Code tool preset 与 Ask 工具，并把结束时仍有 pending question 设为无效测量；下一步只跑一次 clean 单轮复验。尚无弱模型比肩强模型的效果优势结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求每项比较至少 20 组、覆盖至少 5 个 holdout case，并分别通过效果门与单位验收成本的配对 bootstrap 95% 置信边界；10 对只产生诊断区间。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。

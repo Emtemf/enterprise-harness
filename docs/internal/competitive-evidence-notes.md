@@ -94,6 +94,8 @@ clean `8c3d3ba` 四轮校准在三轮无问题后提前停止：首轮已 prepar
 
 兼容宿主的三次探针没有被包装成模型效果：`00cc0d0` 证明 `canUseTool` 与 SDK hooks 并存仍不触发 Ask hook，`questionBridgeValid=false`；`6a01567` 移除 `canUseTool` 后因 Bash 无非交互授权而提前退出，身份与 raw-request binding 无效；`df020ca` 补齐 SDK PreToolUse 授权后恢复 `measurementValid=true`，但 trace 在到达 Ask 前反复返回 `EH-CLARIFY-SYNTHESIS-170`。逐条 session 审计确认模型调用为 `clarify persist-synthesis <change-id> <input-ref> --json`，而 CLI 当时拒绝尾随 `--json`。clean `2956133` 已让该命令接受可选 `--json`、拒绝未知 flag，并通过 253-file prepublish gate；新的真实单轮 bridge 探针尚未完成。因此当前正式效果观测仍为 0，仍不可对外声称“GLM-5.1 + Harness 比肩 GLM-5.2”。
 
+clean `8ed97fe` 的复验已证明 synthesis 修复有效：CodeGraph 与 Context7 packet、`close-research`、`synthesis-sources`、尾随 `--json` 的 `persist-synthesis` 和具体 Q-1 全部一次通过；controller/worker 均为 GLM-5.1，exit 0，耗时 552,998ms。随后模型发现 SDK tool catalog 中不存在 `AskUserQuestion`，把问题渲染为 Markdown，导致 transcript 为空。旧判定对“从未 answered”的 invocation 真空返回 `questionBridgeValid=true`，因此该记录是 benchmark false positive，不是效果 0 分。runner 现显式使用 Claude Code tool preset、允许 `AskUserQuestion`，并在结束时发现 durable pending question 时强制 `questionBridgeValid=false`；修复后的新实测仍待完成。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
