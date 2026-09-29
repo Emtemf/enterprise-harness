@@ -20,6 +20,7 @@ import { businessPromptFor, nextNoQuestionStreak } from './lib/business-prompt.m
 import { initializeFixtureCodeGraph } from './lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
 import { questionBridgeValidFor } from './lib/question-bridge.mjs';
+import { hasSuccessfulToolResult } from './lib/sdk-question-result.mjs';
 import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
@@ -189,6 +190,7 @@ function pendingCandidate(root, changeId) {
 async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, childEnv, answered, changeId, remainingBudgetUsd }) {
   const events = [];
   let plannedDecision = null;
+  let authorizedAsk = null;
   const callbackDiagnostics = [];
   let resolvedChangeId = changeId;
   let timedOut = false;
@@ -217,66 +219,44 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
         plugins: [{ type: 'local', path: repoRoot }],
         env: { ...childEnv, CLAUDE_AGENT_SDK_CLIENT_APP: 'enterprise-harness-model-uplift' },
         abortController,
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: 'Bash|Read|Write|Edit|Glob|Grep|Skill|Agent|ToolSearch|NotebookEdit|WebFetch|WebSearch|mcp__.*',
-              hooks: [async (input) => ({
-                hookSpecificOutput: {
-                  hookEventName: 'PreToolUse',
-                  permissionDecision: 'allow',
-                  updatedInput: input.tool_input,
-                },
-              })],
-            },
-            {
-              matcher: 'AskUserQuestion',
-              hooks: [async (input) => {
-              const status = workflowStatus(root, resolvedChangeId, sessionId);
-              if (status?.changeId) resolvedChangeId = status.changeId;
-              const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
-              if (!candidate) {
-                callbackDiagnostics.push('pending-candidate-missing');
-                return { decision: 'block', reason: 'Harness benchmark could not resolve the canonical pending question.' };
-              }
-              const planned = planHeadlessDecision(selectedCase, candidate, answered);
-              if (!canonicalAskInputMatches(input.tool_input, planned.toolInput)) {
-                callbackDiagnostics.push('ask-input-canonical-mismatch');
-                return {
-                  decision: 'block',
-                  reason: 'AskUserQuestion input is not the canonical prepared candidate. Re-read and project the pending candidate exactly, then retry once.',
-                  continue: true,
-                };
-              }
-              authorizeClarifyQuestion(root, input.tool_input);
-              plannedDecision = planned;
-              callbackDiagnostics.push('sdk-pretooluse-authorized');
-              callbackDiagnostics.push('answered');
-              return {
-                hookSpecificOutput: {
-                  hookEventName: 'PreToolUse',
-                  permissionDecision: 'allow',
-                  updatedInput: { ...planned.toolInput, ...planned.toolResponse },
-                },
-              };
-              }],
-            },
-          ],
-          PostToolUse: [{
-            matcher: 'AskUserQuestion',
-            hooks: [async (input) => {
-              resolveClarifyQuestion(root, input.tool_input, input.tool_response);
-              callbackDiagnostics.push('sdk-posttooluse-persisted');
-              return {
-                continue: false,
-                stopReason: 'Harness SDK host 已持久化 Clarify 用户回答；下一轮从 fresh frontier 继续。',
-              };
-            }],
-          }],
+        canUseTool: async (toolName, input, { toolUseID }) => {
+          if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: input };
+          const status = workflowStatus(root, resolvedChangeId, sessionId);
+          if (status?.changeId) resolvedChangeId = status.changeId;
+          const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
+          if (!candidate) {
+            callbackDiagnostics.push('pending-candidate-missing');
+            return { behavior: 'deny', message: 'Harness benchmark could not resolve the canonical pending question.', interrupt: false };
+          }
+          const planned = planHeadlessDecision(selectedCase, candidate, answered);
+          if (!canonicalAskInputMatches(input, planned.toolInput)) {
+            callbackDiagnostics.push('ask-input-canonical-mismatch');
+            return {
+              behavior: 'deny',
+              message: 'AskUserQuestion input is not the canonical prepared candidate. Re-read and project the pending candidate exactly, then retry once.',
+              interrupt: false,
+            };
+          }
+          authorizeClarifyQuestion(root, planned.toolInput);
+          authorizedAsk = { toolUseId: toolUseID, planned };
+          callbackDiagnostics.push('sdk-canusetool-authorized');
+          callbackDiagnostics.push('answered');
+          return {
+            behavior: 'allow',
+            updatedInput: { ...planned.toolInput, ...planned.toolResponse },
+          };
         },
       },
     });
-    for await (const event of stream) events.push(event);
+    for await (const event of stream) {
+      events.push(event);
+      if (authorizedAsk && hasSuccessfulToolResult(event, authorizedAsk.toolUseId)) {
+        resolveClarifyQuestion(root, authorizedAsk.planned.toolInput, authorizedAsk.planned.toolResponse);
+        plannedDecision = authorizedAsk.planned;
+        authorizedAsk = null;
+        callbackDiagnostics.push('sdk-tool-result-persisted');
+      }
+    }
   } catch (error) {
     caughtError = error;
   } finally {

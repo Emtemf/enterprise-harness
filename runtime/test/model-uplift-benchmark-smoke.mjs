@@ -19,6 +19,7 @@ import { businessPromptFor, nextNoQuestionStreak } from '../../benchmarks/model-
 import { initializeFixtureCodeGraph } from '../../benchmarks/model-uplift-v1/lib/fixture-codegraph.mjs';
 import { harnessSdkPermissionPolicy } from '../../benchmarks/model-uplift-v1/lib/sdk-permission-policy.mjs';
 import { questionBridgeValidFor } from '../../benchmarks/model-uplift-v1/lib/question-bridge.mjs';
+import { hasSuccessfulToolResult } from '../../benchmarks/model-uplift-v1/lib/sdk-question-result.mjs';
 import { sanitizedSdkToolTrace } from '../../benchmarks/model-uplift-v1/lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility, parseClaudeCodeVersion } from '../../benchmarks/model-uplift-v1/lib/sdk-runtime.mjs';
 
@@ -47,27 +48,27 @@ assert.ok(businessProtocol.decisionHierarchy.resourceOnly.includes('input_tokens
 assert.ok(businessProtocol.tracks.some(({ id }) => id === 'clarification'));
 assert.equal(harnessSdkPermissionPolicy.permissionMode, 'default', 'SDK default mode must leave AskUserQuestion available to the PreToolUse answer host');
 assert.deepEqual(harnessSdkPermissionPolicy.tools, { type: 'preset', preset: 'claude_code' });
-assert.deepEqual(harnessSdkPermissionPolicy.allowedTools, ['AskUserQuestion']);
-assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,300}continue: true/u,
+assert.match(businessRunner, /ask-input-canonical-mismatch[\s\S]{0,300}interrupt: false/u,
   'canonical Ask mismatch must be recoverable instead of terminating the SDK turn');
 assert.match(businessRunner, /callbackDiagnostics\.push\('answered'\)/u,
   'SDK callback evidence must preserve a successful retry after prior mismatches');
-assert.doesNotMatch(businessRunner, /canUseTool\s*:/u,
-  'canUseTool bypasses AskUserQuestion SDK hooks in Claude Code 2.1.268 and must not be configured');
-assert.match(businessRunner, /matcher: 'Bash\|Read\|Write[\s\S]{0,320}permissionDecision: 'allow'/u,
-  'SDK hooks must host non-interactive permissions for non-question tools without canUseTool');
-assert.match(businessRunner, /authorizeClarifyQuestion\(root, input\.tool_input\)[\s\S]{0,220}sdk-pretooluse-authorized/u,
+assert.match(businessRunner, /canUseTool: async \(toolName, input, \{ toolUseID \}\)/u,
+  'headless SDK host must bind AskUserQuestion permission to its unique toolUseID');
+assert.match(businessRunner, /authorizeClarifyQuestion\(root, planned\.toolInput\)[\s\S]{0,180}sdk-canusetool-authorized/u,
   'SDK AskUserQuestion bridge must run the same runtime authorization as the plugin PreToolUse hook');
-assert.match(businessRunner, /resolveClarifyQuestion\(root, input\.tool_input, input\.tool_response\)[\s\S]{0,180}sdk-posttooluse-persisted/u,
-  'SDK AskUserQuestion bridge must persist the answer through the same runtime resolver as the plugin PostToolUse hook');
+assert.match(businessRunner, /hasSuccessfulToolResult\(event, authorizedAsk\.toolUseId\)[\s\S]{0,260}sdk-tool-result-persisted/u,
+  'SDK AskUserQuestion bridge must persist only after the matching successful tool result');
 assert.match(businessRunner, /questionBridgeValid[\s\S]{0,500}measurementValid:[^\n]+questionBridgeValid/u,
   'Harness measurements must fail closed unless the SDK question bridge authorized and persisted each answer');
 assert.equal(questionBridgeValidFor([{ callbackDiagnostics: [] }], { pendingQuestionAtEnd: true }), false,
   'a rendered Markdown question with a durable pending candidate is not a valid SDK bridge');
-assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-pretooluse-authorized'] }]), false,
-  'an answer without PostToolUse persistence is not a valid SDK bridge');
-assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-pretooluse-authorized', 'sdk-posttooluse-persisted'] }]), true,
+assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-canusetool-authorized'] }]), false,
+  'an answer without matching tool-result persistence is not a valid SDK bridge');
+assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-canusetool-authorized', 'sdk-tool-result-persisted'] }]), true,
   'a fully authorized and persisted SDK answer is a valid bridge');
+assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-1', is_error: false }] } }, 'ask-1'), true);
+assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-1', is_error: true }] } }, 'ask-1'), false);
+assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-2', is_error: false }] } }, 'ask-1'), false);
 assert.equal(parseClaudeCodeVersion('2.1.268 (Claude Code)'), '2.1.268');
 assert.deepEqual(assertSdkClaudeCompatibility({ version: '0.3.268', claudeCodeVersion: '2.1.268' }, '2.1.268 (Claude Code)'), {
   sdkVersion: '0.3.268', expectedClaudeVersion: '2.1.268', actualClaudeVersion: '2.1.268',

@@ -96,6 +96,8 @@ clean `8c3d3ba` 四轮校准在三轮无问题后提前停止：首轮已 prepar
 
 clean `8ed97fe` 的复验已证明 synthesis 修复有效：CodeGraph 与 Context7 packet、`close-research`、`synthesis-sources`、尾随 `--json` 的 `persist-synthesis` 和具体 Q-1 全部一次通过；controller/worker 均为 GLM-5.1，exit 0，耗时 552,998ms。随后模型发现 SDK tool catalog 中不存在 `AskUserQuestion`，把问题渲染为 Markdown，导致 transcript 为空。旧判定对“从未 answered”的 invocation 真空返回 `questionBridgeValid=true`，因此该记录是 benchmark false positive，不是效果 0 分。runner 现显式使用 Claude Code tool preset、允许 `AskUserQuestion`，并在结束时发现 durable pending question 时强制 `questionBridgeValid=false`；修复后的新实测仍待完成。
 
+clean `fbc77d5` 复验证明 pending fail-closed 已生效：controller/worker 身份、raw request 与账单均有效，但 `pendingQuestionAtEnd=true` 令 `questionBridgeValid=false`、`measurementValid=false`，Markdown 问题不再计成业务 0 分。该轮在一次 duplicate source assignment 后自修复 synthesis，准备了退款失败/超时状态问题；耗时 924,291ms。SDK 进程参数已包含 `--allowedTools AskUserQuestion --tools default`，但模型可见工具列表和 ToolSearch 仍没有 Ask，证明 allowedTools 只授权既有工具，不能在此 headless 路径注册交互工具。runner 因而恢复 `canUseTool` 作为工具暴露宿主，并绑定其唯一 `toolUseID`；只在事件流收到 matching successful tool result 后持久化，不依赖该路径不会触发的本地 hooks。新适配器尚待 clean 实测。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
