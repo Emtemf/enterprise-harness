@@ -102,6 +102,8 @@ clean `f5f96fc` 复验确认 `canUseTool` 已真实暴露结构化 `AskUserQuest
 
 2026-10-01 本机 Claude Code 自动更新为 2.1.284 后，旧 SDK 0.3.268 在任何模型请求前按版本门禁拒绝。仓库已把 Agent SDK 精确锁定为 0.3.284，包内声明的 `claudeCodeVersion` 与本机 executable 均为 2.1.284，253-file prepublish gate 通过。clean `1e03d06` 的单轮复验随后正常 exit 0，但不是 bridge 结果：当前启用的 CC Switch provider 虽名为 `glm-5.2 copy`，Haiku/Sonnet/Opus/Fable 实际都映射到 `glm-5.3-flash`；同 session 的 13 条成功记录也全部为该模型，强制 worker 模型 `claude-haiku-4-5` 则不可用，两个 research run 均未启动。该样本 `modelIdentityValid=false`、`measurementValid=false`、无问题、召回 0。当前 CC Switch local proxy disabled，日志 `data_source=session_log` 只作诊断，route exporter 正确拒绝生成要求 `data_source=proxy` 的权威回执。恢复 5.1/5.2 角色映射和 proxy logging 前，不再消耗正式采样预算；本样本不能证明或否定 session-context 修复。
 
+用户把四个角色都保存为 GLM-5.1 后，fresh Haiku preflight 在与保存配置一致的子进程环境中通过，response/billing 均为 `glm-5.1`。但 clean `efaf634` 单轮仍在 worker dispatch 处停止：controller 为 GLM-5.1，`CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5` 被 gateway 判为不可用，worker stream 为空，故 `modelIdentityValid=false`、`measurementValid=false`。当前 Claude Code 模型配置合同明确接受 model alias，并把 `CLAUDE_CODE_SUBAGENT_MODEL` 纳入 subagent 模型控制面；矩阵因此改为 `haiku` alias，让 CC Switch 的 Haiku→GLM-5.1 映射实际生效，同时保留 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` 与 route receipt 污染门。旧样本中 alias 曾落到 GLM-5.2 的事实仍保留为环境漂移负证据，不用于否定当前官方合同。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

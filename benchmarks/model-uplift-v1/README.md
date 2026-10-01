@@ -14,7 +14,7 @@
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
 | `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
 
-Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。插件所有 named agent 都使用 `model: inherit`。`weak-harness` 还按 Claude Code 官方的 [subagent model 规则](https://code.claude.com/docs/en/sub-agents#run-every-subagent-on-one-model)，同时设置 `CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5` 与 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`，防止普通 subagent、teammate 或 workflow agent 自行升级；fork 与 `model: inherit` Skill 仍跟随 Haiku controller。任何实际 GLM-5.2 请求仍由 route receipt 判定为污染样本。
+Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。插件所有 named agent 都使用 `model: inherit`。`weak-harness` 还按 Claude Code 官方的 [模型配置合同](https://code.claude.com/docs/en/model-config) 设置 `CLAUDE_CODE_SUBAGENT_MODEL=haiku` 与 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`，让第三方 gateway 继续通过 Haiku alias 解析实际模型，同时防止普通 subagent、teammate 或 workflow agent 自行升级；fork 与 `model: inherit` Skill 仍跟随 Haiku controller。任何实际 GLM-5.2 请求仍由 route receipt 判定为污染样本。
 
 效果证据与资源统计分开：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位，并按用户确认的中转站规则累计请求计费单位。GLM-5.1 每次请求记 1 单位，GLM-5.2 每次请求记 3 单位。Claude Code 返回的 alias `costUSD` 仅保留作诊断；计费单位、token 和耗时都不参与效果发布门槛。
 

@@ -34,7 +34,7 @@ const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-
 
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'weak-bare', 'strong-bare']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
-assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').subagentModelOverride, 'claude-haiku-4-5');
+assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').subagentModelOverride, 'haiku');
 assert.equal(matrix.arms.find(({ id }) => id === 'weak-harness').forceSubagentModel, true);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'strong-bare').allowedActualModels, ['glm-5.1', 'glm-5.2']);
 assert.deepEqual(matrix.comparisons.map(({ id }) => id), [
