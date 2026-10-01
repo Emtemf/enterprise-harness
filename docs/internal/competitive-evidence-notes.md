@@ -104,6 +104,8 @@ clean `f5f96fc` 复验确认 `canUseTool` 已真实暴露结构化 `AskUserQuest
 
 用户把四个角色都保存为 GLM-5.1 后，fresh Haiku preflight 在与保存配置一致的子进程环境中通过，response/billing 均为 `glm-5.1`。但 clean `efaf634` 单轮仍在 worker dispatch 处停止：controller 为 GLM-5.1，`CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5` 被 gateway 判为不可用，worker stream 为空，故 `modelIdentityValid=false`、`measurementValid=false`。当前 Claude Code 模型配置合同明确接受 model alias，并把 `CLAUDE_CODE_SUBAGENT_MODEL` 纳入 subagent 模型控制面；矩阵因此改为 `haiku` alias，让 CC Switch 的 Haiku→GLM-5.1 映射实际生效，同时保留 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` 与 route receipt 污染门。旧样本中 alias 曾落到 GLM-5.2 的事实仍保留为环境漂移负证据，不用于否定当前官方合同。
 
+clean `cd2e457` 复验证明 alias 修复与 session-context bridge 都已闭环：controller、CodeGraph worker、Context7 worker 均为 GLM-5.1；两个 ResearchPacket 落盘后主 Agent 生成具体问题“订单处于哪些状态时允许用户自助发起退款？”，host 以真实自由文本回注资格窗口和退款状态。`callbackDiagnostics` 完整包含 `sdk-canusetool-authorized`、`answered`、`sdk-tool-result-persisted`，pending 清空、transcript 非空、`questionBridgeValid=true`、`measurementValid=true`。该单轮命中 `eligible-window` 与 `refund-state`，关键未知项召回 0.194、未经确认假设率 0、evidence grounding 0.5；耗时 1,342,966ms，input/output 分别 105,509/47,223。样本只完成一问，`accepted=false`，且 CC Switch local proxy logging 仍关闭，因此不进入正式效果对照。下一步是有限多轮 development 校准召回曲线，再恢复 Sonnet/Opus→GLM-5.2 与 proxy logging 做三臂正式采样。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

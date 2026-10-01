@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-valid",
+  "observedAt": "2026-10-01T15:43:33.340Z",
+  "runnerCommit": "cd2e457a7b76e6e056abac1ad75c4e071d90ec0f",
+  "runnerTreeClean": true,
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "caseSplit": "development",
+  "harnessRuntime": {
+    "sdkVersion": "0.3.284",
+    "expectedClaudeVersion": "2.1.284",
+    "actualClaudeVersion": "2.1.284"
+  },
+  "models": {
+    "controller": "glm-5.1",
+    "workers": [
+      "glm-5.1"
+    ],
+    "identityValid": true
+  },
+  "bridge": {
+    "questionId": "Q-1",
+    "decisionType": "clarify-answer",
+    "selectedOptionId": "other",
+    "callbackDiagnostics": [
+      "sdk-canusetool-authorized",
+      "answered",
+      "sdk-tool-result-persisted"
+    ],
+    "pendingQuestionAtEnd": false,
+    "questionBridgeValid": true,
+    "transcriptTurns": 1
+  },
+  "result": {
+    "measurementValid": true,
+    "accepted": false,
+    "effectScore": 29.274193548387096,
+    "criticalUnknownRecall": 0.1935483870967742,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 0.5,
+    "decisionEfficiency": 6,
+    "answeredFactIds": [
+      "eligible-window",
+      "refund-state"
+    ],
+    "durationMs": 1342966,
+    "inputTokens": 105509,
+    "outputTokens": 47223,
+    "cacheReadInputTokens": 983616
+  },
+  "routeReceipt": {
+    "authoritative": false,
+    "reason": "CC Switch local proxy logging was disabled; model identity is valid for development diagnostics but this sample cannot enter a publishable paired comparison."
+  },
+  "claimEligible": false,
+  "reason": "This development sample proves the GLM-5.1 research and structured-question bridge works on Claude Code 2.1.284. One question did not complete the business clarification, and no authoritative route receipt exists."
+}

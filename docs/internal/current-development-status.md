@@ -1,6 +1,6 @@
 # 当前研发快照
 
-更新时间：2026-10-01（SDK 已配套 Claude Code 2.1.284；CC Switch 对照路由漂移，暂停正式采样）
+更新时间：2026-10-01（GLM-5.1 headless bridge 已闭环；等待多轮校准与 5.1/5.2 正式路由）
 
 本文件仅供维护者继续开发，不是产品合同、安装资产或动态状态真相。
 
@@ -14,7 +14,7 @@
 - `benchmarks/model-uplift-v1/` 的正式主张已收敛为三臂真实运行器：裸 GLM-5.1、全 GLM-5.1 Harness、裸 GLM-5.2；同时通过“弱 Harness 严格优于弱裸”和“弱 Harness 对强裸 5pp 非劣”才能证明弱模型经 Harness 提升并比肩强模型。
 - 中转站按实际请求计次：GLM-5.1=1 单位、GLM-5.2=3 单位。CC Switch route receipt 负责模型身份并累计计费单位；token、请求数、计费单位与耗时仅作资源统计，不再等待 provider CSV，也不作为效果发布门槛。
 - 首轮三臂 development 校准没有形成产品结论：两条裸跑有效但均未验收；Harness 先暴露 continuity、pending payload 和 synthesis CLI 合同问题。headless Ask 由 SDK permission host 授权 canonical payload，再按 matching successful tool result 持久化；bridge 标记缺任一项即 `measurementValid=false`。Agent SDK 已精确升级到 0.3.284，与 Claude Code 2.1.284 配套；每次 CLI 升级都必须重新跑真实 bridge 探针。正式 holdout 观测仍为 0。
-- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前代码写入的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。adapter 对 authorize/resolve 都显式传入 session ID，并只在 matching successful tool result 后持久化；本地行为测试在无 `ACTIVE_CHANGE` 时通过。clean `1e03d06` 复验被环境门阻断：当前 CC Switch 把四个 Claude 角色全部映射为 GLM-5.3-Flash，worker 指定模型不可用，本地 proxy logging 也未启用；样本身份/测量无效，不能验证 bridge。恢复 GLM-5.1/5.2 映射与 proxy logging 后再跑一次 clean 单轮复验。尚无弱模型比肩强模型的效果优势结论。
+- 模型放大基准已增加可运行的业务澄清轨：5 个不可发布的 development case、按提问命中的脚本化用户、关键未知项/未经确认假设/证据落地/提前代码写入的确定性评分，以及仓库外 holdout + digest-bound 隔离回执门。adapter 对 authorize/resolve 都显式传入 session ID，并只在 matching successful tool result 后持久化；本地行为测试在无 `ACTIVE_CHANGE` 时通过。clean `cd2e457` 的 GLM-5.1 单轮探针已完成 CodeGraph/Context7 双 worker 与真实 Ask 闭环，三段 callback 标记齐全，pending 清空，`measurementValid=true`，召回 0.194、未经确认假设率 0。该 development 样本只完成一问且无权威 proxy route receipt，不计正式观测。下一步是有限多轮召回校准，再恢复 Sonnet/Opus→GLM-5.2 与 proxy logging 进入三臂采样。尚无弱模型比肩强模型的效果优势结论。
 - 产品效果由系统中立隐藏业务测试判定，经济指标为全部成本除以已验收变更数；公开模型放大结论要求每项比较至少 20 组、覆盖至少 5 个 holdout case，并分别通过效果门与单位验收成本的配对 bootstrap 95% 置信边界；10 对只产生诊断区间。
 - 首轮诊断经 grader 合同校准后，两个 Claude alias 裸跑臂都是 7/7，不能区分实际模型效果；Harness 臂超时且没有最终 billing result，明确记为无效测量，不能按零成本汇总。
 - 公开页面改用无文字的企业级模型放大主视觉，并由 `evidence-status.json` 与 docs consistency gate 阻止在证据不足时发布“低价模型达到高价模型效果”的结论。
