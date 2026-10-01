@@ -100,6 +100,8 @@ clean `fbc77d5` 复验证明 pending fail-closed 已生效：controller/worker �
 
 clean `f5f96fc` 复验确认 `canUseTool` 已真实暴露结构化 `AskUserQuestion`，进程参数为 `--permission-prompt-tool stdio --tools default`，模型调用了 canonical pending Q-1；但 permission host 调用 runtime core 时得到 `EH-QUESTION-ACTIVE-108: no active change is bound`。pending 与 session binding 都存在，根因是 core 只从父 Node 进程环境解析 active change，而 Claude session ID 仅传给子进程。该运行按新规则正确得到 `pendingQuestionAtEnd=true`、`questionBridgeValid=false`、`measurementValid=false`，不计效果。core 现为 authorize/resolve 增加可选 session context，adapter 显式传入 session ID；行为测试删除 `ACTIVE_CHANGE` 后仍可完成两步，证明不依赖 v5 compat 文件。尚待下一次 clean 真实复验。
 
+2026-10-01 本机 Claude Code 自动更新为 2.1.284 后，旧 SDK 0.3.268 在任何模型请求前按版本门禁拒绝。仓库已把 Agent SDK 精确锁定为 0.3.284，包内声明的 `claudeCodeVersion` 与本机 executable 均为 2.1.284，253-file prepublish gate 通过。clean `1e03d06` 的单轮复验随后正常 exit 0，但不是 bridge 结果：当前启用的 CC Switch provider 虽名为 `glm-5.2 copy`，Haiku/Sonnet/Opus/Fable 实际都映射到 `glm-5.3-flash`；同 session 的 13 条成功记录也全部为该模型，强制 worker 模型 `claude-haiku-4-5` 则不可用，两个 research run 均未启动。该样本 `modelIdentityValid=false`、`measurementValid=false`、无问题、召回 0。当前 CC Switch local proxy disabled，日志 `data_source=session_log` 只作诊断，route exporter 正确拒绝生成要求 `data_source=proxy` 的权威回执。恢复 5.1/5.2 角色映射和 proxy logging 前，不再消耗正式采样预算；本样本不能证明或否定 session-context 修复。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

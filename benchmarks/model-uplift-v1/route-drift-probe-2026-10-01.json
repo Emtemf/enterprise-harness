@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-invalid",
+  "observedAt": "2026-10-01T14:54:04.226Z",
+  "runnerCommit": "1e03d0611054d6bf10e1a067948a08e67b659d6f",
+  "runnerTreeClean": true,
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "harnessRuntime": {
+    "sdkVersion": "0.3.284",
+    "expectedClaudeVersion": "2.1.284",
+    "actualClaudeVersion": "2.1.284"
+  },
+  "configuredRoleModels": {
+    "haiku": "glm-5.3-flash",
+    "sonnet": "glm-5.3-flash",
+    "opus": "glm-5.3-flash",
+    "fable": "glm-5.3-flash"
+  },
+  "observedRequests": {
+    "dataSource": "session_log",
+    "successfulCount": 13,
+    "models": [
+      "glm-5.3-flash"
+    ],
+    "authoritativeRouteReceiptAvailable": false,
+    "localProxyLoggingEnabled": false
+  },
+  "result": {
+    "modelIdentityValid": false,
+    "measurementValid": false,
+    "questionTurns": 0,
+    "criticalUnknownRecall": 0,
+    "researchPacketsPersisted": 0,
+    "workerDispatchStatus": "configured claude-haiku-4-5 unavailable",
+    "durationMs": 546323,
+    "inputTokens": 26040,
+    "outputTokens": 13238
+  },
+  "claimEligible": false,
+  "reason": "The active CC Switch role mapping no longer represents the frozen GLM-5.1 versus GLM-5.2 experiment, and session_log diagnostics do not satisfy the proxy-log route receipt contract. This run cannot verify or reject the session-context bridge."
+}
