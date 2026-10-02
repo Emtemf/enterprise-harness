@@ -106,6 +106,8 @@ clean `f5f96fc` 复验确认 `canUseTool` 已真实暴露结构化 `AskUserQuest
 
 clean `cd2e457` 复验证明 alias 修复与 session-context bridge 都已闭环：controller、CodeGraph worker、Context7 worker 均为 GLM-5.1；两个 ResearchPacket 落盘后主 Agent 生成具体问题“订单处于哪些状态时允许用户自助发起退款？”，host 以真实自由文本回注资格窗口和退款状态。`callbackDiagnostics` 完整包含 `sdk-canusetool-authorized`、`answered`、`sdk-tool-result-persisted`，pending 清空、transcript 非空、`questionBridgeValid=true`、`measurementValid=true`。该单轮命中 `eligible-window` 与 `refund-state`，关键未知项召回 0.194、未经确认假设率 0、evidence grounding 0.5；耗时 1,342,966ms，input/output 分别 105,509/47,223。样本只完成一问，`accepted=false`，且 CC Switch local proxy logging 仍关闭，因此不进入正式效果对照。下一步是有限多轮 development 校准召回曲线，再恢复 Sonnet/Opus→GLM-5.2 与 proxy logging 做三臂正式采样。
 
+clean `56de946` 的四轮 GLM-5.1 development 校准完成 CodeGraph/Context7 与四次真实 SDK 问答闭环，但只能作为缺陷证据：第 2 轮在新 questionId 下逐字重复第 1 轮问题；4 轮只命中 `partial-refund`、`eligible-window`、`ownership` 三项，关键未知项召回 0.290、最终需求覆盖 0、`accepted=false`。alias 估算累计成本 $10.38213，超过请求的 $8 上限，说明仅把余额传给 SDK 不能形成宿主硬预算。runtime 现对所有已解决候选比较 canonical Ask 载荷，即使此前选择 Other 也拒绝同文重问；runner 在下一轮前保留既有最大单轮成本，并把实际超限样本标记为 `budgetLimitValid=false`、`measurementValid=false`。该运行的最小审计摘要见 [`multiturn-calibration-2026-10-02.json`](../../benchmarks/model-uplift-v1/multiturn-calibration-2026-10-02.json)，不进入模型效果对照。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

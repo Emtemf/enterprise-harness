@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-invalid",
+  "claimEligible": false,
+  "runnerCommit": "56de946",
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "controllerModels": [
+    "glm-5.1"
+  ],
+  "workerModels": [
+    "glm-5.1"
+  ],
+  "questionBridgeValid": true,
+  "budgetUsd": 8,
+  "budgetLimitValid": false,
+  "measurementValidUnderCurrentRules": false,
+  "grade": {
+    "accepted": false,
+    "effectScore": 32.66129032258064,
+    "criticalUnknownRecall": 0.2903225806451613,
+    "finalRequirementCoverage": 0,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 0.5,
+    "decisionEfficiency": 2.25
+  },
+  "questions": [
+    {
+      "turn": 1,
+      "question": "用户自助退款应限定为整单全额退款，还是允许部分退款？",
+      "answeredFactIds": [
+        "partial-refund"
+      ],
+      "repeated": false
+    },
+    {
+      "turn": 2,
+      "question": "用户自助退款应限定为整单全额退款，还是允许部分退款？",
+      "answeredFactIds": [],
+      "repeated": true
+    },
+    {
+      "turn": 3,
+      "question": "自助退款应仅对已支付（PAID）订单开放，还是也允许已履约（FULFILLED）订单发起？",
+      "answeredFactIds": [
+        "eligible-window"
+      ],
+      "repeated": false
+    },
+    {
+      "turn": 4,
+      "question": "用户自助退款应仅限订单归属用户本人发起，还是也允许其他已登录用户为他人订单发起？",
+      "answeredFactIds": [
+        "ownership"
+      ],
+      "repeated": false
+    }
+  ],
+  "totals": {
+    "inputTokens": 457313,
+    "outputTokens": 183125,
+    "cacheReadInputTokens": 7034880,
+    "aliasEstimatedCostUsd": 10.38213,
+    "durationMs": 1366038
+  },
+  "invalidReasons": [
+    "turn-2-repeated-resolved-question",
+    "observed-cost-exceeded-requested-budget",
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt",
+    "not-accepted"
+  ]
+}

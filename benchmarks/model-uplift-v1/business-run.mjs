@@ -22,6 +22,7 @@ import { harnessSdkPermissionPolicy } from './lib/sdk-permission-policy.mjs';
 import { questionBridgeValidFor } from './lib/question-bridge.mjs';
 import { hasSuccessfulToolResult } from './lib/sdk-question-result.mjs';
 import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
+import { budgetLimitValid, invocationBudgetStatus } from './lib/invocation-budget.mjs';
 import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
@@ -325,9 +326,12 @@ async function runOnce(arm, selectedCase, repetition) {
       delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE;
       if (arm.subagentModelOverride) childEnv.CLAUDE_CODE_SUBAGENT_MODEL = arm.subagentModelOverride;
       if (arm.forceSubagentModel) childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE = '1';
-      const spent = invocations.reduce((sum, item) => sum + item.usage.costUsd, 0);
-      const remaining = budgetUsd - spent;
-      if (remaining <= 0.001) break;
+      const budgetStatus = invocationBudgetStatus(budgetUsd, invocations);
+      if (!budgetStatus.allowed) {
+        stopReason = budgetStatus.stopReason;
+        break;
+      }
+      const remaining = budgetStatus.remainingUsd;
       const claudeArgs = [
         '-p', ...(turn === 1 ? ['--session-id', sessionId] : ['--resume', sessionId]),
         '--output-format', 'stream-json', '--verbose', '--max-turns', '60', '--max-budget-usd', remaining.toFixed(6),
@@ -428,6 +432,16 @@ async function runOnce(arm, selectedCase, repetition) {
       && Boolean(changeId && pendingCandidate(root, changeId));
     const questionBridgeValid = arm.workflow !== 'enterprise-harness'
       || questionBridgeValidFor(invocations, { pendingQuestionAtEnd });
+    const totals = invocations.reduce((sum, item) => ({
+      inputTokens: sum.inputTokens + item.usage.inputTokens,
+      outputTokens: sum.outputTokens + item.usage.outputTokens,
+      cacheReadInputTokens: sum.cacheReadInputTokens + item.usage.cacheReadInputTokens,
+      cacheCreationInputTokens: sum.cacheCreationInputTokens + item.usage.cacheCreationInputTokens,
+      costUsd: sum.costUsd + item.usage.costUsd,
+      durationMs: sum.durationMs + item.durationMs,
+    }), { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUsd: 0, durationMs: 0 });
+    const withinBudget = budgetLimitValid(budgetUsd, invocations);
+    if (!withinBudget && !stopReason) stopReason = 'budget-limit-exceeded';
     const record = {
       armId: arm.id,
       workflow: arm.workflow,
@@ -449,19 +463,13 @@ async function runOnce(arm, selectedCase, repetition) {
       pendingQuestionAtEnd,
       questionBridgeValid,
       billingComplete,
-      measurementValid: identityValid && billingComplete && rawRequestBound && questionBridgeValid,
+      budgetLimitValid: withinBudget,
+      measurementValid: identityValid && billingComplete && rawRequestBound && questionBridgeValid && withinBudget,
       stopReason,
       costAuthority: 'claude-code-alias-estimate',
       providerCostUsd: null,
       invocations,
-      totals: invocations.reduce((sum, item) => ({
-        inputTokens: sum.inputTokens + item.usage.inputTokens,
-        outputTokens: sum.outputTokens + item.usage.outputTokens,
-        cacheReadInputTokens: sum.cacheReadInputTokens + item.usage.cacheReadInputTokens,
-        cacheCreationInputTokens: sum.cacheCreationInputTokens + item.usage.cacheCreationInputTokens,
-        costUsd: sum.costUsd + item.usage.costUsd,
-        durationMs: sum.durationMs + item.durationMs,
-      }), { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUsd: 0, durationMs: 0 }),
+      totals,
     };
     writeJsonAtomic(checkpoint, {
       schemaVersion: 1,

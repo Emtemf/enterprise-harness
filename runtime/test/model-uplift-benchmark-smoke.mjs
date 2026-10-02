@@ -22,6 +22,7 @@ import { questionBridgeValidFor } from '../../benchmarks/model-uplift-v1/lib/que
 import { hasSuccessfulToolResult } from '../../benchmarks/model-uplift-v1/lib/sdk-question-result.mjs';
 import { sanitizedSdkToolTrace } from '../../benchmarks/model-uplift-v1/lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility, parseClaudeCodeVersion } from '../../benchmarks/model-uplift-v1/lib/sdk-runtime.mjs';
+import { budgetLimitValid, invocationBudgetStatus } from '../../benchmarks/model-uplift-v1/lib/invocation-budget.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -60,6 +61,21 @@ assert.match(businessRunner, /hasSuccessfulToolResult\(event, authorizedAsk\.too
   'SDK AskUserQuestion bridge must persist only after the matching successful tool result');
 assert.match(businessRunner, /questionBridgeValid[\s\S]{0,500}measurementValid:[^\n]+questionBridgeValid/u,
   'Harness measurements must fail closed unless the SDK question bridge authorized and persisted each answer');
+assert.match(businessRunner, /budgetLimitValid:[^\n]+withinBudget[\s\S]{0,180}measurementValid:[^\n]+withinBudget/u,
+  'measurements must fail closed after an observed budget overrun');
+assert.deepEqual(invocationBudgetStatus(8, []), {
+  allowed: true, spentUsd: 0, remainingUsd: 8, reserveUsd: 0, stopReason: null,
+});
+assert.deepEqual(invocationBudgetStatus(8, [
+  { usage: { costUsd: 1.59 } }, { usage: { costUsd: 2.19 } }, { usage: { costUsd: 2.95 } },
+]), {
+  allowed: false,
+  spentUsd: 6.73,
+  remainingUsd: 1.2699999999999996,
+  reserveUsd: 2.95,
+  stopReason: 'insufficient-remaining-invocation-budget',
+});
+assert.equal(budgetLimitValid(8, [{ usage: { costUsd: 10.38 } }]), false);
 assert.equal(questionBridgeValidFor([{ callbackDiagnostics: [] }], { pendingQuestionAtEnd: true }), false,
   'a rendered Markdown question with a durable pending candidate is not a valid SDK bridge');
 assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-canusetool-authorized'] }]), false,

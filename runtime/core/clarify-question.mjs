@@ -491,6 +491,27 @@ function expectedToolInput(candidate) {
   };
 }
 
+function resolvedQuestionWithSameToolInput(root, changeId, candidate, events) {
+  const expected = expectedToolInput(candidate);
+  for (const event of events) {
+    if (!isSafeId(event.questionId) || event.questionId === candidate.questionId) continue;
+    const priorRef = questionCandidatePath(changeId, event.questionId);
+    const priorPath = resolveRepoTarget(root, priorRef, 'resolved question candidate');
+    if (!fs.existsSync(priorPath) || !fs.statSync(priorPath).isFile()) continue;
+    let prior;
+    try {
+      prior = JSON.parse(fs.readFileSync(priorPath, 'utf-8'));
+    } catch {
+      continue;
+    }
+    if (prior.changeId === changeId && validateQuestionCandidate(prior).length === 0
+        && sameJson(expectedToolInput(prior), expected)) {
+      return event;
+    }
+  }
+  return null;
+}
+
 function loadPendingCandidate(root, changeId, pending) {
   const loaded = loadCandidate(root, changeId, pending.candidateRef);
   if (loaded.candidate.questionId !== pending.questionId || loaded.candidateDigest !== pending.candidateDigest) {
@@ -610,7 +631,8 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
     if (fresh.candidateDigest !== loaded.candidateDigest) {
       throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${canonicalRef}`);
     }
-    const resolvedTarget = readDecisionEvents(root, changeId).find((event) => (
+    const decisionEvents = readDecisionEvents(root, changeId);
+    const resolvedTarget = decisionEvents.find((event) => (
       event.decisionType === fresh.candidate.decisionType
       && event.targetRef === fresh.candidate.targetRef
     ));
@@ -618,6 +640,18 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
       throw questionError(
         'EH-QUESTION-TARGET-115',
         `decision target ${fresh.candidate.decisionType}:${fresh.candidate.targetRef} is already resolved by ${resolvedTarget.eventId}`,
+      );
+    }
+    const repeatedQuestion = resolvedQuestionWithSameToolInput(
+      root,
+      changeId,
+      fresh.candidate,
+      decisionEvents,
+    );
+    if (repeatedQuestion) {
+      throw questionError(
+        'EH-QUESTION-TARGET-115',
+        `question payload is already resolved by ${repeatedQuestion.eventId}`,
       );
     }
     const pending = {
