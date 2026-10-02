@@ -10,6 +10,7 @@ export function answerBusinessQuestion(selectedCase, question, alreadyAnswered =
     return {
       answer: allMatches.map(({ answer }) => answer).join('\n'),
       answeredFactIds: [],
+      matchedFactIds: allMatches.map(({ id }) => id),
       unmatched: false,
       repeated: true,
     };
@@ -18,6 +19,7 @@ export function answerBusinessQuestion(selectedCase, question, alreadyAnswered =
     return {
       answer: selectedCase.unmatchedAnswer || '这个问题不在本次变更范围内，保持现有行为；若现有系统没有定义，则不在本次新增规则。请继续询问最关键的未决项。',
       answeredFactIds: [],
+      matchedFactIds: [],
       unmatched: true,
       repeated: false,
     };
@@ -25,6 +27,7 @@ export function answerBusinessQuestion(selectedCase, question, alreadyAnswered =
   return {
     answer: matches.map(({ answer }) => answer).join('\n'),
     answeredFactIds: matches.map(({ id }) => id),
+    matchedFactIds: allMatches.map(({ id }) => id),
     unmatched: false,
     repeated: false,
   };

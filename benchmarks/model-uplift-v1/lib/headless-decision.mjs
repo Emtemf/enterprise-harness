@@ -20,8 +20,7 @@ export function planHeadlessDecision(selectedCase, candidate, answered = new Set
       multiSelect: false,
     }],
   };
-  const candidateText = [candidate.question, candidate.decisionNeeded,
-    ...candidate.options.flatMap(({ label, description }) => [label, description])].join(' ');
+  const candidateText = [candidate.question, candidate.decisionNeeded].join(' ');
   const scripted = answerBusinessQuestion(selectedCase, candidateText, answered);
   let displayedAnswer = scripted.answer;
   let selectedOptionId = 'other';
@@ -31,9 +30,14 @@ export function planHeadlessDecision(selectedCase, candidate, answered = new Set
     displayedAnswer = `${selected.label} (Recommended)`;
     selectedOptionId = selected.id;
   } else if (!scripted.unmatched) {
-    const matchingOptions = candidate.options.filter(({ label, description }) => scripted.answeredFactIds.every((factId) => {
+    const selectionFactIds = candidate.normalizesEventId === undefined
+      ? scripted.answeredFactIds : scripted.matchedFactIds;
+    const matchingOptions = candidate.options.filter(({ label, description }) => selectionFactIds.length > 0
+      && selectionFactIds.every((factId) => {
       const fact = selectedCase.requiredFacts.find(({ id }) => id === factId);
-      return fact && new RegExp(fact.acceptancePattern, 'iu').test(`${label} ${description}`);
+      const pattern = candidate.normalizesEventId === undefined
+        ? fact?.acceptancePattern : fact?.normalizationPattern || fact?.acceptancePattern;
+      return pattern && new RegExp(pattern, 'iu').test(`${label} ${description}`);
     }));
     if (matchingOptions.length === 1) {
       const selected = matchingOptions[0];

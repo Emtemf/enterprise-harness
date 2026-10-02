@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "type": "development-diagnostic-summary",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "bd4d180514ee8edcc8209036acd1513069dbc269",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "armId": "weak-harness",
+  "controllerModels": ["glm-5.1"],
+  "workerModels": ["glm-5.1"],
+  "durationMs": 2305259,
+  "costAuthority": "claude-code-alias-estimate",
+  "estimatedCostUsd": 8.461689,
+  "measurementValid": false,
+  "modelIdentityValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": false,
+  "accepted": false,
+  "questionTurns": 2,
+  "criticalUnknownRecall": 0.2903225806451613,
+  "prematureAssumptionRate": 0,
+  "mechanismEvidence": {
+    "researchCloseSucceeded": true,
+    "sourceEventId": "D-1",
+    "sourceSelectedOption": "other",
+    "sourceCandidateDigestBound": true,
+    "normalizationQuestionId": "Q-2",
+    "normalizesEventId": "D-1",
+    "normalizationEventId": "D-2",
+    "normalizationSelectedOption": "other",
+    "freeTextPersisted": false
+  },
+  "benchmarkRootCause": [
+    "scripted fact routing included option vocabulary, so CANCELLED in an option falsely matched the refund-state fact",
+    "the normalization turn filtered already answered facts to an empty set and empty-set matching selected no unique option"
+  ],
+  "acceptedCandidate": "route scripted facts from question plus decisionNeeded only, and use an optional single-axis normalizationPattern for a normalizesEventId candidate",
+  "rejectedCandidate": "loosen production runtime or treat the second Other as a successful typed disposition",
+  "effectClaimEligible": false,
+  "notes": "This run proves real GLM-5.1 generation and runtime persistence of normalization lineage, but not typed closure or effect uplift."
+}

@@ -79,6 +79,14 @@ function validateCasePack(pack) {
         if (typeof fact[field] !== 'string' || !fact[field]) throw new Error(`${selectedCase.id}/${fact.id} requires ${field}`);
         try { new RegExp(fact[field], 'iu'); } catch { throw new Error(`${selectedCase.id}/${fact.id} has invalid ${field}`); }
       }
+      if (fact.normalizationPattern !== undefined) {
+        if (typeof fact.normalizationPattern !== 'string' || !fact.normalizationPattern) {
+          throw new Error(`${selectedCase.id}/${fact.id} has invalid normalizationPattern`);
+        }
+        try { new RegExp(fact.normalizationPattern, 'iu'); } catch {
+          throw new Error(`${selectedCase.id}/${fact.id} has invalid normalizationPattern`);
+        }
+      }
     }
   }
   return pack;

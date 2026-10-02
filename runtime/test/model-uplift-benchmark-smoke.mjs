@@ -283,6 +283,32 @@ const synonymousRefundDecision = planHeadlessDecision(refundCase, {
 assert.equal(synonymousRefundDecision.selectedOptionId, 'full-only',
   'scripted user must select the uniquely equivalent option instead of submitting avoidable Other text');
 assert.match(synonymousRefundDecision.answer, /仅全额退款/u);
+const stateDecision = planHeadlessDecision(refundCase, {
+  questionId: 'Q-STATE', decisionType: 'clarify-answer', header: '退款资格',
+  question: '在订单归属当前用户的前提下，哪些订单状态允许用户自助退款？', decisionNeeded: '确定状态资格',
+  recommendedOption: 'paid-only',
+  options: [
+    { id: 'paid-only', label: '仅 PAID 状态', description: '只有已付款且未发货的订单允许用户自助退款。' },
+    { id: 'paid-fulfilled', label: 'PAID 与 FULFILLED', description: '已付款和已发货订单都允许退款。' },
+    { id: 'all', label: '全部现有状态', description: 'PAID、FULFILLED 与 CANCELLED 都允许退款。' },
+  ],
+}, new Set());
+assert.deepEqual(stateDecision.answeredFactIds.sort(), ['eligible-window', 'ownership'],
+  'option vocabulary must not route unrelated scripted facts into the user answer');
+assert.equal(stateDecision.selectedOptionId, 'other', 'the initial compound free-text truth must remain strict');
+const normalizedStateDecision = planHeadlessDecision(refundCase, {
+  questionId: 'Q-STATE-NORM', decisionType: 'clarify-answer', header: '退款状态',
+  question: '用户自助退款应开放给哪些订单状态？', decisionNeeded: '规范化状态资格',
+  normalizesEventId: 'D-1', recommendedOption: 'paid-only-norm',
+  options: [
+    { id: 'paid-only-norm', label: '仅已付款状态', description: '自助退款仅对已付款状态的订单开放。' },
+    { id: 'paid-fulfilled-norm', label: '已付款与已发货', description: '对已付款与已发货状态开放。' },
+    { id: 'all-norm', label: '全部现有状态', description: '对现有全部状态开放。' },
+  ],
+}, new Set(['eligible-window', 'ownership']));
+assert.equal(normalizedStateDecision.repeated, true);
+assert.equal(normalizedStateDecision.selectedOptionId, 'paid-only-norm',
+  'normalization must project prior free text onto the current single policy axis');
 assert.equal(canonicalAskInputMatches({
   questions: businessDecision.toolInput.questions.map(({ question, header, options, multiSelect }) => ({
     options: options.map(({ label, description }) => ({ description, label })), multiSelect, header, question,
