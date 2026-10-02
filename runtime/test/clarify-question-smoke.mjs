@@ -647,15 +647,89 @@ try {
     /EH-QUESTION-TARGET-115: question decision surface is already handled/u,
     'an Other answer must not allow the same typed target to be paraphrased under a new questionId',
   );
-  const otherRequirements = path.join(root, `harness/changes/${otherChange}/requirements.md`);
+  const sourceCandidatePath = path.join(root, otherRef);
+  const sourceCandidateBytes = fs.readFileSync(sourceCandidatePath);
+  const tamperedSourceCandidate = JSON.parse(sourceCandidateBytes.toString('utf-8'));
+  tamperedSourceCandidate.componentId = 'forged-component';
+  fs.writeFileSync(sourceCandidatePath, `${JSON.stringify(tamperedSourceCandidate, null, 2)}\n`, 'utf-8');
+  const tamperedNormalizationCandidate = candidateFor(otherChange, 'Q-028', {
+    normalizesEventId: 'D-020',
+    question: 'Should this forged compatibility policy be recorded?',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(tamperedNormalizationCandidate)),
+    /EH-QUESTION-NORMALIZATION-117.*does not bind the current source candidate digest/u,
+    'normalization must fail closed when the historical question candidate was modified after the Other event',
+  );
+  fs.writeFileSync(sourceCandidatePath, sourceCandidateBytes);
+  const missingNormalizationCandidate = candidateFor(otherChange, 'Q-025', {
+    normalizesEventId: 'D-missing',
+    question: 'Should this sanitized compatibility policy be recorded?',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(missingNormalizationCandidate)),
+    /EH-QUESTION-NORMALIZATION-117.*must identify one prior event/u,
+    'a normalization candidate must bind an existing event from the same decision ledger',
+  );
+  const repeatedPayloadNormalization = candidateFor(otherChange, 'Q-026', {
+    normalizesEventId: 'D-020',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(repeatedPayloadNormalization)),
+    /EH-QUESTION-NORMALIZATION-117.*must not repeat the original AskUserQuestion payload/u,
+    'normalization must present a new sanitized typed choice instead of replaying the original question',
+  );
+  const normalizationCandidate = candidateFor(otherChange, 'Q-023', {
+    normalizesEventId: 'D-020',
+    decisionNeeded: 'Confirm the sanitized compatibility policy derived from the prior Other answer',
+    question: 'Should the sanitized compatibility policy be recorded as strict parity?',
+  });
+  const normalizationRef = writeCandidate(normalizationCandidate);
+  assert.equal(
+    prepareClarifyQuestion(root, otherChange, normalizationRef).questionId,
+    'Q-023',
+    'a candidate may normalize the same-revision frontier only when it binds the exact prior Other event',
+  );
+  resolveClarifyQuestion(root, askInput(normalizationCandidate), answer(normalizationCandidate));
+  const normalizationEvent = readDecisionEvents(root, otherChange).find(({ eventId }) => eventId === 'D-023');
+  assert.equal(normalizationEvent.normalizesEventId, 'D-020');
+  assert.match(normalizationEvent.questionCandidateDigest, /^[a-f0-9]{64}$/u);
+  assert.equal(normalizationEvent.targetRef, `harness/changes/${otherChange}/requirements.md`);
+  assert.equal(normalizationEvent.selectedOption, 'strict');
+  assert.equal(JSON.stringify(normalizationEvent).includes('custom secret'), false);
+  const reusedNormalizationCandidate = candidateFor(otherChange, 'Q-024', {
+    normalizesEventId: 'D-020',
+    question: 'Should strict parity be recorded for this compatibility surface?',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(reusedNormalizationCandidate)),
+    /EH-QUESTION-NORMALIZATION-117/u,
+    'one redacted Other event must not authorize multiple normalization decisions',
+  );
+  const typedNormalizationCandidate = candidateFor(otherChange, 'Q-027', {
+    normalizesEventId: 'D-023',
+    question: 'Should another compatibility policy replace the typed decision?',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(typedNormalizationCandidate)),
+    /EH-QUESTION-NORMALIZATION-117.*not a redacted Other answer/u,
+    'a typed decision must never become a normalization source',
+  );
+
+  const otherRevisionChange = 'safe-other-new-revision';
+  activate(otherRevisionChange);
+  const revisionSource = candidateFor(otherRevisionChange, 'Q-020');
+  prepareClarifyQuestion(root, otherRevisionChange, writeCandidate(revisionSource));
+  resolveClarifyQuestion(root, askInput(revisionSource), answer(revisionSource, 'Need another custom value'));
+  const otherRequirements = path.join(root, `harness/changes/${otherRevisionChange}/requirements.md`);
   fs.appendFileSync(otherRequirements, '\n## Revised frontier\nThe prior answer has been integrated and the frontier recomputed.\n');
-  const revisedOtherCandidate = candidateFor(otherChange, 'Q-022', {
+  const revisedOtherCandidate = candidateFor(otherRevisionChange, 'Q-022', {
     decisionNeeded: 'Choose the newly recomputed compatibility frontier',
     question: 'Which policy should the newly recomputed frontier guarantee?',
   });
   const revisedOtherRef = writeCandidate(revisedOtherCandidate);
   assert.equal(
-    prepareClarifyQuestion(root, otherChange, revisedOtherRef).questionId,
+    prepareClarifyQuestion(root, otherRevisionChange, revisedOtherRef).questionId,
     'Q-022',
     'a fresh requirements revision may ask the next frontier in the same component and dimension',
   );

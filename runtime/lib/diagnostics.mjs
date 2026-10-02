@@ -103,6 +103,10 @@ export const DIAGNOSTICS = Object.freeze({
     summary: 'Clarify question 没有绑定已落盘的证据、拓扑、五维歧义评分与最高风险 frontier。',
     recovery: '先在 requirements.md 中持久化 evidence-grounded topology、五维 score grid 和匹配 candidate 的 high-risk ask frontier，再重新 prepare。',
   },
+  'EH-QUESTION-NORMALIZATION-117': {
+    summary: 'Other 规范化候选没有绑定同一 decision surface 的唯一可用 redacted Other 事件。',
+    recovery: '保留 Other 原事件，在同一 component、dimension、target 和 artifact revision 上创建新的脱敏 typed candidate，并只引用一次 normalizesEventId；不要复制自由文本。',
+  },
   'EH-QUESTION-FACT-GATE-161': {
     summary: 'Clarify 研究事实门尚未关闭，不能准备或调用 AskUserQuestion。',
     recovery: '完成 required code/docs ResearchPacket，处置 degraded、conflict 与 uncertainty，再从当前证据重新生成 candidate。',

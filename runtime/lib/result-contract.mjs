@@ -43,7 +43,7 @@ const RESEARCH_SOURCES = new Set(['code-explore', 'doc-research']);
 const DECISION_EVENT_FIELDS = new Set([
   'eventVersion', 'type', 'eventId', 'changeId', 'stage', 'actor', 'decisionType', 'targetRef',
   'questionId', 'options', 'recommendedOption', 'selectedOption', 'publicRationale', 'evidenceRefs',
-  'inputDigests', 'recordedAt',
+  'inputDigests', 'questionCandidateDigest', 'normalizesEventId', 'recordedAt',
 ]);
 const DECISION_ACTOR_FIELDS = new Set(['type', 'id']);
 const DECISION_ACTOR_TYPES = new Set(['user', 'main', 'runtime']);
@@ -170,6 +170,15 @@ export function validateDecisionEvent(changeId, event) {
     if (!isSafeId(event.actor.id)) problems.push('actor.id must be a safe identifier');
   }
   if (!DECISION_TYPES.has(event.decisionType)) problems.push(`invalid decisionType ${event.decisionType}`);
+  if (event.normalizesEventId !== undefined && !isSafeId(event.normalizesEventId)) {
+    problems.push('normalizesEventId must be a safe identifier');
+  }
+  if (event.normalizesEventId !== undefined && event.decisionType !== 'clarify-answer') {
+    problems.push('normalizesEventId is only valid for clarify-answer');
+  }
+  if (event.questionCandidateDigest !== undefined && !isDigest(event.questionCandidateDigest)) {
+    problems.push('questionCandidateDigest must be a sha256 digest');
+  }
   if (!isSafeArtifactReference(event.targetRef, { allowSourceLocator: true })) {
     problems.push('targetRef must be a safe artifact reference');
   }

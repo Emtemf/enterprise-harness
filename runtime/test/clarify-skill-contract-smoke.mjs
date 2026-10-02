@@ -202,6 +202,10 @@ for (const token of [
   '只裁决一个具体 policy axis',
   '不得用“所有者 + PAID + 全额 + 24 小时 + 未发货”这类组合排列',
   '各 option 之间只能有一个发生变化的业务变量',
+  '先明确一个 failure class',
+  '`normalizesEventId=<前一条 Other eventId>`',
+  '一条 Other 只能规范化一次',
+  '`EH-QUESTION-NORMALIZATION-117`',
   '不得让用户选择函数、方法、类、文件、模块或设计模式',
   '不得把\n   success、failure、observable 三个 predicate 合并成一问',
 ]) {

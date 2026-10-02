@@ -20,6 +20,8 @@
     "publicRationale": { "$ref": "#/$defs/nonEmptyString" },
     "evidenceRefs": { "$ref": "#/$defs/nonEmptyStrings" },
     "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "questionCandidateDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalizesEventId": { "$ref": "#/$defs/safeId" },
     "recordedAt": { "type": "string", "format": "date-time" }
   },
   "$defs": {
@@ -33,6 +35,10 @@
     {
       "if": { "properties": { "options": { "minItems": 5 } }, "required": ["options"] },
       "then": { "properties": { "decisionType": { "const": "clarify-answer" }, "selectedOption": { "const": "other" } } }
+    },
+    {
+      "if": { "required": ["normalizesEventId"] },
+      "then": { "properties": { "decisionType": { "const": "clarify-answer" } } }
     }
   ],
   "additionalProperties": false

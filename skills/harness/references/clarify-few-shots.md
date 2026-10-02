@@ -220,3 +220,18 @@ Hook 只记录下一次 `InstructionsLoaded` 的 path/digest，不能把“尚�
 第一版允许哪种退款金额范围？”，选项为“仅整单全额退款”与“允许部分金额退款”；资格时间窗、状态与所有权仍保持
 open，后续逐一重算。若当前最高风险是所有权，则只比较“仅订单所有者”与“获授权代理人也可发起”，选项中不得
 再变化金额、状态或时间窗。一个 option 的静态前置事实可以相同，但各 option 之间只能有一个发生变化的业务变量。
+
+## 6. Other 通过脱敏规范化确认闭环
+
+上一问只问“谁可以发起退款”，用户用 Other 回答“必须登录，并由服务端校验当前用户是订单所有者”。hook 只记录
+`D-owner-other / selectedOption=other`，不保存这段原文。下一用户 turn 不得把该回答直接算作 resolved，也不得改写成
+另一句“谁可以发起”重问。Main 生成同一 requirements revision 的新 candidate：
+
+- `normalizesEventId=D-owner-other`；
+- 问题只确认“是否记录为服务端强制校验登录用户与订单归属”；
+- 推荐项为“服务端校验登录用户本人”，替代项为“仅按前端入口限制”；
+- option 文本是脱敏 policy，不复制自由输入或任何 secret。
+
+runtime 验证 source 是同一 component/dimension/target revision 的未规范化 Other，且新 payload 不等于原问题。用户选择
+推荐项后，新 DecisionEvent 指向原 requirements typed target，并保存 `normalizesEventId`；旧 Other 仍作为不可变历史保留。
+再次引用同一 source、引用 typed event、跨 revision 或重放原 payload 都以 `EH-QUESTION-NORMALIZATION-117` fail closed。

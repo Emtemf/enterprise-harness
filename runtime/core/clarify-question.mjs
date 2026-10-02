@@ -27,7 +27,7 @@ const INTERACTIVE_DECISION_TYPES = new Set([
 const CANDIDATE_FIELDS = new Set([
   'questionVersion', 'type', 'changeId', 'questionId', 'componentId', 'dimension',
   'decisionNeeded', 'whyUserOnly', 'decisionType', 'targetRef', 'header', 'question', 'options', 'recommendedOption',
-  'recommendationReason', 'evidenceRefs', 'inputDigests', 'blocking', 'createdAt',
+  'recommendationReason', 'evidenceRefs', 'inputDigests', 'normalizesEventId', 'blocking', 'createdAt',
 ]);
 const OPTION_FIELDS = new Set(['id', 'label', 'description']);
 const PENDING_FIELDS = new Set([
@@ -134,6 +134,12 @@ export function validateQuestionCandidate(candidate) {
   }
   if (!DIMENSIONS.has(candidate.dimension)) problems.push('dimension is invalid');
   if (!INTERACTIVE_DECISION_TYPES.has(candidate.decisionType)) problems.push('decisionType is invalid for an interactive question');
+  if (candidate.normalizesEventId !== undefined && !isSafeId(candidate.normalizesEventId)) {
+    problems.push('normalizesEventId must be a safe identifier');
+  }
+  if (candidate.normalizesEventId !== undefined && candidate.decisionType !== 'clarify-answer') {
+    problems.push('normalizesEventId is only valid for clarify-answer');
+  }
   if (candidate.decisionType === 'scope-confirmation' && candidate.dimension !== 'Scope') {
     problems.push('scope-confirmation is only valid for the Scope dimension');
   }
@@ -503,8 +509,9 @@ function sameDecisionRevision(prior, candidate) {
     && prior.inputDigests?.[priorTargetPath] === candidate.inputDigests?.[candidateTargetPath];
 }
 
-function resolvedQuestionConflict(root, changeId, candidate, events) {
+function resolvedQuestionConflicts(root, changeId, candidate, events) {
   const expected = expectedToolInput(candidate);
+  const conflicts = [];
   for (const event of events) {
     if (!isSafeId(event.questionId) || event.questionId === candidate.questionId) continue;
     const priorRef = questionCandidatePath(changeId, event.questionId);
@@ -519,10 +526,56 @@ function resolvedQuestionConflict(root, changeId, candidate, events) {
     if (prior.changeId === changeId && validateQuestionCandidate(prior).length === 0
         && (sameDecisionRevision(prior, candidate)
           || sameJson(expectedToolInput(prior), expected))) {
-      return event;
+      conflicts.push(event);
     }
   }
-  return null;
+  return conflicts;
+}
+
+function normalizationSource(root, changeId, candidate, events) {
+  if (candidate.normalizesEventId === undefined) return null;
+  const matching = events.filter(({ eventId }) => eventId === candidate.normalizesEventId);
+  if (matching.length !== 1) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `normalizesEventId ${candidate.normalizesEventId} must identify one prior event`);
+  }
+  const [sourceEvent] = matching;
+  if (sourceEvent.decisionType !== 'clarify-answer' || sourceEvent.selectedOption !== 'other') {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `event ${sourceEvent.eventId} is not a redacted Other answer`);
+  }
+  if (events.some((event) => event.normalizesEventId === sourceEvent.eventId)) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `event ${sourceEvent.eventId} was already normalized`);
+  }
+  const sourceRef = questionCandidatePath(changeId, sourceEvent.questionId);
+  if (sourceEvent.targetRef !== sourceRef) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `event ${sourceEvent.eventId} does not target its canonical question candidate`);
+  }
+  const sourcePath = resolveRepoTarget(root, sourceRef, 'normalization source candidate');
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `normalization source candidate is missing: ${sourceRef}`);
+  }
+  const sourceBytes = fs.readFileSync(sourcePath);
+  if (!DIGEST.test(String(sourceEvent.questionCandidateDigest || ''))
+      || sha256Bytes(sourceBytes) !== sourceEvent.questionCandidateDigest) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `event ${sourceEvent.eventId} does not bind the current source candidate digest`);
+  }
+  let sourceCandidate;
+  try {
+    sourceCandidate = JSON.parse(sourceBytes.toString('utf-8'));
+  } catch (error) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', `normalization source candidate is invalid JSON: ${error.message}`);
+  }
+  if (validateQuestionCandidate(sourceCandidate).length > 0
+      || sourceCandidate.changeId !== changeId
+      || !sameDecisionRevision(sourceCandidate, candidate)) {
+    throw questionError(
+      'EH-QUESTION-NORMALIZATION-117',
+      `candidate must preserve the component, dimension, target, and artifact revision of ${sourceEvent.eventId}`,
+    );
+  }
+  if (sameJson(expectedToolInput(sourceCandidate), expectedToolInput(candidate))) {
+    throw questionError('EH-QUESTION-NORMALIZATION-117', 'normalization must not repeat the original AskUserQuestion payload');
+  }
+  return sourceEvent;
 }
 
 function loadPendingCandidate(root, changeId, pending) {
@@ -578,6 +631,7 @@ function eventMatchesCandidate(event, candidate, candidateRef) {
       ? [...candidate.options.map(({ id }) => id), 'other']
       : candidate.options.map(({ id }) => id))
     && event.recommendedOption === candidate.recommendedOption
+    && event.normalizesEventId === candidate.normalizesEventId
     && event.publicRationale === (event.selectedOption === 'other'
       ? 'User selected Other; re-clarification is required.'
       : PUBLIC_RATIONALE)
@@ -645,6 +699,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
       throw questionError('EH-QUESTION-STALE-107', `candidate changed while preparing: ${canonicalRef}`);
     }
     const decisionEvents = readDecisionEvents(root, changeId);
+    const sourceEvent = normalizationSource(root, changeId, fresh.candidate, decisionEvents);
     const resolvedTarget = decisionEvents.find((event) => (
       event.decisionType === fresh.candidate.decisionType
       && event.targetRef === fresh.candidate.targetRef
@@ -655,12 +710,13 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
         `decision target ${fresh.candidate.decisionType}:${fresh.candidate.targetRef} is already resolved by ${resolvedTarget.eventId}`,
       );
     }
-    const repeatedQuestion = resolvedQuestionConflict(
+    const repeatedQuestions = resolvedQuestionConflicts(
       root,
       changeId,
       fresh.candidate,
       decisionEvents,
     );
+    const repeatedQuestion = repeatedQuestions.find((event) => event.eventId !== sourceEvent?.eventId);
     if (repeatedQuestion) {
       throw questionError(
         'EH-QUESTION-TARGET-115',
@@ -737,8 +793,10 @@ export function resolveClarifyQuestion(root, toolInput, toolResponse, options = 
       publicRationale: selected ? PUBLIC_RATIONALE : 'User selected Other; re-clarification is required.',
       evidenceRefs: [...candidate.evidenceRefs],
       inputDigests: { ...candidate.inputDigests },
+      questionCandidateDigest: pending.candidateDigest,
       recordedAt: new Date().toISOString(),
     };
+    if (candidate.normalizesEventId !== undefined) event.normalizesEventId = candidate.normalizesEventId;
     const appended = appendDecisionEvent(root, changeId, event);
     atomicWriteJson(target, resolvedPending(pending, eventId));
     return Object.freeze({ eventId, duplicate: appended.duplicate });

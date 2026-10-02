@@ -22,6 +22,7 @@
     "recommendationReason": { "$ref": "#/$defs/nonEmptyString" },
     "evidenceRefs": { "$ref": "#/$defs/nonEmptyStrings" },
     "inputDigests": { "$ref": "#/$defs/digestMap" },
+    "normalizesEventId": { "$ref": "#/$defs/safeId" },
     "blocking": { "const": true },
     "createdAt": { "type": "string", "format": "date-time" }
   },
@@ -32,5 +33,11 @@
     "digestMap": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" } },
     "option": { "type": "object", "required": ["id", "label", "description"], "properties": { "id": { "$ref": "#/$defs/safeId" }, "label": { "$ref": "#/$defs/nonEmptyString" }, "description": { "$ref": "#/$defs/nonEmptyString" } }, "additionalProperties": false }
   },
+  "allOf": [
+    {
+      "if": { "required": ["normalizesEventId"] },
+      "then": { "properties": { "decisionType": { "const": "clarify-answer" } } }
+    }
+  ],
   "additionalProperties": false
 }

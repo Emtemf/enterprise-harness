@@ -118,6 +118,8 @@ clean `1b42415` 的三轮 development 复验保持身份、账单、raw request�
 
 clean `f6b21cb` 的两轮 development 复验确认单轴候选有真实改善：首问只比较自助退款发起主体，不再捆绑金额、状态或时间窗口；第二问也没有重问首问。有效观测的 effect 为 31.53、关键未知项召回 0.258、未经确认假设率 0、decision efficiency 4，总时长 2,349,480ms、alias 估算 $6.356398。但 `accepted=false` 且最终 requirements 覆盖为 0：首问正确答案包含登录与服务端归属校验，选项只覆盖“本人”，因此严格走 Other；第二问用泛化“失败”同时命中 timeout unknown 与 deterministic failure 两种不同结果，选项仍不足，也走 Other。两条有价值回答均未形成 typed disposition。Skill optimizer 接受 `single-policy-axis-few-shot` 的 execution gate，但拒绝“仅靠 instruction 即可恢复 Other”候选；下一替代必须由 runtime 绑定前一条脱敏 Other event，生成一次规范化确认，并要求 failure candidate 明确一个 failure class。摘要见 [`single-axis-calibration-f6b21cb-2026-10-02.json`](../../benchmarks/model-uplift-v1/single-axis-calibration-f6b21cb-2026-10-02.json)。
 
+对应替代候选现已完成确定性实现：新问题可用 `normalizesEventId` 绑定同一 clarification surface、同一 artifact revision 的前一条 Other 事件，且只能使用一次；原候选摘要写入事件并在规范化前复验，候选被篡改、来源缺失、typed answer 冒充来源、逐字重放原问题或二次消费都会 fail closed。持久化事件只记录新一轮结构化选项与 lineage，不复制自由文本，更不把用户可能输入的 secret 写入仓库。Skill optimizer 明确拒绝了“直接持久化 Other 原文”的候选，因为它扩大隐私与凭据泄漏面，也绕过既有脱敏合同。该机制已通过先失败后成功的行为测试、schema/文档一致性与 253-file prepublish gate；真实 GLM-5.1 是否会按 Skill 合同生成规范化确认仍待 clean 复验，因此当前不把它计为效果提升。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

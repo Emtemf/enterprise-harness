@@ -112,7 +112,8 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    一个 surface 单独询问，其余继续保留在 frontier；各 option 之间只能有一个发生变化的业务变量。
    `需要满足哪些条件`、`如何验证成功与失败`、`还有哪些需求`、`请补充验收标准`
    这类维度级/清单式总问句一律视为未通过 candidate 自检，必须在 `prepare-question` 前改写。Acceptance 问题
-   必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得把
+   必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得用泛化
+   “调用失败”同时覆盖 timeout/unknown、明确拒绝、参数校验或并发冲突；先明确一个 failure class。不得把
    success、failure、observable 三个 predicate 合并成一问。question 字符串必须恰好只有一个 `？` 或 `?`；
    一个问号前后拼两个问句、用“以及/还有/同时”捆绑第二个 policy axis 仍然违规。
    普通 `clarify-answer` 不得让用户选择函数、方法、类、文件、模块或设计模式；这些属于后续 Design/Plan。
@@ -137,9 +138,15 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    `DecisionEvent`，而不是保存聊天记录或隐藏推理。若用户选择 host `Other`/自由输入，hook 不持久化原文，
    只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
    在**下一用户 turn**从 fresh frontier 生成新问题。不能把自由输入碰巧提到的另一个 policy axis 当成已授权
-   disposition，也不能把该 axis 直接改写后重复询问；应继续收窄原问题的单一 axis，直到用户选择 typed option，
-   或明确说明需要把自由输入规范化为新候选后再确认。candidate 自检若发现自由输入本可直接对应某个选项但 host
-   仍落入 Other，应先检查选项是否使用了不必要的组合轴或同义表达缺口，不能靠重复问题掩盖。
+   disposition，也不能把该 axis 直接改写后重复询问。若当前可见自由输入能安全归一为原 component、dimension、
+   target 与 artifact revision 上的一个具体 policy，创建新的 `clarify-answer` candidate，并增加
+   `normalizesEventId=<前一条 Other eventId>`；用 2–4 个脱敏 typed options 呈现规范化结果与至少一个真实替代项，
+   让用户确认。不得把原始自由文本、secret 或聊天内容复制进 candidate。runtime 只允许绑定同一 decision surface
+   的 redacted Other，一条 Other 只能规范化一次，且新 Ask 不能与原 payload 相同；成功选择后 DecisionEvent 保存
+   `normalizesEventId` lineage 并恢复原 typed target，仍不保存原文；违反任一绑定条件会以
+   `EH-QUESTION-NORMALIZATION-117` fail closed。若无法安全归一，就继续收窄原问题的单一 axis。
+   candidate 自检若发现自由输入本可直接对应某个选项但 host 仍落入 Other，应先检查选项是否使用了不必要的组合轴
+   或同义表达缺口，不能靠重复问题掩盖。
    `AskUserQuestion` 返回后，post-question hook 已完成本轮唯一 authorized answer action；Main 必须立即结束当前
    assistant turn。此时禁止再调用 Read/Edit/Write/Bash/Skill、禁止重算、禁止生成/prepare 第二个 candidate，
    只可向用户简短确认已收到回答。下一用户 turn 才读取 fresh snapshot，重新计算所有受影响分数，展示上轮→本轮、
