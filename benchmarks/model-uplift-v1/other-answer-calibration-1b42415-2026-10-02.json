@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-valid-negative-effect",
+  "claimEligible": false,
+  "runnerCommit": "1b4241537d1c4e6dc9d795d4c4ceb76974d5d9ae",
+  "runnerTreeClean": true,
+  "casePackDigest": "9f74d59c5230c66e74ebaf85152785ab10a816384b6e3befa706863f50b121de",
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "modelIdentityValid": true,
+  "rawRequestBound": true,
+  "questionBridgeValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "measurementValid": true,
+  "stopReason": "insufficient-remaining-invocation-budget",
+  "grade": {
+    "accepted": false,
+    "effectScore": 28.120347394540946,
+    "criticalUnknownRecall": 0.0967741935483871,
+    "finalRequirementCoverage": 0.0967741935483871,
+    "prematureAssumptionRate": 0.07692307692307693,
+    "evidenceGroundingRate": 0.5,
+    "decisionEfficiency": 1.5
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "durationMs": 712176,
+      "aliasEstimatedCostUsd": 1.9175280000000003,
+      "question": "订单所有者对 PAID 状态订单发起自助退款时，系统应按哪种资格规则放行？",
+      "answeredFactIds": [
+        "partial-refund"
+      ],
+      "selectedOptionId": "other",
+      "finding": "The candidate combined ownership, state, amount, time-window, and fulfillment axes; the scripted user answered only the amount axis."
+    },
+    {
+      "turn": 2,
+      "durationMs": 236235,
+      "aliasEstimatedCostUsd": 2.484834,
+      "question": null,
+      "diagnostics": [
+        "EH-QUESTION-TARGET-115"
+      ],
+      "finding": "The runtime correctly blocked a same-revision eligibility repeat, so the revision-scoped guard exercised as designed."
+    },
+    {
+      "turn": 3,
+      "durationMs": 206948,
+      "aliasEstimatedCostUsd": 3.2617899999999995,
+      "question": "订单所有者发起自助退款时，第一版应支持哪种退款金额范围？",
+      "answeredFactIds": [],
+      "selectedOptionId": "other",
+      "finding": "The correct full-refund option was present, but the development oracle acceptance regex did not recognize the equivalent wording '仅全额退款/不接受部分金额' and submitted avoidable Other text."
+    }
+  ],
+  "totals": {
+    "inputTokens": 384437,
+    "outputTokens": 142599,
+    "cacheReadInputTokens": 4353984,
+    "aliasEstimatedCostUsd": 7.664152,
+    "durationMs": 1155359
+  },
+  "candidateGate": {
+    "rejectedCandidateId": "frontier-revision-key-is-sufficient",
+    "reason": "The guard no longer permanently blocked a new requirements revision, but a multi-axis question and an overly narrow oracle synonym matcher still produced a repeated business decision.",
+    "failingGate": "development-execution-regression",
+    "retry": false,
+    "replacement": "Add an explicit multi-axis negative few-shot and contract assertion; widen the development oracle acceptance pattern so a uniquely equivalent option is selected instead of Other."
+  },
+  "limitations": [
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt",
+    "not-accepted",
+    "pre-oracle-synonym-fix"
+  ]
+}

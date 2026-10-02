@@ -107,7 +107,10 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    `CODE-*`/`DOCS-*` sourceId。推荐理由必须把已验证事实与基于事实的取舍推断分开表达，不得把尚未授权的
    重试、运维或状态行为写成既定事实。
    问题必须只裁决一个具体 policy axis，并显式包含业务实体、触发条件或可观察结果中的至少两项；各 option
-   只能在同一 axis 上互斥。`需要满足哪些条件`、`如何验证成功与失败`、`还有哪些需求`、`请补充验收标准`
+   只能在同一 axis 上互斥。不得用“所有者 + PAID + 全额 + 24 小时 + 未发货”这类组合排列，把权限主体、
+   状态资格、金额范围和时间窗口伪装成一个 axis；`+`、`以及`或套餐式组合不是互斥选项。先选择其中风险最高的
+   一个 surface 单独询问，其余继续保留在 frontier；各 option 之间只能有一个发生变化的业务变量。
+   `需要满足哪些条件`、`如何验证成功与失败`、`还有哪些需求`、`请补充验收标准`
    这类维度级/清单式总问句一律视为未通过 candidate 自检，必须在 `prepare-question` 前改写。Acceptance 问题
    必须只选择一个具体触发事件与结果，例如“支付网关超时后订单保持原状态还是进入待人工处理？”，不得把
    success、failure、observable 三个 predicate 合并成一问。question 字符串必须恰好只有一个 `？` 或 `?`；
@@ -133,7 +136,10 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
 5. post-question hook 按 candidate 的 `decisionType` 与 `targetRef` 把选中的授权 option 原子追加为 public
    `DecisionEvent`，而不是保存聊天记录或隐藏推理。若用户选择 host `Other`/自由输入，hook 不持久化原文，
    只追加固定、脱敏的 `clarify-answer` / `selectedOption=other` 事件；该事件不满足 typed disposition，Main 必须
-   在**下一用户 turn**从 fresh frontier 生成新问题。
+   在**下一用户 turn**从 fresh frontier 生成新问题。不能把自由输入碰巧提到的另一个 policy axis 当成已授权
+   disposition，也不能把该 axis 直接改写后重复询问；应继续收窄原问题的单一 axis，直到用户选择 typed option，
+   或明确说明需要把自由输入规范化为新候选后再确认。candidate 自检若发现自由输入本可直接对应某个选项但 host
+   仍落入 Other，应先检查选项是否使用了不必要的组合轴或同义表达缺口，不能靠重复问题掩盖。
    `AskUserQuestion` 返回后，post-question hook 已完成本轮唯一 authorized answer action；Main 必须立即结束当前
    assistant turn。此时禁止再调用 Read/Edit/Write/Bash/Skill、禁止重算、禁止生成/prepare 第二个 candidate，
    只可向用户简短确认已收到回答。下一用户 turn 才读取 fresh snapshot，重新计算所有受影响分数，展示上轮→本轮、

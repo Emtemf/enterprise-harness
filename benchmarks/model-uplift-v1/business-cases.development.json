@@ -16,7 +16,7 @@
         {"id":"manual-review","weight":2,"questionPattern":"(人工审核|客服审核|审批|直接执行|自动退款|需要审核|风控审核)","answer":"符合条件的订单自动发起退款，不需要人工审核；风控拒绝的订单不展示自助入口。","acceptancePattern":"自动发起退款.*不需要人工审核|不需要人工审核.*自动"},
         {"id":"entry-surface","weight":1,"questionPattern":"(触发入口|入口.*形态|订单详情.*按钮|前端入口)","answer":"入口放在用户订单详情页；只有服务端判断符合资格时才展示“申请退款”按钮。","acceptancePattern":"订单详情页.*符合资格.*申请退款|订单详情页.*申请退款.*符合资格|符合资格.*订单详情页.*申请退款"},
         {"id":"ownership","weight":3,"questionPattern":"(登录态|本人订单|自己账户|订单归属|身份.*校验|权限.*校验)","answer":"必须登录，且服务端校验当前用户就是订单所有者；不能仅依赖前端隐藏按钮。","acceptancePattern":"必须登录.*订单所有者.*服务端|服务端.*订单所有者.*前端"},
-        {"id":"partial-refund","weight":3,"questionPattern":"(部分退款|全额|金额)","answer":"第一版只支持全额退款，不支持部分退款。","acceptancePattern":"只支持全额|不支持部分退款"},
+        {"id":"partial-refund","weight":3,"questionPattern":"(部分退款|全额|金额)","answer":"第一版只支持全额退款，不支持部分退款。","acceptancePattern":"(?:只|仅)(?:支持|允许)?(?:整单)?全额退款|不(?:支持|接受|允许)部分(?:退款|金额)"},
         {"id":"refund-state","weight":3,"questionPattern":"(退款后.*状态|成功后.*状态|订单终态|进入什么状态|REFUNDED|CANCELLED)","answer":"新增 REFUND_PENDING 和 REFUNDED：提交网关后进入 REFUND_PENDING，网关最终成功后进入 REFUNDED。","acceptancePattern":"REFUND_PENDING.*REFUNDED"},
         {"id":"timeout-policy","weight":3,"questionPattern":"(超时|未知结果|重试|幂等)","answer":"网关超时后订单保持原状态，后台使用同一幂等键查询或重试，不能再次生成退款请求。","acceptancePattern":"同一.*幂等|幂等.*重试"},
         {"id":"deterministic-failure","weight":2,"questionPattern":"(明确失败|确定性失败|网关.*失败|失败.*订单状态|失败后.*状态|能否重新发起)","answer":"网关明确失败时从 REFUND_PENDING 回到 PAID，记录失败原因，并允许用户在资格窗口内重新发起。","acceptancePattern":"明确失败.*PAID.*重新发起|PAID.*资格窗口.*重新发起"},

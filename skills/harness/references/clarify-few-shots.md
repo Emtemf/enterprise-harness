@@ -208,3 +208,15 @@ success/failure Decision, because identity authority is settled but acceptance i
 
 若规则仅服务 Claude Code（例如 `CLAUDE.md` 用 `@AGENTS.md` 导入工具无关合同），提案路由到 Claude instruction 路径；
 Hook 只记录下一次 `InstructionsLoaded` 的 path/digest，不能把“尚未观察到加载”当作 Clarify 失败。
+
+## 5. 退款资格不能做成组合套餐
+
+**错误候选**：问题问“订单所有者对 PAID 订单按哪种资格规则放行”，选项却排列“所有者 + PAID + 全额”、
+“所有者 + PAID + 24 小时”、“所有者 + PAID + 未发货”和“所有者 + PAID + 24 小时 + 未发货”。这同时裁决
+权限主体、订单状态、金额范围与时间窗口；用户回答“第一版仅全额退款”时只能落入 Other，原资格面仍未解决，
+下一轮又容易重复询问金额范围。
+
+**正确拆分**：从当前 frontier 的最高风险 surface 只选一个 axis。例如金额面只问“订单所有者发起自助退款时，
+第一版允许哪种退款金额范围？”，选项为“仅整单全额退款”与“允许部分金额退款”；资格时间窗、状态与所有权仍保持
+open，后续逐一重算。若当前最高风险是所有权，则只比较“仅订单所有者”与“获授权代理人也可发起”，选项中不得
+再变化金额、状态或时间窗。一个 option 的静态前置事实可以相同，但各 option 之间只能有一个发生变化的业务变量。

@@ -271,6 +271,18 @@ const businessDecision = planHeadlessDecision(refundCase, {
 }, new Set());
 assert.equal(businessDecision.selectedOptionId, 'full-only', 'scripted business truth must override an incorrect recommendation');
 assert.deepEqual(businessDecision.answeredFactIds, ['partial-refund']);
+const synonymousRefundDecision = planHeadlessDecision(refundCase, {
+  questionId: 'Q-REFUND-AMOUNT', decisionType: 'clarify-answer', header: '退款金额',
+  question: '订单所有者发起自助退款时，第一版应支持哪种退款金额范围？', decisionNeeded: '确定退款金额范围',
+  recommendedOption: 'full-only',
+  options: [
+    { id: 'full-only', label: '仅全额退款', description: '对 PAID 订单只允许整单全额退款，不接受部分金额。' },
+    { id: 'partial', label: '支持部分退款', description: '允许用户指定不超过订单实付金额的退款金额。' },
+  ],
+}, new Set());
+assert.equal(synonymousRefundDecision.selectedOptionId, 'full-only',
+  'scripted user must select the uniquely equivalent option instead of submitting avoidable Other text');
+assert.match(synonymousRefundDecision.answer, /仅全额退款/u);
 assert.equal(canonicalAskInputMatches({
   questions: businessDecision.toolInput.questions.map(({ question, header, options, multiSelect }) => ({
     options: options.map(({ label, description }) => ({ description, label })), multiSelect, header, question,
