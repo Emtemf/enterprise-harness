@@ -132,6 +132,8 @@ clean `a396913` 完成了 typed Other 的真实 GLM-5.1 复验：首问仍将含
 
 clean `b526283` 首次在同一提交、同一 development case、同为 GLM-5.1、各两轮下得到可比较的弱裸与弱 Harness 诊断，结果是明确的负证据：裸跑 effect 52.58、召回 0.355、最终覆盖 0.290、grounding 1；Harness effect 25.89、召回 0.097、最终覆盖 0、grounding 0.5，差值为 -26.69pp。两臂 identity、raw request、billing、bridge 与预算均有效，但该 pair 使用显式环境覆盖、没有 proxy route receipt、每臂只有一次且都未验收，因此不进入正式观测。根因包括：规范化问题把时间窗与履约条件偷渡进原本单轴的状态候选；code lane 未读取仓库本地 `docs/payment-provider-v3.txt` 合同；runner 会继承 Codex 父进程的陈旧模型变量；现有效果分还会奖励裸跑的一问多轴。修复保持证据诚实：runtime 机械拒绝规范化新增已知政策轴，code lane 有界检查直接相关的本地合同，runner 从 fresh Claude settings 只刷新模型路由变量；另增 atomicity 诊断但不回改 effect 权重。摘要见 [`paired-calibration-b526283-2026-10-03.json`](../../benchmarks/model-uplift-v1/paired-calibration-b526283-2026-10-03.json)。
 
+clean `5c56e9e` 在不传命令级模型环境覆盖的条件下复验了前三项修复：runner 从当前 Claude settings 刷新路由，controller/worker/billing 均为 GLM-5.1；code lane 找到 `docs/payment-provider-v3.txt`，requirements grounding 覆盖源码与本地合同；本地合同触发的精确 Context7 lane 没有识别出真实支付 vendor，按“外部 authority 不存在/不可识别”关闭，没有编造语义；Other 规范化保持单一状态轴。runner 原始输出 effect 36.77、召回 0.194、grounding 1、atomicity 1，但审计发现第二次 Claude invocation 实际授权、回答并持久化了两次 Ask，transcript 只保留最后一次，错误折叠了一个用户交互。因此该运行被追溯判为 `measurementValid=false`，不能与裸臂比较。宿主现于首个答案持久化后拒绝同一 invocation 的后续 Ask，bridge validator 要求授权/回答/持久化 marker 各恰好一次。摘要见 [`single-ask-audit-5c56e9e-2026-10-03.json`](../../benchmarks/model-uplift-v1/single-ask-audit-5c56e9e-2026-10-03.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

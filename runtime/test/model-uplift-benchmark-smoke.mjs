@@ -102,6 +102,12 @@ assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-ca
   'an answer without matching tool-result persistence is not a valid SDK bridge');
 assert.equal(questionBridgeValidFor([{ callbackDiagnostics: ['answered', 'sdk-canusetool-authorized', 'sdk-tool-result-persisted'] }]), true,
   'a fully authorized and persisted SDK answer is a valid bridge');
+assert.equal(questionBridgeValidFor([{ callbackDiagnostics: [
+  'sdk-canusetool-authorized', 'answered', 'sdk-tool-result-persisted',
+  'sdk-canusetool-authorized', 'answered', 'sdk-tool-result-persisted',
+] }]), false, 'multiple answered questions in one invocation must not be collapsed into one measured user turn');
+assert.match(businessRunner, /if \(plannedDecision\)[\s\S]{0,180}additional-ask-denied/u,
+  'the SDK host must deny a second AskUserQuestion after one persisted answer in the same invocation');
 assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-1', is_error: false }] } }, 'ask-1'), true);
 assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-1', is_error: true }] } }, 'ask-1'), false);
 assert.equal(hasSuccessfulToolResult({ message: { content: [{ type: 'tool_result', tool_use_id: 'ask-2', is_error: false }] } }, 'ask-1'), false);

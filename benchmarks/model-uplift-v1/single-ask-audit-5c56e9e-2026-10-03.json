@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "type": "development-measurement-audit",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "5c56e9edc12897c9fe42a342fa766b3adb459d40",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "armId": "weak-harness",
+  "controllerModels": ["glm-5.1"],
+  "workerModels": ["glm-5.1"],
+  "routingSource": "fresh ~/.claude/settings.json model fields; no command-level model environment override",
+  "observedRunnerVerdict": {
+    "measurementValid": true,
+    "effectScore": 36.77419354838709,
+    "criticalUnknownRecall": 0.1935483870967742,
+    "finalRequirementCoverage": 0,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 1,
+    "decisionAtomicityRate": 1,
+    "questionTurns": 2,
+    "durationMs": 1317342,
+    "aliasEstimatedCostUsd": 5.735108000000001
+  },
+  "auditVerdict": {
+    "measurementValid": false,
+    "formalPairedObservation": false,
+    "reason": "The second Claude invocation completed two authorized, answered, and persisted AskUserQuestion callbacks, while the runner retained only the last decision as one transcript turn. The observed score therefore omits a real user interaction and cannot be compared with the bare arm."
+  },
+  "validatedMechanisms": {
+    "freshSettingsRouting": true,
+    "localContractDiscovered": "docs/payment-provider-v3.txt",
+    "externalAuthorityOutcome": "Context7 found no identifiable payment Provider v3 authority; the lane closed without inventing a vendor",
+    "crossAxisNormalizationBlocked": true,
+    "groundedEvidenceRefs": [
+      "src/order-policy.mjs",
+      "docs/payment-provider-v3.txt"
+    ]
+  },
+  "bridgeEvidence": [
+    {
+      "invocation": 1,
+      "authorized": 1,
+      "answered": 1,
+      "persisted": 1,
+      "valid": true
+    },
+    {
+      "invocation": 2,
+      "authorized": 2,
+      "answered": 2,
+      "persisted": 2,
+      "valid": false
+    }
+  ],
+  "acceptedCandidate": "one-authorized-answer-per-invocation",
+  "fix": "The host now denies a later AskUserQuestion after the first answer is persisted, and bridge validity requires authorized/answered/persisted marker counts to be exactly one for an answering invocation.",
+  "claimEligible": false,
+  "notes": "This run improves mechanism evidence but is not effect evidence. The previously printed measurementValid=true is retained as the observed historical verdict and explicitly superseded by this audit."
+}

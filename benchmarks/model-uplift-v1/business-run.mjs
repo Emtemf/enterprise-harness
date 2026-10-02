@@ -232,6 +232,14 @@ async function invokeHarnessSdk({ root, arm, selectedCase, turn, sessionId, chil
         abortController,
         canUseTool: async (toolName, input, { toolUseID }) => {
           if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: input };
+          if (plannedDecision) {
+            callbackDiagnostics.push('additional-ask-denied');
+            return {
+              behavior: 'deny',
+              message: 'One canonical question was already answered in this assistant turn. End the turn now; ask the next question in a fresh invocation.',
+              interrupt: false,
+            };
+          }
           const status = workflowStatus(root, resolvedChangeId, sessionId);
           if (status?.changeId) resolvedChangeId = status.changeId;
           const candidate = resolvedChangeId ? pendingCandidate(root, resolvedChangeId) : null;
