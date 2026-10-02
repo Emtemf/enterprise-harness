@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "type": "development-diagnostic-summary",
+  "recordedAt": "2026-10-02",
+  "runnerCommit": "b452369b4ed50e3f831da65e41639fa88a4da4db",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "armId": "weak-harness",
+  "controllerModels": [
+    "glm-5.1"
+  ],
+  "workerModels": [
+    "glm-5.1"
+  ],
+  "durationMs": 1802104,
+  "measurementValid": false,
+  "modelIdentityValid": false,
+  "billingComplete": false,
+  "accepted": false,
+  "questionTurns": 0,
+  "criticalUnknownRecall": 0,
+  "diagnosticCode": "EH-LANE-INPUT-156",
+  "failureStage": "clarify-close-research",
+  "rootCause": "close-research escaped a literal pipe in ResearchPacket fallback text for a Markdown table cell, then requirementsLaneSelections used raw split('|') and interpreted the escaped pipe as an extra column",
+  "evidence": {
+    "researchPacketClean": true,
+    "factGateReached": false,
+    "hostTimedOut": true,
+    "productCodeChanged": false
+  },
+  "acceptedCandidate": "parse generated Markdown table rows with escape-aware pipe and backslash round-trip semantics",
+  "rejectedCandidate": "delete fallback evidence or repeat research until the model happens to avoid literal pipes",
+  "validation": [
+    "clarify-research-close RED reproduces EH-LANE-INPUT-156 with bounded Grep(OrderStatus|refundByCustomerService)",
+    "clarify-research-close GREEN closes and replays the same packet",
+    "clarify-lane-cli and clarify-lane-handoff-gate remain green"
+  ],
+  "effectClaimEligible": false,
+  "notes": "This is development-only defect evidence. Zero recall is not an effect observation because the invocation timed out without final billing or a valid identity receipt."
+}

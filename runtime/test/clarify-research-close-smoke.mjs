@@ -59,7 +59,8 @@ try {
     packetVersion: 1, type: 'research-packet', changeId, source: 'code-explore',
     question: '哪些代码负责订单取消？', scope: ['src/main/java/com/acme/OrderService.java'],
     facts: [{ claim: 'OrderService 是当前订单行为入口。', sources: [briefRef] }],
-    uncertainties: [], authority: 'codegraph-first', fallback: null, degraded: false,
+    uncertainties: [], authority: 'codegraph-first',
+    fallback: 'bounded Grep(OrderStatus|refundByCustomerService) confirmed the direct boundary.', degraded: false,
     recommendedDecision: null, inputRefs: [...handoff.input.inputRefs],
     inputDigests: { ...handoff.input.inputDigests }, collectedAt: '2026-09-08T00:00:00.000Z',
   });

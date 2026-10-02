@@ -316,16 +316,38 @@ function originalRequest(content) {
   return content.slice(rawStart + '### 原始需求'.length, rawEnd).trim();
 }
 
+function parseMarkdownTableRow(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) return null;
+  const cells = [];
+  let cell = '';
+  const body = trimmed.slice(1, -1);
+  for (let index = 0; index < body.length; index += 1) {
+    const character = body[index];
+    if (character === '\\' && ['\\', '|'].includes(body[index + 1])) {
+      cell += body[index + 1];
+      index += 1;
+    } else if (character === '|') {
+      cells.push(cell.trim());
+      cell = '';
+    } else {
+      cell += character;
+    }
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
 function requirementsLaneSelections(content) {
   const start = content.indexOf('## 事实探索门禁');
   const end = content.indexOf('\n## ', start + '## 事实探索门禁'.length);
   const body = start < 0 ? '' : content.slice(start, end < 0 ? content.length : end);
   const rows = body.split('\n').map((line) => line.trim())
     .filter((line) => /^\|\s*(?:code|docs)\s*\|/u.test(line))
-    .map((line) => line.slice(1, -1).split('|').map((cell) => cell.trim()));
+    .map(parseMarkdownTableRow);
   const result = new Map();
   for (const cells of rows) {
-    if (cells.length !== 7 || result.has(cells[0])) return null;
+    if (!cells || cells.length !== 7 || result.has(cells[0])) return null;
     result.set(cells[0], {
       required: cells[1].toLowerCase(),
       status: cells[5].toLowerCase(),

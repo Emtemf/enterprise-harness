@@ -120,6 +120,8 @@ clean `f6b21cb` 的两轮 development 复验确认单轴候选有真实改善：
 
 对应替代候选现已完成确定性实现：新问题可用 `normalizesEventId` 绑定同一 clarification surface、同一 artifact revision 的前一条 Other 事件，且只能使用一次；原候选摘要写入事件并在规范化前复验，候选被篡改、来源缺失、typed answer 冒充来源、逐字重放原问题或二次消费都会 fail closed。持久化事件只记录新一轮结构化选项与 lineage，不复制自由文本，更不把用户可能输入的 secret 写入仓库。Skill optimizer 明确拒绝了“直接持久化 Other 原文”的候选，因为它扩大隐私与凭据泄漏面，也绕过既有脱敏合同。该机制已通过先失败后成功的行为测试、schema/文档一致性与 253-file prepublish gate；真实 GLM-5.1 是否会按 Skill 合同生成规范化确认仍待 clean 复验，因此当前不把它计为效果提升。
 
+clean `b452369` 的 GLM-5.1 复验没有到达 Other 候选，而是暴露了更早的 runtime 往返缺陷：CodeGraph worker 正确返回 clean packet，fallback 记录里包含 Grep pattern `OrderStatus|refundByCustomerService|refund|cancel`；`close-research` 将竖线转义为合法 Markdown cell 后，lane reader 又用裸 `split('|')` 把它误拆成额外列，持续返回 `EH-LANE-INPUT-156`。主模型随后尝试重建 lane input、重试 close 与检查 recovery，最终由 30 分钟宿主硬超时收口。controller/worker 都观察到 GLM-5.1，但 final billing 缺失，`modelIdentityValid=false`、`measurementValid=false`，所以召回 0 不是效果观测。修复候选改为 escape-aware table parser，并用含 pipe 的真实形态先建立失败回归再通过 close/replay/lane gates；没有采用“删掉 packet fallback”或“重跑直到文本不含 pipe”的规避方案。摘要见 [`research-close-roundtrip-b452369-2026-10-02.json`](../../benchmarks/model-uplift-v1/research-close-roundtrip-b452369-2026-10-02.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
