@@ -116,6 +116,8 @@ clean `8168505` 的 held-out 式复验确认 docs discovery 预算消除了上�
 
 clean `1b42415` 的三轮 development 复验保持身份、账单、raw request、bridge、预算与 measurement 全部有效，但仍 `accepted=false`：effect 28.12、关键未知项召回 0.097、最终 requirements 覆盖 0.097、未经确认假设率 0.077、grounding 0.5，总时长 1,155,359ms、alias 估算 $7.664152。首问把所有权、PAID、全额、24 小时、未发货组合为套餐选项，scripted user 的“只支持全额”只能走 Other；第二轮同 revision 重问被 `EH-QUESTION-TARGET-115` 正确拒绝；第三轮已生成单独金额问题和正确“仅全额”选项，却因 development oracle 的 acceptance regex 未覆盖“仅全额/不接受部分金额”同义表达而再次错误提交 Other。Skill optimizer candidate gate 因 development execution regression 拒绝“revision key 已足够”候选（不可重试）；替代变更同时增加组合轴负例/契约断言，并拓宽开发 oracle 的唯一等价选项匹配。该运行保留为修复前负证据，摘要见 [`other-answer-calibration-1b42415-2026-10-02.json`](../../benchmarks/model-uplift-v1/other-answer-calibration-1b42415-2026-10-02.json)。
 
+clean `f6b21cb` 的两轮 development 复验确认单轴候选有真实改善：首问只比较自助退款发起主体，不再捆绑金额、状态或时间窗口；第二问也没有重问首问。有效观测的 effect 为 31.53、关键未知项召回 0.258、未经确认假设率 0、decision efficiency 4，总时长 2,349,480ms、alias 估算 $6.356398。但 `accepted=false` 且最终 requirements 覆盖为 0：首问正确答案包含登录与服务端归属校验，选项只覆盖“本人”，因此严格走 Other；第二问用泛化“失败”同时命中 timeout unknown 与 deterministic failure 两种不同结果，选项仍不足，也走 Other。两条有价值回答均未形成 typed disposition。Skill optimizer 接受 `single-policy-axis-few-shot` 的 execution gate，但拒绝“仅靠 instruction 即可恢复 Other”候选；下一替代必须由 runtime 绑定前一条脱敏 Other event，生成一次规范化确认，并要求 failure candidate 明确一个 failure class。摘要见 [`single-axis-calibration-f6b21cb-2026-10-02.json`](../../benchmarks/model-uplift-v1/single-axis-calibration-f6b21cb-2026-10-02.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

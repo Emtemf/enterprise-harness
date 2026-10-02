@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-valid-partial-improvement",
+  "claimEligible": false,
+  "runnerCommit": "f6b21cb4b72c025a8129a30f10a0414573a034f9",
+  "runnerTreeClean": true,
+  "casePackDigest": "513db6d245cb86304df87a43bffe6ef305f6c53dd571815f3f3e8303ad0c1116",
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "modelIdentityValid": true,
+  "responseIdentityValid": true,
+  "rawRequestBound": true,
+  "questionBridgeValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "measurementValid": true,
+  "stopReason": "insufficient-remaining-invocation-budget",
+  "grade": {
+    "accepted": false,
+    "effectScore": 31.532258064516128,
+    "criticalUnknownRecall": 0.25806451612903225,
+    "finalRequirementCoverage": 0,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 0.5,
+    "decisionEfficiency": 4
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "durationMs": 867605,
+      "aliasEstimatedCostUsd": 1.7646100000000005,
+      "question": "哪些用户可以对订单发起自助退款？",
+      "answeredFactIds": [
+        "ownership"
+      ],
+      "selectedOptionId": "other",
+      "finding": "The question varied only the initiating actor, so the single-policy-axis candidate passed execution. The exact server-side ownership enforcement was absent from the options, so strict Other was appropriate."
+    },
+    {
+      "turn": 2,
+      "durationMs": 1481875,
+      "aliasEstimatedCostUsd": 4.591788000000001,
+      "question": "支付退款调用失败后订单保持原状态还是进入待人工处理？",
+      "answeredFactIds": [
+        "timeout-policy",
+        "deterministic-failure"
+      ],
+      "selectedOptionId": "other",
+      "finding": "The question did not distinguish unknown timeout from deterministic gateway failure, so the user supplied two different outcomes and no option represented the complete policy."
+    }
+  ],
+  "totals": {
+    "inputTokens": 221811,
+    "outputTokens": 133319,
+    "cacheReadInputTokens": 3828736,
+    "aliasEstimatedCostUsd": 6.356398000000001,
+    "durationMs": 2349480
+  },
+  "candidateGate": {
+    "acceptedCandidateId": "single-policy-axis-few-shot",
+    "acceptedBecause": "The first real GLM-5.1 question varied only the initiating actor and did not bundle amount, state, or time-window choices.",
+    "rejectedCandidateId": "instruction-only-other-recovery-is-sufficient",
+    "rejectedBecause": "Both useful free-form answers remained selectedOption=other; finalRequirementCoverage stayed 0 and no typed disposition could be synthesized.",
+    "failingGate": "durable-output-and-acceptance",
+    "retry": false,
+    "replacement": "Add a runtime-governed one-time Other normalization confirmation bound to the prior redacted event, and require failure candidates to identify one explicit failure class."
+  },
+  "limitations": [
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt",
+    "not-accepted",
+    "other-answer-not-durable"
+  ]
+}
