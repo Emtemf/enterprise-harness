@@ -267,6 +267,19 @@ assert.match(bareFinalRequirements('CLARIFICATION_COMPLETE\n只支持全额退�
 const refundCase = businessCases.cases.find(({ id }) => id === 'refund-policy');
 assert.ok(businessCases.cases.some(({ id }) => id === 'refund-status-normalization'),
   'development pack must provide a reproducible Other normalization calibration surface');
+const normalizationCase = businessCases.cases.find(({ id }) => id === 'refund-status-normalization');
+const calibrationNormalization = planHeadlessDecision(normalizationCase, {
+  questionId: 'Q-CAL-NORM', decisionType: 'clarify-answer', header: '状态资格确认',
+  question: '自助退款发起的订单状态资格是否仅限 PAID？', decisionNeeded: '规范化状态资格',
+  normalizesEventId: 'D-1', recommendedOption: 'confirm-only-paid',
+  options: [
+    { id: 'confirm-only-paid', label: '确认仅 PAID', description: '仅 PAID；FULFILLED 与 CANCELLED 不允许。' },
+    { id: 'paid-and-fulfilled', label: 'PAID 与 FULFILLED', description: '两种状态都允许。' },
+  ],
+}, new Set(['eligible-window']));
+assert.equal(calibrationNormalization.unmatched, false);
+assert.equal(calibrationNormalization.repeated, true);
+assert.equal(calibrationNormalization.selectedOptionId, 'confirm-only-paid');
 const businessDecision = planHeadlessDecision(refundCase, {
   questionId: 'Q-REFUND-SCOPE', decisionType: 'clarify-answer', header: '退款范围',
   question: '用户自助退款支持全额还是部分退款？', decisionNeeded: '确定退款金额范围',

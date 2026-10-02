@@ -87,6 +87,10 @@ assert.match(skill, /唯一例外是 clean `research→decisions`/u);
 assert.match(skill, /ready for topology/u);
 assert.match(research, /close-research.*每个 lane 永远恰好一行.*更窄的新 run.*替换.*绝不追加第二条 code\/docs 行/isu,
   'narrow research must replace the current lane projection instead of duplicating table rows');
+assert.match(research, /单独出现“退款、支付、订单、登录”等业务词[\s\S]*不能触发 docs lane/u,
+  'generic business vocabulary must not trigger external documentation research');
+assert.match(research, /manifest[\s\S]*本地代码事实[\s\S]*code lane/u,
+  'local dependency manifest discovery must stay in the code lane');
 for (const token of [
   'references/clarify-research.md',
   'references/clarify-decisions.md',

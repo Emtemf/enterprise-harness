@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "type": "development-diagnostic-summary",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "a11438d75249582972514fc7d65cd80b0aecb90f",
+  "runnerTreeClean": true,
+  "caseId": "refund-status-normalization",
+  "armId": "weak-harness",
+  "controllerModels": ["glm-5.1"],
+  "workerModels": ["glm-5.1"],
+  "durationMs": 1327055,
+  "costAuthority": "claude-code-alias-estimate",
+  "estimatedCostUsd": 5.095699,
+  "measurementValid": true,
+  "modelIdentityValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "accepted": false,
+  "effectScore": 65,
+  "criticalUnknownRecall": 1,
+  "finalRequirementCoverage": 0,
+  "prematureAssumptionRate": 0,
+  "questionTurns": 2,
+  "mechanismEvidence": {
+    "sourceEventId": "D-1",
+    "sourceSelectedOption": "other",
+    "sourceCandidateDigestBound": true,
+    "normalizationQuestionId": "Q-2",
+    "normalizesEventId": "D-1",
+    "normalizationSelectedOption": "other",
+    "freeTextPersisted": false
+  },
+  "benchmarkRootCause": "normalizationPattern matched 仅PAID but not the actual label 确认仅 PAID containing an ordinary space",
+  "researchDiagnostic": "generic refund vocabulary incorrectly triggered inferred Stripe documentation research and required a second narrower docs run",
+  "acceptedCandidate": [
+    "allow whitespace between the Chinese qualifier and PAID in the development normalization projection",
+    "require an explicitly named external authority before the Clarify docs lane is required"
+  ],
+  "rejectedCandidate": "treat D-2 Other as typed closure or persist the original free text",
+  "effectClaimEligible": false,
+  "notes": "This valid calibration proves repeated real GLM-5.1 creation of normalization lineage, but typed closure remains pending one clean rerun."
+}

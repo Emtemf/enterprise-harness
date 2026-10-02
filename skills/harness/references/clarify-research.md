@@ -48,8 +48,12 @@ stdout 是当前 revision 已完成同步的权威投影；成功后直接创建
 
 lane 选择规则：
    - 任何受治理软件变更固定 `code = required`，无需也禁止先用 `ls/find/Glob/Grep/Read/CodeGraph` 证明仓库里有代码；
-   - 用户原文、长期项目合同或已加载依赖声明点名外部 library、framework、SDK、协议、标准或版本行为时，
-     `docs = required`；原文点名 Stripe/refund 即足以要求 docs，不得先读 `pom.xml`、lockfile 或业务源码来判 lane；
+   - 用户原文、已授权长期项目合同或已加载依赖声明**显式命名**外部 vendor、library、framework、SDK、协议、
+     标准、版本或 API surface 时，`docs = required`；例如 `Stripe Refund API`、`PaymentIntent`、`SDK v3`。
+     单独出现“退款、支付、订单、登录”等业务词，或 Main 推断未来也许会接某个 provider，都不能触发 docs lane。
+     “仓库里是否存在依赖 manifest / 声明了什么 SDK”是本地代码事实，只能由 code lane 通过 CodeGraph 或 bounded
+     fallback 关闭，禁止为了枚举本地 manifest 把 docs 标为 required；lane 判定前也不得先读 `pom.xml`、lockfile
+     或业务源码来寻找理由；
    - 不适用的 lane 写 `not-required` 和证据。不得为了省事把 applicable lane 标成不适用。
    code/docs 两项判定都由 `sync-lanes` 以 `lane-applicability` DecisionEvent 写入 append-only Decision Ledger，targetRef
    必须分别为 `requirements.md#fact-lane-code#sha256=<research-authority-digest>` 与
