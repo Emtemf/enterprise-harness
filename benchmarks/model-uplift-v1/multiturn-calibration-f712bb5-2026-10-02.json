@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-valid-negative-effect",
+  "claimEligible": false,
+  "runnerCommit": "f712bb59546dc908bb628950a8c4c4080d998d73",
+  "runnerTreeClean": true,
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "controllerModels": [
+    "glm-5.1"
+  ],
+  "workerModels": [
+    "glm-5.1"
+  ],
+  "modelIdentityValid": true,
+  "rawRequestBound": true,
+  "questionBridgeValid": true,
+  "billingComplete": true,
+  "budgetUsd": 8,
+  "budgetLimitValid": true,
+  "measurementValid": true,
+  "stopReason": "insufficient-remaining-invocation-budget",
+  "grade": {
+    "accepted": false,
+    "effectScore": 29.274193548387096,
+    "criticalUnknownRecall": 0.1935483870967742,
+    "finalRequirementCoverage": 0,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 0.5,
+    "decisionEfficiency": 3
+  },
+  "questions": [
+    {
+      "turn": 1,
+      "question": "自助退款功能允许用户对哪些订单状态的订单发起退款？",
+      "answeredFactIds": [
+        "eligible-window",
+        "refund-state"
+      ],
+      "repeated": false
+    },
+    {
+      "turn": 2,
+      "question": "自助退款功能允许用户对哪些条件的订单发起退款？",
+      "answeredFactIds": [],
+      "repeated": true
+    }
+  ],
+  "invocationCostsUsd": [
+    2.157401,
+    3.006467
+  ],
+  "totals": {
+    "inputTokens": 228306,
+    "outputTokens": 111186,
+    "cacheReadInputTokens": 2485376,
+    "aliasEstimatedCostUsd": 5.163868,
+    "durationMs": 1748530
+  },
+  "limitations": [
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt",
+    "not-accepted",
+    "semantic-repeat-observed"
+  ]
+}

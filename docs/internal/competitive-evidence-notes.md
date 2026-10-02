@@ -108,6 +108,8 @@ clean `cd2e457` 复验证明 alias 修复与 session-context bridge 都已闭环
 
 clean `56de946` 的四轮 GLM-5.1 development 校准完成 CodeGraph/Context7 与四次真实 SDK 问答闭环，但只能作为缺陷证据：第 2 轮在新 questionId 下逐字重复第 1 轮问题；4 轮只命中 `partial-refund`、`eligible-window`、`ownership` 三项，关键未知项召回 0.290、最终需求覆盖 0、`accepted=false`。alias 估算累计成本 $10.38213，超过请求的 $8 上限，说明仅把余额传给 SDK 不能形成宿主硬预算。runtime 现对所有已解决候选比较 canonical Ask 载荷，即使此前选择 Other 也拒绝同文重问；runner 在下一轮前保留既有最大单轮成本，并把实际超限样本标记为 `budgetLimitValid=false`、`measurementValid=false`。该运行的最小审计摘要见 [`multiturn-calibration-2026-10-02.json`](../../benchmarks/model-uplift-v1/multiturn-calibration-2026-10-02.json)，不进入模型效果对照。
 
+clean `f712bb5` 的修复后复验得到有效但失败的两轮观测：controller/worker 均为 GLM-5.1，raw request、billing 与两轮 SDK Ask 授权/回答/持久化都完整，`budgetLimitValid=true`、`measurementValid=true`。首问命中 `eligible-window` 与 `refund-state`；第二问把“哪些订单状态”改写为“哪些条件”，仍落在同一退款资格 target，脚本 grader 正确标记 `repeated=true`，召回保持 0.194、最终覆盖 0、`accepted=false`。两轮累计 $5.163868 后，余额 $2.836132 低于既有最大单轮 $3.006467，runner 以 `insufficient-remaining-invocation-budget` 停止，没有越过 $8 上限。该样本证明预算保护有效，也证明只比较 Ask 文本不能阻止语义改写重问；runtime 因而继续收紧为：对 Other 事件回读原候选的 `decisionType + targetRef`，同 target 改写同样拒绝。审计摘要见 [`multiturn-calibration-f712bb5-2026-10-02.json`](../../benchmarks/model-uplift-v1/multiturn-calibration-f712bb5-2026-10-02.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

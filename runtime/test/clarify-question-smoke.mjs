@@ -638,12 +638,14 @@ try {
   assert.equal(otherEvent.decisionType, 'clarify-answer');
   assert.equal(otherEvent.targetRef, otherRef);
 
-  const repeatedOtherCandidate = candidateFor(otherChange, 'Q-021');
+  const repeatedOtherCandidate = candidateFor(otherChange, 'Q-021', {
+    question: 'Which compatibility behavior should be selected for this same target?',
+  });
   const repeatedOtherRef = writeCandidate(repeatedOtherCandidate);
   assert.throws(
     () => prepareClarifyQuestion(root, otherChange, repeatedOtherRef),
-    /EH-QUESTION-TARGET-115: question payload is already resolved/u,
-    'an Other answer must not allow the same AskUserQuestion payload under a new questionId',
+    /EH-QUESTION-TARGET-115: question decision surface is already handled/u,
+    'an Other answer must not allow the same typed target to be paraphrased under a new questionId',
   );
   assert.equal(otherEvent.selectedOption, 'other');
   assert.equal(otherEvent.options.at(-1), 'other');

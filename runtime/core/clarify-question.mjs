@@ -491,7 +491,7 @@ function expectedToolInput(candidate) {
   };
 }
 
-function resolvedQuestionWithSameToolInput(root, changeId, candidate, events) {
+function resolvedQuestionConflict(root, changeId, candidate, events) {
   const expected = expectedToolInput(candidate);
   for (const event of events) {
     if (!isSafeId(event.questionId) || event.questionId === candidate.questionId) continue;
@@ -505,7 +505,8 @@ function resolvedQuestionWithSameToolInput(root, changeId, candidate, events) {
       continue;
     }
     if (prior.changeId === changeId && validateQuestionCandidate(prior).length === 0
-        && sameJson(expectedToolInput(prior), expected)) {
+        && ((prior.decisionType === candidate.decisionType && prior.targetRef === candidate.targetRef)
+          || sameJson(expectedToolInput(prior), expected))) {
       return event;
     }
   }
@@ -642,7 +643,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
         `decision target ${fresh.candidate.decisionType}:${fresh.candidate.targetRef} is already resolved by ${resolvedTarget.eventId}`,
       );
     }
-    const repeatedQuestion = resolvedQuestionWithSameToolInput(
+    const repeatedQuestion = resolvedQuestionConflict(
       root,
       changeId,
       fresh.candidate,
@@ -651,7 +652,7 @@ export function prepareClarifyQuestion(root, changeId, candidateRef) {
     if (repeatedQuestion) {
       throw questionError(
         'EH-QUESTION-TARGET-115',
-        `question payload is already resolved by ${repeatedQuestion.eventId}`,
+        `question decision surface is already handled by ${repeatedQuestion.eventId}`,
       );
     }
     const pending = {
