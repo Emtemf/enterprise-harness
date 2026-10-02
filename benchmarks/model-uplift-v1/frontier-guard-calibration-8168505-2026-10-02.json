@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-valid-negative-effect",
+  "claimEligible": false,
+  "runnerCommit": "81685054efe18140373547f28cf9cdaabe4a9b08",
+  "runnerTreeClean": true,
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "modelIdentityValid": true,
+  "rawRequestBound": true,
+  "questionBridgeValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "measurementValid": true,
+  "stopReason": "insufficient-remaining-invocation-budget",
+  "grade": {
+    "accepted": false,
+    "effectScore": 36.77419354838709,
+    "criticalUnknownRecall": 0.1935483870967742,
+    "finalRequirementCoverage": 0,
+    "prematureAssumptionRate": 0,
+    "evidenceGroundingRate": 1,
+    "decisionEfficiency": 6
+  },
+  "docsWorker": {
+    "readCount": 2,
+    "toolSearchCount": 0,
+    "context7CallCount": 0,
+    "closure": "No library or version was bound by the frozen brief; the worker explicitly closed the no-target branch without asserting vendor behavior."
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "durationMs": 1069456,
+      "aliasEstimatedCostUsd": 2.43871,
+      "question": "订单处于何种状态时允许用户自助退款？",
+      "answeredFactIds": [
+        "eligible-window",
+        "refund-state"
+      ]
+    },
+    {
+      "turn": 2,
+      "durationMs": 1265728,
+      "aliasEstimatedCostUsd": 5.331779,
+      "question": null,
+      "diagnostics": {
+        "EH-QUESTION-TARGET-115": 5,
+        "EH-QUESTION-STALE-107": 4,
+        "EH-QUESTION-SYNTHESIS-116": 2
+      }
+    }
+  ],
+  "totals": {
+    "inputTokens": 256884,
+    "outputTokens": 141757,
+    "cacheReadInputTokens": 5884288,
+    "aliasEstimatedCostUsd": 7.770489,
+    "durationMs": 2335184
+  },
+  "candidateGate": {
+    "rejectedCandidateId": "clarify-repeat-target-only",
+    "reason": "A new requirements revision and Goal frontier was incorrectly blocked because both candidates targeted requirements.md.",
+    "failingGate": "held-out-execution-regression",
+    "retry": false,
+    "replacement": "Treat only matching targetRef, componentId, dimension, and target artifact digest as the same frontier; continue exact Ask payload deduplication across revisions."
+  },
+  "limitations": [
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt",
+    "not-accepted"
+  ]
+}

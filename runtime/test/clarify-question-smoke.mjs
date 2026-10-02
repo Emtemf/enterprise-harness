@@ -647,6 +647,19 @@ try {
     /EH-QUESTION-TARGET-115: question decision surface is already handled/u,
     'an Other answer must not allow the same typed target to be paraphrased under a new questionId',
   );
+  const otherRequirements = path.join(root, `harness/changes/${otherChange}/requirements.md`);
+  fs.appendFileSync(otherRequirements, '\n## Revised frontier\nThe prior answer has been integrated and the frontier recomputed.\n');
+  const revisedOtherCandidate = candidateFor(otherChange, 'Q-022', {
+    decisionNeeded: 'Choose the newly recomputed compatibility frontier',
+    question: 'Which policy should the newly recomputed frontier guarantee?',
+  });
+  const revisedOtherRef = writeCandidate(revisedOtherCandidate);
+  assert.equal(
+    prepareClarifyQuestion(root, otherChange, revisedOtherRef).questionId,
+    'Q-022',
+    'a fresh requirements revision may ask the next frontier in the same component and dimension',
+  );
+  resolveClarifyQuestion(root, askInput(revisedOtherCandidate), answer(revisedOtherCandidate));
   assert.equal(otherEvent.selectedOption, 'other');
   assert.equal(otherEvent.options.at(-1), 'other');
   assert.equal(JSON.stringify(otherEvent).includes('custom secret'), false);

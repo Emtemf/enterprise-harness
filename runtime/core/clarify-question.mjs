@@ -491,6 +491,18 @@ function expectedToolInput(candidate) {
   };
 }
 
+function sameDecisionRevision(prior, candidate) {
+  const priorTargetPath = artifactPathFromReference(prior.targetRef);
+  const candidateTargetPath = artifactPathFromReference(candidate.targetRef);
+  return prior.decisionType === candidate.decisionType
+    && prior.targetRef === candidate.targetRef
+    && prior.componentId === candidate.componentId
+    && prior.dimension === candidate.dimension
+    && priorTargetPath !== null
+    && candidateTargetPath !== null
+    && prior.inputDigests?.[priorTargetPath] === candidate.inputDigests?.[candidateTargetPath];
+}
+
 function resolvedQuestionConflict(root, changeId, candidate, events) {
   const expected = expectedToolInput(candidate);
   for (const event of events) {
@@ -505,7 +517,7 @@ function resolvedQuestionConflict(root, changeId, candidate, events) {
       continue;
     }
     if (prior.changeId === changeId && validateQuestionCandidate(prior).length === 0
-        && ((prior.decisionType === candidate.decisionType && prior.targetRef === candidate.targetRef)
+        && (sameDecisionRevision(prior, candidate)
           || sameJson(expectedToolInput(prior), expected))) {
       return event;
     }
