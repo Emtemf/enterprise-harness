@@ -8,7 +8,7 @@
   "minimumDistinctHoldoutCases": 5,
   "validPairedObservations": 0,
   "decisionRule": "weak-harness vs weak-bare 的配对效果均值差 95% 下界严格大于 0，且 weak-harness vs strong-bare 的配对效果均值差 95% 下界不低于 -5pp；每项至少 20 对并覆盖至少 5 个 holdout case",
-  "reason": "2026-09-14 fresh preflight 与真实 bwrap 隔离探针均通过；外部 holdout v1 已冻结，包含 5 个 case、36 个关键未知项且 oracle 自检通过。2026-10-01 clean cd2e457 的单轮 GLM-5.1 Harness development 探针完成 CodeGraph/Context7 双 worker、真实结构化 Ask 与 SDK 授权/回答/持久化闭环，measurementValid=true，召回 0.194、未经确认假设率 0；这只证明 bridge 可运行，单轮未验收。2026-10-02 clean f712bb5 的两轮复验保持 measurementValid=true 且预算内停止，但第二问语义重问第一问，召回仍为 0.194、accepted=false；它作为负效果证据保留，并推动 Other 回答后的 typed-target 去重修复。当前四个角色都映射为 GLM-5.1，且本地 proxy logging 未启用，因此缺少 GLM-5.2 强臂与权威 route receipt。正式配对观测仍为 0；恢复 5.1/5.2 对照映射与 proxy logging 后才能进入三臂正式采样。token、请求数与计费单位不参与效果门槛。",
+  "reason": "2026-09-14 fresh preflight 与真实 bwrap 隔离探针均通过；外部 holdout v1 已冻结，包含 5 个 case、36 个关键未知项且 oracle 自检通过。2026-10-01 clean cd2e457 的单轮 GLM-5.1 Harness development 探针完成 CodeGraph/Context7 双 worker、真实结构化 Ask 与 SDK 授权/回答/持久化闭环，measurementValid=true，召回 0.194、未经确认假设率 0；这只证明 bridge 可运行，单轮未验收。2026-10-02 clean f712bb5 的两轮复验保持 measurementValid=true 且预算内停止，但第二问语义重问第一问，召回仍为 0.194、accepted=false；它作为负效果证据保留，并推动 Other 回答后的 typed-target 去重修复。随后 clean 219ffdf 首轮在 docs worker 的 16 次 ToolSearch/122 次 Read 循环中达到 30 分钟硬超时，measurementValid=false；现已增加 docs discovery/fallback 机械预算。当前四个角色都映射为 GLM-5.1，且本地 proxy logging 未启用，因此缺少 GLM-5.2 强臂与权威 route receipt。正式配对观测仍为 0；恢复 5.1/5.2 对照映射与 proxy logging 后才能进入三臂正式采样。token、请求数与计费单位不参与效果门槛。",
   "lastUpdated": "2026-10-02",
-  "latestDiagnostic": "multiturn-calibration-f712bb5-2026-10-02.json"
+  "latestDiagnostic": "research-timeout-219ffdf-2026-10-02.json"
 }

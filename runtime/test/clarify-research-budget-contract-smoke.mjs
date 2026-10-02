@@ -100,6 +100,16 @@ for (const source of [exploreSkill, exploreAgent]) {
 
 for (const relative of ['skills/research-docs/SKILL.md', 'agents/doc-research.md']) {
   const source = read(relative);
+  if (!/只允许一次 `?ToolSearch`?/u.test(source)
+      || !/tool_reference[\s\S]{0,100}(?:立即|下一步)[\s\S]{0,80}(?:调用|invoke)/iu.test(source)) {
+    failures.push('docs research must allow at most one deferred Context7 ToolSearch and invoke its reference next');
+  }
+  if (!/最多[^\n]*8[^\n]*(?:Read|读取)[^\n]*1[^\n]*WebSearch[^\n]*3[^\n]*WebFetch/u.test(source)) {
+    failures.push('docs research must cap fallback reads and web discovery');
+  }
+  if (!/(?:不得|禁止)[^\n]*(?:Harness|plugin|hook|receipt|治理)/u.test(source)) {
+    failures.push('docs research must not inspect Harness governance internals to discover tools');
+  }
   if (!/最多[^\n]*1[^\n]*(?:resolve|解析)[^\n]*2[^\n]*(?:query|查询)/iu.test(source)) {
     failures.push('docs research must cap Context7 to one resolve and two focused queries');
   }

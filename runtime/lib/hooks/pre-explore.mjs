@@ -125,9 +125,10 @@ export function preExplore({ root, event }) {
     || CODEGRAPH_EXPLORATION_MCP.test(toolName);
   const context7Capability = toolName.match(/context7__(resolve-library-id|query-docs)$/u)?.[1] || null;
   const context7Tool = Boolean(context7Capability);
+  const docBudgetTool = ['ToolSearch', 'Read', 'WebSearch', 'WebFetch'].includes(toolName);
   // Bash codegraph 与 MCP CodeGraph 都是一次必须落账的 attempt。
   const fallbackTool = ['Grep', 'Read', 'Glob'].includes(toolName) || (toolName === 'Bash' && explorationBash && !codegraphTool);
-  if (!codegraphTool && !context7Tool && !fallbackTool) return { exitCode: 0 };
+  if (!codegraphTool && !context7Tool && !fallbackTool && !docBudgetTool) return { exitCode: 0 };
   if (dedupGuard('pre-explore', event.tool_use_id, event.cwd)) return { exitCode: 0 };
   const targets = extractExplorationTargets(eventRoot, event);
   // CodeGraph 查询通常带的是符号而非文件路径，不能因其 token 不在受治理目录就豁免；
@@ -147,6 +148,19 @@ export function preExplore({ root, event }) {
     if (implementerDecision) return implementerDecision;
     const reviewerDecision = reviewerReadDecision(eventRoot, event, active, targets, unbounded);
     if (reviewerDecision) return reviewerDecision;
+  }
+  if (docResearchBinding && docBudgetTool) {
+    const limits = Object.freeze({ ToolSearch: 1, Read: 8, WebSearch: 1, WebFetch: 3 });
+    const limit = limits[toolName];
+    const claim = claimAgentEventBudget(root, active.changeId, {
+      kind: 'doc-research-tool-use', sessionId: event.session_id, toolUseId: event.tool_use_id, agentId,
+      observedAgentType: normalizeAgentType(docResearchBinding.observedAgentType),
+      toolName, commandDigest: sha256(JSON.stringify({ toolName, input })), cwd: event.cwd || root,
+    }, { kind: 'doc-research-tool-use', agentId, toolName, limit });
+    return claim.claimed ? { exitCode: 0 } : {
+      exitCode: 2,
+      stderr: `BLOCK: doc-research ${toolName} budget 已用尽（上限 ${limit}）；停止搜索工具或扩大 fallback，基于已有证据返回 ResearchPacket uncertainty/blocker。`,
+    };
   }
   if (context7Tool) {
     if (!active.ok || !docResearchBinding) {

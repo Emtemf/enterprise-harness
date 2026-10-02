@@ -110,6 +110,8 @@ clean `56de946` 的四轮 GLM-5.1 development 校准完成 CodeGraph/Context7 �
 
 clean `f712bb5` 的修复后复验得到有效但失败的两轮观测：controller/worker 均为 GLM-5.1，raw request、billing 与两轮 SDK Ask 授权/回答/持久化都完整，`budgetLimitValid=true`、`measurementValid=true`。首问命中 `eligible-window` 与 `refund-state`；第二问把“哪些订单状态”改写为“哪些条件”，仍落在同一退款资格 target，脚本 grader 正确标记 `repeated=true`，召回保持 0.194、最终覆盖 0、`accepted=false`。两轮累计 $5.163868 后，余额 $2.836132 低于既有最大单轮 $3.006467，runner 以 `insufficient-remaining-invocation-budget` 停止，没有越过 $8 上限。该样本证明预算保护有效，也证明只比较 Ask 文本不能阻止语义改写重问；runtime 因而继续收紧为：对 Other 事件回读原候选的 `decisionType + targetRef`，同 target 改写同样拒绝。审计摘要见 [`multiturn-calibration-f712bb5-2026-10-02.json`](../../benchmarks/model-uplift-v1/multiturn-calibration-f712bb5-2026-10-02.json)。
 
+clean `219ffdf` 的真实复验在首轮 1,802,007ms 后由 30 分钟宿主硬超时收口：controller/worker stream 都观察到 GLM-5.1，但没有最终 billing result，因此 `modelIdentityValid=false`、`billingComplete=false`、`measurementValid=false`，不能计为效果分数或 $0 成本。sanitized trace 显示 CodeGraph 成功调用一次，而 docs worker 未调用 Context7，反复执行 16 次 ToolSearch 和 122 次 Read，未产出 ResearchPacket。现有 prose 只限制 Context7 resolve/query 次数，机械 hook 没限制工具发现和官方 fallback；runtime 现为 doc-research 增加每 worker 1 次 ToolSearch、8 次 Read、1 次 WebSearch、3 次 WebFetch 的 fail-closed 预算，并要求 deferred `tool_reference` 下一步立即调用，否则转受控 fallback/blocker。runner 同时把 SDK 的泛化“aborted by user”规范为宿主 timeout authority。最小证据见 [`research-timeout-219ffdf-2026-10-02.json`](../../benchmarks/model-uplift-v1/research-timeout-219ffdf-2026-10-02.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

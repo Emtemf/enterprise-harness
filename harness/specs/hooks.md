@@ -69,8 +69,11 @@ Glob, one focused Grep, and six governed source Reads. Each admitted call is an 
 the next call fails closed with the stable recovery instruction to stop expanding scope and return the current
 ResearchPacket uncertainty/blocker. This hook enforces only count, identity, and ordering—not semantic sufficiency.
 The same PreToolUse budget boundary admits Context7 only for the active doc-research identity, with at most one
-`resolve-library-id` and two `query-docs` calls per worker. Additional synonymous queries fail closed; official
-vendor fallback remains available through the worker's declared non-Context7 tools.
+`resolve-library-id` and two `query-docs` calls per worker. Deferred Context7 discovery is limited to one
+ToolSearch. The complete docs worker, including handoff/schema reads and official fallback, is limited to eight
+Reads, one WebSearch, and three WebFetches; exhaustion returns a blocker instead of permitting plugin/governance
+discovery loops. Additional synonymous queries fail closed; official vendor fallback remains available through
+the worker's declared non-Context7 tools within those limits.
 
 Inside an active v6 workflow, Bash is fail-closed by allowlist rather than classified by a
 mutation denylist. Main may run only canonical Harness runtime commands or bounded read-only

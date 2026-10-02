@@ -63,6 +63,8 @@ assert.match(businessRunner, /questionBridgeValid[\s\S]{0,500}measurementValid:[
   'Harness measurements must fail closed unless the SDK question bridge authorized and persisted each answer');
 assert.match(businessRunner, /budgetLimitValid:[^\n]+withinBudget[\s\S]{0,180}measurementValid:[^\n]+withinBudget/u,
   'measurements must fail closed after an observed budget overrun');
+assert.match(businessRunner, /parsed\.timedOut[\s\S]{0,120}benchmark invocation timeout after/u,
+  'SDK abort text must be normalized to the benchmark host timeout authority');
 assert.deepEqual(invocationBudgetStatus(8, []), {
   allowed: true, spentUsd: 0, remainingUsd: 8, reserveUsd: 0, stopReason: null,
 });

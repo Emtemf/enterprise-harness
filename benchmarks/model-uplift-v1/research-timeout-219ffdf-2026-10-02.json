@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-invalid-timeout",
+  "claimEligible": false,
+  "runnerCommit": "219ffdfcf582e07cac6e4ba3c01765cfd54abca6",
+  "runnerTreeClean": true,
+  "armId": "weak-harness",
+  "caseId": "refund-policy",
+  "observedControllerModels": [
+    "glm-5.1"
+  ],
+  "observedWorkerModels": [
+    "glm-5.1"
+  ],
+  "billingModels": [],
+  "modelIdentityValid": false,
+  "billingComplete": false,
+  "measurementValid": false,
+  "timedOut": true,
+  "invocationTimeoutMs": 1800000,
+  "observedDurationMs": 1802007,
+  "questionTurns": 0,
+  "sanitizedToolCounts": {
+    "ToolSearch": 16,
+    "Read": 122,
+    "CodeGraphExplore": 1
+  },
+  "diagnosis": "CodeGraph returned, while the docs worker never invoked Context7 and exhausted the host timeout in repeated tool discovery and file reads.",
+  "correctiveControls": {
+    "ToolSearchPerDocWorker": 1,
+    "ReadPerDocWorker": 8,
+    "WebSearchPerDocWorker": 1,
+    "WebFetchPerDocWorker": 3
+  },
+  "limitations": [
+    "no-final-billing-result",
+    "no-question-bridge",
+    "development-case-not-publishable",
+    "missing-authoritative-cc-switch-route-receipt"
+  ]
+}

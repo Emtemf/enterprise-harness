@@ -108,6 +108,24 @@ check('Context7 resolve and query budgets are bounded', () => {
   }
 });
 
+check('doc research discovery and fallback budgets are bounded', () => {
+  const root = fixture({ agentId: 'docs-agent', agentType: 'enterprise-harness:doc-research' });
+  try {
+    assert.equal(invoke(root, 'ToolSearch', { query: 'select:mcp__context7__resolve-library-id' }, 1, 'docs-agent').status, 0);
+    const secondSearch = invoke(root, 'ToolSearch', { query: 'context7' }, 2, 'docs-agent');
+    assert.equal(secondSearch.status, 2, secondSearch.stderr);
+    assert.match(secondSearch.stderr, /ToolSearch budget.*上限 1/iu);
+    for (let index = 1; index <= 8; index += 1) {
+      assert.equal(invoke(root, 'Read', { file_path: `docs/vendor-${index}.md` }, `read-${index}`, 'docs-agent').status, 0);
+    }
+    const ninthRead = invoke(root, 'Read', { file_path: 'docs/vendor-9.md' }, 'read-9', 'docs-agent');
+    assert.equal(ninthRead.status, 2, ninthRead.stderr);
+    assert.match(ninthRead.stderr, /Read budget.*上限 8/iu);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 check('only one focused Grep is allowed', (root) => {
   establishAttempt(root);
   assert.equal(invoke(root, 'Grep', { path: 'src/main/java', pattern: 'OrderService' }, 1).status, 0);

@@ -370,7 +370,9 @@ async function runOnce(arm, selectedCase, repetition) {
         text: parsed.text,
         outputDigest: sha256(arm.workflow === 'enterprise-harness' ? JSON.stringify(parsed.events) : child.stdout || ''),
         timedOut: arm.workflow === 'enterprise-harness' ? parsed.timedOut : child.error?.code === 'ETIMEDOUT',
-        error: child.error?.message || String(child.stderr || '').trim() || null,
+        error: arm.workflow === 'enterprise-harness' && parsed.timedOut
+          ? `benchmark invocation timeout after ${invocationTimeoutMs}ms`
+          : child.error?.message || String(child.stderr || '').trim() || null,
         ...(arm.workflow === 'enterprise-harness' ? { toolTrace: sanitizedSdkToolTrace(parsed.events) } : {}),
         ...(arm.workflow === 'enterprise-harness' ? { callbackDiagnostics: parsed.callbackDiagnostics } : {}),
       });
