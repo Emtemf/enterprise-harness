@@ -12,7 +12,7 @@
         "docs/payment-provider-v3.txt": "Provider v3 要求每次退款携带唯一 idempotency_key；超时结果未知，重试必须复用原 key。"
       },
       "requiredFacts": [
-        {"id":"eligible-window","weight":3,"questionPattern":"(多久|时间窗|天内|退款期限|哪些(?:订单)?状态|什么(?:订单)?状态|状态范围|FULFILLED|已发货|适用范围)","answer":"只有付款后 7 天内且尚未发货的 PAID 订单允许自助退款。","acceptancePattern":"7 天.*尚未发货.*PAID|PAID.*7 天.*尚未发货","normalizationPattern":"仅\\s*(?:已付款|PAID)(?:状态)?|仅对\\s*(?:已付款|PAID)(?:状态)?"},
+        {"id":"eligible-window","weight":3,"questionPattern":"(多久|时间窗|天内|退款期限|哪些(?:订单)?状态|什么(?:订单)?状态|状态范围|状态资格|FULFILLED|已发货|适用范围)","answer":"只有付款后 7 天内且尚未发货的 PAID 订单允许自助退款。","acceptancePattern":"7 天.*尚未发货.*PAID|PAID.*7 天.*尚未发货","normalizationPattern":"仅\\s*(?:已付款|PAID)(?:状态)?|仅对\\s*(?:已付款|PAID)(?:状态)?"},
         {"id":"manual-review","weight":2,"questionPattern":"(人工审核|客服审核|审批|直接执行|自动退款|需要审核|风控审核)","answer":"符合条件的订单自动发起退款，不需要人工审核；风控拒绝的订单不展示自助入口。","acceptancePattern":"自动发起退款.*不需要人工审核|不需要人工审核.*自动"},
         {"id":"entry-surface","weight":1,"questionPattern":"(触发入口|入口.*形态|订单详情.*按钮|前端入口)","answer":"入口放在用户订单详情页；只有服务端判断符合资格时才展示“申请退款”按钮。","acceptancePattern":"订单详情页.*符合资格.*申请退款|订单详情页.*申请退款.*符合资格|符合资格.*订单详情页.*申请退款"},
         {"id":"ownership","weight":3,"questionPattern":"(登录态|本人订单|自己账户|订单归属|身份.*校验|权限.*校验|谁.*发起|发起人|允许谁发起)","answer":"必须登录，且服务端校验当前用户就是订单所有者；不能仅依赖前端隐藏按钮。","acceptancePattern":"必须登录.*订单所有者.*服务端|服务端.*订单所有者.*前端"},

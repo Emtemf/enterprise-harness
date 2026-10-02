@@ -45,7 +45,7 @@ MCP 返回未索引/未初始化时不得用 Glob 搜索 `.codegraph`，该错�
 随后只定向 Read 命中的文件。
 
 - 只有在 codegraph 工具实际不可用（MCP server 断连、索引未初始化）或查询结果不足以解释关键影响面时，才允许 fallback 到 Grep / Glob / 定向 Read
-- 每次 fallback 最多 2 次 discovery Glob、最多定向 Read 6 个目标文件；第二次 Glob 只用于直接相关测试/项目 instruction/repository-local contract；Grep 只能定位这 6 个文件中的目标符号或合同关键词，不能借此扩展仓库扫描
+- 每次 fallback 最多 2 次 discovery Glob、最多定向 Read 6 个目标文件；第二次 Glob 只用于直接相关测试/项目 instruction/repository-local contract，并固定覆盖 `**/*.{md,txt,sql,json,yaml,yml}`（可再按 brief scope 收窄目录，不得删掉 `.txt`）；Grep 只能定位这 6 个文件中的目标符号或合同关键词，不能借此扩展仓库扫描
 - 不得读取或诊断 Enterprise Harness 插件、hook、receipt、ledger 或治理内部实现；门禁异常作为 uncertainty/blocker 返回主 Agent
 - fallback 必须明确原因、范围与当前可信度
 - fallback 对 brief 的精确范围已完整穷尽时保留 fallback 说明但写 `degraded=false`；只有事实覆盖缺口才写 `degraded=true`

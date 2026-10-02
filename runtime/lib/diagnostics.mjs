@@ -64,8 +64,8 @@ export const DIAGNOSTICS = Object.freeze({
     recovery: '运行 enterprise-harness workflow audit <change-id> --json，修复首个无效 artifact/handoff 后重试 status。',
   },
   'EH-QUESTION-CANDIDATE-106': {
-    summary: 'Clarify question candidate 缺失或无效。',
-    recovery: '重新生成并保存 canonical candidate，再执行 clarify prepare-question。',
+    summary: 'Clarify question candidate 缺失、schema 无效，或一个普通问题混入多个已识别 policy axis。',
+    recovery: '重新生成 canonical candidate；问题与选项只保留一个业务变量，其余轴留在 frontier，再执行 clarify prepare-question。',
   },
   'EH-QUESTION-STALE-107': {
     summary: 'Clarify question candidate 或其输入已过期。',

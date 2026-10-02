@@ -313,6 +313,18 @@ assert.equal(calibrationNormalization.unmatched, false);
 assert.equal(calibrationNormalization.repeated, true);
 assert.equal(calibrationNormalization.selectedOptionId, 'confirm-only-paid');
 assert.deepEqual(calibrationNormalization.matchedFactIds, ['eligible-window']);
+const observedNormalization = planHeadlessDecision(refundCase, {
+  questionId: 'Q-OBSERVED-NORM', decisionType: 'clarify-answer', header: '状态资格',
+  question: '订单自助退款的状态资格应锁定为哪一种？', decisionNeeded: '规范化订单状态资格',
+  normalizesEventId: 'D-1', recommendedOption: 'paid-only',
+  options: [
+    { id: 'paid-only', label: '仅 PAID 状态', description: '仅 PAID 状态订单允许自助退款。' },
+    { id: 'paid-and-fulfilled', label: 'PAID 与 FULFILLED', description: '两种状态都允许。' },
+  ],
+}, new Set(['eligible-window']));
+assert.equal(observedNormalization.repeated, true);
+assert.equal(observedNormalization.selectedOptionId, 'paid-only',
+  'the development oracle must recognize the observed 状态资格 normalization synonym');
 const businessDecision = planHeadlessDecision(refundCase, {
   questionId: 'Q-REFUND-SCOPE', decisionType: 'clarify-answer', header: '退款范围',
   question: '用户自助退款支持全额还是部分退款？', decisionNeeded: '确定退款金额范围',

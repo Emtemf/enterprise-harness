@@ -134,6 +134,8 @@ clean `b526283` 首次在同一提交、同一 development case、同为 GLM-5.1
 
 clean `5c56e9e` 在不传命令级模型环境覆盖的条件下复验了前三项修复：runner 从当前 Claude settings 刷新路由，controller/worker/billing 均为 GLM-5.1；code lane 找到 `docs/payment-provider-v3.txt`，requirements grounding 覆盖源码与本地合同；本地合同触发的精确 Context7 lane 没有识别出真实支付 vendor，按“外部 authority 不存在/不可识别”关闭，没有编造语义；Other 规范化保持单一状态轴。runner 原始输出 effect 36.77、召回 0.194、grounding 1、atomicity 1，但审计发现第二次 Claude invocation 实际授权、回答并持久化了两次 Ask，transcript 只保留最后一次，错误折叠了一个用户交互。因此该运行被追溯判为 `measurementValid=false`，不能与裸臂比较。宿主现于首个答案持久化后拒绝同一 invocation 的后续 Ask，bridge validator 要求授权/回答/持久化 marker 各恰好一次。摘要见 [`single-ask-audit-5c56e9e-2026-10-03.json`](../../benchmarks/model-uplift-v1/single-ask-audit-5c56e9e-2026-10-03.json)。
 
+clean `d20fb64` 复验确认一轮一问计量闭环：两次 invocation 都恰好留下一个授权、回答和持久化 marker，controller/worker/billing 均为 GLM-5.1，identity、raw request、bridge、billing 与预算全有效。它也是诚实的失败样本：effect 25.89、召回 0.097、最终覆盖 0、grounding 0.5、`accepted=false`。首问虽问状态资格，选项 description 仍混入“未发货/已发货”履约轴；code worker 的第二个 Glob 自行选择 `**/*.{sql,md,yml,yaml,json}`，漏掉 `.txt` 本地合同；第二轮“状态资格”规范化又因 development oracle 同义词缺口落入 unmatched Other。对应低后悔修复是不改总分：普通 candidate 对 runtime 已识别轴执行单轴机械门，第二个本地合同 Glob 固定包含 `.txt`，开发 oracle 增加“状态资格”同义表达。该样本没有同提交 weak-bare 对，仍不计正式配对。摘要见 [`single-ask-calibration-d20fb64-2026-10-03.json`](../../benchmarks/model-uplift-v1/single-ask-calibration-d20fb64-2026-10-03.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计

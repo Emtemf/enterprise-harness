@@ -261,7 +261,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-DECISION-LEDGER-103` | decision ledger 含无效 JSON、无效事件、重复 ID 或未终止行 | 从可信证据恢复完整的 newline-terminated JSONL；不要跳过损坏行 |
 | `EH-DECISION-SNAPSHOT-104` | Clarify snapshot 或其有序账本前缀无效 | 修复 ledger，使 eventIds 成为精确有序前缀，再重新封存 |
 | `EH-DECISION-SNAPSHOT-105` | 尝试覆盖已封存的 Clarify snapshot | 保留 immutable snapshot；需要新封存时使用新的 change/run artifact |
-| `EH-QUESTION-CANDIDATE-106` | Clarify question candidate 缺失、JSON/schema 无效、change 身份不符或不在 canonical path | 重新生成并保存到 `harness/changes/<changeId>/evidence/clarify/questions/<questionId>.json`，再执行 `clarify prepare-question` |
+| `EH-QUESTION-CANDIDATE-106` | Clarify question candidate 缺失、JSON/schema 无效、change 身份不符、不在 canonical path，或一个普通业务问题混入多个已识别 policy axis | 重新生成并保存到 `harness/changes/<changeId>/evidence/clarify/questions/<questionId>.json`；问题、decisionNeeded、label 和 description 只保留一个业务变量，其余轴留在 frontier，再执行 `clarify prepare-question` |
 | `EH-QUESTION-STALE-107` | candidate 本身或其 input digest 已过期 | 从当前 authoritative inputs 重新生成 candidate 和全部 input digests，再重新 prepare |
 | `EH-QUESTION-ACTIVE-108` | 目标不是当前 active v6 change，或不处于 active `clarify` stage | 绑定正确的 active v6 change 并恢复到 `stage=clarify` 后重试，不手改 state projection |
 | `EH-QUESTION-PENDING-110` | 已有一个未关闭的 authorized question，不能准备下一题 | 先按 status 的动作重问并 resolve，或运行 `enterprise-harness clarify recover <changeId>` 修复 crash window |

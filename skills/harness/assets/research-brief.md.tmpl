@@ -7,7 +7,7 @@
 - known user facts：只记录用户已明确给出的事实
 - exclusions：不得研究或推断的业务策略、设计方案和相邻 lane 范围
 - closure：一次 CodeGraph 或 bounded fallback / 一次 Context7 resolve + 最多两次 query 内，哪些事实足以让本 question 以 `uncertainties=[]` 关闭；目标不存在也是一种可关闭事实；不得把未点名的辅助 API/symbol 当成 closure 条件
-- repository-local contracts（code lane）：明确本变更直接相关的 `docs/`、ADR、OpenAPI/SQL/schema 或项目 instruction 是否存在；它们是本地事实，不得路由到 Context7。CodeGraph 不能证明非代码合同不存在时，用第二次 bounded discovery Glob 定向查询，只读取与 brief 直接相关的命中文件
+- repository-local contracts（code lane）：明确本变更直接相关的 `docs/`、ADR、OpenAPI/SQL/schema 或项目 instruction 是否存在；它们是本地事实，不得路由到 Context7。CodeGraph 不能证明非代码合同不存在时，第二次 bounded discovery Glob 固定覆盖 `**/*.{md,txt,sql,json,yaml,yml}`（可按 scope 收窄目录，不得删 `.txt`），只读取与 brief 直接相关的命中文件
 - source request ref：requirements 中原始请求的位置
 
 ## Relevant technical debt

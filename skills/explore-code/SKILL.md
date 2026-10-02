@@ -27,7 +27,7 @@ brief 派给 `code-explore`；Main 只接收压缩、schema-valid `ResearchPacke
    attempt 时不得进入 fallback。
 3. CodeGraph 不可用、未索引或不足以解释关键影响面时，才可定向 fallback 到 Read/Grep/Glob；记录原因、
    覆盖范围和信心边界。一次 fallback 最多使用 2 次 discovery Glob，并最多定向 Read 6 个目标文件；第二次
-   Glob 只补齐与 brief scope 直接相关的测试、项目 instruction 或 repository-local contract（如 `docs/`、ADR、OpenAPI、SQL/schema）文件；Grep 只能用于定位这 6 个文件中的目标符号或合同关键词，不能扩大扫描范围。没有执行 CodeGraph attempt 不得声称
+   Glob 只补齐与 brief scope 直接相关的测试、项目 instruction 或 repository-local contract（如 `docs/`、ADR、OpenAPI、SQL/schema）文件，并固定覆盖 `**/*.{md,txt,sql,json,yaml,yml}`（可按 brief scope 收窄目录，但不得删掉 `.txt`）；Grep 只能用于定位这 6 个文件中的目标符号或合同关键词，不能扩大扫描范围。没有执行 CodeGraph attempt 不得声称
    codegraph-first。不得读取或诊断 Enterprise Harness 插件、hook、receipt、ledger 或治理实现来绕过门禁；
    门禁拒绝时返回明确 uncertainty/blocker，由 Main 修复 handoff 或运行环境后重派。
    MCP 已返回未索引/未初始化时禁止用 Glob 搜索 `.codegraph`；错误本身就是 fallback 依据。首次 Glob 必须

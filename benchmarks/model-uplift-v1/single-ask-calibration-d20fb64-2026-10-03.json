@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "type": "development-diagnostic-summary",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "d20fb64e271e0fe64e2e830ee00e7e1daaf9c0c9",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "armId": "weak-harness",
+  "controllerModels": ["glm-5.1"],
+  "workerModels": ["glm-5.1"],
+  "routingSource": "fresh ~/.claude/settings.json model fields; no command-level model environment override",
+  "measurementValid": true,
+  "modelIdentityValid": true,
+  "responseIdentityValid": true,
+  "rawRequestBound": true,
+  "questionBridgeValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "accepted": false,
+  "effectScore": 25.887096774193548,
+  "criticalUnknownRecall": 0.0967741935483871,
+  "finalRequirementCoverage": 0,
+  "prematureAssumptionRate": 0,
+  "evidenceGroundingRate": 0.5,
+  "decisionAtomicityRate": 1,
+  "compoundQuestionTurns": 0,
+  "questionTurns": 2,
+  "durationMs": 966910,
+  "aliasEstimatedCostUsd": 4.069680999999999,
+  "bridgeEvidence": [
+    {"invocation": 1, "authorized": 1, "answered": 1, "persisted": 1},
+    {"invocation": 2, "authorized": 1, "answered": 1, "persisted": 1}
+  ],
+  "diagnosis": [
+    "The first status candidate mentioned shipment state in option descriptions, so prose-only single-axis guidance was still insufficient for an ordinary candidate.",
+    "The code worker chose **/*.{sql,md,yml,yaml,json} for local-contract discovery and omitted docs/payment-provider-v3.txt, reducing grounding to 0.5.",
+    "The second normalization question used the synonym 状态资格, which the development scripted oracle did not recognize and therefore answered as unmatched Other."
+  ],
+  "acceptedCandidates": [
+    "ordinary-candidate-recognized-axis-runtime-guard",
+    "canonical-local-contract-glob-includes-txt",
+    "development-oracle-status-eligibility-synonym"
+  ],
+  "formalPairedObservation": false,
+  "claimEligible": false,
+  "notes": "This is a valid n=1 development measurement and an honest failed Harness sample. It is not paired on the same commit with weak-bare and cannot support a product-effect claim."
+}

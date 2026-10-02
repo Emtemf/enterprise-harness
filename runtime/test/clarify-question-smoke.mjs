@@ -240,6 +240,17 @@ try {
     assertCandidateRejected(changeId, candidateFor(changeId, 'Q-001', { options }));
   }
 
+  const mixedAxisChange = 'candidate-mixed-policy-axes';
+  assertCandidateRejected(mixedAxisChange, candidateFor(mixedAxisChange, 'Q-001', {
+    decisionNeeded: 'Choose the eligible order status',
+    question: 'Which order status is eligible for self-service refund?',
+    options: [
+      { id: 'paid-unshipped', label: 'PAID and unshipped', description: 'Require PAID status and an unshipped order.' },
+      { id: 'paid-shipped', label: 'PAID and shipped', description: 'Require PAID status and a shipped order.' },
+    ],
+    recommendedOption: 'paid-unshipped',
+  }), /EH-QUESTION-CANDIDATE-106.*one recognized policy axis/u);
+
   const malformedChange = 'candidate-malformed';
   activate(malformedChange);
   const malformedRef = `harness/changes/${malformedChange}/evidence/clarify/questions/Q-001.json`;

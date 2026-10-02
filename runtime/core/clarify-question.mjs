@@ -184,6 +184,10 @@ export function validateQuestionCandidate(candidate) {
       && IMPLEMENTATION_CHOICE_PATTERNS.some((pattern) => pattern.test(String(candidate.question || '')))) {
     problems.push('question must ask for a business policy or observable outcome, not an implementation structure');
   }
+  if (candidate.decisionType === 'clarify-answer' && candidate.normalizesEventId === undefined) {
+    const axes = [...normalizationPolicyAxes(candidate)];
+    if (axes.length > 1) problems.push(`question and options must vary one recognized policy axis; found ${axes.join(', ')}`);
+  }
   if (isNonEmptyString(candidate.question)
       && (candidate.question.match(/[？?]/gu) || []).length !== 1) {
     problems.push('question must contain exactly one question mark for one decision surface');

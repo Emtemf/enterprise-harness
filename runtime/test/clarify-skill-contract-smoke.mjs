@@ -95,6 +95,8 @@ assert.match(research, /repository-local contract[\s\S]*仍属 code lane[\s\S]*�
   'repository-local contracts must stay in the code lane and use bounded discovery');
 assert.match(research, /code brief[\s\S]*必须[\s\S]*repository-local contract/u,
   'every code brief must dispose directly relevant repository-local contracts');
+assert.match(research, /md,txt,sql,json,yaml,yml/u,
+  'bounded local-contract discovery must not omit plain-text contracts');
 for (const token of [
   'references/clarify-research.md',
   'references/clarify-decisions.md',
