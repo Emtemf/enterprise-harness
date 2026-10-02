@@ -218,7 +218,7 @@ assert.equal(contaminatedRoute.records[0].relayChargeUnits, 4, 'polluted routes 
 assert.throws(() => attachRouteReceipt(routeRaw, routeReceipt, {
   ...relayTariff, models: { 'glm-5.2': { chargeUnitsPerRequest: 3 } },
 }), /no request rate/u);
-assert.equal(businessCases.cases.length, 5);
+assert.equal(businessCases.cases.length, 6);
 assert.equal(businessCases.publishable, false, 'committed development cases must never qualify as holdout evidence');
 for (const selectedCase of businessCases.cases) {
   assert.ok(Object.keys(selectedCase.evidenceFiles).some((reference) => reference.startsWith('src/') && reference.endsWith('.mjs')), `${selectedCase.id} must include indexable source evidence`);
@@ -257,9 +257,16 @@ assert.equal(repeatedAnswer.unmatched, false);
 assert.equal(repeatedAnswer.repeated, true);
 const compoundAnswer = answerBusinessQuestion(businessCases.cases[0], '网关退款失败或超时后，订单状态如何处理？', new Set());
 assert.deepEqual(compoundAnswer.answeredFactIds.sort(), ['deterministic-failure', 'timeout-policy']);
+assert.deepEqual(
+  answerBusinessQuestion(businessCases.cases[0], '用户自助退款应允许谁发起？', new Set()).answeredFactIds,
+  ['ownership'],
+  'scripted oracle must recognize an ordinary ownership-axis phrasing',
+);
 assert.equal(bareFinalRequirements('当前已确认：只支持全额退款。\n下一问题是什么？'), '');
 assert.match(bareFinalRequirements('CLARIFICATION_COMPLETE\n只支持全额退款。'), /只支持全额退款/u);
 const refundCase = businessCases.cases.find(({ id }) => id === 'refund-policy');
+assert.ok(businessCases.cases.some(({ id }) => id === 'refund-status-normalization'),
+  'development pack must provide a reproducible Other normalization calibration surface');
 const businessDecision = planHeadlessDecision(refundCase, {
   questionId: 'Q-REFUND-SCOPE', decisionType: 'clarify-answer', header: '退款范围',
   question: '用户自助退款支持全额还是部分退款？', decisionNeeded: '确定退款金额范围',

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "type": "development-diagnostic-summary",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "c7600feedd0c1e2f6c6a7e53bab37d8004f4560a",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "armId": "weak-harness",
+  "controllerModels": ["glm-5.1"],
+  "workerModels": ["glm-5.1"],
+  "durationMs": 1813254,
+  "costAuthority": "claude-code-alias-estimate",
+  "estimatedCostUsd": 7.186587,
+  "measurementValid": true,
+  "modelIdentityValid": true,
+  "billingComplete": true,
+  "budgetLimitValid": true,
+  "accepted": false,
+  "effectScore": 29.274193548387096,
+  "criticalUnknownRecall": 0.0967741935483871,
+  "finalRequirementCoverage": 0.0967741935483871,
+  "prematureAssumptionRate": 0,
+  "questionTurns": 2,
+  "decisions": [
+    {"questionId":"Q-1","surface":"partial-refund","selectedOption":"full-refund-only","typed":true},
+    {"questionId":"Q-2","surface":"ownership","selectedOption":"other","typed":false}
+  ],
+  "researchDiagnostics": {
+    "docsLaneRequired": true,
+    "degradedDocsRuns": 2,
+    "cleanDocsRuns": 1,
+    "firstInvocationDurationMs": 1349347
+  },
+  "normalizationExercised": false,
+  "effectClaimEligible": false,
+  "notes": "This valid development observation shows one typed business decision and no unconfirmed assumptions, but it did not exercise Other normalization and cannot support a model-uplift claim."
+}

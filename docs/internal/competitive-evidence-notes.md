@@ -124,6 +124,8 @@ clean `b452369` 的 GLM-5.1 复验没有到达 Other 候选，而是暴露了更
 
 clean `bd4d180` 真实确认了两个产品机制：同类 CodeGraph fallback 一次跨过 `close-research`，首轮单轴状态资格问题得到含 7 天、未发货、登录归属和退款终态的自由输入后，只持久化 `D-1 selectedOption=other` 与 candidate digest；第二轮 GLM-5.1 主模型主动生成 `normalizesEventId=D-1` 的脱敏状态资格候选，runtime 授权并持久化 `D-2` lineage，未复制原始自由文本。该轮仍非有效效果观测：scripted host 用 question + option vocabulary 路由事实，选项里的 `CANCELLED` 误触发退款后状态；第二轮又先过滤已答事实，再让空事实集合同时匹配所有选项，故错误提交 Other。第三轮累计 alias $8.461689 超过 $8，`budgetLimitValid=false`、`measurementValid=false`。benchmark 修复只作用于评测宿主：事实路由不再读取选项文本，normalization 使用可选单轴 `normalizationPattern` 选择 typed option，完整 `acceptancePattern` 仍是最终效果门；生产 runtime 没有放宽。摘要见 [`other-normalization-bd4d180-2026-10-03.json`](../../benchmarks/model-uplift-v1/other-normalization-bd4d180-2026-10-03.json)。
 
+clean `c7600fe` 两轮复验是有效 development 观测，但没有命中目标机制：identity、billing、raw request、bridge 与 $8 预算均通过，总 alias $7.186587；首问选择“仅整单全额退款”，形成 typed D-1，第二问切到发起主体后因 oracle 未识别“允许谁发起”而落 Other。effect 29.27、关键未知项召回与最终覆盖均为 0.097、未经确认假设率 0、`accepted=false`。首轮还把 docs lane 路由到本地 manifest 枚举，两个 degraded packet 后第三个窄 run 才 clean，单轮耗时 1,349,347ms；该问题继续保留为研究路由效率缺陷。由于通用 case 的 frontier 会变化，仓库新增一个 publishable=false 的状态资格 normalization 校准 case，只固定待澄清 surface、不泄露答案；它不能并入通用 case 或正式效果统计。摘要见 [`two-turn-calibration-c7600fe-2026-10-03.json`](../../benchmarks/model-uplift-v1/two-turn-calibration-c7600fe-2026-10-03.json)。
+
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 
 ## 正式评测设计
