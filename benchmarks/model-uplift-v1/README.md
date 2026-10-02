@@ -14,6 +14,8 @@
 | `weak-harness` | controller 与 subagent 都锁定 GLM-5.1，隔离 Harness 自身的流程增益 |
 | `strong-bare` | 裸工作流、GLM-5.2 controller 强模型基线 |
 
+preflight 与 business runner 每次启动都只从当前 Claude `settings.json` 重新读取五个 model-routing 字段并覆盖父进程的旧值，不读取或替换 token/Base URL。因此 CC Switch 保存后不需要重启当前 Codex 桌面任务，也不会把旧 `glm-5.3-flash` 环境误当成新路由。
+
 Claude Code alias 是 CC Switch 的路由入口：当前 profile 明确规定 `Haiku/Fable → GLM-5.1`、`Sonnet/Opus → GLM-5.2`。该映射必须由 CC Switch 已启用的本地路由/代理接管实现；benchmark 不覆盖 Base URL、认证或模型环境来伪造通过。assistant `message.model` 与 Claude billing alias 用于预检，正式样本再由 CC Switch proxy log 的 session、实际 model 与 invocation 时间窗证明档位身份。插件所有 named agent 都使用 `model: inherit`。`weak-harness` 还按 Claude Code 官方的 [模型配置合同](https://code.claude.com/docs/en/model-config) 设置 `CLAUDE_CODE_SUBAGENT_MODEL=haiku` 与 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`，让第三方 gateway 继续通过 Haiku alias 解析实际模型，同时防止普通 subagent、teammate 或 workflow agent 自行升级；fork 与 `model: inherit` Skill 仍跟随 Haiku controller。任何实际 GLM-5.2 请求仍由 route receipt 判定为污染样本。
 
 效果证据与资源统计分开：隐藏验收决定业务效果；CC Switch proxy log 通过 Claude session ID、invocation 时间窗和实际 `model` 证明每条样本的产品档位，并按用户确认的中转站规则累计请求计费单位。GLM-5.1 每次请求记 1 单位，GLM-5.2 每次请求记 3 单位。Claude Code 返回的 alias `costUSD` 仅保留作诊断；计费单位、token 和耗时都不参与效果发布门槛。
@@ -37,7 +39,7 @@ Harness 臂使用与本机 Claude Code 精确配套的锁定版 Claude Agent SDK
 
 ## 效果、资源与经济学
 
-主指标是系统中立的隐藏验收。当前 case 覆盖订单取消的状态、原子性与并发幂等，Webhook 的 HMAC 签名、时间窗、多签名轮换、负载校验和重放防护，以及订阅变更的乐观锁、外部失败原子性、幂等冲突和 forward/rollback SQL migration。`accepted` 要求当前 case 的全部关键测试通过、公开回归测试通过且未篡改需求。
+主指标是系统中立的隐藏验收。当前 case 覆盖订单取消的状态、原子性与并发幂等，Webhook 的 HMAC 签名、时间窗、多签名轮换、负载校验和重放防护，以及订阅变更的乐观锁、外部失败原子性、幂等冲突和 forward/rollback SQL migration。`accepted` 要求当前 case 的全部关键测试通过、公开回归测试通过且未篡改需求。澄清轨还单独报告 `decisionAtomicityRate`：一个问题同时命中多个独立隐藏事实时记为 compound question。该指标区分“套餐式询问获得高召回”与“可单独授权、回放和审计的决策”，但不改写既有 effect score，避免为让 Harness 获胜而事后调权。
 
 效果判定：
 

@@ -1,7 +1,7 @@
 ---
 status: current
 owner: enterprise-harness-maintainers
-lastVerified: 2026-10-02
+lastVerified: 2026-10-03
 implementationRefs:
   - skills/harness/SKILL.md
   - skills/harness/assets/synthesis-input.json.tmpl
@@ -99,6 +99,10 @@ Clarify is the first user-visible stage in the fixed lifecycle. It completes app
 - The Clarify `StageResult`, independent `ReviewResult`, and `ClarifyProof` (the generic completion proof specialized to `stage: clarify`) are the completion authorities. No prior artifact alone authorizes the Design transition.
 
 ## Artifact and Gate Rules
+
+For an Other normalization, preserving component/dimension/target/revision is necessary but not sufficient. Runtime compares recognized policy-axis families in the source and replacement user-visible Ask payloads; the replacement must not introduce an axis absent from the source. A status-eligibility normalization therefore cannot silently add a time window, fulfillment boundary, amount, ownership, failure class, retry/idempotency, or audit decision. Unknown semantics remain a model self-check responsibility and fail closed to another narrower question rather than being inferred from persisted free text.
+
+Repository-local contracts such as `docs/`, ADRs, OpenAPI, SQL/schema files, and project instructions are code-lane facts, not Context7 authority. Every code brief disposes whether a directly relevant local contract exists within the same bounded scope. Because CodeGraph cannot prove non-code contracts absent, the worker may use its second bounded discovery Glob for directly relevant tests, instructions, or local contracts and may read only relevant hits within the existing file budget. A local contract that names an external library/version/API surface returns that routing fact to Main; it does not authorize the code worker to query Context7.
 
 The runtime owns safe-path validation, schema validation, digest comparison, decision-ledger append/seal behavior, and cross-record invariants. In particular, a candidate binds its typed decision target and every evidence artifact digest; a non-classification typed target can be resolved only once; the host-visible recommended option is unique; a free-form Other response is durably redacted and cannot satisfy a typed disposition. Newly recorded interactive DecisionEvents bind the canonical question candidate digest; historical events without that binding remain readable but cannot source normalization. A later `clarify-answer` may set `normalizesEventId` to request one user confirmation of a sanitized typed policy, but runtime accepts it only when the source candidate still matches that digest, the source is an unnormalized redacted Other from the same component, dimension, target, and target-artifact revision, and the new Ask payload differs from the source. The resulting DecisionEvent records only this event lineage, never the original free text. Every debt observation has exactly one disposition; a snapshot event list is the ordered ledger prefix; and classification totals/tier/route decision agree with their inputs. Public CLI commands are the supported surface for main/runtime event append, atomic lane applicability recording, idempotent snapshot seal, and atomic classification persistence; skills do not import core modules.
 

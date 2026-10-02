@@ -23,6 +23,7 @@ import { questionBridgeValidFor } from './lib/question-bridge.mjs';
 import { hasSuccessfulToolResult } from './lib/sdk-question-result.mjs';
 import { sanitizedSdkToolTrace } from './lib/sdk-trace.mjs';
 import { budgetLimitValid, invocationBudgetStatus } from './lib/invocation-budget.mjs';
+import { currentClaudeRoutingEnv } from './lib/claude-settings-routing-env.mjs';
 import { assertSdkClaudeCompatibility } from './lib/sdk-runtime.mjs';
 import { isSafeId, isSafeRelativePath } from '../../runtime/lib/safe-paths.mjs';
 import { promptBindingCovers } from '../../runtime/lib/prompt-receipts.mjs';
@@ -31,6 +32,7 @@ import { authorizeClarifyQuestion, resolveClarifyQuestion } from '../../runtime/
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../..');
 const matrix = JSON.parse(fs.readFileSync(path.join(here, 'matrix.json'), 'utf-8'));
+const routingEnv = currentClaudeRoutingEnv(process.env);
 const args = process.argv.slice(2);
 const option = (name, fallback = null) => {
   const index = args.indexOf(name);
@@ -304,7 +306,7 @@ function validatePreflight() {
   const expectedModels = new Set(selectedArms.flatMap((arm) => [arm.controllerRoute, ...(arm.workerRoutes || [])]));
   validatePreflightReceipt(receipt, {
     expectedModels,
-    environmentFingerprint: environmentFingerprint(process.env, version),
+    environmentFingerprint: environmentFingerprint(routingEnv, version),
     claudeCodeVersion: version,
   });
   return receipt;
@@ -328,7 +330,7 @@ async function runOnce(arm, selectedCase, repetition) {
   const checkpoint = path.join(resultsDir, 'checkpoints', `${arm.id}--${selectedCase.id}--${repetition}.json`);
   try {
     for (let turn = 1; turn <= maxDialogueTurns; turn += 1) {
-      const childEnv = { ...process.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
+      const childEnv = { ...routingEnv, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' };
       for (const key of Object.keys(childEnv).filter((key) => key.startsWith('EH_BENCHMARK_'))) delete childEnv[key];
       delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL;
       delete childEnv.CLAUDE_CODE_SUBAGENT_MODEL_FORCE;

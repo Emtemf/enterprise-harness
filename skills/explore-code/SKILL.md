@@ -27,13 +27,14 @@ brief 派给 `code-explore`；Main 只接收压缩、schema-valid `ResearchPacke
    attempt 时不得进入 fallback。
 3. CodeGraph 不可用、未索引或不足以解释关键影响面时，才可定向 fallback 到 Read/Grep/Glob；记录原因、
    覆盖范围和信心边界。一次 fallback 最多使用 2 次 discovery Glob，并最多定向 Read 6 个目标文件；第二次
-   Glob 只补齐与 brief scope 直接相关的测试或项目 instruction 文件；Grep 只能用于定位这 6 个文件中的目标符号，不能扩大扫描范围。没有执行 CodeGraph attempt 不得声称
+   Glob 只补齐与 brief scope 直接相关的测试、项目 instruction 或 repository-local contract（如 `docs/`、ADR、OpenAPI、SQL/schema）文件；Grep 只能用于定位这 6 个文件中的目标符号或合同关键词，不能扩大扫描范围。没有执行 CodeGraph attempt 不得声称
    codegraph-first。不得读取或诊断 Enterprise Harness 插件、hook、receipt、ledger 或治理实现来绕过门禁；
    门禁拒绝时返回明确 uncertainty/blocker，由 Main 修复 handoff 或运行环境后重派。
    MCP 已返回未索引/未初始化时禁止用 Glob 搜索 `.codegraph`；错误本身就是 fallback 依据。首次 Glob 必须
    直接枚举 brief scope 所在模块的源码候选文件（例如 Java 模块的 `src/**/*.java`），再从结果中定向 Read。
    fallback 覆盖 brief 的精确 scope 且能穷尽回答时写明 fallback 但设 `degraded=false`；只有事实覆盖仍有缺口
    才设 `degraded=true`。
+   CodeGraph 不能证明非代码项目合同不存在；brief 要求 repository-local contract disposition 时，必须在第二次 bounded Glob 内完成定向发现。本地文档仍属 code lane，只有文档明确点名外部 library/version/API surface 时才把该路由事实返回 Main，由单独 docs lane 调 Context7。
 4. 不写产品代码、requirements、state、receipt 或 evidence 文件；SubagentStop 验证并持久化最终 packet。
 
 ## 输出与自检

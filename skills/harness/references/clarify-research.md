@@ -54,6 +54,7 @@ lane 选择规则：
      “仓库里是否存在依赖 manifest / 声明了什么 SDK”是本地代码事实，只能由 code lane 通过 CodeGraph 或 bounded
      fallback 关闭，禁止为了枚举本地 manifest 把 docs 标为 required；lane 判定前也不得先读 `pom.xml`、lockfile
      或业务源码来寻找理由；
+     仓库内 `docs/`、ADR、OpenAPI、SQL/schema 和项目 instruction 是 repository-local contract，仍属 code lane，不等于 Context7 外部文档。code brief 必须包含“与本变更直接相关的本地合同是否存在”这一有界事实谓词；CodeGraph 无法证明非代码合同不存在时，worker 在第二次 bounded Glob 内定向发现。只有本地合同明确点名外部 authority 时，Main 才基于新 evidence 创建精确 docs brief；
    - 不适用的 lane 写 `not-required` 和证据。不得为了省事把 applicable lane 标成不适用。
    code/docs 两项判定都由 `sync-lanes` 以 `lane-applicability` DecisionEvent 写入 append-only Decision Ledger，targetRef
    必须分别为 `requirements.md#fact-lane-code#sha256=<research-authority-digest>` 与
@@ -82,7 +83,7 @@ change/research 目录；Write 与 runtime 会创建父目录。不得读取正�
 每个 required lane 派发前，此时读取 [research brief 模板](../assets/research-brief.md.tmpl)和
 [brief 正反少样本](../assets/research-brief-few-shot.md)，创建唯一的
 `harness/changes/<change-id>/research/<lane>-<topic>-brief.md`。brief 只含单一事实问题、scope、已知
-用户事实和 exclusions；先确认模板字段完整、路径安全且内容与 lane 匹配，再创建 handoff。handoff 创建后
+用户事实和 exclusions；code brief 还必须在同一精确 scope 内处置直接相关 repository-local contract 是否存在。先确认模板字段完整、路径安全且内容与 lane 匹配，再创建 handoff。handoff 创建后
 brief 是 immutable input；修正问题必须创建新 brief + 新 run。
 
 首轮 brief 不是全仓审计：只选择最小事实以区分当前最高风险业务 Decision，不得把尚未观察到的

@@ -41,11 +41,11 @@ deferred schema 的唯一允许序列是：只允许一次 `ToolSearch`，query=
 callees/impact 调用；未初始化或
 不可用时立即 fallback，不再追加同义 MCP 查询。
 MCP 返回未索引/未初始化时不得用 Glob 搜索 `.codegraph`，该错误已足够证明 fallback；最多 2 次 Glob：
-第一次 Glob 直接枚举 brief 模块内源码候选文件，第二次只补齐与该 scope 直接相关的测试或项目 instruction 文件，
+第一次 Glob 直接枚举 brief 模块内源码候选文件，第二次只补齐与该 scope 直接相关的测试、项目 instruction 或 repository-local contract（如 `docs/`、ADR、OpenAPI、SQL/schema）文件，
 随后只定向 Read 命中的文件。
 
 - 只有在 codegraph 工具实际不可用（MCP server 断连、索引未初始化）或查询结果不足以解释关键影响面时，才允许 fallback 到 Grep / Glob / 定向 Read
-- 每次 fallback 最多 2 次 discovery Glob、最多定向 Read 6 个目标文件；第二次 Glob 只用于直接相关测试/项目 instruction；Grep 只能定位这 6 个文件中的目标符号，不能借此扩展仓库扫描
+- 每次 fallback 最多 2 次 discovery Glob、最多定向 Read 6 个目标文件；第二次 Glob 只用于直接相关测试/项目 instruction/repository-local contract；Grep 只能定位这 6 个文件中的目标符号或合同关键词，不能借此扩展仓库扫描
 - 不得读取或诊断 Enterprise Harness 插件、hook、receipt、ledger 或治理内部实现；门禁异常作为 uncertainty/blocker 返回主 Agent
 - fallback 必须明确原因、范围与当前可信度
 - fallback 对 brief 的精确范围已完整穷尽时保留 fallback 说明但写 `degraded=false`；只有事实覆盖缺口才写 `degraded=true`
@@ -77,7 +77,7 @@ MCP 返回未索引/未初始化时不得用 Glob 搜索 `.codegraph`，该错�
 - `question`、`scope` 与 `authority: "codegraph-first"`：精确描述本次事实任务与 authority lane。
 - `facts`：每条为可核验 claim 和非空 `sources`；`uncertainties` 单列尚未确认的结论。
 - 只把当前 change 直接触及的 technical debt、缺失测试、脆弱边界和升级阻断作为普通 sourced `facts`；证据不足或相关性未确认时写入 `uncertainties`，不得增加新的 packet field。
-- 发现的 project-level instruction files 与 verification commands 也只作为普通 sourced `facts` 返回；不得提出、合并或写入 `CLAUDE.md` 内容。
+- 发现的 project-level instruction files、verification commands 与直接相关 repository-local contracts 也只作为普通 sourced `facts` 返回；不得提出、合并或写入 `CLAUDE.md` 内容。本地文档是 code lane 事实；若它明确点名外部 library/version/API surface，只返回该路由事实，由 Main 新建 docs brief，不在 code worker 中调 Context7。
 - `fallback` / `degraded`：CodeGraph 降级时写明原因和范围；未降级时为 `null` / `false`。
 - `recommendedDecision`：仅当事实明确暴露用户决策缺口时给出一个问题，否则为 `null`。
 - `inputRefs` 与 `inputDigests`：只列真实消费的 frozen 输入。

@@ -2,7 +2,7 @@
 
 只模仿相邻 lane 的一个模式，不复制示例结论。
 
-- 好的 code 问题：`确认 OrderService.status 的当前行为、它直接引用的 OrderStatus 值，以及本类是否已有 cancel/refund；排除猜测的 Repository、DTO、Controller、全仓调用方与设计。`
+- 好的 code 问题：`确认 OrderService.status 的当前行为、它直接引用的 OrderStatus 值、本类是否已有 cancel/refund，以及与该行为直接相关的 repository-local docs/ADR/OpenAPI 合同是否存在；排除猜测的 Repository、DTO、Controller、全仓调用方与设计。`
 - 好的 docs 问题：`仅确认 stripe-java 24.0.0 创建退款时幂等键是否适用，以及同 key 重试语义；排除辅助 builder/API convenience symbols、其它字段和退款失败后的订单策略。`
 - 坏的问题：`研究取消和退款怎么做，并找全仓影响、未来兼容性和所有异常`——混合代码事实、版本事实、产品决策和设计，必然制造无关 uncertainty。
 

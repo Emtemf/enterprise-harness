@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { responseIdentityValid, routeIdentityValid } from './lib/model-identity.mjs';
 import { environmentFingerprint } from './lib/environment-fingerprint.mjs';
+import { currentClaudeRoutingEnv } from './lib/claude-settings-routing-env.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const matrix = JSON.parse(fs.readFileSync(path.join(here, 'matrix.json'), 'utf-8'));
@@ -28,6 +29,7 @@ const selectedModel = option('--model');
 const benchmarkRoutes = [...new Set(matrix.arms.flatMap((arm) => [arm.controllerRoute, ...(arm.workerRoutes || [])]))];
 const requestedModels = selectedModel ? [selectedModel] : benchmarkRoutes;
 if (requestedModels.some((model) => !matrix.modelRoutes[model])) throw new Error('--model is not present in matrix.modelRoutes');
+const routingEnv = currentClaudeRoutingEnv(process.env);
 
 function parse(raw) {
   const events = String(raw).split(/\r?\n/u).filter(Boolean).flatMap((line) => {
@@ -47,7 +49,7 @@ const probes = requestedModels.map((requestedModel) => {
     '--output-format', 'stream-json', '--verbose', '--max-turns', '1',
     '--max-budget-usd', budgetUsdPerModel.toFixed(6), '--model', requestedModel,
     '--permission-mode', 'bypassPermissions', '--setting-sources', '',
-  ], { cwd: here, encoding: 'utf-8', shell: false, timeout: 180_000 });
+  ], { cwd: here, encoding: 'utf-8', shell: false, timeout: 180_000, env: routingEnv });
   const parsed = parse(child.stdout || '');
   const identityValid = routeIdentityValid(matrix.modelRoutes[requestedModel], parsed.messageModels, parsed.billingModels);
   const billingEntries = Object.values(parsed.result?.modelUsage || {});
@@ -74,7 +76,7 @@ const receipt = {
   generatedAt: new Date().toISOString(),
   expiresAfterHours: 24,
   claudeCodeVersion,
-  environmentFingerprint: environmentFingerprint(process.env, claudeCodeVersion),
+  environmentFingerprint: environmentFingerprint(routingEnv, claudeCodeVersion),
   routingProfile: matrix.routingProfile,
   budgetUsdPerModel,
   probes,

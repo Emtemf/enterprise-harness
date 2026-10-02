@@ -91,6 +91,10 @@ assert.match(research, /单独出现“退款、支付、订单、登录”等�
   'generic business vocabulary must not trigger external documentation research');
 assert.match(research, /manifest[\s\S]*本地代码事实[\s\S]*code lane/u,
   'local dependency manifest discovery must stay in the code lane');
+assert.match(research, /repository-local contract[\s\S]*仍属 code lane[\s\S]*第二次 bounded Glob/u,
+  'repository-local contracts must stay in the code lane and use bounded discovery');
+assert.match(research, /code brief[\s\S]*必须[\s\S]*repository-local contract/u,
+  'every code brief must dispose directly relevant repository-local contracts');
 for (const token of [
   'references/clarify-research.md',
   'references/clarify-decisions.md',

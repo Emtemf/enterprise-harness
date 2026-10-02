@@ -23,6 +23,7 @@ import { hasSuccessfulToolResult } from '../../benchmarks/model-uplift-v1/lib/sd
 import { sanitizedSdkToolTrace } from '../../benchmarks/model-uplift-v1/lib/sdk-trace.mjs';
 import { assertSdkClaudeCompatibility, parseClaudeCodeVersion } from '../../benchmarks/model-uplift-v1/lib/sdk-runtime.mjs';
 import { budgetLimitValid, invocationBudgetStatus } from '../../benchmarks/model-uplift-v1/lib/invocation-budget.mjs';
+import { currentClaudeRoutingEnv } from '../../benchmarks/model-uplift-v1/lib/claude-settings-routing-env.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const benchmark = path.join(root, 'benchmarks/model-uplift-v1');
@@ -32,6 +33,23 @@ const matrix = JSON.parse(fs.readFileSync(path.join(benchmark, 'matrix.json'), '
 const relayTariff = JSON.parse(fs.readFileSync(path.join(benchmark, 'pricing.json'), 'utf-8'));
 const businessProtocol = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-evaluation.json'), 'utf-8'));
 const businessCases = JSON.parse(fs.readFileSync(path.join(benchmark, 'business-cases.development.json'), 'utf-8'));
+const routingSettings = path.join(fixture, 'settings.json');
+fs.writeFileSync(routingSettings, JSON.stringify({ env: {
+  ANTHROPIC_MODEL: 'glm-5.1',
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: 'glm-5.1',
+  ANTHROPIC_DEFAULT_SONNET_MODEL: 'glm-5.2',
+  ANTHROPIC_AUTH_TOKEN: 'must-not-be-imported',
+} }));
+const freshRoutingEnv = currentClaudeRoutingEnv({
+  ANTHROPIC_MODEL: 'stale-model',
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: 'stale-haiku',
+  ANTHROPIC_AUTH_TOKEN: 'parent-secret',
+}, routingSettings);
+assert.equal(freshRoutingEnv.ANTHROPIC_MODEL, 'glm-5.1');
+assert.equal(freshRoutingEnv.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'glm-5.1');
+assert.equal(freshRoutingEnv.ANTHROPIC_DEFAULT_SONNET_MODEL, 'glm-5.2');
+assert.equal(freshRoutingEnv.ANTHROPIC_AUTH_TOKEN, 'parent-secret',
+  'routing refresh must select model fields without importing credentials from settings.json');
 
 assert.deepEqual(matrix.arms.map(({ id }) => id), ['weak-harness', 'weak-bare', 'strong-bare']);
 assert.deepEqual(matrix.arms.find(({ id }) => id === 'weak-bare').allowedActualModels, ['glm-5.1']);
@@ -257,6 +275,14 @@ assert.equal(repeatedAnswer.unmatched, false);
 assert.equal(repeatedAnswer.repeated, true);
 const compoundAnswer = answerBusinessQuestion(businessCases.cases[0], '网关退款失败或超时后，订单状态如何处理？', new Set());
 assert.deepEqual(compoundAnswer.answeredFactIds.sort(), ['deterministic-failure', 'timeout-policy']);
+const compoundGrade = gradeBusinessClarification(businessCases.cases[0], [{
+  question: '网关退款失败或超时后，订单状态如何处理？',
+  answeredFactIds: compoundAnswer.answeredFactIds,
+  matchedFactIds: compoundAnswer.matchedFactIds,
+}], '');
+assert.equal(compoundGrade.compoundQuestionTurns, 1);
+assert.equal(compoundGrade.decisionAtomicityRate, 0,
+  'a question matching multiple independent oracle facts must remain visible as a diagnostic instead of inflating silent efficiency');
 assert.deepEqual(
   answerBusinessQuestion(businessCases.cases[0], '用户自助退款应允许谁发起？', new Set()).answeredFactIds,
   ['ownership'],
@@ -280,6 +306,7 @@ const calibrationNormalization = planHeadlessDecision(normalizationCase, {
 assert.equal(calibrationNormalization.unmatched, false);
 assert.equal(calibrationNormalization.repeated, true);
 assert.equal(calibrationNormalization.selectedOptionId, 'confirm-only-paid');
+assert.deepEqual(calibrationNormalization.matchedFactIds, ['eligible-window']);
 const businessDecision = planHeadlessDecision(refundCase, {
   questionId: 'Q-REFUND-SCOPE', decisionType: 'clarify-answer', header: '退款范围',
   question: '用户自助退款支持全额还是部分退款？', decisionNeeded: '确定退款金额范围',

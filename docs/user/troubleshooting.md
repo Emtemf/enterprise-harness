@@ -137,7 +137,7 @@ claude plugin update enterprise-harness@enterprise-harness --scope local
 | `EH-STOP-FALLBACK-149` | Stop hook 无法完成 terminal fact-gate 机械格式校验 | 保留当前回复并重新触发 Stop；校验会 fail open，不能把该错误当成 lifecycle 通过证据 |
 | `EH-DECISION-TARGET-106` | 同一 typed decision target 已有不可变选择 | 复用已有事件；若需求内容已形成新 revision，使用 runtime 生成的新 digest-versioned target，并重新 seal snapshot |
 | `EH-QUESTION-TARGET-115` | 新问题在相同 target、component、dimension 与 artifact revision 上重问已解决/Other frontier，或重复已解决的同一 AskUserQuestion 载荷 | 停止重问并读取已有 DecisionEvent；先把回答综合进 requirements 并重算 frontier。新的 artifact revision 可以推进下一决策面，单纯改写措辞不可以 |
-| `EH-QUESTION-NORMALIZATION-117` | Other 规范化候选引用了不存在、非 Other、已使用、跨 decision surface/revision 的事件，或重放原 Ask payload | 保留原始 Other 事件；使用同一 component、dimension、target 和 revision 创建脱敏 typed candidate，并仅设置一次 `normalizesEventId`；不要保存自由文本 |
+| `EH-QUESTION-NORMALIZATION-117` | Other 规范化候选引用了不存在、非 Other、已使用、跨 decision surface/revision 的事件，重放原 Ask payload，或在规范化问题中引入了原 Ask 没有的时间窗、履约、金额等新 policy axis | 保留原始 Other 事件；使用同一 component、dimension、target、revision 和单一 policy axis 创建脱敏 typed candidate，并仅设置一次 `normalizesEventId`；其他轴留给后续独立问题，不要保存自由文本 |
 | `EH-CHANGE-TRANSACTION-150` | lifecycle 正在原子发布/重验阶段证据并推进 state | 等当前 transition 完成后重试写入；不要删除锁目录或绕过 runtime writer |
 | `EH-TDD-RECEIPT-007` | v5 compatibility 流程缺少真实 TDD receipt | 仅在 v5 change 中用 tdd-run 执行冻结命令；v6 改用 task-run |
 | `EH-COMPLETION-GATE-008` | 完成证据不足 | workflow status |

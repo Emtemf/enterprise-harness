@@ -12,6 +12,7 @@
         "premature_assumption_rate",
         "evidence_grounding_rate",
         "critical_decisions_per_user_turn",
+        "decision_atomicity_rate",
         "clarification_acceptance"
       ]
     },
@@ -48,6 +49,7 @@
     ],
     "secondary": [
       "rework_cycles",
+      "decision_atomicity_rate",
       "resume_accuracy",
       "third_party_replay_success"
     ],
@@ -86,7 +88,8 @@
       "只回答当前问题直接涉及的隐藏业务事实",
       "不主动补充模型尚未发现的关键未知项",
       "问题含未经授权的默认选择时记录 premature assumption",
-      "重复问题返回相同答案并计入效率指标"
+      "重复问题返回相同答案并计入效率指标",
+      "单个问题同时命中多个独立业务事实时计为 compound question，单独报告 decision atomicity，不通过重写总分掩盖"
     ]
   }
 }

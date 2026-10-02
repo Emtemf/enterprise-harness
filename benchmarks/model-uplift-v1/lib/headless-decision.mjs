@@ -52,6 +52,7 @@ export function planHeadlessDecision(selectedCase, candidate, answered = new Set
     answer: displayedAnswer,
     businessAnswer: scripted.answer,
     answeredFactIds: scripted.answeredFactIds,
+    matchedFactIds: scripted.matchedFactIds,
     unmatched: scripted.unmatched,
     repeated: scripted.repeated,
     decisionType: candidate.decisionType,

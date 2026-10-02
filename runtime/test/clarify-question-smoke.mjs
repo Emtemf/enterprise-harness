@@ -679,6 +679,29 @@ try {
     /EH-QUESTION-NORMALIZATION-117.*must not repeat the original AskUserQuestion payload/u,
     'normalization must present a new sanitized typed choice instead of replaying the original question',
   );
+  const crossAxisNormalization = candidateFor(otherChange, 'Q-029', {
+    normalizesEventId: 'D-020',
+    decisionNeeded: 'Confirm refund status eligibility',
+    question: 'Should eligibility require PAID status within 7 days and before shipment?',
+    options: [
+      {
+        id: 'paid-seven-days-unshipped',
+        label: 'PAID within 7 days before shipment',
+        description: 'Require PAID status, a seven-day window, and an unshipped order.',
+      },
+      {
+        id: 'paid-only',
+        label: 'PAID status only',
+        description: 'Require only PAID status.',
+      },
+    ],
+    recommendedOption: 'paid-seven-days-unshipped',
+  });
+  assert.throws(
+    () => prepareClarifyQuestion(root, otherChange, writeCandidate(crossAxisNormalization)),
+    /EH-QUESTION-NORMALIZATION-117.*new policy axes/u,
+    'normalization must not smuggle time-window and fulfillment decisions into a different source surface',
+  );
   const normalizationCandidate = candidateFor(otherChange, 'Q-023', {
     normalizesEventId: 'D-020',
     decisionNeeded: 'Confirm the sanitized compatibility policy derived from the prior Other answer',

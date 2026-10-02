@@ -45,6 +45,20 @@ const IMPLEMENTATION_CHOICE_PATTERNS = [
   /(?:函数|方法|类|设计模式)/u,
   /\b(?:function|method|class|design\s+pattern)\b/iu,
 ];
+const NORMALIZATION_POLICY_AXES = new Map([
+  ['status', [/(?:状态|状态集合)/u, /\b(?:status|PAID|FULFILLED|CANCELLED|PENDING|REFUNDED)\b/iu]],
+  ['time-window', [/(?:时间窗|期限|\d+\s*(?:天|小时|分钟)(?:内|后|前)?)/u,
+    /\b(?:within|after|before)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:days?|hours?|minutes?)\b/iu]],
+  ['fulfillment', [/(?:未发货|已发货|发货边界|履约边界|物流状态)/u,
+    /\b(?:unshipped|shipped|before\s+shipment|after\s+shipment|fulfillment\s+boundary)\b/iu]],
+  ['amount', [/(?:全额退款|部分退款|退款金额)/u, /\b(?:full|partial)\s+refund|refund\s+amount\b/iu]],
+  ['ownership', [/(?:订单本人|订单所有者|归属校验|发起主体|访问权限)/u,
+    /\b(?:order\s+owner|ownership|requesting\s+actor|access\s+control)\b/iu]],
+  ['failure-class', [/(?:网关超时|结果未知|明确失败|明确拒绝)/u,
+    /\b(?:timeout|unknown\s+outcome|deterministic\s+failure|explicit\s+failure|explicit\s+rejection)\b/iu]],
+  ['retry-idempotency', [/(?:重试|幂等)/u, /\b(?:retry|idempoten(?:t|cy)|duplicate\s+request)\b/iu]],
+  ['audit', [/(?:审计事件|审计日志)/u, /\b(?:audit\s+event|audit\s+log)\b/iu]],
+]);
 
 function questionError(code, message) {
   return new Error(`${code}: ${message}`);
@@ -119,6 +133,20 @@ function normalizeJson(value) {
 
 function sameJson(left, right) {
   return JSON.stringify(normalizeJson(left)) === JSON.stringify(normalizeJson(right));
+}
+
+function visibleDecisionText(candidate) {
+  return [candidate.question, candidate.decisionNeeded,
+    ...(candidate.options || []).flatMap(({ label, description }) => [label, description])]
+    .filter(isNonEmptyString)
+    .join('\n');
+}
+
+function normalizationPolicyAxes(candidate) {
+  const text = visibleDecisionText(candidate);
+  return new Set([...NORMALIZATION_POLICY_AXES.entries()]
+    .filter(([, patterns]) => patterns.some((pattern) => pattern.test(text)))
+    .map(([axis]) => axis));
 }
 
 export function validateQuestionCandidate(candidate) {
@@ -570,6 +598,14 @@ function normalizationSource(root, changeId, candidate, events) {
     throw questionError(
       'EH-QUESTION-NORMALIZATION-117',
       `candidate must preserve the component, dimension, target, and artifact revision of ${sourceEvent.eventId}`,
+    );
+  }
+  const sourceAxes = normalizationPolicyAxes(sourceCandidate);
+  const newAxes = [...normalizationPolicyAxes(candidate)].filter((axis) => !sourceAxes.has(axis));
+  if (newAxes.length > 0) {
+    throw questionError(
+      'EH-QUESTION-NORMALIZATION-117',
+      `normalization introduces new policy axes not present in ${sourceEvent.questionId}: ${newAxes.join(', ')}`,
     );
   }
   if (sameJson(expectedToolInput(sourceCandidate), expectedToolInput(candidate))) {

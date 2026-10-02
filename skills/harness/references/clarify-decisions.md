@@ -142,7 +142,10 @@ requirements；若完整 section 缺失，返回 Phase 1 完成展开与 digest/
    target 与 artifact revision 上的一个具体 policy，创建新的 `clarify-answer` candidate，并增加
    `normalizesEventId=<前一条 Other eventId>`；用 2–4 个脱敏 typed options 呈现规范化结果与至少一个真实替代项，
    让用户确认。不得把原始自由文本、secret 或聊天内容复制进 candidate。runtime 只允许绑定同一 decision surface
-   的 redacted Other，一条 Other 只能规范化一次，且新 Ask 不能与原 payload 相同；成功选择后 DecisionEvent 保存
+   的 redacted Other，一条 Other 只能规范化一次，且新 Ask 不能与原 payload 相同；规范化问句与选项不得引入原 Ask
+   未出现的新 policy axis，例如状态资格问题不得在第二轮捆绑“7 天内 + 未发货”。runtime 会对已知时间窗、履约、金额、
+   归属、失败类别、重试/幂等与审计轴执行 fail-closed 对比；无法在原轴上脱敏归一时必须继续收窄，不得吸收自由文本中的其他决定。
+   成功选择后 DecisionEvent 保存
    `normalizesEventId` lineage 并恢复原 typed target，仍不保存原文；违反任一绑定条件会以
    `EH-QUESTION-NORMALIZATION-117` fail closed。若无法安全归一，就继续收窄原问题的单一 axis。
    candidate 自检若发现自由输入本可直接对应某个选项但 host 仍落入 Other，应先检查选项是否使用了不必要的组合轴

@@ -1,6 +1,6 @@
 # 竞争证据与传播维护说明
 
-更新时间：2026-09-29
+更新时间：2026-10-03
 
 本文件只供维护者使用。对外读者入口是 [`docs/marketing/competitive-evidence.md`](../marketing/competitive-evidence.md)；公开页面讲企业结果、交付物、选型边界和已验证事实，不承载宣传审批、实验计划或当前 checkout 诊断。
 
@@ -129,6 +129,8 @@ clean `c7600fe` 两轮复验是有效 development 观测，但没有命中目标
 定向 clean `a11438d` 证明 calibration surface 可复现：首问严格只列 PAID/FULFILLED/CANCELLED 状态，scripted user 返回含 7 天与未发货的多轴自由文本，runtime 只持久化 D-1 Other 与 candidate digest；第二轮 GLM-5.1 生成“状态资格是否仅限 PAID”的 Q-2，并正确设置 `normalizesEventId=D-1`。身份、账单、bridge 与预算都有效，总 alias $5.095699、耗时 1,327,055ms、召回 1、未经确认假设率 0。D-2 仍是 Other 的原因只在 development oracle：label 为“确认仅 PAID”，而 projection regex 未允许“仅”与 `PAID` 之间的空格；host 因而判 unmatched。exact Q-2 回归现要求唯一选中 `confirm-only-paid`。本轮还再次把普通“退款”推断为 Stripe，先产生带 uncertainty 的 docs packet 再补更窄 run；Skill lane 规则已收紧为只有显式 vendor/library/protocol/version/API surface 才触发 docs，通用业务词与本地 manifest 枚举不能触发。摘要见 [`normalization-calibration-a11438d-2026-10-03.json`](../../benchmarks/model-uplift-v1/normalization-calibration-a11438d-2026-10-03.json)。
 
 clean `a396913` 完成了 typed Other 的真实 GLM-5.1 复验：首问仍将含“7 天内、未发货”的多轴自由输入脱敏为 `D-1 selectedOption=other`，第二轮模型生成携带 `normalizesEventId=D-1` 的新 Q-2，宿主唯一选中 typed `confirm-paid-only`，SDK 回调完成持久化，产品 Decision Ledger 不保存自由文本。本轮 controller/worker 均为 GLM-5.1，identity、raw-request binding、bridge、billing 与 budget 全部有效；耗时 620,939ms，alias 估算 $3.159232。同时 docs lane 正确判为 `not-required`，没有再从通用“退款”推断 Stripe。这是机制验收，不是效果对照：评测故意在两问后停止，尚未将 D-2 综合回最终 requirements，因此 `accepted=false` 与 final coverage 0 不得用于弱/强模型主张。摘要见 [`typed-normalization-a396913-2026-10-03.json`](../../benchmarks/model-uplift-v1/typed-normalization-a396913-2026-10-03.json)。
+
+clean `b526283` 首次在同一提交、同一 development case、同为 GLM-5.1、各两轮下得到可比较的弱裸与弱 Harness 诊断，结果是明确的负证据：裸跑 effect 52.58、召回 0.355、最终覆盖 0.290、grounding 1；Harness effect 25.89、召回 0.097、最终覆盖 0、grounding 0.5，差值为 -26.69pp。两臂 identity、raw request、billing、bridge 与预算均有效，但该 pair 使用显式环境覆盖、没有 proxy route receipt、每臂只有一次且都未验收，因此不进入正式观测。根因包括：规范化问题把时间窗与履约条件偷渡进原本单轴的状态候选；code lane 未读取仓库本地 `docs/payment-provider-v3.txt` 合同；runner 会继承 Codex 父进程的陈旧模型变量；现有效果分还会奖励裸跑的一问多轴。修复保持证据诚实：runtime 机械拒绝规范化新增已知政策轴，code lane 有界检查直接相关的本地合同，runner 从 fresh Claude settings 只刷新模型路由变量；另增 atomicity 诊断但不回改 effect 权重。摘要见 [`paired-calibration-b526283-2026-10-03.json`](../../benchmarks/model-uplift-v1/paired-calibration-b526283-2026-10-03.json)。
 
 CC Switch 保存后于 2026-09-10 再次 fresh 预检：Haiku 仍指向不可用的 `claude-haiku-4-5`；Sonnet 在相邻两次探针中分别返回 `glm-5.2` 与 `glm-5.3`。这不是可重复的 GLM-5.1/5.2 对照环境。五臂 runner 因而只探测实际使用的 Haiku/Sonnet，并继续要求二者在同一 fresh receipt 中全部匹配目标身份。
 

@@ -14,6 +14,10 @@ export function gradeBusinessClarification(selectedCase, transcript, finalRequir
   const groundedEvidenceRefs = evidenceRefs.filter((reference) => String(finalRequirements || '').includes(reference));
   const unmatchedQuestions = transcript.filter(({ unmatched }) => unmatched).length;
   const questionTurns = transcript.length;
+  const compoundQuestionTurns = transcript.filter((turn) => (
+    new Set(turn.matchedFactIds || turn.answeredFactIds || []).size > 1
+  )).length;
+  const decisionAtomicityRate = questionTurns === 0 ? 1 : 1 - (compoundQuestionTurns / questionTurns);
   const criticalUnknownRecall = totalWeight === 0 ? 0 : discoveredWeight / totalWeight;
   const finalRequirementCoverage = totalWeight === 0 ? 0 : coveredWeight / totalWeight;
   const prematureAssumptionRate = facts.length === 0 ? 0 : prematureFactIds.length / facts.length;
@@ -37,6 +41,8 @@ export function gradeBusinessClarification(selectedCase, transcript, finalRequir
     prematureAssumptionRate,
     evidenceGroundingRate,
     decisionEfficiency,
+    decisionAtomicityRate,
+    compoundQuestionTurns,
     questionTurns,
     unmatchedQuestions,
     maxUnmatchedQuestions,

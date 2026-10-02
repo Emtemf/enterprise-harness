@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "type": "development-paired-diagnostic-summary",
+  "recordedAt": "2026-10-03",
+  "runnerCommit": "b526283a82229c1c7685df1ca2573b8d9d132f24",
+  "runnerTreeClean": true,
+  "caseId": "refund-policy",
+  "repetitionsPerArm": 1,
+  "dialogueTurnsPerArm": 2,
+  "controllerModels": ["glm-5.1"],
+  "modelRoutingAuthority": "explicit environment override for this diagnostic only",
+  "claimEligibleInput": false,
+  "formalPairedObservation": false,
+  "arms": [
+    {
+      "armId": "weak-bare",
+      "measurementValid": true,
+      "modelIdentityValid": true,
+      "responseIdentityValid": true,
+      "rawRequestBound": true,
+      "questionBridgeValid": true,
+      "billingComplete": true,
+      "budgetLimitValid": true,
+      "accepted": false,
+      "effectScore": 52.58064516129032,
+      "criticalUnknownRecall": 0.3548387096774194,
+      "finalRequirementCoverage": 0.2903225806451613,
+      "prematureAssumptionRate": 0,
+      "evidenceGroundingRate": 1,
+      "questionTurns": 2,
+      "compoundQuestionTurns": 2,
+      "decisionAtomicityRate": 0,
+      "durationMs": 154638,
+      "aliasEstimatedCostUsd": 0.5861139999999999,
+      "groundedEvidenceRefs": [
+        "src/order-policy.mjs",
+        "docs/payment-provider-v3.txt"
+      ]
+    },
+    {
+      "armId": "weak-harness",
+      "measurementValid": true,
+      "modelIdentityValid": true,
+      "responseIdentityValid": true,
+      "rawRequestBound": true,
+      "questionBridgeValid": true,
+      "billingComplete": true,
+      "budgetLimitValid": true,
+      "accepted": false,
+      "effectScore": 25.887096774193548,
+      "criticalUnknownRecall": 0.0967741935483871,
+      "finalRequirementCoverage": 0,
+      "prematureAssumptionRate": 0,
+      "evidenceGroundingRate": 0.5,
+      "questionTurns": 2,
+      "compoundQuestionTurns": 0,
+      "decisionAtomicityRate": 1,
+      "durationMs": 814130,
+      "aliasEstimatedCostUsd": 3.905704,
+      "groundedEvidenceRefs": [
+        "src/order-policy.mjs"
+      ],
+      "missingEvidenceRefs": [
+        "docs/payment-provider-v3.txt"
+      ]
+    }
+  ],
+  "comparison": {
+    "effectGapPpWeakHarnessMinusWeakBare": -26.693548387096772,
+    "result": "weak-bare-wins-this-development-pair",
+    "supportsHarnessAdvantage": false
+  },
+  "diagnosis": [
+    "Other normalization introduced time-window and fulfillment axes that were absent from the source status candidate.",
+    "The code research lane did not discover the directly relevant repository-local provider contract under docs/.",
+    "The benchmark process inherited stale parent model-routing variables unless the caller supplied explicit overrides.",
+    "The effect score rewarded the bare arm's compound questions; atomicity is now reported separately without changing the effect score."
+  ],
+  "acceptedCandidates": [
+    "runtime-cross-axis-normalization-guard",
+    "bounded-repository-local-contract-discovery",
+    "fresh-claude-settings-model-routing",
+    "separate-decision-atomicity-diagnostic"
+  ],
+  "rejectedCandidates": [
+    {
+      "id": "reweight-effect-score-after-negative-result",
+      "reason": "Changing the primary score after observing the loss would make the comparison non-credible; atomicity remains a separate diagnostic."
+    }
+  ],
+  "invalidProbeExcluded": {
+    "path": "/tmp/model-uplift-weak-bare-b526283-glm51",
+    "reason": "The first bare probe inherited stale parent routing and returned glm-5.3-flash instead of GLM-5.1; it was stopped and is not part of this pair."
+  },
+  "notes": "This n=1 development pair is negative evidence, not a publishable comparison. It preserves the observed Harness loss and records the low-regret fixes selected from that loss. The 0/1 atomicity values are recomputed using the newly added matched-fact diagnostic and do not alter either arm's historical effect score."
+}

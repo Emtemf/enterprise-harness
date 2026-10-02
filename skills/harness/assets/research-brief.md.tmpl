@@ -7,6 +7,7 @@
 - known user facts：只记录用户已明确给出的事实
 - exclusions：不得研究或推断的业务策略、设计方案和相邻 lane 范围
 - closure：一次 CodeGraph 或 bounded fallback / 一次 Context7 resolve + 最多两次 query 内，哪些事实足以让本 question 以 `uncertainties=[]` 关闭；目标不存在也是一种可关闭事实；不得把未点名的辅助 API/symbol 当成 closure 条件
+- repository-local contracts（code lane）：明确本变更直接相关的 `docs/`、ADR、OpenAPI/SQL/schema 或项目 instruction 是否存在；它们是本地事实，不得路由到 Context7。CodeGraph 不能证明非代码合同不存在时，用第二次 bounded discovery Glob 定向查询，只读取与 brief 直接相关的命中文件
 - source request ref：requirements 中原始请求的位置
 
 ## Relevant technical debt
@@ -17,6 +18,7 @@
 ## Project instructions
 
 - Report discovered project-level instruction files and verification commands as facts.
+- Report directly relevant repository-local contracts and their paths as facts; if such a contract names an external library/version/API surface that still needs current authority, return that exact routing fact to Main for a separate docs lane/run.
 - Do not propose, merge, or write CLAUDE.md content.
 
 此 brief 在 handoff create 前写入 `harness/changes/<change-id>/research/<lane>-<topic>-brief.md`。
